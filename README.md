@@ -1,0 +1,2 @@
+# discordo
+Discord Terminal Client
