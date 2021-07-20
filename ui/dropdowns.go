@@ -15,8 +15,7 @@ func NewGuildsDropDown(onGuildsDropDownSelected func(text string, index int)) *t
 		SetFieldBackgroundColor(guildsDropDownBackgroundColor).
 		SetBackgroundColor(guildsDropDownBackgroundColor).
 		SetBorder(true).
-		SetBorderPadding(0, 0, 1, 1).
-		SetTitle("Guilds")
+		SetBorderPadding(0, 0, 1, 1)
 
 	return guildsDropDown
 }
