@@ -35,16 +35,8 @@ func main() {
 	mainFlex = ui.NewMainFlex(guildsDropDown, channelsList, messagesTextView)
 	app = ui.NewApplication(onApplicationInputCapture)
 
-	email := util.GetPassword("email")
-	password := util.GetPassword("password")
 	token := util.GetPassword("token")
-	if email != "" && password != "" {
-		app.
-			SetRoot(mainFlex, true).
-			SetFocus(guildsDropDown)
-
-		discordSession = newSession(email, password, "")
-	} else if token != "" {
+	if token != "" {
 		app.
 			SetRoot(mainFlex, true).
 			SetFocus(guildsDropDown)
@@ -215,9 +207,7 @@ func onLoginFormLoginButtonSelected() {
 		}
 
 		discordSession = newSession(email, password, "")
-
-		util.SetPassword("email", email)
-		util.SetPassword("password", password)
+		util.SetPassword("token", discordSession.Token)
 	} else if loginVia == "token" {
 		token := loginForm.GetFormItemByLabel("Token").(*tview.InputField).GetText()
 		if token == "" {
@@ -225,7 +215,6 @@ func onLoginFormLoginButtonSelected() {
 		}
 
 		discordSession = newSession("", "", token)
-
 		util.SetPassword("token", token)
 	}
 
