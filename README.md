@@ -11,13 +11,19 @@ Lightweight Discord terminal client
 
 ## Installation
 
-- For Linux, run the following commands in chronological order.
+- Run the following commands in chronological order.
 
 ```
 git clone https://github.com/rigormorrtiss/discordo
 cd discordo
-mv build/discordo-os-arch /usr/local/bin
+cp build/discordo_linux_amd64 /usr/local/bin/discordo
 ```
+
+Binary name examples:
+
+- `discordo_linux_amd64`
+- `discordo_darwin_amd64`
+- `discordo_windows_amd64.exe`
 
 ## Usage
 
