@@ -1,6 +1,6 @@
 # discordo
 
-Lightweight Discord terminal client
+[WIP] Lightweight Discord terminal client
 
 ![preview](assets/preview.png)
 
