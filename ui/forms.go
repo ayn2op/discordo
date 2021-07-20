@@ -16,7 +16,7 @@ func NewLoginForm(via string, onLoginFormLoginButtonSelected func(), onLoginForm
 		SetButtonBackgroundColor(loginFormButtonBackgroundColor).
 		SetBackgroundColor(loginFormBackgroundColor).
 		SetBorder(true).
-		SetBorderPadding(15, 15, 15, 15)
+		SetBorderPadding(0, 0, 1, 1)
 
 	if via == "token" {
 		loginForm.AddPasswordField("Token", "", 0, 0, nil)
