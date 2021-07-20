@@ -103,11 +103,15 @@ func newSession(email string, password string, token string) *session.Session {
 			panic(err)
 		}
 
-		sess.AddHandler(onGuildCreate)
-		sess.Gateway.AddIntents(gateway.IntentGuilds)
-		sess.Gateway.AddIntents(gateway.IntentGuildMessages)
+		if strings.HasPrefix(token, "Bot ") {
+			sess.Gateway.AddIntents(gateway.IntentGuilds)
+			sess.Gateway.AddIntents(gateway.IntentGuildMessages)
+		} else {
+			sess.AddHandler(onReady)
+		}
 	}
 
+	sess.AddHandler(onGuildCreate)
 	sess.AddHandler(onMessageCreate)
 	if err = sess.Open(); err != nil {
 		panic(err)
