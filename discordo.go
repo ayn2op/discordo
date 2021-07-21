@@ -3,7 +3,6 @@ package main
 import (
 	"strings"
 
-	"github.com/diamondburned/arikawa/v2/api"
 	"github.com/diamondburned/arikawa/v2/discord"
 	"github.com/diamondburned/arikawa/v2/gateway"
 	"github.com/diamondburned/arikawa/v2/session"
@@ -83,14 +82,6 @@ func newSession(email string, password string, token string) *session.Session {
 	var sess *session.Session
 	var err error
 	if email != "" && password != "" {
-		api.UserAgent = `Mozilla/5.0 (X11; Linux x86_64; rv:90.0)` +
-			`Gecko/20100101 Firefox/90.0`
-		gateway.DefaultIdentity = gateway.IdentifyProperties{
-			OS:      "Linux",
-			Browser: "Firefox",
-			Device:  "",
-		}
-
 		sess, err = session.Login(email, password, "")
 		if err != nil {
 			panic(err)
@@ -103,10 +94,7 @@ func newSession(email string, password string, token string) *session.Session {
 			panic(err)
 		}
 
-		if strings.HasPrefix(token, "Bot ") {
-			sess.Gateway.AddIntents(gateway.IntentGuilds)
-			sess.Gateway.AddIntents(gateway.IntentGuildMessages)
-		} else {
+		if !strings.HasPrefix(token, "Bot ") {
 			sess.AddHandler(onReady)
 		}
 	}
