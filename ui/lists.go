@@ -5,17 +5,17 @@ import (
 	"github.com/rivo/tview"
 )
 
-var channelsListBackgroundColor = tcell.GetColor("#1C1E26")
-
-func NewChannelsList(onChannelsListSelected func(i int, mainText string, secondaryText string, _ rune)) *tview.List {
-	channelsList := tview.NewList().
+func NewChannelsList(onChannelsListSelected func(i int, mainText string, secondaryText string, _ rune)) (channelsList *tview.List) {
+	channelsList = tview.NewList().
 		ShowSecondaryText(false).
+		SetMainTextColor(tcell.ColorDarkGray).
+		SetSelectedTextColor(tcell.ColorWhite).
+		SetSelectedBackgroundColor(tview.Styles.PrimitiveBackgroundColor).
 		SetSelectedFunc(onChannelsListSelected)
 	channelsList.
 		SetBorder(true).
 		SetBorderPadding(0, 0, 1, 1).
-		SetTitle("Channels").
-		SetBackgroundColor(channelsListBackgroundColor)
+		SetTitle("Channels")
 
-	return channelsList
+	return
 }

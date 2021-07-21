@@ -47,11 +47,11 @@ func SendMessage(session *session.Session, channelID discord.ChannelID, content 
 	}
 }
 
-func GetMessages(session *session.Session, channelID discord.ChannelID, limit uint) []discord.Message {
+func GetMessages(session *session.Session, channelID discord.ChannelID, limit uint) (messages []discord.Message) {
 	messages, err := session.Messages(channelID, limit)
 	if err != nil {
 		panic(err)
 	}
 
-	return messages
+	return
 }

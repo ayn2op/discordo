@@ -1,14 +1,11 @@
 package ui
 
 import (
-	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
-var messagesTextViewBackgroundColor = tcell.GetColor("#1C1E26")
-
-func NewMessagesTextView(onMessagesTextViewChanged func()) *tview.TextView {
-	messagesTextView := tview.NewTextView().
+func NewMessagesTextView(onMessagesTextViewChanged func()) (messagesTextView *tview.TextView) {
+	messagesTextView = tview.NewTextView().
 		SetDynamicColors(true).
 		SetWrap(true).
 		SetWordWrap(true).
@@ -17,8 +14,7 @@ func NewMessagesTextView(onMessagesTextViewChanged func()) *tview.TextView {
 		SetChangedFunc(onMessagesTextViewChanged)
 	messagesTextView.
 		SetBorder(true).
-		SetBorderPadding(0, 0, 1, 1).
-		SetBackgroundColor(messagesTextViewBackgroundColor)
+		SetBorderPadding(0, 0, 1, 1)
 
-	return messagesTextView
+	return
 }

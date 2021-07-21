@@ -4,8 +4,8 @@ import (
 	"github.com/rivo/tview"
 )
 
-func NewMainFlex(guildsDropDown *tview.DropDown, channelsList *tview.List, messagesTextView *tview.TextView) *tview.Flex {
-	mainFlex := tview.NewFlex().
+func NewMainFlex(guildsDropDown *tview.DropDown, channelsList *tview.List, messagesTextView *tview.TextView) (mainFlex *tview.Flex) {
+	mainFlex = tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(guildsDropDown, 3, 1, false).
 		AddItem(
@@ -17,5 +17,5 @@ func NewMainFlex(guildsDropDown *tview.DropDown, channelsList *tview.List, messa
 			false,
 		)
 
-	return mainFlex
+	return
 }

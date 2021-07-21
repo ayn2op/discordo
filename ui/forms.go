@@ -5,16 +5,12 @@ import (
 	"github.com/rivo/tview"
 )
 
-var loginFormBackgroundColor = tcell.GetColor("#1C1E26")
-var loginFormButtonBackgroundColor = tcell.GetColor("#5865F2")
-
-func NewLoginForm(via string, onLoginFormLoginButtonSelected func(), onLoginFormQuitButtonSelected func()) *tview.Form {
-	loginForm := tview.NewForm().
+func NewLoginForm(via string, onLoginFormLoginButtonSelected func(), onLoginFormQuitButtonSelected func()) (loginForm *tview.Form) {
+	loginForm = tview.NewForm().
 		AddButton("Login", onLoginFormLoginButtonSelected).
 		AddButton("Quit", onLoginFormQuitButtonSelected)
 	loginForm.
-		SetButtonBackgroundColor(loginFormButtonBackgroundColor).
-		SetBackgroundColor(loginFormBackgroundColor).
+		SetButtonBackgroundColor(tcell.GetColor("#5865F2")).
 		SetBorder(true).
 		SetBorderPadding(0, 0, 1, 1)
 
