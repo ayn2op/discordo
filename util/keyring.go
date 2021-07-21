@@ -6,13 +6,13 @@ import (
 
 const Service string = "discordo"
 
-func GetPassword(user string) string {
+func GetPassword(user string) (password string) {
 	password, err := keyring.Get(Service, user)
 	if err == keyring.ErrNotFound {
 		return ""
 	}
 
-	return password
+	return
 }
 
 func SetPassword(user string, password string) {

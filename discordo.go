@@ -27,12 +27,14 @@ var currentGuild gateway.GuildCreateEvent
 var currentChannel discord.Channel
 
 func main() {
+	tview.Styles.PrimitiveBackgroundColor = tcell.GetColor("#1C1E26")
+
 	loginModal = ui.NewLoginModal(onLoginModalDone)
 	guildsDropDown = ui.NewGuildsDropDown(onGuildsDropDownSelected)
 	channelsList = ui.NewChannelsList(onChannelsListSelected)
 	messagesTextView = ui.NewMessagesTextView(onMessagesTextViewChanged)
 	mainFlex = ui.NewMainFlex(guildsDropDown, channelsList, messagesTextView)
-	app = ui.NewApplication(onApplicationInputCapture)
+	app = ui.NewApplication()
 
 	token := util.GetPassword("token")
 	if token != "" {
@@ -45,21 +47,13 @@ func main() {
 		app.SetRoot(loginModal, true)
 	}
 
-	if err := app.Run(); err != nil {
+	if err := app.EnableMouse(true).Run(); err != nil {
 		panic(err)
 	}
 }
 
 func onLoginFormQuitButtonSelected() {
 	app.Stop()
-}
-
-func onApplicationInputCapture(event *tcell.EventKey) *tcell.EventKey {
-	if event.Key() == tcell.KeyCtrlR {
-		app.Sync()
-	}
-
-	return event
 }
 
 func onMessagesTextViewChanged() {
