@@ -4,8 +4,8 @@ import (
 	"github.com/rivo/tview"
 )
 
-var LoginViaTokenLoginModalButton = "Login via token"
-var LoginViaEmailPasswordLoginModalButton = "Login via email and password"
+const LoginViaTokenLoginModalButton = "Login via token"
+const LoginViaEmailPasswordLoginModalButton = "Login via email and password"
 
 func NewLoginModal(onLoginModalDone func(buttonIndex int, buttonLabel string)) (loginModal *tview.Modal) {
 	loginModal = tview.NewModal().
