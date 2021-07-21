@@ -36,3 +36,7 @@ discordo
 - Choose the preferred login method.
 - Log in using the chosen login method and click on "Login" button to continue.
 Note: bot accounts must be prefixed with "Bot ".
+
+## Disclaimer
+
+Automated user accounts or "self-bots" are against Discord's Terms of Service. I am not responsible for any loss caused by using "self-bots" or Discordo.
