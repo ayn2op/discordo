@@ -90,6 +90,9 @@ func newSession(email string, password string, token string) *session.Session {
 
 		if !strings.HasPrefix(token, "Bot ") {
 			sess.AddHandler(onReady)
+		} else {
+			sess.Gateway.AddIntents(gateway.IntentGuilds)
+			sess.Gateway.AddIntents(gateway.IntentGuildMessages)
 		}
 	}
 
