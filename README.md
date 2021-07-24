@@ -20,12 +20,12 @@ git clone https://github.com/rigormorrtiss/discordo
 cd discordo && go build
 ```
 
-## Usage
+## Getting Started
 
 - Run the built executable in a new Terminal.
 - Choose the preferred login method.
 - Log in using the chosen login method and click on "Login" button to continue.
-Note: bot accounts must be prefixed with "Bot ".
+Note: bot accounts tokens must be prefixed with "Bot " (eg: "Bot ODM9NjU5MDAqNjQyOFYoNDM4.YU-UQw.vBefI1uO0q6QGKDSQ2iUk5z8PY4").
 
 ## Disclaimer
 
