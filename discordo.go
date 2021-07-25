@@ -112,7 +112,7 @@ func onGuildCreate(guild *gateway.GuildCreateEvent) {
 
 func onReady(ready *gateway.ReadyEvent) {
 	guilds = ready.Guilds
-	for i := 0; i < len(guilds); i++ {
+	for i := range guilds {
 		guildsDropDown.AddOption(guilds[i].Name, nil)
 	}
 }
@@ -134,7 +134,7 @@ func onGuildsDropDownSelected(text string, _ int) {
 		messageInputField = nil
 	}
 
-	for i := 0; i < len(guilds); i++ {
+	for i := range guilds {
 		guild := guilds[i]
 		if guild.Name == text {
 			currentGuild = guild
@@ -142,7 +142,7 @@ func onGuildsDropDownSelected(text string, _ int) {
 		}
 	}
 
-	for i := 0; i < len(currentGuild.Channels); i++ {
+	for i := range currentGuild.Channels {
 		channel := currentGuild.Channels[i]
 		channelsList.AddItem(channel.Name, "", 0, nil)
 	}

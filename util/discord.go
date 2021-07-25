@@ -30,11 +30,8 @@ func WriteMessage(messagesTextView *tview.TextView, message discord.Message) {
 	}
 
 	attachments := message.Attachments
-	attachmentsLen := len(attachments)
-	if attachmentsLen > 0 {
-		for i := 0; i < attachmentsLen; i++ {
-			content.WriteString("\n" + attachments[i].URL)
-		}
+	for i := range attachments {
+		content.WriteString("\n" + attachments[i].URL)
 	}
 
 	fmt.Fprintln(messagesTextView, content.String())
