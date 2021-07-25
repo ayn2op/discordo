@@ -1,6 +1,6 @@
 # discordo
 
-[WIP] Lightweight Discord terminal client
+Lightweight Discord terminal client
 
 ![Preview](assets/preview.png)
 
@@ -12,8 +12,6 @@
 ## Installation
 
 ### Building from Source
-
-- Run the following commands in chronological order.
 
 ```
 git clone https://github.com/rigormorrtiss/discordo
