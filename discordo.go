@@ -71,6 +71,11 @@ func onLoginModalDone(buttonIndex int, buttonLabel string) {
 }
 
 func newSession(email string, password string, token string) *discordgo.Session {
+	userAgent := "" +
+		"Mozilla/5.0 (X11; Linux x86_64) " +
+		"AppleWebKit/537.36 (KHTML, like Gecko) " +
+		"Chrome/91.0.4472.164 Safari/537.36"
+
 	var sess *discordgo.Session
 	var err error
 	if email != "" && password != "" {
@@ -78,6 +83,10 @@ func newSession(email string, password string, token string) *discordgo.Session 
 		if err != nil {
 			panic(err)
 		}
+
+		sess.UserAgent = userAgent
+		sess.Identify.Properties.Browser = "Chrome"
+		sess.Identify.Properties.OS = "Linux"
 
 		sess.AddHandler(onReady)
 	} else if token != "" {
@@ -87,14 +96,16 @@ func newSession(email string, password string, token string) *discordgo.Session 
 		}
 
 		if !strings.HasPrefix(token, "Bot ") {
+			sess.UserAgent = userAgent
+			sess.Identify.Properties.Browser = "Chrome"
+			sess.Identify.Properties.OS = "Linux"
+
 			sess.AddHandler(onReady)
 		}
 	}
 
 	sess.AddHandler(onGuildCreate)
 	sess.AddHandler(onMessageCreate)
-
-	sess.Identify.Intents = discordgo.IntentsAllWithoutPrivileged
 	if err = sess.Open(); err != nil {
 		panic(err)
 	}
