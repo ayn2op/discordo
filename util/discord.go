@@ -6,15 +6,23 @@ import (
 	_ "image/png"
 	"strings"
 
-	"github.com/diamondburned/arikawa/v2/discord"
-	"github.com/diamondburned/arikawa/v2/session"
+	"github.com/bwmarrin/discordgo"
 	"github.com/rivo/tview"
 )
 
-func WriteMessage(messagesTextView *tview.TextView, message discord.Message) {
+func WriteMessage(messagesTextView *tview.TextView, session *discordgo.Session, message *discordgo.Message) {
 	var content strings.Builder
 
-	content.WriteString("[#E95678::b]" + message.Author.Username + "[-:-:-] ")
+	if session.State.User.ID == message.Author.ID {
+		content.WriteString("[#29D398::b]")
+		content.WriteString(message.Author.Username)
+		content.WriteString("[-:-:-] ")
+	} else {
+		content.WriteString("[#E95678::b]")
+		content.WriteString(message.Author.Username)
+		content.WriteString("[-:-:-] ")
+	}
+
 	// If the author of the message is a bot account, add "BOT" beside the username of the author.
 	if message.Author.Bot {
 		content.WriteString("[#26BBD9]BOT[-:-:-] ")
@@ -31,21 +39,22 @@ func WriteMessage(messagesTextView *tview.TextView, message discord.Message) {
 
 	attachments := message.Attachments
 	for i := range attachments {
-		content.WriteString("\n" + attachments[i].URL)
+		content.WriteString("\n")
+		content.WriteString(attachments[i].URL)
 	}
 
 	fmt.Fprintln(messagesTextView, content.String())
 }
 
-func SendMessage(session *session.Session, channelID discord.ChannelID, content string) {
-	_, err := session.SendText(channelID, content)
+func SendMessage(session *discordgo.Session, channelID string, content string) {
+	_, err := session.ChannelMessageSend(channelID, content)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func GetMessages(session *session.Session, channelID discord.ChannelID, limit uint) (messages []discord.Message) {
-	messages, err := session.Messages(channelID, limit)
+func GetMessages(session *discordgo.Session, channelID string, limit int) (messages []*discordgo.Message) {
+	messages, err := session.ChannelMessages(channelID, limit, "", "", "")
 	if err != nil {
 		panic(err)
 	}
