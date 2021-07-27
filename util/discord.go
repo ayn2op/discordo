@@ -14,10 +14,10 @@ import (
 func WriteMessage(messagesTextView *tview.TextView, message discord.Message) {
 	var content strings.Builder
 
-	content.WriteString("[red::b]" + message.Author.Username + "[-:-:-] ")
+	content.WriteString("[#E95678::b]" + message.Author.Username + "[-:-:-] ")
 	// If the author of the message is a bot account, add "BOT" beside the username of the author.
 	if message.Author.Bot {
-		content.WriteString("[blue]BOT[-:-:-] ")
+		content.WriteString("[#26BBD9]BOT[-:-:-] ")
 	}
 
 	if message.Content != "" {
