@@ -113,7 +113,7 @@ func onReady(_ *discordgo.Session, ready *discordgo.Ready) {
 }
 
 func onMessageCreate(_ *discordgo.Session, message *discordgo.MessageCreate) {
-	if currentChannel.ID == message.ChannelID {
+	if currentChannel != nil && currentChannel.ID == message.ChannelID {
 		util.WriteMessage(messagesTextView, session, message.Message)
 	}
 }
