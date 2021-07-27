@@ -3,9 +3,7 @@ package main
 import (
 	"strings"
 
-	"github.com/diamondburned/arikawa/v2/discord"
-	"github.com/diamondburned/arikawa/v2/gateway"
-	"github.com/diamondburned/arikawa/v2/session"
+	"github.com/bwmarrin/discordgo"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rigormorrtiss/discordo/ui"
 	"github.com/rigormorrtiss/discordo/util"
@@ -20,11 +18,11 @@ var channelsList *tview.List
 var messagesTextView *tview.TextView
 var messageInputField *tview.InputField
 var mainFlex *tview.Flex
+
 var loginVia string
-var discordSession *session.Session
-var guilds []gateway.GuildCreateEvent
-var currentGuild gateway.GuildCreateEvent
-var currentChannel discord.Channel
+var session *discordgo.Session
+var currentGuild *discordgo.Guild
+var currentChannel *discordgo.Channel
 
 func main() {
 	tview.Styles.PrimitiveBackgroundColor = tcell.GetColor("#1C1E26")
@@ -42,7 +40,7 @@ func main() {
 			SetRoot(mainFlex, true).
 			SetFocus(guildsDropDown)
 
-		discordSession = newSession("", "", token)
+		session = newSession("", "", token)
 	} else {
 		app.SetRoot(loginModal, true)
 	}
@@ -72,32 +70,31 @@ func onLoginModalDone(buttonIndex int, buttonLabel string) {
 	}
 }
 
-func newSession(email string, password string, token string) *session.Session {
-	var sess *session.Session
+func newSession(email string, password string, token string) *discordgo.Session {
+	var sess *discordgo.Session
 	var err error
 	if email != "" && password != "" {
-		sess, err = session.Login(email, password, "")
+		sess, err = discordgo.New(email, password)
 		if err != nil {
 			panic(err)
 		}
 
 		sess.AddHandler(onReady)
 	} else if token != "" {
-		sess, err = session.New(token)
+		sess, err = discordgo.New(token)
 		if err != nil {
 			panic(err)
 		}
 
 		if !strings.HasPrefix(token, "Bot ") {
 			sess.AddHandler(onReady)
-		} else {
-			sess.Gateway.AddIntents(gateway.IntentGuilds)
-			sess.Gateway.AddIntents(gateway.IntentGuildMessages)
 		}
 	}
 
 	sess.AddHandler(onGuildCreate)
 	sess.AddHandler(onMessageCreate)
+
+	sess.Identify.Intents = discordgo.IntentsAllWithoutPrivileged
 	if err = sess.Open(); err != nil {
 		panic(err)
 	}
@@ -105,35 +102,32 @@ func newSession(email string, password string, token string) *session.Session {
 	return sess
 }
 
-func onGuildCreate(guild *gateway.GuildCreateEvent) {
+func onGuildCreate(_ *discordgo.Session, guild *discordgo.GuildCreate) {
 	guildsDropDown.AddOption(guild.Name, nil)
-	guilds = append(guilds, *guild)
 }
 
-func onReady(ready *gateway.ReadyEvent) {
-	guilds = ready.Guilds
-	for i := range guilds {
-		guildsDropDown.AddOption(guilds[i].Name, nil)
+func onReady(_ *discordgo.Session, ready *discordgo.Ready) {
+	for i := range ready.Guilds {
+		guildsDropDown.AddOption(ready.Guilds[i].Name, nil)
 	}
 }
 
-func onMessageCreate(message *gateway.MessageCreateEvent) {
+func onMessageCreate(_ *discordgo.Session, message *discordgo.MessageCreate) {
 	if currentChannel.ID == message.ChannelID {
-		util.WriteMessage(messagesTextView, message.Message)
+		util.WriteMessage(messagesTextView, session, message.Message)
 	}
 }
 
 func onGuildsDropDownSelected(text string, _ int) {
-	// Remove/clear all items from the channels List
 	channelsList.Clear()
-	// Remove/clear all text from the messages TextView buffer
 	messagesTextView.Clear()
-	// If the message InputField is not nil, remove the message InputField from the main Flex and set the message InputField to nil
+
 	if messageInputField != nil {
 		mainFlex.RemoveItem(messageInputField)
 		messageInputField = nil
 	}
 
+	guilds := session.State.Guilds
 	for i := range guilds {
 		guild := guilds[i]
 		if guild.Name == text {
@@ -151,24 +145,22 @@ func onGuildsDropDownSelected(text string, _ int) {
 }
 
 func onChannelsListSelected(i int, mainText string, secondaryText string, _ rune) {
-	// Remove/clear all text from the messages TextView buffer
 	messagesTextView.Clear()
-	// If the message InputField is nil, add a new message InputField to the main Flex and assign it to message InputField in instance
+
 	if messageInputField == nil {
 		messageInputField = ui.NewMessageInputField(onMessageInputFieldDone)
-		// Add the message InputField as a new item to the main Flex
 		mainFlex.AddItem(messageInputField, 3, 1, false)
 	}
 
 	app.SetFocus(messageInputField)
 
 	currentChannel = currentGuild.Channels[i]
-	// Set the title of the messages TextView Box to the name of the channel
+
 	messagesTextView.SetTitle(currentChannel.Name)
 
-	messages := util.GetMessages(discordSession, currentChannel.ID, 50)
+	messages := util.GetMessages(session, currentChannel.ID, 50)
 	for i := len(messages) - 1; i >= 0; i-- {
-		util.WriteMessage(messagesTextView, messages[i])
+		util.WriteMessage(messagesTextView, session, messages[i])
 	}
 }
 
@@ -176,13 +168,13 @@ func onMessageInputFieldDone(key tcell.Key) {
 	if key == tcell.KeyEnter {
 		currentText := messageInputField.GetText()
 		currentText = strings.TrimSpace(currentText)
-		// If the current text of the message InputField is an empty string and the enter key is pressed, do not proceed
+
 		if currentText == "" {
 			return
 		}
 
-		util.SendMessage(discordSession, currentChannel.ID, currentText)
-		// Set the current text of the message InputField to an empty string after the message has been sent
+		util.SendMessage(session, currentChannel.ID, currentText)
+
 		messageInputField.SetText("")
 	}
 }
@@ -195,15 +187,15 @@ func onLoginFormLoginButtonSelected() {
 			return
 		}
 
-		discordSession = newSession(email, password, "")
-		util.SetPassword("token", discordSession.Token)
+		session = newSession(email, password, "")
+		util.SetPassword("token", session.Token)
 	} else if loginVia == "token" {
 		token := loginForm.GetFormItemByLabel("Token").(*tview.InputField).GetText()
 		if token == "" {
 			return
 		}
 
-		discordSession = newSession("", "", token)
+		session = newSession("", "", token)
 		util.SetPassword("token", token)
 	}
 
