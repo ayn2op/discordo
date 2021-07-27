@@ -4,8 +4,9 @@ import (
 	"github.com/rivo/tview"
 )
 
-func NewApplication() (app *tview.Application) {
-	app = tview.NewApplication()
+func NewApp() (app *tview.Application) {
+	app = tview.NewApplication().
+		EnableMouse(true)
 
 	return
 }
