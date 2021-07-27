@@ -32,7 +32,7 @@ func main() {
 	channelsList = ui.NewChannelsList(onChannelsListSelected)
 	messagesTextView = ui.NewMessagesTextView(onMessagesTextViewChanged)
 	mainFlex = ui.NewMainFlex(guildsDropDown, channelsList, messagesTextView)
-	app = ui.NewApplication()
+	app = ui.NewApp()
 
 	token := util.GetPassword("token")
 	if token != "" {
@@ -45,7 +45,7 @@ func main() {
 		app.SetRoot(loginModal, true)
 	}
 
-	if err := app.EnableMouse(true).Run(); err != nil {
+	if err := app.Run(); err != nil {
 		panic(err)
 	}
 }
