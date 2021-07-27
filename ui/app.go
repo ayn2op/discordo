@@ -1,12 +1,14 @@
 package ui
 
 import (
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
-func NewApp() (app *tview.Application) {
+func NewApp(onAppInputCapture func(event *tcell.EventKey) *tcell.EventKey) (app *tview.Application) {
 	app = tview.NewApplication().
-		EnableMouse(true)
+		EnableMouse(true).
+		SetInputCapture(onAppInputCapture)
 
 	return
 }
