@@ -8,7 +8,8 @@ import (
 func NewLoginForm(via string, onLoginFormLoginButtonSelected func(), onLoginFormQuitButtonSelected func()) (loginForm *tview.Form) {
 	loginForm = tview.NewForm().
 		AddButton("Login", onLoginFormLoginButtonSelected).
-		AddButton("Quit", onLoginFormQuitButtonSelected)
+		AddButton("Quit", onLoginFormQuitButtonSelected).
+		SetButtonsAlign(tview.AlignCenter)
 	loginForm.
 		SetButtonBackgroundColor(tcell.GetColor("#5865F2")).
 		SetBorder(true).
