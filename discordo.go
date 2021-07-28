@@ -48,7 +48,7 @@ func main() {
 	channelsList = ui.NewChannelsList(onChannelsListSelected)
 	messagesTextView = ui.NewMessagesTextView(onMessagesTextViewChanged)
 	mainFlex = ui.NewMainFlex(guildsDropDown, channelsList, messagesTextView)
-	app = ui.NewApp(onAppInputCapture)
+	app = ui.NewApp()
 
 	token := util.GetPassword("token")
 	if token != "" {
@@ -64,10 +64,6 @@ func main() {
 	if err := app.Run(); err != nil {
 		panic(err)
 	}
-}
-
-func onAppInputCapture(event *tcell.EventKey) *tcell.EventKey {
-	return event
 }
 
 func onLoginFormQuitButtonSelected() {
