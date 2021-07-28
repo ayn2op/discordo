@@ -8,7 +8,7 @@ import (
 func NewChannelsList(onChannelsListSelected func(i int, mainText string, secondaryText string, _ rune)) (channelsList *tview.List) {
 	channelsList = tview.NewList().
 		ShowSecondaryText(false).
-		SetMainTextColor(tcell.ColorDarkGray).
+		SetMainTextColor(tcell.GetColor("#6C6F93")).
 		SetSelectedTextColor(tcell.ColorWhite).
 		SetSelectedBackgroundColor(tview.Styles.PrimitiveBackgroundColor).
 		SetSelectedFunc(onChannelsListSelected)
