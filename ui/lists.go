@@ -14,8 +14,7 @@ func NewChannelsList(onChannelsListSelected func(i int, mainText string, seconda
 		SetSelectedFunc(onChannelsListSelected)
 	channelsList.
 		SetBorder(true).
-		SetBorderPadding(0, 0, 1, 1).
-		SetTitle("Channels")
+		SetBorderPadding(0, 0, 1, 1)
 
 	return
 }

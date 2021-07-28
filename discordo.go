@@ -167,12 +167,14 @@ func onGuildsDropDownSelected(text string, _ int) {
 		}
 	}
 
+	channelsList.SetTitle("Channels")
+	app.SetFocus(channelsList)
+
 	for i := range currentGuild.Channels {
 		channel := currentGuild.Channels[i]
 		channelsList.AddItem(channel.Name, "", 0, nil)
 	}
 
-	app.SetFocus(channelsList)
 }
 
 func onChannelsListSelected(i int, mainText string, secondaryText string, _ rune) {
@@ -183,11 +185,10 @@ func onChannelsListSelected(i int, mainText string, secondaryText string, _ rune
 		mainFlex.AddItem(messageInputField, 3, 1, false)
 	}
 
-	app.SetFocus(messageInputField)
-
 	currentChannel = currentGuild.Channels[i]
 
 	messagesTextView.SetTitle(currentChannel.Name)
+	app.SetFocus(messageInputField)
 
 	messages := util.GetMessages(session, currentChannel.ID, 50)
 	for i := len(messages) - 1; i >= 0; i-- {
