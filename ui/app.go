@@ -5,14 +5,10 @@ import (
 	"github.com/rivo/tview"
 )
 
-func NewApp() (app *tview.Application) {
+func NewApp(onAppInputCapture func(event *tcell.EventKey) *tcell.EventKey) (app *tview.Application) {
 	app = tview.NewApplication().
 		EnableMouse(true).
 		SetInputCapture(onAppInputCapture)
 
 	return
-}
-
-func onAppInputCapture(event *tcell.EventKey) *tcell.EventKey {
-	return event
 }
