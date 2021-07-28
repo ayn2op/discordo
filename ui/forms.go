@@ -5,10 +5,10 @@ import (
 	"github.com/rivo/tview"
 )
 
-func NewLoginForm(via string, onLoginFormLoginButtonSelected func(), onLoginFormQuitButtonSelected func()) (loginForm *tview.Form) {
+func NewLoginForm(app *tview.Application, via string, onLoginFormLoginButtonSelected func()) (loginForm *tview.Form) {
 	loginForm = tview.NewForm().
 		AddButton("Login", onLoginFormLoginButtonSelected).
-		AddButton("Quit", onLoginFormQuitButtonSelected).
+		AddButton("Quit", onLoginFormQuitButtonSelected(app)).
 		SetButtonsAlign(tview.AlignCenter)
 	loginForm.
 		SetButtonBackgroundColor(tcell.GetColor("#5865F2")).
@@ -24,4 +24,10 @@ func NewLoginForm(via string, onLoginFormLoginButtonSelected func(), onLoginForm
 	}
 
 	return loginForm
+}
+
+func onLoginFormQuitButtonSelected(app *tview.Application) func() {
+	return func() {
+		app.Stop()
+	}
 }

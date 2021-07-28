@@ -46,9 +46,9 @@ func main() {
 	loginModal = ui.NewLoginModal(onLoginModalDone)
 	guildsDropDown = ui.NewGuildsDropDown(onGuildsDropDownSelected)
 	channelsList = ui.NewChannelsList(onChannelsListSelected)
-	messagesTextView = ui.NewMessagesTextView(onMessagesTextViewChanged)
+	messagesTextView = ui.NewMessagesTextView(app)
 	mainFlex = ui.NewMainFlex(guildsDropDown, channelsList, messagesTextView)
-	app = ui.NewApp(onAppInputCapture)
+	app = ui.NewApp()
 
 	token := util.GetPassword("token")
 	if token != "" {
@@ -66,26 +66,14 @@ func main() {
 	}
 }
 
-func onAppInputCapture(event *tcell.EventKey) *tcell.EventKey {
-	return event
-}
-
-func onLoginFormQuitButtonSelected() {
-	app.Stop()
-}
-
-func onMessagesTextViewChanged() {
-	app.Draw()
-}
-
 func onLoginModalDone(buttonIndex int, buttonLabel string) {
 	if buttonLabel == ui.LoginViaEmailPasswordLoginModalButton {
 		loginVia = "emailpassword"
-		loginForm = ui.NewLoginForm(loginVia, onLoginFormLoginButtonSelected, onLoginFormQuitButtonSelected)
+		loginForm = ui.NewLoginForm(app, loginVia, onLoginFormLoginButtonSelected)
 		app.SetRoot(loginForm, true)
 	} else if buttonLabel == ui.LoginViaTokenLoginModalButton {
 		loginVia = "token"
-		loginForm = ui.NewLoginForm(loginVia, onLoginFormLoginButtonSelected, onLoginFormQuitButtonSelected)
+		loginForm = ui.NewLoginForm(app, loginVia, onLoginFormLoginButtonSelected)
 		app.SetRoot(loginForm, true)
 	}
 }
