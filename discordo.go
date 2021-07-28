@@ -10,22 +10,38 @@ import (
 	"github.com/rivo/tview"
 )
 
-var app *tview.Application
-var loginModal *tview.Modal
-var loginForm *tview.Form
-var guildsDropDown *tview.DropDown
-var channelsList *tview.List
-var messagesTextView *tview.TextView
-var messageInputField *tview.InputField
-var mainFlex *tview.Flex
+var (
+	app               *tview.Application
+	loginModal        *tview.Modal
+	loginForm         *tview.Form
+	guildsDropDown    *tview.DropDown
+	channelsList      *tview.List
+	messagesTextView  *tview.TextView
+	messageInputField *tview.InputField
+	mainFlex          *tview.Flex
 
-var loginVia string
-var session *discordgo.Session
-var currentGuild *discordgo.Guild
-var currentChannel *discordgo.Channel
+	loginVia       string
+	session        *discordgo.Session
+	currentGuild   *discordgo.Guild
+	currentChannel *discordgo.Channel
+)
 
 func main() {
 	tview.Styles.PrimitiveBackgroundColor = tcell.GetColor("#1C1E26")
+
+	tview.Borders.HorizontalFocus = tview.Borders.Horizontal
+	tview.Borders.VerticalFocus = tview.Borders.Vertical
+	tview.Borders.TopLeftFocus = tview.Borders.TopLeft
+	tview.Borders.TopRightFocus = tview.Borders.TopRight
+	tview.Borders.BottomLeftFocus = tview.Borders.BottomLeft
+	tview.Borders.BottomRightFocus = tview.Borders.BottomRight
+
+	tview.Borders.Horizontal = ' '
+	tview.Borders.Vertical = ' '
+	tview.Borders.TopLeft = ' '
+	tview.Borders.TopRight = ' '
+	tview.Borders.BottomLeft = ' '
+	tview.Borders.BottomRight = ' '
 
 	loginModal = ui.NewLoginModal(onLoginModalDone)
 	guildsDropDown = ui.NewGuildsDropDown(onGuildsDropDownSelected)
