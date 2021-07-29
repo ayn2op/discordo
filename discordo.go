@@ -21,21 +21,19 @@ var (
 	mainFlex          *tview.Flex
 
 	loginVia       string
+	theme          *util.Theme
 	session        *discordgo.Session
 	currentGuild   *discordgo.Guild
 	currentChannel *discordgo.Channel
 )
 
 func main() {
-	tview.Styles.PrimitiveBackgroundColor = tcell.GetColor("#1C1E26")
-
 	tview.Borders.HorizontalFocus = tview.Borders.Horizontal
 	tview.Borders.VerticalFocus = tview.Borders.Vertical
 	tview.Borders.TopLeftFocus = tview.Borders.TopLeft
 	tview.Borders.TopRightFocus = tview.Borders.TopRight
 	tview.Borders.BottomLeftFocus = tview.Borders.BottomLeft
 	tview.Borders.BottomRightFocus = tview.Borders.BottomRight
-
 	tview.Borders.Horizontal = ' '
 	tview.Borders.Vertical = ' '
 	tview.Borders.TopLeft = ' '
@@ -43,10 +41,11 @@ func main() {
 	tview.Borders.BottomLeft = ' '
 	tview.Borders.BottomRight = ' '
 
+	theme = util.NewTheme()
 	loginModal = ui.NewLoginModal(onLoginModalDone)
-	guildsDropDown = ui.NewGuildsDropDown(onGuildsDropDownSelected)
-	channelsList = ui.NewChannelsList(onChannelsListSelected)
-	messagesTextView = ui.NewMessagesTextView(onMessagesTextViewChanged)
+	guildsDropDown = ui.NewGuildsDropDown(onGuildsDropDownSelected, theme)
+	channelsList = ui.NewChannelsList(onChannelsListSelected, theme)
+	messagesTextView = ui.NewMessagesTextView(onMessagesTextViewChanged, theme)
 	mainFlex = ui.NewMainFlex(guildsDropDown, channelsList, messagesTextView)
 	app = ui.NewApp()
 
@@ -177,7 +176,7 @@ func onChannelsListSelected(i int, mainText string, secondaryText string, _ rune
 	messagesTextView.Clear()
 
 	if messageInputField == nil {
-		messageInputField = ui.NewMessageInputField(onMessageInputFieldDone)
+		messageInputField = ui.NewMessageInputField(onMessageInputFieldDone, theme)
 		mainFlex.AddItem(messageInputField, 3, 1, false)
 	}
 

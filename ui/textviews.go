@@ -1,10 +1,12 @@
 package ui
 
 import (
+	"github.com/gdamore/tcell/v2"
+	"github.com/rigormorrtiss/discordo/util"
 	"github.com/rivo/tview"
 )
 
-func NewMessagesTextView(onMessagesTextViewChanged func()) (messagesTextView *tview.TextView) {
+func NewMessagesTextView(onMessagesTextViewChanged func(), theme *util.Theme) (messagesTextView *tview.TextView) {
 	messagesTextView = tview.NewTextView().
 		SetDynamicColors(true).
 		SetWrap(true).
@@ -13,6 +15,8 @@ func NewMessagesTextView(onMessagesTextViewChanged func()) (messagesTextView *tv
 		ScrollToEnd().
 		SetChangedFunc(onMessagesTextViewChanged)
 	messagesTextView.
+		SetTextColor(tcell.GetColor(theme.TextViewForeground)).
+		SetBackgroundColor(tcell.GetColor(theme.TextViewBackground)).
 		SetBorder(true).
 		SetBorderPadding(0, 0, 1, 1)
 
