@@ -1,6 +1,7 @@
 package main
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
@@ -15,7 +16,8 @@ var (
 	loginModal        *tview.Modal
 	loginForm         *tview.Form
 	guildsDropDown    *tview.DropDown
-	channelsList      *tview.List
+	channelsTreeView  *tview.TreeView
+	channelsTreeNode  *tview.TreeNode
 	messagesTextView  *tview.TextView
 	messageInputField *tview.InputField
 	mainFlex          *tview.Flex
@@ -28,25 +30,13 @@ var (
 )
 
 func main() {
-	tview.Borders.HorizontalFocus = tview.Borders.Horizontal
-	tview.Borders.VerticalFocus = tview.Borders.Vertical
-	tview.Borders.TopLeftFocus = tview.Borders.TopLeft
-	tview.Borders.TopRightFocus = tview.Borders.TopRight
-	tview.Borders.BottomLeftFocus = tview.Borders.BottomLeft
-	tview.Borders.BottomRightFocus = tview.Borders.BottomRight
-	tview.Borders.Horizontal = ' '
-	tview.Borders.Vertical = ' '
-	tview.Borders.TopLeft = ' '
-	tview.Borders.TopRight = ' '
-	tview.Borders.BottomLeft = ' '
-	tview.Borders.BottomRight = ' '
-
 	theme = util.NewTheme()
 	loginModal = ui.NewLoginModal(onLoginModalDone)
 	guildsDropDown = ui.NewGuildsDropDown(onGuildsDropDownSelected, theme)
-	channelsList = ui.NewChannelsList(onChannelsListSelected, theme)
+	channelsTreeNode = ui.NewChannelsTreeNode()
+	channelsTreeView = ui.NewChannelsTreeView(channelsTreeNode, onChannelsTreeViewSelected, theme)
 	messagesTextView = ui.NewMessagesTextView(onMessagesTextViewChanged, theme)
-	mainFlex = ui.NewMainFlex(guildsDropDown, channelsList, messagesTextView)
+	mainFlex = ui.NewMainFlex(guildsDropDown, channelsTreeView, messagesTextView)
 	app = ui.NewApp()
 
 	token := util.GetPassword("token")
@@ -145,7 +135,7 @@ func onMessageCreate(_ *discordgo.Session, message *discordgo.MessageCreate) {
 }
 
 func onGuildsDropDownSelected(text string, _ int) {
-	channelsList.Clear()
+	channelsTreeNode.ClearChildren()
 	messagesTextView.Clear()
 
 	if messageInputField != nil {
@@ -162,17 +152,33 @@ func onGuildsDropDownSelected(text string, _ int) {
 		}
 	}
 
-	channelsList.SetTitle("Channels")
-	app.SetFocus(channelsList)
+	channelsTreeView.SetTitle("Channels")
+	app.SetFocus(channelsTreeView)
 
-	for i := range currentGuild.Channels {
-		channel := currentGuild.Channels[i]
-		channelsList.AddItem(channel.Name, "", 0, nil)
+	channels := currentGuild.Channels
+	sort.Slice(channels, func(i, j int) bool {
+		return channels[i].Position < channels[j].Position
+	})
+
+	for i := range channels {
+		channel := channels[i]
+		channelNode := tview.NewTreeNode(channel.Name).
+			SetReference(channel)
+
+		if channel.ParentID == "" {
+			channelsTreeNode.AddChild(channelNode)
+			continue
+		}
+
+		if channel.Type == discordgo.ChannelTypeGuildCategory {
+			channelNode.SetColor(tcell.ColorLightCyan)
+			channelsTreeNode.AddChild(channelNode)
+			continue
+		}
 	}
-
 }
 
-func onChannelsListSelected(i int, mainText string, secondaryText string, _ rune) {
+func onChannelsTreeViewSelected(node *tview.TreeNode) {
 	messagesTextView.Clear()
 
 	if messageInputField == nil {
@@ -180,14 +186,33 @@ func onChannelsListSelected(i int, mainText string, secondaryText string, _ rune
 		mainFlex.AddItem(messageInputField, 3, 1, false)
 	}
 
-	currentChannel = currentGuild.Channels[i]
+	currentChannel = node.GetReference().(*discordgo.Channel)
+	switch currentChannel.Type {
+	case discordgo.ChannelTypeGuildCategory:
+		if len(node.GetChildren()) == 0 {
+			for i := range currentGuild.Channels {
+				channel := currentGuild.Channels[i]
+				if channel.ParentID == currentChannel.ID {
+					channelNode := tview.NewTreeNode(channel.Name).
+						SetReference(channel)
+					node.AddChild(channelNode)
+				}
+			}
+		} else {
+			node.SetExpanded(!node.IsExpanded())
+		}
+	case discordgo.ChannelTypeGuildText:
+		messagesTextView.SetTitle(currentChannel.Name)
+		app.SetFocus(messageInputField)
 
-	messagesTextView.SetTitle(currentChannel.Name)
-	app.SetFocus(messageInputField)
+		messages, err := session.ChannelMessages(currentChannel.ID, 50, "", "", "")
+		if err != nil {
+			panic(err)
+		}
 
-	messages := util.GetMessages(session, currentChannel.ID, 50)
-	for i := len(messages) - 1; i >= 0; i-- {
-		util.WriteMessage(messagesTextView, session, messages[i])
+		for i := len(messages) - 1; i >= 0; i-- {
+			go util.WriteMessage(messagesTextView, session, messages[i])
+		}
 	}
 }
 
@@ -200,7 +225,10 @@ func onMessageInputFieldDone(key tcell.Key) {
 			return
 		}
 
-		util.SendMessage(session, currentChannel.ID, currentText)
+		_, err := session.ChannelMessageSend(currentChannel.ID+"123", currentText)
+		if err != nil {
+			panic(err)
+		}
 
 		messageInputField.SetText("")
 	}

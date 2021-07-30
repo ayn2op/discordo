@@ -45,19 +45,3 @@ func WriteMessage(messagesTextView *tview.TextView, session *discordgo.Session, 
 
 	fmt.Fprintln(messagesTextView, content.String())
 }
-
-func SendMessage(session *discordgo.Session, channelID string, content string) {
-	_, err := session.ChannelMessageSend(channelID, content)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func GetMessages(session *discordgo.Session, channelID string, limit int) (messages []*discordgo.Message) {
-	messages, err := session.ChannelMessages(channelID, limit, "", "", "")
-	if err != nil {
-		panic(err)
-	}
-
-	return
-}
