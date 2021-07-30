@@ -11,9 +11,7 @@ type Theme struct {
 	InputFieldBackground            string `json:"inputField.background"`
 	InputFieldForeground            string `json:"inputField.foreground"`
 	InputFieldPlaceholderForeground string `json:"inputField.placeholderTextForeground"`
-	ListBackground                  string `json:"list.background"`
-	ListMainTextForeground          string `json:"list.mainTextForeground"`
-	ListSelectedForeground          string `json:"list.selectedTextForeground"`
+	TreeViewBackground              string `json:"treeview.background"`
 	TextViewBackground              string `json:"textview.background"`
 	TextViewForeground              string `json:"textview.foreground"`
 }
@@ -22,9 +20,7 @@ func NewTheme() *Theme {
 	var theme Theme
 	theme.TextViewBackground = "#2E3440"
 	theme.TextViewForeground = "#D8DEE9"
-	theme.ListBackground = "#2E3440"
-	theme.ListMainTextForeground = "#4C566A"
-	theme.ListSelectedForeground = "#ECEFF4"
+	theme.TreeViewBackground = "#2E3440"
 	theme.InputFieldBackground = "#3B4252"
 	theme.InputFieldForeground = "#D8DEE9"
 	theme.InputFieldPlaceholderForeground = "#D8DEE9"
