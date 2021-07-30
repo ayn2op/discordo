@@ -14,7 +14,7 @@ func WriteMessage(messagesTextView *tview.TextView, session *discordgo.Session, 
 	var content strings.Builder
 
 	if session.State.User.ID == message.Author.ID {
-		content.WriteString("[#50fa7b::b]")
+		content.WriteString("[#ffb86c::b]")
 		content.WriteString(message.Author.Username)
 		content.WriteString("[-:-:-] ")
 	} else {
