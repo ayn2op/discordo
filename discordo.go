@@ -165,15 +165,14 @@ func onGuildsDropDownSelected(text string, _ int) {
 		channelNode := tview.NewTreeNode(channel.Name).
 			SetReference(channel)
 
-		if channel.ParentID == "" {
+		switch channel.Type {
+		case discordgo.ChannelTypeGuildCategory:
+			channelNode.SetColor(tcell.ColorDarkCyan)
 			channelsTreeNode.AddChild(channelNode)
-			continue
-		}
-
-		if channel.Type == discordgo.ChannelTypeGuildCategory {
-			channelNode.SetColor(tcell.ColorLightCyan)
-			channelsTreeNode.AddChild(channelNode)
-			continue
+		default:
+			if channel.ParentID == "" {
+				channelsTreeNode.AddChild(channelsTreeNode)
+			}
 		}
 	}
 }
@@ -211,7 +210,7 @@ func onChannelsTreeViewSelected(node *tview.TreeNode) {
 		}
 
 		for i := len(messages) - 1; i >= 0; i-- {
-			go util.WriteMessage(messagesTextView, session, messages[i])
+			util.WriteMessage(messagesTextView, session, messages[i])
 		}
 	}
 }
@@ -225,7 +224,7 @@ func onMessageInputFieldDone(key tcell.Key) {
 			return
 		}
 
-		_, err := session.ChannelMessageSend(currentChannel.ID+"123", currentText)
+		_, err := session.ChannelMessageSend(currentChannel.ID, currentText)
 		if err != nil {
 			panic(err)
 		}
