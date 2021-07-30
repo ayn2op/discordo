@@ -184,7 +184,7 @@ func onGuildsDropDownSelected(text string, _ int) {
 			channelsTreeNode.AddChild(channelNode)
 		default:
 			if channel.ParentID == "" {
-				channelsTreeNode.AddChild(channelsTreeNode)
+				channelsTreeNode.AddChild(channelNode)
 			}
 		}
 	}
