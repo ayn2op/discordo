@@ -14,18 +14,18 @@ func WriteMessage(messagesTextView *tview.TextView, session *discordgo.Session, 
 	var content strings.Builder
 
 	if session.State.User.ID == message.Author.ID {
-		content.WriteString("[#26BBD9::b]")
+		content.WriteString("[#50fa7b::b]")
 		content.WriteString(message.Author.Username)
 		content.WriteString("[-:-:-] ")
 	} else {
-		content.WriteString("[#E95678::b]")
+		content.WriteString("[#ff5555::b]")
 		content.WriteString(message.Author.Username)
 		content.WriteString("[-:-:-] ")
 	}
 
 	// If the author of the message is a bot account, add "BOT" beside the username of the author.
 	if message.Author.Bot {
-		content.WriteString("[#29D398]BOT[-:-:-] ")
+		content.WriteString("[#bd93f9]BOT[-:-:-] ")
 	}
 
 	if message.Content != "" {

@@ -30,6 +30,19 @@ var (
 )
 
 func main() {
+	tview.Borders.HorizontalFocus = tview.Borders.Horizontal
+	tview.Borders.VerticalFocus = tview.Borders.Vertical
+	tview.Borders.TopLeftFocus = tview.Borders.TopLeft
+	tview.Borders.TopRightFocus = tview.Borders.TopRight
+	tview.Borders.BottomLeftFocus = tview.Borders.BottomLeft
+	tview.Borders.BottomRightFocus = tview.Borders.BottomRight
+	tview.Borders.Horizontal = ' '
+	tview.Borders.Vertical = ' '
+	tview.Borders.TopLeft = ' '
+	tview.Borders.TopRight = ' '
+	tview.Borders.BottomLeft = ' '
+	tview.Borders.BottomRight = ' '
+
 	theme = util.NewTheme()
 	loginModal = ui.NewLoginModal(onLoginModalDone)
 	guildsDropDown = ui.NewGuildsDropDown(onGuildsDropDownSelected, theme)
@@ -167,7 +180,7 @@ func onGuildsDropDownSelected(text string, _ int) {
 
 		switch channel.Type {
 		case discordgo.ChannelTypeGuildCategory:
-			channelNode.SetColor(tcell.ColorDarkCyan)
+			channelNode.SetColor(tcell.GetColor(theme.TreeNodeForeground))
 			channelsTreeNode.AddChild(channelNode)
 		default:
 			if channel.ParentID == "" {
@@ -192,7 +205,7 @@ func onChannelsTreeViewSelected(node *tview.TreeNode) {
 			for i := range currentGuild.Channels {
 				channel := currentGuild.Channels[i]
 				if channel.ParentID == currentChannel.ID {
-					channelNode := tview.NewTreeNode(channel.Name).
+					channelNode := tview.NewTreeNode("[::d]#" + channel.Name + "[-:-:-]").
 						SetReference(channel)
 					node.AddChild(channelNode)
 				}
