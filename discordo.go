@@ -23,7 +23,7 @@ var (
 	mainFlex          *tview.Flex
 
 	loginVia       string
-	theme          *util.Theme
+	config         *util.Config
 	session        *discordgo.Session
 	currentGuild   *discordgo.Guild
 	currentChannel *discordgo.Channel
@@ -43,12 +43,12 @@ func main() {
 	tview.Borders.BottomLeft = ' '
 	tview.Borders.BottomRight = ' '
 
-	theme = util.NewTheme()
+	config = util.NewConfig()
 	loginModal = ui.NewLoginModal(onLoginModalDone)
-	guildsDropDown = ui.NewGuildsDropDown(onGuildsDropDownSelected, theme)
+	guildsDropDown = ui.NewGuildsDropDown(onGuildsDropDownSelected, config.Theme)
 	channelsTreeNode = ui.NewChannelsTreeNode()
-	channelsTreeView = ui.NewChannelsTreeView(channelsTreeNode, onChannelsTreeViewSelected, theme)
-	messagesTextView = ui.NewMessagesTextView(onMessagesTextViewChanged, theme)
+	channelsTreeView = ui.NewChannelsTreeView(channelsTreeNode, onChannelsTreeViewSelected, config.Theme)
+	messagesTextView = ui.NewMessagesTextView(onMessagesTextViewChanged, config.Theme)
 	mainFlex = ui.NewMainFlex(guildsDropDown, channelsTreeView, messagesTextView)
 	app = ui.NewApp()
 
@@ -180,7 +180,7 @@ func onGuildsDropDownSelected(text string, _ int) {
 
 		switch channel.Type {
 		case discordgo.ChannelTypeGuildCategory:
-			channelNode.SetColor(tcell.GetColor(theme.TreeNodeForeground))
+			channelNode.SetColor(tcell.GetColor(config.Theme.TreeNodeForeground))
 			channelsTreeNode.AddChild(channelNode)
 		default:
 			if channel.ParentID == "" {
@@ -195,7 +195,7 @@ func onChannelsTreeViewSelected(node *tview.TreeNode) {
 	messagesTextView.Clear()
 
 	if messageInputField == nil {
-		messageInputField = ui.NewMessageInputField(onMessageInputFieldDone, theme)
+		messageInputField = ui.NewMessageInputField(onMessageInputFieldDone, config.Theme)
 		mainFlex.AddItem(messageInputField, 3, 1, false)
 	}
 
@@ -218,7 +218,7 @@ func onChannelsTreeViewSelected(node *tview.TreeNode) {
 		messagesTextView.SetTitle(currentChannel.Name)
 		app.SetFocus(messageInputField)
 
-		messages, err := session.ChannelMessages(currentChannel.ID, 50, "", "", "")
+		messages, err := session.ChannelMessages(currentChannel.ID, config.GetMessagesLimit, "", "", "")
 		if err != nil {
 			panic(err)
 		}
