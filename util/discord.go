@@ -32,6 +32,12 @@ func WriteMessage(messagesTextView *tview.TextView, session *discordgo.Session, 
 		content.WriteString(message.Content)
 	}
 
+	if message.EditedTimestamp != "" {
+		content.WriteString(" [::d]")
+		content.WriteString("(edited)")
+		content.WriteString("[-:-:-]")
+	}
+
 	// TODO(rigormorrtiss): display the message embed using "special" format
 	if len(message.Embeds) > 0 {
 		content.WriteString("\n<EMBED>")
