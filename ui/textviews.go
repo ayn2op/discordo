@@ -9,9 +9,7 @@ import (
 func NewMessagesTextView(onMessagesTextViewChanged func(), theme *util.Theme) (messagesTextView *tview.TextView) {
 	messagesTextView = tview.NewTextView().
 		SetDynamicColors(true).
-		SetWrap(true).
 		SetWordWrap(true).
-		SetScrollable(true).
 		ScrollToEnd().
 		SetChangedFunc(onMessagesTextViewChanged)
 	messagesTextView.
