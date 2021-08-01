@@ -6,14 +6,15 @@ import (
 	_ "image/png"
 	"strings"
 
-	"github.com/bwmarrin/discordgo"
+	"github.com/diamondburned/arikawa/v2/discord"
+	"github.com/diamondburned/arikawa/v2/state"
 	"github.com/rivo/tview"
 )
 
-func WriteMessage(messagesTextView *tview.TextView, session *discordgo.Session, message *discordgo.Message) {
+func WriteMessage(messagesTextView *tview.TextView, state *state.State, message discord.Message) {
 	var content strings.Builder
 
-	if session.State.User.ID == message.Author.ID {
+	if state.Ready().User.ID == message.Author.ID {
 		content.WriteString("[#ffb86c::b]")
 		content.WriteString(message.Author.Username)
 		content.WriteString("[-:-:-] ")
@@ -32,7 +33,7 @@ func WriteMessage(messagesTextView *tview.TextView, session *discordgo.Session, 
 		content.WriteString(message.Content)
 	}
 
-	if message.EditedTimestamp != "" {
+	if message.EditedTimestamp.IsValid() {
 		content.WriteString(" [::d](edited)[-:-:-]")
 	}
 

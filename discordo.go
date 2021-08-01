@@ -4,7 +4,12 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/bwmarrin/discordgo"
+	"github.com/diamondburned/arikawa/v2/api"
+	"github.com/diamondburned/arikawa/v2/discord"
+	"github.com/diamondburned/arikawa/v2/gateway"
+	"github.com/diamondburned/arikawa/v2/session"
+	"github.com/diamondburned/arikawa/v2/state"
+	"github.com/diamondburned/arikawa/v2/state/store/defaultstore"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rigormorrtiss/discordo/ui"
 	"github.com/rigormorrtiss/discordo/util"
@@ -24,9 +29,10 @@ var (
 
 	loginVia       string
 	config         *util.Config
-	session        *discordgo.Session
-	currentGuild   *discordgo.Guild
-	currentChannel *discordgo.Channel
+	discordSession *session.Session
+	discordState   *state.State
+	currentGuild   discord.Guild
+	currentChannel discord.Channel
 )
 
 func main() {
@@ -58,7 +64,7 @@ func main() {
 			SetRoot(mainFlex, true).
 			SetFocus(guildsDropDown)
 
-		session = newSession("", "", token)
+		discordSession = newSession("", "", token)
 	} else {
 		app.SetRoot(loginModal, true)
 	}
@@ -88,27 +94,27 @@ func onLoginModalDone(buttonIndex int, buttonLabel string) {
 	}
 }
 
-func newSession(email string, password string, token string) *discordgo.Session {
-	var sess *discordgo.Session
-	var err error
-	if email != "" && password != "" {
-		sess, err = discordgo.New(email, password)
-		if err != nil {
-			panic(err)
-		}
-	} else if token != "" {
-		sess, err = discordgo.New(token)
-		if err != nil {
-			panic(err)
-		}
-	}
-
-	sess.UserAgent = "" +
+func newSession(email string, password string, token string) *session.Session {
+	api.UserAgent = "" +
 		"Mozilla/5.0 (X11; Linux x86_64) " +
 		"AppleWebKit/537.36 (KHTML, like Gecko) " +
 		"Chrome/91.0.4472.164 Safari/537.36"
-	sess.Identify.Properties.Browser = "Chrome"
-	sess.Identify.Properties.OS = "Linux"
+	gateway.DefaultIdentity.Browser = "Chrome"
+	gateway.DefaultIdentity.OS = "Linux"
+
+	var sess *session.Session
+	var err error
+	if email != "" && password != "" {
+		sess, err = session.Login(email, password, "")
+	} else if token != "" {
+		sess, err = session.New(token)
+	}
+
+	if err != nil {
+		panic(err)
+	}
+
+	discordState = state.NewFromSession(sess, defaultstore.New())
 
 	sess.AddHandler(onReady)
 	sess.AddHandler(onGuildCreate)
@@ -120,23 +126,23 @@ func newSession(email string, password string, token string) *discordgo.Session 
 	return sess
 }
 
-func onGuildCreate(_ *discordgo.Session, guild *discordgo.GuildCreate) {
+func onGuildCreate(guild *gateway.GuildCreateEvent) {
 	guildsDropDown.AddOption(guild.Name, nil)
 }
 
-func onReady(_ *discordgo.Session, ready *discordgo.Ready) {
+func onReady(ready *gateway.ReadyEvent) {
 	for i := range ready.Guilds {
 		guildsDropDown.AddOption(ready.Guilds[i].Name, nil)
 	}
 }
 
-func onMessageCreate(_ *discordgo.Session, message *discordgo.MessageCreate) {
-	if currentChannel != nil && currentChannel.ID == message.ChannelID {
-		util.WriteMessage(messagesTextView, session, message.Message)
+func onMessageCreate(message *gateway.MessageCreateEvent) {
+	if currentChannel.ID == message.ChannelID {
+		util.WriteMessage(messagesTextView, discordState, message.Message)
 	}
 }
 
-func onGuildsDropDownSelected(text string, _ int) {
+func onGuildsDropDownSelected(_ string, i int) {
 	channelsTreeNode.ClearChildren()
 	messagesTextView.Clear()
 
@@ -145,19 +151,17 @@ func onGuildsDropDownSelected(text string, _ int) {
 		messageInputField = nil
 	}
 
-	guilds := session.State.Guilds
-	for i := range guilds {
-		guild := guilds[i]
-		if guild.Name == text {
-			currentGuild = guild
-			break
-		}
-	}
+	guilds := discordState.Ready().Guilds
+	currentGuild = guilds[i].Guild
 
 	channelsTreeView.SetTitle("Channels")
 	app.SetFocus(channelsTreeView)
 
-	channels := currentGuild.Channels
+	channels, err := discordState.Cabinet.Channels(currentGuild.ID)
+	if err != nil {
+		panic(err)
+	}
+
 	sort.Slice(channels, func(i, j int) bool {
 		return channels[i].Position < channels[j].Position
 	})
@@ -166,13 +170,12 @@ func onGuildsDropDownSelected(text string, _ int) {
 		channel := channels[i]
 		channelNode := tview.NewTreeNode(channel.Name).
 			SetReference(channel)
-
 		switch channel.Type {
-		case discordgo.ChannelTypeGuildCategory:
+		case discord.GuildCategory:
 			channelNode.SetColor(tcell.GetColor(config.Theme.TreeNodeForeground))
 			channelsTreeNode.AddChild(channelNode)
-		case discordgo.ChannelTypeGuildText, discordgo.ChannelTypeGuildNews:
-			if channel.ParentID == "" {
+		case discord.GuildText, discord.GuildNews:
+			if channel.CategoryID == 0 {
 				channelNode.SetText("[::d]#" + channel.Name + "[-:-:-]")
 				channelsTreeNode.AddChild(channelNode)
 			}
@@ -188,13 +191,19 @@ func onChannelsTreeViewSelected(node *tview.TreeNode) {
 		mainFlex.AddItem(messageInputField, 3, 1, false)
 	}
 
-	currentChannel = node.GetReference().(*discordgo.Channel)
+	currentChannel = node.GetReference().(discord.Channel)
+
 	switch currentChannel.Type {
-	case discordgo.ChannelTypeGuildCategory:
+	case discord.GuildCategory:
 		if len(node.GetChildren()) == 0 {
-			for i := range currentGuild.Channels {
-				channel := currentGuild.Channels[i]
-				if (channel.Type == discordgo.ChannelTypeGuildText || channel.Type == discordgo.ChannelTypeGuildNews) && channel.ParentID == currentChannel.ID {
+			channels, err := discordState.Cabinet.Channels(currentGuild.ID)
+			if err != nil {
+				panic(err)
+			}
+
+			for i := range channels {
+				channel := channels[i]
+				if (channel.Type == discord.GuildText || channel.Type == discord.GuildNews) && channel.CategoryID == currentChannel.ID {
 					channelNode := tview.NewTreeNode("[::d]#" + channel.Name + "[-:-:-]").
 						SetReference(channel)
 					node.AddChild(channelNode)
@@ -203,17 +212,17 @@ func onChannelsTreeViewSelected(node *tview.TreeNode) {
 		} else {
 			node.SetExpanded(!node.IsExpanded())
 		}
-	case discordgo.ChannelTypeGuildText, discordgo.ChannelTypeGuildNews:
+	case discord.GuildText, discord.GuildNews:
 		messagesTextView.SetTitle(currentChannel.Name)
 		app.SetFocus(messageInputField)
 
-		messages, err := session.ChannelMessages(currentChannel.ID, config.GetMessagesLimit, "", "", "")
+		messages, err := discordSession.Messages(currentChannel.ID, config.GetMessagesLimit)
 		if err != nil {
 			panic(err)
 		}
 
 		for i := len(messages) - 1; i >= 0; i-- {
-			util.WriteMessage(messagesTextView, session, messages[i])
+			util.WriteMessage(messagesTextView, discordState, messages[i])
 		}
 	}
 }
@@ -227,7 +236,7 @@ func onMessageInputFieldDone(key tcell.Key) {
 			return
 		}
 
-		_, err := session.ChannelMessageSend(currentChannel.ID, currentText)
+		_, err := discordSession.SendText(currentChannel.ID, currentText)
 		if err != nil {
 			panic(err)
 		}
@@ -244,15 +253,15 @@ func onLoginFormLoginButtonSelected() {
 			return
 		}
 
-		session = newSession(email, password, "")
-		util.SetPassword("token", session.Token)
+		discordSession = newSession(email, password, "")
+		util.SetPassword("token", discordSession.Token)
 	} else if loginVia == "token" {
 		token := loginForm.GetFormItemByLabel("Token").(*tview.InputField).GetText()
 		if token == "" {
 			return
 		}
 
-		session = newSession("", "", token)
+		discordSession = newSession("", "", token)
 		util.SetPassword("token", token)
 	}
 
