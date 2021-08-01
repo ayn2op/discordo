@@ -19,7 +19,7 @@ type Theme struct {
 }
 
 type Config struct {
-	GetMessagesLimit int    `json:"getMessagesLimit"`
+	GetMessagesLimit uint   `json:"getMessagesLimit"`
 	Theme            *Theme `json:"theme"`
 }
 
