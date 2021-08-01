@@ -182,7 +182,7 @@ func onGuildsDropDownSelected(text string, _ int) {
 		case discordgo.ChannelTypeGuildCategory:
 			channelNode.SetColor(tcell.GetColor(config.Theme.TreeNodeForeground))
 			channelsTreeNode.AddChild(channelNode)
-		default:
+		case discordgo.ChannelTypeGuildText, discordgo.ChannelTypeGuildNews:
 			if channel.ParentID == "" {
 				channelNode.SetText("[::d]#" + channel.Name + "[-:-:-]")
 				channelsTreeNode.AddChild(channelNode)
@@ -205,7 +205,7 @@ func onChannelsTreeViewSelected(node *tview.TreeNode) {
 		if len(node.GetChildren()) == 0 {
 			for i := range currentGuild.Channels {
 				channel := currentGuild.Channels[i]
-				if channel.ParentID == currentChannel.ID {
+				if (channel.Type == discordgo.ChannelTypeGuildText || channel.Type == discordgo.ChannelTypeGuildNews) && channel.ParentID == currentChannel.ID {
 					channelNode := tview.NewTreeNode("[::d]#" + channel.Name + "[-:-:-]").
 						SetReference(channel)
 					node.AddChild(channelNode)
@@ -214,7 +214,7 @@ func onChannelsTreeViewSelected(node *tview.TreeNode) {
 		} else {
 			node.SetExpanded(!node.IsExpanded())
 		}
-	case discordgo.ChannelTypeGuildText:
+	case discordgo.ChannelTypeGuildText, discordgo.ChannelTypeGuildNews:
 		messagesTextView.SetTitle(currentChannel.Name)
 		app.SetFocus(messageInputField)
 
