@@ -159,7 +159,7 @@ func onGuildsDropDownSelected(_ string, i int) {
 
 	channels, err := discordState.Cabinet.Channels(currentGuild.ID)
 	if err != nil {
-		panic(err)
+		return
 	}
 
 	sort.Slice(channels, func(i, j int) bool {
@@ -198,7 +198,7 @@ func onChannelsTreeViewSelected(node *tview.TreeNode) {
 		if len(node.GetChildren()) == 0 {
 			channels, err := discordState.Cabinet.Channels(currentGuild.ID)
 			if err != nil {
-				panic(err)
+				return
 			}
 
 			for i := range channels {
@@ -218,7 +218,7 @@ func onChannelsTreeViewSelected(node *tview.TreeNode) {
 
 		messages, err := discordSession.Messages(currentChannel.ID, config.GetMessagesLimit)
 		if err != nil {
-			panic(err)
+			return
 		}
 
 		for i := len(messages) - 1; i >= 0; i-- {
@@ -236,10 +236,7 @@ func onMessageInputFieldDone(key tcell.Key) {
 			return
 		}
 
-		_, err := discordSession.SendText(currentChannel.ID, currentText)
-		if err != nil {
-			panic(err)
-		}
+		discordSession.SendText(currentChannel.ID, currentText)
 
 		messageInputField.SetText("")
 	}
