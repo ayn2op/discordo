@@ -1,15 +1,16 @@
 package main
 
 import (
+	"context"
 	"sort"
 	"strings"
 
-	"github.com/diamondburned/arikawa/v2/api"
-	"github.com/diamondburned/arikawa/v2/discord"
-	"github.com/diamondburned/arikawa/v2/gateway"
-	"github.com/diamondburned/arikawa/v2/session"
-	"github.com/diamondburned/arikawa/v2/state"
-	"github.com/diamondburned/arikawa/v2/state/store/defaultstore"
+	"github.com/diamondburned/arikawa/v3/api"
+	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/arikawa/v3/session"
+	"github.com/diamondburned/arikawa/v3/state"
+	"github.com/diamondburned/arikawa/v3/state/store/defaultstore"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rigormorrtiss/discordo/ui"
 	"github.com/rigormorrtiss/discordo/util"
@@ -119,7 +120,7 @@ func newSession(email string, password string, token string) *session.Session {
 	sess.AddHandler(onReady)
 	sess.AddHandler(onGuildCreate)
 	sess.AddHandler(onMessageCreate)
-	if err = sess.Open(); err != nil {
+	if err = sess.Open(context.Background()); err != nil {
 		panic(err)
 	}
 
@@ -192,7 +193,6 @@ func onChannelsTreeViewSelected(node *tview.TreeNode) {
 	}
 
 	currentChannel = node.GetReference().(discord.Channel)
-
 	switch currentChannel.Type {
 	case discord.GuildCategory:
 		if len(node.GetChildren()) == 0 {
@@ -236,7 +236,7 @@ func onMessageInputFieldDone(key tcell.Key) {
 			return
 		}
 
-		discordSession.SendText(currentChannel.ID, currentText)
+		discordSession.SendMessage(currentChannel.ID, currentText)
 
 		messageInputField.SetText("")
 	}
