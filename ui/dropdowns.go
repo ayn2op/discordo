@@ -6,8 +6,8 @@ import (
 	"github.com/rivo/tview"
 )
 
-func NewGuildsDropDown(onGuildsDropDownSelected func(text string, index int), theme *util.Theme) (guildsDropDown *tview.DropDown) {
-	guildsDropDown = tview.NewDropDown()
+func NewGuildsDropDown(onGuildsDropDownSelected func(text string, index int), theme *util.Theme) *tview.DropDown {
+	guildsDropDown := tview.NewDropDown()
 
 	guildsDropDown.
 		SetLabel("Guild: ").
@@ -19,5 +19,5 @@ func NewGuildsDropDown(onGuildsDropDownSelected func(text string, index int), th
 		SetBorder(true).
 		SetBorderPadding(0, 0, 1, 1)
 
-	return
+	return guildsDropDown
 }

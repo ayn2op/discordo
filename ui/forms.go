@@ -5,8 +5,8 @@ import (
 	"github.com/rivo/tview"
 )
 
-func NewLoginForm(via string, onLoginFormLoginButtonSelected func()) (loginForm *tview.Form) {
-	loginForm = tview.NewForm()
+func NewLoginForm(via string, onLoginFormLoginButtonSelected func()) *tview.Form {
+	loginForm := tview.NewForm()
 
 	loginForm.
 		AddButton("Login", onLoginFormLoginButtonSelected).

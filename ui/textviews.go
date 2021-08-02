@@ -6,8 +6,8 @@ import (
 	"github.com/rivo/tview"
 )
 
-func NewMessagesTextView(onMessagesTextViewChanged func(), theme *util.Theme) (messagesTextView *tview.TextView) {
-	messagesTextView = tview.NewTextView()
+func NewMessagesTextView(onMessagesTextViewChanged func(), theme *util.Theme) *tview.TextView {
+	messagesTextView := tview.NewTextView()
 
 	messagesTextView.
 		SetDynamicColors(true).
@@ -19,5 +19,5 @@ func NewMessagesTextView(onMessagesTextViewChanged func(), theme *util.Theme) (m
 		SetBorder(true).
 		SetBorderPadding(0, 0, 1, 1)
 
-	return
+	return messagesTextView
 }

@@ -9,8 +9,8 @@ const (
 	LoginViaEmailPasswordLoginModalButton = "Login via email and password"
 )
 
-func NewLoginModal(onLoginModalDone func(buttonIndex int, buttonLabel string)) (loginModal *tview.Modal) {
-	loginModal = tview.NewModal()
+func NewLoginModal(onLoginModalDone func(buttonIndex int, buttonLabel string)) *tview.Modal {
+	loginModal := tview.NewModal()
 
 	loginModal.
 		SetText("Choose a login method:").
@@ -19,5 +19,5 @@ func NewLoginModal(onLoginModalDone func(buttonIndex int, buttonLabel string)) (
 		SetBorder(true).
 		SetBorderPadding(0, 0, 1, 1)
 
-	return
+	return loginModal
 }
