@@ -7,10 +7,11 @@ import (
 )
 
 func NewGuildsDropDown(onGuildsDropDownSelected func(text string, index int), theme *util.Theme) (guildsDropDown *tview.DropDown) {
-	guildsDropDown = tview.NewDropDown().
-		SetLabel("Guild: ").
-		SetSelectedFunc(onGuildsDropDownSelected)
+	guildsDropDown = tview.NewDropDown()
+
 	guildsDropDown.
+		SetLabel("Guild: ").
+		SetSelectedFunc(onGuildsDropDownSelected).
 		SetLabelColor(tcell.GetColor(theme.DropDownForeground)).
 		SetFieldBackgroundColor(tcell.GetColor(theme.DropDownBackground)).
 		SetFieldTextColor(tcell.GetColor(theme.DropDownForeground)).
