@@ -75,10 +75,6 @@ func main() {
 	}
 }
 
-func onLoginFormQuitButtonSelected() {
-	app.Stop()
-}
-
 func onMessagesTextViewChanged() {
 	app.Draw()
 }
@@ -86,11 +82,11 @@ func onMessagesTextViewChanged() {
 func onLoginModalDone(buttonIndex int, buttonLabel string) {
 	if buttonLabel == ui.LoginViaEmailPasswordLoginModalButton {
 		loginVia = "emailpassword"
-		loginForm = ui.NewLoginForm(loginVia, onLoginFormLoginButtonSelected, onLoginFormQuitButtonSelected)
+		loginForm = ui.NewLoginForm(loginVia, onLoginFormLoginButtonSelected)
 		app.SetRoot(loginForm, true)
 	} else if buttonLabel == ui.LoginViaTokenLoginModalButton {
 		loginVia = "token"
-		loginForm = ui.NewLoginForm(loginVia, onLoginFormLoginButtonSelected, onLoginFormQuitButtonSelected)
+		loginForm = ui.NewLoginForm(loginVia, onLoginFormLoginButtonSelected)
 		app.SetRoot(loginForm, true)
 	}
 }

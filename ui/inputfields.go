@@ -7,11 +7,12 @@ import (
 )
 
 func NewMessageInputField(onMessageInputFieldDone func(key tcell.Key), theme *util.Theme) (messageInputField *tview.InputField) {
-	messageInputField = tview.NewInputField().
+	messageInputField = tview.NewInputField()
+
+	messageInputField.
 		SetPlaceholder("Message...").
 		SetFieldWidth(0).
-		SetDoneFunc(onMessageInputFieldDone)
-	messageInputField.
+		SetDoneFunc(onMessageInputFieldDone).
 		SetFieldBackgroundColor(tcell.GetColor(theme.InputFieldBackground)).
 		SetPlaceholderTextColor(tcell.GetColor(theme.InputFieldPlaceholderForeground)).
 		SetBackgroundColor(tcell.GetColor(theme.InputFieldBackground)).

@@ -7,12 +7,13 @@ import (
 )
 
 func NewMessagesTextView(onMessagesTextViewChanged func(), theme *util.Theme) (messagesTextView *tview.TextView) {
-	messagesTextView = tview.NewTextView().
+	messagesTextView = tview.NewTextView()
+
+	messagesTextView.
 		SetDynamicColors(true).
 		SetWordWrap(true).
 		ScrollToEnd().
-		SetChangedFunc(onMessagesTextViewChanged)
-	messagesTextView.
+		SetChangedFunc(onMessagesTextViewChanged).
 		SetTextColor(tcell.GetColor(theme.TextViewForeground)).
 		SetBackgroundColor(tcell.GetColor(theme.TextViewBackground)).
 		SetBorder(true).
