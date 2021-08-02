@@ -6,8 +6,8 @@ import (
 	"github.com/rivo/tview"
 )
 
-func NewChannelsTreeView(channelsTreeNode *tview.TreeNode, onChannelsTreeViewSelected func(node *tview.TreeNode), theme *util.Theme) (channelsTreeView *tview.TreeView) {
-	channelsTreeView = tview.NewTreeView()
+func NewChannelsTreeView(channelsTreeNode *tview.TreeNode, onChannelsTreeViewSelected func(node *tview.TreeNode), theme *util.Theme) *tview.TreeView {
+	channelsTreeView := tview.NewTreeView()
 
 	channelsTreeView.
 		SetTopLevel(1).
@@ -18,10 +18,5 @@ func NewChannelsTreeView(channelsTreeNode *tview.TreeNode, onChannelsTreeViewSel
 		SetBorder(true).
 		SetBorderPadding(0, 0, 1, 1)
 
-	return
-}
-
-func NewChannelsTreeNode() (channelsTreeNode *tview.TreeNode) {
-	channelsTreeNode = tview.NewTreeNode("")
-	return
+	return channelsTreeView
 }

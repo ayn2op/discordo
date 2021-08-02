@@ -51,9 +51,10 @@ func main() {
 	tview.Borders.BottomRight = ' '
 
 	config = util.NewConfig()
+
 	loginModal = ui.NewLoginModal(onLoginModalDone)
 	guildsDropDown = ui.NewGuildsDropDown(onGuildsDropDownSelected, config.Theme)
-	channelsTreeNode = ui.NewChannelsTreeNode()
+	channelsTreeNode = tview.NewTreeNode("")
 	channelsTreeView = ui.NewChannelsTreeView(channelsTreeNode, onChannelsTreeViewSelected, config.Theme)
 	messagesTextView = ui.NewMessagesTextView(onMessagesTextViewChanged, config.Theme)
 	mainFlex = ui.NewMainFlex(guildsDropDown, channelsTreeView, messagesTextView)
