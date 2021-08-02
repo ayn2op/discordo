@@ -6,8 +6,8 @@ import (
 	_ "image/png"
 	"strings"
 
-	"github.com/diamondburned/arikawa/v2/discord"
-	"github.com/diamondburned/arikawa/v2/state"
+	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/rivo/tview"
 )
 
