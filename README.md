@@ -13,9 +13,12 @@ Lightweight Discord terminal client
 
 ### Building from Source
 
-```
+```bash
 git clone https://github.com/rigormorrtiss/discordo
 cd discordo && go build
+
+# Optional
+mv ./discordo /usr/local/bin
 ```
 
 ## Getting Started
