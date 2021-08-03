@@ -58,7 +58,7 @@ func main() {
 	channelsTreeView = ui.NewChannelsTreeView(channelsTreeNode, onChannelsTreeViewSelected, config.Theme)
 	messagesTextView = ui.NewMessagesTextView(onMessagesTextViewChanged, config.Theme)
 	mainFlex = ui.NewMainFlex(guildsDropDown, channelsTreeView, messagesTextView)
-	app = ui.NewApp()
+	app = ui.NewApp(onAppInputCapture)
 
 	token := util.GetPassword("token")
 	if token != "" {
@@ -74,6 +74,23 @@ func main() {
 	if err := app.Run(); err != nil {
 		panic(err)
 	}
+}
+
+func onAppInputCapture(event *tcell.EventKey) *tcell.EventKey {
+	switch event.Name() {
+	case "Ctrl+G":
+		app.SetFocus(guildsDropDown)
+	case "Ctrl+J":
+		app.SetFocus(channelsTreeView)
+	case "Ctrl+K":
+		app.SetFocus(messagesTextView)
+	case "Ctrl+L":
+		if messageInputField != nil {
+			app.SetFocus(messageInputField)
+		}
+	}
+
+	return event
 }
 
 func onMessagesTextViewChanged() {
