@@ -98,13 +98,13 @@ func onMessagesTextViewChanged() {
 }
 
 func onLoginModalDone(buttonIndex int, buttonLabel string) {
-	loginForm = ui.NewLoginForm(loginVia, onLoginFormLoginButtonSelected)
-
 	if buttonLabel == ui.LoginViaEmailPasswordLoginModalButton {
 		loginVia = "emailpassword"
+		loginForm = ui.NewLoginForm(loginVia, onLoginFormLoginButtonSelected)
 		app.SetRoot(loginForm, true)
 	} else if buttonLabel == ui.LoginViaTokenLoginModalButton {
 		loginVia = "token"
+		loginForm = ui.NewLoginForm(loginVia, onLoginFormLoginButtonSelected)
 		app.SetRoot(loginForm, true)
 	}
 }
