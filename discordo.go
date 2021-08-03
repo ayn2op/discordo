@@ -170,7 +170,7 @@ func onGuildsDropDownSelected(_ string, i int) {
 	app.SetFocus(channelsTreeView)
 
 	currentGuild = discordState.Ready().Guilds[i].Guild
-	channels, _ := discordState.Cabinet.Channels(currentGuild.ID + 123)
+	channels, _ := discordState.Cabinet.Channels(currentGuild.ID)
 	sort.SliceStable(channels, func(i, j int) bool {
 		return channels[i].Position < channels[j].Position
 	})
