@@ -158,7 +158,7 @@ func onGuildsDropDownSelected(_ string, i int) {
 		return
 	}
 
-	sort.Slice(channels, func(i, j int) bool {
+	sort.SliceStable(channels, func(i, j int) bool {
 		return channels[i].Position < channels[j].Position
 	})
 
@@ -195,6 +195,10 @@ func onChannelsTreeViewSelected(node *tview.TreeNode) {
 			if err != nil {
 				return
 			}
+
+			sort.SliceStable(channels, func(i, j int) bool {
+				return channels[i].Position < channels[j].Position
+			})
 
 			for i := range channels {
 				channel := channels[i]
