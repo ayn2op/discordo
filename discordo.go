@@ -81,13 +81,13 @@ func onMessagesTextViewChanged() {
 }
 
 func onLoginModalDone(buttonIndex int, buttonLabel string) {
+	loginForm = ui.NewLoginForm(loginVia, onLoginFormLoginButtonSelected)
+
 	if buttonLabel == ui.LoginViaEmailPasswordLoginModalButton {
 		loginVia = "emailpassword"
-		loginForm = ui.NewLoginForm(loginVia, onLoginFormLoginButtonSelected)
 		app.SetRoot(loginForm, true)
 	} else if buttonLabel == ui.LoginViaTokenLoginModalButton {
 		loginVia = "token"
-		loginForm = ui.NewLoginForm(loginVia, onLoginFormLoginButtonSelected)
 		app.SetRoot(loginForm, true)
 	}
 }
@@ -149,12 +149,10 @@ func onGuildsDropDownSelected(_ string, i int) {
 		messageInputField = nil
 	}
 
-	guilds := discordState.Ready().Guilds
-	currentGuild = guilds[i].Guild
-
 	channelsTreeView.SetTitle("Channels")
 	app.SetFocus(channelsTreeView)
 
+	currentGuild = discordState.Ready().Guilds[i].Guild
 	channels, err := discordState.Cabinet.Channels(currentGuild.ID)
 	if err != nil {
 		return
@@ -248,7 +246,8 @@ func onLoginFormLoginButtonSelected() {
 		}
 
 		discordSession = newSession(email, password, "")
-		util.SetPassword("token", discordSession.Token)
+
+		go util.SetPassword("token", discordSession.Token)
 	} else if loginVia == "token" {
 		token := loginForm.GetFormItemByLabel("Token").(*tview.InputField).GetText()
 		if token == "" {
@@ -256,7 +255,8 @@ func onLoginFormLoginButtonSelected() {
 		}
 
 		discordSession = newSession("", "", token)
-		util.SetPassword("token", token)
+
+		go util.SetPassword("token", token)
 	}
 
 	app.
