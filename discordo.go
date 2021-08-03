@@ -204,11 +204,7 @@ func onChannelsTreeViewSelected(node *tview.TreeNode) {
 	switch currentChannel.Type {
 	case discord.GuildCategory:
 		if len(node.GetChildren()) == 0 {
-			channels, err := discordState.Cabinet.Channels(currentGuild.ID)
-			if err != nil {
-				return
-			}
-
+			channels, _ := discordState.Cabinet.Channels(currentGuild.ID)
 			sort.SliceStable(channels, func(i, j int) bool {
 				return channels[i].Position < channels[j].Position
 			})
