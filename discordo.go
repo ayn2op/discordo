@@ -170,11 +170,7 @@ func onGuildsDropDownSelected(_ string, i int) {
 	app.SetFocus(channelsTreeView)
 
 	currentGuild = discordState.Ready().Guilds[i].Guild
-	channels, err := discordState.Cabinet.Channels(currentGuild.ID)
-	if err != nil {
-		return
-	}
-
+	channels, _ := discordState.Cabinet.Channels(currentGuild.ID + 123)
 	sort.SliceStable(channels, func(i, j int) bool {
 		return channels[i].Position < channels[j].Position
 	})
@@ -238,11 +234,7 @@ func onChannelsTreeViewSelected(node *tview.TreeNode) {
 		messagesTextView.SetTitle(title)
 		app.SetFocus(messageInputField)
 
-		messages, err := discordSession.Messages(currentChannel.ID, config.GetMessagesLimit)
-		if err != nil {
-			return
-		}
-
+		messages, _ := discordSession.Messages(currentChannel.ID, config.GetMessagesLimit)
 		for i := len(messages) - 1; i >= 0; i-- {
 			util.WriteMessage(messagesTextView, discordState, messages[i])
 		}
