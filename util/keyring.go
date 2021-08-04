@@ -1,22 +1,33 @@
 package util
 
 import (
-	"github.com/zalando/go-keyring"
+	"github.com/99designs/keyring"
 )
 
-const Service string = "discordo"
+const ServiceName string = "discordo"
 
-func GetPassword(user string) (password string) {
-	password, err := keyring.Get(Service, user)
-	if err == keyring.ErrNotFound {
+func OpenKeyringBackend() keyring.Keyring {
+	kr, err := keyring.Open(keyring.Config{
+		ServiceName: ServiceName,
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	return kr
+}
+
+func GetItem(kr keyring.Keyring, key string) string {
+	item, err := kr.Get(key)
+	if err != nil {
 		return ""
 	}
 
-	return
+	return string(item.Data)
 }
 
-func SetPassword(user string, password string) {
-	if err := keyring.Set(Service, user, password); err != nil {
+func SetItem(kr keyring.Keyring, key string, data string) {
+	if err := kr.Set(keyring.Item{Key: key, Data: []byte(data)}); err != nil {
 		panic(err)
 	}
 }
