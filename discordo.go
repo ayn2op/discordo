@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/99designs/keyring"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
@@ -29,6 +30,7 @@ var (
 	mainFlex          *tview.Flex
 
 	loginVia       string
+	kr             keyring.Keyring
 	config         *util.Config
 	discordSession *session.Session
 	discordState   *state.State
@@ -50,6 +52,7 @@ func main() {
 	tview.Borders.BottomLeft = ' '
 	tview.Borders.BottomRight = ' '
 
+	kr = util.OpenKeyringBackend()
 	config = util.NewConfig()
 
 	loginModal = ui.NewLoginModal(onLoginModalDone)
@@ -60,7 +63,7 @@ func main() {
 	mainFlex = ui.NewMainFlex(guildsDropDown, channelsTreeView, messagesTextView)
 	app = ui.NewApp(onAppInputCapture)
 
-	token := util.GetPassword("token")
+	token := util.GetItem(kr, "token")
 	if token != "" {
 		app.
 			SetRoot(mainFlex, true).
@@ -262,7 +265,7 @@ func onLoginFormLoginButtonSelected() {
 
 		discordSession = newSession(email, password, "")
 
-		go util.SetPassword("token", discordSession.Token)
+		go util.SetItem(kr, "token", discordSession.Token)
 	} else if loginVia == "token" {
 		token := loginForm.GetFormItemByLabel("Token").(*tview.InputField).GetText()
 		if token == "" {
@@ -271,7 +274,7 @@ func onLoginFormLoginButtonSelected() {
 
 		discordSession = newSession("", "", token)
 
-		go util.SetPassword("token", token)
+		go util.SetItem(kr, "token", token)
 	}
 
 	app.
