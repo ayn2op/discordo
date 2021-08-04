@@ -12,41 +12,40 @@ import (
 )
 
 func WriteMessage(messagesTextView *tview.TextView, state *state.State, message discord.Message) {
-	var content strings.Builder
+	var parsedMsg strings.Builder
 
 	if state.Ready().User.ID == message.Author.ID {
-		content.WriteString("[#ffb86c::b]")
-		content.WriteString(message.Author.Username)
-		content.WriteString("[-:-:-] ")
+		parsedMsg.WriteString("[#ffb86c::b]")
+		parsedMsg.WriteString(message.Author.Username)
+		parsedMsg.WriteString("[-:-:-] ")
 	} else {
-		content.WriteString("[#ff5555::b]")
-		content.WriteString(message.Author.Username)
-		content.WriteString("[-:-:-] ")
+		parsedMsg.WriteString("[#ff5555::b]")
+		parsedMsg.WriteString(message.Author.Username)
+		parsedMsg.WriteString("[-:-:-] ")
 	}
 
-	// If the author of the message is a bot account, add "BOT" beside the username of the author.
 	if message.Author.Bot {
-		content.WriteString("[#bd93f9]BOT[-:-:-] ")
+		parsedMsg.WriteString("[#bd93f9]BOT[-:-:-] ")
 	}
 
 	if message.Content != "" {
-		content.WriteString(message.Content)
+		parsedMsg.WriteString(message.Content)
 	}
 
 	if message.EditedTimestamp.IsValid() {
-		content.WriteString(" [::d](edited)[-:-:-]")
+		parsedMsg.WriteString(" [::d](edited)[-:-:-]")
 	}
 
 	// TODO(rigormorrtiss): display the message embed using "special" format
 	if len(message.Embeds) > 0 {
-		content.WriteString("\n<EMBED>")
+		parsedMsg.WriteString("\n<EMBED(S)>")
 	}
 
 	attachments := message.Attachments
 	for i := range attachments {
-		content.WriteString("\n")
-		content.WriteString(attachments[i].URL)
+		parsedMsg.WriteString("\n")
+		parsedMsg.WriteString(attachments[i].URL)
 	}
 
-	fmt.Fprintln(messagesTextView, content.String())
+	fmt.Fprintln(messagesTextView, parsedMsg.String())
 }
