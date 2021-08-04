@@ -6,12 +6,12 @@ Lightweight Discord terminal client
 
 ## Features
 
-- **Lightweight**: Designed to have a low memory footprint and low CPU usage, overall a low usage of system resources.
-- **Secure**: Securely stores the authentication token on first login in an OS-specific keyring file.
+- **Lightweight**: Discordo is designed to have a low memory footprint and low CPU usage, overall a low usage of system resources.
+- **Secure**: Discordo securely encrypts and stores the authentication token on first login to an OS-specific [keyring](https://en.wikipedia.org/wiki/Keyring_(cryptography)).
 
 ## Installation
 
-### Building from Source
+### Building
 
 ```bash
 git clone https://github.com/rigormorrtiss/discordo
