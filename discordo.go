@@ -161,6 +161,7 @@ func onMessageCreate(message *gateway.MessageCreateEvent) {
 }
 
 func onGuildsDropDownSelected(_ string, i int) {
+	messagesTextView.SetTitle("")
 	channelsTreeNode.ClearChildren()
 	messagesTextView.Clear()
 
