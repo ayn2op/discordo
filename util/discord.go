@@ -17,9 +17,7 @@ func WriteMessage(v *tview.TextView, s *state.State, m discord.Message) {
 	// $ AUTHOR_USERNAME (BOT)*space*
 	writeAuthor(&b, s, m.Author)
 	// $ MESSAGE_CONTENT
-	if m.Content != "" {
-		b.WriteString(m.Content)
-	}
+	writeContent(&b, m.Content)
 
 	// $ *space*(edited)
 	if m.EditedTimestamp.IsValid() {
@@ -71,7 +69,14 @@ func writeReferencedMessage(b *strings.Builder, rm *discord.Message) {
 		// Reset foreground
 		b.WriteString("[-::] ")
 
-		b.WriteString(rm.Content)
+		writeContent(b, rm.Content)
 		b.WriteString("[-:-:-]\n")
+	}
+}
+
+func writeContent(b *strings.Builder, c string) {
+	if c != "" {
+		c = tview.Escape(c)
+		b.WriteString(c)
 	}
 }
