@@ -46,10 +46,10 @@ func writeAttachments(b *strings.Builder, attachments []discord.Attachment) {
 
 func writeAuthor(b *strings.Builder, s *state.State, u discord.User) {
 	if s.Ready().User.ID == u.ID {
-		b.WriteString("[#ffb86c::b]")
+		b.WriteString("[#ffb86c]")
 		b.WriteString(u.Username)
 	} else {
-		b.WriteString("[#ff5555::b]")
+		b.WriteString("[#ff5555]")
 		b.WriteString(u.Username)
 	}
 
