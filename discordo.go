@@ -79,8 +79,8 @@ func main() {
 	}
 }
 
-func onAppInputCapture(event *tcell.EventKey) *tcell.EventKey {
-	switch event.Name() {
+func onAppInputCapture(e *tcell.EventKey) *tcell.EventKey {
+	switch e.Name() {
 	case "Ctrl+G":
 		app.SetFocus(guildsDropDown)
 	case "Ctrl+J":
@@ -93,19 +93,19 @@ func onAppInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		}
 	}
 
-	return event
+	return e
 }
 
 func onMessagesTextViewChanged() {
 	app.Draw()
 }
 
-func onLoginModalDone(buttonIndex int, buttonLabel string) {
-	if buttonLabel == ui.LoginViaEmailPasswordLoginModalButton {
+func onLoginModalDone(i int, label string) {
+	if label == ui.LoginViaEmailPasswordLoginModalButton {
 		loginVia = "emailpassword"
 		loginForm = ui.NewLoginForm(loginVia, onLoginFormLoginButtonSelected)
 		app.SetRoot(loginForm, true)
-	} else if buttonLabel == ui.LoginViaTokenLoginModalButton {
+	} else if label == ui.LoginViaTokenLoginModalButton {
 		loginVia = "token"
 		loginForm = ui.NewLoginForm(loginVia, onLoginFormLoginButtonSelected)
 		app.SetRoot(loginForm, true)
@@ -148,15 +148,15 @@ func onGuildCreate(guild *gateway.GuildCreateEvent) {
 	guildsDropDown.AddOption(guild.Name, nil)
 }
 
-func onReady(ready *gateway.ReadyEvent) {
-	for i := range ready.Guilds {
-		guildsDropDown.AddOption(ready.Guilds[i].Name, nil)
+func onReady(r *gateway.ReadyEvent) {
+	for i := range r.Guilds {
+		guildsDropDown.AddOption(r.Guilds[i].Name, nil)
 	}
 }
 
-func onMessageCreate(message *gateway.MessageCreateEvent) {
-	if currentChannel.ID == message.ChannelID {
-		util.WriteMessage(messagesTextView, discordState, message.Message)
+func onMessageCreate(m *gateway.MessageCreateEvent) {
+	if currentChannel.ID == m.ChannelID {
+		util.WriteMessage(messagesTextView, discordState, m.Message)
 	}
 }
 
@@ -196,7 +196,7 @@ func onGuildsDropDownSelected(_ string, i int) {
 	}
 }
 
-func onChannelsTreeViewSelected(node *tview.TreeNode) {
+func onChannelsTreeViewSelected(n *tview.TreeNode) {
 	messagesTextView.Clear()
 
 	if messageInputField == nil {
@@ -204,10 +204,10 @@ func onChannelsTreeViewSelected(node *tview.TreeNode) {
 		mainFlex.AddItem(messageInputField, 3, 1, false)
 	}
 
-	currentChannel = node.GetReference().(discord.Channel)
+	currentChannel = n.GetReference().(discord.Channel)
 	switch currentChannel.Type {
 	case discord.GuildCategory:
-		if len(node.GetChildren()) == 0 {
+		if len(n.GetChildren()) == 0 {
 			channels, _ := discordState.Cabinet.Channels(currentGuild.ID)
 			sort.SliceStable(channels, func(i, j int) bool {
 				return channels[i].Position < channels[j].Position
@@ -218,11 +218,11 @@ func onChannelsTreeViewSelected(node *tview.TreeNode) {
 				if (channel.Type == discord.GuildText || channel.Type == discord.GuildNews) && channel.CategoryID == currentChannel.ID {
 					channelNode := tview.NewTreeNode("[::d]#" + channel.Name + "[-:-:-]").
 						SetReference(channel)
-					node.AddChild(channelNode)
+					n.AddChild(channelNode)
 				}
 			}
 		} else {
-			node.SetExpanded(!node.IsExpanded())
+			n.SetExpanded(!n.IsExpanded())
 		}
 	case discord.GuildText, discord.GuildNews:
 		title := currentChannel.Name
@@ -241,8 +241,8 @@ func onChannelsTreeViewSelected(node *tview.TreeNode) {
 	}
 }
 
-func onMessageInputFieldDone(key tcell.Key) {
-	if key == tcell.KeyEnter {
+func onMessageInputFieldDone(k tcell.Key) {
+	if k == tcell.KeyEnter {
 		currentText := messageInputField.GetText()
 		currentText = strings.TrimSpace(currentText)
 
