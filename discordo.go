@@ -199,11 +199,6 @@ func onGuildsDropDownSelected(_ string, i int) {
 func onChannelsTreeViewSelected(n *tview.TreeNode) {
 	messagesTextView.Clear()
 
-	if messageInputField == nil {
-		messageInputField = ui.NewMessageInputField(onMessageInputFieldDone, config.Theme)
-		mainFlex.AddItem(messageInputField, 3, 1, false)
-	}
-
 	currentChannel = n.GetReference().(discord.Channel)
 	switch currentChannel.Type {
 	case discord.GuildCategory:
@@ -225,8 +220,12 @@ func onChannelsTreeViewSelected(n *tview.TreeNode) {
 			n.SetExpanded(!n.IsExpanded())
 		}
 	case discord.GuildText, discord.GuildNews:
-		messagesTextView.SetTitle(currentChannel.Name)
+		if messageInputField == nil {
+			messageInputField = ui.NewMessageInputField(onMessageInputFieldDone, config.Theme)
+			mainFlex.AddItem(messageInputField, 3, 1, false)
+		}
 		app.SetFocus(messageInputField)
+		messagesTextView.SetTitle(currentChannel.Name)
 
 		messages, _ := discordSession.Messages(currentChannel.ID, config.GetMessagesLimit)
 		for i := len(messages) - 1; i >= 0; i-- {
