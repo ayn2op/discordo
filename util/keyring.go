@@ -17,8 +17,8 @@ func OpenKeyringBackend() keyring.Keyring {
 	return kr
 }
 
-func GetItem(kr keyring.Keyring, key string) string {
-	item, err := kr.Get(key)
+func GetItem(kr keyring.Keyring, k string) string {
+	item, err := kr.Get(k)
 	if err != nil {
 		return ""
 	}
@@ -26,8 +26,8 @@ func GetItem(kr keyring.Keyring, key string) string {
 	return string(item.Data)
 }
 
-func SetItem(kr keyring.Keyring, key string, data string) {
-	if err := kr.Set(keyring.Item{Key: key, Data: []byte(data)}); err != nil {
+func SetItem(kr keyring.Keyring, k string, d string) {
+	if err := kr.Set(keyring.Item{Key: k, Data: []byte(d)}); err != nil {
 		panic(err)
 	}
 }
