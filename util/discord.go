@@ -9,41 +9,41 @@ import (
 	"github.com/rivo/tview"
 )
 
-func WriteMessage(messagesTextView *tview.TextView, state *state.State, message discord.Message) {
-	var parsedMsg strings.Builder
+func WriteMessage(v *tview.TextView, s *state.State, m discord.Message) {
+	var b strings.Builder
 
-	if state.Ready().User.ID == message.Author.ID {
-		parsedMsg.WriteString("[#ffb86c::b]")
-		parsedMsg.WriteString(message.Author.Username)
-		parsedMsg.WriteString("[-:-:-] ")
+	if s.Ready().User.ID == m.Author.ID {
+		b.WriteString("[#ffb86c::b]")
+		b.WriteString(m.Author.Username)
+		b.WriteString("[-:-:-] ")
 	} else {
-		parsedMsg.WriteString("[#ff5555::b]")
-		parsedMsg.WriteString(message.Author.Username)
-		parsedMsg.WriteString("[-:-:-] ")
+		b.WriteString("[#ff5555::b]")
+		b.WriteString(m.Author.Username)
+		b.WriteString("[-:-:-] ")
 	}
 
-	if message.Author.Bot {
-		parsedMsg.WriteString("[#bd93f9]BOT[-:-:-] ")
+	if m.Author.Bot {
+		b.WriteString("[#bd93f9]BOT[-:-:-] ")
 	}
 
-	if message.Content != "" {
-		parsedMsg.WriteString(message.Content)
+	if m.Content != "" {
+		b.WriteString(m.Content)
 	}
 
-	if message.EditedTimestamp.IsValid() {
-		parsedMsg.WriteString(" [::d](edited)[-:-:-]")
+	if m.EditedTimestamp.IsValid() {
+		b.WriteString(" [::d](edited)[-:-:-]")
 	}
 
 	// TODO(rigormorrtiss): display the message embed using "special" format
-	if len(message.Embeds) > 0 {
-		parsedMsg.WriteString("\n<EMBED(S)>")
+	if len(m.Embeds) > 0 {
+		b.WriteString("\n<EMBED(S)>")
 	}
 
-	attachments := message.Attachments
+	attachments := m.Attachments
 	for i := range attachments {
-		parsedMsg.WriteString("\n")
-		parsedMsg.WriteString(attachments[i].URL)
+		b.WriteString("\n")
+		b.WriteString(attachments[i].URL)
 	}
 
-	fmt.Fprintln(messagesTextView, parsedMsg.String())
+	fmt.Fprintln(v, b.String())
 }
