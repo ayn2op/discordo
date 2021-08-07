@@ -33,16 +33,6 @@ func NewConfig() *Config {
 		GetMessagesLimit: 50,
 		Theme:            &Theme{},
 	}
-	config.Theme.DropDownBackground = "#3B4252"
-	config.Theme.TreeViewBackground = "#282a36"
-	config.Theme.TextViewBackground = "#282a36"
-	config.Theme.InputFieldBackground = "#3B4252"
-	config.Theme.DropDownForeground = "#f8f8f2"
-	config.Theme.TextViewForeground = "#f8f8f2"
-	config.Theme.TreeNodeForeground = "#8be9fd"
-	config.Theme.InputFieldForeground = "#f8f8f2"
-	config.Theme.InputFieldPlaceholderForeground = "#6272a4"
-
 	configPath := userHomeDir + "/.config/discordo/config.json"
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		return &config
