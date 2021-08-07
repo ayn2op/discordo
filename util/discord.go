@@ -12,7 +12,7 @@ import (
 func WriteMessage(v *tview.TextView, s *state.State, m discord.Message) {
 	var b strings.Builder
 
-	// $ ╭ AUTHOR_USERNAME MESSAGE_CONTENT*linebreak*
+	// $ *space*╭ AUTHOR_USERNAME MESSAGE_CONTENT*linebreak*
 	writeReferencedMessage(&b, m.ReferencedMessage)
 	// $ AUTHOR_USERNAME (BOT)*space*
 	writeAuthor(&b, s, m.Author)
@@ -62,7 +62,9 @@ func writeAuthor(b *strings.Builder, s *state.State, u discord.User) {
 
 func writeReferencedMessage(b *strings.Builder, rm *discord.Message) {
 	if rm != nil {
+		b.WriteRune(' ')
 		b.WriteRune('\u256D')
+
 		b.WriteString(" [#ff5555::d]")
 		b.WriteString(rm.Author.Username)
 		b.WriteString("[-:-:] ")
