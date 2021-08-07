@@ -12,15 +12,17 @@ import (
 func WriteMessage(v *tview.TextView, s *state.State, m discord.Message) {
 	var b strings.Builder
 
-	// > AUTHOR_USERNAME MESSAGE_CONTENT
+	// $ ╭ AUTHOR_USERNAME MESSAGE_CONTENT*linebreak*
 	writeReferencedMessage(&b, m.ReferencedMessage)
-	// AUTHOR_USERNAME MESSAGE_CONTENT
+	// $ AUTHOR_USERNAME (BOT)*space*
 	writeAuthor(&b, s, m.Author)
 
+	// $ MESSAGE_CONTENT
 	if m.Content != "" {
 		b.WriteString(m.Content)
 	}
 
+	// $ *space*(edited)
 	if m.EditedTimestamp.IsValid() {
 		b.WriteString(" [::d](edited)[-:-:-]")
 	}
@@ -30,6 +32,7 @@ func WriteMessage(v *tview.TextView, s *state.State, m discord.Message) {
 		b.WriteString("\n<EMBED(S)>")
 	}
 
+	// $ *linebreak*ATTACHMENT_URL
 	writeAttachments(&b, m.Attachments)
 
 	fmt.Fprintln(v, b.String())
@@ -66,7 +69,6 @@ func writeReferencedMessage(b *strings.Builder, rm *discord.Message) {
 		b.WriteString("[-:-:] ")
 
 		b.WriteString(rm.Content)
-		b.WriteString("\n")
-		b.WriteString("[-:-:-]")
+		b.WriteString("\n[-:-:-]")
 	}
 }
