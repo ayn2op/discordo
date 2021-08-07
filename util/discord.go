@@ -64,12 +64,14 @@ func writeReferencedMessage(b *strings.Builder, rm *discord.Message) {
 	if rm != nil {
 		b.WriteRune(' ')
 		b.WriteRune('\u256D')
+		b.WriteRune(' ')
 
-		b.WriteString(" [#ff5555::d]")
+		b.WriteString("[#ff5555::d]")
 		b.WriteString(rm.Author.Username)
-		b.WriteString("[-:-:] ")
+		// Reset foreground
+		b.WriteString("[-::] ")
 
 		b.WriteString(rm.Content)
-		b.WriteString("\n")
+		b.WriteString("[-:-:-]\n")
 	}
 }
