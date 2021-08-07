@@ -16,7 +16,6 @@ func WriteMessage(v *tview.TextView, s *state.State, m discord.Message) {
 	writeReferencedMessage(&b, m.ReferencedMessage)
 	// $ AUTHOR_USERNAME (BOT)*space*
 	writeAuthor(&b, s, m.Author)
-
 	// $ MESSAGE_CONTENT
 	if m.Content != "" {
 		b.WriteString(m.Content)
@@ -69,6 +68,6 @@ func writeReferencedMessage(b *strings.Builder, rm *discord.Message) {
 		b.WriteString("[-:-:] ")
 
 		b.WriteString(rm.Content)
-		b.WriteString("\n[-:-:-]")
+		b.WriteString("\n")
 	}
 }
