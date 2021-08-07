@@ -11,24 +11,19 @@ import (
 
 func WriteMessage(v *tview.TextView, s *state.State, m discord.Message) {
 	var b strings.Builder
-
-	// $ *space*╭ AUTHOR_USERNAME MESSAGE_CONTENT*linebreak*
-	writeReferencedMessage(&b, m.ReferencedMessage)
-	// $ AUTHOR_USERNAME (BOT)*space*
+	// $  ╭ AUTHOR_USERNAME (BOT) MESSAGE_CONTENT*linebreak*
+	writeReferencedMessage(&b, s, m.ReferencedMessage)
+	// $ AUTHOR_USERNAME (BOT) MESSAGE_CONTENT
 	writeAuthor(&b, s, m.Author)
-	// $ MESSAGE_CONTENT
 	writeContent(&b, m.Content)
-
 	// $ *space*(edited)
 	if m.EditedTimestamp.IsValid() {
 		b.WriteString(" [::d](edited)[-:-:-]")
 	}
-
 	// TODO(rigormorrtiss): display the message embed using "special" format
 	if len(m.Embeds) > 0 {
 		b.WriteString("\n<EMBED(S)>")
 	}
-
 	// $ *linebreak*ATTACHMENT_URL
 	writeAttachments(&b, m.Attachments)
 
@@ -44,27 +39,31 @@ func writeAttachments(b *strings.Builder, attachments []discord.Attachment) {
 
 func writeAuthor(b *strings.Builder, s *state.State, u discord.User) {
 	if s.Ready().User.ID == u.ID {
-		b.WriteString("[#ffb86c]")
-		b.WriteString(u.Username)
+		b.WriteString("[#59E3E3]")
 	} else {
-		b.WriteString("[#ff5555]")
-		b.WriteString(u.Username)
+		b.WriteString("[#E95678]")
 	}
 
+	b.WriteString(u.Username)
 	b.WriteString("[-:-:-] ")
 
 	if u.Bot {
-		b.WriteString("[#bd93f9]BOT[-:-:-] ")
+		b.WriteString("[#59E3E3]BOT[-:-:-] ")
 	}
 }
 
-func writeReferencedMessage(b *strings.Builder, rm *discord.Message) {
+func writeReferencedMessage(b *strings.Builder, s *state.State, rm *discord.Message) {
 	if rm != nil {
 		b.WriteRune(' ')
 		b.WriteRune('\u256D')
 		b.WriteRune(' ')
 
-		b.WriteString("[#ff5555::d]")
+		if s.Ready().User.ID == rm.Author.ID {
+			b.WriteString("[#59E3E3::d]")
+		} else {
+			b.WriteString("[#E95678::d]")
+		}
+
 		b.WriteString(rm.Author.Username)
 		// Reset foreground
 		b.WriteString("[-::] ")
