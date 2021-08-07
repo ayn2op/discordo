@@ -188,7 +188,7 @@ func onGuildsDropDownSelected(_ string, i int) {
 			channelNode.SetColor(tcell.GetColor(config.Theme.TreeNodeForeground))
 			channelsTreeNode.AddChild(channelNode)
 		case discord.GuildText, discord.GuildNews:
-			if channel.CategoryID == 0 {
+			if channel.CategoryID == discord.NullChannelID {
 				channelNode.SetText("[::d]#" + channel.Name + "[-:-:-]")
 				channelsTreeNode.AddChild(channelNode)
 			}
