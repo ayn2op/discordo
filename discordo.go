@@ -225,13 +225,7 @@ func onChannelsTreeViewSelected(n *tview.TreeNode) {
 			n.SetExpanded(!n.IsExpanded())
 		}
 	case discord.GuildText, discord.GuildNews:
-		title := currentChannel.Name
-
-		if currentChannel.Topic != "" {
-			title += " - " + currentChannel.Topic
-		}
-
-		messagesTextView.SetTitle(title)
+		messagesTextView.SetTitle(currentChannel.Name)
 		app.SetFocus(messageInputField)
 
 		messages, _ := discordSession.Messages(currentChannel.ID, config.GetMessagesLimit)
