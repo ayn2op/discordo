@@ -2,8 +2,6 @@ package util
 
 import (
 	"fmt"
-	_ "image/jpeg"
-	_ "image/png"
 	"strings"
 
 	"github.com/diamondburned/arikawa/v3/discord"
