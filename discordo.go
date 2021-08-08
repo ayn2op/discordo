@@ -197,8 +197,6 @@ func onGuildsDropDownSelected(_ string, i int) {
 }
 
 func onChannelsTreeViewSelected(n *tview.TreeNode) {
-	messagesTextView.Clear()
-
 	channelID := n.GetReference().(discord.ChannelID)
 	currentChannel, err := discordState.Cabinet.Channel(channelID)
 	if err != nil {
@@ -230,6 +228,8 @@ func onChannelsTreeViewSelected(n *tview.TreeNode) {
 			mainFlex.AddItem(messageInputField, 3, 1, false)
 		}
 		app.SetFocus(messageInputField)
+
+		messagesTextView.Clear()
 		messagesTextView.SetTitle(currentChannel.Name)
 
 		messages, _ := discordSession.Messages(currentChannel.ID, config.GetMessagesLimit)
