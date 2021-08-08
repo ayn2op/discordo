@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"github.com/atotto/clipboard"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rigormorrtiss/discordo/util"
 	"github.com/rivo/tview"
@@ -17,7 +18,15 @@ func NewMessageInputField(onMessageInputFieldDone func(key tcell.Key), theme *ut
 		SetPlaceholderTextColor(tcell.GetColor(theme.InputFieldPlaceholderForeground)).
 		SetBackgroundColor(tcell.GetColor(theme.InputFieldBackground)).
 		SetBorder(true).
-		SetBorderPadding(0, 0, 1, 1)
+		SetBorderPadding(0, 0, 1, 1).
+		SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+			if event.Key() == tcell.KeyCtrlV {
+				text, _ := clipboard.ReadAll()
+				messageInputField.SetText(text)
+			}
+
+			return event
+		})
 
 	return messageInputField
 }
