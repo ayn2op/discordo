@@ -134,9 +134,19 @@ func newSession(email string, password string, token string) *session.Session {
 
 	discordState = state.NewFromSession(sess, defaultstore.New())
 
-	sess.AddHandler(onReady)
-	sess.AddHandler(onGuildCreate)
-	sess.AddHandler(onMessageCreate)
+	sess.AddHandler(func(r *gateway.ReadyEvent) {
+		for i := range r.Guilds {
+			guildsDropDown.AddOption(r.Guilds[i].Name, nil)
+		}
+	})
+	sess.AddHandler(func(g *gateway.GuildCreateEvent) {
+		guildsDropDown.AddOption(g.Name, nil)
+	})
+	sess.AddHandler(func(m *gateway.MessageCreateEvent) {
+		if currentChannel.ID == m.ChannelID {
+			util.WriteMessage(messagesTextView, discordState, m.Message)
+		}
+	})
 	if err = sess.Open(context.Background()); err != nil {
 		panic(err)
 	}
@@ -144,34 +154,18 @@ func newSession(email string, password string, token string) *session.Session {
 	return sess
 }
 
-func onGuildCreate(guild *gateway.GuildCreateEvent) {
-	guildsDropDown.AddOption(guild.Name, nil)
-}
-
-func onReady(r *gateway.ReadyEvent) {
-	for i := range r.Guilds {
-		guildsDropDown.AddOption(r.Guilds[i].Name, nil)
-	}
-}
-
-func onMessageCreate(m *gateway.MessageCreateEvent) {
-	if currentChannel.ID == m.ChannelID {
-		util.WriteMessage(messagesTextView, discordState, m.Message)
-	}
-}
-
 func onGuildsDropDownSelected(_ string, i int) {
-	messagesTextView.SetTitle("")
+	channelsTreeView.SetTitle("Channels")
 	channelsTreeNode.ClearChildren()
-	messagesTextView.Clear()
+	messagesTextView.
+		Clear().
+		SetTitle("")
+	app.SetFocus(channelsTreeView)
 
 	if messageInputField != nil {
 		mainFlex.RemoveItem(messageInputField)
 		messageInputField = nil
 	}
-
-	channelsTreeView.SetTitle("Channels")
-	app.SetFocus(channelsTreeView)
 
 	currentGuild = discordState.Ready().Guilds[i].Guild
 	channels, _ := discordState.Cabinet.Channels(currentGuild.ID)
