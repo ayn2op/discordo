@@ -34,12 +34,10 @@ sudo mv ./discordo /usr/local/bin
 
 ### Default Keybindings
 
-| **Shortcut** | **Action**                                |
-|:------------:|:-----------------------------------------:|
-| Ctrl + G     | Sets the focus on the guilds dropdown.    |
-| Ctrl + J     | Sets the focus on the channels treeview.  |
-| Ctrl + K     | Sets the focus on the messages textview.  |
-| Ctrl + L     | Sets the focus on the message inputfield. |
+- `Ctrl` + `G`: Sets the focus on the guilds dropdown.
+- `Ctrl` + `J`: Sets the focus on the channels treeview.
+- `Ctrl` + `K`: Sets the focus on the messages textview.
+- `Ctrl` + `L`: Sets the focus on the message inputfield.
 
 ## Disclaimer
 
