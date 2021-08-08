@@ -39,6 +39,11 @@ sudo mv ./discordo /usr/local/bin
 - `Ctrl` + `K`: Sets the focus on the messages textview.
 - `Ctrl` + `L`: Sets the focus on the message inputfield.
 
+### Clipboard
+
+- Requires `xclip` or `xsel` for X11.
+- Requires `wl-clipboard` for Wayland. 
+
 ## Disclaimer
 
 Automated user accounts or "self-bots" are against Discord's Terms of Service. I am not responsible for any loss caused by using "self-bots" or Discordo.
