@@ -182,7 +182,7 @@ func onGuildsDropDownSelected(_ string, i int) {
 	for i := range channels {
 		channel := channels[i]
 		channelNode := tview.NewTreeNode(channel.Name).
-			SetReference(channel)
+			SetReference(channel.ID)
 		switch channel.Type {
 		case discord.GuildCategory:
 			channelNode.SetColor(tcell.GetColor(config.Theme.TreeNodeForeground))
@@ -199,7 +199,12 @@ func onGuildsDropDownSelected(_ string, i int) {
 func onChannelsTreeViewSelected(n *tview.TreeNode) {
 	messagesTextView.Clear()
 
-	currentChannel = n.GetReference().(discord.Channel)
+	channelID := n.GetReference().(discord.ChannelID)
+	currentChannel, err := discordState.Cabinet.Channel(channelID)
+	if err != nil {
+		return
+	}
+
 	switch currentChannel.Type {
 	case discord.GuildCategory:
 		if len(n.GetChildren()) == 0 {
@@ -212,7 +217,7 @@ func onChannelsTreeViewSelected(n *tview.TreeNode) {
 				channel := channels[i]
 				if (channel.Type == discord.GuildText || channel.Type == discord.GuildNews) && channel.CategoryID == currentChannel.ID {
 					channelNode := tview.NewTreeNode("[::d]#" + channel.Name + "[-:-:-]").
-						SetReference(channel)
+						SetReference(channel.ID)
 					n.AddChild(channelNode)
 				}
 			}
@@ -238,7 +243,6 @@ func onMessageInputFieldDone(k tcell.Key) {
 	if k == tcell.KeyEnter {
 		currentText := messageInputField.GetText()
 		currentText = strings.TrimSpace(currentText)
-
 		if currentText == "" {
 			return
 		}
