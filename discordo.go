@@ -236,7 +236,7 @@ func onMessageInputFieldDone(k tcell.Key) {
 		}
 
 		messageInputField.SetText("")
-		go discordSession.SendMessage(currentChannel.ID, currentText)
+		discordSession.SendMessage(currentChannel.ID, currentText)
 	}
 }
 
