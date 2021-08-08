@@ -21,6 +21,7 @@ func NewMessageInputField(onMessageInputFieldDone func(key tcell.Key), theme *ut
 		SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 			if event.Key() == tcell.KeyCtrlV {
 				text, _ := clipboard.ReadAll()
+				text = messageInputField.GetText() + text
 				messageInputField.SetText(text)
 			}
 
