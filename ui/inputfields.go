@@ -15,7 +15,6 @@ func NewMessageInputField(onMessageInputFieldDone func(key tcell.Key), theme *ut
 		SetFieldWidth(0).
 		SetDoneFunc(onMessageInputFieldDone).
 		SetFieldBackgroundColor(tcell.GetColor(theme.InputFieldBackground)).
-		SetPlaceholderTextColor(tcell.GetColor(theme.InputFieldPlaceholderForeground)).
 		SetBackgroundColor(tcell.GetColor(theme.InputFieldBackground)).
 		SetBorder(true).
 		SetBorderPadding(0, 0, 1, 1).

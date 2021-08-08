@@ -14,7 +14,6 @@ func NewMessagesTextView(onMessagesTextViewChanged func(), theme *util.Theme) *t
 		SetWordWrap(true).
 		ScrollToEnd().
 		SetChangedFunc(onMessagesTextViewChanged).
-		SetTextColor(tcell.GetColor(theme.TextViewForeground)).
 		SetBackgroundColor(tcell.GetColor(theme.TextViewBackground)).
 		SetBorder(true).
 		SetBorderPadding(0, 0, 1, 1)
