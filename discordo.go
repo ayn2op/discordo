@@ -236,16 +236,13 @@ func onChannelsTreeViewSelected(n *tview.TreeNode) {
 
 func onMessageInputFieldDone(k tcell.Key) {
 	if k == tcell.KeyEnter {
-		currentText := messageInputField.GetText()
-		currentText = strings.TrimSpace(currentText)
-
+		currentText := strings.TrimSpace(messageInputField.GetText())
 		if currentText == "" {
 			return
 		}
 
-		discordSession.SendMessage(currentChannel.ID, currentText)
-
 		messageInputField.SetText("")
+		go discordSession.SendMessage(currentChannel.ID, currentText)
 	}
 }
 
