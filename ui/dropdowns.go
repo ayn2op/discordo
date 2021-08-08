@@ -12,9 +12,7 @@ func NewGuildsDropDown(onGuildsDropDownSelected func(text string, index int), th
 	guildsDropDown.
 		SetLabel("Guild: ").
 		SetSelectedFunc(onGuildsDropDownSelected).
-		SetLabelColor(tcell.GetColor(theme.DropDownForeground)).
 		SetFieldBackgroundColor(tcell.GetColor(theme.DropDownBackground)).
-		SetFieldTextColor(tcell.GetColor(theme.DropDownForeground)).
 		SetBackgroundColor(tcell.GetColor(theme.DropDownBackground)).
 		SetBorder(true).
 		SetBorderPadding(0, 0, 1, 1)

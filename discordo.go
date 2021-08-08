@@ -179,7 +179,6 @@ func onGuildsDropDownSelected(_ string, i int) {
 			SetReference(channel)
 		switch channel.Type {
 		case discord.GuildCategory:
-			channelNode.SetColor(tcell.GetColor(config.Theme.TreeNodeForeground))
 			channelsTreeNode.AddChild(channelNode)
 		case discord.GuildText, discord.GuildNews:
 			if channel.CategoryID == 0 || channel.CategoryID == discord.NullChannelID {

@@ -10,12 +10,6 @@ type Theme struct {
 	TreeViewBackground   string `json:"treeview.background"`
 	TextViewBackground   string `json:"textview.background"`
 	InputFieldBackground string `json:"inputField.background"`
-
-	DropDownForeground              string `json:"dropdown.foreground"`
-	TextViewForeground              string `json:"textview.foreground"`
-	TreeNodeForeground              string `json:"treenode.foreground"`
-	InputFieldForeground            string `json:"inputField.foreground"`
-	InputFieldPlaceholderForeground string `json:"inputField.placeholderTextForeground"`
 }
 
 type Config struct {
