@@ -119,6 +119,7 @@ func newSession(email string, password string, token string) *session.Session {
 		"Chrome/91.0.4472.164 Safari/537.36"
 	gateway.DefaultIdentity.Browser = "Chrome"
 	gateway.DefaultIdentity.OS = "Linux"
+	gateway.DefaultIdentity.Device = ""
 
 	var sess *session.Session
 	var err error
