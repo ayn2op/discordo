@@ -13,8 +13,9 @@ func WriteMessage(v *tview.TextView, s *state.State, m discord.Message) {
 	var b strings.Builder
 	// $  ╭ AUTHOR_USERNAME (BOT) MESSAGE_CONTENT*linebreak*
 	writeReferencedMessage(&b, s, m.ReferencedMessage)
-	// $ AUTHOR_USERNAME (BOT) MESSAGE_CONTENT
+	// $ AUTHOR_USERNAME (BOT)*spacee*
 	writeAuthor(&b, s, m.Author)
+	// $ MESSAGE_CONTENT
 	writeContent(&b, m.Content)
 	// $ *space*(edited)
 	if m.EditedTimestamp.IsValid() {
