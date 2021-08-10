@@ -202,10 +202,12 @@ func onChannelsTreeViewSelected(n *tview.TreeNode) {
 		messagesTextView.Clear()
 		messagesTextView.SetTitle(currentChannel.Name)
 
-		messages, _ := discordSession.Messages(currentChannel.ID, config.GetMessagesLimit)
-		for i := len(messages) - 1; i >= 0; i-- {
-			util.WriteMessage(messagesTextView, discordState, messages[i])
-		}
+		go func() {
+			messages, _ := discordSession.Messages(currentChannel.ID, config.GetMessagesLimit)
+			for i := len(messages) - 1; i >= 0; i-- {
+				util.WriteMessage(messagesTextView, discordState, messages[i])
+			}
+		}()
 	}
 }
 
