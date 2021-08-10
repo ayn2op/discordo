@@ -13,16 +13,12 @@ func NewMessagesTextView(app *tview.Application, theme *util.Theme) *tview.TextV
 		SetDynamicColors(true).
 		SetWordWrap(true).
 		ScrollToEnd().
-		SetChangedFunc(onMessagesTextViewChanged(app)).
+		SetChangedFunc(func() {
+			app.Draw()
+		}).
 		SetBackgroundColor(tcell.GetColor(theme.TextViewBackground)).
 		SetBorder(true).
 		SetBorderPadding(0, 0, 1, 1)
 
 	return messagesTextView
-}
-
-func onMessagesTextViewChanged(app *tview.Application) func() {
-	return func() {
-		app.Draw()
-	}
 }
