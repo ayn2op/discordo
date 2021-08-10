@@ -28,7 +28,6 @@ var (
 	messageInputField *tview.InputField
 	mainFlex          *tview.Flex
 
-	loginVia       string
 	kr             keyring.Keyring
 	config         *util.Config
 	discordSession *session.Session
@@ -55,7 +54,6 @@ func main() {
 	config = util.NewConfig()
 
 	app = ui.NewApp(onAppInputCapture)
-	loginModal = ui.NewLoginModal(onLoginModalDone)
 	guildsDropDown = ui.NewGuildsDropDown(onGuildsDropDownSelected, config.Theme)
 	channelsTreeNode = tview.NewTreeNode("")
 	channelsTreeView = ui.NewChannelsTreeView(channelsTreeNode, onChannelsTreeViewSelected, config.Theme)
@@ -70,7 +68,8 @@ func main() {
 
 		discordSession = newSession("", "", token)
 	} else {
-		app.SetRoot(loginModal, true)
+		loginForm = ui.NewLoginForm(onLoginFormLoginButtonSelected)
+		app.SetRoot(loginForm, true)
 	}
 
 	if err := app.Run(); err != nil {
@@ -93,18 +92,6 @@ func onAppInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	}
 
 	return e
-}
-
-func onLoginModalDone(i int, label string) {
-	if label == ui.LoginViaEmailPasswordLoginModalButton {
-		loginVia = "emailpassword"
-		loginForm = ui.NewLoginForm(loginVia, onLoginFormLoginButtonSelected)
-		app.SetRoot(loginForm, true)
-	} else if label == ui.LoginViaTokenLoginModalButton {
-		loginVia = "token"
-		loginForm = ui.NewLoginForm(loginVia, onLoginFormLoginButtonSelected)
-		app.SetRoot(loginForm, true)
-	}
 }
 
 func newSession(email string, password string, token string) *session.Session {
@@ -224,28 +211,17 @@ func onChannelsTreeViewSelected(n *tview.TreeNode) {
 }
 
 func onLoginFormLoginButtonSelected() {
-	if loginVia == "emailpassword" {
-		email := loginForm.GetFormItemByLabel("Email").(*tview.InputField).GetText()
-		password := loginForm.GetFormItemByLabel("Password").(*tview.InputField).GetText()
-		if email == "" || password == "" {
-			return
-		}
-
-		discordSession = newSession(email, password, "")
-
-		go util.SetItem(kr, "token", discordSession.Token)
-	} else if loginVia == "token" {
-		token := loginForm.GetFormItemByLabel("Token").(*tview.InputField).GetText()
-		if token == "" {
-			return
-		}
-
-		discordSession = newSession("", "", token)
-
-		go util.SetItem(kr, "token", token)
+	email := loginForm.GetFormItemByLabel("Email").(*tview.InputField).GetText()
+	password := loginForm.GetFormItemByLabel("Password").(*tview.InputField).GetText()
+	if email == "" || password == "" {
+		return
 	}
 
 	app.
 		SetRoot(mainFlex, true).
 		SetFocus(guildsDropDown)
+
+	discordSession = newSession(email, password, "")
+
+	go util.SetItem(kr, "token", discordSession.Token)
 }
