@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"sort"
-	"strings"
 
 	"github.com/99designs/keyring"
 	"github.com/diamondburned/arikawa/v3/api"
@@ -55,13 +54,13 @@ func main() {
 	kr = util.OpenKeyringBackend()
 	config = util.NewConfig()
 
+	app = ui.NewApp(onAppInputCapture)
 	loginModal = ui.NewLoginModal(onLoginModalDone)
 	guildsDropDown = ui.NewGuildsDropDown(onGuildsDropDownSelected, config.Theme)
 	channelsTreeNode = tview.NewTreeNode("")
 	channelsTreeView = ui.NewChannelsTreeView(channelsTreeNode, onChannelsTreeViewSelected, config.Theme)
-	messagesTextView = ui.NewMessagesTextView(onMessagesTextViewChanged, config.Theme)
+	messagesTextView = ui.NewMessagesTextView(app, config.Theme)
 	mainFlex = ui.NewMainFlex(guildsDropDown, channelsTreeView, messagesTextView)
-	app = ui.NewApp(onAppInputCapture)
 
 	token := util.GetItem(kr, "token")
 	if token != "" {
@@ -94,10 +93,6 @@ func onAppInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	}
 
 	return e
-}
-
-func onMessagesTextViewChanged() {
-	app.Draw()
 }
 
 func onLoginModalDone(i int, label string) {
@@ -213,7 +208,7 @@ func onChannelsTreeViewSelected(n *tview.TreeNode) {
 		}
 	case discord.GuildText, discord.GuildNews:
 		if messageInputField == nil {
-			messageInputField = ui.NewMessageInputField(onMessageInputFieldDone, config.Theme)
+			messageInputField = ui.NewMessageInputField(discordSession, currentChannel, config.Theme)
 			mainFlex.AddItem(messageInputField, 3, 1, false)
 		}
 		app.SetFocus(messageInputField)
@@ -225,18 +220,6 @@ func onChannelsTreeViewSelected(n *tview.TreeNode) {
 		for i := len(messages) - 1; i >= 0; i-- {
 			util.WriteMessage(messagesTextView, discordState, messages[i])
 		}
-	}
-}
-
-func onMessageInputFieldDone(k tcell.Key) {
-	if k == tcell.KeyEnter {
-		currentText := strings.TrimSpace(messageInputField.GetText())
-		if currentText == "" {
-			return
-		}
-
-		messageInputField.SetText("")
-		discordSession.SendMessage(currentChannel.ID, currentText)
 	}
 }
 
