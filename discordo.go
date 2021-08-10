@@ -19,7 +19,6 @@ import (
 
 var (
 	app               *tview.Application
-	loginModal        *tview.Modal
 	loginForm         *tview.Form
 	guildsDropDown    *tview.DropDown
 	channelsTreeView  *tview.TreeView
