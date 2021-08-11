@@ -21,20 +21,28 @@ func WriteMessage(v *tview.TextView, s *state.State, m discord.Message) {
 	if m.EditedTimestamp.IsValid() {
 		b.WriteString(" [::d](edited)[-:-:-]")
 	}
-	// TODO(rigormorrtiss): display the message embed using "special" format
-	if len(m.Embeds) > 0 {
-		b.WriteString("\n<EMBED(S)>")
-	}
+	// $ *linebreak*EMBED
+	writeEmbeds(&b, m.Embeds)
 	// $ *linebreak*ATTACHMENT_URL
 	writeAttachments(&b, m.Attachments)
 
 	fmt.Fprintln(v, b.String())
 }
 
+func writeEmbeds(b *strings.Builder, embeds []discord.Embed) {
+	for range embeds {
+		b.WriteString("\n<EMBED>")
+	}
+}
+
 func writeAttachments(b *strings.Builder, attachments []discord.Attachment) {
 	for i := range attachments {
+		a := attachments[i]
 		b.WriteString("\n")
-		b.WriteString(attachments[i].URL)
+		b.WriteString("[")
+		b.WriteString(a.Filename)
+		b.WriteString("]: ")
+		b.WriteString(a.URL)
 	}
 }
 
