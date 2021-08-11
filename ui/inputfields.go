@@ -16,33 +16,27 @@ func NewMessageInputField(s *session.Session, c discord.Channel, theme *util.The
 	i.
 		SetPlaceholder("Message...").
 		SetFieldWidth(0).
-		SetDoneFunc(onMessageInputFieldDone(i, s, c)).
 		SetFieldBackgroundColor(tcell.GetColor(theme.InputFieldBackground)).
 		SetBackgroundColor(tcell.GetColor(theme.InputFieldBackground)).
 		SetBorder(true).
 		SetBorderPadding(0, 0, 1, 1).
-		SetInputCapture(onMessageInputFieldInputCapture(i))
+		SetInputCapture(onMessageInputFieldInputCapture(i, s, c))
 
 	return i
 }
 
-func onMessageInputFieldDone(i *tview.InputField, s *session.Session, c discord.Channel) func(k tcell.Key) {
-	return func(k tcell.Key) {
-		if k == tcell.KeyEnter {
+func onMessageInputFieldInputCapture(i *tview.InputField, s *session.Session, c discord.Channel) func(event *tcell.EventKey) *tcell.EventKey {
+	return func(event *tcell.EventKey) *tcell.EventKey {
+		switch event.Key() {
+		case tcell.KeyEnter:
 			t := strings.TrimSpace(i.GetText())
 			if t == "" {
-				return
+				return nil
 			}
 
 			i.SetText("")
 			s.SendMessage(c.ID, t)
-		}
-	}
-}
-
-func onMessageInputFieldInputCapture(i *tview.InputField) func(event *tcell.EventKey) *tcell.EventKey {
-	return func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyCtrlV {
+		case tcell.KeyCtrlV:
 			text, _ := clipboard.ReadAll()
 			text = i.GetText() + text
 			i.SetText(text)
