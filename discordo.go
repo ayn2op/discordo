@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"sort"
 
 	"github.com/99designs/keyring"
@@ -78,7 +77,6 @@ func main() {
 }
 
 func onAppInputCapture(e *tcell.EventKey) *tcell.EventKey {
-	fmt.Println(e.Name(), e.Key(), e.Modifiers())
 	switch e.Name() {
 	case "Alt+Rune[1]":
 		app.SetFocus(guildsDropDown)
