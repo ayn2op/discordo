@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"sort"
 
 	"github.com/99designs/keyring"
@@ -77,14 +78,15 @@ func main() {
 }
 
 func onAppInputCapture(e *tcell.EventKey) *tcell.EventKey {
+	fmt.Println(e.Name(), e.Key(), e.Modifiers())
 	switch e.Name() {
-	case "Ctrl+G":
+	case "Alt+Rune[1]":
 		app.SetFocus(guildsDropDown)
-	case "Ctrl+J":
+	case "Alt+Rune[2]":
 		app.SetFocus(channelsTreeView)
-	case "Ctrl+K":
+	case "Alt+Rune[3]":
 		app.SetFocus(messagesTextView)
-	case "Ctrl+L":
+	case "Alt+Rune[4]":
 		if messageInputField != nil {
 			app.SetFocus(messageInputField)
 		}
