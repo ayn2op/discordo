@@ -5,16 +5,15 @@ import (
 	"strings"
 
 	"github.com/diamondburned/arikawa/v3/discord"
-	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/rivo/tview"
 )
 
-func WriteMessage(v *tview.TextView, s *state.State, m discord.Message) {
+func WriteMessage(v *tview.TextView, clientID discord.UserID, m discord.Message) {
 	var b strings.Builder
 	// $  ╭ AUTHOR_USERNAME (BOT) MESSAGE_CONTENT*linebreak*
-	writeReferencedMessage(&b, s, m.ReferencedMessage)
+	writeReferencedMessage(&b, clientID, m.ReferencedMessage)
 	// $ AUTHOR_USERNAME (BOT)*spacee*
-	writeAuthor(&b, s, m.Author)
+	writeAuthor(&b, clientID, m.Author)
 	// $ MESSAGE_CONTENT
 	writeContent(&b, m.Content)
 	// $ *space*(edited)
@@ -46,8 +45,8 @@ func writeAttachments(b *strings.Builder, attachments []discord.Attachment) {
 	}
 }
 
-func writeAuthor(b *strings.Builder, s *state.State, u discord.User) {
-	if s.Ready().User.ID == u.ID {
+func writeAuthor(b *strings.Builder, clientID discord.UserID, u discord.User) {
+	if clientID == u.ID {
 		b.WriteString("[#59E3E3]")
 	} else {
 		b.WriteString("[#E95678]")
@@ -61,13 +60,13 @@ func writeAuthor(b *strings.Builder, s *state.State, u discord.User) {
 	}
 }
 
-func writeReferencedMessage(b *strings.Builder, s *state.State, rm *discord.Message) {
+func writeReferencedMessage(b *strings.Builder, clientID discord.UserID, rm *discord.Message) {
 	if rm != nil {
 		b.WriteRune(' ')
 		b.WriteRune('\u256D')
 		b.WriteRune(' ')
 
-		if s.Ready().User.ID == rm.Author.ID {
+		if clientID == rm.Author.ID {
 			b.WriteString("[#59E3E3::d]")
 		} else {
 			b.WriteString("[#E95678::d]")

@@ -3,14 +3,14 @@ package main
 import (
 	"context"
 	"sort"
+	"strings"
 
 	"github.com/99designs/keyring"
+	"github.com/atotto/clipboard"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/session"
-	"github.com/diamondburned/arikawa/v3/state"
-	"github.com/diamondburned/arikawa/v3/state/store/defaultstore"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rigormorrtiss/discordo/ui"
 	"github.com/rigormorrtiss/discordo/util"
@@ -20,9 +20,8 @@ import (
 var (
 	app               *tview.Application
 	loginForm         *tview.Form
-	guildsDropDown    *tview.DropDown
-	channelsTreeView  *tview.TreeView
-	channelsTreeNode  *tview.TreeNode
+	guildsTreeView    *tview.TreeView
+	guildsTreeNode    *tview.TreeNode
 	messagesTextView  *tview.TextView
 	messageInputField *tview.InputField
 	mainFlex          *tview.Flex
@@ -30,8 +29,8 @@ var (
 	kr             keyring.Keyring
 	config         *util.Config
 	discordSession *session.Session
-	discordState   *state.State
-	currentGuild   discord.Guild
+	clientID       discord.UserID
+	currentGuild   gateway.GuildCreateEvent
 	currentChannel discord.Channel
 )
 
@@ -53,17 +52,17 @@ func main() {
 	config = util.NewConfig()
 
 	app = ui.NewApp(onAppInputCapture)
-	guildsDropDown = ui.NewGuildsDropDown(onGuildsDropDownSelected, config.Theme)
-	channelsTreeNode = tview.NewTreeNode("")
-	channelsTreeView = ui.NewChannelsTreeView(channelsTreeNode, onChannelsTreeViewSelected, config.Theme)
+	guildsTreeNode = tview.NewTreeNode("")
+	guildsTreeView = ui.NewGuildsTreeView(guildsTreeNode, onGuildsTreeViewSelected, config.Theme)
 	messagesTextView = ui.NewMessagesTextView(app, config.Theme)
-	mainFlex = ui.NewMainFlex(guildsDropDown, channelsTreeView, messagesTextView)
+	messageInputField = ui.NewMessageInputField(onMessageInputFieldInputCapture, discordSession, currentChannel, config.Theme)
+	mainFlex = ui.NewMainFlex(guildsTreeView, messagesTextView, messageInputField)
 
 	token := util.GetItem(kr, "token")
 	if token != "" {
 		app.
 			SetRoot(mainFlex, true).
-			SetFocus(guildsDropDown)
+			SetFocus(guildsTreeView)
 
 		discordSession = newSession("", "", token)
 	} else {
@@ -79,18 +78,35 @@ func main() {
 func onAppInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	switch e.Name() {
 	case "Alt+Rune[1]":
-		app.SetFocus(guildsDropDown)
+		app.SetFocus(guildsTreeView)
 	case "Alt+Rune[2]":
-		app.SetFocus(channelsTreeView)
-	case "Alt+Rune[3]":
 		app.SetFocus(messagesTextView)
-	case "Alt+Rune[4]":
+	case "Alt+Rune[3]":
 		if messageInputField != nil {
 			app.SetFocus(messageInputField)
 		}
 	}
 
 	return e
+}
+
+func onMessageInputFieldInputCapture(event *tcell.EventKey) *tcell.EventKey {
+	switch event.Key() {
+	case tcell.KeyEnter:
+		t := strings.TrimSpace(messageInputField.GetText())
+		if t == "" {
+			return nil
+		}
+
+		discordSession.SendMessage(currentChannel.ID, t)
+		messageInputField.SetText("")
+	case tcell.KeyCtrlV:
+		text, _ := clipboard.ReadAll()
+		text = messageInputField.GetText() + text
+		messageInputField.SetText(text)
+	}
+
+	return event
 }
 
 func newSession(email string, password string, token string) *session.Session {
@@ -114,19 +130,10 @@ func newSession(email string, password string, token string) *session.Session {
 		panic(err)
 	}
 
-	discordState = state.NewFromSession(sess, defaultstore.New())
-
-	sess.AddHandler(func(r *gateway.ReadyEvent) {
-		for i := range r.Guilds {
-			guildsDropDown.AddOption(r.Guilds[i].Name, nil)
-		}
-	})
-	sess.AddHandler(func(g *gateway.GuildCreateEvent) {
-		guildsDropDown.AddOption(g.Name, nil)
-	})
+	sess.AddHandler(onSessionReady)
 	sess.AddHandler(func(m *gateway.MessageCreateEvent) {
 		if currentChannel.ID == m.ChannelID {
-			util.WriteMessage(messagesTextView, discordState, m.Message)
+			util.WriteMessage(messagesTextView, clientID, m.Message)
 		}
 	})
 	if err = sess.Open(context.Background()); err != nil {
@@ -136,91 +143,86 @@ func newSession(email string, password string, token string) *session.Session {
 	return sess
 }
 
-func onGuildsDropDownSelected(_ string, i int) {
-	channelsTreeView.SetTitle("Channels")
-	channelsTreeNode.ClearChildren()
-	messagesTextView.
-		Clear().
-		SetTitle("")
-	app.SetFocus(channelsTreeView)
+func onSessionReady(r *gateway.ReadyEvent) {
+	clientID = r.User.ID
 
-	if messageInputField != nil {
-		mainFlex.RemoveItem(messageInputField)
-		messageInputField = nil
-	}
+	for i := range r.Guilds {
+		g := r.Guilds[i]
+		gNode := tview.NewTreeNode(g.Name).
+			SetReference(g).
+			Collapse()
+		guildsTreeNode.AddChild(gNode)
 
-	currentGuild = discordState.Ready().Guilds[i].Guild
-	channels, _ := discordState.Cabinet.Channels(currentGuild.ID)
-	sort.SliceStable(channels, func(i, j int) bool {
-		return channels[i].Position < channels[j].Position
-	})
+		sort.Slice(g.Channels, func(i, j int) bool {
+			return g.Channels[i].Position < g.Channels[j].Position
+		})
 
-	for i := range channels {
-		channel := channels[i]
-		channelNode := tview.NewTreeNode(channel.Name).
-			SetReference(channel)
-		switch channel.Type {
-		case discord.GuildCategory:
-			channelsTreeNode.AddChild(channelNode)
-		case discord.GuildText, discord.GuildNews:
-			if channel.CategoryID == 0 || channel.CategoryID == discord.NullChannelID {
-				channelNode.SetText("[::d]#" + channel.Name + "[-:-:-]")
-				channelsTreeNode.AddChild(channelNode)
+		for i := range g.Channels {
+			c := g.Channels[i]
+			switch c.Type {
+			case discord.GuildCategory:
+				cNode := tview.NewTreeNode(c.Name).
+					SetReference(c)
+				gNode.AddChild(cNode)
+			case discord.GuildText, discord.GuildNews:
+				if c.CategoryID == 0 || c.CategoryID == discord.NullChannelID {
+					cNode := tview.NewTreeNode("[::d]#" + c.Name + "[-:-:-]").
+						SetReference(c)
+					gNode.AddChild(cNode)
+				}
 			}
 		}
 	}
 }
 
-func onChannelsTreeViewSelected(n *tview.TreeNode) {
-	currentChannel = n.GetReference().(discord.Channel)
-	switch currentChannel.Type {
-	case discord.GuildCategory:
-		if len(n.GetChildren()) == 0 {
-			channels, _ := discordState.Cabinet.Channels(currentGuild.ID)
-			sort.SliceStable(channels, func(i, j int) bool {
-				return channels[i].Position < channels[j].Position
-			})
+func onGuildsTreeViewSelected(n *tview.TreeNode) {
+	switch ref := n.GetReference().(type) {
+	case gateway.GuildCreateEvent:
+		currentGuild = ref
 
-			for i := range channels {
-				channel := channels[i]
-				if (channel.Type == discord.GuildText || channel.Type == discord.GuildNews) && channel.CategoryID == currentChannel.ID {
-					channelNode := tview.NewTreeNode("[::d]#" + channel.Name + "[-:-:-]").
-						SetReference(channel)
-					n.AddChild(channelNode)
+		n.SetExpanded(!n.IsExpanded())
+	case discord.Channel:
+		switch ref.Type {
+		case discord.GuildCategory:
+			if len(n.GetChildren()) == 0 {
+				for i := range currentGuild.Channels {
+					c := currentGuild.Channels[i]
+					if (c.Type == discord.GuildText || c.Type == discord.GuildNews) && c.CategoryID == ref.ID {
+						cNode := tview.NewTreeNode("[::d]#" + c.Name + "[-:-:-]").
+							SetReference(c)
+						n.AddChild(cNode)
+					}
 				}
+			} else {
+				n.SetExpanded(!n.IsExpanded())
 			}
-		} else {
-			n.SetExpanded(!n.IsExpanded())
-		}
-	case discord.GuildText, discord.GuildNews:
-		if messageInputField == nil {
-			messageInputField = ui.NewMessageInputField(discordSession, currentChannel, config.Theme)
-			mainFlex.AddItem(messageInputField, 3, 1, false)
-		}
-		app.SetFocus(messageInputField)
+		case discord.GuildText, discord.GuildNews:
+			currentChannel = ref
 
-		messagesTextView.Clear()
-		messagesTextView.SetTitle(currentChannel.Name)
+			app.SetFocus(messageInputField)
+			messagesTextView.Clear()
+			messagesTextView.SetTitle(ref.Name)
 
-		go func() {
-			messages, _ := discordSession.Messages(currentChannel.ID, config.GetMessagesLimit)
-			for i := len(messages) - 1; i >= 0; i-- {
-				util.WriteMessage(messagesTextView, discordState, messages[i])
-			}
-		}()
+			go func() {
+				messages, _ := discordSession.Messages(ref.ID, config.GetMessagesLimit)
+				for i := len(messages) - 1; i >= 0; i-- {
+					util.WriteMessage(messagesTextView, clientID, messages[i])
+				}
+			}()
+		}
 	}
 }
 
 func onLoginFormLoginButtonSelected() {
-	email := loginForm.GetFormItemByLabel("Email").(*tview.InputField).GetText()
-	password := loginForm.GetFormItemByLabel("Password").(*tview.InputField).GetText()
+	email := loginForm.GetFormItem(0).(*tview.InputField).GetText()
+	password := loginForm.GetFormItem(1).(*tview.InputField).GetText()
 	if email == "" || password == "" {
 		return
 	}
 
 	app.
 		SetRoot(mainFlex, true).
-		SetFocus(guildsDropDown)
+		SetFocus(guildsTreeView)
 
 	discordSession = newSession(email, password, "")
 

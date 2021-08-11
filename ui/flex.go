@@ -4,14 +4,14 @@ import (
 	"github.com/rivo/tview"
 )
 
-func NewMainFlex(guildsDropDown *tview.DropDown, channelsTreeView *tview.TreeView, messagesTextView *tview.TextView) *tview.Flex {
-	midFlex := tview.NewFlex().
-		AddItem(channelsTreeView, 20, 1, false).
-		AddItem(messagesTextView, 0, 3, false)
-	mainFlex := tview.NewFlex().
+func NewMainFlex(treeV *tview.TreeView, textV *tview.TextView, i *tview.InputField) *tview.Flex {
+	rightFlex := tview.NewFlex().
 		SetDirection(tview.FlexRow).
-		AddItem(guildsDropDown, 3, 1, false).
-		AddItem(midFlex, 0, 1, false)
+		AddItem(textV, 0, 1, false).
+		AddItem(i, 3, 1, false)
+	mainFlex := tview.NewFlex().
+		AddItem(treeV, 25, 1, false).
+		AddItem(rightFlex, 0, 1, false)
 
 	return mainFlex
 }
