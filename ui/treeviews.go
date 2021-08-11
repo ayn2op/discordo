@@ -6,17 +6,18 @@ import (
 	"github.com/rivo/tview"
 )
 
-func NewChannelsTreeView(channelsTreeNode *tview.TreeNode, onChannelsTreeViewSelected func(node *tview.TreeNode), theme *util.Theme) *tview.TreeView {
-	channelsTreeView := tview.NewTreeView()
+func NewGuildsTreeView(guildsTreeNode *tview.TreeNode, onGuildsTreeViewSelected func(node *tview.TreeNode), theme *util.Theme) *tview.TreeView {
+	guildsTreeView := tview.NewTreeView()
 
-	channelsTreeView.
+	guildsTreeView.
 		SetTopLevel(1).
-		SetRoot(channelsTreeNode).
-		SetCurrentNode(channelsTreeNode).
-		SetSelectedFunc(onChannelsTreeViewSelected).
+		SetRoot(guildsTreeNode).
+		SetCurrentNode(guildsTreeNode).
+		SetSelectedFunc(onGuildsTreeViewSelected).
 		SetBackgroundColor(tcell.GetColor(theme.TreeViewBackground)).
+		SetTitle("Guilds").
 		SetBorder(true).
 		SetBorderPadding(0, 0, 1, 1)
 
-	return channelsTreeView
+	return guildsTreeView
 }
