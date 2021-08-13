@@ -5,7 +5,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-func NewApp(onAppInputCapture func(event *tcell.EventKey) *tcell.EventKey) *tview.Application {
+func NewApp(onAppInputCapture func(*tcell.EventKey) *tcell.EventKey) *tview.Application {
 	app := tview.NewApplication().
 		EnableMouse(true).
 		SetInputCapture(onAppInputCapture)

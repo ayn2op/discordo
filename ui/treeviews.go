@@ -6,8 +6,9 @@ import (
 	"github.com/rivo/tview"
 )
 
-func NewGuildsTreeView(guildsTreeNode *tview.TreeNode, onGuildsTreeViewSelected func(node *tview.TreeNode), theme *util.Theme) *tview.TreeView {
+func NewGuildsTreeView(onGuildsTreeViewSelected func(*tview.TreeNode), theme *util.Theme) *tview.TreeView {
 	guildsTreeView := tview.NewTreeView()
+	guildsTreeNode := tview.NewTreeNode("")
 
 	guildsTreeView.
 		SetTopLevel(1).

@@ -1,14 +1,12 @@
 package ui
 
 import (
-	"github.com/diamondburned/arikawa/v3/discord"
-	"github.com/diamondburned/arikawa/v3/session"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rigormorrtiss/discordo/util"
 	"github.com/rivo/tview"
 )
 
-func NewMessageInputField(onMessageInputFieldInputCapture func(event *tcell.EventKey) *tcell.EventKey, s *session.Session, c discord.Channel, theme *util.Theme) *tview.InputField {
+func NewMessageInputField(onMessageInputFieldInputCapture func(*tcell.EventKey) *tcell.EventKey, theme *util.Theme) *tview.InputField {
 	i := tview.NewInputField()
 	i.
 		SetPlaceholder("Message...").

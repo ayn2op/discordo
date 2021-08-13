@@ -21,7 +21,6 @@ var (
 	app               *tview.Application
 	loginForm         *tview.Form
 	guildsTreeView    *tview.TreeView
-	guildsTreeNode    *tview.TreeNode
 	messagesTextView  *tview.TextView
 	messageInputField *tview.InputField
 	mainFlex          *tview.Flex
@@ -52,10 +51,9 @@ func main() {
 	config = util.NewConfig()
 
 	app = ui.NewApp(onAppInputCapture)
-	guildsTreeNode = tview.NewTreeNode("")
-	guildsTreeView = ui.NewGuildsTreeView(guildsTreeNode, onGuildsTreeViewSelected, config.Theme)
+	guildsTreeView = ui.NewGuildsTreeView(onGuildsTreeViewSelected, config.Theme)
 	messagesTextView = ui.NewMessagesTextView(app, config.Theme)
-	messageInputField = ui.NewMessageInputField(onMessageInputFieldInputCapture, discordSession, currentChannel, config.Theme)
+	messageInputField = ui.NewMessageInputField(onMessageInputFieldInputCapture, config.Theme)
 	mainFlex = ui.NewMainFlex(guildsTreeView, messagesTextView, messageInputField)
 
 	token := util.GetItem(kr, "token")
@@ -151,7 +149,7 @@ func onSessionReady(r *gateway.ReadyEvent) {
 		gNode := tview.NewTreeNode(g.Name).
 			SetReference(g).
 			Collapse()
-		guildsTreeNode.AddChild(gNode)
+		guildsTreeView.GetRoot().AddChild(gNode)
 
 		sort.Slice(g.Channels, func(i, j int) bool {
 			return g.Channels[i].Position < g.Channels[j].Position
