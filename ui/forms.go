@@ -7,6 +7,7 @@ import (
 
 func NewLoginForm(onLoginFormLoginButtonSelected func()) *tview.Form {
 	f := tview.NewForm()
+
 	f.
 		AddInputField("Email", "", 0, nil, nil).
 		AddPasswordField("Password", "", 0, 0, nil).

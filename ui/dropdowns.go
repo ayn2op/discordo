@@ -6,7 +6,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-func NewGuildsDropDown(onGuildsDropDownSelected func(text string, index int), theme *util.Theme) *tview.DropDown {
+func NewGuildsDropDown(onGuildsDropDownSelected func(string, int), theme *util.Theme) *tview.DropDown {
 	guildsDropDown := tview.NewDropDown()
 
 	guildsDropDown.
