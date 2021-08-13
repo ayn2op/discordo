@@ -163,7 +163,7 @@ func onSessionReady(r *gateway.ReadyEvent) {
 					SetReference(c)
 				gNode.AddChild(cNode)
 			case discord.GuildText, discord.GuildNews:
-				if c.CategoryID == 0 || c.CategoryID == discord.NullChannelID {
+				if c.ParentID == 0 || c.ParentID == discord.NullChannelID {
 					cNode := tview.NewTreeNode("[::d]#" + c.Name + "[-:-:-]").
 						SetReference(c)
 					gNode.AddChild(cNode)
@@ -185,7 +185,7 @@ func onGuildsTreeViewSelected(n *tview.TreeNode) {
 			if len(n.GetChildren()) == 0 {
 				for i := range currentGuild.Channels {
 					c := currentGuild.Channels[i]
-					if (c.Type == discord.GuildText || c.Type == discord.GuildNews) && c.CategoryID == ref.ID {
+					if (c.Type == discord.GuildText || c.Type == discord.GuildNews) && c.ParentID == ref.ID {
 						cNode := tview.NewTreeNode("[::d]#" + c.Name + "[-:-:-]").
 							SetReference(c)
 						n.AddChild(cNode)
