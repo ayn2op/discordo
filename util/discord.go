@@ -31,9 +31,7 @@ func WriteMessage(v *tview.TextView, clientID discord.UserID, m discord.Message)
 }
 
 func parseMessageMentions(content string, mentions []discord.GuildUser, clientID discord.UserID) string {
-	for i := range mentions {
-		mUser := mentions[i]
-
+	for _, mUser := range mentions {
 		var color string
 		if mUser.ID == clientID {
 			color = "[#000000:#FEE75C]"
@@ -61,8 +59,7 @@ func writeEmbeds(b *strings.Builder, embeds []discord.Embed) {
 }
 
 func writeAttachments(b *strings.Builder, attachments []discord.Attachment) {
-	for i := range attachments {
-		a := attachments[i]
+	for _, a := range attachments {
 		b.WriteString("\n[" + a.Filename + "]: ")
 		b.WriteString(a.URL)
 	}

@@ -146,8 +146,7 @@ func onSessionMessageCreate(m *gateway.MessageCreateEvent) {
 func onSessionReady(r *gateway.ReadyEvent) {
 	clientID = r.User.ID
 
-	for i := range r.Guilds {
-		g := r.Guilds[i]
+	for _, g := range r.Guilds {
 		gNode := tview.NewTreeNode(g.Name).
 			SetReference(g).
 			Collapse()
@@ -157,8 +156,7 @@ func onSessionReady(r *gateway.ReadyEvent) {
 			return g.Channels[i].Position < g.Channels[j].Position
 		})
 
-		for i := range g.Channels {
-			c := g.Channels[i]
+		for _, c := range g.Channels {
 			switch c.Type {
 			case discord.GuildCategory:
 				cNode := tview.NewTreeNode(c.Name).
@@ -185,8 +183,7 @@ func onGuildsTreeViewSelected(n *tview.TreeNode) {
 		switch ref.Type {
 		case discord.GuildCategory:
 			if len(n.GetChildren()) == 0 {
-				for i := range currentGuild.Channels {
-					c := currentGuild.Channels[i]
+				for _, c := range currentGuild.Channels {
 					if (c.Type == discord.GuildText || c.Type == discord.GuildNews) && c.ParentID == ref.ID {
 						cNode := tview.NewTreeNode("[::d]#" + c.Name + "[-:-:-]").
 							SetReference(c)
