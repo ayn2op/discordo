@@ -9,25 +9,30 @@ import (
 )
 
 func WriteMessage(v *tview.TextView, clientID discord.UserID, m discord.Message) {
-	m.Content = parseMessageMentions(m.Content, m.Mentions, clientID)
+	switch m.Type {
+	case discord.DefaultMessage, discord.InlinedReplyMessage:
+		var b strings.Builder
 
-	var b strings.Builder
-	// $  ╭ AUTHOR_USERNAME (BOT) MESSAGE_CONTENT*linebreak*
-	writeReferencedMessage(&b, clientID, m.ReferencedMessage)
-	// $ AUTHOR_USERNAME (BOT)*spacee*
-	writeAuthor(&b, clientID, m.Author)
-	// $ MESSAGE_CONTENT
-	b.WriteString(m.Content)
-	// $ *space*(edited)
-	if m.EditedTimestamp.IsValid() {
-		b.WriteString(" [::d](edited)[::-]")
+		m.Content = parseMessageMentions(m.Content, m.Mentions, clientID)
+		// $  ╭ AUTHOR_USERNAME (BOT) MESSAGE_CONTENT*linebreak*
+		writeReferencedMessage(&b, clientID, m.ReferencedMessage)
+		// $ AUTHOR_USERNAME (BOT)*spacee*
+		writeAuthor(&b, clientID, m.Author)
+		// $ MESSAGE_CONTENT
+		b.WriteString(m.Content)
+		// $ *space*(edited)
+		if m.EditedTimestamp.IsValid() {
+			b.WriteString(" [::d](edited)[::-]")
+		}
+		// $ *linebreak*EMBED
+		writeEmbeds(&b, m.Embeds)
+		// $ *linebreak*ATTACHMENT_URL
+		writeAttachments(&b, m.Attachments)
+
+		fmt.Fprintln(v, b.String())
+	case discord.ThreadStarterMessage:
+		WriteMessage(v, clientID, *m.ReferencedMessage)
 	}
-	// $ *linebreak*EMBED
-	writeEmbeds(&b, m.Embeds)
-	// $ *linebreak*ATTACHMENT_URL
-	writeAttachments(&b, m.Attachments)
-
-	fmt.Fprintln(v, b.String())
 }
 
 func parseMessageMentions(content string, mentions []discord.GuildUser, clientID discord.UserID) string {
