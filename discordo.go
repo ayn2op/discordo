@@ -112,7 +112,7 @@ func newSession(email string, password string, token string) *session.Session {
 	api.UserAgent = "" +
 		"Mozilla/5.0 (X11; Linux x86_64) " +
 		"AppleWebKit/537.36 (KHTML, like Gecko) " +
-		"Chrome/91.0.4472.164 Safari/537.36"
+		"Chrome/92.0.4515.131 Safari/537.36"
 	gateway.DefaultIdentity.Browser = "Chrome"
 	gateway.DefaultIdentity.OS = "Linux"
 	gateway.DefaultIdentity.Device = ""
