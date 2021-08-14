@@ -63,6 +63,7 @@ func main() {
 			SetFocus(guildsTreeView)
 
 		discordSession = newSession("", "", token)
+		defer discordSession.Close()
 	} else {
 		loginForm = ui.NewLoginForm(onLoginFormLoginButtonSelected)
 		app.SetRoot(loginForm, true)
@@ -249,6 +250,7 @@ func onLoginFormLoginButtonSelected() {
 		SetFocus(guildsTreeView)
 
 	discordSession = newSession(email, password, "")
+	defer discordSession.Close()
 
 	go util.SetItem(kr, "token", discordSession.Token)
 }
