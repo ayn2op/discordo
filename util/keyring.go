@@ -4,12 +4,8 @@ import (
 	"github.com/99designs/keyring"
 )
 
-const ServiceName string = "discordo"
-
 func OpenKeyringBackend() keyring.Keyring {
-	kr, err := keyring.Open(keyring.Config{
-		ServiceName: ServiceName,
-	})
+	kr, err := keyring.Open(keyring.Config{})
 	if err != nil {
 		panic(err)
 	}

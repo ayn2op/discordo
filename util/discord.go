@@ -84,8 +84,6 @@ func writeAuthor(b *strings.Builder, clientID discord.UserID, u discord.User) {
 
 func writeReferencedMessage(b *strings.Builder, clientID discord.UserID, rm *discord.Message) {
 	if rm != nil {
-		rm.Content = parseMessageMentions(rm.Content, rm.Mentions, clientID)
-
 		b.WriteRune(' ')
 		b.WriteRune('\u256D')
 		b.WriteRune(' ')
@@ -101,7 +99,8 @@ func writeReferencedMessage(b *strings.Builder, clientID discord.UserID, rm *dis
 		if rm.Author.Bot {
 			b.WriteString("[#EB459E]BOT[-] ")
 		}
-		// Reset foreground
+
+		rm.Content = parseMessageMentions(rm.Content, rm.Mentions, clientID)
 		b.WriteString(rm.Content + "[::-]\n")
 	}
 }
