@@ -213,7 +213,9 @@ func onGuildsTreeViewSelected(n *tview.TreeNode) {
 
 				go func() {
 					msgs, _ := discordSession.Messages(ref.ID, config.GetMessagesLimit)
-					util.WriteMessages(messagesTextView, msgs, clientID)
+					for _, m := range msgs {
+						util.WriteMessage(messagesTextView, clientID, m)
+					}
 				}()
 			} else {
 				n.SetExpanded(!n.IsExpanded())
@@ -227,7 +229,9 @@ func onGuildsTreeViewSelected(n *tview.TreeNode) {
 
 			go func() {
 				msgs, _ := discordSession.Messages(ref.ID, config.GetMessagesLimit)
-				util.WriteMessages(messagesTextView, msgs, clientID)
+				for _, m := range msgs {
+					util.WriteMessage(messagesTextView, clientID, m)
+				}
 			}()
 		}
 	}

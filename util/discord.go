@@ -109,9 +109,3 @@ func writeReferencedMessage(b *strings.Builder, clientID discord.UserID, rm *dis
 		}
 	}
 }
-
-func WriteMessages(v *tview.TextView, msgs []discord.Message, clientID discord.UserID) {
-	for i := len(msgs) - 1; i >= 0; i-- {
-		WriteMessage(v, clientID, msgs[i])
-	}
-}
