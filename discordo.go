@@ -197,18 +197,32 @@ func onGuildsTreeViewSelected(n *tview.TreeNode) {
 				n.SetExpanded(!n.IsExpanded())
 			}
 		case discord.GuildText, discord.GuildNews:
-			currentChannel = ref
+			if len(n.GetChildren()) == 0 {
+				currentChannel = ref
 
-			app.SetFocus(messageInputField)
-			messagesTextView.Clear()
-			messagesTextView.SetTitle(ref.Name)
+				app.SetFocus(messageInputField)
+				messagesTextView.Clear()
+				messagesTextView.SetTitle(ref.Name)
 
-			go func() {
-				messages, _ := discordSession.Messages(ref.ID, config.GetMessagesLimit)
-				for i := len(messages) - 1; i >= 0; i-- {
-					util.WriteMessage(messagesTextView, clientID, messages[i])
-				}
-			}()
+				go func() {
+					for _, t := range currentGuild.Threads {
+						if t.ParentID == currentChannel.ID {
+							cNode := tview.NewTreeNode("[::d]🗨 " + t.Name + "[::-]").
+								SetReference(t)
+							n.AddChild(cNode)
+						}
+					}
+				}()
+
+				go func() {
+					msgs, _ := discordSession.Messages(ref.ID, config.GetMessagesLimit)
+					for i := len(msgs) - 1; i >= 0; i-- {
+						util.WriteMessage(messagesTextView, clientID, msgs[i])
+					}
+				}()
+			} else {
+				n.SetExpanded(!n.IsExpanded())
+			}
 		}
 	}
 }
