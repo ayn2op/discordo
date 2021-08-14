@@ -216,13 +216,22 @@ func onGuildsTreeViewSelected(n *tview.TreeNode) {
 
 				go func() {
 					msgs, _ := discordSession.Messages(ref.ID, config.GetMessagesLimit)
-					for i := len(msgs) - 1; i >= 0; i-- {
-						util.WriteMessage(messagesTextView, clientID, msgs[i])
-					}
+					util.WriteMessages(messagesTextView, msgs, clientID)
 				}()
 			} else {
 				n.SetExpanded(!n.IsExpanded())
 			}
+		case discord.GuildNewsThread, discord.GuildPrivateThread, discord.GuildPublicThread:
+			currentChannel = ref
+
+			app.SetFocus(messageInputField)
+			messagesTextView.Clear()
+			messagesTextView.SetTitle(ref.Name)
+
+			go func() {
+				msgs, _ := discordSession.Messages(ref.ID, config.GetMessagesLimit)
+				util.WriteMessages(messagesTextView, msgs, clientID)
+			}()
 		}
 	}
 }
