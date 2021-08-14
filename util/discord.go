@@ -12,14 +12,15 @@ func WriteMessage(v *tview.TextView, clientID discord.UserID, m discord.Message)
 	switch m.Type {
 	case discord.DefaultMessage, discord.InlinedReplyMessage:
 		var b strings.Builder
-
-		m.Content = parseMessageMentions(m.Content, m.Mentions, clientID)
 		// $  ╭ AUTHOR_USERNAME (BOT) MESSAGE_CONTENT*linebreak*
 		writeReferencedMessage(&b, clientID, m.ReferencedMessage)
 		// $ AUTHOR_USERNAME (BOT)*spacee*
 		writeAuthor(&b, clientID, m.Author)
 		// $ MESSAGE_CONTENT
-		b.WriteString(m.Content)
+		if m.Content != "" {
+			m.Content = parseMessageMentions(m.Content, m.Mentions, clientID)
+			b.WriteString(m.Content)
+		}
 		// $ *space*(edited)
 		if m.EditedTimestamp.IsValid() {
 			b.WriteString(" [::d](edited)[::-]")
@@ -102,8 +103,10 @@ func writeReferencedMessage(b *strings.Builder, clientID discord.UserID, rm *dis
 			b.WriteString("[#EB459E]BOT[-] ")
 		}
 
-		rm.Content = parseMessageMentions(rm.Content, rm.Mentions, clientID)
-		b.WriteString(rm.Content + "[::-]\n")
+		if rm.Content != "" {
+			rm.Content = parseMessageMentions(rm.Content, rm.Mentions, clientID)
+			b.WriteString(rm.Content + "[::-]\n")
+		}
 	}
 }
 
