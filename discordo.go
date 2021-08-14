@@ -129,16 +129,18 @@ func newSession(email string, password string, token string) *session.Session {
 	}
 
 	sess.AddHandler(onSessionReady)
-	sess.AddHandler(func(m *gateway.MessageCreateEvent) {
-		if currentChannel.ID == m.ChannelID {
-			util.WriteMessage(messagesTextView, clientID, m.Message)
-		}
-	})
+	sess.AddHandler(onSessionMessageCreate)
 	if err = sess.Open(context.Background()); err != nil {
 		panic(err)
 	}
 
 	return sess
+}
+
+func onSessionMessageCreate(m *gateway.MessageCreateEvent) {
+	if currentChannel.ID == m.ChannelID {
+		util.WriteMessage(messagesTextView, clientID, m.Message)
+	}
 }
 
 func onSessionReady(r *gateway.ReadyEvent) {
