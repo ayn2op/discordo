@@ -17,7 +17,8 @@ func NewGuildsTreeView(onGuildsTreeViewSelected func(*tview.TreeNode), theme *ut
 		SetBackgroundColor(tcell.GetColor(theme.TreeViewBackground)).
 		SetTitle("Guilds").
 		SetBorder(true).
-		SetBorderPadding(0, 0, 1, 1)
+		SetBorderPadding(0, 0, 1, 1).
+		SetTitleAlign(tview.AlignLeft)
 
 	return
 }
