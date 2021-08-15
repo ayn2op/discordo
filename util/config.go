@@ -23,23 +23,23 @@ func NewConfig() *Config {
 		panic(err)
 	}
 
-	var config Config = Config{
+	var c Config = Config{
 		GetMessagesLimit: 50,
 		Theme:            &Theme{},
 	}
 	configPath := userHomeDir + "/.config/discordo/config.json"
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		return &config
+		return &c
 	}
 
-	data, err := os.ReadFile(configPath)
+	d, err := os.ReadFile(configPath)
 	if err != nil {
 		panic(err)
 	}
 
-	if err = json.Unmarshal(data, &config); err != nil {
+	if err = json.Unmarshal(d, &c); err != nil {
 		panic(err)
 	}
 
-	return &config
+	return &c
 }

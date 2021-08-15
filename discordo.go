@@ -56,13 +56,13 @@ func main() {
 	messageInputField = ui.NewMessageInputField(onMessageInputFieldInputCapture, config.Theme)
 	mainFlex = ui.NewMainFlex(guildsTreeView, messagesTextView, messageInputField)
 
-	token := util.GetItem(kr, "token")
-	if token != "" {
+	if t := util.GetItem(kr, "token"); t != "" {
 		app.
 			SetRoot(mainFlex, true).
 			SetFocus(guildsTreeView)
 
-		discordSession = newSession("", "", token)
+		discordSession = newSession("", "", t)
+		defer discordSession.Close()
 	} else {
 		loginForm = ui.NewLoginForm(onLoginFormLoginButtonSelected)
 		app.SetRoot(loginForm, true)
@@ -88,8 +88,8 @@ func onAppInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	return e
 }
 
-func onMessageInputFieldInputCapture(event *tcell.EventKey) *tcell.EventKey {
-	switch event.Key() {
+func onMessageInputFieldInputCapture(e *tcell.EventKey) *tcell.EventKey {
+	switch e.Key() {
 	case tcell.KeyEnter:
 		t := strings.TrimSpace(messageInputField.GetText())
 		if t == "" {
@@ -104,69 +104,68 @@ func onMessageInputFieldInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		messageInputField.SetText(text)
 	}
 
-	return event
+	return e
 }
 
-func newSession(email string, password string, token string) *session.Session {
+func newSession(email string, password string, token string) (s *session.Session) {
 	api.UserAgent = "" +
 		"Mozilla/5.0 (X11; Linux x86_64) " +
 		"AppleWebKit/537.36 (KHTML, like Gecko) " +
-		"Chrome/91.0.4472.164 Safari/537.36"
+		"Chrome/92.0.4515.131 Safari/537.36"
 	gateway.DefaultIdentity.Browser = "Chrome"
 	gateway.DefaultIdentity.OS = "Linux"
 	gateway.DefaultIdentity.Device = ""
 
-	var sess *session.Session
 	var err error
 	if email != "" && password != "" {
-		sess, err = session.Login(email, password, "")
+		s, err = session.Login(email, password, "")
 	} else if token != "" {
-		sess, err = session.New(token)
+		s, err = session.New(token)
 	}
 
 	if err != nil {
 		panic(err)
 	}
 
-	sess.AddHandler(onSessionReady)
-	sess.AddHandler(func(m *gateway.MessageCreateEvent) {
-		if currentChannel.ID == m.ChannelID {
-			util.WriteMessage(messagesTextView, clientID, m.Message)
-		}
-	})
-	if err = sess.Open(context.Background()); err != nil {
+	s.AddHandler(onSessionReady)
+	s.AddHandler(onSessionMessageCreate)
+	if err = s.Open(context.Background()); err != nil {
 		panic(err)
 	}
 
-	return sess
+	return
+}
+
+func onSessionMessageCreate(m *gateway.MessageCreateEvent) {
+	if currentChannel.ID == m.ChannelID {
+		util.WriteMessage(messagesTextView, clientID, m.Message)
+	}
 }
 
 func onSessionReady(r *gateway.ReadyEvent) {
 	clientID = r.User.ID
 
-	for i := range r.Guilds {
-		g := r.Guilds[i]
-		gNode := tview.NewTreeNode(g.Name).
+	for _, g := range r.Guilds {
+		gn := tview.NewTreeNode(g.Name).
 			SetReference(g).
 			Collapse()
-		guildsTreeView.GetRoot().AddChild(gNode)
+		guildsTreeView.GetRoot().AddChild(gn)
 
 		sort.Slice(g.Channels, func(i, j int) bool {
 			return g.Channels[i].Position < g.Channels[j].Position
 		})
 
-		for i := range g.Channels {
-			c := g.Channels[i]
+		for _, c := range g.Channels {
 			switch c.Type {
 			case discord.GuildCategory:
 				cNode := tview.NewTreeNode(c.Name).
 					SetReference(c)
-				gNode.AddChild(cNode)
+				gn.AddChild(cNode)
 			case discord.GuildText, discord.GuildNews:
 				if c.ParentID == 0 || c.ParentID == discord.NullChannelID {
 					cNode := tview.NewTreeNode("[::d]#" + c.Name + "[-:-:-]").
 						SetReference(c)
-					gNode.AddChild(cNode)
+					gn.AddChild(cNode)
 				}
 			}
 		}
@@ -174,37 +173,62 @@ func onSessionReady(r *gateway.ReadyEvent) {
 }
 
 func onGuildsTreeViewSelected(n *tview.TreeNode) {
-	switch ref := n.GetReference().(type) {
+	switch r := n.GetReference().(type) {
 	case gateway.GuildCreateEvent:
-		currentGuild = ref
-
+		currentGuild = r
 		n.SetExpanded(!n.IsExpanded())
 	case discord.Channel:
-		switch ref.Type {
+		switch r.Type {
 		case discord.GuildCategory:
 			if len(n.GetChildren()) == 0 {
-				for i := range currentGuild.Channels {
-					c := currentGuild.Channels[i]
-					if (c.Type == discord.GuildText || c.Type == discord.GuildNews) && c.ParentID == ref.ID {
-						cNode := tview.NewTreeNode("[::d]#" + c.Name + "[-:-:-]").
+				for _, c := range currentGuild.Channels {
+					if (c.Type == discord.GuildText || c.Type == discord.GuildNews) && c.ParentID == r.ID {
+						cn := tview.NewTreeNode("[::d]#" + c.Name + "[-:-:-]").
 							SetReference(c)
-						n.AddChild(cNode)
+						n.AddChild(cn)
 					}
 				}
 			} else {
 				n.SetExpanded(!n.IsExpanded())
 			}
 		case discord.GuildText, discord.GuildNews:
-			currentChannel = ref
+			if len(n.GetChildren()) == 0 {
+				currentChannel = r
+
+				app.SetFocus(messageInputField)
+				messagesTextView.Clear()
+				messagesTextView.SetTitle(r.Name)
+
+				go func() {
+					for _, t := range currentGuild.Threads {
+						if t.ParentID == currentChannel.ID {
+							cn := tview.NewTreeNode("[::d]🗨 " + t.Name + "[::-]").
+								SetReference(t)
+							n.AddChild(cn)
+						}
+					}
+				}()
+
+				go func() {
+					msgs, _ := discordSession.Messages(r.ID, config.GetMessagesLimit)
+					for _, m := range msgs {
+						util.WriteMessage(messagesTextView, clientID, m)
+					}
+				}()
+			} else {
+				n.SetExpanded(!n.IsExpanded())
+			}
+		case discord.GuildNewsThread, discord.GuildPrivateThread, discord.GuildPublicThread:
+			currentChannel = r
 
 			app.SetFocus(messageInputField)
 			messagesTextView.Clear()
-			messagesTextView.SetTitle(ref.Name)
+			messagesTextView.SetTitle(r.Name)
 
 			go func() {
-				messages, _ := discordSession.Messages(ref.ID, config.GetMessagesLimit)
-				for i := len(messages) - 1; i >= 0; i-- {
-					util.WriteMessage(messagesTextView, clientID, messages[i])
+				msgs, _ := discordSession.Messages(r.ID, config.GetMessagesLimit)
+				for _, m := range msgs {
+					util.WriteMessage(messagesTextView, clientID, m)
 				}
 			}()
 		}
@@ -223,6 +247,7 @@ func onLoginFormLoginButtonSelected() {
 		SetFocus(guildsTreeView)
 
 	discordSession = newSession(email, password, "")
+	defer discordSession.Close()
 
 	go util.SetItem(kr, "token", discordSession.Token)
 }

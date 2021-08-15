@@ -4,22 +4,22 @@ import (
 	"github.com/99designs/keyring"
 )
 
-func OpenKeyringBackend() keyring.Keyring {
+func OpenKeyringBackend() (kr keyring.Keyring) {
 	kr, err := keyring.Open(keyring.Config{})
 	if err != nil {
 		panic(err)
 	}
 
-	return kr
+	return
 }
 
 func GetItem(kr keyring.Keyring, k string) string {
-	item, err := kr.Get(k)
+	i, err := kr.Get(k)
 	if err != nil {
 		return ""
 	}
 
-	return string(item.Data)
+	return string(i.Data)
 }
 
 func SetItem(kr keyring.Keyring, k string, d string) {

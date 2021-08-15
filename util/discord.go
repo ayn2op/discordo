@@ -9,31 +9,35 @@ import (
 )
 
 func WriteMessage(v *tview.TextView, clientID discord.UserID, m discord.Message) {
-	m.Content = parseMessageMentions(m.Content, m.Mentions, clientID)
+	switch m.Type {
+	case discord.DefaultMessage, discord.InlinedReplyMessage:
+		var b strings.Builder
+		// $  ╭ AUTHOR_USERNAME (BOT) MESSAGE_CONTENT*linebreak*
+		writeReferencedMessage(&b, clientID, m.ReferencedMessage)
+		// $ AUTHOR_USERNAME (BOT)*spacee*
+		writeAuthor(&b, clientID, m.Author)
+		// $ MESSAGE_CONTENT
+		if m.Content != "" {
+			m.Content = parseMessageMentions(m.Content, m.Mentions, clientID)
+			b.WriteString(m.Content)
+		}
+		// $ *space*(edited)
+		if m.EditedTimestamp.IsValid() {
+			b.WriteString(" [::d](edited)[::-]")
+		}
+		// $ *linebreak*EMBED
+		writeEmbeds(&b, m.Embeds)
+		// $ *linebreak*ATTACHMENT_URL
+		writeAttachments(&b, m.Attachments)
 
-	var b strings.Builder
-	// $  ╭ AUTHOR_USERNAME (BOT) MESSAGE_CONTENT*linebreak*
-	writeReferencedMessage(&b, clientID, m.ReferencedMessage)
-	// $ AUTHOR_USERNAME (BOT)*spacee*
-	writeAuthor(&b, clientID, m.Author)
-	// $ MESSAGE_CONTENT
-	b.WriteString(m.Content)
-	// $ *space*(edited)
-	if m.EditedTimestamp.IsValid() {
-		b.WriteString(" [::d](edited)[::-]")
+		fmt.Fprintln(v, b.String())
+	case discord.ThreadStarterMessage:
+		WriteMessage(v, clientID, *m.ReferencedMessage)
 	}
-	// $ *linebreak*EMBED
-	writeEmbeds(&b, m.Embeds)
-	// $ *linebreak*ATTACHMENT_URL
-	writeAttachments(&b, m.Attachments)
-
-	fmt.Fprintln(v, b.String())
 }
 
 func parseMessageMentions(content string, mentions []discord.GuildUser, clientID discord.UserID) string {
-	for i := range mentions {
-		mUser := mentions[i]
-
+	for _, mUser := range mentions {
 		var color string
 		if mUser.ID == clientID {
 			color = "[#000000:#FEE75C]"
@@ -61,8 +65,7 @@ func writeEmbeds(b *strings.Builder, embeds []discord.Embed) {
 }
 
 func writeAttachments(b *strings.Builder, attachments []discord.Attachment) {
-	for i := range attachments {
-		a := attachments[i]
+	for _, a := range attachments {
 		b.WriteString("\n[" + a.Filename + "]: ")
 		b.WriteString(a.URL)
 	}
@@ -100,7 +103,9 @@ func writeReferencedMessage(b *strings.Builder, clientID discord.UserID, rm *dis
 			b.WriteString("[#EB459E]BOT[-] ")
 		}
 
-		rm.Content = parseMessageMentions(rm.Content, rm.Mentions, clientID)
-		b.WriteString(rm.Content + "[::-]\n")
+		if rm.Content != "" {
+			rm.Content = parseMessageMentions(rm.Content, rm.Mentions, clientID)
+			b.WriteString(rm.Content + "[::-]\n")
+		}
 	}
 }
