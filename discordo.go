@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"sort"
 	"strings"
 
@@ -129,7 +128,7 @@ func newSession(email string, password string, token string) (s *session.Session
 
 	s.AddHandler(onSessionReady)
 	s.AddHandler(onSessionMessageCreate)
-	if err = s.Open(context.Background()); err != nil {
+	if err = s.Open(s.Context()); err != nil {
 		panic(err)
 	}
 
