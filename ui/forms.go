@@ -14,7 +14,7 @@ func NewLoginForm(onLoginFormLoginButtonSelected func()) (f *tview.Form) {
 		SetButtonsAlign(tview.AlignCenter).
 		SetButtonBackgroundColor(tcell.GetColor("#5865F2")).
 		SetBorder(true).
-		SetBorderPadding(0, 0, 1, 1)
+		SetBorderPadding(0, 0, 1, 0)
 
 	return f
 }

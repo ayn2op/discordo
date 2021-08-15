@@ -17,7 +17,7 @@ func NewMessagesTextView(app *tview.Application, theme *util.Theme) (textV *tvie
 		}).
 		SetBackgroundColor(tcell.GetColor(theme.TextViewBackground)).
 		SetBorder(true).
-		SetBorderPadding(0, 0, 1, 1).
+		SetBorderPadding(0, 0, 1, 0).
 		SetTitleAlign(tview.AlignLeft)
 
 	return

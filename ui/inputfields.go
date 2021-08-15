@@ -15,7 +15,7 @@ func NewMessageInputField(onMessageInputFieldInputCapture func(*tcell.EventKey) 
 		SetBackgroundColor(tcell.GetColor(theme.InputFieldBackground)).
 		SetInputCapture(onMessageInputFieldInputCapture).
 		SetBorder(true).
-		SetBorderPadding(0, 0, 1, 1)
+		SetBorderPadding(0, 0, 1, 0)
 
 	return
 }
