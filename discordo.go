@@ -157,14 +157,20 @@ func onSessionReady(r *gateway.ReadyEvent) {
 		for _, c := range g.Channels {
 			switch c.Type {
 			case discord.GuildCategory:
-				cNode := tview.NewTreeNode(c.Name).
+				cn := tview.NewTreeNode(c.Name).
 					SetReference(c)
-				gn.AddChild(cNode)
+				gn.AddChild(cn)
 			case discord.GuildText, discord.GuildNews:
 				if c.ParentID == 0 || c.ParentID == discord.NullChannelID {
-					cNode := tview.NewTreeNode("[::d]#" + c.Name + "[-:-:-]").
+					cn := tview.NewTreeNode("[::d]#" + c.Name + "[::-]").
 						SetReference(c)
-					gn.AddChild(cNode)
+					gn.AddChild(cn)
+				}
+			case discord.GuildStageVoice, discord.GuildVoice:
+				if c.ParentID == 0 || c.ParentID == discord.NullChannelID {
+					cn := tview.NewTreeNode("[::d]🔊" + c.Name + "[::-]").
+						SetReference(c)
+					gn.AddChild(cn)
 				}
 			}
 		}
@@ -181,10 +187,19 @@ func onGuildsTreeViewSelected(n *tview.TreeNode) {
 		case discord.GuildCategory:
 			if len(n.GetChildren()) == 0 {
 				for _, c := range currentGuild.Channels {
-					if (c.Type == discord.GuildText || c.Type == discord.GuildNews) && c.ParentID == r.ID {
-						cn := tview.NewTreeNode("[::d]#" + c.Name + "[-:-:-]").
-							SetReference(c)
-						n.AddChild(cn)
+					switch c.Type {
+					case discord.GuildText, discord.GuildNews:
+						if c.ParentID == r.ID {
+							cn := tview.NewTreeNode("[::d]#" + c.Name + "[::-]").
+								SetReference(c)
+							n.AddChild(cn)
+						}
+					case discord.GuildStageVoice, discord.GuildVoice:
+						if c.ParentID == r.ID {
+							cn := tview.NewTreeNode("[::d]🔊" + c.Name + "[::-]").
+								SetReference(c)
+							n.AddChild(cn)
+						}
 					}
 				}
 			} else {
@@ -193,7 +208,6 @@ func onGuildsTreeViewSelected(n *tview.TreeNode) {
 		case discord.GuildText, discord.GuildNews:
 			if len(n.GetChildren()) == 0 {
 				currentChannel = r
-
 				app.SetFocus(messageInputField)
 				messagesTextView.Clear()
 				messagesTextView.SetTitle(r.Name)
@@ -219,7 +233,6 @@ func onGuildsTreeViewSelected(n *tview.TreeNode) {
 			}
 		case discord.GuildNewsThread, discord.GuildPrivateThread, discord.GuildPublicThread:
 			currentChannel = r
-
 			app.SetFocus(messageInputField)
 			messagesTextView.Clear()
 			messagesTextView.SetTitle(r.Name)
@@ -230,6 +243,9 @@ func onGuildsTreeViewSelected(n *tview.TreeNode) {
 					util.WriteMessage(messagesTextView, clientID, m)
 				}
 			}()
+		case discord.GuildStageVoice, discord.GuildVoice:
+			messagesTextView.Clear()
+			messagesTextView.SetTitle(r.Name)
 		}
 	}
 }
