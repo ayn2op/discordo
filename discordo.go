@@ -224,8 +224,8 @@ func onGuildsTreeViewSelected(n *tview.TreeNode) {
 
 				go func() {
 					msgs, _ := discordSession.Messages(r.ID, config.GetMessagesLimit)
-					for _, m := range msgs {
-						util.WriteMessage(messagesTextView, clientID, m)
+					for i := len(msgs) - 1; i >= 0; i-- {
+						util.WriteMessage(messagesTextView, clientID, msgs[i])
 					}
 				}()
 			} else {
@@ -239,8 +239,8 @@ func onGuildsTreeViewSelected(n *tview.TreeNode) {
 
 			go func() {
 				msgs, _ := discordSession.Messages(r.ID, config.GetMessagesLimit)
-				for _, m := range msgs {
-					util.WriteMessage(messagesTextView, clientID, m)
+				for i := len(msgs) - 1; i >= 0; i-- {
+					util.WriteMessage(messagesTextView, clientID, msgs[i])
 				}
 			}()
 		case discord.GuildStageVoice, discord.GuildVoice:
