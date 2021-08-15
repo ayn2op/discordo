@@ -1,6 +1,6 @@
 # discordo
 
-[WIP] Discordo is a terminal-based Discord client that aims to be lightweight, secure, and feature-rich.
+Discordo is a terminal-based Discord client that aims to be lightweight, secure, and feature-rich.
 
 ![Preview](.github/preview.png)
 
