@@ -103,9 +103,7 @@ func writeReferencedMessage(b *strings.Builder, clientID discord.UserID, rm *dis
 			b.WriteString("[#EB459E]BOT[-] ")
 		}
 
-		if rm.Content != "" {
-			rm.Content = parseMessageMentions(rm.Content, rm.Mentions, clientID)
-			b.WriteString(rm.Content + "[::-]\n")
-		}
+		rm.Content = parseMessageMentions(rm.Content, rm.Mentions, clientID)
+		b.WriteString(rm.Content + "[::-]\n")
 	}
 }
