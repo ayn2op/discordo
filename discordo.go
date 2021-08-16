@@ -25,7 +25,7 @@ var (
 	mainFlex          *tview.Flex
 
 	kr             keyring.Keyring
-	config         *util.Config
+	conf           *util.Config
 	discordSession *session.Session
 	clientID       discord.UserID
 	currentGuild   gateway.GuildCreateEvent
@@ -47,12 +47,12 @@ func main() {
 	tview.Borders.BottomRight = ' '
 
 	kr = util.OpenKeyringBackend()
-	config = util.NewConfig()
+	conf = util.NewConfig()
 
 	app = ui.NewApp(onAppInputCapture)
-	guildsTreeView = ui.NewGuildsTreeView(onGuildsTreeViewSelected, config.Theme)
-	messagesTextView = ui.NewMessagesTextView(app, config.Theme)
-	messageInputField = ui.NewMessageInputField(onMessageInputFieldInputCapture, config.Theme)
+	guildsTreeView = ui.NewGuildsTreeView(onGuildsTreeViewSelected, conf.Theme)
+	messagesTextView = ui.NewMessagesTextView(app, conf.Theme)
+	messageInputField = ui.NewMessageInputField(onMessageInputFieldInputCapture, conf.Theme)
 	mainFlex = ui.NewMainFlex(guildsTreeView, messagesTextView, messageInputField)
 
 	if t := util.GetItem(kr, "token"); t != "" {
@@ -223,7 +223,7 @@ func onGuildsTreeViewSelected(n *tview.TreeNode) {
 				}()
 
 				go func() {
-					msgs, _ := discordSession.Messages(r.ID, config.GetMessagesLimit)
+					msgs, _ := discordSession.Messages(r.ID, conf.GetMessagesLimit)
 					for i := len(msgs) - 1; i >= 0; i-- {
 						util.WriteMessage(messagesTextView, clientID, msgs[i])
 					}
@@ -238,7 +238,7 @@ func onGuildsTreeViewSelected(n *tview.TreeNode) {
 			messagesTextView.SetTitle(r.Name)
 
 			go func() {
-				msgs, _ := discordSession.Messages(r.ID, config.GetMessagesLimit)
+				msgs, _ := discordSession.Messages(r.ID, conf.GetMessagesLimit)
 				for i := len(msgs) - 1; i >= 0; i-- {
 					util.WriteMessage(messagesTextView, clientID, msgs[i])
 				}
