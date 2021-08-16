@@ -212,15 +212,13 @@ func onGuildsTreeViewSelected(n *tview.TreeNode) {
 				messagesTextView.Clear()
 				messagesTextView.SetTitle(r.Name)
 
-				go func() {
-					for _, t := range currentGuild.Threads {
-						if t.ParentID == currentChannel.ID {
-							cn := tview.NewTreeNode("[::d]🗨 " + t.Name + "[::-]").
-								SetReference(t)
-							n.AddChild(cn)
-						}
+				for _, t := range currentGuild.Threads {
+					if t.ParentID == currentChannel.ID {
+						cn := tview.NewTreeNode("[::d]🗨 " + t.Name + "[::-]").
+							SetReference(t)
+						n.AddChild(cn)
 					}
-				}()
+				}
 
 				go func() {
 					msgs, _ := discordSession.Messages(r.ID, conf.GetMessagesLimit)
