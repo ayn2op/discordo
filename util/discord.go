@@ -46,11 +46,11 @@ func parseMessageMentions(content string, mentions []discord.GuildUser, clientID
 		}
 
 		content = strings.NewReplacer(
-			// <@!USER_ID>
-			fmt.Sprintf("<@!%d>", mUser.ID),
-			color+"@"+mUser.Username+"[-:-]",
 			// <@USER_ID>
-			fmt.Sprintf("<@%d>", mUser.ID),
+			"<@"+mUser.ID.String()+">",
+			color+"@"+mUser.Username+"[-:-]",
+			// <@!USER_ID>
+			"<@!"+mUser.ID.String()+">",
 			color+"@"+mUser.Username+"[-:-]",
 		).Replace(content)
 	}
@@ -66,7 +66,9 @@ func writeEmbeds(b *strings.Builder, embeds []discord.Embed) {
 
 func writeAttachments(b *strings.Builder, attachments []discord.Attachment) {
 	for _, a := range attachments {
-		b.WriteString("\n[" + a.Filename + "]: ")
+		b.WriteString("\n[")
+		b.WriteString(a.Filename)
+		b.WriteString("]: ")
 		b.WriteString(a.URL)
 	}
 }
@@ -78,7 +80,8 @@ func writeAuthor(b *strings.Builder, clientID discord.UserID, u discord.User) {
 		b.WriteString("[#ED4245]")
 	}
 
-	b.WriteString(u.Username + "[-] ")
+	b.WriteString(u.Username)
+	b.WriteString("[-] ")
 
 	if u.Bot {
 		b.WriteString("[#EB459E]BOT[-] ")
@@ -87,9 +90,7 @@ func writeAuthor(b *strings.Builder, clientID discord.UserID, u discord.User) {
 
 func writeReferencedMessage(b *strings.Builder, clientID discord.UserID, rm *discord.Message) {
 	if rm != nil {
-		b.WriteRune(' ')
-		b.WriteRune('\u256D')
-		b.WriteRune(' ')
+		b.WriteString(" ╭ ")
 
 		if rm.Author.ID == clientID {
 			b.WriteString("[#57F287::d]")
@@ -97,13 +98,17 @@ func writeReferencedMessage(b *strings.Builder, clientID discord.UserID, rm *dis
 			b.WriteString("[#ED4245::d]")
 		}
 
-		b.WriteString(rm.Author.Username + "[-] ")
+		b.WriteString(rm.Author.Username)
+		b.WriteString("[-] ")
 
 		if rm.Author.Bot {
 			b.WriteString("[#EB459E]BOT[-] ")
 		}
 
-		rm.Content = parseMessageMentions(rm.Content, rm.Mentions, clientID)
-		b.WriteString(rm.Content + "[::-]\n")
+		if rm.Content != "" {
+			rm.Content = parseMessageMentions(rm.Content, rm.Mentions, clientID)
+			b.WriteString(rm.Content)
+		}
+		b.WriteString("[::-]\n")
 	}
 }
