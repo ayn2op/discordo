@@ -210,7 +210,12 @@ func onGuildsTreeViewSelected(n *tview.TreeNode) {
 				currentChannel = r
 				app.SetFocus(messageInputField)
 				messagesTextView.Clear()
-				messagesTextView.SetTitle(r.Name)
+
+				title := "#" + r.Name
+				if r.Topic != "" {
+					title += " - " + r.Topic
+				}
+				messagesTextView.SetTitle(title)
 
 				for _, t := range currentGuild.Threads {
 					if t.ParentID == currentChannel.ID {
