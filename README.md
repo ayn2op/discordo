@@ -1,4 +1,4 @@
-# discordo
+# discordo &middot; [![build](https://github.com/rigormorrtiss/discordo/actions/workflows/build.yml/badge.svg)](https://github.com/rigormorrtiss/discordo/actions/workflows/build.yml)
 
 Discordo is a terminal-based Discord client that aims to be lightweight, secure, and feature-rich.
 
