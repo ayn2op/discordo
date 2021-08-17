@@ -26,6 +26,13 @@ cd discordo && go build
 sudo mv ./discordo /usr/local/bin
 ```
 
+## Package managers
+
+```bash
+# (AUR) Arch Linux - development version (may be outdated)
+yay -S discordo-git
+```
+
 ## Getting Started
 
 - Run the built executable in a new Terminal.
@@ -42,7 +49,7 @@ sudo mv ./discordo /usr/local/bin
 ### Clipboard
 
 - Requires `xclip` or `xsel` for X11.
-- Requires `wl-clipboard` for Wayland. 
+- Requires `wl-clipboard` for Wayland.
 
 ## Disclaimer
 
