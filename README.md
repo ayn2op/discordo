@@ -13,6 +13,7 @@ Discordo is a terminal-based Discord client that aims to be lightweight, secure,
 - Configurable
 - Discord-flavored markdown
 - Clipboard support
+- 2-Factor Authentication
 
 ## Installation
 
