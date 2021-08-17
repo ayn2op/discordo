@@ -36,9 +36,11 @@ yay -S discordo-git
 
 ## Getting Started
 
-- Run the built executable in a new Terminal.
-- Choose the preferred login method.
-- Log in using the chosen login method and click on "Login" button to continue.
+- Run the built executable in a new Terminal window.
+
+By default, Discordo utilizes OS-specific keyring to store credentials such as client authentication token. However, if you prefer not to use a keyring, you may set the `DISCORDO_TOKEN` environment variable and Discordo will prioritize the environment variable and use it to login instead of keyring. 
+
+- Log in using the email and password and click on the "Login" button to continue.
 
 ### Default Keybindings
 
