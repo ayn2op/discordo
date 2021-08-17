@@ -60,8 +60,7 @@ func main() {
 			SetRoot(mainFlex, true).
 			SetFocus(guildsTreeView)
 
-		discordSession = newSession("", "", t)
-		defer discordSession.Close()
+		discordSession = newSession(t)
 	} else {
 		loginForm = ui.NewLoginForm(onLoginFormLoginButtonSelected)
 		app.SetRoot(loginForm, true)
@@ -106,7 +105,7 @@ func onMessageInputFieldInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	return e
 }
 
-func newSession(email string, password string, token string) (s *session.Session) {
+func newSession(token string) (s *session.Session) {
 	api.UserAgent = "" +
 		"Mozilla/5.0 (X11; Linux x86_64) " +
 		"AppleWebKit/537.36 (KHTML, like Gecko) " +
@@ -116,12 +115,7 @@ func newSession(email string, password string, token string) (s *session.Session
 	gateway.DefaultIdentity.Device = ""
 
 	var err error
-	if email != "" && password != "" {
-		s, err = session.Login(email, password, "")
-	} else if token != "" {
-		s, err = session.New(token)
-	}
-
+	s, err = session.New(token)
 	if err != nil {
 		panic(err)
 	}
@@ -260,12 +254,41 @@ func onLoginFormLoginButtonSelected() {
 		return
 	}
 
-	app.
-		SetRoot(mainFlex, true).
-		SetFocus(guildsTreeView)
+	// Make a scratch HTTP client without a token
+	client := api.NewClient("")
+	// Try to login without TOTP
+	l, err := client.Login(email, password)
+	if err != nil {
+		panic(err)
+	}
 
-	discordSession = newSession(email, password, "")
-	defer discordSession.Close()
+	if l.Token != "" && !l.MFA {
+		app.
+			SetRoot(mainFlex, true).
+			SetFocus(guildsTreeView)
 
-	go util.SetItem(kr, "token", discordSession.Token)
+		discordSession = newSession(l.Token)
+		go util.SetItem(kr, "token", l.Token)
+	} else if l.MFA {
+		loginForm = ui.NewMfaLoginForm(func() {
+			code := loginForm.GetFormItem(0).(*tview.InputField).GetText()
+			if code == "" {
+				return
+			}
+
+			l, err := client.TOTP(code, l.Ticket)
+			if err != nil {
+				panic(err)
+			}
+
+			app.
+				SetRoot(mainFlex, true).
+				SetFocus(guildsTreeView)
+
+			discordSession = newSession(l.Token)
+			go util.SetItem(kr, "token", l.Token)
+		})
+
+		app.SetRoot(loginForm, true)
+	}
 }
