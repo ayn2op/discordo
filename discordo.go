@@ -5,7 +5,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/99designs/keyring"
 	"github.com/atotto/clipboard"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -25,7 +24,6 @@ var (
 	messageInputField *tview.InputField
 	mainFlex          *tview.Flex
 
-	kr             keyring.Keyring
 	conf           *util.Config
 	discordSession *session.Session
 	clientID       discord.UserID
@@ -47,9 +45,7 @@ func main() {
 	tview.Borders.BottomLeft = ' '
 	tview.Borders.BottomRight = ' '
 
-	kr = util.OpenKeyringBackend()
 	conf = util.NewConfig()
-
 	app = ui.NewApp(onAppInputCapture)
 	guildsTreeView = ui.NewGuildsTreeView(onGuildsTreeViewSelected, conf.Theme)
 	messagesTextView = ui.NewMessagesTextView(app, conf.Theme)
@@ -57,7 +53,7 @@ func main() {
 	mainFlex = ui.NewMainFlex(guildsTreeView, messagesTextView, messageInputField)
 
 	token := os.Getenv("DISCORDO_TOKEN")
-	if t := util.GetItem(kr, "token"); t != "" {
+	if t := util.GetPassword("token"); t != "" {
 		token = t
 	}
 
@@ -274,7 +270,7 @@ func onLoginFormLoginButtonSelected() {
 			SetFocus(guildsTreeView)
 
 		discordSession = newSession(l.Token)
-		go util.SetItem(kr, "token", l.Token)
+		go util.SetPassword("token", l.Token)
 	} else if l.MFA {
 		loginForm = ui.NewMfaLoginForm(func() {
 			code := loginForm.GetFormItem(0).(*tview.InputField).GetText()
@@ -292,7 +288,7 @@ func onLoginFormLoginButtonSelected() {
 				SetFocus(guildsTreeView)
 
 			discordSession = newSession(l.Token)
-			go util.SetItem(kr, "token", l.Token)
+			go util.SetPassword("token", l.Token)
 		})
 
 		app.SetRoot(loginForm, true)
