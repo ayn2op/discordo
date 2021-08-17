@@ -1,29 +1,18 @@
 package util
 
-import (
-	"github.com/99designs/keyring"
-)
+import "github.com/zalando/go-keyring"
 
-func OpenKeyringBackend() (kr keyring.Keyring) {
-	kr, err := keyring.Open(keyring.Config{})
-	if err != nil {
-		panic(err)
-	}
-
-	return
-}
-
-func GetItem(kr keyring.Keyring, k string) string {
-	i, err := kr.Get(k)
+func GetPassword(u string) string {
+	p, err := keyring.Get("discordo", u)
 	if err != nil {
 		return ""
 	}
 
-	return string(i.Data)
+	return p
 }
 
-func SetItem(kr keyring.Keyring, k string, d string) {
-	if err := kr.Set(keyring.Item{Key: k, Data: []byte(d)}); err != nil {
+func SetPassword(u string, p string) {
+	if err := keyring.Set("discordo", u, p); err != nil {
 		panic(err)
 	}
 }
