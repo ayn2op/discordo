@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"sort"
 	"strings"
 
@@ -55,12 +56,17 @@ func main() {
 	messageInputField = ui.NewMessageInputField(onMessageInputFieldInputCapture, conf.Theme)
 	mainFlex = ui.NewMainFlex(guildsTreeView, messagesTextView, messageInputField)
 
+	token := os.Getenv("DISCORDO_TOKEN")
 	if t := util.GetItem(kr, "token"); t != "" {
+		token = t
+	}
+
+	if token != "" {
 		app.
 			SetRoot(mainFlex, true).
 			SetFocus(guildsTreeView)
 
-		discordSession = newSession(t)
+		discordSession = newSession(token)
 	} else {
 		loginForm = ui.NewLoginForm(onLoginFormLoginButtonSelected)
 		app.SetRoot(loginForm, true)
