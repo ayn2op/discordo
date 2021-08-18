@@ -5,6 +5,7 @@ import (
 	"github.com/rivo/tview"
 )
 
+// NewGuildsList creates and returns a new guilds list.
 func NewGuildsList(onGuildsListSelected func(int, string, string, rune), t *util.Theme) (l *tview.List) {
 	l = tview.NewList()
 	l.

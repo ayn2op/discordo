@@ -8,6 +8,7 @@ import (
 	"github.com/rivo/tview"
 )
 
+// WriteMessage parses and writes the parsed message to the provided textview.
 func WriteMessage(v *tview.TextView, clientID discord.UserID, m discord.Message) {
 	var b strings.Builder
 	switch m.Type {
