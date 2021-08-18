@@ -1,12 +1,10 @@
 package ui
 
 import (
-	"github.com/gdamore/tcell/v2"
-	"github.com/rigormorrtiss/discordo/util"
 	"github.com/rivo/tview"
 )
 
-func NewMessagesTextView(app *tview.Application, theme *util.Theme) (textV *tview.TextView) {
+func NewMessagesTextView(app *tview.Application) (textV *tview.TextView) {
 	textV = tview.NewTextView()
 	textV.
 		SetDynamicColors(true).
@@ -15,7 +13,6 @@ func NewMessagesTextView(app *tview.Application, theme *util.Theme) (textV *tvie
 		SetChangedFunc(func() {
 			app.Draw()
 		}).
-		SetBackgroundColor(tcell.GetColor(theme.TextViewBackground)).
 		SetBorder(true).
 		SetBorderPadding(0, 0, 1, 0).
 		SetTitleAlign(tview.AlignLeft)

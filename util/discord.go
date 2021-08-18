@@ -9,30 +9,48 @@ import (
 )
 
 func WriteMessage(v *tview.TextView, clientID discord.UserID, m discord.Message) {
+	var b strings.Builder
 	switch m.Type {
 	case discord.DefaultMessage, discord.InlinedReplyMessage:
-		var b strings.Builder
-		// $  ╭ AUTHOR_USERNAME (BOT) MESSAGE_CONTENT*linebreak*
-		writeReferencedMessage(&b, clientID, m.ReferencedMessage)
-		// $ AUTHOR_USERNAME (BOT)*spacee*
-		writeAuthor(&b, clientID, m.Author)
-		// $ MESSAGE_CONTENT
-		if m.Content != "" {
-			m.Content = parseMessageMentions(m.Content, m.Mentions, clientID)
-			b.WriteString(m.Content)
-		}
-		// $ *space*(edited)
-		if m.EditedTimestamp.IsValid() {
-			b.WriteString(" [::d](edited)[::-]")
-		}
-		// $ *linebreak*EMBED
-		writeEmbeds(&b, m.Embeds)
-		// $ *linebreak*ATTACHMENT_URL
-		writeAttachments(&b, m.Attachments)
-
+		parseMessage(v, &b, m, clientID)
 		fmt.Fprintln(v, b.String())
 	case discord.ThreadStarterMessage:
-		WriteMessage(v, clientID, *m.ReferencedMessage)
+		parseMessage(v, &b, *m.ReferencedMessage, clientID)
+		fmt.Fprintln(v, b.String())
+	case discord.GuildMemberJoinMessage:
+		b.WriteString("[#5865F2]")
+		b.WriteString(m.Author.Username)
+		b.WriteString("[-]")
+		b.WriteString(" joined the server")
+		fmt.Fprintln(v, b.String())
+	}
+}
+
+func parseMessage(v *tview.TextView, b *strings.Builder, m discord.Message, clientID discord.UserID) {
+	// $  ╭ AUTHOR_USERNAME (BOT) MESSAGE_CONTENT*linebreak*
+	parseReferencedMessage(b, clientID, m.ReferencedMessage)
+	// $ AUTHOR_USERNAME (BOT)*spacee*
+	parseAuthor(b, clientID, m.Author)
+	// $ MESSAGE_CONTENT
+	parseContent(b, m, clientID)
+	// $ *space*(edited)
+	parseEditedTimestamp(b, m.EditedTimestamp)
+	// $ *linebreak*EMBED
+	parseEmbeds(b, m.Embeds)
+	// $ *linebreak*ATTACHMENT_URL
+	parseAttachments(b, m.Attachments)
+}
+
+func parseContent(b *strings.Builder, m discord.Message, clientID discord.UserID) {
+	if m.Content != "" {
+		m.Content = parseMessageMentions(m.Content, m.Mentions, clientID)
+		b.WriteString(m.Content)
+	}
+}
+
+func parseEditedTimestamp(b *strings.Builder, t discord.Timestamp) {
+	if t.IsValid() {
+		b.WriteString(" [::d](edited)[::-]")
 	}
 }
 
@@ -58,13 +76,13 @@ func parseMessageMentions(content string, mentions []discord.GuildUser, clientID
 	return content
 }
 
-func writeEmbeds(b *strings.Builder, embeds []discord.Embed) {
+func parseEmbeds(b *strings.Builder, embeds []discord.Embed) {
 	for range embeds {
 		b.WriteString("\n<EMBED>")
 	}
 }
 
-func writeAttachments(b *strings.Builder, attachments []discord.Attachment) {
+func parseAttachments(b *strings.Builder, attachments []discord.Attachment) {
 	for _, a := range attachments {
 		b.WriteString("\n[")
 		b.WriteString(a.Filename)
@@ -73,7 +91,7 @@ func writeAttachments(b *strings.Builder, attachments []discord.Attachment) {
 	}
 }
 
-func writeAuthor(b *strings.Builder, clientID discord.UserID, u discord.User) {
+func parseAuthor(b *strings.Builder, clientID discord.UserID, u discord.User) {
 	if u.ID == clientID {
 		b.WriteString("[#57F287]")
 	} else {
@@ -88,7 +106,7 @@ func writeAuthor(b *strings.Builder, clientID discord.UserID, u discord.User) {
 	}
 }
 
-func writeReferencedMessage(b *strings.Builder, clientID discord.UserID, rm *discord.Message) {
+func parseReferencedMessage(b *strings.Builder, clientID discord.UserID, rm *discord.Message) {
 	if rm != nil {
 		b.WriteString(" ╭ ")
 
