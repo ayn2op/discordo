@@ -239,12 +239,7 @@ func onChannelsTreeViewSelected(n *tview.TreeNode) {
 				}
 			}
 
-			go func() {
-				msgs, _ := discordSession.Messages(r.ID, conf.GetMessagesLimit)
-				for i := len(msgs) - 1; i >= 0; i-- {
-					util.WriteMessage(messagesTextView, clientID, msgs[i])
-				}
-			}()
+			go writeMessages(r.ID)
 		} else {
 			n.SetExpanded(!n.IsExpanded())
 		}
@@ -254,15 +249,17 @@ func onChannelsTreeViewSelected(n *tview.TreeNode) {
 		messagesTextView.Clear()
 		messagesTextView.SetTitle(r.Name)
 
-		go func() {
-			msgs, _ := discordSession.Messages(r.ID, conf.GetMessagesLimit)
-			for i := len(msgs) - 1; i >= 0; i-- {
-				util.WriteMessage(messagesTextView, clientID, msgs[i])
-			}
-		}()
+		go writeMessages(r.ID)
 	case discord.GuildStageVoice, discord.GuildVoice:
 		messagesTextView.Clear()
 		messagesTextView.SetTitle(r.Name)
+	}
+}
+
+func writeMessages(cID discord.ChannelID) {
+	msgs, _ := discordSession.Messages(cID, conf.GetMessagesLimit)
+	for i := len(msgs) - 1; i >= 0; i-- {
+		util.WriteMessage(messagesTextView, clientID, msgs[i])
 	}
 }
 
