@@ -6,10 +6,8 @@ import (
 )
 
 type Theme struct {
-	DropDownBackground   string `json:"dropdown.background"`
-	TreeViewBackground   string `json:"treeview.background"`
-	TextViewBackground   string `json:"textview.background"`
-	InputFieldBackground string `json:"inputField.background"`
+	Background string `json:"background"`
+	Foreground string `json:"foreground"`
 }
 
 type Config struct {

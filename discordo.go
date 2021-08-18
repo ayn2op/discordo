@@ -46,9 +46,11 @@ func main() {
 	tview.Borders.BottomRight = ' '
 
 	conf = util.NewConfig()
+	tview.Styles.PrimitiveBackgroundColor = tcell.GetColor(conf.Theme.Background)
+
 	app = ui.NewApp(onAppInputCapture)
-	guildsTreeView = ui.NewGuildsTreeView(onGuildsTreeViewSelected, conf.Theme)
-	messagesTextView = ui.NewMessagesTextView(app, conf.Theme)
+	guildsTreeView = ui.NewGuildsTreeView(onGuildsTreeViewSelected)
+	messagesTextView = ui.NewMessagesTextView(app)
 	messageInputField = ui.NewMessageInputField(onMessageInputFieldInputCapture, conf.Theme)
 	mainFlex = ui.NewMainFlex(guildsTreeView, messagesTextView, messageInputField)
 
