@@ -91,13 +91,13 @@ func main() {
 func onAppInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	switch e.Name() {
 	case "Alt+Rune[1]":
-		app.SetFocus(channelsTreeView)
+		app.SetFocus(guildsList)
 	case "Alt+Rune[2]":
-		app.SetFocus(messagesTextView)
+		app.SetFocus(channelsTreeView)
 	case "Alt+Rune[3]":
-		if messageInputField != nil {
-			app.SetFocus(messageInputField)
-		}
+		app.SetFocus(messagesTextView)
+	case "Alt+Rune[4]":
+		app.SetFocus(messageInputField)
 	}
 
 	return e
