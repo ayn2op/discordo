@@ -4,14 +4,18 @@ import (
 	"github.com/rivo/tview"
 )
 
-func NewMainFlex(treeV *tview.TreeView, textV *tview.TextView, i *tview.InputField) (mf *tview.Flex) {
+func NewMainFlex(l *tview.List, treeV *tview.TreeView, textV *tview.TextView, i *tview.InputField) (mf *tview.Flex) {
+	lf := tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(l, 0, 1, false).
+		AddItem(treeV, 0, 3, false)
 	rf := tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(textV, 0, 1, false).
 		AddItem(i, 3, 1, false)
 	mf = tview.NewFlex().
-		AddItem(treeV, 25, 1, false).
-		AddItem(rf, 0, 1, false)
+		AddItem(lf, 0, 1, false).
+		AddItem(rf, 0, 5, false)
 
 	return mf
 }
