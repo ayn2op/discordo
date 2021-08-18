@@ -1,4 +1,4 @@
-# discordo &middot; [![build](https://github.com/rigormorrtiss/discordo/actions/workflows/build.yml/badge.svg)](https://github.com/rigormorrtiss/discordo/actions/workflows/build.yml) [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/rigormorrtiss/discordo/blob/master/LICENSE)
+# discordo &middot; [![build](https://github.com/rigormorrtiss/discordo/actions/workflows/build.yml/badge.svg)](https://github.com/rigormorrtiss/discordo/actions/workflows/build.yml) [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/rigormorrtiss/discordo/blob/master/LICENSE) [![Go Report Card](https://goreportcard.com/badge/github.com/rigormorrtiss/discordo)](https://goreportcard.com/report/github.com/rigormorrtiss/discordo)
 
 Discordo is a terminal-based Discord client that aims to be lightweight, secure, and feature-rich.
 
