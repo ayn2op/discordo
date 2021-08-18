@@ -1,4 +1,4 @@
-# discordo &middot; [![build](https://github.com/rigormorrtiss/discordo/actions/workflows/build.yml/badge.svg)](https://github.com/rigormorrtiss/discordo/actions/workflows/build.yml)
+# discordo &middot; [![build](https://github.com/rigormorrtiss/discordo/actions/workflows/build.yml/badge.svg)](https://github.com/rigormorrtiss/discordo/actions/workflows/build.yml) [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/rigormorrtiss/discordo/blob/master/LICENSE)
 
 Discordo is a terminal-based Discord client that aims to be lightweight, secure, and feature-rich.
 
@@ -36,7 +36,7 @@ yay -S discordo-git
 
 ## Getting Started
 
-- Run the built executable in a new Terminal window.
+- Run the executable in a new Terminal window.
 
 By default, Discordo utilizes OS-specific keyring to store credentials such as client authentication token. However, if you prefer not to use a keyring, you may set the `DISCORDO_TOKEN` environment variable and Discordo will prioritize the environment variable and use it to login instead of keyring. 
 
