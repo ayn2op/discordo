@@ -6,13 +6,13 @@ import (
 	"github.com/rivo/tview"
 )
 
-func NewMessageInputField(onMessageInputFieldInputCapture func(*tcell.EventKey) *tcell.EventKey, theme *util.Theme) (i *tview.InputField) {
+func NewMessageInputField(onMessageInputFieldInputCapture func(*tcell.EventKey) *tcell.EventKey, t *util.Theme) (i *tview.InputField) {
 	i = tview.NewInputField()
 	i.
 		SetPlaceholder("Message...").
 		SetPlaceholderTextColor(tcell.ColorWhite).
-		SetFieldBackgroundColor(tcell.GetColor(theme.InputFieldBackground)).
-		SetBackgroundColor(tcell.GetColor(theme.InputFieldBackground)).
+		SetFieldBackgroundColor(tcell.GetColor(t.Background)).
+		SetBackgroundColor(tcell.GetColor(t.Background)).
 		SetInputCapture(onMessageInputFieldInputCapture).
 		SetBorder(true).
 		SetBorderPadding(0, 0, 1, 0)
