@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/atotto/clipboard"
@@ -168,6 +169,10 @@ func onGuildsListSelected(i int, _ string, _ string, _ rune) {
 	n.ClearChildren()
 
 	guild = guilds[i]
+	sort.SliceStable(guild.Channels, func(i, j int) bool {
+		return guild.Channels[i].Position < guild.Channels[j].Position
+	})
+
 	for _, c := range guild.Channels {
 		switch c.Type {
 		case discord.GuildCategory:
