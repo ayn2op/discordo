@@ -16,6 +16,7 @@ type Config struct {
 	Theme            *Theme `json:"theme,omitempty"`
 }
 
+// NewConfig reads the configuration file (if exists) and returns a new config.
 func NewConfig() *Config {
 	userHomeDir, err := os.UserHomeDir()
 	if err != nil {

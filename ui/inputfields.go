@@ -6,6 +6,7 @@ import (
 	"github.com/rivo/tview"
 )
 
+// NewMessageInputField creates and returns a new message inputfield.
 func NewMessageInputField(onMessageInputFieldInputCapture func(*tcell.EventKey) *tcell.EventKey, t *util.Theme) (i *tview.InputField) {
 	i = tview.NewInputField()
 	i.

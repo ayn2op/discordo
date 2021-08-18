@@ -4,6 +4,7 @@ import (
 	"github.com/rivo/tview"
 )
 
+// NewChannelsTreeView creates and returns a new channels treeview.
 func NewChannelsTreeView(onChannelsTreeViewSelected func(*tview.TreeNode)) (treeV *tview.TreeView) {
 	treeV = tview.NewTreeView()
 	treeN := tview.NewTreeNode("")

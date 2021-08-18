@@ -16,6 +16,7 @@ func newBaseLoginForm() (f *tview.Form) {
 	return
 }
 
+// NewLoginForm creates and returns a new login form.
 func NewLoginForm(onLoginFormLoginButtonSelected func()) (f *tview.Form) {
 	f = newBaseLoginForm()
 	f.
@@ -26,6 +27,7 @@ func NewLoginForm(onLoginFormLoginButtonSelected func()) (f *tview.Form) {
 	return
 }
 
+// NewMfaLoginForm creates and returns a new MFA login form.
 func NewMfaLoginForm(onMfaLoginFormLoginButtonSelected func()) (f *tview.Form) {
 	f = newBaseLoginForm().
 		AddPasswordField("Code", "", 0, 0, nil).

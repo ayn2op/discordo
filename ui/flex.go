@@ -4,6 +4,7 @@ import (
 	"github.com/rivo/tview"
 )
 
+// NewMainFlex creates and returns a new main flex.
 func NewMainFlex(l *tview.List, treeV *tview.TreeView, textV *tview.TextView, i *tview.InputField) (mf *tview.Flex) {
 	lf := tview.NewFlex().
 		SetDirection(tview.FlexRow).
