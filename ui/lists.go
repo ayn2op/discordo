@@ -1,8 +1,11 @@
 package ui
 
-import "github.com/rivo/tview"
+import (
+	"github.com/rigormorrtiss/discordo/util"
+	"github.com/rivo/tview"
+)
 
-func NewGuildsList() (l *tview.List) {
+func NewGuildsList(t *util.Theme) (l *tview.List) {
 	l = tview.NewList()
 	l.
 		SetBorder(true).

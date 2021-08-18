@@ -19,6 +19,7 @@ import (
 var (
 	app               *tview.Application
 	loginForm         *tview.Form
+	guildsList        *tview.List
 	guildsTreeView    *tview.TreeView
 	messagesTextView  *tview.TextView
 	messageInputField *tview.InputField
@@ -47,6 +48,7 @@ func main() {
 
 	conf = util.NewConfig()
 	app = ui.NewApp(onAppInputCapture)
+	guildsList = ui.NewGuildsList(conf.Theme)
 	guildsTreeView = ui.NewGuildsTreeView(onGuildsTreeViewSelected, conf.Theme)
 	messagesTextView = ui.NewMessagesTextView(app, conf.Theme)
 	messageInputField = ui.NewMessageInputField(onMessageInputFieldInputCapture, conf.Theme)
