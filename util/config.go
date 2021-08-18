@@ -5,12 +5,14 @@ import (
 	"os"
 )
 
+// Theme defines the theme for the application.
 type Theme struct {
 	Background string `json:"background,omitempty"`
 	Foreground string `json:"foreground,omitempty"`
 	Borders    bool   `json:"borders,omitempty"`
 }
 
+// Config consists for properties, such as theme, that may be customized by the user.
 type Config struct {
 	GetMessagesLimit uint   `json:"getMessagesLimit,omitempty"`
 	Theme            *Theme `json:"theme,omitempty"`
