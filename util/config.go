@@ -6,13 +6,14 @@ import (
 )
 
 type Theme struct {
-	Background string `json:"background"`
-	Foreground string `json:"foreground"`
+	Background string `json:"background,omitempty"`
+	Foreground string `json:"foreground,omitempty"`
+	Borders    bool   `json:"borders,omitempty"`
 }
 
 type Config struct {
-	GetMessagesLimit uint   `json:"getMessagesLimit"`
-	Theme            *Theme `json:"theme"`
+	GetMessagesLimit uint   `json:"getMessagesLimit,omitempty"`
+	Theme            *Theme `json:"theme,omitempty"`
 }
 
 func NewConfig() *Config {
@@ -23,7 +24,9 @@ func NewConfig() *Config {
 
 	var c Config = Config{
 		GetMessagesLimit: 50,
-		Theme:            &Theme{},
+		Theme: &Theme{
+			Borders: true,
+		},
 	}
 	configPath := userHomeDir + "/.config/discordo/config.json"
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {

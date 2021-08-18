@@ -33,21 +33,31 @@ var (
 )
 
 func main() {
-	tview.Borders.HorizontalFocus = tview.Borders.Horizontal
-	tview.Borders.VerticalFocus = tview.Borders.Vertical
-	tview.Borders.TopLeftFocus = tview.Borders.TopLeft
-	tview.Borders.TopRightFocus = tview.Borders.TopRight
-	tview.Borders.BottomLeftFocus = tview.Borders.BottomLeft
-	tview.Borders.BottomRightFocus = tview.Borders.BottomRight
-	tview.Borders.Horizontal = ' '
-	tview.Borders.Vertical = ' '
-	tview.Borders.TopLeft = ' '
-	tview.Borders.TopRight = ' '
-	tview.Borders.BottomLeft = ' '
-	tview.Borders.BottomRight = ' '
-
 	conf = util.NewConfig()
+
 	tview.Styles.PrimitiveBackgroundColor = tcell.GetColor(conf.Theme.Background)
+
+	if !conf.Theme.Borders {
+		tview.Borders = struct {
+			Horizontal       rune
+			Vertical         rune
+			TopLeft          rune
+			TopRight         rune
+			BottomLeft       rune
+			BottomRight      rune
+			LeftT            rune
+			RightT           rune
+			TopT             rune
+			BottomT          rune
+			Cross            rune
+			HorizontalFocus  rune
+			VerticalFocus    rune
+			TopLeftFocus     rune
+			TopRightFocus    rune
+			BottomLeftFocus  rune
+			BottomRightFocus rune
+		}{}
+	}
 
 	app = ui.NewApp(onAppInputCapture)
 	guildsList = ui.NewGuildsList(onGuildsListSelected, conf.Theme)
