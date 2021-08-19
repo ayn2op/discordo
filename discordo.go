@@ -57,7 +57,9 @@ func main() {
 		}{}
 	}
 
-	app = ui.NewApp(onAppInputCapture)
+	app = tview.NewApplication().
+		EnableMouse(true).
+		SetInputCapture(onAppInputCapture)
 	guildsTreeView = ui.NewGuildsTreeView(onGuildsTreeViewSelected)
 	channelsTreeView = ui.NewChannelsTreeView(onChannelsTreeViewSelected)
 	messagesTextView = ui.NewMessagesTextView(app)
