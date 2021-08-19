@@ -175,13 +175,7 @@ func onGuildsTreeViewSelected(gn *tview.TreeNode) {
 	rootN := channelsTreeView.GetRoot()
 	rootN.ClearChildren()
 	// Top-level channels
-	for _, c := range cs {
-		if (c.Type == discord.GuildText || c.Type == discord.GuildNews) && (c.ParentID == 0 || c.ParentID == discord.NullChannelID) {
-			cn := ui.NewTextChannelTreeNode(c)
-			rootN.AddChild(cn)
-			continue
-		}
-	}
+	ui.CreateTopLevelTreeNodes(rootN, cs)
 	// Category channels
 CategoryLoop:
 	for _, c := range cs {
@@ -201,14 +195,7 @@ CategoryLoop:
 		}
 	}
 	// Second-level channels
-	for _, c := range cs {
-		if (c.Type == discord.GuildText || c.Type == discord.GuildNews) && (c.ParentID != 0 && c.ParentID != discord.NullChannelID) {
-			if pn := ui.GetTreeNodeByReference(c.ParentID, channelsTreeView); pn != nil {
-				cn := ui.NewTextChannelTreeNode(c)
-				pn.AddChild(cn)
-			}
-		}
-	}
+	ui.CreateSecondLevelTreeNodes(channelsTreeView, rootN, cs)
 
 	channelsTreeView.SetCurrentNode(rootN)
 }

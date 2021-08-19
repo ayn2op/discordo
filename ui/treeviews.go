@@ -58,3 +58,26 @@ func GetTreeNodeByReference(r interface{}, treeV *tview.TreeView) (mn *tview.Tre
 
 	return
 }
+
+// CreateTopLevelTreeNodes creates treenodes for the top-level (orphan) channels.
+func CreateTopLevelTreeNodes(rootN *tview.TreeNode, cs []discord.Channel) {
+	for _, c := range cs {
+		if (c.Type == discord.GuildText || c.Type == discord.GuildNews) && (c.ParentID == 0 || c.ParentID == discord.NullChannelID) {
+			cn := NewTextChannelTreeNode(c)
+			rootN.AddChild(cn)
+			continue
+		}
+	}
+}
+
+// CreateSecondLevelTreeNodes creates treenodes for the second-level (category children) channels.
+func CreateSecondLevelTreeNodes(channelsTreeView *tview.TreeView, rootN *tview.TreeNode, cs []discord.Channel) {
+	for _, c := range cs {
+		if (c.Type == discord.GuildText || c.Type == discord.GuildNews) && (c.ParentID != 0 && c.ParentID != discord.NullChannelID) {
+			if pn := GetTreeNodeByReference(c.ParentID, channelsTreeView); pn != nil {
+				cn := NewTextChannelTreeNode(c)
+				pn.AddChild(cn)
+			}
+		}
+	}
+}
