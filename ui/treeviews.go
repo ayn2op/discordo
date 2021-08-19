@@ -45,6 +45,7 @@ func NewTextChannelTreeNode(c discord.Channel) (n *tview.TreeNode) {
 	return
 }
 
+// GetTreeNodeByReference gets the TreeNode that has reference r from the given treeview.
 func GetTreeNodeByReference(r interface{}, treeV *tview.TreeView) (mn *tview.TreeNode) {
 	treeV.GetRoot().Walk(func(n, _ *tview.TreeNode) bool {
 		if n.GetReference() == r {
