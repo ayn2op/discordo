@@ -190,6 +190,10 @@ CategoryLoop:
 					continue CategoryLoop
 				}
 			}
+
+			cn := tview.NewTreeNode(c.Name).
+				SetReference(c.ID)
+			n.AddChild(cn)
 		}
 	}
 	// Second-level channels
@@ -201,6 +205,8 @@ CategoryLoop:
 			}
 		}
 	}
+
+	channelsTreeView.SetCurrentNode(n)
 }
 
 func onChannelsTreeViewSelected(n *tview.TreeNode) {
@@ -248,8 +254,8 @@ func onChannelsTreeViewSelected(n *tview.TreeNode) {
 
 func writeMessages(cID discord.ChannelID) {
 	msgs, _ := discordState.Messages(cID, conf.GetMessagesLimit)
+	me, _ := discordState.Cabinet.Me()
 	for i := len(msgs) - 1; i >= 0; i-- {
-		me, _ := discordState.Cabinet.Me()
 		util.WriteMessage(messagesTextView, me.ID, msgs[i])
 	}
 }
