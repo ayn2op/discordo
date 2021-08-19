@@ -9,7 +9,7 @@ func NewMainFlex(l *tview.List, treeV *tview.TreeView, textV *tview.TextView, i 
 	lf := tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(l, 0, 1, false).
-		AddItem(treeV, 0, 3, false)
+		AddItem(treeV, 0, 2, false)
 	rf := tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(textV, 0, 1, false).
