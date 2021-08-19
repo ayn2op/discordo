@@ -19,7 +19,7 @@ import (
 var (
 	app               *tview.Application
 	loginForm         *tview.Form
-	guildsList        *tview.List
+	guildsTreeView    *tview.TreeView
 	channelsTreeView  *tview.TreeView
 	messagesTextView  *tview.TextView
 	messageInputField *tview.InputField
@@ -27,7 +27,6 @@ var (
 
 	conf         *util.Config
 	discordState *state.State
-	guild        gateway.GuildCreateEvent
 	channel      *discord.Channel
 )
 
@@ -59,11 +58,19 @@ func main() {
 	}
 
 	app = ui.NewApp(onAppInputCapture)
-	guildsList = ui.NewGuildsList(onGuildsListSelected, conf.Theme)
+	guildsTreeView = ui.NewGuildsTreeView(onGuildsTreeViewSelected)
 	channelsTreeView = ui.NewChannelsTreeView(onChannelsTreeViewSelected)
 	messagesTextView = ui.NewMessagesTextView(app)
 	messageInputField = ui.NewMessageInputField(onMessageInputFieldInputCapture, conf.Theme)
-	mainFlex = ui.NewMainFlex(guildsList, channelsTreeView, messagesTextView, messageInputField)
+	mainFlex = ui.NewMainFlex(guildsTreeView, channelsTreeView, messagesTextView, messageInputField)
+
+	api.UserAgent = "" +
+		"Mozilla/5.0 (X11; Linux x86_64) " +
+		"AppleWebKit/537.36 (KHTML, like Gecko) " +
+		"Chrome/92.0.4515.131 Safari/537.36"
+	gateway.DefaultIdentity.Browser = "Chrome"
+	gateway.DefaultIdentity.OS = "Linux"
+	gateway.DefaultIdentity.Device = ""
 
 	token := os.Getenv("DISCORDO_TOKEN")
 	if t := util.GetPassword("token"); t != "" {
@@ -73,7 +80,7 @@ func main() {
 	if token != "" {
 		app.
 			SetRoot(mainFlex, true).
-			SetFocus(guildsList)
+			SetFocus(guildsTreeView)
 
 		discordState = newState(token)
 	} else {
@@ -89,7 +96,7 @@ func main() {
 func onAppInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	switch e.Name() {
 	case "Alt+Rune[1]":
-		app.SetFocus(guildsList)
+		app.SetFocus(guildsTreeView)
 	case "Alt+Rune[2]":
 		app.SetFocus(channelsTreeView)
 	case "Alt+Rune[3]":
@@ -121,14 +128,6 @@ func onMessageInputFieldInputCapture(e *tcell.EventKey) *tcell.EventKey {
 }
 
 func newState(token string) (s *state.State) {
-	api.UserAgent = "" +
-		"Mozilla/5.0 (X11; Linux x86_64) " +
-		"AppleWebKit/537.36 (KHTML, like Gecko) " +
-		"Chrome/92.0.4515.131 Safari/537.36"
-	gateway.DefaultIdentity.Browser = "Chrome"
-	gateway.DefaultIdentity.OS = "Linux"
-	gateway.DefaultIdentity.Device = ""
-
 	var err error
 	s, err = state.New(token)
 	if err != nil {
@@ -145,9 +144,14 @@ func newState(token string) (s *state.State) {
 }
 
 func onSessionReady(r *gateway.ReadyEvent) {
+	rootN := guildsTreeView.GetRoot()
 	for _, g := range r.Guilds {
-		guildsList.AddItem(g.Name, "", 0, nil)
+		gn := tview.NewTreeNode(g.Name).
+			SetReference(g.ID)
+		rootN.AddChild(gn)
 	}
+
+	guildsTreeView.SetCurrentNode(rootN)
 }
 
 func onSessionMessageCreate(m *gateway.MessageCreateEvent) {
@@ -157,24 +161,24 @@ func onSessionMessageCreate(m *gateway.MessageCreateEvent) {
 	}
 }
 
-func onGuildsListSelected(i int, _ string, _ string, _ rune) {
+func onGuildsTreeViewSelected(gn *tview.TreeNode) {
 	app.SetFocus(channelsTreeView)
 	messagesTextView.SetTitle("")
 	messagesTextView.Clear()
 
-	guild = discordState.Ready().Guilds[i]
-	cs := guild.Channels
+	gID := gn.GetReference().(discord.GuildID)
+	cs, _ := discordState.Cabinet.Channels(gID)
 	sort.Slice(cs, func(i, j int) bool {
-		return guild.Channels[i].Position < guild.Channels[j].Position
+		return cs[i].Position < cs[j].Position
 	})
 
-	n := channelsTreeView.GetRoot()
-	n.ClearChildren()
+	rootN := channelsTreeView.GetRoot()
+	rootN.ClearChildren()
 	// Top-level channels
 	for _, c := range cs {
 		if (c.Type == discord.GuildText || c.Type == discord.GuildNews) && (c.ParentID == 0 || c.ParentID == discord.NullChannelID) {
-			cn := util.NewTextChannelTreeNode(c)
-			n.AddChild(cn)
+			cn := ui.NewTextChannelTreeNode(c)
+			rootN.AddChild(cn)
 			continue
 		}
 	}
@@ -186,27 +190,27 @@ CategoryLoop:
 				if child.ParentID == c.ID {
 					cn := tview.NewTreeNode(c.Name).
 						SetReference(c.ID)
-					n.AddChild(cn)
+					rootN.AddChild(cn)
 					continue CategoryLoop
 				}
 			}
 
 			cn := tview.NewTreeNode(c.Name).
 				SetReference(c.ID)
-			n.AddChild(cn)
+			rootN.AddChild(cn)
 		}
 	}
 	// Second-level channels
 	for _, c := range cs {
 		if (c.Type == discord.GuildText || c.Type == discord.GuildNews) && (c.ParentID != 0 && c.ParentID != discord.NullChannelID) {
-			if pn := util.GetTreeNodeByReference(c.ParentID, channelsTreeView); pn != nil {
-				cn := util.NewTextChannelTreeNode(c)
+			if pn := ui.GetTreeNodeByReference(c.ParentID, channelsTreeView); pn != nil {
+				cn := ui.NewTextChannelTreeNode(c)
 				pn.AddChild(cn)
 			}
 		}
 	}
 
-	channelsTreeView.SetCurrentNode(n)
+	channelsTreeView.SetCurrentNode(rootN)
 }
 
 func onChannelsTreeViewSelected(n *tview.TreeNode) {
@@ -226,14 +230,6 @@ func onChannelsTreeViewSelected(n *tview.TreeNode) {
 				title += " - " + c.Topic
 			}
 			messagesTextView.SetTitle(title)
-
-			for _, t := range guild.Threads {
-				if t.ParentID == channel.ID {
-					cn := tview.NewTreeNode("[::d]🗨 " + t.Name + "[::-]").
-						SetReference(t)
-					n.AddChild(cn)
-				}
-			}
 
 			go writeMessages(c.ID)
 		} else {
@@ -277,8 +273,8 @@ func onLoginFormLoginButtonSelected() {
 
 	if l.Token != "" && !l.MFA {
 		app.
-			SetRoot(guildsList, true).
-			SetFocus(channelsTreeView)
+			SetRoot(mainFlex, true).
+			SetFocus(guildsTreeView)
 
 		discordState = newState(l.Token)
 		go util.SetPassword("token", l.Token)
@@ -296,7 +292,7 @@ func onLoginFormLoginButtonSelected() {
 
 			app.
 				SetRoot(mainFlex, true).
-				SetFocus(guildsList)
+				SetFocus(guildsTreeView)
 
 			discordState = newState(l.Token)
 			go util.SetPassword("token", l.Token)
