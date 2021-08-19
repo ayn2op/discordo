@@ -12,8 +12,9 @@ type Theme struct {
 	Borders    bool   `json:"borders,omitempty"`
 }
 
-// Config consists for properties, such as theme, that may be customized by the user.
+// Config consists of fields, such as theme, mouse, so on, that may be customized by the user.
 type Config struct {
+	Mouse            bool   `json:"mouse,omitempty"`
 	GetMessagesLimit uint   `json:"getMessagesLimit,omitempty"`
 	Theme            *Theme `json:"theme,omitempty"`
 }
@@ -26,6 +27,7 @@ func NewConfig() *Config {
 	}
 
 	var c Config = Config{
+		Mouse:            true,
 		GetMessagesLimit: 50,
 		Theme: &Theme{
 			Borders: true,
