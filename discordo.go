@@ -9,7 +9,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
-	"github.com/diamondburned/arikawa/v3/session"
+	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rigormorrtiss/discordo/ui"
 	"github.com/rigormorrtiss/discordo/util"
@@ -25,12 +25,10 @@ var (
 	messageInputField *tview.InputField
 	mainFlex          *tview.Flex
 
-	conf           *util.Config
-	discordSession *session.Session
-	clientID       discord.UserID
-	guilds         []gateway.GuildCreateEvent
-	guild          gateway.GuildCreateEvent
-	channel        discord.Channel
+	conf         *util.Config
+	discordState *state.State
+	guild        gateway.GuildCreateEvent
+	channel      *discord.Channel
 )
 
 func main() {
@@ -77,7 +75,7 @@ func main() {
 			SetRoot(mainFlex, true).
 			SetFocus(guildsList)
 
-		discordSession = newSession(token)
+		discordState = newState(token)
 	} else {
 		loginForm = ui.NewLoginForm(onLoginFormLoginButtonSelected)
 		app.SetRoot(loginForm, true)
@@ -111,7 +109,7 @@ func onMessageInputFieldInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
-		discordSession.SendMessage(channel.ID, t)
+		discordState.SendMessage(channel.ID, t)
 		messageInputField.SetText("")
 	case tcell.KeyCtrlV:
 		text, _ := clipboard.ReadAll()
@@ -122,7 +120,7 @@ func onMessageInputFieldInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	return e
 }
 
-func newSession(token string) (s *session.Session) {
+func newState(token string) (s *state.State) {
 	api.UserAgent = "" +
 		"Mozilla/5.0 (X11; Linux x86_64) " +
 		"AppleWebKit/537.36 (KHTML, like Gecko) " +
@@ -132,7 +130,7 @@ func newSession(token string) (s *session.Session) {
 	gateway.DefaultIdentity.Device = ""
 
 	var err error
-	s, err = session.New(token)
+	s, err = state.New(token)
 	if err != nil {
 		panic(err)
 	}
@@ -147,16 +145,15 @@ func newSession(token string) (s *session.Session) {
 }
 
 func onSessionReady(r *gateway.ReadyEvent) {
-	clientID = r.User.ID
-	guilds = r.Guilds
 	for _, g := range r.Guilds {
 		guildsList.AddItem(g.Name, "", 0, nil)
 	}
 }
 
 func onSessionMessageCreate(m *gateway.MessageCreateEvent) {
-	if channel.ID == m.ChannelID {
-		util.WriteMessage(messagesTextView, clientID, m.Message)
+	if channel != nil && channel.ID == m.ChannelID {
+		me, _ := discordState.Cabinet.Me()
+		util.WriteMessage(messagesTextView, me.ID, m.Message)
 	}
 }
 
@@ -165,69 +162,62 @@ func onGuildsListSelected(i int, _ string, _ string, _ rune) {
 	messagesTextView.SetTitle("")
 	messagesTextView.Clear()
 
-	n := channelsTreeView.GetRoot()
-	n.ClearChildren()
-
-	guild = guilds[i]
-	sort.SliceStable(guild.Channels, func(i, j int) bool {
+	guild = discordState.Ready().Guilds[i]
+	cs := guild.Channels
+	sort.Slice(cs, func(i, j int) bool {
 		return guild.Channels[i].Position < guild.Channels[j].Position
 	})
 
-	for _, c := range guild.Channels {
-		switch c.Type {
-		case discord.GuildCategory:
-			cn := tview.NewTreeNode(c.Name).
-				SetReference(c)
+	n := channelsTreeView.GetRoot()
+	n.ClearChildren()
+	// Top-level channels
+	for _, c := range cs {
+		if (c.Type == discord.GuildText || c.Type == discord.GuildNews) && (c.ParentID == 0 || c.ParentID == discord.NullChannelID) {
+			cn := util.NewTextChannelTreeNode(c)
 			n.AddChild(cn)
-		case discord.GuildText, discord.GuildNews:
-			if c.ParentID == 0 || c.ParentID == discord.NullChannelID {
-				cn := tview.NewTreeNode("[::d]#" + c.Name + "[::-]").
-					SetReference(c)
-				n.AddChild(cn)
+			continue
+		}
+	}
+	// Category channels
+CategoryLoop:
+	for _, c := range cs {
+		if c.Type == discord.GuildCategory {
+			for _, child := range cs {
+				if child.ParentID == c.ID {
+					cn := tview.NewTreeNode(c.Name).
+						SetReference(c.ID)
+					n.AddChild(cn)
+					continue CategoryLoop
+				}
 			}
-		case discord.GuildStageVoice, discord.GuildVoice:
-			if c.ParentID == 0 || c.ParentID == discord.NullChannelID {
-				cn := tview.NewTreeNode("[::d]🔊" + c.Name + "[::-]").
-					SetReference(c)
-				n.AddChild(cn)
+		}
+	}
+	// Second-level channels
+	for _, c := range cs {
+		if (c.Type == discord.GuildText || c.Type == discord.GuildNews) && (c.ParentID != 0 && c.ParentID != discord.NullChannelID) {
+			if pn := util.GetTreeNodeByReference(c.ParentID, channelsTreeView); pn != nil {
+				cn := util.NewTextChannelTreeNode(c)
+				pn.AddChild(cn)
 			}
 		}
 	}
 }
 
 func onChannelsTreeViewSelected(n *tview.TreeNode) {
-	r := n.GetReference().(discord.Channel)
-	switch r.Type {
+	cID := n.GetReference().(discord.ChannelID)
+	c, _ := discordState.Cabinet.Channel(cID)
+	switch c.Type {
 	case discord.GuildCategory:
-		if len(n.GetChildren()) == 0 {
-			for _, c := range guild.Channels {
-				switch c.Type {
-				case discord.GuildText, discord.GuildNews:
-					if c.ParentID == r.ID {
-						cn := tview.NewTreeNode("[::d]#" + c.Name + "[::-]").
-							SetReference(c)
-						n.AddChild(cn)
-					}
-				case discord.GuildStageVoice, discord.GuildVoice:
-					if c.ParentID == r.ID {
-						cn := tview.NewTreeNode("[::d]🔊" + c.Name + "[::-]").
-							SetReference(c)
-						n.AddChild(cn)
-					}
-				}
-			}
-		} else {
-			n.SetExpanded(!n.IsExpanded())
-		}
+		n.SetExpanded(!n.IsExpanded())
 	case discord.GuildText, discord.GuildNews:
 		if len(n.GetChildren()) == 0 {
-			channel = r
+			channel = c
 			app.SetFocus(messageInputField)
 			messagesTextView.Clear()
 
-			title := "#" + r.Name
-			if r.Topic != "" {
-				title += " - " + r.Topic
+			title := "#" + c.Name
+			if c.Topic != "" {
+				title += " - " + c.Topic
 			}
 			messagesTextView.SetTitle(title)
 
@@ -239,27 +229,28 @@ func onChannelsTreeViewSelected(n *tview.TreeNode) {
 				}
 			}
 
-			go writeMessages(r.ID)
+			go writeMessages(c.ID)
 		} else {
 			n.SetExpanded(!n.IsExpanded())
 		}
 	case discord.GuildNewsThread, discord.GuildPrivateThread, discord.GuildPublicThread:
-		channel = r
+		channel = c
 		app.SetFocus(messageInputField)
 		messagesTextView.Clear()
-		messagesTextView.SetTitle(r.Name)
+		messagesTextView.SetTitle(c.Name)
 
-		go writeMessages(r.ID)
+		go writeMessages(c.ID)
 	case discord.GuildStageVoice, discord.GuildVoice:
 		messagesTextView.Clear()
-		messagesTextView.SetTitle(r.Name)
+		messagesTextView.SetTitle(c.Name)
 	}
 }
 
 func writeMessages(cID discord.ChannelID) {
-	msgs, _ := discordSession.Messages(cID, conf.GetMessagesLimit)
+	msgs, _ := discordState.Messages(cID, conf.GetMessagesLimit)
 	for i := len(msgs) - 1; i >= 0; i-- {
-		util.WriteMessage(messagesTextView, clientID, msgs[i])
+		me, _ := discordState.Cabinet.Me()
+		util.WriteMessage(messagesTextView, me.ID, msgs[i])
 	}
 }
 
@@ -283,7 +274,7 @@ func onLoginFormLoginButtonSelected() {
 			SetRoot(guildsList, true).
 			SetFocus(channelsTreeView)
 
-		discordSession = newSession(l.Token)
+		discordState = newState(l.Token)
 		go util.SetPassword("token", l.Token)
 	} else if l.MFA {
 		loginForm = ui.NewMfaLoginForm(func() {
@@ -301,7 +292,7 @@ func onLoginFormLoginButtonSelected() {
 				SetRoot(mainFlex, true).
 				SetFocus(guildsList)
 
-			discordSession = newSession(l.Token)
+			discordState = newState(l.Token)
 			go util.SetPassword("token", l.Token)
 		})
 
