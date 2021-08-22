@@ -1,48 +1,46 @@
 package ui
 
 import (
-	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/rigormorrtiss/discordgo"
 	"github.com/rivo/tview"
 )
 
 // NewGuildsTreeView creates and returns a new guilds treeview.
-func NewGuildsTreeView(onGuildsTreeViewSelected func(*tview.TreeNode)) (treeV *tview.TreeView) {
-	treeN := tview.NewTreeNode("")
-	treeV = tview.NewTreeView()
-	treeV.
+func NewGuildsTreeView(onGuildsTreeViewSelected func(*tview.TreeNode)) *tview.TreeView {
+	v := tview.NewTreeView()
+	v.
 		SetTopLevel(1).
-		SetRoot(treeN).
+		SetRoot(tview.NewTreeNode("")).
 		SetSelectedFunc(onGuildsTreeViewSelected).
 		SetBorder(true).
 		SetBorderPadding(0, 0, 1, 0).
 		SetTitle("Guilds").
 		SetTitleAlign(tview.AlignLeft)
 
-	return
+	return v
 }
 
 // NewChannelsTreeView creates and returns a new channels treeview.
-func NewChannelsTreeView(onChannelsTreeViewSelected func(*tview.TreeNode)) (treeV *tview.TreeView) {
-	treeN := tview.NewTreeNode("")
-	treeV = tview.NewTreeView()
-	treeV.
+func NewChannelsTreeView(onChannelsTreeViewSelected func(*tview.TreeNode)) *tview.TreeView {
+	v := tview.NewTreeView()
+	v.
 		SetTopLevel(1).
-		SetRoot(treeN).
+		SetRoot(tview.NewTreeNode("")).
 		SetSelectedFunc(onChannelsTreeViewSelected).
 		SetBorder(true).
 		SetBorderPadding(0, 0, 1, 0).
 		SetTitle("Channels").
 		SetTitleAlign(tview.AlignLeft)
 
-	return
+	return v
 }
 
 // NewTextChannelTreeNode creates and returns a new text channel treenode.
-func NewTextChannelTreeNode(c discord.Channel) (n *tview.TreeNode) {
-	n = tview.NewTreeNode("[::d]#" + c.Name + "[::-]").
+func NewTextChannelTreeNode(c *discordgo.Channel) *tview.TreeNode {
+	n := tview.NewTreeNode("[::d]#" + c.Name + "[::-]").
 		SetReference(c.ID)
 
-	return
+	return n
 }
 
 // GetTreeNodeByReference gets the TreeNode that has reference r from the given treeview.
@@ -60,9 +58,9 @@ func GetTreeNodeByReference(r interface{}, treeV *tview.TreeView) (mn *tview.Tre
 }
 
 // CreateTopLevelTreeNodes creates treenodes for the top-level (orphan) channels.
-func CreateTopLevelTreeNodes(rootN *tview.TreeNode, cs []discord.Channel) {
+func CreateTopLevelTreeNodes(rootN *tview.TreeNode, cs []*discordgo.Channel) {
 	for _, c := range cs {
-		if (c.Type == discord.GuildText || c.Type == discord.GuildNews) && (c.ParentID == 0 || c.ParentID == discord.NullChannelID) {
+		if (c.Type == discordgo.ChannelTypeGuildText || c.Type == discordgo.ChannelTypeGuildNews) && (c.ParentID == "") {
 			cn := NewTextChannelTreeNode(c)
 			rootN.AddChild(cn)
 			continue
@@ -71,9 +69,9 @@ func CreateTopLevelTreeNodes(rootN *tview.TreeNode, cs []discord.Channel) {
 }
 
 // CreateSecondLevelTreeNodes creates treenodes for the second-level (category children) channels.
-func CreateSecondLevelTreeNodes(channelsTreeView *tview.TreeView, rootN *tview.TreeNode, cs []discord.Channel) {
+func CreateSecondLevelTreeNodes(channelsTreeView *tview.TreeView, rootN *tview.TreeNode, cs []*discordgo.Channel) {
 	for _, c := range cs {
-		if (c.Type == discord.GuildText || c.Type == discord.GuildNews) && (c.ParentID != 0 && c.ParentID != discord.NullChannelID) {
+		if (c.Type == discordgo.ChannelTypeGuildText || c.Type == discordgo.ChannelTypeGuildNews) && (c.ParentID != "") {
 			if pn := GetTreeNodeByReference(c.ParentID, channelsTreeView); pn != nil {
 				cn := NewTextChannelTreeNode(c)
 				pn.AddChild(cn)

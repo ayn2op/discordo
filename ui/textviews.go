@@ -5,9 +5,9 @@ import (
 )
 
 // NewMessagesTextView creates and returns a new messages textview.
-func NewMessagesTextView(app *tview.Application) (textV *tview.TextView) {
-	textV = tview.NewTextView()
-	textV.
+func NewMessagesTextView(app *tview.Application) *tview.TextView {
+	v := tview.NewTextView()
+	v.
 		SetDynamicColors(true).
 		SetWordWrap(true).
 		ScrollToEnd().
@@ -18,5 +18,5 @@ func NewMessagesTextView(app *tview.Application) (textV *tview.TextView) {
 		SetBorderPadding(0, 0, 1, 0).
 		SetTitleAlign(tview.AlignLeft)
 
-	return
+	return v
 }

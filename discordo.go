@@ -1,16 +1,12 @@
 package main
 
 import (
-	"os"
 	"sort"
 	"strings"
 
 	"github.com/atotto/clipboard"
-	"github.com/diamondburned/arikawa/v3/api"
-	"github.com/diamondburned/arikawa/v3/discord"
-	"github.com/diamondburned/arikawa/v3/gateway"
-	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/gdamore/tcell/v2"
+	"github.com/rigormorrtiss/discordgo"
 	"github.com/rigormorrtiss/discordo/ui"
 	"github.com/rigormorrtiss/discordo/util"
 	"github.com/rivo/tview"
@@ -25,9 +21,9 @@ var (
 	messageInputField *tview.InputField
 	mainFlex          *tview.Flex
 
-	conf         *util.Config
-	discordState *state.State
-	channel      *discord.Channel
+	conf    *util.Config
+	session *discordgo.Session
+	channel *discordgo.Channel
 )
 
 func main() {
@@ -66,15 +62,7 @@ func main() {
 	messageInputField = ui.NewMessageInputField(onMessageInputFieldInputCapture, conf.Theme)
 	mainFlex = ui.NewMainFlex(guildsTreeView, channelsTreeView, messagesTextView, messageInputField)
 
-	api.UserAgent = "" +
-		"Mozilla/5.0 (X11; Linux x86_64) " +
-		"AppleWebKit/537.36 (KHTML, like Gecko) " +
-		"Chrome/92.0.4515.131 Safari/537.36"
-	gateway.DefaultIdentity.Browser = "Chrome"
-	gateway.DefaultIdentity.OS = "Linux"
-	gateway.DefaultIdentity.Device = ""
-
-	token := os.Getenv("DISCORDO_TOKEN")
+	token := conf.Token
 	if t := util.GetPassword("token"); t != "" {
 		token = t
 	}
@@ -84,7 +72,12 @@ func main() {
 			SetRoot(mainFlex, true).
 			SetFocus(guildsTreeView)
 
-		discordState = newState(token)
+		session = newSession()
+		session.Token = token
+		session.Identify.Token = token
+		if err := session.Open(); err != nil {
+			panic(err)
+		}
 	} else {
 		loginForm = ui.NewLoginForm(onLoginFormLoginButtonSelected)
 		app.SetRoot(loginForm, true)
@@ -118,7 +111,7 @@ func onMessageInputFieldInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
-		discordState.SendMessage(channel.ID, t)
+		session.ChannelMessageSend(channel.ID, t)
 		messageInputField.SetText("")
 	case tcell.KeyCtrlV:
 		text, _ := clipboard.ReadAll()
@@ -129,23 +122,30 @@ func onMessageInputFieldInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	return e
 }
 
-func newState(token string) (s *state.State) {
-	var err error
-	s, err = state.New(token)
+func newSession() *discordgo.Session {
+	s, err := discordgo.New()
 	if err != nil {
 		panic(err)
 	}
 
-	s.AddHandler(onSessionReady)
-	s.AddHandler(onSessionMessageCreate)
-	if err = s.Open(s.Context()); err != nil {
-		panic(err)
-	}
+	s.UserAgent = "" +
+		"Mozilla/5.0 (X11; Linux x86_64) " +
+		"AppleWebKit/537.36 (KHTML, like Gecko) " +
+		"Chrome/92.0.4515.131 Safari/537.36"
+	s.Identify.Compress = false
+	s.Identify.Intents = 0
+	s.Identify.LargeThreshold = 0
+	s.Identify.Properties.Device = ""
+	s.Identify.Properties.Browser = "Chrome"
+	s.Identify.Properties.OS = "Linux"
 
-	return
+	s.AddHandlerOnce(onSessionReady)
+	s.AddHandler(onSessionMessageCreate)
+
+	return s
 }
 
-func onSessionReady(r *gateway.ReadyEvent) {
+func onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 	rootN := guildsTreeView.GetRoot()
 	for _, g := range r.Guilds {
 		gn := tview.NewTreeNode(g.Name).
@@ -156,10 +156,9 @@ func onSessionReady(r *gateway.ReadyEvent) {
 	guildsTreeView.SetCurrentNode(rootN)
 }
 
-func onSessionMessageCreate(m *gateway.MessageCreateEvent) {
+func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
 	if channel != nil && channel.ID == m.ChannelID {
-		me, _ := discordState.Cabinet.Me()
-		util.WriteMessage(messagesTextView, me.ID, m.Message)
+		util.WriteMessage(messagesTextView, m.Message, session.State.Ready.User.ID)
 	}
 }
 
@@ -168,8 +167,9 @@ func onGuildsTreeViewSelected(gn *tview.TreeNode) {
 	messagesTextView.SetTitle("")
 	messagesTextView.Clear()
 
-	gID := gn.GetReference().(discord.GuildID)
-	cs, _ := discordState.Cabinet.Channels(gID)
+	gID := gn.GetReference().(string)
+	g, _ := session.State.Guild(gID)
+	cs := g.Channels
 	sort.Slice(cs, func(i, j int) bool {
 		return cs[i].Position < cs[j].Position
 	})
@@ -181,7 +181,7 @@ func onGuildsTreeViewSelected(gn *tview.TreeNode) {
 	// Category channels
 CategoryLoop:
 	for _, c := range cs {
-		if c.Type == discord.GuildCategory {
+		if c.Type == discordgo.ChannelTypeGuildCategory {
 			for _, child := range cs {
 				if child.ParentID == c.ID {
 					cn := tview.NewTreeNode(c.Name).
@@ -203,12 +203,12 @@ CategoryLoop:
 }
 
 func onChannelsTreeViewSelected(n *tview.TreeNode) {
-	cID := n.GetReference().(discord.ChannelID)
-	c, _ := discordState.Cabinet.Channel(cID)
+	cID := n.GetReference().(string)
+	c, _ := session.State.Channel(cID)
 	switch c.Type {
-	case discord.GuildCategory:
+	case discordgo.ChannelTypeGuildCategory:
 		n.SetExpanded(!n.IsExpanded())
-	case discord.GuildText, discord.GuildNews:
+	case discordgo.ChannelTypeGuildText, discordgo.ChannelTypeGuildNews:
 		if len(n.GetChildren()) == 0 {
 			channel = c
 			app.SetFocus(messageInputField)
@@ -224,24 +224,13 @@ func onChannelsTreeViewSelected(n *tview.TreeNode) {
 		} else {
 			n.SetExpanded(!n.IsExpanded())
 		}
-	case discord.GuildNewsThread, discord.GuildPrivateThread, discord.GuildPublicThread:
-		channel = c
-		app.SetFocus(messageInputField)
-		messagesTextView.Clear()
-		messagesTextView.SetTitle(c.Name)
-
-		go writeMessages(c.ID)
-	case discord.GuildStageVoice, discord.GuildVoice:
-		messagesTextView.Clear()
-		messagesTextView.SetTitle(c.Name)
 	}
 }
 
-func writeMessages(cID discord.ChannelID) {
-	msgs, _ := discordState.Messages(cID, conf.GetMessagesLimit)
-	me, _ := discordState.Cabinet.Me()
+func writeMessages(cID string) {
+	msgs, _ := session.ChannelMessages(cID, conf.GetMessagesLimit, "", "", "")
 	for i := len(msgs) - 1; i >= 0; i-- {
-		util.WriteMessage(messagesTextView, me.ID, msgs[i])
+		util.WriteMessage(messagesTextView, msgs[i], session.State.Ready.User.ID)
 	}
 }
 
@@ -252,29 +241,33 @@ func onLoginFormLoginButtonSelected() {
 		return
 	}
 
-	// Make a scratch HTTP client without a token
-	client := api.NewClient("")
+	session = newSession()
 	// Try to login without TOTP
-	l, err := client.Login(email, password)
+	lr, err := util.Login(session, email, password)
 	if err != nil {
 		panic(err)
 	}
 
-	if l.Token != "" && !l.MFA {
+	if lr.Token != "" && !lr.MFA {
 		app.
 			SetRoot(mainFlex, true).
 			SetFocus(guildsTreeView)
 
-		discordState = newState(l.Token)
-		go util.SetPassword("token", l.Token)
-	} else if l.MFA {
+		session.Token = lr.Token
+		session.Identify.Token = lr.Token
+		if err = session.Open(); err != nil {
+			panic(err)
+		}
+
+		go util.SetPassword("token", lr.Token)
+	} else if lr.MFA {
 		loginForm = ui.NewMfaLoginForm(func() {
 			code := loginForm.GetFormItem(0).(*tview.InputField).GetText()
 			if code == "" {
 				return
 			}
 
-			l, err := client.TOTP(code, l.Ticket)
+			lr, err = util.TOTP(session, code, lr.Ticket)
 			if err != nil {
 				panic(err)
 			}
@@ -283,8 +276,13 @@ func onLoginFormLoginButtonSelected() {
 				SetRoot(mainFlex, true).
 				SetFocus(guildsTreeView)
 
-			discordState = newState(l.Token)
-			go util.SetPassword("token", l.Token)
+			session.Token = lr.Token
+			session.Identify.Token = lr.Token
+			if err = session.Open(); err != nil {
+				panic(err)
+			}
+
+			go util.SetPassword("token", lr.Token)
 		})
 
 		app.SetRoot(loginForm, true)
