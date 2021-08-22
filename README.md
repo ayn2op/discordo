@@ -1,19 +1,18 @@
 # discordo &middot; [![build](https://github.com/rigormorrtiss/discordo/actions/workflows/build.yml/badge.svg)](https://github.com/rigormorrtiss/discordo/actions/workflows/build.yml) [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/rigormorrtiss/discordo/blob/master/LICENSE) [![Go Report Card](https://goreportcard.com/badge/github.com/rigormorrtiss/discordo)](https://goreportcard.com/report/github.com/rigormorrtiss/discordo)
 
-Discordo is a terminal-based Discord client that aims to be lightweight, secure, and feature-rich.
+Discordo is a lightweight, secure, and feature-rich Discord terminal client.
 
 ![Preview](.github/preview.png)
 
 ## Features
 
-- Lightweight
-- Easy-to-use
-- Secure
-- Cross-platform
-- Configurable
-- Discord-flavored markdown
-- Clipboard support
-- 2-Factor Authentication
+- Lightweight & secure
+- Easy-to-use & cross-platform
+- Configurable & minimalistic
+- Feature-rich
+    - Discord-flavored markdown
+    - Clipboard support
+    - 2-Factor Authentication
 
 ## Installation
 
@@ -38,13 +37,13 @@ yay -S discordo-git
 
 - Run the executable in a new Terminal window.
 
-By default, Discordo utilizes OS-specific keyring to store credentials such as client authentication token. However, if you prefer not to use a keyring, you may set the `DISCORDO_TOKEN` environment variable and Discordo will prioritize the environment variable and use it to login instead of keyring. 
+By default, Discordo utilizes OS-specific keyring to store credentials such as client authentication token. However, if you prefer not to use a keyring, you may set the `token` field in the configuration file (`~/.config/discordo/config.json`) and Discordo will prioritize the usage of `token` field to login instead of keyring. 
 
-- Log in using the email and password and click on the "Login" button to continue.
+- Log in using the email and password (first-time login) and click on the "Login" button to continue.
 
 ### Default Keybindings
 
-- `Alt` + `1`: Sets the focus on the guilds list.
+- `Alt` + `1`: Sets the focus on the guilds treeview.
 - `Alt` + `2`: Sets the focus on the channels treeview.
 - `Alt` + `3`: Sets the focus on the messages textview.
 - `Alt` + `4`: Sets the focus on the message inputfield.
