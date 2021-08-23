@@ -157,27 +157,11 @@ func onGuildsTreeViewSelected(gn *tview.TreeNode) {
 	rootN := channelsTreeView.GetRoot()
 	rootN.ClearChildren()
 	// Top-level channels
-	ui.CreateTopLevelTreeNodes(rootN, cs)
+	ui.CreateTopLevelChannelsTreeNodes(session.State, rootN, cs)
 	// Category channels
-CategoryLoop:
-	for _, c := range cs {
-		if c.Type == discordgo.ChannelTypeGuildCategory {
-			for _, child := range cs {
-				if child.ParentID == c.ID {
-					cn := tview.NewTreeNode(c.Name).
-						SetReference(c.ID)
-					rootN.AddChild(cn)
-					continue CategoryLoop
-				}
-			}
-
-			cn := tview.NewTreeNode(c.Name).
-				SetReference(c.ID)
-			rootN.AddChild(cn)
-		}
-	}
+	ui.CreateCategoryChannelsTreeNodes(session.State, rootN, cs)
 	// Second-level channels
-	ui.CreateSecondLevelTreeNodes(channelsTreeView, rootN, cs)
+	ui.CreateSecondLevelChannelsTreeNodes(session.State, channelsTreeView, rootN, cs)
 
 	channelsTreeView.SetCurrentNode(rootN)
 }
