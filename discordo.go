@@ -29,29 +29,7 @@ var (
 func main() {
 	conf = util.NewConfig()
 
-	tview.Styles.PrimitiveBackgroundColor = tcell.GetColor(conf.Theme.Background)
-
-	if !conf.Theme.Borders {
-		tview.Borders = struct {
-			Horizontal       rune
-			Vertical         rune
-			TopLeft          rune
-			TopRight         rune
-			BottomLeft       rune
-			BottomRight      rune
-			LeftT            rune
-			RightT           rune
-			TopT             rune
-			BottomT          rune
-			Cross            rune
-			HorizontalFocus  rune
-			VerticalFocus    rune
-			TopLeftFocus     rune
-			TopRightFocus    rune
-			BottomLeftFocus  rune
-			BottomRightFocus rune
-		}{}
-	}
+	tview.Styles = conf.Theme
 
 	app = tview.NewApplication().
 		EnableMouse(conf.Mouse).
@@ -59,7 +37,7 @@ func main() {
 	guildsTreeView = ui.NewGuildsTreeView(onGuildsTreeViewSelected)
 	channelsTreeView = ui.NewChannelsTreeView(onChannelsTreeViewSelected)
 	messagesTextView = ui.NewMessagesTextView(app)
-	messageInputField = ui.NewMessageInputField(onMessageInputFieldInputCapture, conf.Theme)
+	messageInputField = ui.NewMessageInputField(onMessageInputFieldInputCapture)
 	mainFlex = ui.NewMainFlex(guildsTreeView, channelsTreeView, messagesTextView, messageInputField)
 
 	token := conf.Token
