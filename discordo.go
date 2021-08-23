@@ -29,7 +29,9 @@ var (
 func main() {
 	conf = util.NewConfig()
 
-	tview.Styles = conf.Theme
+	if conf.Theme != nil {
+		tview.Styles = *conf.Theme
+	}
 
 	app = tview.NewApplication().
 		EnableMouse(conf.Mouse).

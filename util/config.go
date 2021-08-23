@@ -9,10 +9,10 @@ import (
 
 // Config consists of fields, such as theme, mouse, so on, that may be customized by the user.
 type Config struct {
-	Token            string      `json:"token,omitempty"`
-	Mouse            bool        `json:"mouse,omitempty"`
-	GetMessagesLimit int         `json:"getMessagesLimit,omitempty"`
-	Theme            tview.Theme `json:"theme,omitempty"`
+	Token            string       `json:"token,omitempty"`
+	Mouse            bool         `json:"mouse,omitempty"`
+	GetMessagesLimit int          `json:"getMessagesLimit,omitempty"`
+	Theme            *tview.Theme `json:"theme,omitempty"`
 }
 
 // NewConfig reads the configuration file (if exists) and returns a new config.
