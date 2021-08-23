@@ -58,7 +58,7 @@ func GetTreeNodeByReference(r interface{}, treeV *tview.TreeView) (mn *tview.Tre
 	return
 }
 
-// CreateTopLevelTreeNodes creates treenodes for the top-level (orphan) channels.
+// CreateTopLevelChannelsTreeNodes creates treenodes for the top-level (orphan) channels.
 func CreateTopLevelChannelsTreeNodes(s *discordgo.State, rootN *tview.TreeNode, cs []*discordgo.Channel) {
 	for _, c := range cs {
 		if (c.Type == discordgo.ChannelTypeGuildText || c.Type == discordgo.ChannelTypeGuildNews) && (c.ParentID == "") {
@@ -73,6 +73,7 @@ func CreateTopLevelChannelsTreeNodes(s *discordgo.State, rootN *tview.TreeNode, 
 	}
 }
 
+// CreateCategoryChannelsTreeNodes creates treenodes for the category channels.
 func CreateCategoryChannelsTreeNodes(s *discordgo.State, rootN *tview.TreeNode, cs []*discordgo.Channel) {
 CategoryLoop:
 	for _, c := range cs {
