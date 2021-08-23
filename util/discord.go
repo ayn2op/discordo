@@ -181,3 +181,13 @@ func TOTP(s *discordgo.Session, code, ticket string) (*loginResponse, error) {
 
 	return lr, nil
 }
+
+// HasPermission returns a boolean representing whether the provided user has given permissions or not.
+func HasPermission(s *discordgo.State, uID string, cID string, perm int64) bool {
+	p, err := s.UserChannelPermissions(uID, cID)
+	if err != nil {
+		return false
+	}
+
+	return p&perm == perm
+}
