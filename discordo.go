@@ -126,6 +126,23 @@ func newSession() *discordgo.Session {
 }
 
 func onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
+	sort.Slice(r.Guilds, func(a, b int) bool {
+		found := false
+		for _, gID := range r.Settings.GuildPositions {
+			if found {
+				if gID == r.Guilds[b].ID {
+					return true
+				}
+			} else {
+				if gID == r.Guilds[a].ID {
+					found = true
+				}
+			}
+		}
+
+		return false
+	})
+
 	rootN := guildsTreeView.GetRoot()
 	for _, g := range r.Guilds {
 		gn := tview.NewTreeNode(g.Name).
