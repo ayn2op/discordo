@@ -16,7 +16,7 @@ func NewMainFlex(gTreeV *tview.TreeView, cTreeV *tview.TreeView, textV *tview.Te
 		AddItem(i, 3, 1, false)
 	mf := tview.NewFlex().
 		AddItem(lf, 0, 1, false).
-		AddItem(rf, 0, 5, false)
+		AddItem(rf, 0, 4, false)
 
 	return mf
 }
