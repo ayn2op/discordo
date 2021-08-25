@@ -21,20 +21,20 @@ var (
 	messageInputField *tview.InputField
 	mainFlex          *tview.Flex
 
-	conf    *util.Config
-	session *discordgo.Session
-	channel *discordgo.Channel
+	config          *util.Config
+	session         *discordgo.Session
+	selectedChannel *discordgo.Channel
 )
 
 func main() {
-	conf = util.NewConfig()
+	config = util.NewConfig()
 
-	if conf.Theme != nil {
-		tview.Styles = *conf.Theme
+	if config.Theme != nil {
+		tview.Styles = *config.Theme
 	}
 
 	app = tview.NewApplication().
-		EnableMouse(conf.Mouse).
+		EnableMouse(config.Mouse).
 		SetInputCapture(onAppInputCapture)
 	guildsTreeView = ui.NewGuildsTreeView(onGuildsTreeViewSelected)
 	channelsTreeView = ui.NewChannelsTreeView(onChannelsTreeViewSelected)
@@ -42,7 +42,7 @@ func main() {
 	messageInputField = ui.NewMessageInputField(onMessageInputFieldInputCapture)
 	mainFlex = ui.NewMainFlex(guildsTreeView, channelsTreeView, messagesTextView, messageInputField)
 
-	token := conf.Token
+	token := config.Token
 	if t := util.GetPassword("token"); t != "" {
 		token = t
 	}
@@ -86,13 +86,15 @@ func onAppInputCapture(e *tcell.EventKey) *tcell.EventKey {
 func onMessageInputFieldInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	switch e.Key() {
 	case tcell.KeyEnter:
-		t := strings.TrimSpace(messageInputField.GetText())
-		if t == "" {
-			return nil
-		}
+		if selectedChannel != nil {
+			text := strings.TrimSpace(messageInputField.GetText())
+			if text == "" {
+				return nil
+			}
 
-		session.ChannelMessageSend(channel.ID, t)
-		messageInputField.SetText("")
+			session.ChannelMessageSend(selectedChannel.ID, text)
+			messageInputField.SetText("")
+		}
 	case tcell.KeyCtrlV:
 		text, _ := clipboard.ReadAll()
 		text = messageInputField.GetText() + text
@@ -137,15 +139,17 @@ func onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 }
 
 func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
-	if channel != nil && channel.ID == m.ChannelID {
+	if selectedChannel != nil && selectedChannel.ID == m.ChannelID {
 		util.WriteMessage(messagesTextView, m.Message, session.State.Ready.User.ID)
 	}
 }
 
 func onGuildsTreeViewSelected(gn *tview.TreeNode) {
+	selectedChannel = nil
 	app.SetFocus(channelsTreeView)
-	messagesTextView.SetTitle("")
-	messagesTextView.Clear()
+	messagesTextView.
+		Clear().
+		SetTitle("")
 
 	gID := gn.GetReference().(string)
 	g, _ := session.State.Guild(gID)
@@ -174,15 +178,16 @@ func onChannelsTreeViewSelected(n *tview.TreeNode) {
 		n.SetExpanded(!n.IsExpanded())
 	case discordgo.ChannelTypeGuildText, discordgo.ChannelTypeGuildNews:
 		if len(n.GetChildren()) == 0 {
-			channel = c
+			selectedChannel = c
 			app.SetFocus(messageInputField)
-			messagesTextView.Clear()
 
 			title := "#" + c.Name
 			if c.Topic != "" {
 				title += " - " + c.Topic
 			}
-			messagesTextView.SetTitle(title)
+			messagesTextView.
+				Clear().
+				SetTitle(title)
 
 			go writeMessages(c.ID)
 		} else {
@@ -192,7 +197,7 @@ func onChannelsTreeViewSelected(n *tview.TreeNode) {
 }
 
 func writeMessages(cID string) {
-	msgs, _ := session.ChannelMessages(cID, conf.GetMessagesLimit, "", "", "")
+	msgs, _ := session.ChannelMessages(cID, config.GetMessagesLimit, "", "", "")
 	for i := len(msgs) - 1; i >= 0; i-- {
 		util.WriteMessage(messagesTextView, msgs[i], session.State.Ready.User.ID)
 	}
