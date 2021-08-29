@@ -129,13 +129,10 @@ func Login(s *discordgo.Session, email, password string) (*loginResponse, error)
 // TOTP creates a new request to `/mfa/totp` endpoint for time-based one-time
 // passcode for essential login information
 func TOTP(s *discordgo.Session, code, ticket string) (*loginResponse, error) {
-	var data struct {
+	data := struct {
 		Code   string `json:"code"`
 		Ticket string `json:"ticket"`
-	}
-	data.Code = code
-	data.Ticket = ticket
-
+	}{code, ticket}
 	e := discordgo.EndpointAuth + "mfa/totp"
 	resp, err := s.RequestWithBucketID("POST", e, data, e)
 	if err != nil {
