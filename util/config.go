@@ -22,7 +22,7 @@ func NewConfig() *Config {
 		panic(err)
 	}
 
-	var c Config = Config{
+	c := Config{
 		Mouse:            true,
 		GetMessagesLimit: 50,
 	}
