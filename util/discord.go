@@ -142,13 +142,13 @@ func TOTP(s *discordgo.Session, code, ticket string) (*loginResponse, error) {
 		return nil, err
 	}
 
-	var lr *loginResponse
+	var lr loginResponse
 	err = json.Unmarshal(resp, &lr)
 	if err != nil {
 		return nil, err
 	}
 
-	return lr, nil
+	return &lr, nil
 }
 
 // HasPermission returns a boolean representing whether the provided user has given permissions or not.
