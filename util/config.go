@@ -17,14 +17,14 @@ type Config struct {
 
 // NewConfig reads the configuration file (if exists) and returns a new config.
 func NewConfig() *Config {
-	userHomeDir, err := os.UserHomeDir()
-	if err != nil {
-		panic(err)
-	}
-
 	c := Config{
 		Mouse:            true,
 		GetMessagesLimit: 50,
+	}
+
+	userHomeDir, err := os.UserHomeDir()
+	if err != nil {
+		return &c
 	}
 	configPath := userHomeDir + "/.config/discordo/config.json"
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
