@@ -14,7 +14,18 @@ func WriteMessage(v *tview.TextView, m *discordgo.Message, clientID string) {
 	var b strings.Builder
 	switch m.Type {
 	case discordgo.MessageTypeDefault, discordgo.MessageTypeReply:
-		parseReferencedMessage(&b, m.ReferencedMessage, clientID)
+		if rm := m.ReferencedMessage; rm != nil {
+			b.WriteString(" ╭ ")
+			b.WriteString("[::d]")
+			parseAuthor(&b, rm.Author, clientID)
+
+			if rm.Content != "" {
+				rm.Content = parseMessageMentions(rm.Content, rm.Mentions, clientID)
+				b.WriteString(rm.Content)
+			}
+
+			b.WriteString("[::-]\n")
+		}
 
 		parseAuthor(&b, m.Author, clientID)
 
@@ -82,20 +93,6 @@ func parseAuthor(b *strings.Builder, u *discordgo.User, clientID string) {
 
 	if u.Bot {
 		b.WriteString("[#EB459E]BOT[-] ")
-	}
-}
-
-func parseReferencedMessage(b *strings.Builder, rm *discordgo.Message, clientID string) {
-	if rm != nil {
-		b.WriteString(" ╭ ")
-		b.WriteString("[::d]")
-		parseAuthor(b, rm.Author, clientID)
-
-		if rm.Content != "" {
-			rm.Content = parseMessageMentions(rm.Content, rm.Mentions, clientID)
-			b.WriteString(rm.Content)
-		}
-		b.WriteString("[::-]\n")
 	}
 }
 
