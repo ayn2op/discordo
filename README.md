@@ -43,10 +43,9 @@ By default, Discordo utilizes OS-specific keyring to store credentials such as c
 
 ### Default Keybindings
 
-- `Alt` + `g`: Sets the focus on the guilds treeview.
-- `Alt` + `c`: Sets the focus on the channels treeview.
-- `Alt` + `m`: Sets the focus on the messages textview.
-- `Alt` + `i`: Sets the focus on the message inputfield.
+- `Alt` + `g`: Sets the focus on the guilds TreeView.
+- `Alt` + `m`: Sets the focus on the messages TextView.
+- `Alt` + `i`: Sets the focus on the message InputField.
 
 ### Clipboard
 
