@@ -16,7 +16,6 @@ var (
 	app               *tview.Application
 	loginForm         *tview.Form
 	guildsTreeView    *tview.TreeView
-	channelsTreeView  *tview.TreeView
 	messagesTextView  *tview.TextView
 	messageInputField *tview.InputField
 	mainFlex          *tview.Flex
@@ -37,10 +36,9 @@ func main() {
 		EnableMouse(config.Mouse).
 		SetInputCapture(onAppInputCapture)
 	guildsTreeView = ui.NewGuildsTreeView(onGuildsTreeViewSelected)
-	channelsTreeView = ui.NewChannelsTreeView(onChannelsTreeViewSelected)
 	messagesTextView = ui.NewMessagesTextView(app)
 	messageInputField = ui.NewMessageInputField(onMessageInputFieldInputCapture)
-	mainFlex = ui.NewMainFlex(guildsTreeView, channelsTreeView, messagesTextView, messageInputField)
+	mainFlex = ui.NewMainFlex(guildsTreeView, messagesTextView, messageInputField)
 
 	token := config.Token
 	if t := util.GetPassword("token"); t != "" {
@@ -72,8 +70,6 @@ func onAppInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	switch e.Name() {
 	case "Alt+Rune[g]":
 		app.SetFocus(guildsTreeView)
-	case "Alt+Rune[c]":
-		app.SetFocus(channelsTreeView)
 	case "Alt+Rune[m]":
 		app.SetFocus(messagesTextView)
 	case "Alt+Rune[i]":
@@ -145,14 +141,14 @@ func onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 		return false
 	})
 
-	rootN := guildsTreeView.GetRoot()
+	n := guildsTreeView.GetRoot()
 	for _, g := range r.Guilds {
 		gn := tview.NewTreeNode(g.Name).
 			SetReference(g.ID)
-		rootN.AddChild(gn)
+		n.AddChild(gn)
 	}
 
-	guildsTreeView.SetCurrentNode(rootN)
+	guildsTreeView.SetCurrentNode(n)
 }
 
 func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
@@ -161,40 +157,41 @@ func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 }
 
-func onGuildsTreeViewSelected(gn *tview.TreeNode) {
-	selectedChannel = nil
-	app.SetFocus(channelsTreeView)
-	messagesTextView.
-		Clear().
-		SetTitle("")
+func onGuildsTreeViewSelected(n *tview.TreeNode) {
+	switch n.GetLevel() {
+	case 1:
+		if len(n.GetChildren()) != 0 {
+			n.SetExpanded(!n.IsExpanded())
+			return
+		}
 
-	gID := gn.GetReference().(string)
-	g, _ := session.State.Guild(gID)
-	cs := g.Channels
-	sort.Slice(cs, func(i, j int) bool {
-		return cs[i].Position < cs[j].Position
-	})
+		selectedChannel = nil
+		n.ClearChildren()
+		messagesTextView.
+			Clear().
+			SetTitle("")
 
-	rootN := channelsTreeView.GetRoot()
-	rootN.ClearChildren()
-	// Top-level channels
-	ui.CreateTopLevelChannelsTreeNodes(session.State, rootN, cs)
-	// Category channels
-	ui.CreateCategoryChannelsTreeNodes(session.State, rootN, cs)
-	// Second-level channels
-	ui.CreateSecondLevelChannelsTreeNodes(session.State, channelsTreeView, rootN, cs)
+		gID := n.GetReference().(string)
+		g, _ := session.State.Guild(gID)
 
-	channelsTreeView.SetCurrentNode(rootN)
-}
+		cs := g.Channels
+		sort.Slice(cs, func(i, j int) bool {
+			return cs[i].Position < cs[j].Position
+		})
 
-func onChannelsTreeViewSelected(n *tview.TreeNode) {
-	cID := n.GetReference().(string)
-	c, _ := session.State.Channel(cID)
-	switch c.Type {
-	case discordgo.ChannelTypeGuildCategory:
-		n.SetExpanded(!n.IsExpanded())
-	case discordgo.ChannelTypeGuildText, discordgo.ChannelTypeGuildNews:
-		if len(n.GetChildren()) == 0 {
+		// Top-level channels
+		ui.CreateTopLevelChannelsTreeNodes(session.State, n, cs)
+		// Category channels
+		ui.CreateCategoryChannelsTreeNodes(session.State, n, cs)
+		// Second-level channels
+		ui.CreateSecondLevelChannelsTreeNodes(session.State, guildsTreeView, cs)
+	default:
+		cID := n.GetReference().(string)
+		c, _ := session.State.Channel(cID)
+
+		if c.Type == discordgo.ChannelTypeGuildCategory {
+			n.SetExpanded(!n.IsExpanded())
+		} else if c.Type == discordgo.ChannelTypeGuildNews || c.Type == discordgo.ChannelTypeGuildText {
 			selectedChannel = c
 			app.SetFocus(messageInputField)
 
@@ -207,8 +204,6 @@ func onChannelsTreeViewSelected(n *tview.TreeNode) {
 				SetTitle(title)
 
 			go writeMessages(c.ID)
-		} else {
-			n.SetExpanded(!n.IsExpanded())
 		}
 	}
 }
