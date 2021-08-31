@@ -8,6 +8,7 @@ import (
 func NewMessagesTextView(app *tview.Application) *tview.TextView {
 	v := tview.NewTextView()
 	v.
+		SetRegions(true).
 		SetDynamicColors(true).
 		SetWordWrap(true).
 		ScrollToEnd().

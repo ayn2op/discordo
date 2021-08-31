@@ -9,11 +9,18 @@ import (
 	"github.com/rivo/tview"
 )
 
-// WriteMessage parses and writes the parsed message to the provided textview.
+// WriteMessage parses, renders, and writes a message to the given TextView.
 func WriteMessage(v *tview.TextView, m *discordgo.Message, clientID string) {
 	var b strings.Builder
+
 	switch m.Type {
 	case discordgo.MessageTypeDefault, discordgo.MessageTypeReply:
+		// Define a new region and assign message ID as the region ID.
+		// Learn more: https://pkg.go.dev/github.com/rivo/tview#hdr-Regions_and_Highlights
+		b.WriteString("[\"")
+		b.WriteString(m.ID)
+		b.WriteString("\"]")
+		// Render the message associated with crosspost, channel follow add, pin, or a reply.
 		if rm := m.ReferencedMessage; rm != nil {
 			b.WriteString(" ╭ ")
 			b.WriteString("[::d]")
@@ -26,22 +33,22 @@ func WriteMessage(v *tview.TextView, m *discordgo.Message, clientID string) {
 
 			b.WriteString("[::-]\n")
 		}
-
+		// Render the author of the message.
 		parseAuthor(&b, m.Author, clientID)
-
+		// If the message content is not empty, parse the message mentions (users mentioned in the message) and render the message content.
 		if m.Content != "" {
 			m.Content = parseMessageMentions(m.Content, m.Mentions, clientID)
 			b.WriteString(m.Content)
 		}
-
+		// If the edited timestamp of the message is not empty; it implies that the message has been edited, hence render the message with edited label for distinction
 		if m.EditedTimestamp != "" {
 			b.WriteString(" [::d](edited)[::-]")
 		}
-
+		// TODO: render message embeds
 		for range m.Embeds {
 			b.WriteString("\n<EMBED>")
 		}
-
+		// Render the message attachments (attached files to the message).
 		for _, a := range m.Attachments {
 			b.WriteString("\n[")
 			b.WriteString(a.Filename)
@@ -55,6 +62,7 @@ func WriteMessage(v *tview.TextView, m *discordgo.Message, clientID string) {
 		b.WriteString(m.Author.Username)
 		b.WriteString("[-]")
 		b.WriteString(" joined the server")
+
 		fmt.Fprintln(v, b.String())
 	}
 }
@@ -63,9 +71,9 @@ func parseMessageMentions(content string, mentions []*discordgo.User, clientID s
 	for _, mUser := range mentions {
 		var color string
 		if mUser.ID == clientID {
-			color = "[#000000:#FEE75C]"
-		} else {
 			color = "[:#5865F2]"
+		} else {
+			color = "[#EB459E]"
 		}
 
 		content = strings.NewReplacer(
@@ -82,6 +90,7 @@ func parseMessageMentions(content string, mentions []*discordgo.User, clientID s
 }
 
 func parseAuthor(b *strings.Builder, u *discordgo.User, clientID string) {
+	// If the message author is the client, modify the text color for distinction.
 	if u.ID == clientID {
 		b.WriteString("[#57F287]")
 	} else {
@@ -90,7 +99,7 @@ func parseAuthor(b *strings.Builder, u *discordgo.User, clientID string) {
 
 	b.WriteString(u.Username)
 	b.WriteString("[-] ")
-
+	// If the message author is a bot account, render the message with bot label for distinction.
 	if u.Bot {
 		b.WriteString("[#EB459E]BOT[-] ")
 	}
