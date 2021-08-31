@@ -10,6 +10,7 @@ import (
 	"github.com/rigormorrtiss/discordo/ui"
 	"github.com/rigormorrtiss/discordo/util"
 	"github.com/rivo/tview"
+	"github.com/zalando/go-keyring"
 )
 
 var (
@@ -48,7 +49,7 @@ func main() {
 	)
 
 	token := config.Token
-	if t := util.GetPassword("token"); t != "" {
+	if t, _ := keyring.Get("discordo", "token"); t != "" {
 		token = t
 	}
 
@@ -334,7 +335,7 @@ func onLoginFormLoginButtonSelected() {
 			panic(err)
 		}
 
-		go util.SetPassword("token", lr.Token)
+		go keyring.Set("discordo", "token", lr.Token)
 	} else if lr.MFA {
 		loginForm = ui.NewMfaLoginForm(func() {
 			code := loginForm.GetFormItem(0).(*tview.InputField).GetText()
@@ -357,7 +358,7 @@ func onLoginFormLoginButtonSelected() {
 				panic(err)
 			}
 
-			go util.SetPassword("token", lr.Token)
+			go keyring.Set("discordo", "token", lr.Token)
 		})
 
 		app.SetRoot(loginForm, true)
