@@ -6,7 +6,10 @@ import (
 )
 
 // NewMessagesTextView creates and returns a new messages textview.
-func NewMessagesTextView(app *tview.Application, onMessagesTextViewInputCapture func(*tcell.EventKey) *tcell.EventKey) *tview.TextView {
+func NewMessagesTextView(
+	app *tview.Application,
+	onMessagesTextViewInputCapture func(*tcell.EventKey) *tcell.EventKey,
+) *tview.TextView {
 	v := tview.NewTextView()
 	v.
 		SetRegions(true).

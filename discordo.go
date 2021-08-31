@@ -36,7 +36,10 @@ func main() {
 		EnableMouse(config.Mouse).
 		SetInputCapture(onAppInputCapture)
 	guildsTreeView = ui.NewGuildsTreeView(onGuildsTreeViewSelected)
-	messagesTextView = ui.NewMessagesTextView(app, onMessagesTextViewInputCapture)
+	messagesTextView = ui.NewMessagesTextView(
+		app,
+		onMessagesTextViewInputCapture,
+	)
 	messageInputField = ui.NewMessageInputField(onMessageInputFieldInputCapture)
 	mainFlex = ui.NewMainFlex(
 		guildsTreeView,
@@ -88,18 +91,22 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		switch e.Key() {
 		case tcell.KeyUp:
 			hs := messagesTextView.GetHighlights()
-			// Initially, no message is highlighted/selected; highlight the last message in the TextView.
+			// Initially, no message is highlighted/selected; highlight the last
+			// message in the TextView.
 			if len(hs) == 0 {
 				messagesTextView.Highlight(selectedChannel.LastMessageID)
 			} else {
-				// Find the index of the highlighted message in the *discordgo.Channel.Messages slice.
+				// Find the index of the highlighted message in the
+				// *discordgo.Channel.Messages slice.
 				var idx int
 				for i, v := range selectedChannel.Messages {
 					if hs[0] == v.ID {
 						idx = i
 					}
 				}
-				// If the length of the *discordgo.Channel.Messages slicec is equal to the index of the message just after highlighted message in the slice, do not handle the event.
+				// If the length of the *discordgo.Channel.Messages slicec is
+				// equal to the index of the message just after highlighted
+				// message in the slice, do not handle the event.
 				if len(selectedChannel.Messages) == idx+1 {
 					return nil
 				}
