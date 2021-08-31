@@ -5,7 +5,11 @@ import (
 )
 
 // NewMainFlex creates and returns a new main flex.
-func NewMainFlex(treeV *tview.TreeView, textV *tview.TextView, i *tview.InputField) *tview.Flex {
+func NewMainFlex(
+	treeV *tview.TreeView,
+	textV *tview.TextView,
+	i *tview.InputField,
+) *tview.Flex {
 	rf := tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(textV, 0, 1, false).

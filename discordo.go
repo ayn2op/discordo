@@ -38,7 +38,11 @@ func main() {
 	guildsTreeView = ui.NewGuildsTreeView(onGuildsTreeViewSelected)
 	messagesTextView = ui.NewMessagesTextView(app, onMessagesTextViewInputCapture)
 	messageInputField = ui.NewMessageInputField(onMessageInputFieldInputCapture)
-	mainFlex = ui.NewMainFlex(guildsTreeView, messagesTextView, messageInputField)
+	mainFlex = ui.NewMainFlex(
+		guildsTreeView,
+		messagesTextView,
+		messageInputField,
+	)
 
 	token := config.Token
 	if t := util.GetPassword("token"); t != "" {
@@ -186,7 +190,11 @@ func onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
 	if selectedChannel != nil && selectedChannel.ID == m.ChannelID {
 		selectedChannel.Messages = append(selectedChannel.Messages, m.Message)
-		util.WriteMessage(messagesTextView, m.Message, session.State.Ready.User.ID)
+		util.WriteMessage(
+			messagesTextView,
+			m.Message,
+			session.State.Ready.User.ID,
+		)
 	}
 }
 
@@ -245,7 +253,11 @@ func writeMessages(cID string) {
 	msgs, _ := session.ChannelMessages(cID, config.GetMessagesLimit, "", "", "")
 	selectedChannel.Messages = msgs
 	for i := len(msgs) - 1; i >= 0; i-- {
-		util.WriteMessage(messagesTextView, msgs[i], session.State.Ready.User.ID)
+		util.WriteMessage(
+			messagesTextView,
+			msgs[i],
+			session.State.Ready.User.ID,
+		)
 	}
 }
 
