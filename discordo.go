@@ -99,32 +99,30 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	case e.Key() == tcell.KeyUp || e.Rune() == 'k': // Up
 		ms := selectedChannel.Messages
 		hs := messagesTextView.GetHighlights()
-		// Initially, no message is highlighted/selected; highlight the last
+		// If there are no currently highlighted message, highlight the last
 		// message in the TextView.
 		if len(hs) == 0 {
 			messagesTextView.
-				Highlight(selectedChannel.LastMessageID).
+				Highlight(ms[len(ms)-1].ID).
 				ScrollToHighlight()
 		} else {
-			// Find the index of the highlighted message in the
+			// Find the index of the currently highlighted message in the
 			// *discordgo.Channel.Messages slice.
 			var idx int
 			for i, v := range ms {
 				if hs[0] == v.ID {
 					idx = i
+					break
 				}
 			}
-			// If the length of the *discordgo.Channel.Messages slice is
-			// equal to the index of the message just after highlighted
-			// message in the slice (this is the first-rendered message in
-			// the TextView), do not handle the event.
-			if len(ms) == idx+1 {
+			// If the index of the currently highlighted message is equal to zero
+			// (first message in the TextView), do not handle the event.
+			if idx == 0 {
 				return nil
 			}
-			// Highlight the message just before the currently highlighted
-			// message.
+			// Highlight the message just before the currently highlighted message.
 			messagesTextView.
-				Highlight(ms[idx+1].ID).
+				Highlight(ms[idx-1].ID).
 				ScrollToHighlight()
 		}
 
@@ -132,11 +130,11 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	case e.Key() == tcell.KeyDown || e.Rune() == 'j': // Down
 		ms := selectedChannel.Messages
 		hs := messagesTextView.GetHighlights()
-		// Initially, no message is highlighted/selected; highlight the last
+		// If there are no currently highlighted message, highlight the last
 		// message in the TextView.
 		if len(hs) == 0 {
 			messagesTextView.
-				Highlight(ms[0].ID).
+				Highlight(ms[len(ms)-1].ID).
 				ScrollToHighlight()
 		} else {
 			// Find the index of the highlighted message in the
@@ -146,19 +144,19 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 				if v.Type == discordgo.MessageTypeDefault || v.Type == discordgo.MessageTypeReply {
 					if hs[0] == v.ID {
 						idx = i
+						break
 					}
 				}
 			}
-			// If the index of the highlighted message in the slice is equal
-			// to zero (this is the last-rendered message in the TextView),
-			// do not handle the event.
-			if idx == 0 {
+			// If the index of the currently highlighted message is equal to the
+			// total number of elements in the *discordgo.Channel.Messages
+			// slice, do not handle the event.
+			if idx == len(ms)-1 {
 				return nil
 			}
-			// Highlight the message just after the currently highlighted
-			// message.
+			// Highlight the message just after the currently highlighted message.
 			messagesTextView.
-				Highlight(ms[idx-1].ID).
+				Highlight(ms[idx+1].ID).
 				ScrollToHighlight()
 		}
 
@@ -168,14 +166,14 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		// Highlight the last message in the selectedChannel.Messages slice
 		// (the first message rendered in the TextView).
 		messagesTextView.
-			Highlight(ms[len(ms)-1].ID).
+			Highlight(ms[0].ID).
 			ScrollToHighlight()
 	case e.Key() == tcell.KeyEnd || e.Rune() == 'G': // Bottom
 		ms := selectedChannel.Messages
 		// Highlight the first message in the selectedChannel.Messages slice
 		// (the last message rendered in the TextView).
 		messagesTextView.
-			Highlight(ms[0].ID).
+			Highlight(ms[len(ms)-1].ID).
 			ScrollToHighlight()
 	case e.Rune() == 'r': // Reply
 		hs := messagesTextView.GetHighlights()
@@ -295,10 +293,7 @@ func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	selectedChannel.Messages = append(
-		[]*discordgo.Message{m.Message},
-		selectedChannel.Messages...)
-
+	selectedChannel.Messages = append(selectedChannel.Messages, m.Message)
 	util.WriteMessage(
 		messagesTextView,
 		m.Message,
@@ -359,8 +354,9 @@ func onGuildsTreeViewSelected(n *tview.TreeNode) {
 
 func writeMessages(cID string) {
 	msgs, _ := session.ChannelMessages(cID, config.GetMessagesLimit, "", "", "")
-	selectedChannel.Messages = msgs
 	for i := len(msgs) - 1; i >= 0; i-- {
+		selectedChannel.Messages = append(selectedChannel.Messages, msgs[i])
+
 		util.WriteMessage(
 			messagesTextView,
 			msgs[i],
