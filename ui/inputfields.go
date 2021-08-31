@@ -16,7 +16,8 @@ func NewMessageInputField(
 		SetFieldBackgroundColor(tview.Styles.PrimitiveBackgroundColor).
 		SetInputCapture(onMessageInputFieldInputCapture).
 		SetBorder(true).
-		SetBorderPadding(0, 0, 1, 0)
+		SetBorderPadding(0, 0, 1, 0).
+		SetTitleAlign(tview.AlignLeft)
 
 	return i
 }
