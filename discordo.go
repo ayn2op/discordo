@@ -232,6 +232,9 @@ func onMessageInputFieldInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		text, _ := clipboard.ReadAll()
 		text = messageInputField.GetText() + text
 		messageInputField.SetText(text)
+	case tcell.KeyEscape: // Cancel
+		messageInputField.SetTitle("")
+		selectedMessage = nil
 	}
 
 	return e
@@ -302,6 +305,12 @@ func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
 }
 
 func onGuildsTreeViewSelected(n *tview.TreeNode) {
+	selectedChannel = nil
+	selectedMessage = nil
+	messagesTextView.
+		Clear().
+		SetTitle("")
+
 	switch n.GetLevel() {
 	case 1:
 		if len(n.GetChildren()) != 0 {
@@ -309,11 +318,7 @@ func onGuildsTreeViewSelected(n *tview.TreeNode) {
 			return
 		}
 
-		selectedChannel = nil
 		n.ClearChildren()
-		messagesTextView.
-			Clear().
-			SetTitle("")
 
 		gID := n.GetReference().(string)
 		g, _ := session.State.Guild(gID)
