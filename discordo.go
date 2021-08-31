@@ -254,7 +254,7 @@ func onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 }
 
 func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
-	if selectedChannel == nil || selectedChannel.ID == m.ChannelID {
+	if selectedChannel == nil || selectedChannel.ID != m.ChannelID {
 		return
 	}
 
