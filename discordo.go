@@ -104,14 +104,43 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 						idx = i
 					}
 				}
-				// If the length of the *discordgo.Channel.Messages slicec is
+				// If the length of the *discordgo.Channel.Messages slice is
 				// equal to the index of the message just after highlighted
-				// message in the slice, do not handle the event.
+				// message in the slice (this is the first-rendered message in
+				// the TextView), do not handle the event.
 				if len(selectedChannel.Messages) == idx+1 {
 					return nil
 				}
 
 				m := selectedChannel.Messages[idx+1]
+				messagesTextView.Highlight(m.ID)
+			}
+
+			return nil
+		case tcell.KeyDown:
+			hs := messagesTextView.GetHighlights()
+			// Initially, no message is highlighted/selected; highlight the last
+			// message in the TextView.
+			if len(hs) == 0 {
+				messagesTextView.Highlight(selectedChannel.LastMessageID)
+			} else {
+				// Find the index of the highlighted message in the
+				// *discordgo.Channel.Messages slice.
+				var idx int
+				for i, v := range selectedChannel.Messages {
+					if hs[0] == v.ID {
+						idx = i
+					}
+				}
+
+				// If the index of the highlighted message in the slice is equal
+				// to zero (this is the last-rendered message in the TextView),
+				// do not handle the event.
+				if idx == 0 {
+					return nil
+				}
+
+				m := selectedChannel.Messages[idx-1]
 				messagesTextView.Highlight(m.ID)
 			}
 
