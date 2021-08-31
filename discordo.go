@@ -254,7 +254,10 @@ func onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 
 func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
 	if selectedChannel != nil && selectedChannel.ID == m.ChannelID {
-		selectedChannel.Messages = append(selectedChannel.Messages, m.Message)
+		selectedChannel.Messages = append(
+			[]*discordgo.Message{m.Message},
+			selectedChannel.Messages...)
+
 		util.WriteMessage(
 			messagesTextView,
 			m.Message,
