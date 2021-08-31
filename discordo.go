@@ -200,6 +200,11 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 }
 
 func onMessageInputFieldInputCapture(e *tcell.EventKey) *tcell.EventKey {
+	// If the "Alt" modifier key is pressed, do not handle the event.
+	if e.Modifiers() == tcell.ModAlt {
+		return nil
+	}
+
 	switch e.Key() {
 	case tcell.KeyEnter:
 		if selectedChannel == nil {
