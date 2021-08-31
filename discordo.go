@@ -83,13 +83,13 @@ func onMessageInputFieldInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	switch e.Key() {
 	case tcell.KeyEnter:
 		if selectedChannel != nil {
-			text := strings.TrimSpace(messageInputField.GetText())
-			if text == "" {
+			t := strings.TrimSpace(messageInputField.GetText())
+			if t == "" {
 				return nil
 			}
 
-			session.ChannelMessageSend(selectedChannel.ID, text)
 			messageInputField.SetText("")
+			go session.ChannelMessageSend(selectedChannel.ID, t)
 		}
 	case tcell.KeyCtrlV:
 		text, _ := clipboard.ReadAll()
