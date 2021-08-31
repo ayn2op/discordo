@@ -89,12 +89,12 @@ func onAppInputCapture(e *tcell.EventKey) *tcell.EventKey {
 
 func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	if e.Modifiers() == tcell.ModAlt {
+		if selectedChannel == nil {
+			return nil
+		}
+
 		switch {
 		case e.Key() == tcell.KeyUp || e.Rune() == 'k': // Up
-			if selectedChannel == nil {
-				return nil
-			}
-
 			ms := selectedChannel.Messages
 			hs := messagesTextView.GetHighlights()
 			// Initially, no message is highlighted/selected; highlight the last
@@ -124,10 +124,6 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 
 			return nil
 		case e.Key() == tcell.KeyDown || e.Rune() == 'j': // Down
-			if selectedChannel == nil {
-				return nil
-			}
-
 			ms := selectedChannel.Messages
 			hs := messagesTextView.GetHighlights()
 			// Initially, no message is highlighted/selected; highlight the last
@@ -157,19 +153,11 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 
 			return nil
 		case e.Key() == tcell.KeyHome || e.Rune() == 'g': // Top
-			if selectedChannel == nil {
-				return nil
-			}
-
 			ms := selectedChannel.Messages
 			// Highlight the last message in the selectedChannel.Messages slice
 			// (the first message rendered in the TextView).
 			messagesTextView.Highlight(ms[len(ms)-1].ID)
 		case e.Key() == tcell.KeyEnd || e.Rune() == 'G': // Bottom
-			if selectedChannel == nil {
-				return nil
-			}
-
 			ms := selectedChannel.Messages
 			// Highlight the first message in the selectedChannel.Messages slice
 			// (the last message rendered in the TextView).
@@ -183,15 +171,17 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 func onMessageInputFieldInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	switch e.Key() {
 	case tcell.KeyEnter:
-		if selectedChannel != nil {
-			t := strings.TrimSpace(messageInputField.GetText())
-			if t == "" {
-				return nil
-			}
-
-			messageInputField.SetText("")
-			go session.ChannelMessageSend(selectedChannel.ID, t)
+		if selectedChannel == nil {
+			return nil
 		}
+
+		t := strings.TrimSpace(messageInputField.GetText())
+		if t == "" {
+			return nil
+		}
+
+		messageInputField.SetText("")
+		go session.ChannelMessageSend(selectedChannel.ID, t)
 	case tcell.KeyCtrlV:
 		text, _ := clipboard.ReadAll()
 		text = messageInputField.GetText() + text
@@ -253,17 +243,19 @@ func onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 }
 
 func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
-	if selectedChannel != nil && selectedChannel.ID == m.ChannelID {
-		selectedChannel.Messages = append(
-			[]*discordgo.Message{m.Message},
-			selectedChannel.Messages...)
-
-		util.WriteMessage(
-			messagesTextView,
-			m.Message,
-			session.State.Ready.User.ID,
-		)
+	if selectedChannel == nil || selectedChannel.ID == m.ChannelID {
+		return
 	}
+
+	selectedChannel.Messages = append(
+		[]*discordgo.Message{m.Message},
+		selectedChannel.Messages...)
+
+	util.WriteMessage(
+		messagesTextView,
+		m.Message,
+		session.State.Ready.User.ID,
+	)
 }
 
 func onGuildsTreeViewSelected(n *tview.TreeNode) {
