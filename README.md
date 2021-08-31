@@ -55,6 +55,7 @@ TextView:
 - `j` or `Down`: Selects the message just after the currently selected message.
 - `g` or `Home`: Selects the first message rendered in the TextView.
 - `G` or `End`: Selects the last message rendered in the TextView.
+- `r`: Reply to the selected message.
 
 ### Clipboard
 
