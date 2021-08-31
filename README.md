@@ -43,9 +43,18 @@ By default, Discordo utilizes OS-specific keyring to store credentials such as c
 
 ### Default Keybindings
 
-- `Alt` + `g`: Sets the focus on the guilds TreeView.
-- `Alt` + `m`: Sets the focus on the messages TextView.
-- `Alt` + `i`: Sets the focus on the message InputField.
+Global:
+
+- `Alt` + `1`: Sets the focus on the guilds TreeView.
+- `Alt` + `2`: Sets the focus on the messages TextView.
+- `Alt` + `3`: Sets the focus on the message InputField.
+
+TextView:
+
+- `k` or `Up`: Selects the message just before the currently selected message.
+- `j` or `Down`: Selects the message just after the currently selected message.
+- `g` or `Home`: Selects the first message rendered in the TextView.
+- `G` or `End`: Selects the last message rendered in the TextView.
 
 ### Clipboard
 
