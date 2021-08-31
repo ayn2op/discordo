@@ -210,11 +210,14 @@ func onMessageInputFieldInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		}
 
 		if selectedMessage != nil {
+			messageInputField.SetTitle("")
 			go session.ChannelMessageSendReply(
 				selectedMessage.ChannelID,
 				t,
 				selectedMessage.Reference(),
 			)
+
+			selectedMessage = nil
 		} else {
 			go session.ChannelMessageSend(selectedChannel.ID, t)
 		}
