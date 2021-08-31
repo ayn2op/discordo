@@ -188,7 +188,9 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			}
 		}
 
-		messageInputField.SetTitle("Replying to " + selectedMessage.Author.Username)
+		messageInputField.SetTitle(
+			"Replying to " + selectedMessage.Author.Username,
+		)
 		app.SetFocus(messageInputField)
 	}
 
@@ -208,7 +210,11 @@ func onMessageInputFieldInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		}
 
 		if selectedMessage != nil {
-			go session.ChannelMessageSendReply(selectedMessage.ChannelID, t, selectedMessage.Reference())
+			go session.ChannelMessageSendReply(
+				selectedMessage.ChannelID,
+				t,
+				selectedMessage.Reference(),
+			)
 		} else {
 			go session.ChannelMessageSend(selectedChannel.ID, t)
 		}
