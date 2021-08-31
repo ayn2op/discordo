@@ -36,7 +36,7 @@ func main() {
 		EnableMouse(config.Mouse).
 		SetInputCapture(onAppInputCapture)
 	guildsTreeView = ui.NewGuildsTreeView(onGuildsTreeViewSelected)
-	messagesTextView = ui.NewMessagesTextView(app)
+	messagesTextView = ui.NewMessagesTextView(app, onMessagesTextViewInputCapture)
 	messageInputField = ui.NewMessageInputField(onMessageInputFieldInputCapture)
 	mainFlex = ui.NewMainFlex(guildsTreeView, messagesTextView, messageInputField)
 
@@ -74,6 +74,38 @@ func onAppInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		app.SetFocus(messagesTextView)
 	case "Alt+Rune[i]":
 		app.SetFocus(messageInputField)
+	}
+
+	return e
+}
+
+func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
+	if e.Modifiers() == tcell.ModNone {
+		switch e.Key() {
+		case tcell.KeyUp:
+			hs := messagesTextView.GetHighlights()
+			// Initially, no message is highlighted/selected; highlight the last message in the TextView.
+			if len(hs) == 0 {
+				messagesTextView.Highlight(selectedChannel.LastMessageID)
+			} else {
+				// Find the index of the highlighted message in the *discordgo.Channel.Messages slice.
+				var idx int
+				for i, v := range selectedChannel.Messages {
+					if hs[0] == v.ID {
+						idx = i
+					}
+				}
+				// If the length of the *discordgo.Channel.Messages slicec is equal to the index of the message just after highlighted message in the slice, do not handle the event.
+				if len(selectedChannel.Messages) == idx+1 {
+					return nil
+				}
+
+				m := selectedChannel.Messages[idx+1]
+				messagesTextView.Highlight(m.ID)
+			}
+
+			return nil
+		}
 	}
 
 	return e
@@ -153,6 +185,7 @@ func onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 
 func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
 	if selectedChannel != nil && selectedChannel.ID == m.ChannelID {
+		selectedChannel.Messages = append(selectedChannel.Messages, m.Message)
 		util.WriteMessage(messagesTextView, m.Message, session.State.Ready.User.ID)
 	}
 }
@@ -210,6 +243,7 @@ func onGuildsTreeViewSelected(n *tview.TreeNode) {
 
 func writeMessages(cID string) {
 	msgs, _ := session.ChannelMessages(cID, config.GetMessagesLimit, "", "", "")
+	selectedChannel.Messages = msgs
 	for i := len(msgs) - 1; i >= 0; i-- {
 		util.WriteMessage(messagesTextView, msgs[i], session.State.Ready.User.ID)
 	}
