@@ -7,7 +7,9 @@ import (
 )
 
 // NewGuildsTreeView creates and returns a new guilds treeview.
-func NewGuildsTreeView(onGuildsTreeViewSelected func(*tview.TreeNode)) *tview.TreeView {
+func NewGuildsTreeView(
+	onGuildsTreeViewSelected func(*tview.TreeNode),
+) *tview.TreeView {
 	v := tview.NewTreeView()
 	v.
 		SetTopLevel(1).
@@ -29,8 +31,12 @@ func NewTextChannelTreeNode(c *discordgo.Channel) *tview.TreeNode {
 	return n
 }
 
-// GetTreeNodeByReference gets the TreeNode that has reference r from the given treeview.
-func GetTreeNodeByReference(r interface{}, treeV *tview.TreeView) (mn *tview.TreeNode) {
+// GetTreeNodeByReference gets the TreeNode that has reference r from the given
+// treeview.
+func GetTreeNodeByReference(
+	r interface{},
+	treeV *tview.TreeView,
+) (mn *tview.TreeNode) {
 	treeV.GetRoot().Walk(func(n, _ *tview.TreeNode) bool {
 		if n.GetReference() == r {
 			mn = n
@@ -43,11 +49,22 @@ func GetTreeNodeByReference(r interface{}, treeV *tview.TreeView) (mn *tview.Tre
 	return
 }
 
-// CreateTopLevelChannelsTreeNodes creates TreeNodes for the top-level (orphan) channels.
-func CreateTopLevelChannelsTreeNodes(s *discordgo.State, n *tview.TreeNode, cs []*discordgo.Channel) {
+// CreateTopLevelChannelsTreeNodes creates TreeNodes for the top-level (orphan)
+// channels.
+func CreateTopLevelChannelsTreeNodes(
+	s *discordgo.State,
+	n *tview.TreeNode,
+	cs []*discordgo.Channel,
+) {
 	for _, c := range cs {
-		if (c.Type == discordgo.ChannelTypeGuildText || c.Type == discordgo.ChannelTypeGuildNews) && (c.ParentID == "") {
-			if !util.HasPermission(s, s.User.ID, c.ID, discordgo.PermissionViewChannel) {
+		if (c.Type == discordgo.ChannelTypeGuildText || c.Type == discordgo.ChannelTypeGuildNews) &&
+			(c.ParentID == "") {
+			if !util.HasPermission(
+				s,
+				s.User.ID,
+				c.ID,
+				discordgo.PermissionViewChannel,
+			) {
 				continue
 			}
 
@@ -58,8 +75,13 @@ func CreateTopLevelChannelsTreeNodes(s *discordgo.State, n *tview.TreeNode, cs [
 	}
 }
 
-// CreateCategoryChannelsTreeNodes creates TreeNodes for the category (parent) channels.
-func CreateCategoryChannelsTreeNodes(s *discordgo.State, n *tview.TreeNode, cs []*discordgo.Channel) {
+// CreateCategoryChannelsTreeNodes creates TreeNodes for the category (parent)
+// channels.
+func CreateCategoryChannelsTreeNodes(
+	s *discordgo.State,
+	n *tview.TreeNode,
+	cs []*discordgo.Channel,
+) {
 CategoryLoop:
 	for _, c := range cs {
 		if c.Type == discordgo.ChannelTypeGuildCategory {
@@ -83,11 +105,22 @@ CategoryLoop:
 	}
 }
 
-// CreateSecondLevelChannelsTreeNodes creates TreeNodes for the second-level (category children) channels.
-func CreateSecondLevelChannelsTreeNodes(s *discordgo.State, treeV *tview.TreeView, cs []*discordgo.Channel) {
+// CreateSecondLevelChannelsTreeNodes creates TreeNodes for the second-level
+// (category children) channels.
+func CreateSecondLevelChannelsTreeNodes(
+	s *discordgo.State,
+	treeV *tview.TreeView,
+	cs []*discordgo.Channel,
+) {
 	for _, c := range cs {
-		if (c.Type == discordgo.ChannelTypeGuildText || c.Type == discordgo.ChannelTypeGuildNews) && (c.ParentID != "") {
-			if !util.HasPermission(s, s.User.ID, c.ID, discordgo.PermissionViewChannel) {
+		if (c.Type == discordgo.ChannelTypeGuildText || c.Type == discordgo.ChannelTypeGuildNews) &&
+			(c.ParentID != "") {
+			if !util.HasPermission(
+				s,
+				s.User.ID,
+				c.ID,
+				discordgo.PermissionViewChannel,
+			) {
 				continue
 			}
 

@@ -7,7 +7,8 @@ import (
 	"github.com/rivo/tview"
 )
 
-// Config consists of fields, such as theme, mouse, so on, that may be customized by the user.
+// Config consists of fields, such as theme, mouse, so on, that may be
+// customized by the user.
 type Config struct {
 	Token            string       `json:"token,omitempty"`
 	Mouse            bool         `json:"mouse,omitempty"`

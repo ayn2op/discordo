@@ -6,7 +6,9 @@ import (
 )
 
 // NewMessageInputField creates and returns a new message inputfield.
-func NewMessageInputField(onMessageInputFieldInputCapture func(*tcell.EventKey) *tcell.EventKey) *tview.InputField {
+func NewMessageInputField(
+	onMessageInputFieldInputCapture func(*tcell.EventKey) *tcell.EventKey,
+) *tview.InputField {
 	i := tview.NewInputField()
 	i.
 		SetPlaceholder("Message...").
