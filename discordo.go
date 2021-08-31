@@ -24,6 +24,7 @@ var (
 	config          *util.Config
 	session         *discordgo.Session
 	selectedChannel *discordgo.Channel
+	selectedMessage *discordgo.Message
 )
 
 func main() {
@@ -174,6 +175,21 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		messagesTextView.
 			Highlight(ms[0].ID).
 			ScrollToHighlight()
+	case e.Rune() == 'r': // Reply
+		hs := messagesTextView.GetHighlights()
+		if len(hs) == 0 {
+			return nil
+		}
+
+		for _, m := range selectedChannel.Messages {
+			if m.ID == hs[0] {
+				selectedMessage = m
+				break
+			}
+		}
+
+		messageInputField.SetTitle("Replying to " + selectedMessage.Author.Username)
+		app.SetFocus(messageInputField)
 	}
 
 	return e
@@ -191,8 +207,13 @@ func onMessageInputFieldInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
+		if selectedMessage != nil {
+			go session.ChannelMessageSendReply(selectedMessage.ChannelID, t, selectedMessage.Reference())
+		} else {
+			go session.ChannelMessageSend(selectedChannel.ID, t)
+		}
+
 		messageInputField.SetText("")
-		go session.ChannelMessageSend(selectedChannel.ID, t)
 	case tcell.KeyCtrlV:
 		text, _ := clipboard.ReadAll()
 		text = messageInputField.GetText() + text
