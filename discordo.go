@@ -112,7 +112,8 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 				if len(ms) == idx+1 {
 					return nil
 				}
-				// Highlight the message just before the currently highlighted message.
+				// Highlight the message just before the currently highlighted
+				// message.
 				messagesTextView.Highlight(ms[idx+1].ID)
 			}
 
@@ -140,18 +141,21 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 				if idx == 0 {
 					return nil
 				}
-				// Highlight the message just after the currently highlighted message.
+				// Highlight the message just after the currently highlighted
+				// message.
 				messagesTextView.Highlight(ms[idx-1].ID)
 			}
 
 			return nil
 		case e.Key() == tcell.KeyHome || e.Rune() == 'g': // Top
 			ms := selectedChannel.Messages
-			// Highlight the last message in the selectedChannel.Messages slice (the first message rendered in the TextView).
+			// Highlight the last message in the selectedChannel.Messages slice
+			// (the first message rendered in the TextView).
 			messagesTextView.Highlight(ms[len(ms)-1].ID)
 		case e.Key() == tcell.KeyEnd || e.Rune() == 'G': // Bottom
 			ms := selectedChannel.Messages
-			// Highlight the first message in the selectedChannel.Messages slice (the last message rendered in the TextView).
+			// Highlight the first message in the selectedChannel.Messages slice
+			// (the last message rendered in the TextView).
 			messagesTextView.Highlight(ms[0].ID)
 		}
 	}
