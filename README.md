@@ -51,10 +51,10 @@ Global:
 
 TextView:
 
-- `Alt` + `k` or `Alt` + `Up`: Select the message just before the currently selected message.
-- `Alt` + `j` or `Alt` + `Down`: Select the message just after the currently selected message.
-- `Alt` + `g` or `Alt` + `Home`: Select the first message rendered in the TextView.
-- `Alt` + `G` or `Alt` + `End`: Select the last message rendered in the TextView 
+- `Alt` + `k` or `Alt` + `Up`: Selects the message just before the currently selected message.
+- `Alt` + `j` or `Alt` + `Down`: Selects the message just after the currently selected message.
+- `Alt` + `g` or `Alt` + `Home`: Selects the first message rendered in the TextView.
+- `Alt` + `G` or `Alt` + `End`: Selects the last message rendered in the TextView 
 
 ### Clipboard
 
