@@ -91,6 +91,10 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	if e.Modifiers() == tcell.ModAlt {
 		switch {
 		case e.Key() == tcell.KeyUp || e.Rune() == 'k': // Up
+			if selectedChannel == nil {
+				return nil
+			}
+
 			ms := selectedChannel.Messages
 			hs := messagesTextView.GetHighlights()
 			// Initially, no message is highlighted/selected; highlight the last
@@ -120,6 +124,10 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 
 			return nil
 		case e.Key() == tcell.KeyDown || e.Rune() == 'j': // Down
+			if selectedChannel == nil {
+				return nil
+			}
+
 			ms := selectedChannel.Messages
 			hs := messagesTextView.GetHighlights()
 			// Initially, no message is highlighted/selected; highlight the last
@@ -149,11 +157,19 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 
 			return nil
 		case e.Key() == tcell.KeyHome || e.Rune() == 'g': // Top
+			if selectedChannel == nil {
+				return nil
+			}
+
 			ms := selectedChannel.Messages
 			// Highlight the last message in the selectedChannel.Messages slice
 			// (the first message rendered in the TextView).
 			messagesTextView.Highlight(ms[len(ms)-1].ID)
 		case e.Key() == tcell.KeyEnd || e.Rune() == 'G': // Bottom
+			if selectedChannel == nil {
+				return nil
+			}
+
 			ms := selectedChannel.Messages
 			// Highlight the first message in the selectedChannel.Messages slice
 			// (the last message rendered in the TextView).
