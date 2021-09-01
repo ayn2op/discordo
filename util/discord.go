@@ -64,6 +64,10 @@ func WriteMessage(v *tview.TextView, m *discordgo.Message, clientID string) {
 			b.WriteString("]: ")
 			b.WriteString(a.URL)
 		}
+		// Tags with no region ID ([""]) do not start new regions. They can
+		// therefore be used to mark the end of a region.
+		b.WriteString("[\"")
+		b.WriteString("\"]")
 
 		fmt.Fprintln(v, b.String())
 	case discordgo.MessageTypeGuildMemberJoin:
