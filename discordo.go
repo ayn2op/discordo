@@ -90,6 +90,16 @@ func onAppInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	return e
 }
 
+func findIndexByMessageID(ms []*discordgo.Message, mID string) int {
+	for i, m := range ms {
+		if mID == m.ID {
+			return i
+		}
+	}
+
+	return -1
+}
+
 func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	if selectedChannel == nil {
 		return nil
@@ -108,19 +118,15 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		} else {
 			// Find the index of the currently highlighted message in the
 			// *discordgo.Channel.Messages slice.
-			var idx int
-			for i, v := range ms {
-				if hs[0] == v.ID {
-					idx = i
-					break
-				}
-			}
-			// If the index of the currently highlighted message is equal to zero
+			idx := findIndexByMessageID(ms, hs[0])
+			// If the index of the currently highlighted message is equal to
+			// zero
 			// (first message in the TextView), do not handle the event.
 			if idx == 0 {
 				return nil
 			}
-			// Highlight the message just before the currently highlighted message.
+			// Highlight the message just before the currently highlighted
+			// message.
 			messagesTextView.
 				Highlight(ms[idx-1].ID).
 				ScrollToHighlight()
@@ -139,22 +145,15 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		} else {
 			// Find the index of the highlighted message in the
 			// *discordgo.Channel.Messages slice.
-			var idx int
-			for i, v := range selectedChannel.Messages {
-				if v.Type == discordgo.MessageTypeDefault || v.Type == discordgo.MessageTypeReply {
-					if hs[0] == v.ID {
-						idx = i
-						break
-					}
-				}
-			}
+			idx := findIndexByMessageID(ms, hs[0])
 			// If the index of the currently highlighted message is equal to the
 			// total number of elements in the *discordgo.Channel.Messages
 			// slice, do not handle the event.
 			if idx == len(ms)-1 {
 				return nil
 			}
-			// Highlight the message just after the currently highlighted message.
+			// Highlight the message just after the currently highlighted
+			// message.
 			messagesTextView.
 				Highlight(ms[idx+1].ID).
 				ScrollToHighlight()
