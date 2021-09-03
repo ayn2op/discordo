@@ -90,14 +90,14 @@ func onAppInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	return e
 }
 
-func findIndexByMessageID(ms []*discordgo.Message, mID string) int {
+func findByMessageID(ms []*discordgo.Message, mID string) (int, *discordgo.Message) {
 	for i, m := range ms {
 		if mID == m.ID {
-			return i
+			return i, m
 		}
 	}
 
-	return -1
+	return -1, nil
 }
 
 func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
@@ -118,11 +118,11 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		} else {
 			// Find the index of the currently highlighted message in the
 			// *discordgo.Channel.Messages slice.
-			idx := findIndexByMessageID(ms, hs[0])
+			idx, _ := findByMessageID(ms, hs[0])
 			// If the index of the currently highlighted message is equal to
 			// zero
 			// (first message in the TextView), do not handle the event.
-			if idx == 0 {
+			if idx == -1 || idx == 0 {
 				return nil
 			}
 			// Highlight the message just before the currently highlighted
@@ -145,11 +145,11 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		} else {
 			// Find the index of the highlighted message in the
 			// *discordgo.Channel.Messages slice.
-			idx := findIndexByMessageID(ms, hs[0])
+			idx, _ := findByMessageID(ms, hs[0])
 			// If the index of the currently highlighted message is equal to the
 			// total number of elements in the *discordgo.Channel.Messages
 			// slice, do not handle the event.
-			if idx == len(ms)-1 {
+			if idx == -1 || idx == len(ms)-1 {
 				return nil
 			}
 			// Highlight the message just after the currently highlighted
@@ -175,18 +175,13 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			Highlight(ms[len(ms)-1].ID).
 			ScrollToHighlight()
 	case e.Rune() == 'r': // Reply
+		ms := selectedChannel.Messages
 		hs := messagesTextView.GetHighlights()
 		if len(hs) == 0 {
 			return nil
 		}
 
-		for _, m := range selectedChannel.Messages {
-			if m.ID == hs[0] {
-				selectedMessage = m
-				break
-			}
-		}
-
+		_, selectedMessage = findByMessageID(ms, hs[0])
 		messageInputField.SetTitle(
 			"Replying to " + selectedMessage.Author.Username,
 		)
