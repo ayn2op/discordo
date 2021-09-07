@@ -18,3 +18,29 @@ func NewMainFlex(
 
 	return mf
 }
+
+func newBaseLoginForm() *tview.Form {
+	f := tview.NewForm()
+	f.
+		SetButtonsAlign(tview.AlignCenter).
+		SetBorder(true).
+		SetBorderPadding(0, 0, 1, 0)
+
+	return f
+}
+
+// NewLoginForm creates and returns a new login form.
+func NewLoginForm(onLoginFormLoginButtonSelected func(), mfa bool) *tview.Form {
+	f := newBaseLoginForm()
+	f.AddButton("Login", onLoginFormLoginButtonSelected)
+
+	if mfa {
+		f.AddPasswordField("Code", "", 0, 0, nil)
+	} else {
+		f.
+			AddInputField("Email", "", 0, nil, nil).
+			AddPasswordField("Password", "", 0, 0, nil)
+	}
+
+	return f
+}
