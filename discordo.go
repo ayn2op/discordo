@@ -66,7 +66,7 @@ func main() {
 			panic(err)
 		}
 	} else {
-		loginForm = ui.NewLoginForm(onLoginFormLoginButtonSelected)
+		loginForm = ui.NewLoginForm(onLoginFormLoginButtonSelected, false)
 		app.SetRoot(loginForm, true)
 	}
 
@@ -391,7 +391,7 @@ func onLoginFormLoginButtonSelected() {
 
 		go keyring.Set("discordo", "token", lr.Token)
 	} else if lr.MFA {
-		loginForm = ui.NewMfaLoginForm(func() {
+		loginForm = ui.NewLoginForm(func() {
 			code := loginForm.GetFormItem(0).(*tview.InputField).GetText()
 			if code == "" {
 				return
@@ -413,7 +413,7 @@ func onLoginFormLoginButtonSelected() {
 			}
 
 			go keyring.Set("discordo", "token", lr.Token)
-		})
+		}, true)
 
 		app.SetRoot(loginForm, true)
 	}
