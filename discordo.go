@@ -16,8 +16,8 @@ import (
 var (
 	app               *tview.Application
 	loginForm         *tview.Form
-	guildsTreeView    *tview.TreeView
-	messagesTextView  *tview.TextView
+	guildsView        *tview.TreeView
+	messagesView      *tview.TextView
 	messageInputField *tview.InputField
 	mainFlex          *tview.Flex
 
@@ -37,15 +37,15 @@ func main() {
 	app = tview.NewApplication().
 		EnableMouse(config.Mouse).
 		SetInputCapture(onAppInputCapture)
-	guildsTreeView = ui.NewGuildsTreeView(onGuildsTreeViewSelected)
-	messagesTextView = ui.NewMessagesTextView(
+	guildsView = ui.NewGuildsView(onGuildsTreeViewSelected)
+	messagesView = ui.NewMessagesView(
 		app,
 		onMessagesTextViewInputCapture,
 	)
 	messageInputField = ui.NewMessageInputField(onMessageInputFieldInputCapture)
 	mainFlex = ui.NewMainFlex(
-		guildsTreeView,
-		messagesTextView,
+		guildsView,
+		messagesView,
 		messageInputField,
 	)
 
@@ -57,7 +57,7 @@ func main() {
 	if token != "" {
 		app.
 			SetRoot(mainFlex, true).
-			SetFocus(guildsTreeView)
+			SetFocus(guildsView)
 
 		session = newSession()
 		session.Token = token
@@ -79,9 +79,9 @@ func onAppInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	if e.Modifiers() == tcell.ModAlt {
 		switch e.Rune() {
 		case '1':
-			app.SetFocus(guildsTreeView)
+			app.SetFocus(guildsView)
 		case '2':
-			app.SetFocus(messagesTextView)
+			app.SetFocus(messagesView)
 		case '3':
 			app.SetFocus(messageInputField)
 		}
@@ -108,11 +108,11 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	switch {
 	case e.Key() == tcell.KeyUp || e.Rune() == 'k': // Up
 		ms := selectedChannel.Messages
-		hs := messagesTextView.GetHighlights()
+		hs := messagesView.GetHighlights()
 		// If there are no currently highlighted message, highlight the last
 		// message in the TextView.
 		if len(hs) == 0 {
-			messagesTextView.
+			messagesView.
 				Highlight(ms[len(ms)-1].ID).
 				ScrollToHighlight()
 		} else {
@@ -127,7 +127,7 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			}
 			// Highlight the message just before the currently highlighted
 			// message.
-			messagesTextView.
+			messagesView.
 				Highlight(ms[idx-1].ID).
 				ScrollToHighlight()
 		}
@@ -135,11 +135,11 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		return nil
 	case e.Key() == tcell.KeyDown || e.Rune() == 'j': // Down
 		ms := selectedChannel.Messages
-		hs := messagesTextView.GetHighlights()
+		hs := messagesView.GetHighlights()
 		// If there are no currently highlighted message, highlight the last
 		// message in the TextView.
 		if len(hs) == 0 {
-			messagesTextView.
+			messagesView.
 				Highlight(ms[len(ms)-1].ID).
 				ScrollToHighlight()
 		} else {
@@ -154,7 +154,7 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			}
 			// Highlight the message just after the currently highlighted
 			// message.
-			messagesTextView.
+			messagesView.
 				Highlight(ms[idx+1].ID).
 				ScrollToHighlight()
 		}
@@ -164,19 +164,19 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		ms := selectedChannel.Messages
 		// Highlight the last message in the selectedChannel.Messages slice
 		// (the first message rendered in the TextView).
-		messagesTextView.
+		messagesView.
 			Highlight(ms[0].ID).
 			ScrollToHighlight()
 	case e.Key() == tcell.KeyEnd || e.Rune() == 'G': // Bottom
 		ms := selectedChannel.Messages
 		// Highlight the first message in the selectedChannel.Messages slice
 		// (the last message rendered in the TextView).
-		messagesTextView.
+		messagesView.
 			Highlight(ms[len(ms)-1].ID).
 			ScrollToHighlight()
 	case e.Rune() == 'r': // Reply
 		ms := selectedChannel.Messages
-		hs := messagesTextView.GetHighlights()
+		hs := messagesView.GetHighlights()
 		if len(hs) == 0 {
 			return nil
 		}
@@ -275,14 +275,14 @@ func onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 		return false
 	})
 
-	n := guildsTreeView.GetRoot()
+	n := guildsView.GetRoot()
 	for _, g := range r.Guilds {
 		gn := tview.NewTreeNode(g.Name).
 			SetReference(g.ID)
 		n.AddChild(gn)
 	}
 
-	guildsTreeView.SetCurrentNode(n)
+	guildsView.SetCurrentNode(n)
 }
 
 func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
@@ -292,7 +292,7 @@ func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
 
 	selectedChannel.Messages = append(selectedChannel.Messages, m.Message)
 	util.WriteMessage(
-		messagesTextView,
+		messagesView,
 		m.Message,
 		session.State.Ready.User.ID,
 	)
@@ -301,7 +301,7 @@ func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
 func onGuildsTreeViewSelected(n *tview.TreeNode) {
 	selectedChannel = nil
 	selectedMessage = nil
-	messagesTextView.
+	messagesView.
 		Clear().
 		SetTitle("")
 
@@ -327,7 +327,7 @@ func onGuildsTreeViewSelected(n *tview.TreeNode) {
 		// Category channels
 		ui.CreateCategoryChannelsTreeNodes(session.State, n, cs)
 		// Second-level channels
-		ui.CreateSecondLevelChannelsTreeNodes(session.State, guildsTreeView, cs)
+		ui.CreateSecondLevelChannelsTreeNodes(session.State, guildsView, cs)
 	default:
 		cID := n.GetReference().(string)
 		c, _ := session.State.Channel(cID)
@@ -342,7 +342,7 @@ func onGuildsTreeViewSelected(n *tview.TreeNode) {
 			if c.Topic != "" {
 				title += " - " + c.Topic
 			}
-			messagesTextView.
+			messagesView.
 				Clear().
 				SetTitle(title)
 
@@ -357,7 +357,7 @@ func writeMessages(cID string) {
 		selectedChannel.Messages = append(selectedChannel.Messages, msgs[i])
 
 		util.WriteMessage(
-			messagesTextView,
+			messagesView,
 			msgs[i],
 			session.State.Ready.User.ID,
 		)
@@ -381,7 +381,7 @@ func onLoginFormLoginButtonSelected() {
 	if lr.Token != "" && !lr.MFA {
 		app.
 			SetRoot(mainFlex, true).
-			SetFocus(guildsTreeView)
+			SetFocus(guildsView)
 
 		session.Token = lr.Token
 		session.Identify.Token = lr.Token
@@ -404,7 +404,7 @@ func onLoginFormLoginButtonSelected() {
 
 			app.
 				SetRoot(mainFlex, true).
-				SetFocus(guildsTreeView)
+				SetFocus(guildsView)
 
 			session.Token = lr.Token
 			session.Identify.Token = lr.Token

@@ -1,8 +1,6 @@
 package ui
 
-import (
-	"github.com/rivo/tview"
-)
+import "github.com/rivo/tview"
 
 // NewMainFlex creates and returns a new main flex.
 func NewMainFlex(

@@ -6,8 +6,8 @@ import (
 	"github.com/rivo/tview"
 )
 
-// NewGuildsTreeView creates and returns a new guilds treeview.
-func NewGuildsTreeView(
+// NewGuildsView creates and returns a new guilds treeview.
+func NewGuildsView(
 	onGuildsTreeViewSelected func(*tview.TreeNode),
 ) *tview.TreeView {
 	v := tview.NewTreeView()
