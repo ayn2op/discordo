@@ -12,6 +12,7 @@ import (
 type Config struct {
 	Token            string      `json:"token"`
 	Mouse            bool        `json:"mouse"`
+	Notifications    bool        `json:"notifications"`
 	UserAgent        string      `json:"userAgent"`
 	GetMessagesLimit int         `json:"getMessagesLimit"`
 	Theme            tview.Theme `json:"theme"`
@@ -20,8 +21,9 @@ type Config struct {
 // NewConfig reads the configuration file (if exists) and returns a new config.
 func NewConfig() *Config {
 	c := Config{
-		Token: "",
-		Mouse: true,
+		Token:         "",
+		Mouse:         true,
+		Notifications: true,
 		UserAgent: "" +
 			"Mozilla/5.0 (X11; Linux x86_64) " +
 			"AppleWebKit/537.36 (KHTML, like Gecko) " +
