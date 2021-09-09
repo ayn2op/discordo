@@ -1,39 +1,40 @@
 # discordo &middot; [![build](https://github.com/rigormorrtiss/discordo/actions/workflows/build.yml/badge.svg)](https://github.com/rigormorrtiss/discordo/actions/workflows/build.yml) [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/rigormorrtiss/discordo/blob/master/LICENSE) [![Go Report Card](https://goreportcard.com/badge/github.com/rigormorrtiss/discordo)](https://goreportcard.com/report/github.com/rigormorrtiss/discordo)
 
-Discordo is a lightweight, secure, and feature-rich Discord terminal client.
+Discordo is a lightweight, secure, and feature-rich Discord terminal client. It is highly configurable and has a minimalistic user interface.
 
 ![Preview](.github/preview.png)
 
 ## Features
 
-- Lightweight & secure
-- Easy-to-use & cross-platform
-- Configurable & minimalistic
+- Lightweight
+- Secure
+- Configurable
+- Cross-platform
+- Minimalistic
 - Feature-rich
-    - Discord-flavored markdown
-    - Clipboard support
-    - 2-Factor Authentication
+    - Mouse & clipboard support
+    - 2-Factor authentication
+    - Desktop notifications
+    - [WIP] Discord-flavored markdown
 
 ## Installation
 
-### Building
+### Building from source
 
 ```bash
 git clone https://github.com/rigormorrtiss/discordo
-cd discordo && go build
+cd discordo
+go build
 
 # optional
 sudo mv ./discordo /usr/local/bin
 ```
 
-## Package managers
+### Package managers
 
-```bash
-# (AUR) Arch Linux - development version (may be outdated)
-yay -S discordo-git
-```
+- Arch Linux (AUR, may be outdated): `paru -S discordo-git`
 
-## Getting Started
+## Usage
 
 - Run the executable in a new Terminal window.
 
@@ -41,7 +42,7 @@ By default, Discordo utilizes OS-specific keyring to store credentials such as c
 
 - Log in using the email and password (first-time login) and click on the "Login" button to continue.
 
-### Default Keybindings
+### Default keybindings
 
 Global:
 
@@ -57,10 +58,12 @@ TextView:
 - `G` or `End`: Selects the last message rendered in the TextView.
 - `r`: Reply to the selected message.
 
-### Clipboard
+### Clipboard support
 
-- Requires `xclip` or `xsel` for X11.
-- Requires `wl-clipboard` for Wayland.
+On Linux, clipboard support requires:
+
+- `xclip` or `xsel` for X11.
+- `wl-clipboard` for Wayland.
 
 ## Disclaimer
 
