@@ -29,10 +29,7 @@ var (
 
 func main() {
 	config = util.NewConfig()
-
-	if config.Theme != nil {
-		tview.Styles = *config.Theme
-	}
+	tview.Styles = config.Theme
 
 	app = tview.NewApplication().
 		EnableMouse(config.Mouse).
@@ -240,10 +237,7 @@ func newSession() *discordgo.Session {
 		panic(err)
 	}
 
-	s.UserAgent = "" +
-		"Mozilla/5.0 (X11; Linux x86_64) " +
-		"AppleWebKit/537.36 (KHTML, like Gecko) " +
-		"Chrome/92.0.4515.131 Safari/537.36"
+	s.UserAgent = config.UserAgent
 	s.Identify.Compress = false
 	s.Identify.Intents = 0
 	s.Identify.LargeThreshold = 0
