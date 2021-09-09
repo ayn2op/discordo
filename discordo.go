@@ -1,11 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 
 	"github.com/atotto/clipboard"
 	"github.com/gdamore/tcell/v2"
+	"github.com/gen2brain/beeep"
 	"github.com/rigormorrtiss/discordgo"
 	"github.com/rigormorrtiss/discordo/ui"
 	"github.com/rigormorrtiss/discordo/util"
@@ -279,8 +281,31 @@ func onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 	guildsView.SetCurrentNode(n)
 }
 
-func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
-	if selectedChannel == nil || selectedChannel.ID != m.ChannelID {
+func onSessionMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
+	if selectedChannel == nil {
+		selectedChannel = &discordgo.Channel{ID: ""}
+	}
+
+	if selectedChannel.ID != m.ChannelID {
+		if config.Notifications {
+			for _, u := range m.Mentions {
+				// If the client user account is mentioned in the message content, send a desktop notification with details.
+				if u.ID == s.State.User.ID {
+					g, err := s.State.Guild(m.GuildID)
+					if err != nil {
+						return
+					}
+					c, err := s.State.Channel(m.ChannelID)
+					if err != nil {
+						return
+					}
+
+					beeep.Alert(fmt.Sprintf("%s (#%s)", g.Name, c.Name), m.ContentWithMentionsReplaced(), "")
+					return
+				}
+			}
+		}
+
 		return
 	}
 
