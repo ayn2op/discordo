@@ -300,7 +300,7 @@ func onSessionMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 						return
 					}
 
-					beeep.Alert(fmt.Sprintf("%s (#%s)", g.Name, c.Name), m.ContentWithMentionsReplaced(), "")
+					go beeep.Alert(fmt.Sprintf("%s (#%s)", g.Name, c.Name), m.ContentWithMentionsReplaced(), "")
 					return
 				}
 			}
