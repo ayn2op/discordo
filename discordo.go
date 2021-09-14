@@ -16,12 +16,12 @@ import (
 )
 
 var (
-	app               *tview.Application
-	loginForm         *tview.Form
-	guildsView        *tview.TreeView
-	messagesView      *tview.TextView
-	messageInputField *tview.InputField
-	mainFlex          *tview.Flex
+	app            *tview.Application
+	loginWidget    *tview.Form
+	guildsWidget   *tview.TreeView
+	messagesWidget *tview.TextView
+	inputWidget    *tview.InputField
+	mainFlex       *tview.Flex
 
 	config          *util.Config
 	session         *discordgo.Session
@@ -37,19 +37,19 @@ func main() {
 	app.EnableMouse(config.Mouse)
 	app.SetInputCapture(onAppInputCapture)
 
-	guildsView = ui.NewGuildsView()
-	guildsView.SetSelectedFunc(onGuildsTreeViewSelected)
+	guildsWidget = ui.NewGuildsWidget()
+	guildsWidget.SetSelectedFunc(onGuildsWidgetSelected)
 
-	messagesView = ui.NewMessagesView(app)
-	messagesView.SetInputCapture(onMessagesViewInputCapture)
+	messagesWidget = ui.NewMessagesWidget(app)
+	messagesWidget.SetInputCapture(onMessagesWidgetInputCapture)
 
-	messageInputField = ui.NewMessageInputField()
-	messageInputField.SetInputCapture(onMessageInputFieldInputCapture)
+	inputWidget = ui.NewInputWidget()
+	inputWidget.SetInputCapture(onInputWidgetInputCapture)
 
 	mainFlex = ui.NewMainFlex(
-		guildsView,
-		messagesView,
-		messageInputField,
+		guildsWidget,
+		messagesWidget,
+		inputWidget,
 	)
 
 	token := config.Token
@@ -60,7 +60,7 @@ func main() {
 	if token != "" {
 		app.
 			SetRoot(mainFlex, true).
-			SetFocus(guildsView)
+			SetFocus(guildsWidget)
 
 		session = newSession()
 		session.Token = token
@@ -69,8 +69,8 @@ func main() {
 			panic(err)
 		}
 	} else {
-		loginForm = ui.NewLoginForm(onLoginFormLoginButtonSelected, false)
-		app.SetRoot(loginForm, true)
+		loginWidget = ui.NewLoginWidget(onLoginFormLoginButtonSelected, false)
+		app.SetRoot(loginWidget, true)
 	}
 
 	if err := app.Run(); err != nil {
@@ -82,11 +82,11 @@ func onAppInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	if e.Modifiers() == tcell.ModAlt {
 		switch e.Rune() {
 		case '1':
-			app.SetFocus(guildsView)
+			app.SetFocus(guildsWidget)
 		case '2':
-			app.SetFocus(messagesView)
+			app.SetFocus(messagesWidget)
 		case '3':
-			app.SetFocus(messageInputField)
+			app.SetFocus(inputWidget)
 		}
 	}
 
@@ -103,7 +103,7 @@ func findByMessageID(ms []*discordgo.Message, mID string) (int, *discordgo.Messa
 	return -1, nil
 }
 
-func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
+func onMessagesWidgetInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	if selectedChannel == nil {
 		return nil
 	}
@@ -111,11 +111,11 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	switch {
 	case e.Key() == tcell.KeyUp || e.Rune() == 'k': // Up
 		ms := selectedChannel.Messages
-		hs := messagesView.GetHighlights()
+		hs := messagesWidget.GetHighlights()
 		// If there are no currently highlighted message, highlight the last
 		// message in the TextView.
 		if len(hs) == 0 {
-			messagesView.
+			messagesWidget.
 				Highlight(ms[len(ms)-1].ID).
 				ScrollToHighlight()
 		} else {
@@ -130,7 +130,7 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			}
 			// Highlight the message just before the currently highlighted
 			// message.
-			messagesView.
+			messagesWidget.
 				Highlight(ms[idx-1].ID).
 				ScrollToHighlight()
 		}
@@ -138,11 +138,11 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		return nil
 	case e.Key() == tcell.KeyDown || e.Rune() == 'j': // Down
 		ms := selectedChannel.Messages
-		hs := messagesView.GetHighlights()
+		hs := messagesWidget.GetHighlights()
 		// If there are no currently highlighted message, highlight the last
 		// message in the TextView.
 		if len(hs) == 0 {
-			messagesView.
+			messagesWidget.
 				Highlight(ms[len(ms)-1].ID).
 				ScrollToHighlight()
 		} else {
@@ -157,7 +157,7 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			}
 			// Highlight the message just after the currently highlighted
 			// message.
-			messagesView.
+			messagesWidget.
 				Highlight(ms[idx+1].ID).
 				ScrollToHighlight()
 		}
@@ -167,34 +167,34 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		ms := selectedChannel.Messages
 		// Highlight the last message in the selectedChannel.Messages slice
 		// (the first message rendered in the TextView).
-		messagesView.
+		messagesWidget.
 			Highlight(ms[0].ID).
 			ScrollToHighlight()
 	case e.Key() == tcell.KeyEnd || e.Rune() == 'G': // Bottom
 		ms := selectedChannel.Messages
 		// Highlight the first message in the selectedChannel.Messages slice
 		// (the last message rendered in the TextView).
-		messagesView.
+		messagesWidget.
 			Highlight(ms[len(ms)-1].ID).
 			ScrollToHighlight()
 	case e.Rune() == 'r': // Reply
 		ms := selectedChannel.Messages
-		hs := messagesView.GetHighlights()
+		hs := messagesWidget.GetHighlights()
 		if len(hs) == 0 {
 			return nil
 		}
 
 		_, selectedMessage = findByMessageID(ms, hs[0])
-		messageInputField.SetTitle(
+		inputWidget.SetTitle(
 			"Replying to " + selectedMessage.Author.Username,
 		)
-		app.SetFocus(messageInputField)
+		app.SetFocus(inputWidget)
 	}
 
 	return e
 }
 
-func onMessageInputFieldInputCapture(e *tcell.EventKey) *tcell.EventKey {
+func onInputWidgetInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	// If the "Alt" modifier key is pressed, do not handle the event.
 	if e.Modifiers() == tcell.ModAlt {
 		return nil
@@ -206,13 +206,13 @@ func onMessageInputFieldInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
-		t := strings.TrimSpace(messageInputField.GetText())
+		t := strings.TrimSpace(inputWidget.GetText())
 		if t == "" {
 			return nil
 		}
 
 		if selectedMessage != nil {
-			messageInputField.SetTitle("")
+			inputWidget.SetTitle("")
 			go session.ChannelMessageSendReply(
 				selectedMessage.ChannelID,
 				t,
@@ -224,13 +224,13 @@ func onMessageInputFieldInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			go session.ChannelMessageSend(selectedChannel.ID, t)
 		}
 
-		messageInputField.SetText("")
+		inputWidget.SetText("")
 	case tcell.KeyCtrlV:
 		text, _ := clipboard.ReadAll()
-		text = messageInputField.GetText() + text
-		messageInputField.SetText(text)
+		text = inputWidget.GetText() + text
+		inputWidget.SetText(text)
 	case tcell.KeyEscape: // Cancel
-		messageInputField.SetTitle("")
+		inputWidget.SetTitle("")
 		selectedMessage = nil
 	}
 
@@ -275,14 +275,14 @@ func onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 		return false
 	})
 
-	n := guildsView.GetRoot()
+	n := guildsWidget.GetRoot()
 	for _, g := range r.Guilds {
 		gn := tview.NewTreeNode(g.Name).
 			SetReference(g.ID)
 		n.AddChild(gn)
 	}
 
-	guildsView.SetCurrentNode(n)
+	guildsWidget.SetCurrentNode(n)
 }
 
 func onSessionMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
@@ -315,16 +315,16 @@ func onSessionMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	selectedChannel.Messages = append(selectedChannel.Messages, m.Message)
 	util.WriteMessage(
-		messagesView,
+		messagesWidget,
 		m.Message,
 		session.State.Ready.User.ID,
 	)
 }
 
-func onGuildsTreeViewSelected(n *tview.TreeNode) {
+func onGuildsWidgetSelected(n *tview.TreeNode) {
 	selectedChannel = nil
 	selectedMessage = nil
-	messagesView.
+	messagesWidget.
 		Clear().
 		SetTitle("")
 
@@ -350,7 +350,7 @@ func onGuildsTreeViewSelected(n *tview.TreeNode) {
 		// Category channels
 		ui.CreateCategoryChannelsTreeNodes(session.State, n, cs)
 		// Second-level channels
-		ui.CreateSecondLevelChannelsTreeNodes(session.State, guildsView, cs)
+		ui.CreateSecondLevelChannelsTreeNodes(session.State, guildsWidget, cs)
 	default:
 		cID := n.GetReference().(string)
 		c, _ := session.State.Channel(cID)
@@ -359,13 +359,13 @@ func onGuildsTreeViewSelected(n *tview.TreeNode) {
 			n.SetExpanded(!n.IsExpanded())
 		} else if c.Type == discordgo.ChannelTypeGuildNews || c.Type == discordgo.ChannelTypeGuildText {
 			selectedChannel = c
-			app.SetFocus(messageInputField)
+			app.SetFocus(inputWidget)
 
 			title := "#" + c.Name
 			if c.Topic != "" {
 				title += " - " + c.Topic
 			}
-			messagesView.
+			messagesWidget.
 				Clear().
 				SetTitle(title)
 
@@ -380,7 +380,7 @@ func writeMessages(cID string) {
 		selectedChannel.Messages = append(selectedChannel.Messages, msgs[i])
 
 		util.WriteMessage(
-			messagesView,
+			messagesWidget,
 			msgs[i],
 			session.State.Ready.User.ID,
 		)
@@ -388,8 +388,8 @@ func writeMessages(cID string) {
 }
 
 func onLoginFormLoginButtonSelected() {
-	email := loginForm.GetFormItem(0).(*tview.InputField).GetText()
-	password := loginForm.GetFormItem(1).(*tview.InputField).GetText()
+	email := loginWidget.GetFormItem(0).(*tview.InputField).GetText()
+	password := loginWidget.GetFormItem(1).(*tview.InputField).GetText()
 	if email == "" || password == "" {
 		return
 	}
@@ -404,7 +404,7 @@ func onLoginFormLoginButtonSelected() {
 	if lr.Token != "" && !lr.MFA {
 		app.
 			SetRoot(mainFlex, true).
-			SetFocus(guildsView)
+			SetFocus(guildsWidget)
 
 		session.Token = lr.Token
 		session.Identify.Token = lr.Token
@@ -414,8 +414,8 @@ func onLoginFormLoginButtonSelected() {
 
 		go keyring.Set("discordo", "token", lr.Token)
 	} else if lr.MFA {
-		loginForm = ui.NewLoginForm(func() {
-			code := loginForm.GetFormItem(0).(*tview.InputField).GetText()
+		loginWidget = ui.NewLoginWidget(func() {
+			code := loginWidget.GetFormItem(0).(*tview.InputField).GetText()
 			if code == "" {
 				return
 			}
@@ -427,7 +427,7 @@ func onLoginFormLoginButtonSelected() {
 
 			app.
 				SetRoot(mainFlex, true).
-				SetFocus(guildsView)
+				SetFocus(guildsWidget)
 
 			session.Token = lr.Token
 			session.Identify.Token = lr.Token
@@ -438,6 +438,6 @@ func onLoginFormLoginButtonSelected() {
 			go keyring.Set("discordo", "token", lr.Token)
 		}, true)
 
-		app.SetRoot(loginForm, true)
+		app.SetRoot(loginWidget, true)
 	}
 }
