@@ -5,12 +5,12 @@ import (
 	"github.com/rivo/tview"
 )
 
-// NewMessagesView creates and returns a new messages textview.
-func NewMessagesView(
+// NewMessagesWidget creates and returns a new messages widget.
+func NewMessagesWidget(
 	app *tview.Application,
 ) *tview.TextView {
-	v := tview.NewTextView()
-	v.
+	w := tview.NewTextView()
+	w.
 		SetRegions(true).
 		SetDynamicColors(true).
 		SetWordWrap(true).
@@ -22,13 +22,13 @@ func NewMessagesView(
 		SetBorderPadding(0, 0, 1, 0).
 		SetTitleAlign(tview.AlignLeft)
 
-	return v
+	return w
 }
 
-// NewMessageInputField creates and returns a new message inputfield.
-func NewMessageInputField() *tview.InputField {
-	i := tview.NewInputField()
-	i.
+// NewInputWidget creates and returns a new input widget.
+func NewInputWidget() *tview.InputField {
+	w := tview.NewInputField()
+	w.
 		SetPlaceholder("Message...").
 		SetPlaceholderTextColor(tcell.ColorWhite).
 		SetFieldBackgroundColor(tview.Styles.PrimitiveBackgroundColor).
@@ -36,5 +36,5 @@ func NewMessageInputField() *tview.InputField {
 		SetBorderPadding(0, 0, 1, 0).
 		SetTitleAlign(tview.AlignLeft)
 
-	return i
+	return w
 }

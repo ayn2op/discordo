@@ -19,22 +19,22 @@ func NewMainFlex(
 	return mf
 }
 
-// NewLoginForm creates and returns a new login form.
-func NewLoginForm(onLoginFormLoginButtonSelected func(), mfa bool) *tview.Form {
-	f := tview.NewForm()
-	f.
+// NewLoginWidget creates and returns a new login widget.
+func NewLoginWidget(onLoginFormLoginButtonSelected func(), mfa bool) *tview.Form {
+	w := tview.NewForm()
+	w.
 		AddButton("Login", onLoginFormLoginButtonSelected).
 		SetButtonsAlign(tview.AlignCenter).
 		SetBorder(true).
 		SetBorderPadding(0, 0, 1, 0)
 
 	if mfa {
-		f.AddPasswordField("Code", "", 0, 0, nil)
+		w.AddPasswordField("Code", "", 0, 0, nil)
 	} else {
-		f.
+		w.
 			AddInputField("Email", "", 0, nil, nil).
 			AddPasswordField("Password", "", 0, 0, nil)
 	}
 
-	return f
+	return w
 }

@@ -2,14 +2,13 @@ package ui
 
 import (
 	"github.com/bwmarrin/discordgo"
-	"github.com/rigormorrtiss/discordo/util"
 	"github.com/rivo/tview"
 )
 
-// NewGuildsView creates and returns a new guilds treeview.
-func NewGuildsView() *tview.TreeView {
-	v := tview.NewTreeView()
-	v.
+// NewGuildsWidget creates and returns a new guilds widget.
+func NewGuildsWidget() *tview.TreeView {
+	w := tview.NewTreeView()
+	w.
 		SetTopLevel(1).
 		SetRoot(tview.NewTreeNode("")).
 		SetBorder(true).
@@ -17,7 +16,7 @@ func NewGuildsView() *tview.TreeView {
 		SetTitle("Guilds").
 		SetTitleAlign(tview.AlignLeft)
 
-	return v
+	return w
 }
 
 // NewTextChannelTreeNode creates and returns a new text channel treenode.
@@ -56,12 +55,7 @@ func CreateTopLevelChannelsTreeNodes(
 	for _, c := range cs {
 		if (c.Type == discordgo.ChannelTypeGuildText || c.Type == discordgo.ChannelTypeGuildNews) &&
 			(c.ParentID == "") {
-			if !util.HasPermission(
-				s,
-				s.User.ID,
-				c.ID,
-				discordgo.PermissionViewChannel,
-			) {
+			if p, err := s.UserChannelPermissions(s.User.ID, c.ID); err != nil || p&discordgo.PermissionViewChannel != discordgo.PermissionViewChannel {
 				continue
 			}
 
@@ -82,7 +76,7 @@ func CreateCategoryChannelsTreeNodes(
 CategoryLoop:
 	for _, c := range cs {
 		if c.Type == discordgo.ChannelTypeGuildCategory {
-			if !util.HasPermission(s, s.User.ID, c.ID, discordgo.PermissionViewChannel) {
+			if p, err := s.UserChannelPermissions(s.User.ID, c.ID); err != nil || p&discordgo.PermissionViewChannel != discordgo.PermissionViewChannel {
 				continue
 			}
 
@@ -112,12 +106,7 @@ func CreateSecondLevelChannelsTreeNodes(
 	for _, c := range cs {
 		if (c.Type == discordgo.ChannelTypeGuildText || c.Type == discordgo.ChannelTypeGuildNews) &&
 			(c.ParentID != "") {
-			if !util.HasPermission(
-				s,
-				s.User.ID,
-				c.ID,
-				discordgo.PermissionViewChannel,
-			) {
+			if p, err := s.UserChannelPermissions(s.User.ID, c.ID); err != nil || p&discordgo.PermissionViewChannel != discordgo.PermissionViewChannel {
 				continue
 			}
 
