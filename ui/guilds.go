@@ -1,7 +1,7 @@
 package ui
 
 import (
-	"github.com/rigormorrtiss/discordgo"
+	"github.com/bwmarrin/discordgo"
 	"github.com/rigormorrtiss/discordo/util"
 	"github.com/rivo/tview"
 )

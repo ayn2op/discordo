@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/rigormorrtiss/discordgo"
+	"github.com/bwmarrin/discordgo"
 	"github.com/rivo/tview"
 )
 
