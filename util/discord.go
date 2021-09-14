@@ -18,9 +18,7 @@ func WriteMessage(v *tview.TextView, m *discordgo.Message, clientID string) {
 		// Define a new region and assign message ID as the region ID.
 		// Learn more:
 		// https://pkg.go.dev/github.com/rivo/tview#hdr-Regions_and_Highlights
-		b.WriteString("[\"")
-		b.WriteString(m.ID)
-		b.WriteString("\"]")
+		fmt.Fprintf(&b, "[\"%s\"]", m.ID)
 		// Render the message associated with crosspost, channel follow add,
 		// pin, or a reply.
 		if rm := m.ReferencedMessage; rm != nil {
@@ -59,22 +57,15 @@ func WriteMessage(v *tview.TextView, m *discordgo.Message, clientID string) {
 		}
 		// Render the message attachments (attached files to the message).
 		for _, a := range m.Attachments {
-			b.WriteString("\n[")
-			b.WriteString(a.Filename)
-			b.WriteString("]: ")
-			b.WriteString(a.URL)
+			fmt.Fprintf(&b, "\n[%s]: %s", a.Filename, a.URL)
 		}
 		// Tags with no region ID ([""]) do not start new regions. They can
 		// therefore be used to mark the end of a region.
-		b.WriteString("[\"")
-		b.WriteString("\"]")
+		b.WriteString("[\"\"]")
 
 		fmt.Fprintln(v, b.String())
 	case discordgo.MessageTypeGuildMemberJoin:
-		b.WriteString("[#5865F2]")
-		b.WriteString(m.Author.Username)
-		b.WriteString("[-]")
-		b.WriteString(" joined the server")
+		fmt.Fprintf(&b, "[#5865F2]%s[-] joined the server", m.Author.Username)
 
 		fmt.Fprintln(v, b.String())
 	}
