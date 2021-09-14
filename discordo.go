@@ -6,9 +6,9 @@ import (
 	"strings"
 
 	"github.com/atotto/clipboard"
+	"github.com/bwmarrin/discordgo"
 	"github.com/gdamore/tcell/v2"
 	"github.com/gen2brain/beeep"
-	"github.com/rigormorrtiss/discordgo"
 	"github.com/rigormorrtiss/discordo/ui"
 	"github.com/rigormorrtiss/discordo/util"
 	"github.com/rivo/tview"
