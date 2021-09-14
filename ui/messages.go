@@ -8,7 +8,6 @@ import (
 // NewMessagesView creates and returns a new messages textview.
 func NewMessagesView(
 	app *tview.Application,
-	onMessagesTextViewInputCapture func(*tcell.EventKey) *tcell.EventKey,
 ) *tview.TextView {
 	v := tview.NewTextView()
 	v.
@@ -19,7 +18,6 @@ func NewMessagesView(
 		SetChangedFunc(func() {
 			app.Draw()
 		}).
-		SetInputCapture(onMessagesTextViewInputCapture).
 		SetBorder(true).
 		SetBorderPadding(0, 0, 1, 0).
 		SetTitleAlign(tview.AlignLeft)
@@ -28,15 +26,12 @@ func NewMessagesView(
 }
 
 // NewMessageInputField creates and returns a new message inputfield.
-func NewMessageInputField(
-	onMessageInputFieldInputCapture func(*tcell.EventKey) *tcell.EventKey,
-) *tview.InputField {
+func NewMessageInputField() *tview.InputField {
 	i := tview.NewInputField()
 	i.
 		SetPlaceholder("Message...").
 		SetPlaceholderTextColor(tcell.ColorWhite).
 		SetFieldBackgroundColor(tview.Styles.PrimitiveBackgroundColor).
-		SetInputCapture(onMessageInputFieldInputCapture).
 		SetBorder(true).
 		SetBorderPadding(0, 0, 1, 0).
 		SetTitleAlign(tview.AlignLeft)

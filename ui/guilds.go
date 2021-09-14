@@ -7,14 +7,11 @@ import (
 )
 
 // NewGuildsView creates and returns a new guilds treeview.
-func NewGuildsView(
-	onGuildsTreeViewSelected func(*tview.TreeNode),
-) *tview.TreeView {
+func NewGuildsView() *tview.TreeView {
 	v := tview.NewTreeView()
 	v.
 		SetTopLevel(1).
 		SetRoot(tview.NewTreeNode("")).
-		SetSelectedFunc(onGuildsTreeViewSelected).
 		SetBorder(true).
 		SetBorderPadding(0, 0, 1, 0).
 		SetTitle("Guilds").
