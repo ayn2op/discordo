@@ -33,15 +33,19 @@ func main() {
 	config = util.NewConfig()
 	tview.Styles = config.Theme
 
-	app = tview.NewApplication().
-		EnableMouse(config.Mouse).
-		SetInputCapture(onAppInputCapture)
-	guildsView = ui.NewGuildsView(onGuildsTreeViewSelected)
-	messagesView = ui.NewMessagesView(
-		app,
-		onMessagesTextViewInputCapture,
-	)
-	messageInputField = ui.NewMessageInputField(onMessageInputFieldInputCapture)
+	app = tview.NewApplication()
+	app.EnableMouse(config.Mouse)
+	app.SetInputCapture(onAppInputCapture)
+
+	guildsView = ui.NewGuildsView()
+	guildsView.SetSelectedFunc(onGuildsTreeViewSelected)
+
+	messagesView = ui.NewMessagesView(app)
+	messagesView.SetInputCapture(onMessagesViewInputCapture)
+
+	messageInputField = ui.NewMessageInputField()
+	messageInputField.SetInputCapture(onMessageInputFieldInputCapture)
+
 	mainFlex = ui.NewMainFlex(
 		guildsView,
 		messagesView,
@@ -99,7 +103,7 @@ func findByMessageID(ms []*discordgo.Message, mID string) (int, *discordgo.Messa
 	return -1, nil
 }
 
-func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
+func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	if selectedChannel == nil {
 		return nil
 	}
