@@ -116,24 +116,16 @@ func onMessagesWidgetInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		}
 
 		hs := messagesWidget.GetHighlights()
-		// If there are no currently highlighted message, highlight the last
-		// message in the TextView.
 		if len(hs) == 0 {
 			messagesWidget.
 				Highlight(ms[len(ms)-1].ID).
 				ScrollToHighlight()
 		} else {
-			// Find the index of the currently highlighted message in the
-			// *discordgo.Channel.Messages slice.
 			idx, _ := findByMessageID(ms, hs[0])
-			// If the index of the currently highlighted message is equal to
-			// zero
-			// (first message in the TextView), do not handle the event.
 			if idx == -1 || idx == 0 {
 				return nil
 			}
-			// Highlight the message just before the currently highlighted
-			// message.
+
 			messagesWidget.
 				Highlight(ms[idx-1].ID).
 				ScrollToHighlight()
@@ -147,24 +139,16 @@ func onMessagesWidgetInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		}
 
 		hs := messagesWidget.GetHighlights()
-		// If there are no currently highlighted message, highlight the last
-		// message in the TextView.
 		if len(hs) == 0 {
 			messagesWidget.
 				Highlight(ms[len(ms)-1].ID).
 				ScrollToHighlight()
 		} else {
-			// Find the index of the highlighted message in the
-			// *discordgo.Channel.Messages slice.
 			idx, _ := findByMessageID(ms, hs[0])
-			// If the index of the currently highlighted message is equal to the
-			// total number of elements in the *discordgo.Channel.Messages
-			// slice, do not handle the event.
 			if idx == -1 || idx == len(ms)-1 {
 				return nil
 			}
-			// Highlight the message just after the currently highlighted
-			// message.
+
 			messagesWidget.
 				Highlight(ms[idx+1].ID).
 				ScrollToHighlight()
@@ -177,8 +161,6 @@ func onMessagesWidgetInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
-		// Highlight the last message in the selectedChannel.Messages slice
-		// (the first message rendered in the TextView).
 		messagesWidget.
 			Highlight(ms[0].ID).
 			ScrollToHighlight()
@@ -188,12 +170,10 @@ func onMessagesWidgetInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
-		// Highlight the first message in the selectedChannel.Messages slice
-		// (the last message rendered in the TextView).
 		messagesWidget.
 			Highlight(ms[len(ms)-1].ID).
 			ScrollToHighlight()
-	case e.Rune() == 'r': // Reply
+	case e.Rune() == 'r': // Inline reply
 		ms := selectedChannel.Messages
 		if len(ms) == 0 {
 			return nil
@@ -249,7 +229,7 @@ func onInputWidgetInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		text, _ := clipboard.ReadAll()
 		text = inputWidget.GetText() + text
 		inputWidget.SetText(text)
-	case tcell.KeyEscape: // Cancel
+	case tcell.KeyEscape:
 		inputWidget.SetTitle("")
 		selectedMessage = nil
 	}
@@ -313,7 +293,6 @@ func onSessionMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if selectedChannel.ID != m.ChannelID {
 		if config.Notifications {
 			for _, u := range m.Mentions {
-				// If the client user account is mentioned in the message content, send a desktop notification with details.
 				if u.ID == s.State.User.ID {
 					g, err := s.State.Guild(m.GuildID)
 					if err != nil {
@@ -347,6 +326,8 @@ func onGuildsWidgetSelected(n *tview.TreeNode) {
 	messagesWidget.
 		Clear().
 		SetTitle("")
+	// Unhighlight the already-highlighted regions.
+	messagesWidget.Highlight()
 
 	switch n.GetLevel() {
 	case 1:
@@ -415,7 +396,7 @@ func onLoginFormLoginButtonSelected() {
 	}
 
 	session = newSession()
-	// Try to login without TOTP
+	// Login using the email and password
 	lr, err := util.Login(session, email, password)
 	if err != nil {
 		panic(err)
@@ -434,6 +415,7 @@ func onLoginFormLoginButtonSelected() {
 
 		go keyring.Set("discordo", "token", lr.Token)
 	} else if lr.MFA {
+		// The account has MFA enabled, reattempt login with code and ticket.
 		loginWidget = ui.NewLoginWidget(func() {
 			code := loginWidget.GetFormItem(0).(*tview.InputField).GetText()
 			if code == "" {
