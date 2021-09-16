@@ -339,7 +339,10 @@ func onGuildsWidgetSelected(n *tview.TreeNode) {
 		n.ClearChildren()
 
 		gID := n.GetReference().(string)
-		g, _ := session.State.Guild(gID)
+		g, err := session.State.Guild(gID)
+		if err != nil {
+			return
+		}
 
 		cs := g.Channels
 		sort.Slice(cs, func(i, j int) bool {
@@ -354,7 +357,10 @@ func onGuildsWidgetSelected(n *tview.TreeNode) {
 		ui.CreateSecondLevelChannelsTreeNodes(session.State, guildsWidget, cs)
 	default:
 		cID := n.GetReference().(string)
-		c, _ := session.State.Channel(cID)
+		c, err := session.State.Channel(cID)
+		if err != nil {
+			return
+		}
 
 		if c.Type == discordgo.ChannelTypeGuildCategory {
 			n.SetExpanded(!n.IsExpanded())
@@ -376,13 +382,17 @@ func onGuildsWidgetSelected(n *tview.TreeNode) {
 }
 
 func writeMessages(cID string) {
-	msgs, _ := session.ChannelMessages(cID, config.GetMessagesLimit, "", "", "")
-	for i := len(msgs) - 1; i >= 0; i-- {
-		selectedChannel.Messages = append(selectedChannel.Messages, msgs[i])
+	ms, err := session.ChannelMessages(cID, config.GetMessagesLimit, "", "", "")
+	if err != nil {
+		return
+	}
+
+	for i := len(ms) - 1; i >= 0; i-- {
+		selectedChannel.Messages = append(selectedChannel.Messages, ms[i])
 
 		util.WriteMessage(
 			messagesWidget,
-			msgs[i],
+			ms[i],
 			session.State.Ready.User.ID,
 		)
 	}
