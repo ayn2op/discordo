@@ -30,7 +30,7 @@ var (
 )
 
 func main() {
-	config = util.NewConfig()
+	config = util.LoadConfig()
 	tview.Styles = config.Theme
 
 	app = tview.NewApplication()

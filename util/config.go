@@ -18,9 +18,9 @@ type Config struct {
 	Theme            tview.Theme `json:"theme"`
 }
 
-// NewConfig reads the configuration file (if exists) and returns a new config.
-func NewConfig() *Config {
-	c := Config{
+// LoadConfig reads the configuration file (if exists) and returns a new config.
+func LoadConfig() *Config {
+	c := &Config{
 		Token:         "",
 		Mouse:         true,
 		Notifications: true,
@@ -34,11 +34,11 @@ func NewConfig() *Config {
 
 	userHomeDir, err := os.UserHomeDir()
 	if err != nil {
-		return &c
+		return c
 	}
 	configPath := userHomeDir + "/.config/discordo/config.json"
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		return &c
+		return c
 	}
 
 	d, err := os.ReadFile(configPath)
@@ -46,9 +46,9 @@ func NewConfig() *Config {
 		panic(err)
 	}
 
-	if err = json.Unmarshal(d, &c); err != nil {
+	if err = json.Unmarshal(d, c); err != nil {
 		panic(err)
 	}
 
-	return &c
+	return c
 }
