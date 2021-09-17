@@ -18,27 +18,41 @@ type Config struct {
 	Theme            tview.Theme `json:"theme"`
 }
 
-// LoadConfig reads the configuration file (if exists) and returns a new config.
+// LoadConfig creates (if the configuration file does not exist) and reads the configuration file and returns a new config.
 func LoadConfig() *Config {
-	c := &Config{
-		Token:         "",
-		Mouse:         true,
-		Notifications: true,
-		UserAgent: "" +
-			"Mozilla/5.0 (X11; Linux x86_64) " +
-			"AppleWebKit/537.36 (KHTML, like Gecko) " +
-			"Chrome/92.0.4515.131 Safari/537.36",
-		GetMessagesLimit: 50,
-		Theme:            tview.Styles,
+	u, err := os.UserHomeDir()
+	if err != nil {
+		panic(err)
 	}
 
-	userHomeDir, err := os.UserHomeDir()
-	if err != nil {
-		return c
-	}
-	configPath := userHomeDir + "/.config/discordo/config.json"
+	configPath := u + "/.config/discordo/config.json"
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		return c
+		f, err := os.Create(configPath)
+		if err != nil {
+			panic(err)
+		}
+
+		c := Config{
+			Mouse:         true,
+			Notifications: true,
+			UserAgent: "" +
+				"Mozilla/5.0 (X11; Linux x86_64) " +
+				"AppleWebKit/537.36 (KHTML, like Gecko) " +
+				"Chrome/92.0.4515.131 Safari/537.36",
+			GetMessagesLimit: 50,
+			Theme:            tview.Styles,
+		}
+		d, err := json.MarshalIndent(c, "", "\t")
+		if err != nil {
+			panic(err)
+		}
+
+		_, err = f.Write(d)
+		if err != nil {
+			panic(err)
+		}
+
+		f.Sync()
 	}
 
 	d, err := os.ReadFile(configPath)
@@ -46,9 +60,10 @@ func LoadConfig() *Config {
 		panic(err)
 	}
 
-	if err = json.Unmarshal(d, c); err != nil {
+	var c Config
+	if err = json.Unmarshal(d, &c); err != nil {
 		panic(err)
 	}
 
-	return c
+	return &c
 }
