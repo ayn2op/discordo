@@ -18,7 +18,9 @@ func WriteMessage(v *tview.TextView, m *discordgo.Message, clientID string) {
 		// Define a new region and assign message ID as the region ID.
 		// Learn more:
 		// https://pkg.go.dev/github.com/rivo/tview#hdr-Regions_and_Highlights
-		fmt.Fprintf(&b, "[\"%s\"]", m.ID)
+		b.WriteString("[\"")
+		b.WriteString(m.ID)
+		b.WriteString("\"]")
 		// Render the message associated with crosspost, channel follow add,
 		// pin, or a reply.
 		if rm := m.ReferencedMessage; rm != nil {
@@ -27,7 +29,7 @@ func WriteMessage(v *tview.TextView, m *discordgo.Message, clientID string) {
 			parseAuthor(&b, rm.Author, clientID)
 
 			if rm.Content != "" {
-				rm.Content = parseMessageMentions(
+				rm.Content = parseMentions(
 					rm.Content,
 					rm.Mentions,
 					clientID,
@@ -42,7 +44,7 @@ func WriteMessage(v *tview.TextView, m *discordgo.Message, clientID string) {
 		// If the message content is not empty, parse the message mentions
 		// (users mentioned in the message) and render the message content.
 		if m.Content != "" {
-			m.Content = parseMessageMentions(m.Content, m.Mentions, clientID)
+			m.Content = parseMentions(m.Content, m.Mentions, clientID)
 			b.WriteString(m.Content)
 		}
 		// If the edited timestamp of the message is not empty; it implies that
@@ -57,7 +59,10 @@ func WriteMessage(v *tview.TextView, m *discordgo.Message, clientID string) {
 		}
 		// Render the message attachments (attached files to the message).
 		for _, a := range m.Attachments {
-			fmt.Fprintf(&b, "\n[%s]: %s", a.Filename, a.URL)
+			b.WriteString("\n[")
+			b.WriteString(a.Filename)
+			b.WriteString("]: ")
+			b.WriteString(a.URL)
 		}
 		// Tags with no region ID ([""]) do not start new regions. They can
 		// therefore be used to mark the end of a region.
@@ -65,13 +70,15 @@ func WriteMessage(v *tview.TextView, m *discordgo.Message, clientID string) {
 
 		fmt.Fprintln(v, b.String())
 	case discordgo.MessageTypeGuildMemberJoin:
-		fmt.Fprintf(&b, "[#5865F2]%s[-] joined the server", m.Author.Username)
+		b.WriteString("[#5865F2]")
+		b.WriteString(m.Author.Username)
+		b.WriteString("[-] joined the server")
 
 		fmt.Fprintln(v, b.String())
 	}
 }
 
-func parseMessageMentions(
+func parseMentions(
 	content string,
 	mentions []*discordgo.User,
 	clientID string,
