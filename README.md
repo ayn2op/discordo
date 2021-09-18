@@ -50,13 +50,18 @@ Global:
 - `Alt` + `2`: Sets the focus on the messages TextView.
 - `Alt` + `3`: Sets the focus on the message InputField.
 
-TextView:
+Messages:
 
 - `k` or `Up`: Selects the message just before the currently selected message.
 - `j` or `Down`: Selects the message just after the currently selected message.
-- `g` or `Home`: Selects the first message rendered in the TextView.
-- `G` or `End`: Selects the last message rendered in the TextView.
-- `r`: Reply to the selected message.
+- `g` or `Home`: Selects the first message rendered.
+- `G` or `End`: Selects the last message rendered.
+
+- `r`: Reply to the selected message with mention.
+
+Input:
+
+- `Esc`: Unselect the currently selected message. This is useful for canceling an inline reply message.
 
 ### Clipboard support
 
