@@ -1,4 +1,4 @@
-package util
+package main
 
 import (
 	"encoding/json"
@@ -7,9 +7,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-// Config consists of fields, such as theme, mouse, so on, that may be
-// customized by the user.
-type Config struct {
+type config struct {
 	Token            string      `json:"token"`
 	Mouse            bool        `json:"mouse"`
 	Notifications    bool        `json:"notifications"`
@@ -18,8 +16,7 @@ type Config struct {
 	Theme            tview.Theme `json:"theme"`
 }
 
-// LoadConfig creates (if the configuration file does not exist) and reads the configuration file and returns a new config.
-func LoadConfig() *Config {
+func loadConfig() *config {
 	u, err := os.UserHomeDir()
 	if err != nil {
 		panic(err)
@@ -32,7 +29,7 @@ func LoadConfig() *Config {
 			panic(err)
 		}
 
-		c := Config{
+		c := config{
 			Mouse:         true,
 			Notifications: true,
 			UserAgent: "" +
@@ -60,7 +57,7 @@ func LoadConfig() *Config {
 		panic(err)
 	}
 
-	var c Config
+	var c config
 	if err = json.Unmarshal(d, &c); err != nil {
 		panic(err)
 	}
