@@ -1,16 +1,25 @@
-package util
+package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/rivo/tview"
 )
 
-// WriteMessage parses, renders, and writes a message to the given TextView.
-func WriteMessage(v *tview.TextView, m *discordgo.Message, clientID string) {
+func renderMessages(cID string) {
+	ms, err := session.ChannelMessages(cID, conf.GetMessagesLimit, "", "", "")
+	if err != nil {
+		return
+	}
+
+	for i := len(ms) - 1; i >= 0; i-- {
+		selectedChannel.Messages = append(selectedChannel.Messages, ms[i])
+		renderMessage(ms[i])
+	}
+}
+
+func renderMessage(m *discordgo.Message) {
 	var b strings.Builder
 
 	switch m.Type {
@@ -26,25 +35,21 @@ func WriteMessage(v *tview.TextView, m *discordgo.Message, clientID string) {
 		if rm := m.ReferencedMessage; rm != nil {
 			b.WriteString(" ╭ ")
 			b.WriteString("[::d]")
-			parseAuthor(&b, rm.Author, clientID)
+			parseAuthor(&b, rm.Author)
 
 			if rm.Content != "" {
-				rm.Content = parseMentions(
-					rm.Content,
-					rm.Mentions,
-					clientID,
-				)
+				rm.Content = parseMentions(rm.Content, rm.Mentions)
 				b.WriteString(rm.Content)
 			}
 
 			b.WriteString("[::-]\n")
 		}
 		// Render the author of the message.
-		parseAuthor(&b, m.Author, clientID)
+		parseAuthor(&b, m.Author)
 		// If the message content is not empty, parse the message mentions
 		// (users mentioned in the message) and render the message content.
 		if m.Content != "" {
-			m.Content = parseMentions(m.Content, m.Mentions, clientID)
+			m.Content = parseMentions(m.Content, m.Mentions)
 			b.WriteString(m.Content)
 		}
 		// If the edited timestamp of the message is not empty; it implies that
@@ -68,24 +73,20 @@ func WriteMessage(v *tview.TextView, m *discordgo.Message, clientID string) {
 		// therefore be used to mark the end of a region.
 		b.WriteString("[\"\"]")
 
-		fmt.Fprintln(v, b.String())
+		fmt.Fprintln(messagesTextView, b.String())
 	case discordgo.MessageTypeGuildMemberJoin:
 		b.WriteString("[#5865F2]")
 		b.WriteString(m.Author.Username)
 		b.WriteString("[-] joined the server")
 
-		fmt.Fprintln(v, b.String())
+		fmt.Fprintln(messagesTextView, b.String())
 	}
 }
 
-func parseMentions(
-	content string,
-	mentions []*discordgo.User,
-	clientID string,
-) string {
+func parseMentions(content string, mentions []*discordgo.User) string {
 	for _, mUser := range mentions {
 		var color string
-		if mUser.ID == clientID {
+		if mUser.ID == session.State.User.ID {
 			color = "[:#5865F2]"
 		} else {
 			color = "[#EB459E]"
@@ -104,10 +105,8 @@ func parseMentions(
 	return content
 }
 
-func parseAuthor(b *strings.Builder, u *discordgo.User, clientID string) {
-	// If the message author is the client, modify the text color for
-	// distinction.
-	if u.ID == clientID {
+func parseAuthor(b *strings.Builder, u *discordgo.User) {
+	if u.ID == session.State.User.ID {
 		b.WriteString("[#57F287]")
 	} else {
 		b.WriteString("[#ED4245]")
@@ -120,62 +119,4 @@ func parseAuthor(b *strings.Builder, u *discordgo.User, clientID string) {
 	if u.Bot {
 		b.WriteString("[#EB459E]BOT[-] ")
 	}
-}
-
-type loginResponse struct {
-	MFA    bool   `json:"mfa"`
-	SMS    bool   `json:"sms"`
-	Ticket string `json:"ticket"`
-	Token  string `json:"token"`
-}
-
-// Login creates a new request to the `/login` endpoint for essential login
-// information.
-func Login(
-	s *discordgo.Session,
-	email, password string,
-) (*loginResponse, error) {
-	data := struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}{email, password}
-	resp, err := s.RequestWithBucketID(
-		"POST",
-		discordgo.EndpointLogin,
-		data,
-		discordgo.EndpointLogin,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	var lr loginResponse
-	err = json.Unmarshal(resp, &lr)
-	if err != nil {
-		return nil, err
-	}
-
-	return &lr, nil
-}
-
-// TOTP creates a new request to `/mfa/totp` endpoint for time-based one-time
-// passcode for essential login information
-func TOTP(s *discordgo.Session, code, ticket string) (*loginResponse, error) {
-	data := struct {
-		Code   string `json:"code"`
-		Ticket string `json:"ticket"`
-	}{code, ticket}
-	e := discordgo.EndpointAuth + "mfa/totp"
-	resp, err := s.RequestWithBucketID("POST", e, data, e)
-	if err != nil {
-		return nil, err
-	}
-
-	var lr loginResponse
-	err = json.Unmarshal(resp, &lr)
-	if err != nil {
-		return nil, err
-	}
-
-	return &lr, nil
 }
