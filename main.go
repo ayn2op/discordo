@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/bwmarrin/discordgo"
+	"github.com/ayntgl/discordgo"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/zalando/go-keyring"

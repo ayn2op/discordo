@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/atotto/clipboard"
-	"github.com/bwmarrin/discordgo"
+	"github.com/ayntgl/discordgo"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -281,6 +281,20 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			"Replying to " + selectedMessage.Author.Username,
 		)
 		app.SetFocus(messageInputField)
+	case e.Rune() == 'R':
+		ms := selectedChannel.Messages
+		if len(ms) == 0 {
+			return nil
+		}
+
+		hs := messagesTextView.GetHighlights()
+		if len(hs) == 0 {
+			return nil
+		}
+
+		_, selectedMessage = findByMessageID(ms, hs[0])
+		messageInputField.SetTitle("[@] Repling to " + selectedMessage.Author.Username)
+		app.SetFocus(messageInputField)
 	}
 
 	return e
@@ -318,13 +332,19 @@ func onMessageInputFieldInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		}
 
 		if selectedMessage != nil {
-			messageInputField.SetTitle("")
-			go session.ChannelMessageSendReply(
-				selectedMessage.ChannelID,
-				t,
-				selectedMessage.Reference(),
-			)
+			d := &discordgo.MessageSend{
+				Content:         t,
+				Reference:       selectedMessage.Reference(),
+				AllowedMentions: &discordgo.MessageAllowedMentions{RepliedUser: false},
+			}
+			if strings.HasPrefix(messageInputField.GetTitle(), "[@]") {
+				d.AllowedMentions.RepliedUser = true
+			} else {
+				d.AllowedMentions.RepliedUser = false
+			}
 
+			go session.ChannelMessageSendComplex(selectedMessage.ChannelID, d)
+			messageInputField.SetTitle("")
 			selectedMessage = nil
 		} else {
 			go session.ChannelMessageSend(selectedChannel.ID, t)
