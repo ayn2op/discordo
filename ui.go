@@ -200,8 +200,8 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		return nil
 	}
 
-	switch {
-	case e.Key() == tcell.KeyUp || e.Rune() == 'k': // Up
+	switch e.Name() {
+	case conf.Keybindings.MessagesTextViewSelectPrevious:
 		ms := selectedChannel.Messages
 		if len(ms) == 0 {
 			return nil
@@ -224,7 +224,7 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		}
 
 		return nil
-	case e.Key() == tcell.KeyDown || e.Rune() == 'j': // Down
+	case conf.Keybindings.MessagesTextViewSelectNext:
 		ms := selectedChannel.Messages
 		if len(ms) == 0 {
 			return nil
@@ -247,7 +247,7 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		}
 
 		return nil
-	case e.Key() == tcell.KeyHome || e.Rune() == 'g': // Top
+	case conf.Keybindings.MessagesTextViewSelectFirst:
 		ms := selectedChannel.Messages
 		if len(ms) == 0 {
 			return nil
@@ -256,7 +256,7 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		messagesTextView.
 			Highlight(ms[0].ID).
 			ScrollToHighlight()
-	case e.Key() == tcell.KeyEnd || e.Rune() == 'G': // Bottom
+	case conf.Keybindings.MessagesTextViewSelectLast:
 		ms := selectedChannel.Messages
 		if len(ms) == 0 {
 			return nil
@@ -265,7 +265,7 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		messagesTextView.
 			Highlight(ms[len(ms)-1].ID).
 			ScrollToHighlight()
-	case e.Rune() == 'r': // Inline reply
+	case conf.Keybindings.MessagesTextViewReplySelected:
 		ms := selectedChannel.Messages
 		if len(ms) == 0 {
 			return nil
@@ -281,7 +281,7 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			"Replying to " + selectedMessage.Author.Username,
 		)
 		app.SetFocus(messageInputField)
-	case e.Rune() == 'R':
+	case conf.Keybindings.MessagesTextViewMentionReplySelected:
 		ms := selectedChannel.Messages
 		if len(ms) == 0 {
 			return nil
