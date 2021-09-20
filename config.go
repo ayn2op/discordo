@@ -7,6 +7,20 @@ import (
 	"github.com/rivo/tview"
 )
 
+type keybindings struct {
+	GuildsTreeViewFocus string
+
+	MessagesTextViewFocus                string
+	MessagesTextViewSelectPrevious       string
+	MessagesTextViewSelectNext           string
+	MessagesTextViewSelectFirst          string
+	MessagesTextViewSelectLast           string
+	MessagesTextViewReplySelected        string
+	MessagesTextViewMentionReplySelected string
+
+	MessageInputFieldFocus string
+}
+
 type config struct {
 	Token            string
 	Mouse            bool
@@ -14,6 +28,7 @@ type config struct {
 	UserAgent        string
 	GetMessagesLimit int
 	Theme            tview.Theme
+	Keybindings      keybindings
 }
 
 func loadConfig() *config {
@@ -23,7 +38,7 @@ func loadConfig() *config {
 	}
 
 	configPath := u + "/.config/discordo/config.json"
-	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+	if _, err = os.Stat(configPath); os.IsNotExist(err) {
 		f, err := os.Create(configPath)
 		if err != nil {
 			panic(err)
@@ -38,6 +53,19 @@ func loadConfig() *config {
 				"Chrome/92.0.4515.131 Safari/537.36",
 			GetMessagesLimit: 50,
 			Theme:            tview.Styles,
+			Keybindings: keybindings{
+				GuildsTreeViewFocus: "Alt+Rune[1]",
+
+				MessagesTextViewFocus:                "Alt+Rune[2]",
+				MessagesTextViewSelectPrevious:       "Up",
+				MessagesTextViewSelectNext:           "Down",
+				MessagesTextViewSelectFirst:          "Home",
+				MessagesTextViewSelectLast:           "End",
+				MessagesTextViewReplySelected:        "r",
+				MessagesTextViewMentionReplySelected: "R",
+
+				MessageInputFieldFocus: "Alt+Rune[3]",
+			},
 		}
 		d, err := json.MarshalIndent(c, "", "\t")
 		if err != nil {

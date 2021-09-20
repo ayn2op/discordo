@@ -42,27 +42,9 @@ By default, Discordo utilizes OS-specific keyring to store credentials such as c
 
 - Log in using the email and password (first-time login) and click on the "Login" button to continue.
 
-### Default keybindings
+### Configuration
 
-Global:
-
-- `Alt` + `1`: Sets the focus on the guilds TreeView.
-- `Alt` + `2`: Sets the focus on the messages TextView.
-- `Alt` + `3`: Sets the focus on the message InputField.
-
-Messages:
-
-- `k` or `Up`: Selects the message just before the currently selected message.
-- `j` or `Down`: Selects the message just after the currently selected message.
-- `g` or `Home`: Selects the first message rendered.
-- `G` or `End`: Selects the last message rendered.
-
-- `r`: Reply to the selected message without mention.
-- `R`: Reply to the currently selected message with mention.
-
-Input:
-
-- `Esc`: Unselect the currently selected message. This is useful for canceling an inline reply message.
+Discordo aims to be highly configurable, it may be easily customized via a configuration file. It creates a default configuration file on the first start-up. The newly created configuration file is located at `$HOME/.config/discordo/config.json`.
 
 ### Clipboard support
 
