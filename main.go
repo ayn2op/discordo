@@ -72,15 +72,13 @@ func main() {
 }
 
 func onAppInputCapture(e *tcell.EventKey) *tcell.EventKey {
-	if e.Modifiers() == tcell.ModAlt {
-		switch e.Rune() {
-		case '1':
-			app.SetFocus(guildsTreeView)
-		case '2':
-			app.SetFocus(messagesTextView)
-		case '3':
-			app.SetFocus(messageInputField)
-		}
+	switch e.Name() {
+	case conf.Keybindings.GuildsTreeViewFocus:
+		app.SetFocus(guildsTreeView)
+	case conf.Keybindings.MessagesTextViewFocus:
+		app.SetFocus(messagesTextView)
+	case conf.Keybindings.MessageInputFieldFocus:
+		app.SetFocus(messageInputField)
 	}
 
 	return e
