@@ -7,6 +7,8 @@ import (
 	"github.com/zalando/go-keyring"
 )
 
+const Service = "discordo"
+
 var (
 	app               *tview.Application
 	loginForm         *tview.Form
@@ -15,7 +17,8 @@ var (
 	messageInputField *tview.InputField
 	mainFlex          *tview.Flex
 
-	conf            *config
+	conf *config
+
 	session         *discordgo.Session
 	selectedChannel *discordgo.Channel
 	selectedMessage *discordgo.Message
@@ -43,7 +46,7 @@ func main() {
 		AddItem(rightFlex, 0, 4, false)
 
 	token := conf.Token
-	if t, _ := keyring.Get("discordo", "token"); t != "" {
+	if t, _ := keyring.Get(Service, "token"); t != "" {
 		token = t
 	}
 
@@ -108,7 +111,7 @@ func onLoginFormLoginButtonSelected() {
 			panic(err)
 		}
 
-		go keyring.Set("discordo", "token", lr.Token)
+		go keyring.Set(Service, "token", lr.Token)
 	} else if lr.MFA {
 		// The account has MFA enabled, reattempt login with code and ticket.
 		loginForm = newLoginForm(func() {
@@ -132,7 +135,7 @@ func onLoginFormLoginButtonSelected() {
 				panic(err)
 			}
 
-			go keyring.Set("discordo", "token", lr.Token)
+			go keyring.Set(Service, "token", lr.Token)
 		}, true)
 
 		app.SetRoot(loginForm, true)
