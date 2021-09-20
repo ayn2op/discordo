@@ -8,12 +8,12 @@ import (
 )
 
 type config struct {
-	Token            string      `json:"token"`
-	Mouse            bool        `json:"mouse"`
-	Notifications    bool        `json:"notifications"`
-	UserAgent        string      `json:"userAgent"`
-	GetMessagesLimit int         `json:"getMessagesLimit"`
-	Theme            tview.Theme `json:"theme"`
+	Token            string
+	Mouse            bool
+	Notifications    bool
+	UserAgent        string
+	GetMessagesLimit int
+	Theme            tview.Theme
 }
 
 func loadConfig() *config {
