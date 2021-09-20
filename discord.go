@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/bwmarrin/discordgo"
+	"github.com/ayntgl/discordgo"
 	"github.com/gen2brain/beeep"
 	"github.com/rivo/tview"
 )

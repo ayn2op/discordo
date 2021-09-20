@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bwmarrin/discordgo"
+	"github.com/ayntgl/discordgo"
 )
 
 func renderMessages(cID string) {
