@@ -57,7 +57,8 @@ Messages:
 - `g` or `Home`: Selects the first message rendered.
 - `G` or `End`: Selects the last message rendered.
 
-- `r`: Reply to the selected message with mention.
+- `r`: Reply to the selected message without mention.
+- `R`: Reply to the currently selected message with mention.
 
 Input:
 
