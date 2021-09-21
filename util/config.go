@@ -1,4 +1,4 @@
-package main
+package util
 
 import (
 	"encoding/json"
@@ -21,7 +21,7 @@ type keybindings struct {
 	MessageInputFieldFocus string
 }
 
-type config struct {
+type Config struct {
 	Token            string
 	Mouse            bool
 	Notifications    bool
@@ -31,7 +31,7 @@ type config struct {
 	Keybindings      keybindings
 }
 
-func loadConfig() *config {
+func LoadConfig() *Config {
 	u, err := os.UserHomeDir()
 	if err != nil {
 		panic(err)
@@ -44,7 +44,7 @@ func loadConfig() *config {
 			panic(err)
 		}
 
-		c := config{
+		c := Config{
 			Mouse:         true,
 			Notifications: true,
 			UserAgent: "" +
@@ -85,7 +85,7 @@ func loadConfig() *config {
 		panic(err)
 	}
 
-	var c config
+	var c Config
 	if err = json.Unmarshal(d, &c); err != nil {
 		panic(err)
 	}
