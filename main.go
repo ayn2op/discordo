@@ -8,7 +8,7 @@ import (
 	"github.com/zalando/go-keyring"
 )
 
-const Service = "discordo"
+const service = "discordo"
 
 var (
 	app               *tview.Application
