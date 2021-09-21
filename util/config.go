@@ -21,6 +21,7 @@ type keybindings struct {
 	MessageInputFieldFocus string
 }
 
+// Config consists of fields that can be customized by the user using the configuration file.
 type Config struct {
 	Token            string
 	Mouse            bool
@@ -31,6 +32,7 @@ type Config struct {
 	Keybindings      keybindings
 }
 
+// LoadConfig createsa new configuration file (if does not exist) and returns the default configuration or reads the existing configuration file from the default path.
 func LoadConfig() *Config {
 	u, err := os.UserHomeDir()
 	if err != nil {
