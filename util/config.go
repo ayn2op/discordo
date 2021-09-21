@@ -45,6 +45,7 @@ func LoadConfig() *Config {
 		if err != nil {
 			panic(err)
 		}
+		defer f.Close()
 
 		c := Config{
 			Mouse:         true,
@@ -80,6 +81,8 @@ func LoadConfig() *Config {
 		}
 
 		f.Sync()
+
+		return &c
 	}
 
 	d, err := os.ReadFile(configPath)
