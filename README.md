@@ -22,7 +22,7 @@
 ### Building from source
 
 ```bash
-git clone https://github.com/rigormorrtiss/discordo
+git clone https://github.com/ayntgl/discordo
 cd discordo
 go build
 
