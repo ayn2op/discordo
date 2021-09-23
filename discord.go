@@ -96,15 +96,12 @@ type loginResponse struct {
 	Token  string `json:"token"`
 }
 
-func login(
-	s *discordgo.Session,
-	email, password string,
-) (*loginResponse, error) {
+func login(email, password string) (*loginResponse, error) {
 	data := struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}{email, password}
-	resp, err := s.RequestWithBucketID(
+	resp, err := session.RequestWithBucketID(
 		"POST",
 		discordgo.EndpointLogin,
 		data,
@@ -123,13 +120,13 @@ func login(
 	return &lr, nil
 }
 
-func totp(s *discordgo.Session, code, ticket string) (*loginResponse, error) {
+func totp(code, ticket string) (*loginResponse, error) {
 	data := struct {
 		Code   string `json:"code"`
 		Ticket string `json:"ticket"`
 	}{code, ticket}
 	e := discordgo.EndpointAuth + "mfa/totp"
-	resp, err := s.RequestWithBucketID("POST", e, data, e)
+	resp, err := session.RequestWithBucketID("POST", e, data, e)
 	if err != nil {
 		return nil, err
 	}
