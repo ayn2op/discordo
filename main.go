@@ -93,7 +93,7 @@ func onLoginFormLoginButtonSelected() {
 
 	session = newSession()
 	// Login using the email and password
-	lr, err := login(session, email, password)
+	lr, err := login(email, password)
 	if err != nil {
 		panic(err)
 	}
@@ -118,7 +118,7 @@ func onLoginFormLoginButtonSelected() {
 				return
 			}
 
-			lr, err = totp(session, code, lr.Ticket)
+			lr, err = totp(code, lr.Ticket)
 			if err != nil {
 				panic(err)
 			}
