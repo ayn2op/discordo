@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/ayntgl/discordgo"
 	"github.com/gdamore/tcell/v2"
-	"github.com/rigormorrtiss/discordo/util"
 	"github.com/rivo/tview"
 	"github.com/zalando/go-keyring"
 )
@@ -18,14 +17,14 @@ var (
 	messageInputField *tview.InputField
 	mainFlex          *tview.Flex
 
-	conf            *util.Config
+	conf            *config
 	session         *discordgo.Session
 	selectedChannel *discordgo.Channel
 	selectedMessage *discordgo.Message
 )
 
 func main() {
-	conf = util.LoadConfig()
+	conf = loadConfig()
 	tview.Styles = conf.Theme
 
 	app = tview.NewApplication()

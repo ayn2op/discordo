@@ -1,4 +1,4 @@
-package util
+package main
 
 import (
 	"encoding/json"
@@ -21,8 +21,7 @@ type keybindings struct {
 	MessageInputFieldFocus string
 }
 
-// Config consists of fields that can be customized by the user using the configuration file.
-type Config struct {
+type config struct {
 	Token            string
 	Mouse            bool
 	Notifications    bool
@@ -32,8 +31,7 @@ type Config struct {
 	Keybindings      keybindings
 }
 
-// LoadConfig createsa new configuration file (if does not exist) and returns the default configuration or reads the existing configuration file from the default path.
-func LoadConfig() *Config {
+func loadConfig() *config {
 	u, err := os.UserHomeDir()
 	if err != nil {
 		panic(err)
@@ -52,7 +50,7 @@ func LoadConfig() *Config {
 		}
 		defer f.Close()
 
-		c := Config{
+		c := config{
 			Mouse:         true,
 			Notifications: true,
 			UserAgent: "" +
@@ -95,7 +93,7 @@ func LoadConfig() *Config {
 		panic(err)
 	}
 
-	var c Config
+	var c config
 	if err = json.Unmarshal(d, &c); err != nil {
 		panic(err)
 	}
