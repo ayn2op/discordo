@@ -10,6 +10,37 @@ import (
 	"github.com/rivo/tview"
 )
 
+var (
+	app               *tview.Application
+	loginForm         *tview.Form
+	guildsTreeView    *tview.TreeView
+	messagesTextView  *tview.TextView
+	messageInputField *tview.InputField
+	mainFlex          *tview.Flex
+)
+
+func newApplication() *tview.Application {
+	a := tview.NewApplication()
+	a.
+		EnableMouse(conf.Mouse).
+		SetInputCapture(onAppInputCapture)
+
+	return a
+}
+
+func onAppInputCapture(e *tcell.EventKey) *tcell.EventKey {
+	switch e.Name() {
+	case conf.Keybindings.GuildsTreeViewFocus:
+		app.SetFocus(guildsTreeView)
+	case conf.Keybindings.MessagesTextViewFocus:
+		app.SetFocus(messagesTextView)
+	case conf.Keybindings.MessageInputFieldFocus:
+		app.SetFocus(messageInputField)
+	}
+
+	return e
+}
+
 func newGuildsTreeView() *tview.TreeView {
 	w := tview.NewTreeView()
 	w.

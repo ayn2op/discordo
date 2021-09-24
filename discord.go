@@ -10,6 +10,12 @@ import (
 	"github.com/rivo/tview"
 )
 
+var (
+	session         *discordgo.Session
+	selectedChannel *discordgo.Channel
+	selectedMessage *discordgo.Message
+)
+
 func newSession() *discordgo.Session {
 	s, err := discordgo.New()
 	if err != nil {
