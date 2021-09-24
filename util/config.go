@@ -41,6 +41,11 @@ func LoadConfig() *Config {
 
 	configPath := u + "/.config/discordo/config.json"
 	if _, err = os.Stat(configPath); os.IsNotExist(err) {
+		err = os.MkdirAll(u+"/.config/discordo", 0700)
+		if err != nil {
+			panic(err)
+		}
+
 		f, err := os.Create(configPath)
 		if err != nil {
 			panic(err)
