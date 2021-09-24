@@ -1,37 +1,17 @@
 package main
 
 import (
-	"github.com/ayntgl/discordgo"
-	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/zalando/go-keyring"
 )
 
 const service = "discordo"
 
-var (
-	app               *tview.Application
-	loginForm         *tview.Form
-	guildsTreeView    *tview.TreeView
-	messagesTextView  *tview.TextView
-	messageInputField *tview.InputField
-	mainFlex          *tview.Flex
-
-	conf            *config
-	session         *discordgo.Session
-	selectedChannel *discordgo.Channel
-	selectedMessage *discordgo.Message
-)
-
 func main() {
 	conf = loadConfig()
 	tview.Styles = conf.Theme
 
-	app = tview.NewApplication()
-	app.
-		EnableMouse(conf.Mouse).
-		SetInputCapture(onAppInputCapture)
-
+	app = newApplication()
 	guildsTreeView = newGuildsTreeView()
 	messagesTextView = newMessagesTextView()
 	messageInputField = newMessageInputField()
@@ -68,19 +48,6 @@ func main() {
 	if err := app.Run(); err != nil {
 		panic(err)
 	}
-}
-
-func onAppInputCapture(e *tcell.EventKey) *tcell.EventKey {
-	switch e.Name() {
-	case conf.Keybindings.GuildsTreeViewFocus:
-		app.SetFocus(guildsTreeView)
-	case conf.Keybindings.MessagesTextViewFocus:
-		app.SetFocus(messagesTextView)
-	case conf.Keybindings.MessageInputFieldFocus:
-		app.SetFocus(messageInputField)
-	}
-
-	return e
 }
 
 func onLoginFormLoginButtonSelected() {

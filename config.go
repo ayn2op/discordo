@@ -7,6 +7,8 @@ import (
 	"github.com/rivo/tview"
 )
 
+var conf *config
+
 type keybindings struct {
 	GuildsTreeViewFocus string
 
