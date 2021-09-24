@@ -67,8 +67,8 @@ func loadConfig() *config {
 				MessagesTextViewSelectNext:           "Down",
 				MessagesTextViewSelectFirst:          "Home",
 				MessagesTextViewSelectLast:           "End",
-				MessagesTextViewReplySelected:        "r",
-				MessagesTextViewMentionReplySelected: "R",
+				MessagesTextViewReplySelected:        "Rune[r]",
+				MessagesTextViewMentionReplySelected: "Rune[R]",
 
 				MessageInputFieldFocus: "Alt+Rune[3]",
 			},
