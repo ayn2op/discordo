@@ -32,7 +32,7 @@ sudo mv ./discordo /usr/local/bin
 
 ### Package managers
 
-- Arch Linux (AUR, may be outdated): `paru -S discordo-git`
+- Arch Linux (unofficial, AUR, may be outdated): `yay -S discordo-git`
 
 ## Usage
 
