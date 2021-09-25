@@ -37,6 +37,22 @@ func newSession() *discordgo.Session {
 }
 
 func onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
+	dmNode := tview.NewTreeNode("Direct Messages").
+		Collapse()
+
+	n := mainTreeView.GetRoot()
+	n.AddChild(dmNode)
+
+	sort.Slice(r.PrivateChannels, func(i, j int) bool {
+		return r.PrivateChannels[i].LastMessageID > r.PrivateChannels[j].LastMessageID
+	})
+
+	for _, c := range r.PrivateChannels {
+		cn := tview.NewTreeNode(genChannelRepr(c)).
+			SetReference(c.ID)
+		dmNode.AddChild(cn)
+	}
+
 	sort.Slice(r.Guilds, func(a, b int) bool {
 		found := false
 		for _, gID := range r.Settings.GuildPositions {
@@ -54,14 +70,13 @@ func onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 		return false
 	})
 
-	n := guildsTreeView.GetRoot()
 	for _, g := range r.Guilds {
 		gn := tview.NewTreeNode(g.Name).
 			SetReference(g.ID)
 		n.AddChild(gn)
 	}
 
-	guildsTreeView.SetCurrentNode(n)
+	mainTreeView.SetCurrentNode(n)
 }
 
 func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {

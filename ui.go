@@ -13,7 +13,7 @@ import (
 var (
 	app               *tview.Application
 	loginForm         *tview.Form
-	guildsTreeView    *tview.TreeView
+	mainTreeView      *tview.TreeView
 	messagesTextView  *tview.TextView
 	messageInputField *tview.InputField
 	mainFlex          *tview.Flex
@@ -31,7 +31,7 @@ func newApplication() *tview.Application {
 func onAppInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	switch e.Name() {
 	case conf.Keybindings.GuildsTreeViewFocus:
-		app.SetFocus(guildsTreeView)
+		app.SetFocus(mainTreeView)
 	case conf.Keybindings.MessagesTextViewFocus:
 		app.SetFocus(messagesTextView)
 	case conf.Keybindings.MessageInputFieldFocus:
@@ -41,21 +41,19 @@ func onAppInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	return e
 }
 
-func newGuildsTreeView() *tview.TreeView {
+func newMainTreeView() *tview.TreeView {
 	w := tview.NewTreeView()
 	w.
-		SetSelectedFunc(onGuildsTreeViewSelected).
+		SetSelectedFunc(onMainTreeViewSelected).
 		SetTopLevel(1).
 		SetRoot(tview.NewTreeNode("")).
 		SetBorder(true).
-		SetBorderPadding(0, 0, 1, 0).
-		SetTitle("Guilds").
-		SetTitleAlign(tview.AlignLeft)
+		SetBorderPadding(0, 0, 1, 0)
 
 	return w
 }
 
-func onGuildsTreeViewSelected(n *tview.TreeNode) {
+func onMainTreeViewSelected(n *tview.TreeNode) {
 	selectedChannel = nil
 	selectedMessage = nil
 	messagesTextView.
@@ -72,7 +70,9 @@ func onGuildsTreeViewSelected(n *tview.TreeNode) {
 			return
 		}
 
-		n.ClearChildren()
+		if n.GetText() == "Direct Messages" {
+			return
+		}
 
 		gID := n.GetReference().(string)
 		g, err := session.State.Guild(gID)
@@ -111,6 +111,15 @@ func onGuildsTreeViewSelected(n *tview.TreeNode) {
 			messagesTextView.
 				Clear().
 				SetTitle(title)
+
+			go renderMessages(c.ID)
+		} else if c.Type == discordgo.ChannelTypeDM || c.Type == discordgo.ChannelTypeGroupDM {
+			selectedChannel = c
+			app.SetFocus(messageInputField)
+
+			messagesTextView.
+				Clear().
+				SetTitle(genChannelRepr(c))
 
 			go renderMessages(c.ID)
 		}
@@ -186,7 +195,7 @@ func createSecondLevelChannelsTreeNodes(cs []*discordgo.Channel) {
 }
 
 func getTreeNodeByReference(r interface{}) (mn *tview.TreeNode) {
-	guildsTreeView.GetRoot().Walk(func(n, _ *tview.TreeNode) bool {
+	mainTreeView.GetRoot().Walk(func(n, _ *tview.TreeNode) bool {
 		if n.GetReference() == r {
 			mn = n
 			return false

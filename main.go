@@ -12,7 +12,7 @@ func main() {
 	tview.Styles = conf.Theme
 
 	app = newApplication()
-	guildsTreeView = newGuildsTreeView()
+	mainTreeView = newMainTreeView()
 	messagesTextView = newMessagesTextView()
 	messageInputField = newMessageInputField()
 
@@ -21,7 +21,7 @@ func main() {
 		AddItem(messagesTextView, 0, 1, false).
 		AddItem(messageInputField, 3, 1, false)
 	mainFlex = tview.NewFlex().
-		AddItem(guildsTreeView, 0, 1, false).
+		AddItem(mainTreeView, 0, 1, false).
 		AddItem(rightFlex, 0, 4, false)
 
 	token := conf.Token
@@ -32,7 +32,7 @@ func main() {
 	if token != "" {
 		app.
 			SetRoot(mainFlex, true).
-			SetFocus(guildsTreeView)
+			SetFocus(mainTreeView)
 
 		session = newSession()
 		session.Token = token
@@ -67,7 +67,7 @@ func onLoginFormLoginButtonSelected() {
 	if lr.Token != "" && !lr.MFA {
 		app.
 			SetRoot(mainFlex, true).
-			SetFocus(guildsTreeView)
+			SetFocus(mainTreeView)
 
 		session.Token = lr.Token
 		session.Identify.Token = lr.Token
@@ -91,7 +91,7 @@ func onLoginFormLoginButtonSelected() {
 
 			app.
 				SetRoot(mainFlex, true).
-				SetFocus(guildsTreeView)
+				SetFocus(mainTreeView)
 
 			session.Token = lr.Token
 			session.Identify.Token = lr.Token
