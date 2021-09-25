@@ -225,16 +225,6 @@ func newMessagesTextView() *tview.TextView {
 	return w
 }
 
-func findByMessageID(ms []*discordgo.Message, mID string) (int, *discordgo.Message) {
-	for i, m := range ms {
-		if mID == m.ID {
-			return i, m
-		}
-	}
-
-	return -1, nil
-}
-
 func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	if selectedChannel == nil {
 		return nil
