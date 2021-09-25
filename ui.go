@@ -48,9 +48,7 @@ func newMainTreeView() *tview.TreeView {
 		SetTopLevel(1).
 		SetRoot(tview.NewTreeNode("")).
 		SetBorder(true).
-		SetBorderPadding(0, 0, 1, 0).
-		SetTitle("Guilds").
-		SetTitleAlign(tview.AlignLeft)
+		SetBorderPadding(0, 0, 1, 0)
 
 	return w
 }
