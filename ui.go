@@ -104,7 +104,7 @@ func onMainTreeViewSelected(n *tview.TreeNode) {
 			selectedChannel = c
 			app.SetFocus(messageInputField)
 
-			title := "#" + c.Name
+			title := genChannelRepr(c)
 			if c.Topic != "" {
 				title += " - " + c.Topic
 			}
@@ -127,7 +127,7 @@ func onMainTreeViewSelected(n *tview.TreeNode) {
 }
 
 func newTextChannelTreeNode(c *discordgo.Channel) *tview.TreeNode {
-	n := tview.NewTreeNode("[::d]#" + c.Name + "[::-]").
+	n := tview.NewTreeNode("[::d]" + genChannelRepr(c) + "[::-]").
 		SetReference(c.ID)
 
 	return n

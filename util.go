@@ -9,7 +9,7 @@ import (
 func genChannelRepr(c *discordgo.Channel) string {
 	var repr string
 	if c.Name != "" {
-		repr = c.Name
+		repr = "#" + c.Name
 	} else if len(c.Recipients) == 1 {
 		rp := c.Recipients[0]
 		repr = rp.Username + "#" + rp.Discriminator
