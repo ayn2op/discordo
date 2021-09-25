@@ -1,6 +1,6 @@
 # discordo &middot; [![build](https://github.com/ayntgl/discordo/actions/workflows/build.yml/badge.svg)](https://github.com/ayntgl/discordo/actions/workflows/build.yml) [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/ayntgl/discordo/blob/master/LICENSE) [![Go Report Card](https://goreportcard.com/badge/github.com/ayntgl/discordo)](https://goreportcard.com/report/github.com/ayntgl/discordo)
 
-[WIP] Discordo is a lightweight, secure, and feature-rich Discord terminal client. It is highly configurable and has a minimalistic user interface.
+Discordo is a lightweight, secure, and feature-rich Discord terminal client.
 
 ![Preview](.github/preview.png)
 
