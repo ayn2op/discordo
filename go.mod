@@ -1,4 +1,4 @@
-module github.com/rigormorrtiss/discordo
+module github.com/ayntgl/discordo
 
 go 1.16
 
