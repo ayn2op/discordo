@@ -13,7 +13,7 @@ import (
 var (
 	app               *tview.Application
 	loginForm         *tview.Form
-	mainTreeView      *tview.TreeView
+	channelsTree      *tview.TreeView
 	messagesTextView  *tview.TextView
 	messageInputField *tview.InputField
 	mainFlex          *tview.Flex
@@ -31,7 +31,7 @@ func newApplication() *tview.Application {
 func onAppInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	switch e.Name() {
 	case conf.Keybindings.GuildsTreeViewFocus:
-		app.SetFocus(mainTreeView)
+		app.SetFocus(channelsTree)
 	case conf.Keybindings.MessagesTextViewFocus:
 		app.SetFocus(messagesTextView)
 	case conf.Keybindings.MessageInputFieldFocus:
@@ -41,19 +41,19 @@ func onAppInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	return e
 }
 
-func newMainTreeView() *tview.TreeView {
-	w := tview.NewTreeView()
-	w.
-		SetSelectedFunc(onMainTreeViewSelected).
+func newChannelsTree() *tview.TreeView {
+	channelsTree := tview.NewTreeView()
+	channelsTree.
+		SetSelectedFunc(onChannelsTreeSelected).
 		SetTopLevel(1).
 		SetRoot(tview.NewTreeNode("")).
 		SetBorder(true).
 		SetBorderPadding(0, 0, 1, 0)
 
-	return w
+	return channelsTree
 }
 
-func onMainTreeViewSelected(n *tview.TreeNode) {
+func onChannelsTreeSelected(n *tview.TreeNode) {
 	selectedChannel = nil
 	selectedMessage = nil
 	messagesTextView.
@@ -195,7 +195,7 @@ func createSecondLevelChannelsTreeNodes(cs []*discordgo.Channel) {
 }
 
 func getTreeNodeByReference(r interface{}) (mn *tview.TreeNode) {
-	mainTreeView.GetRoot().Walk(func(n, _ *tview.TreeNode) bool {
+	channelsTree.GetRoot().Walk(func(n, _ *tview.TreeNode) bool {
 		if n.GetReference() == r {
 			mn = n
 			return false

@@ -40,7 +40,7 @@ func onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 	dmNode := tview.NewTreeNode("Direct Messages").
 		Collapse()
 
-	n := mainTreeView.GetRoot()
+	n := channelsTree.GetRoot()
 	n.AddChild(dmNode)
 
 	sort.Slice(r.PrivateChannels, func(i, j int) bool {
@@ -76,7 +76,7 @@ func onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 		n.AddChild(gn)
 	}
 
-	mainTreeView.SetCurrentNode(n)
+	channelsTree.SetCurrentNode(n)
 }
 
 func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
