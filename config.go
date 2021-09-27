@@ -3,8 +3,6 @@ package main
 import (
 	"encoding/json"
 	"os"
-
-	"github.com/rivo/tview"
 )
 
 var conf *config
@@ -23,13 +21,27 @@ type keybindings struct {
 	MessageInputFieldFocus string
 }
 
+type theme struct {
+	PrimitiveBackgroundColor    string // Main background color for primitives.
+	ContrastBackgroundColor     string // Background color for contrasting elements.
+	MoreContrastBackgroundColor string // Background color for even more contrasting elements.
+	BorderColor                 string // Box borders.
+	TitleColor                  string // Box titles.
+	GraphicsColor               string // Graphics.
+	PrimaryTextColor            string // Primary text.
+	SecondaryTextColor          string // Secondary text (e.g. labels).
+	TertiaryTextColor           string // Tertiary text (e.g. subtitles, notes).
+	InverseTextColor            string // Text on primary-colored backgrounds.
+	ContrastSecondaryTextColor  string // Secondary text on ContrastBackgroundColor-colored backgrounds.
+}
+
 type config struct {
 	Token            string
 	Mouse            bool
 	Notifications    bool
 	UserAgent        string
 	GetMessagesLimit int
-	Theme            tview.Theme
+	Theme            theme
 	Keybindings      keybindings
 }
 
@@ -60,7 +72,19 @@ func loadConfig() *config {
 				"AppleWebKit/537.36 (KHTML, like Gecko) " +
 				"Chrome/92.0.4515.131 Safari/537.36",
 			GetMessagesLimit: 50,
-			Theme:            tview.Styles,
+			Theme: theme{
+				PrimitiveBackgroundColor:    "black",
+				ContrastBackgroundColor:     "blue",
+				MoreContrastBackgroundColor: "green",
+				BorderColor:                 "white",
+				TitleColor:                  "white",
+				GraphicsColor:               "white",
+				PrimaryTextColor:            "white",
+				SecondaryTextColor:          "yellow",
+				TertiaryTextColor:           "green",
+				InverseTextColor:            "blue",
+				ContrastSecondaryTextColor:  "darkcyan",
+			},
 			Keybindings: keybindings{
 				GuildsTreeViewFocus: "Alt+Rune[1]",
 

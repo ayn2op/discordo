@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/zalando/go-keyring"
 )
@@ -9,7 +10,18 @@ const service = "discordo"
 
 func main() {
 	conf = loadConfig()
-	tview.Styles = conf.Theme
+
+	tview.Styles.PrimitiveBackgroundColor = tcell.GetColor(conf.Theme.PrimitiveBackgroundColor)
+	tview.Styles.ContrastBackgroundColor = tcell.GetColor(conf.Theme.ContrastBackgroundColor)
+	tview.Styles.MoreContrastBackgroundColor = tcell.GetColor(conf.Theme.MoreContrastBackgroundColor)
+	tview.Styles.BorderColor = tcell.GetColor(conf.Theme.BorderColor)
+	tview.Styles.TitleColor = tcell.GetColor(conf.Theme.TitleColor)
+	tview.Styles.GraphicsColor = tcell.GetColor(conf.Theme.GraphicsColor)
+	tview.Styles.PrimaryTextColor = tcell.GetColor(conf.Theme.PrimaryTextColor)
+	tview.Styles.SecondaryTextColor = tcell.GetColor(conf.Theme.SecondaryTextColor)
+	tview.Styles.TertiaryTextColor = tcell.GetColor(conf.Theme.TertiaryTextColor)
+	tview.Styles.InverseTextColor = tcell.GetColor(conf.Theme.InverseTextColor)
+	tview.Styles.ContrastSecondaryTextColor = tcell.GetColor(conf.Theme.ContrastSecondaryTextColor)
 
 	app = newApplication()
 	channelsTree = newChannelsTree()
