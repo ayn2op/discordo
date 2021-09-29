@@ -6,7 +6,7 @@ import (
 	"github.com/ayntgl/discordgo"
 )
 
-func genChannelRepr(c *discordgo.Channel) string {
+func generateChannelRepr(c *discordgo.Channel) string {
 	var repr string
 	if c.Name != "" {
 		repr = "#" + c.Name
