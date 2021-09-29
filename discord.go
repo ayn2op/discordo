@@ -111,6 +111,9 @@ func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 
 		cn := getTreeNodeByReference(c.ID)
+		if cn == nil {
+			return
+		}
 		cn.SetText("[::b]" + generateChannelRepr(c) + "[::-]")
 		app.Draw()
 	} else {
