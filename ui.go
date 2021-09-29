@@ -1,7 +1,6 @@
 package main
 
 import (
-	"sort"
 	"strings"
 
 	"github.com/atotto/clipboard"
@@ -63,71 +62,37 @@ func onChannelsTreeSelected(n *tview.TreeNode) {
 	// Unhighlight the already-highlighted regions.
 	messagesTextView.Highlight()
 
-	switch n.GetLevel() {
-	case 1:
-		if len(n.GetChildren()) != 0 {
-			n.SetExpanded(!n.IsExpanded())
-			return
-		}
-
-		if n.GetText() == "Direct Messages" {
-			return
-		}
-
-		gID := n.GetReference().(string)
-		g, err := session.State.Guild(gID)
-		if err != nil {
-			return
-		}
-
-		cs := g.Channels
-		sort.Slice(cs, func(i, j int) bool {
-			return cs[i].Position < cs[j].Position
-		})
-
-		// Top-level channels
-		createTopLevelChannelsTreeNodes(n, cs)
-		// Category channels
-		createCategoryChannelsTreeNodes(n, cs)
-		// Second-level channels
-		createSecondLevelChannelsTreeNodes(cs)
-	default:
+	if len(n.GetChildren()) != 0 {
+		n.SetExpanded(!n.IsExpanded())
+	} else {
 		cID := n.GetReference().(string)
 		c, err := session.State.Channel(cID)
 		if err != nil {
 			return
 		}
 
-		if c.Type == discordgo.ChannelTypeGuildCategory {
-			n.SetExpanded(!n.IsExpanded())
-		} else if c.Type == discordgo.ChannelTypeGuildNews || c.Type == discordgo.ChannelTypeGuildText {
-			selectedChannel = c
-			app.SetFocus(messageInputField)
+		selectedChannel = c
+		app.SetFocus(messageInputField)
 
-			title := genChannelRepr(c)
+		switch c.Type {
+		case discordgo.ChannelTypeGuildText, discordgo.ChannelTypeGuildNews:
+			title := generateChannelRepr(c)
 			if c.Topic != "" {
 				title += " - " + c.Topic
 			}
-			messagesTextView.
-				Clear().
-				SetTitle(title)
 
-			go renderMessages(c.ID)
-		} else if c.Type == discordgo.ChannelTypeDM || c.Type == discordgo.ChannelTypeGroupDM {
-			selectedChannel = c
-			app.SetFocus(messageInputField)
-
-			messagesTextView.
-				Clear().
-				SetTitle(genChannelRepr(c))
-
-			go renderMessages(c.ID)
+			messagesTextView.SetTitle(title)
+		case discordgo.ChannelTypeDM, discordgo.ChannelTypeGroupDM:
+			messagesTextView.SetTitle(generateChannelRepr(c))
 		}
+
+		messagesTextView.Clear()
+		go renderMessages(c.ID)
 	}
 }
 
 func newTextChannelTreeNode(c *discordgo.Channel) *tview.TreeNode {
-	n := tview.NewTreeNode("[::d]" + genChannelRepr(c) + "[::-]").
+	n := tview.NewTreeNode("[::d]" + generateChannelRepr(c) + "[::-]").
 		SetReference(c.ID)
 
 	return n

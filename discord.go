@@ -48,8 +48,7 @@ func onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 	})
 
 	for _, c := range r.PrivateChannels {
-		cn := tview.NewTreeNode(genChannelRepr(c)).
-			SetReference(c.ID)
+		cn := tview.NewTreeNode(generateChannelRepr(c)).SetReference(c.ID)
 		dmNode.AddChild(cn)
 	}
 
@@ -71,9 +70,20 @@ func onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 	})
 
 	for _, g := range r.Guilds {
-		gn := tview.NewTreeNode(g.Name).
-			SetReference(g.ID)
+		gn := tview.NewTreeNode(g.Name).Collapse()
 		n.AddChild(gn)
+
+		cs := g.Channels
+		sort.Slice(cs, func(i, j int) bool {
+			return cs[i].Position < cs[j].Position
+		})
+
+		// Top-level channels
+		createTopLevelChannelsTreeNodes(gn, cs)
+		// Category channels
+		createCategoryChannelsTreeNodes(gn, cs)
+		// Second-level channels
+		createSecondLevelChannelsTreeNodes(cs)
 	}
 
 	channelsTree.SetCurrentNode(n)
