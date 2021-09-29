@@ -86,6 +86,10 @@ func onChannelsTreeSelected(n *tview.TreeNode) {
 			messagesTextView.SetTitle(generateChannelRepr(c))
 		}
 
+		if strings.HasPrefix(n.GetText(), "[::b]") {
+			n.SetText("[::d]" + generateChannelRepr(c) + "[::-]")
+		}
+
 		messagesTextView.Clear()
 		go renderMessages(c.ID)
 	}

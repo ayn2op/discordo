@@ -48,7 +48,7 @@ func onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 	})
 
 	for _, c := range r.PrivateChannels {
-		cn := tview.NewTreeNode(generateChannelRepr(c)).SetReference(c.ID)
+		cn := newTextChannelTreeNode(c)
 		dmNode.AddChild(cn)
 	}
 
@@ -95,7 +95,7 @@ func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	if selectedChannel != nil && selectedChannel.ID != m.ChannelID {
+	if selectedChannel == nil || selectedChannel.ID != m.ChannelID {
 		if conf.Notifications {
 			for _, u := range m.Mentions {
 				if u.ID == session.State.User.ID {
