@@ -90,19 +90,16 @@ func onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 }
 
 func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
-	if selectedChannel == nil {
-		selectedChannel = &discordgo.Channel{ID: ""}
+	c, err := session.State.Channel(m.ChannelID)
+	if err != nil {
+		return
 	}
 
-	if selectedChannel.ID != m.ChannelID {
+	if selectedChannel != nil && selectedChannel.ID != m.ChannelID {
 		if conf.Notifications {
 			for _, u := range m.Mentions {
 				if u.ID == session.State.User.ID {
 					g, err := session.State.Guild(m.GuildID)
-					if err != nil {
-						return
-					}
-					c, err := session.State.Channel(m.ChannelID)
 					if err != nil {
 						return
 					}
@@ -113,11 +110,13 @@ func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
 			}
 		}
 
-		return
+		cn := getTreeNodeByReference(c.ID)
+		cn.SetText("[::b]" + generateChannelRepr(c) + "[::-]")
+		app.Draw()
+	} else {
+		selectedChannel.Messages = append(selectedChannel.Messages, m.Message)
+		renderMessage(m.Message)
 	}
-
-	selectedChannel.Messages = append(selectedChannel.Messages, m.Message)
-	renderMessage(m.Message)
 }
 
 type loginResponse struct {
