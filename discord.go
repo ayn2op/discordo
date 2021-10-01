@@ -48,7 +48,15 @@ func onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 	})
 
 	for _, c := range r.PrivateChannels {
-		cn := newTextChannelTreeNode(c)
+		var tag string
+		if isUnread(c) {
+			tag = "[::b]"
+		} else {
+			tag = "[::d]"
+		}
+
+		cn := tview.NewTreeNode(tag + generateChannelRepr(c) + "[::-]").
+			SetReference(c.ID)
 		dmNode.AddChild(cn)
 	}
 
@@ -87,6 +95,20 @@ func onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 	}
 
 	channelsTree.SetCurrentNode(n)
+}
+
+func isUnread(c *discordgo.Channel) bool {
+	if c.LastMessageID == "" {
+		return false
+	}
+
+	for _, rs := range session.State.ReadState {
+		if c.ID == rs.ID {
+			return c.LastMessageID != rs.LastMessageID
+		}
+	}
+
+	return false
 }
 
 func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {

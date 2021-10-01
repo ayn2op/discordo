@@ -13,18 +13,6 @@ var italicRegex = regexp.MustCompile(`(?m)\*(.*?)\*`)
 var underlineRegex = regexp.MustCompile(`(?m)__(.*?)__`)
 var strikeThroughRegex = regexp.MustCompile(`(?m)~~(.*?)~~`)
 
-func renderMessages(cID string) {
-	ms, err := session.ChannelMessages(cID, conf.GetMessagesLimit, "", "", "")
-	if err != nil {
-		return
-	}
-
-	for i := len(ms) - 1; i >= 0; i-- {
-		selectedChannel.Messages = append(selectedChannel.Messages, ms[i])
-		renderMessage(ms[i])
-	}
-}
-
 func renderMessage(m *discordgo.Message) {
 	var b strings.Builder
 

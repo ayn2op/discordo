@@ -62,7 +62,7 @@ func onChannelsTreeSelected(n *tview.TreeNode) {
 	// Unhighlight the already-highlighted regions.
 	messagesTextView.Highlight()
 
-	if len(n.GetChildren()) != 0 {
+	if len(n.GetChildren()) != 0 || n.GetText() == "Direct Messages" {
 		n.SetExpanded(!n.IsExpanded())
 	} else {
 		cID := n.GetReference().(string)
@@ -91,15 +91,21 @@ func onChannelsTreeSelected(n *tview.TreeNode) {
 		}
 
 		messagesTextView.Clear()
-		go renderMessages(c.ID)
+
+		ms, err := session.ChannelMessages(cID, conf.GetMessagesLimit, "", "", "")
+		if err != nil {
+			return
+		}
+
+		for i := len(ms) - 1; i >= 0; i-- {
+			selectedChannel.Messages = append(selectedChannel.Messages, ms[i])
+			go renderMessage(ms[i])
+		}
+
+		if len(ms) != 0 && isUnread(c) {
+			go session.ChannelMessageAck(c.ID, c.LastMessageID, "")
+		}
 	}
-}
-
-func newTextChannelTreeNode(c *discordgo.Channel) *tview.TreeNode {
-	n := tview.NewTreeNode("[::d]" + generateChannelRepr(c) + "[::-]").
-		SetReference(c.ID)
-
-	return n
 }
 
 func createTopLevelChannelsTreeNodes(
@@ -109,11 +115,20 @@ func createTopLevelChannelsTreeNodes(
 	for _, c := range cs {
 		if (c.Type == discordgo.ChannelTypeGuildText || c.Type == discordgo.ChannelTypeGuildNews) &&
 			(c.ParentID == "") {
-			if p, err := session.State.UserChannelPermissions(session.State.User.ID, c.ID); err != nil || p&discordgo.PermissionViewChannel != discordgo.PermissionViewChannel {
+			p, err := session.State.UserChannelPermissions(session.State.User.ID, c.ID)
+			if err != nil || p&discordgo.PermissionViewChannel != discordgo.PermissionViewChannel {
 				continue
 			}
 
-			cn := newTextChannelTreeNode(c)
+			var tag string
+			if isUnread(c) {
+				tag = "[::b]"
+			} else {
+				tag = "[::d]"
+			}
+
+			cn := tview.NewTreeNode(tag + generateChannelRepr(c) + "[::-]").
+				SetReference(c.ID)
 			n.AddChild(cn)
 			continue
 		}
@@ -127,7 +142,8 @@ func createCategoryChannelsTreeNodes(
 CategoryLoop:
 	for _, c := range cs {
 		if c.Type == discordgo.ChannelTypeGuildCategory {
-			if p, err := session.State.UserChannelPermissions(session.State.User.ID, c.ID); err != nil || p&discordgo.PermissionViewChannel != discordgo.PermissionViewChannel {
+			p, err := session.State.UserChannelPermissions(session.State.User.ID, c.ID)
+			if err != nil || p&discordgo.PermissionViewChannel != discordgo.PermissionViewChannel {
 				continue
 			}
 
@@ -151,12 +167,22 @@ func createSecondLevelChannelsTreeNodes(cs []*discordgo.Channel) {
 	for _, c := range cs {
 		if (c.Type == discordgo.ChannelTypeGuildText || c.Type == discordgo.ChannelTypeGuildNews) &&
 			(c.ParentID != "") {
-			if p, err := session.State.UserChannelPermissions(session.State.User.ID, c.ID); err != nil || p&discordgo.PermissionViewChannel != discordgo.PermissionViewChannel {
+			p, err := session.State.UserChannelPermissions(session.State.User.ID, c.ID)
+			if err != nil || p&discordgo.PermissionViewChannel != discordgo.PermissionViewChannel {
 				continue
 			}
 
-			if pn := getTreeNodeByReference(c.ParentID); pn != nil {
-				cn := newTextChannelTreeNode(c)
+			var tag string
+			if isUnread(c) {
+				tag = "[::b]"
+			} else {
+				tag = "[::d]"
+			}
+
+			pn := getTreeNodeByReference(c.ParentID)
+			if pn != nil {
+				cn := tview.NewTreeNode(tag + generateChannelRepr(c) + "[::-]").
+					SetReference(c.ID)
 				pn.AddChild(cn)
 			}
 		}
