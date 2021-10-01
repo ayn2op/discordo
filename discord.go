@@ -48,7 +48,15 @@ func onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 	})
 
 	for _, c := range r.PrivateChannels {
-		cn := tview.NewTreeNode(generateChannelRepr(c)).SetReference(c.ID)
+		var tag string
+		if isUnread(c) {
+			tag = "[::b]"
+		} else {
+			tag = "[::d]"
+		}
+
+		cn := tview.NewTreeNode(tag + generateChannelRepr(c) + "[::-]").
+			SetReference(c.ID)
 		dmNode.AddChild(cn)
 	}
 
@@ -89,20 +97,31 @@ func onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 	channelsTree.SetCurrentNode(n)
 }
 
-func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
-	if selectedChannel == nil {
-		selectedChannel = &discordgo.Channel{ID: ""}
+func isUnread(c *discordgo.Channel) bool {
+	if c.LastMessageID == "" {
+		return false
 	}
 
-	if selectedChannel.ID != m.ChannelID {
+	for _, rs := range session.State.ReadState {
+		if c.ID == rs.ID {
+			return c.LastMessageID != rs.LastMessageID
+		}
+	}
+
+	return false
+}
+
+func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
+	c, err := session.State.Channel(m.ChannelID)
+	if err != nil {
+		return
+	}
+
+	if selectedChannel == nil || selectedChannel.ID != m.ChannelID {
 		if conf.Notifications {
 			for _, u := range m.Mentions {
 				if u.ID == session.State.User.ID {
 					g, err := session.State.Guild(m.GuildID)
-					if err != nil {
-						return
-					}
-					c, err := session.State.Channel(m.ChannelID)
 					if err != nil {
 						return
 					}
@@ -113,11 +132,16 @@ func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
 			}
 		}
 
-		return
+		cn := getTreeNodeByReference(c.ID)
+		if cn == nil {
+			return
+		}
+		cn.SetText("[::b]" + generateChannelRepr(c) + "[::-]")
+		app.Draw()
+	} else {
+		selectedChannel.Messages = append(selectedChannel.Messages, m.Message)
+		renderMessage(m.Message)
 	}
-
-	selectedChannel.Messages = append(selectedChannel.Messages, m.Message)
-	renderMessage(m.Message)
 }
 
 type loginResponse struct {
