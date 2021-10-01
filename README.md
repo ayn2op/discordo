@@ -12,10 +12,10 @@ Discordo is a lightweight, secure, and feature-rich Discord terminal client.
 - Cross-platform
 - Minimalistic
 - Feature-rich
-    - Mouse & clipboard support
-    - 2-Factor authentication
-    - Desktop notifications
-    - [WIP] Discord-flavored markdown
+  - Mouse & clipboard support
+  - 2-Factor authentication
+  - Desktop notifications
+  - Partial [Discord-flavored markdown](https://support.discord.com/hc/en-us/articles/210298617-Markdown-Text-101-Chat-Formatting-Bold-Italic-Underline-)
 
 ## Installation
 
