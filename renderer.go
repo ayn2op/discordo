@@ -2,10 +2,16 @@ package main
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/ayntgl/discordgo"
 )
+
+var boldRegex = regexp.MustCompile(`(?m)\*\*(.*?)\*\*`)
+var italicRegex = regexp.MustCompile(`(?m)\*(.*?)\*`)
+var underlineRegex = regexp.MustCompile(`(?m)__(.*?)__`)
+var strikeThroughRegex = regexp.MustCompile(`(?m)~~(.*?)~~`)
 
 func renderMessages(cID string) {
 	ms, err := session.ChannelMessages(cID, conf.GetMessagesLimit, "", "", "")
@@ -39,7 +45,7 @@ func renderMessage(m *discordgo.Message) {
 
 			if rm.Content != "" {
 				rm.Content = parseMentions(rm.Content, rm.Mentions)
-				b.WriteString(rm.Content)
+				b.WriteString(parseMarkdown(rm.Content))
 			}
 
 			b.WriteString("[::-]\n")
@@ -50,7 +56,7 @@ func renderMessage(m *discordgo.Message) {
 		// (users mentioned in the message) and render the message content.
 		if m.Content != "" {
 			m.Content = parseMentions(m.Content, m.Mentions)
-			b.WriteString(m.Content)
+			b.WriteString(parseMarkdown(m.Content))
 		}
 		// If the edited timestamp of the message is not empty; it implies that
 		// the message has been edited, hence render the message with edited
@@ -119,4 +125,14 @@ func parseAuthor(b *strings.Builder, u *discordgo.User) {
 	if u.Bot {
 		b.WriteString("[#EB459E]BOT[-] ")
 	}
+}
+
+func parseMarkdown(md string) string {
+	var res string
+	res = boldRegex.ReplaceAllString(md, "[::b]$1[::-]")
+	res = italicRegex.ReplaceAllString(res, "[::i]$1[::-]")
+	res = underlineRegex.ReplaceAllString(res, "[::u]$1[::-]")
+	res = strikeThroughRegex.ReplaceAllString(res, "[::s]$1[::-]")
+
+	return res
 }
