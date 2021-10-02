@@ -45,7 +45,7 @@ sudo mv ./discordo /usr/local/bin
 
 Discordo aims to be highly configurable, it may be easily customized via a configuration file. It creates a default configuration file on the first start-up. The default and newly created configuration file is located at `$HOME/.config/discordo/config.json`. Here is a sample (not default) configuration file:
 
-```json
+```jsonc
 {
   // The client authentication token (optional)
   "Token": "",
