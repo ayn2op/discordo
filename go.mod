@@ -3,6 +3,7 @@ module github.com/ayntgl/discordo
 go 1.16
 
 require (
+	github.com/BurntSushi/toml v0.4.1
 	github.com/atotto/clipboard v0.1.4
 	github.com/ayntgl/discordgo v0.23.3-0.20210920064905-b79d709bbafb
 	github.com/gdamore/tcell/v2 v2.4.1-0.20210905002822-f057f0a857a1

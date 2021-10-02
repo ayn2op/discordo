@@ -1,48 +1,79 @@
 package main
 
 import (
-	"encoding/json"
 	"os"
+
+	"github.com/BurntSushi/toml"
 )
 
 var conf *config
 
+type keybindingsChannelsTree struct {
+	Focus string `toml:"focus"`
+}
+
+type keybindingsMessagesTextView struct {
+	Focus          string `toml:"focus"`
+	SelectPrevious string `toml:"select_previous"`
+	SelectNext     string `toml:"select_next"`
+	SelectFirst    string `toml:"select_first"`
+	SelectLast     string `toml:"select_last"`
+	Reply          string `toml:"reply"`
+	ReplyMention   string `toml:"reply_mention"`
+}
+
+type keybindingsMessageInputField struct {
+	Focus string `toml:"focus"`
+}
+
 type keybindings struct {
-	GuildsTreeViewFocus string
+	ChannelsTree      keybindingsChannelsTree      `toml:"channels_tree"`
+	MessagesTextView  keybindingsMessagesTextView  `toml:"messages_textview"`
+	MessageInputField keybindingsMessageInputField `toml:"message_inputfield"`
+}
 
-	MessagesTextViewFocus                string
-	MessagesTextViewSelectPrevious       string
-	MessagesTextViewSelectNext           string
-	MessagesTextViewSelectFirst          string
-	MessagesTextViewSelectLast           string
-	MessagesTextViewReplySelected        string
-	MessagesTextViewMentionReplySelected string
+type themeBackground struct {
+	// Main background color for primitives.
+	Primitive string `toml:"primitive"`
+	// Background color for contrasting elements.
+	Contrast string `toml:"contrast"`
+	// Background color for even more contrasting elements.
+	MoreContrast string `toml:"more_contrast"`
+}
 
-	MessageInputFieldFocus string
+type themeText struct {
+	// Primary text.
+	Primary string `toml:"primary"`
+	// Secondary text (e.g. labels).
+	Secondary string `toml:"secondary"`
+	// Tertiary text (e.g. subtitles, notes).
+	Tertiary string `toml:"tertiary"`
+	// Text on primary-colored backgrounds.
+	Inverse string `toml:"inverse"`
+	// Secondary text on ContrastBackgroundColor-colored backgrounds.
+	ContrastSecondary string `toml:"contrast_secondary"`
 }
 
 type theme struct {
-	PrimitiveBackgroundColor    string // Main background color for primitives.
-	ContrastBackgroundColor     string // Background color for contrasting elements.
-	MoreContrastBackgroundColor string // Background color for even more contrasting elements.
-	BorderColor                 string // Box borders.
-	TitleColor                  string // Box titles.
-	GraphicsColor               string // Graphics.
-	PrimaryTextColor            string // Primary text.
-	SecondaryTextColor          string // Secondary text (e.g. labels).
-	TertiaryTextColor           string // Tertiary text (e.g. subtitles, notes).
-	InverseTextColor            string // Text on primary-colored backgrounds.
-	ContrastSecondaryTextColor  string // Secondary text on ContrastBackgroundColor-colored backgrounds.
+	// Box borders.
+	Border string `toml:"border"`
+	// Box titles.
+	Title string `toml:"title"`
+	// Graphics.
+	Graphics string `toml:"graphics"`
+
+	Background themeBackground `toml:"background"`
+	Text       themeText       `toml:"text"`
 }
 
 type config struct {
-	Token            string
-	Mouse            bool
-	Notifications    bool
-	UserAgent        string
-	GetMessagesLimit int
-	Theme            theme
-	Keybindings      keybindings
+	Token            string      `toml:"token"`
+	Mouse            bool        `toml:"mouse"`
+	Notifications    bool        `toml:"notifications"`
+	UserAgent        string      `toml:"user_agent"`
+	GetMessagesLimit int         `toml:"get_messages_limit"`
+	Theme            theme       `toml:"theme"`
+	Keybindings      keybindings `toml:"keybindings"`
 }
 
 func loadConfig() *config {
@@ -51,7 +82,7 @@ func loadConfig() *config {
 		panic(err)
 	}
 
-	configPath := u + "/.config/discordo/config.json"
+	configPath := u + "/.config/discordo/config.toml"
 	if _, err = os.Stat(configPath); os.IsNotExist(err) {
 		err = os.MkdirAll(u+"/.config/discordo", 0700)
 		if err != nil {
@@ -73,54 +104,52 @@ func loadConfig() *config {
 				"Chrome/92.0.4515.131 Safari/537.36",
 			GetMessagesLimit: 50,
 			Theme: theme{
-				PrimitiveBackgroundColor:    "black",
-				ContrastBackgroundColor:     "blue",
-				MoreContrastBackgroundColor: "green",
-				BorderColor:                 "white",
-				TitleColor:                  "white",
-				GraphicsColor:               "white",
-				PrimaryTextColor:            "white",
-				SecondaryTextColor:          "yellow",
-				TertiaryTextColor:           "green",
-				InverseTextColor:            "blue",
-				ContrastSecondaryTextColor:  "darkcyan",
+				Border:   "white",
+				Title:    "white",
+				Graphics: "white",
+				Background: themeBackground{
+					Primitive:    "black",
+					Contrast:     "blue",
+					MoreContrast: "green",
+				},
+				Text: themeText{
+					Primary:           "white",
+					Secondary:         "yellow",
+					Tertiary:          "green",
+					Inverse:           "blue",
+					ContrastSecondary: "darkcyan",
+				},
 			},
 			Keybindings: keybindings{
-				GuildsTreeViewFocus: "Alt+Rune[1]",
-
-				MessagesTextViewFocus:                "Alt+Rune[2]",
-				MessagesTextViewSelectPrevious:       "Up",
-				MessagesTextViewSelectNext:           "Down",
-				MessagesTextViewSelectFirst:          "Home",
-				MessagesTextViewSelectLast:           "End",
-				MessagesTextViewReplySelected:        "Rune[r]",
-				MessagesTextViewMentionReplySelected: "Rune[R]",
-
-				MessageInputFieldFocus: "Alt+Rune[3]",
+				ChannelsTree: keybindingsChannelsTree{
+					Focus: "Alt+Rune[1]",
+				},
+				MessagesTextView: keybindingsMessagesTextView{
+					Focus:          "Alt+Rune[2]",
+					SelectPrevious: "Up",
+					SelectNext:     "Down",
+					SelectFirst:    "Home",
+					SelectLast:     "End",
+					Reply:          "Rune[r]",
+					ReplyMention:   "Rune[R]",
+				},
+				MessageInputField: keybindingsMessageInputField{
+					Focus: "Alt+Rune[3]",
+				},
 			},
 		}
-		d, err := json.MarshalIndent(c, "", "\t")
+
+		err = toml.NewEncoder(f).Encode(c)
 		if err != nil {
 			panic(err)
 		}
-
-		_, err = f.Write(d)
-		if err != nil {
-			panic(err)
-		}
-
-		f.Sync()
 
 		return &c
 	}
 
-	d, err := os.ReadFile(configPath)
-	if err != nil {
-		panic(err)
-	}
-
 	var c config
-	if err = json.Unmarshal(d, &c); err != nil {
+	_, err = toml.DecodeFile(configPath, &c)
+	if err != nil {
 		panic(err)
 	}
 
