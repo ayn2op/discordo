@@ -36,10 +36,10 @@ sudo mv ./discordo /usr/local/bin
 
 ## Usage
 
-1. Run the `discordo` executable with no arguments in a new Terminal window.
+1. Run the `discordo` executable with no arguments. A new default configuration will be created at `~/.config/discordo/config.toml` on first startup.
 2. Log in using the account email and password (first-time login) and click on the "Login" button to continue.
 
-> By default, Discordo utilizes OS-specific keyring to store credentials such as client authentication token. However, if you prefer not to use a keyring (not recommended), you may set the `token` field in the configuration file (`~/.config/discordo/config.toml`) and Discordo will prioritize the usage of the provided token to login instead of keyring.
+> By default, Discordo utilizes OS-specific keyring to store credentials such as client authentication token. However, if you prefer not to use a keyring (not recommended), you may set the `token` field in the configuration file and Discordo will prioritize the usage of the provided token to login instead of keyring.
 
 ### Configuration
 
