@@ -29,11 +29,11 @@ func newApplication() *tview.Application {
 
 func onAppInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	switch e.Name() {
-	case conf.Keybindings.GuildsTreeViewFocus:
+	case conf.Keybindings.ChannelsTree.Focus:
 		app.SetFocus(channelsTree)
-	case conf.Keybindings.MessagesTextViewFocus:
+	case conf.Keybindings.MessagesTextView.Focus:
 		app.SetFocus(messagesTextView)
-	case conf.Keybindings.MessageInputFieldFocus:
+	case conf.Keybindings.MessageInputField.Focus:
 		app.SetFocus(messageInputField)
 	}
 
@@ -226,7 +226,7 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	}
 
 	switch e.Name() {
-	case conf.Keybindings.MessagesTextViewSelectPrevious:
+	case conf.Keybindings.MessagesTextView.SelectPrevious:
 		ms := selectedChannel.Messages
 		if len(ms) == 0 {
 			return nil
@@ -249,7 +249,7 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		}
 
 		return nil
-	case conf.Keybindings.MessagesTextViewSelectNext:
+	case conf.Keybindings.MessagesTextView.SelectNext:
 		ms := selectedChannel.Messages
 		if len(ms) == 0 {
 			return nil
@@ -272,7 +272,7 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		}
 
 		return nil
-	case conf.Keybindings.MessagesTextViewSelectFirst:
+	case conf.Keybindings.MessagesTextView.SelectFirst:
 		ms := selectedChannel.Messages
 		if len(ms) == 0 {
 			return nil
@@ -281,7 +281,7 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		messagesTextView.
 			Highlight(ms[0].ID).
 			ScrollToHighlight()
-	case conf.Keybindings.MessagesTextViewSelectLast:
+	case conf.Keybindings.MessagesTextView.SelectLast:
 		ms := selectedChannel.Messages
 		if len(ms) == 0 {
 			return nil
@@ -290,7 +290,7 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		messagesTextView.
 			Highlight(ms[len(ms)-1].ID).
 			ScrollToHighlight()
-	case conf.Keybindings.MessagesTextViewReplySelected:
+	case conf.Keybindings.MessagesTextView.Reply:
 		ms := selectedChannel.Messages
 		if len(ms) == 0 {
 			return nil
@@ -306,7 +306,7 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			"Replying to " + selectedMessage.Author.Username,
 		)
 		app.SetFocus(messageInputField)
-	case conf.Keybindings.MessagesTextViewMentionReplySelected:
+	case conf.Keybindings.MessagesTextView.ReplyMention:
 		ms := selectedChannel.Messages
 		if len(ms) == 0 {
 			return nil
