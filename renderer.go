@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 
@@ -36,8 +35,10 @@ func renderMessage(m *discordgo.Message) {
 				b.WriteString(parseMarkdown(rm.Content))
 			}
 
-			b.WriteString("[::-]\n")
+			b.WriteString("[::-]")
+			b.WriteByte('\n')
 		}
+
 		// Render the author of the message.
 		parseAuthor(&b, m.Author)
 		// If the message content is not empty, parse the message mentions
@@ -66,14 +67,19 @@ func renderMessage(m *discordgo.Message) {
 		// Tags with no region ID ([""]) do not start new regions. They can
 		// therefore be used to mark the end of a region.
 		b.WriteString("[\"\"]")
-
-		fmt.Fprintln(messagesTextView, b.String())
+		b.WriteByte('\n')
 	case discordgo.MessageTypeGuildMemberJoin:
 		b.WriteString("[#5865F2]")
 		b.WriteString(m.Author.Username)
 		b.WriteString("[-] joined the server")
+		b.WriteByte('\n')
+	}
 
-		fmt.Fprintln(messagesTextView, b.String())
+	if str := b.String(); str != "" {
+		b := make([]byte, len(str)+1)
+		copy(b, str)
+
+		messagesTextView.Write(b)
 	}
 }
 
