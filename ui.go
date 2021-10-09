@@ -92,19 +92,21 @@ func onChannelsTreeSelected(n *tview.TreeNode) {
 
 		messagesTextView.Clear()
 
-		ms, err := session.ChannelMessages(cID, conf.GetMessagesLimit, "", "", "")
-		if err != nil {
-			return
-		}
+		go func() {
+			ms, err := session.ChannelMessages(cID, conf.GetMessagesLimit, "", "", "")
+			if err != nil {
+				return
+			}
 
-		for i := len(ms) - 1; i >= 0; i-- {
-			selectedChannel.Messages = append(selectedChannel.Messages, ms[i])
-			go renderMessage(ms[i])
-		}
+			for i := len(ms) - 1; i >= 0; i-- {
+				selectedChannel.Messages = append(selectedChannel.Messages, ms[i])
+				renderMessage(ms[i])
+			}
 
-		if len(ms) != 0 && isUnread(c) {
-			go session.ChannelMessageAck(c.ID, c.LastMessageID, "")
-		}
+			if len(ms) != 0 && isUnread(c) {
+				session.ChannelMessageAck(c.ID, c.LastMessageID, "")
+			}
+		}()
 	}
 }
 
