@@ -13,26 +13,17 @@ var (
 	app               *tview.Application
 	loginForm         *tview.Form
 	channelsTree      *tview.TreeView
-	messagesTextView  *tview.TextView
+	messagesView      *tview.TextView
 	messageInputField *tview.InputField
 	mainFlex          *tview.Flex
 )
-
-func newApplication() *tview.Application {
-	a := tview.NewApplication()
-	a.
-		EnableMouse(conf.Mouse).
-		SetInputCapture(onAppInputCapture)
-
-	return a
-}
 
 func onAppInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	switch e.Name() {
 	case conf.Keybindings.ChannelsTree.Focus:
 		app.SetFocus(channelsTree)
 	case conf.Keybindings.MessagesTextView.Focus:
-		app.SetFocus(messagesTextView)
+		app.SetFocus(messagesView)
 	case conf.Keybindings.MessageInputField.Focus:
 		app.SetFocus(messageInputField)
 	}
@@ -40,27 +31,15 @@ func onAppInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	return e
 }
 
-func newChannelsTree() *tview.TreeView {
-	channelsTree := tview.NewTreeView()
-	channelsTree.
-		SetSelectedFunc(onChannelsTreeSelected).
-		SetTopLevel(1).
-		SetRoot(tview.NewTreeNode("")).
-		SetBorder(true).
-		SetBorderPadding(0, 0, 1, 0)
-
-	return channelsTree
-}
-
 func onChannelsTreeSelected(n *tview.TreeNode) {
 	selectedChannel = nil
 	selectedMessage = nil
-	messagesTextView.
+	messagesView.
 		Clear().
 		SetTitle("")
 	messageInputField.SetText("")
 	// Unhighlight the already-highlighted regions.
-	messagesTextView.Highlight()
+	messagesView.Highlight()
 
 	if len(n.GetChildren()) != 0 || n.GetText() == "Direct Messages" {
 		n.SetExpanded(!n.IsExpanded())
@@ -81,16 +60,16 @@ func onChannelsTreeSelected(n *tview.TreeNode) {
 				title += " - " + c.Topic
 			}
 
-			messagesTextView.SetTitle(title)
+			messagesView.SetTitle(title)
 		case discordgo.ChannelTypeDM, discordgo.ChannelTypeGroupDM:
-			messagesTextView.SetTitle(generateChannelRepr(c))
+			messagesView.SetTitle(generateChannelRepr(c))
 		}
 
 		if strings.HasPrefix(n.GetText(), "[::b]") {
 			n.SetText("[::d]" + generateChannelRepr(c) + "[::-]")
 		}
 
-		messagesTextView.Clear()
+		messagesView.Clear()
 
 		go func() {
 			ms, err := session.ChannelMessages(cID, conf.GetMessagesLimit, "", "", "")
@@ -204,24 +183,6 @@ func getTreeNodeByReference(r interface{}) (mn *tview.TreeNode) {
 	return
 }
 
-func newMessagesTextView() *tview.TextView {
-	w := tview.NewTextView()
-	w.
-		SetRegions(true).
-		SetDynamicColors(true).
-		SetWordWrap(true).
-		ScrollToEnd().
-		SetChangedFunc(func() {
-			app.Draw()
-		}).
-		SetInputCapture(onMessagesTextViewInputCapture).
-		SetBorder(true).
-		SetBorderPadding(0, 0, 1, 0).
-		SetTitleAlign(tview.AlignLeft)
-
-	return w
-}
-
 func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	if selectedChannel == nil {
 		return nil
@@ -234,9 +195,9 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
-		hs := messagesTextView.GetHighlights()
+		hs := messagesView.GetHighlights()
 		if len(hs) == 0 {
-			messagesTextView.
+			messagesView.
 				Highlight(ms[len(ms)-1].ID).
 				ScrollToHighlight()
 		} else {
@@ -245,7 +206,7 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 				return nil
 			}
 
-			messagesTextView.
+			messagesView.
 				Highlight(ms[idx-1].ID).
 				ScrollToHighlight()
 		}
@@ -257,9 +218,9 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
-		hs := messagesTextView.GetHighlights()
+		hs := messagesView.GetHighlights()
 		if len(hs) == 0 {
-			messagesTextView.
+			messagesView.
 				Highlight(ms[len(ms)-1].ID).
 				ScrollToHighlight()
 		} else {
@@ -268,7 +229,7 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 				return nil
 			}
 
-			messagesTextView.
+			messagesView.
 				Highlight(ms[idx+1].ID).
 				ScrollToHighlight()
 		}
@@ -280,7 +241,7 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
-		messagesTextView.
+		messagesView.
 			Highlight(ms[0].ID).
 			ScrollToHighlight()
 	case conf.Keybindings.MessagesTextView.SelectLast:
@@ -289,7 +250,7 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
-		messagesTextView.
+		messagesView.
 			Highlight(ms[len(ms)-1].ID).
 			ScrollToHighlight()
 	case conf.Keybindings.MessagesTextView.Reply:
@@ -298,7 +259,7 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
-		hs := messagesTextView.GetHighlights()
+		hs := messagesView.GetHighlights()
 		if len(hs) == 0 {
 			return nil
 		}
@@ -314,7 +275,7 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
-		hs := messagesTextView.GetHighlights()
+		hs := messagesView.GetHighlights()
 		if len(hs) == 0 {
 			return nil
 		}
@@ -325,20 +286,6 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	}
 
 	return e
-}
-
-func newMessageInputField() *tview.InputField {
-	w := tview.NewInputField()
-	w.
-		SetPlaceholder("Message...").
-		SetPlaceholderTextColor(tcell.ColorWhite).
-		SetFieldBackgroundColor(tview.Styles.PrimitiveBackgroundColor).
-		SetInputCapture(onMessageInputFieldInputCapture).
-		SetBorder(true).
-		SetBorderPadding(0, 0, 1, 0).
-		SetTitleAlign(tview.AlignLeft)
-
-	return w
 }
 
 func onMessageInputFieldInputCapture(e *tcell.EventKey) *tcell.EventKey {

@@ -23,14 +23,46 @@ func main() {
 	tview.Styles.InverseTextColor = tcell.GetColor(conf.Theme.Text.Inverse)
 	tview.Styles.ContrastSecondaryTextColor = tcell.GetColor(conf.Theme.Text.ContrastSecondary)
 
-	app = newApplication()
-	channelsTree = newChannelsTree()
-	messagesTextView = newMessagesTextView()
-	messageInputField = newMessageInputField()
+	app = tview.NewApplication()
+	app.
+		EnableMouse(conf.Mouse).
+		SetInputCapture(onAppInputCapture)
+
+	channelsTree = tview.NewTreeView()
+	channelsTree.
+		SetSelectedFunc(onChannelsTreeSelected).
+		SetTopLevel(1).
+		SetRoot(tview.NewTreeNode("")).
+		SetBorder(true).
+		SetBorderPadding(0, 0, 1, 0)
+
+	messagesView = tview.NewTextView()
+	messagesView.
+		SetRegions(true).
+		SetDynamicColors(true).
+		SetWordWrap(true).
+		ScrollToEnd().
+		SetChangedFunc(func() {
+			app.Draw()
+		}).
+		SetInputCapture(onMessagesTextViewInputCapture).
+		SetBorder(true).
+		SetBorderPadding(0, 0, 1, 0).
+		SetTitleAlign(tview.AlignLeft)
+
+	messageInputField = tview.NewInputField()
+	messageInputField.
+		SetPlaceholder("Message...").
+		SetPlaceholderTextColor(tcell.ColorWhite).
+		SetFieldBackgroundColor(tview.Styles.PrimitiveBackgroundColor).
+		SetInputCapture(onMessageInputFieldInputCapture).
+		SetBorder(true).
+		SetBorderPadding(0, 0, 1, 0).
+		SetTitleAlign(tview.AlignLeft)
 
 	rightFlex := tview.NewFlex().
 		SetDirection(tview.FlexRow).
-		AddItem(messagesTextView, 0, 1, false).
+		AddItem(messagesView, 0, 1, false).
 		AddItem(messageInputField, 3, 1, false)
 	mainFlex = tview.NewFlex().
 		AddItem(channelsTree, 0, 1, false).
