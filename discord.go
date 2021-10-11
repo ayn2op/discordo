@@ -244,10 +244,58 @@ func renderMessage(m *discordgo.Message) {
 		if m.EditedTimestamp != "" {
 			b.WriteString(" [::d](edited)[::-]")
 		}
-		// TODO: render message embeds
-		for range m.Embeds {
-			b.WriteString("\n<EMBED>")
+
+		for _, e := range m.Embeds {
+			embedPrefix := fmt.Sprintf("\n[#%06X]|[-::] ", e.Color)
+
+			if e.Author != nil {
+				b.WriteString(embedPrefix)
+
+				b.WriteString("[::u]")
+				b.WriteString(e.Author.Name)
+				b.WriteString("[::-]\n")
+			}
+
+			if e.Title != "" {
+				b.WriteString(embedPrefix)
+
+				b.WriteString("[::b]")
+				b.WriteString(e.Title)
+				b.WriteString("[::-]\n")
+			}
+
+			if e.Description != "" {
+				b.WriteString(embedPrefix)
+
+				b.WriteString("[::d]")
+				b.WriteString(e.Description)
+				b.WriteString("[::-]\n")
+			}
+
+			if e.Footer != nil {
+				b.WriteString(embedPrefix)
+
+				b.WriteString("[::d]")
+				b.WriteString(e.Footer.Text)
+				b.WriteString("[::-]")
+			}
+
+			if len(e.Fields) != 0 {
+				for _, ef := range e.Fields {
+					b.WriteString(embedPrefix)
+
+					b.WriteString("[::b]")
+					b.WriteString(ef.Name)
+					b.WriteString("[::-]\n")
+
+					b.WriteString("[::d]")
+					b.WriteString("  ")
+					b.WriteString(ef.Value)
+					b.WriteString("[::-]")
+				}
+			}
 		}
+
 		// Render the message attachments (attached files to the message).
 		for _, a := range m.Attachments {
 			b.WriteString("\n[")
