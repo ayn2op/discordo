@@ -82,13 +82,8 @@ func loadConfig() *config {
 		panic(err)
 	}
 
-	configPath := u + "/.config/discordo/config.toml"
+	configPath := u + "/.config/discordo.toml"
 	if _, err = os.Stat(configPath); os.IsNotExist(err) {
-		err = os.MkdirAll(u+"/.config/discordo", 0700)
-		if err != nil {
-			panic(err)
-		}
-
 		f, err := os.Create(configPath)
 		if err != nil {
 			panic(err)
