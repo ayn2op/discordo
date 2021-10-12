@@ -9,71 +9,71 @@ import (
 var conf *config
 
 type keybindingsChannelsTree struct {
-	Focus string `toml:"focus"`
+	Focus string
 }
 
-type keybindingsMessagesTextView struct {
-	Focus          string `toml:"focus"`
-	SelectPrevious string `toml:"select_previous"`
-	SelectNext     string `toml:"select_next"`
-	SelectFirst    string `toml:"select_first"`
-	SelectLast     string `toml:"select_last"`
-	Reply          string `toml:"reply"`
-	ReplyMention   string `toml:"reply_mention"`
+type keybindingsMessagesView struct {
+	Focus          string
+	SelectPrevious string
+	SelectNext     string
+	SelectFirst    string
+	SelectLast     string
+	Reply          string
+	ReplyMention   string
 }
 
 type keybindingsMessageInputField struct {
-	Focus string `toml:"focus"`
+	Focus string
 }
 
 type keybindings struct {
-	ChannelsTree      keybindingsChannelsTree      `toml:"channels_tree"`
-	MessagesTextView  keybindingsMessagesTextView  `toml:"messages_textview"`
-	MessageInputField keybindingsMessageInputField `toml:"message_inputfield"`
+	ChannelsTree      keybindingsChannelsTree
+	MessagesView      keybindingsMessagesView
+	MessageInputField keybindingsMessageInputField
 }
 
 type themeBackground struct {
 	// Main background color for primitives.
-	Primitive string `toml:"primitive"`
+	Primitive string
 	// Background color for contrasting elements.
-	Contrast string `toml:"contrast"`
+	Contrast string
 	// Background color for even more contrasting elements.
-	MoreContrast string `toml:"more_contrast"`
+	MoreContrast string
 }
 
 type themeText struct {
 	// Primary text.
-	Primary string `toml:"primary"`
+	Primary string
 	// Secondary text (e.g. labels).
-	Secondary string `toml:"secondary"`
+	Secondary string
 	// Tertiary text (e.g. subtitles, notes).
-	Tertiary string `toml:"tertiary"`
+	Tertiary string
 	// Text on primary-colored backgrounds.
-	Inverse string `toml:"inverse"`
+	Inverse string
 	// Secondary text on ContrastBackgroundColor-colored backgrounds.
-	ContrastSecondary string `toml:"contrast_secondary"`
+	ContrastSecondary string
 }
 
 type theme struct {
 	// Box borders.
-	Border string `toml:"border"`
+	Border string
 	// Box titles.
-	Title string `toml:"title"`
+	Title string
 	// Graphics.
-	Graphics string `toml:"graphics"`
+	Graphics string
 
-	Background themeBackground `toml:"background"`
-	Text       themeText       `toml:"text"`
+	Background themeBackground
+	Text       themeText
 }
 
 type config struct {
-	Token            string      `toml:"token"`
-	Mouse            bool        `toml:"mouse"`
-	Notifications    bool        `toml:"notifications"`
-	UserAgent        string      `toml:"user_agent"`
-	GetMessagesLimit int         `toml:"get_messages_limit"`
-	Theme            theme       `toml:"theme"`
-	Keybindings      keybindings `toml:"keybindings"`
+	Token            string
+	Mouse            bool
+	Notifications    bool
+	UserAgent        string
+	GetMessagesLimit int
+	Theme            theme
+	Keybindings      keybindings
 }
 
 func loadConfig() *config {
@@ -119,7 +119,7 @@ func loadConfig() *config {
 				ChannelsTree: keybindingsChannelsTree{
 					Focus: "Alt+Rune[1]",
 				},
-				MessagesTextView: keybindingsMessagesTextView{
+				MessagesView: keybindingsMessagesView{
 					Focus:          "Alt+Rune[2]",
 					SelectPrevious: "Up",
 					SelectNext:     "Down",
