@@ -255,14 +255,14 @@ func renderMessage(m *discordgo.Message) {
 
 			if e.Author != nil {
 				hasHeading = true
-				embedBuilder.WriteString("[::b]")
+				embedBuilder.WriteString("[::u]")
 				embedBuilder.WriteString(e.Author.Name)
 				embedBuilder.WriteString("[::-]")
 			}
 
 			if e.Title != "" {
 				hasHeading = true
-				embedBuilder.WriteString("[::u]")
+				embedBuilder.WriteString("[::b]")
 				embedBuilder.WriteString(e.Title)
 				embedBuilder.WriteString("[::-]")
 			}
@@ -277,14 +277,20 @@ func renderMessage(m *discordgo.Message) {
 
 			if len(e.Fields) != 0 {
 				if hasHeading || e.Description != "" {
-					embedBuilder.WriteByte('\n')
+					embedBuilder.WriteString("\n\n")
 				}
 
 				for i, ef := range e.Fields {
-					embedBuilder.WriteString("[::u]")
+					embedBuilder.WriteString("[::b]")
 					embedBuilder.WriteString(ef.Name)
 					embedBuilder.WriteString("[::-]")
-					embedBuilder.WriteByte('\n')
+
+					if ef.Inline {
+						embedBuilder.WriteByte(' ')
+					} else {
+						embedBuilder.WriteByte('\n')
+					}
+
 					embedBuilder.WriteString(ef.Value)
 
 					if i != len(e.Fields)-1 {
