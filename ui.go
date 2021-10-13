@@ -69,8 +69,6 @@ func onChannelsTreeSelected(n *tview.TreeNode) {
 			n.SetText("[::d]" + generateChannelRepr(c) + "[::-]")
 		}
 
-		messagesView.Clear()
-
 		go func() {
 			ms, err := session.ChannelMessages(cID, conf.GetMessagesLimit, "", "", "")
 			if err != nil {
