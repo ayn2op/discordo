@@ -272,7 +272,7 @@ func renderMessage(m *discordgo.Message) {
 					embedBuilder.WriteString("\n\n")
 				}
 
-				embedBuilder.WriteString(e.Description)
+				embedBuilder.WriteString(parseMarkdown(e.Description))
 			}
 
 			if len(e.Fields) != 0 {
@@ -291,7 +291,7 @@ func renderMessage(m *discordgo.Message) {
 						embedBuilder.WriteByte('\n')
 					}
 
-					embedBuilder.WriteString(ef.Value)
+					embedBuilder.WriteString(parseMarkdown(ef.Value))
 
 					if i != len(e.Fields)-1 {
 						embedBuilder.WriteString("\n\n")
