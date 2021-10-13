@@ -230,70 +230,74 @@ func renderMessage(m *discordgo.Message) {
 			b.WriteByte('\n')
 		}
 
-		// Render the author of the message.
 		parseAuthor(&b, m.Author)
-		// If the message content is not empty, parse the message mentions
-		// (users mentioned in the message) and render the message content.
+
 		if m.Content != "" {
 			m.Content = parseMentions(m.Content, m.Mentions)
 			b.WriteString(parseMarkdown(m.Content))
 		}
-		// If the edited timestamp of the message is not empty; it implies that
-		// the message has been edited, hence render the message with edited
-		// label for distinction
+
 		if m.EditedTimestamp != "" {
 			b.WriteString(" [::d](edited)[::-]")
 		}
 
 		for _, e := range m.Embeds {
-			embedPrefix := fmt.Sprintf("\n[#%06X]|[-::] ", e.Color)
+			if e.Type != discordgo.EmbedTypeRich {
+				continue
+			}
+
+			var embedBuilder strings.Builder
+			var hasHeading bool
+			prefix := fmt.Sprintf("[#%06X]▐[-] ", e.Color)
+
+			b.WriteByte('\n')
+			embedBuilder.WriteString(prefix)
 
 			if e.Author != nil {
-				b.WriteString(embedPrefix)
-
-				b.WriteString("[::u]")
-				b.WriteString(e.Author.Name)
-				b.WriteString("[::-]\n")
+				hasHeading = true
+				embedBuilder.WriteString("[::b]")
+				embedBuilder.WriteString(e.Author.Name)
+				embedBuilder.WriteString("[::-]")
 			}
 
 			if e.Title != "" {
-				b.WriteString(embedPrefix)
-
-				b.WriteString("[::b]")
-				b.WriteString(e.Title)
-				b.WriteString("[::-]\n")
+				hasHeading = true
+				embedBuilder.WriteString("[::u]")
+				embedBuilder.WriteString(e.Title)
+				embedBuilder.WriteString("[::-]")
 			}
 
 			if e.Description != "" {
-				b.WriteString(embedPrefix)
+				if hasHeading {
+					embedBuilder.WriteString("\n\n")
+				}
 
-				b.WriteString("[::d]")
-				b.WriteString(e.Description)
-				b.WriteString("[::-]\n")
-			}
-
-			if e.Footer != nil {
-				b.WriteString(embedPrefix)
-
-				b.WriteString("[::d]")
-				b.WriteString(e.Footer.Text)
-				b.WriteString("[::-]")
+				embedBuilder.WriteString(e.Description)
 			}
 
 			if len(e.Fields) != 0 {
-				for _, ef := range e.Fields {
-					b.WriteString(embedPrefix)
+				if hasHeading || e.Description != "" {
+					embedBuilder.WriteByte('\n')
+				}
 
-					b.WriteString("[::b]")
-					b.WriteString(ef.Name)
-					b.WriteString("[::-]\n")
+				for i, ef := range e.Fields {
+					embedBuilder.WriteString("[::u]")
+					embedBuilder.WriteString(ef.Name)
+					embedBuilder.WriteString("[::-]")
+					embedBuilder.WriteByte('\n')
+					embedBuilder.WriteString(ef.Value)
 
-					b.WriteString("[::d]")
-					b.WriteString("  ")
-					b.WriteString(ef.Value)
-					b.WriteString("[::-]")
+					if i != len(e.Fields)-1 {
+						embedBuilder.WriteString("\n\n")
+					}
 				}
 			}
+
+			if e.Footer != nil {
+				embedBuilder.WriteString(e.Footer.Text)
+			}
+
+			b.WriteString(strings.Replace(embedBuilder.String(), "\n", "\n"+prefix, -1))
 		}
 
 		// Render the message attachments (attached files to the message).
