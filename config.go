@@ -83,6 +83,7 @@ func loadConfig() *config {
 	}
 
 	configPath = configPath + "/discordo.toml"
+	var c config
 	if _, err = os.Stat(configPath); os.IsNotExist(err) {
 		f, err := os.Create(configPath)
 		if err != nil {
@@ -90,47 +91,45 @@ func loadConfig() *config {
 		}
 		defer f.Close()
 
-		c := config{
-			Mouse:         true,
-			Notifications: true,
-			UserAgent: "" +
-				"Mozilla/5.0 (X11; Linux x86_64) " +
-				"AppleWebKit/537.36 (KHTML, like Gecko) " +
-				"Chrome/92.0.4515.131 Safari/537.36",
-			GetMessagesLimit: 50,
-			Theme: theme{
-				Border:   "white",
-				Title:    "white",
-				Graphics: "white",
-				Background: themeBackground{
-					Primitive:    "black",
-					Contrast:     "blue",
-					MoreContrast: "green",
-				},
-				Text: themeText{
-					Primary:           "white",
-					Secondary:         "yellow",
-					Tertiary:          "green",
-					Inverse:           "blue",
-					ContrastSecondary: "darkcyan",
-				},
+		c.Mouse = true
+		c.Notifications = true
+		c.UserAgent = "" +
+			"Mozilla/5.0 (X11; Linux x86_64) " +
+			"AppleWebKit/537.36 (KHTML, like Gecko) " +
+			"Chrome/92.0.4515.131 Safari/537.36"
+		c.GetMessagesLimit = 50
+		c.Theme = theme{
+			Border:   "white",
+			Title:    "white",
+			Graphics: "white",
+			Background: themeBackground{
+				Primitive:    "black",
+				Contrast:     "blue",
+				MoreContrast: "green",
 			},
-			Keybindings: keybindings{
-				ChannelsTree: keybindingsChannelsTree{
-					Focus: "Alt+Rune[1]",
-				},
-				MessagesView: keybindingsMessagesView{
-					Focus:          "Alt+Rune[2]",
-					SelectPrevious: "Up",
-					SelectNext:     "Down",
-					SelectFirst:    "Home",
-					SelectLast:     "End",
-					Reply:          "Rune[r]",
-					ReplyMention:   "Rune[R]",
-				},
-				MessageInputField: keybindingsMessageInputField{
-					Focus: "Alt+Rune[3]",
-				},
+			Text: themeText{
+				Primary:           "white",
+				Secondary:         "yellow",
+				Tertiary:          "green",
+				Inverse:           "blue",
+				ContrastSecondary: "darkcyan",
+			},
+		}
+		c.Keybindings = keybindings{
+			ChannelsTree: keybindingsChannelsTree{
+				Focus: "Alt+Rune[1]",
+			},
+			MessagesView: keybindingsMessagesView{
+				Focus:          "Alt+Rune[2]",
+				SelectPrevious: "Up",
+				SelectNext:     "Down",
+				SelectFirst:    "Home",
+				SelectLast:     "End",
+				Reply:          "Rune[r]",
+				ReplyMention:   "Rune[R]",
+			},
+			MessageInputField: keybindingsMessageInputField{
+				Focus: "Alt+Rune[3]",
 			},
 		}
 
@@ -138,14 +137,11 @@ func loadConfig() *config {
 		if err != nil {
 			panic(err)
 		}
-
-		return &c
-	}
-
-	var c config
-	_, err = toml.DecodeFile(configPath, &c)
-	if err != nil {
-		panic(err)
+	} else {
+		_, err = toml.DecodeFile(configPath, &c)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	return &c
