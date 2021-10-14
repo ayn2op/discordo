@@ -77,12 +77,12 @@ type config struct {
 }
 
 func loadConfig() *config {
-	u, err := os.UserHomeDir()
+	configPath, err := os.UserConfigDir()
 	if err != nil {
 		panic(err)
 	}
 
-	configPath := u + "/.config/discordo.toml"
+	configPath = configPath + "/discordo.toml"
 	if _, err = os.Stat(configPath); os.IsNotExist(err) {
 		f, err := os.Create(configPath)
 		if err != nil {
