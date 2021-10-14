@@ -18,6 +18,15 @@ var (
 	mainFlex          *tview.Flex
 )
 
+func newApp() *tview.Application {
+	a := tview.NewApplication()
+	a.
+		EnableMouse(conf.Mouse).
+		SetInputCapture(onAppInputCapture)
+
+	return a
+}
+
 func onAppInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	switch e.Name() {
 	case conf.Keybindings.ChannelsTree.Focus:
@@ -29,6 +38,18 @@ func onAppInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	}
 
 	return e
+}
+
+func newChannelsTree() *tview.TreeView {
+	treeView := tview.NewTreeView()
+	treeView.
+		SetSelectedFunc(onChannelsTreeSelected).
+		SetTopLevel(1).
+		SetRoot(tview.NewTreeNode("")).
+		SetBorder(true).
+		SetBorderPadding(0, 0, 1, 0)
+
+	return treeView
 }
 
 func onChannelsTreeSelected(n *tview.TreeNode) {
@@ -181,7 +202,25 @@ func getTreeNodeByReference(r interface{}) (mn *tview.TreeNode) {
 	return
 }
 
-func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
+func newMessagesView() *tview.TextView {
+	textView := tview.NewTextView()
+	textView.
+		SetRegions(true).
+		SetDynamicColors(true).
+		SetWordWrap(true).
+		ScrollToEnd().
+		SetChangedFunc(func() {
+			app.Draw()
+		}).
+		SetInputCapture(onMessagesViewInputCapture).
+		SetBorder(true).
+		SetBorderPadding(0, 0, 1, 0).
+		SetTitleAlign(tview.AlignLeft)
+
+	return textView
+}
+
+func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	if selectedChannel == nil {
 		return nil
 	}
@@ -284,6 +323,20 @@ func onMessagesTextViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	}
 
 	return e
+}
+
+func newMessageInputField() *tview.InputField {
+	inputField := tview.NewInputField()
+	inputField.
+		SetPlaceholder("Message...").
+		SetPlaceholderTextColor(tcell.ColorWhite).
+		SetFieldBackgroundColor(tview.Styles.PrimitiveBackgroundColor).
+		SetInputCapture(onMessageInputFieldInputCapture).
+		SetBorder(true).
+		SetBorderPadding(0, 0, 1, 0).
+		SetTitleAlign(tview.AlignLeft)
+
+	return inputField
 }
 
 func onMessageInputFieldInputCapture(e *tcell.EventKey) *tcell.EventKey {
