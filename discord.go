@@ -15,7 +15,7 @@ import (
 var (
 	session         *discordgo.Session
 	selectedChannel *discordgo.Channel
-	selectedMessage *discordgo.Message
+	selectedMessage int
 )
 var (
 	boldRegex          = regexp.MustCompile(`(?m)\*\*(.*?)\*\*`)

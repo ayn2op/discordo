@@ -54,7 +54,7 @@ func newChannelsTree() *tview.TreeView {
 
 func onChannelsTreeSelected(n *tview.TreeNode) {
 	selectedChannel = nil
-	selectedMessage = nil
+	selectedMessage = 0
 	messagesView.
 		Clear().
 		SetTitle("")
@@ -232,19 +232,19 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
-		hs := messagesView.GetHighlights()
-		if len(hs) == 0 {
+		if len(messagesView.GetHighlights()) == 0 {
+			selectedMessage = len(ms)
 			messagesView.
-				Highlight(ms[len(ms)-1].ID).
+				Highlight(ms[selectedMessage-1].ID).
 				ScrollToHighlight()
 		} else {
-			idx, _ := findByMessageID(ms, hs[0])
-			if idx == -1 || idx == 0 {
-				return nil
+			selectedMessage--
+			if selectedMessage < 0 {
+				selectedMessage = 1
 			}
 
 			messagesView.
-				Highlight(ms[idx-1].ID).
+				Highlight(ms[selectedMessage-1].ID).
 				ScrollToHighlight()
 		}
 
@@ -255,19 +255,19 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
-		hs := messagesView.GetHighlights()
-		if len(hs) == 0 {
+		if len(messagesView.GetHighlights()) == 0 {
+			selectedMessage = len(ms)
 			messagesView.
-				Highlight(ms[len(ms)-1].ID).
+				Highlight(ms[selectedMessage-1].ID).
 				ScrollToHighlight()
 		} else {
-			idx, _ := findByMessageID(ms, hs[0])
-			if idx == -1 || idx == len(ms)-1 {
-				return nil
+			selectedMessage++
+			if selectedMessage > len(ms) {
+				selectedMessage = len(ms)
 			}
 
 			messagesView.
-				Highlight(ms[idx+1].ID).
+				Highlight(ms[selectedMessage-1].ID).
 				ScrollToHighlight()
 		}
 
@@ -278,8 +278,9 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
+		selectedMessage = 1
 		messagesView.
-			Highlight(ms[0].ID).
+			Highlight(ms[selectedMessage-1].ID).
 			ScrollToHighlight()
 	case conf.Keybindings.MessagesView.SelectLast:
 		ms := selectedChannel.Messages
@@ -287,8 +288,9 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
+		selectedMessage = len(ms)
 		messagesView.
-			Highlight(ms[len(ms)-1].ID).
+			Highlight(ms[selectedMessage-1].ID).
 			ScrollToHighlight()
 	case conf.Keybindings.MessagesView.Reply:
 		ms := selectedChannel.Messages
@@ -296,14 +298,8 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
-		hs := messagesView.GetHighlights()
-		if len(hs) == 0 {
-			return nil
-		}
-
-		_, selectedMessage = findByMessageID(ms, hs[0])
 		messageInputField.SetTitle(
-			"Replying to " + selectedMessage.Author.Username,
+			"Replying to " + ms[selectedMessage-1].Author.Username,
 		)
 		app.SetFocus(messageInputField)
 	case conf.Keybindings.MessagesView.ReplyMention:
@@ -312,13 +308,7 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
-		hs := messagesView.GetHighlights()
-		if len(hs) == 0 {
-			return nil
-		}
-
-		_, selectedMessage = findByMessageID(ms, hs[0])
-		messageInputField.SetTitle("[@] Repling to " + selectedMessage.Author.Username)
+		messageInputField.SetTitle("[@] Replying to " + ms[selectedMessage-1].Author.Username)
 		app.SetFocus(messageInputField)
 	}
 
@@ -356,10 +346,11 @@ func onMessageInputFieldInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
-		if selectedMessage != nil {
+		if selectedMessage != 0 {
+			m := selectedChannel.Messages[selectedMessage-1]
 			d := &discordgo.MessageSend{
 				Content:         t,
-				Reference:       selectedMessage.Reference(),
+				Reference:       m.Reference(),
 				AllowedMentions: &discordgo.MessageAllowedMentions{RepliedUser: false},
 			}
 			if strings.HasPrefix(messageInputField.GetTitle(), "[@]") {
@@ -368,9 +359,8 @@ func onMessageInputFieldInputCapture(e *tcell.EventKey) *tcell.EventKey {
 				d.AllowedMentions.RepliedUser = false
 			}
 
-			go session.ChannelMessageSendComplex(selectedMessage.ChannelID, d)
+			go session.ChannelMessageSendComplex(m.ChannelID, d)
 			messageInputField.SetTitle("")
-			selectedMessage = nil
 		} else {
 			go session.ChannelMessageSend(selectedChannel.ID, t)
 		}
@@ -382,7 +372,7 @@ func onMessageInputFieldInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		messageInputField.SetText(text)
 	case tcell.KeyEscape:
 		messageInputField.SetTitle("")
-		selectedMessage = nil
+		selectedMessage = 0
 	}
 
 	return e

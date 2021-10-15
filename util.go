@@ -24,13 +24,3 @@ func generateChannelRepr(c *discordgo.Channel) string {
 
 	return repr
 }
-
-func findByMessageID(ms []*discordgo.Message, mID string) (int, *discordgo.Message) {
-	for i, m := range ms {
-		if mID == m.ID {
-			return i, m
-		}
-	}
-
-	return -1, nil
-}
