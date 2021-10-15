@@ -308,7 +308,7 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
-		messageInputField.SetTitle("[@] Repling to " + ms[selectedMessage-1].Author.Username)
+		messageInputField.SetTitle("[@] Replying to " + ms[selectedMessage-1].Author.Username)
 		app.SetFocus(messageInputField)
 	}
 
