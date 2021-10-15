@@ -10,12 +10,8 @@ import (
 )
 
 var (
-	app               *tview.Application
-	loginForm         *tview.Form
-	channelsTree      *tview.TreeView
-	messagesView      *tview.TextView
-	messageInputField *tview.InputField
-	mainFlex          *tview.Flex
+	selectedChannel *discordgo.Channel
+	selectedMessage int
 )
 
 func newApp() *tview.Application {

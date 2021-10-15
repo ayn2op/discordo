@@ -11,8 +11,6 @@ const userAgent = "" +
 	"AppleWebKit/537.36 (KHTML, like Gecko) " +
 	"Chrome/92.0.4515.131 Safari/537.36"
 
-var conf *config
-
 type keybindingsChannelsTree struct {
 	Focus string
 }

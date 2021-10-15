@@ -13,11 +13,6 @@ import (
 )
 
 var (
-	session         *discordgo.Session
-	selectedChannel *discordgo.Channel
-	selectedMessage int
-)
-var (
 	boldRegex          = regexp.MustCompile(`(?m)\*\*(.*?)\*\*`)
 	italicRegex        = regexp.MustCompile(`(?m)\*(.*?)\*`)
 	underlineRegex     = regexp.MustCompile(`(?m)__(.*?)__`)

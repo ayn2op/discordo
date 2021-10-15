@@ -1,12 +1,25 @@
 package main
 
 import (
+	"github.com/ayntgl/discordgo"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/zalando/go-keyring"
 )
 
 const service = "discordo"
+
+var (
+	app               *tview.Application
+	loginForm         *tview.Form
+	channelsTree      *tview.TreeView
+	messagesView      *tview.TextView
+	messageInputField *tview.InputField
+	mainFlex          *tview.Flex
+
+	conf    *config
+	session *discordgo.Session
+)
 
 func main() {
 	conf = loadConfig()
