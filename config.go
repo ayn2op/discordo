@@ -6,6 +6,11 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
+const userAgent = "" +
+	"Mozilla/5.0 (X11; Linux x86_64) " +
+	"AppleWebKit/537.36 (KHTML, like Gecko) " +
+	"Chrome/92.0.4515.131 Safari/537.36"
+
 var conf *config
 
 type keybindingsChannelsTree struct {
@@ -82,7 +87,8 @@ func loadConfig() *config {
 		panic(err)
 	}
 
-	configPath = configPath + "/discordo.toml"
+	configPath += "/discordo.toml"
+
 	var c config
 	if _, err = os.Stat(configPath); os.IsNotExist(err) {
 		f, err := os.Create(configPath)
@@ -93,10 +99,7 @@ func loadConfig() *config {
 
 		c.Mouse = true
 		c.Notifications = true
-		c.UserAgent = "" +
-			"Mozilla/5.0 (X11; Linux x86_64) " +
-			"AppleWebKit/537.36 (KHTML, like Gecko) " +
-			"Chrome/92.0.4515.131 Safari/537.36"
+		c.UserAgent = userAgent
 		c.GetMessagesLimit = 50
 		c.Theme = theme{
 			Border:   "white",
