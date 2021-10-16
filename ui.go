@@ -254,7 +254,7 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 				ScrollToHighlight()
 		} else {
 			selectedMessage--
-			if selectedMessage < 0 {
+			if selectedMessage < 1 {
 				selectedMessage = 1
 			}
 
