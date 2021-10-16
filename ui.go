@@ -388,7 +388,9 @@ func onMessageInputFieldInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	case tcell.KeyEscape:
 		messageInputField.SetText("")
 		messageInputField.SetTitle("")
+
 		selectedMessage = 0
+		messagesView.Highlight()
 	}
 
 	return e
