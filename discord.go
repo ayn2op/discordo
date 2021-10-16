@@ -313,13 +313,7 @@ func buildEmbeds(b *strings.Builder, es []*discordgo.MessageEmbed) {
 				embedBuilder.WriteString("[::b]")
 				embedBuilder.WriteString(ef.Name)
 				embedBuilder.WriteString("[::-]")
-
-				if ef.Inline {
-					embedBuilder.WriteByte(' ')
-				} else {
-					embedBuilder.WriteByte('\n')
-				}
-
+				embedBuilder.WriteByte('\n')
 				embedBuilder.WriteString(parseMarkdown(ef.Value))
 
 				if i != len(e.Fields)-1 {
@@ -329,6 +323,10 @@ func buildEmbeds(b *strings.Builder, es []*discordgo.MessageEmbed) {
 		}
 
 		if e.Footer != nil {
+			if hasHeading {
+				embedBuilder.WriteString("\n\n")
+			}
+
 			embedBuilder.WriteString(e.Footer.Text)
 		}
 
