@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/BurntSushi/toml"
+	"github.com/rivo/tview"
 )
 
 const userAgent = "" +
@@ -69,14 +70,37 @@ type theme struct {
 	Text       themeText
 }
 
+type borders struct {
+	Horizontal  rune
+	Vertical    rune
+	TopLeft     rune
+	TopRight    rune
+	BottomLeft  rune
+	BottomRight rune
+
+	LeftT   rune
+	RightT  rune
+	TopT    rune
+	BottomT rune
+	Cross   rune
+
+	HorizontalFocus  rune
+	VerticalFocus    rune
+	TopLeftFocus     rune
+	TopRightFocus    rune
+	BottomLeftFocus  rune
+	BottomRightFocus rune
+}
+
 type config struct {
 	Token            string
+	UserAgent        string
 	Mouse            bool
 	Notifications    bool
-	UserAgent        string
 	GetMessagesLimit int
 	Theme            theme
 	Keybindings      keybindings
+	Borders          borders
 }
 
 func loadConfig() *config {
@@ -133,6 +157,7 @@ func loadConfig() *config {
 				Focus: "Alt+Rune[3]",
 			},
 		}
+		c.Borders = tview.Borders
 
 		err = toml.NewEncoder(f).Encode(c)
 		if err != nil {

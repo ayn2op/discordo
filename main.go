@@ -24,6 +24,7 @@ var (
 func main() {
 	conf = loadConfig()
 
+	tview.Borders = conf.Borders
 	tview.Styles.PrimitiveBackgroundColor = tcell.GetColor(conf.Theme.Background.Primitive)
 	tview.Styles.ContrastBackgroundColor = tcell.GetColor(conf.Theme.Background.Contrast)
 	tview.Styles.MoreContrastBackgroundColor = tcell.GetColor(conf.Theme.Background.MoreContrast)
