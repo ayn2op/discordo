@@ -11,7 +11,7 @@ import (
 
 var (
 	selectedChannel *discordgo.Channel
-	selectedMessage int
+	selectedMessage int = -1
 )
 
 func newApp() *tview.Application {
@@ -127,94 +127,69 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		return nil
 	}
 
+	ms := selectedChannel.Messages
+	if len(ms) == 0 {
+		return nil
+	}
+
 	switch e.Name() {
 	case conf.Keybindings.MessagesView.SelectPrevious:
-		ms := selectedChannel.Messages
-		if len(ms) == 0 {
-			return nil
-		}
-
 		if len(messagesView.GetHighlights()) == 0 {
-			selectedMessage = len(ms)
+			selectedMessage = len(ms) - 1
 		} else {
 			selectedMessage--
-			if selectedMessage < 1 {
-				selectedMessage = 1
+			if selectedMessage < 0 {
+				selectedMessage = 0
 			}
 		}
 
 		messagesView.
-			Highlight(ms[selectedMessage-1].ID).
+			Highlight(ms[selectedMessage].ID).
 			ScrollToHighlight()
 
 		return nil
 	case conf.Keybindings.MessagesView.SelectNext:
-		ms := selectedChannel.Messages
-		if len(ms) == 0 {
-			return nil
-		}
-
 		if len(messagesView.GetHighlights()) == 0 {
-			selectedMessage = len(ms)
+			selectedMessage = len(ms) - 1
 		} else {
 			selectedMessage++
-			if selectedMessage > len(ms) {
-				selectedMessage = len(ms)
+			if selectedMessage >= len(ms) {
+				selectedMessage = len(ms) - 1
 			}
 		}
 
 		messagesView.
-			Highlight(ms[selectedMessage-1].ID).
+			Highlight(ms[selectedMessage].ID).
 			ScrollToHighlight()
 
 		return nil
 	case conf.Keybindings.MessagesView.SelectFirst:
-		ms := selectedChannel.Messages
-		if len(ms) == 0 {
-			return nil
-		}
-
-		selectedMessage = 1
+		selectedMessage = 0
 		messagesView.
-			Highlight(ms[selectedMessage-1].ID).
+			Highlight(ms[selectedMessage].ID).
 			ScrollToHighlight()
 	case conf.Keybindings.MessagesView.SelectLast:
-		ms := selectedChannel.Messages
-		if len(ms) == 0 {
-			return nil
-		}
-
-		selectedMessage = len(ms)
+		selectedMessage = len(ms) - 1
 		messagesView.
-			Highlight(ms[selectedMessage-1].ID).
+			Highlight(ms[selectedMessage].ID).
 			ScrollToHighlight()
 	case conf.Keybindings.MessagesView.Reply:
-		ms := selectedChannel.Messages
-		if len(ms) == 0 {
-			return nil
-		}
-
 		hs := messagesView.GetHighlights()
 		if len(hs) == 0 {
 			return nil
 		}
 
-		selectedMessage = findIndexByMessageID(hs[0]) + 1
-		messageInputField.SetTitle("Replying to " + ms[selectedMessage-1].Author.Username)
+		m := findByMessageID(hs[0])
+		messageInputField.SetTitle("Replying to " + m.Author.Username)
 		app.SetFocus(messageInputField)
 	case conf.Keybindings.MessagesView.ReplyMention:
-		ms := selectedChannel.Messages
-		if len(ms) == 0 {
-			return nil
-		}
-
 		hs := messagesView.GetHighlights()
 		if len(hs) == 0 {
 			return nil
 		}
 
-		selectedMessage = findIndexByMessageID(hs[0]) + 1
-		messageInputField.SetTitle("[@] Replying to " + ms[selectedMessage-1].Author.Username)
+		m := findByMessageID(hs[0])
+		messageInputField.SetTitle("[@] Replying to " + m.Author.Username)
 		app.SetFocus(messageInputField)
 	}
 
@@ -252,8 +227,8 @@ func onMessageInputFieldInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
-		if selectedMessage != 0 {
-			m := selectedChannel.Messages[selectedMessage-1]
+		if len(messagesView.GetHighlights()) != 0 {
+			m := selectedChannel.Messages[selectedMessage]
 			d := &discordgo.MessageSend{
 				Content:         t,
 				Reference:       m.Reference(),
@@ -280,7 +255,7 @@ func onMessageInputFieldInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		messageInputField.SetText("")
 		messageInputField.SetTitle("")
 
-		selectedMessage = 0
+		selectedMessage = -1
 		messagesView.Highlight()
 	}
 

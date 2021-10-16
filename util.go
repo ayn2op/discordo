@@ -27,14 +27,14 @@ func generateChannelRepr(c *discordgo.Channel) string {
 	return repr
 }
 
-func findIndexByMessageID(mID string) int {
-	for i, m := range selectedChannel.Messages {
+func findByMessageID(mID string) *discordgo.Message {
+	for _, m := range selectedChannel.Messages {
 		if m.ID == mID {
-			return i
+			return m
 		}
 	}
 
-	return -1
+	return nil
 }
 
 func createPrivateChannels(cs []*discordgo.Channel, dmNode *tview.TreeNode) {
