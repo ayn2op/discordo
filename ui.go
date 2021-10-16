@@ -249,19 +249,16 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 
 		if len(messagesView.GetHighlights()) == 0 {
 			selectedMessage = len(ms)
-			messagesView.
-				Highlight(ms[selectedMessage-1].ID).
-				ScrollToHighlight()
 		} else {
 			selectedMessage--
 			if selectedMessage < 1 {
 				selectedMessage = 1
 			}
-
-			messagesView.
-				Highlight(ms[selectedMessage-1].ID).
-				ScrollToHighlight()
 		}
+
+		messagesView.
+			Highlight(ms[selectedMessage-1].ID).
+			ScrollToHighlight()
 
 		return nil
 	case conf.Keybindings.MessagesView.SelectNext:
@@ -272,19 +269,16 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 
 		if len(messagesView.GetHighlights()) == 0 {
 			selectedMessage = len(ms)
-			messagesView.
-				Highlight(ms[selectedMessage-1].ID).
-				ScrollToHighlight()
 		} else {
 			selectedMessage++
 			if selectedMessage > len(ms) {
 				selectedMessage = len(ms)
 			}
-
-			messagesView.
-				Highlight(ms[selectedMessage-1].ID).
-				ScrollToHighlight()
 		}
+
+		messagesView.
+			Highlight(ms[selectedMessage-1].ID).
+			ScrollToHighlight()
 
 		return nil
 	case conf.Keybindings.MessagesView.SelectFirst:
@@ -313,14 +307,34 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
-		messageInputField.SetTitle(
-			"Replying to " + ms[selectedMessage-1].Author.Username,
-		)
+		hs := messagesView.GetHighlights()
+		if len(hs) == 0 {
+			return nil
+		}
+
+		for i, m := range ms {
+			if m.ID == hs[0] {
+				selectedMessage = i + 1
+			}
+		}
+
+		messageInputField.SetTitle("Replying to " + ms[selectedMessage-1].Author.Username)
 		app.SetFocus(messageInputField)
 	case conf.Keybindings.MessagesView.ReplyMention:
 		ms := selectedChannel.Messages
 		if len(ms) == 0 {
 			return nil
+		}
+
+		hs := messagesView.GetHighlights()
+		if len(hs) == 0 {
+			return nil
+		}
+
+		for i, m := range ms {
+			if m.ID == hs[0] {
+				selectedMessage = i + 1
+			}
 		}
 
 		messageInputField.SetTitle("[@] Replying to " + ms[selectedMessage-1].Author.Username)
