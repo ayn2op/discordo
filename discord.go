@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
-	"sort"
 	"strings"
 
 	"github.com/ayntgl/discordgo"
@@ -42,60 +41,11 @@ func newSession() *discordgo.Session {
 func onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 	dmNode := tview.NewTreeNode("Direct Messages").
 		Collapse()
-
 	n := channelsTree.GetRoot()
 	n.AddChild(dmNode)
 
-	sort.Slice(r.PrivateChannels, func(i, j int) bool {
-		return r.PrivateChannels[i].LastMessageID > r.PrivateChannels[j].LastMessageID
-	})
-
-	for _, c := range r.PrivateChannels {
-		var tag string
-		if isUnread(c) {
-			tag = "[::b]"
-		} else {
-			tag = "[::d]"
-		}
-
-		cn := tview.NewTreeNode(tag + generateChannelRepr(c) + "[::-]").
-			SetReference(c.ID)
-		dmNode.AddChild(cn)
-	}
-
-	sort.Slice(r.Guilds, func(a, b int) bool {
-		found := false
-		for _, gID := range r.Settings.GuildPositions {
-			if found {
-				if gID == r.Guilds[b].ID {
-					return true
-				}
-			} else {
-				if gID == r.Guilds[a].ID {
-					found = true
-				}
-			}
-		}
-
-		return false
-	})
-
-	for _, g := range r.Guilds {
-		gn := tview.NewTreeNode(g.Name).Collapse()
-		n.AddChild(gn)
-
-		cs := g.Channels
-		sort.Slice(cs, func(i, j int) bool {
-			return cs[i].Position < cs[j].Position
-		})
-
-		// Top-level channels
-		createTopLevelChannelsTreeNodes(gn, cs)
-		// Category channels
-		createCategoryChannelsTreeNodes(gn, cs)
-		// Second-level channels
-		createSecondLevelChannelsTreeNodes(cs)
-	}
+	createPrivateChannels(r.PrivateChannels, dmNode)
+	createGuilds(r.Guilds, n)
 
 	channelsTree.SetCurrentNode(n)
 }
