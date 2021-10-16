@@ -94,7 +94,7 @@ func onChannelsTreeSelected(n *tview.TreeNode) {
 
 			for i := len(ms) - 1; i >= 0; i-- {
 				selectedChannel.Messages = append(selectedChannel.Messages, ms[i])
-				renderMessage(ms[i])
+				messagesView.Write(buildMessage(ms[i]))
 			}
 
 			if len(ms) != 0 && isUnread(c) {
@@ -312,12 +312,7 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
-		for i, m := range ms {
-			if m.ID == hs[0] {
-				selectedMessage = i + 1
-			}
-		}
-
+		selectedMessage = findIndexByMessageID(hs[0]) + 1
 		messageInputField.SetTitle("Replying to " + ms[selectedMessage-1].Author.Username)
 		app.SetFocus(messageInputField)
 	case conf.Keybindings.MessagesView.ReplyMention:
@@ -331,12 +326,7 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
-		for i, m := range ms {
-			if m.ID == hs[0] {
-				selectedMessage = i + 1
-			}
-		}
-
+		selectedMessage = findIndexByMessageID(hs[0]) + 1
 		messageInputField.SetTitle("[@] Replying to " + ms[selectedMessage-1].Author.Username)
 		app.SetFocus(messageInputField)
 	}

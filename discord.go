@@ -143,7 +143,7 @@ func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
 		app.Draw()
 	} else {
 		selectedChannel.Messages = append(selectedChannel.Messages, m.Message)
-		renderMessage(m.Message)
+		messagesView.Write(buildMessage(m.Message))
 	}
 }
 
@@ -198,7 +198,7 @@ func totp(code, ticket string) (*loginResponse, error) {
 	return &lr, nil
 }
 
-func renderMessage(m *discordgo.Message) {
+func buildMessage(m *discordgo.Message) []byte {
 	var b strings.Builder
 
 	switch m.Type {
@@ -209,113 +209,30 @@ func renderMessage(m *discordgo.Message) {
 		b.WriteString("[\"")
 		b.WriteString(m.ID)
 		b.WriteString("\"]")
-		// Render the message associated with crosspost, channel follow add,
-		// pin, or a reply.
-		if rm := m.ReferencedMessage; rm != nil {
-			b.WriteString(" ╭ ")
-			b.WriteString("[::d]")
-			parseAuthor(&b, rm.Author)
-
-			if rm.Content != "" {
-				rm.Content = parseMentions(rm.Content, rm.Mentions)
-				b.WriteString(parseMarkdown(rm.Content))
-			}
-
-			b.WriteString("[::-]")
-			b.WriteByte('\n')
-		}
-
-		parseAuthor(&b, m.Author)
-
-		if m.Content != "" {
-			m.Content = parseMentions(m.Content, m.Mentions)
-			b.WriteString(parseMarkdown(m.Content))
-		}
+		// Build the message associated with crosspost, channel follow add, pin, or a reply.
+		buildReferencedMessage(&b, m.ReferencedMessage)
+		// Build the author of this message.
+		buildAuthor(&b, m.Author)
+		// Build the contents of the message.
+		buildContent(&b, m)
 
 		if m.EditedTimestamp != "" {
 			b.WriteString(" [::d](edited)[::-]")
 		}
-
-		for _, e := range m.Embeds {
-			if e.Type != discordgo.EmbedTypeRich {
-				continue
-			}
-
-			var embedBuilder strings.Builder
-			var hasHeading bool
-			prefix := fmt.Sprintf("[#%06X]▐[-] ", e.Color)
-
-			b.WriteByte('\n')
-			embedBuilder.WriteString(prefix)
-
-			if e.Author != nil {
-				hasHeading = true
-				embedBuilder.WriteString("[::u]")
-				embedBuilder.WriteString(e.Author.Name)
-				embedBuilder.WriteString("[::-]")
-			}
-
-			if e.Title != "" {
-				hasHeading = true
-				embedBuilder.WriteString("[::b]")
-				embedBuilder.WriteString(e.Title)
-				embedBuilder.WriteString("[::-]")
-			}
-
-			if e.Description != "" {
-				if hasHeading {
-					embedBuilder.WriteString("\n\n")
-				}
-
-				embedBuilder.WriteString(parseMarkdown(e.Description))
-			}
-
-			if len(e.Fields) != 0 {
-				if hasHeading || e.Description != "" {
-					embedBuilder.WriteString("\n\n")
-				}
-
-				for i, ef := range e.Fields {
-					embedBuilder.WriteString("[::b]")
-					embedBuilder.WriteString(ef.Name)
-					embedBuilder.WriteString("[::-]")
-
-					if ef.Inline {
-						embedBuilder.WriteByte(' ')
-					} else {
-						embedBuilder.WriteByte('\n')
-					}
-
-					embedBuilder.WriteString(parseMarkdown(ef.Value))
-
-					if i != len(e.Fields)-1 {
-						embedBuilder.WriteString("\n\n")
-					}
-				}
-			}
-
-			if e.Footer != nil {
-				embedBuilder.WriteString(e.Footer.Text)
-			}
-
-			b.WriteString(strings.Replace(embedBuilder.String(), "\n", "\n"+prefix, -1))
-		}
-
-		// Render the message attachments (attached files to the message).
-		for _, a := range m.Attachments {
-			b.WriteString("\n[")
-			b.WriteString(a.Filename)
-			b.WriteString("]: ")
-			b.WriteString(a.URL)
-		}
+		// Build the embeds associated with the message.
+		buildEmbeds(&b, m.Embeds)
+		// Build the message attachments (attached files to the message).
+		buildAttachments(&b, m.Attachments)
 		// Tags with no region ID ([""]) do not start new regions. They can
 		// therefore be used to mark the end of a region.
 		b.WriteString("[\"\"]")
+
 		b.WriteByte('\n')
 	case discordgo.MessageTypeGuildMemberJoin:
 		b.WriteString("[#5865F2]")
 		b.WriteString(m.Author.Username)
 		b.WriteString("[-] joined the server")
+
 		b.WriteByte('\n')
 	}
 
@@ -323,11 +240,113 @@ func renderMessage(m *discordgo.Message) {
 		b := make([]byte, len(str)+1)
 		copy(b, str)
 
-		messagesView.Write(b)
+		return b
+	}
+
+	return nil
+}
+
+func buildReferencedMessage(b *strings.Builder, rm *discordgo.Message) {
+	if rm != nil {
+		b.WriteString(" ╭ ")
+		b.WriteString("[::d]")
+		buildAuthor(b, rm.Author)
+
+		if rm.Content != "" {
+			rm.Content = buildMentions(rm.Content, rm.Mentions)
+			b.WriteString(parseMarkdown(rm.Content))
+		}
+
+		b.WriteString("[::-]")
+		b.WriteByte('\n')
 	}
 }
 
-func parseMentions(content string, mentions []*discordgo.User) string {
+func buildContent(b *strings.Builder, m *discordgo.Message) {
+	if m.Content != "" {
+		m.Content = buildMentions(m.Content, m.Mentions)
+		b.WriteString(parseMarkdown(m.Content))
+	}
+}
+
+func buildEmbeds(b *strings.Builder, es []*discordgo.MessageEmbed) {
+	for _, e := range es {
+		if e.Type != discordgo.EmbedTypeRich {
+			continue
+		}
+
+		var embedBuilder strings.Builder
+		var hasHeading bool
+		prefix := fmt.Sprintf("[#%06X]▐[-] ", e.Color)
+
+		b.WriteByte('\n')
+		embedBuilder.WriteString(prefix)
+
+		if e.Author != nil {
+			hasHeading = true
+			embedBuilder.WriteString("[::u]")
+			embedBuilder.WriteString(e.Author.Name)
+			embedBuilder.WriteString("[::-]")
+		}
+
+		if e.Title != "" {
+			hasHeading = true
+			embedBuilder.WriteString("[::b]")
+			embedBuilder.WriteString(e.Title)
+			embedBuilder.WriteString("[::-]")
+		}
+
+		if e.Description != "" {
+			if hasHeading {
+				embedBuilder.WriteString("\n\n")
+			}
+
+			embedBuilder.WriteString(parseMarkdown(e.Description))
+		}
+
+		if len(e.Fields) != 0 {
+			if hasHeading || e.Description != "" {
+				embedBuilder.WriteString("\n\n")
+			}
+
+			for i, ef := range e.Fields {
+				embedBuilder.WriteString("[::b]")
+				embedBuilder.WriteString(ef.Name)
+				embedBuilder.WriteString("[::-]")
+
+				if ef.Inline {
+					embedBuilder.WriteByte(' ')
+				} else {
+					embedBuilder.WriteByte('\n')
+				}
+
+				embedBuilder.WriteString(parseMarkdown(ef.Value))
+
+				if i != len(e.Fields)-1 {
+					embedBuilder.WriteString("\n\n")
+				}
+			}
+		}
+
+		if e.Footer != nil {
+			embedBuilder.WriteString(e.Footer.Text)
+		}
+
+		b.WriteString(strings.Replace(embedBuilder.String(), "\n", "\n"+prefix, -1))
+	}
+}
+
+func buildAttachments(b *strings.Builder, as []*discordgo.MessageAttachment) {
+	for _, a := range as {
+		b.WriteByte('\n')
+		b.WriteByte('[')
+		b.WriteString(a.Filename)
+		b.WriteString("]: ")
+		b.WriteString(a.URL)
+	}
+}
+
+func buildMentions(content string, mentions []*discordgo.User) string {
 	for _, mUser := range mentions {
 		var color string
 		if mUser.ID == session.State.User.ID {
@@ -349,7 +368,7 @@ func parseMentions(content string, mentions []*discordgo.User) string {
 	return content
 }
 
-func parseAuthor(b *strings.Builder, u *discordgo.User) {
+func buildAuthor(b *strings.Builder, u *discordgo.User) {
 	if u.ID == session.State.User.ID {
 		b.WriteString("[#57F287]")
 	} else {
