@@ -46,6 +46,8 @@ sudo mv ./discordo /usr/local/bin
 On Linux, clipboard support requires:
 
 - `xclip` or `xsel` for X11.
+  - Ubuntu: `apt install xclip`
+  - Arch Linux: `pacman -S xclip`
 - `wl-clipboard` for Wayland.
 
 ## Disclaimer
