@@ -50,9 +50,9 @@ func main() {
 		AddItem(channelsTree, 0, 1, false).
 		AddItem(rightFlex, 0, 4, false)
 
-	token := conf.Token
-	if t, _ := keyring.Get(service, "token"); t != "" {
-		token = t
+	token, err := keyring.Get(service, "token")
+	if err != nil {
+		token = conf.Token
 	}
 
 	if token != "" {
