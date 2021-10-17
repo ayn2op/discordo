@@ -167,7 +167,19 @@ func buildMessage(m *discordgo.Message) []byte {
 	case discordgo.MessageTypeGuildMemberJoin:
 		b.WriteString("[#5865F2]")
 		b.WriteString(m.Author.Username)
-		b.WriteString("[-] joined the server")
+		b.WriteString("[-] joined the server.")
+
+		b.WriteByte('\n')
+	case discordgo.MessageTypeCall:
+		b.WriteString("[#5865F2]")
+		b.WriteString(m.Author.Username)
+		b.WriteString("[-] started a call.")
+
+		b.WriteByte('\n')
+	case discordgo.MessageTypeChannelPinnedMessage:
+		b.WriteString("[#5865F2]")
+		b.WriteString(m.Author.Username)
+		b.WriteString("[-] pinned a message.")
 
 		b.WriteByte('\n')
 	}
