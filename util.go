@@ -37,7 +37,8 @@ func findByMessageID(mID string) *discordgo.Message {
 	return nil
 }
 
-func createPrivateChannels(cs []*discordgo.Channel, dmNode *tview.TreeNode) {
+func createPrivateChannels(n *tview.TreeNode) {
+	cs := session.State.PrivateChannels
 	sort.Slice(cs, func(i, j int) bool {
 		return cs[i].LastMessageID > cs[j].LastMessageID
 	})
@@ -52,11 +53,12 @@ func createPrivateChannels(cs []*discordgo.Channel, dmNode *tview.TreeNode) {
 
 		cn := tview.NewTreeNode(tag + generateChannelRepr(c) + "[::-]").
 			SetReference(c.ID)
-		dmNode.AddChild(cn)
+		n.AddChild(cn)
 	}
 }
 
-func createGuilds(gs []*discordgo.Guild, rootNode *tview.TreeNode) {
+func createGuilds(n *tview.TreeNode) {
+	gs := session.State.Guilds
 	sort.Slice(gs, func(a, b int) bool {
 		found := false
 		for _, gID := range session.State.Settings.GuildPositions {
@@ -76,7 +78,7 @@ func createGuilds(gs []*discordgo.Guild, rootNode *tview.TreeNode) {
 
 	for _, g := range gs {
 		gn := tview.NewTreeNode(g.Name).Collapse()
-		rootNode.AddChild(gn)
+		n.AddChild(gn)
 
 		cs := g.Channels
 		sort.Slice(cs, func(i, j int) bool {
@@ -184,4 +186,18 @@ func getTreeNodeByReference(r interface{}) (mn *tview.TreeNode) {
 	})
 
 	return
+}
+
+func isUnread(c *discordgo.Channel) bool {
+	if c.LastMessageID == "" {
+		return false
+	}
+
+	for _, rs := range session.State.ReadState {
+		if c.ID == rs.ID {
+			return c.LastMessageID != rs.LastMessageID
+		}
+	}
+
+	return false
 }

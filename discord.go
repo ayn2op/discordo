@@ -44,24 +44,10 @@ func onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 	n := channelsTree.GetRoot()
 	n.AddChild(dmNode)
 
-	createPrivateChannels(r.PrivateChannels, dmNode)
-	createGuilds(r.Guilds, n)
+	createPrivateChannels(dmNode)
+	createGuilds(n)
 
 	channelsTree.SetCurrentNode(n)
-}
-
-func isUnread(c *discordgo.Channel) bool {
-	if c.LastMessageID == "" {
-		return false
-	}
-
-	for _, rs := range session.State.ReadState {
-		if c.ID == rs.ID {
-			return c.LastMessageID != rs.LastMessageID
-		}
-	}
-
-	return false
 }
 
 func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
