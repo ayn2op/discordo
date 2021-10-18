@@ -58,11 +58,12 @@ func onChannelsTreeSelected(n *tview.TreeNode) {
 	// Unhighlight the already-highlighted regions.
 	messagesView.Highlight()
 
-	if len(n.GetChildren()) != 0 || n.GetText() == "Direct Messages" {
+	ref := n.GetReference()
+	// If the node's reference is nil, the selected node is a guild or direct messages node; expand or collapse accordingly.
+	if ref == nil {
 		n.SetExpanded(!n.IsExpanded())
 	} else {
-		cID := n.GetReference().(string)
-		c, err := session.State.Channel(cID)
+		c, err := session.State.Channel(ref.(string))
 		if err != nil {
 			return
 		}
@@ -87,7 +88,7 @@ func onChannelsTreeSelected(n *tview.TreeNode) {
 		}
 
 		go func() {
-			ms, err := session.ChannelMessages(cID, conf.GetMessagesLimit, "", "", "")
+			ms, err := session.ChannelMessages(c.ID, conf.GetMessagesLimit, "", "", "")
 			if err != nil {
 				return
 			}
