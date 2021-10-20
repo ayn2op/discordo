@@ -27,10 +27,13 @@ func onAppInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	switch e.Name() {
 	case conf.Keybindings.ChannelsTree.Focus:
 		app.SetFocus(channelsTree)
+		return nil
 	case conf.Keybindings.MessagesView.Focus:
 		app.SetFocus(messagesView)
+		return nil
 	case conf.Keybindings.MessageInputField.Focus:
 		app.SetFocus(messageInputField)
+		return nil
 	}
 
 	return e
@@ -147,7 +150,6 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		messagesView.
 			Highlight(ms[selectedMessage].ID).
 			ScrollToHighlight()
-
 		return nil
 	case conf.Keybindings.MessagesView.SelectNext:
 		if len(messagesView.GetHighlights()) == 0 {
@@ -162,18 +164,19 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		messagesView.
 			Highlight(ms[selectedMessage].ID).
 			ScrollToHighlight()
-
 		return nil
 	case conf.Keybindings.MessagesView.SelectFirst:
 		selectedMessage = 0
 		messagesView.
 			Highlight(ms[selectedMessage].ID).
 			ScrollToHighlight()
+		return nil
 	case conf.Keybindings.MessagesView.SelectLast:
 		selectedMessage = len(ms) - 1
 		messagesView.
 			Highlight(ms[selectedMessage].ID).
 			ScrollToHighlight()
+		return nil
 	case conf.Keybindings.MessagesView.Reply:
 		hs := messagesView.GetHighlights()
 		if len(hs) == 0 {
@@ -183,6 +186,7 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		m := findByMessageID(hs[0])
 		messageInputField.SetTitle("Replying to " + m.Author.Username)
 		app.SetFocus(messageInputField)
+		return nil
 	case conf.Keybindings.MessagesView.ReplyMention:
 		hs := messagesView.GetHighlights()
 		if len(hs) == 0 {
@@ -192,6 +196,7 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		m := findByMessageID(hs[0])
 		messageInputField.SetTitle("[@] Replying to " + m.Author.Username)
 		app.SetFocus(messageInputField)
+		return nil
 	}
 
 	return e
@@ -248,16 +253,19 @@ func onMessageInputFieldInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		}
 
 		messageInputField.SetText("")
+		return nil
 	case tcell.KeyCtrlV:
 		text, _ := clipboard.ReadAll()
 		text = messageInputField.GetText() + text
 		messageInputField.SetText(text)
+		return nil
 	case tcell.KeyEscape:
 		messageInputField.SetText("")
 		messageInputField.SetTitle("")
 
 		selectedMessage = -1
 		messagesView.Highlight()
+		return nil
 	}
 
 	return e
