@@ -26,10 +26,12 @@ type keybindings struct {
 }
 
 type theme struct {
-	Border     string `toml:"border"`
-	Title      string `toml:"title"`
 	Background string `toml:"background"`
-	Text       string `toml:"text"`
+
+	Border   string `toml:"border"`
+	Title    string `toml:"title"`
+	Graphics string `toml:"graphics"`
+	Text     string `toml:"text"`
 }
 
 type borders struct {
@@ -87,10 +89,12 @@ func loadConfig() *config {
 		c.UserAgent = userAgent
 		c.GetMessagesLimit = 50
 		c.Theme = theme{
-			Border:     "white",
-			Title:      "cyan",
 			Background: "black",
-			Text:       "white",
+
+			Border:   "white",
+			Title:    "white",
+			Graphics: "white",
+			Text:     "white",
 		}
 		c.Keybindings = keybindings{
 			FocusChannelsTree:      "Alt+Left",

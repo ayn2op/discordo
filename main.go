@@ -25,11 +25,13 @@ func main() {
 	conf = loadConfig()
 
 	tview.Borders = conf.Borders
+
 	tview.Styles.PrimitiveBackgroundColor = tcell.GetColor(conf.Theme.Background)
 	tview.Styles.ContrastBackgroundColor = tcell.GetColor(conf.Theme.Background)
 	tview.Styles.MoreContrastBackgroundColor = tcell.GetColor(conf.Theme.Background)
 	tview.Styles.BorderColor = tcell.GetColor(conf.Theme.Border)
 	tview.Styles.TitleColor = tcell.GetColor(conf.Theme.Title)
+	tview.Styles.GraphicsColor = tcell.GetColor(conf.Theme.Graphics)
 	tview.Styles.PrimaryTextColor = tcell.GetColor(conf.Theme.Text)
 	tview.Styles.SecondaryTextColor = tcell.GetColor(conf.Theme.Text)
 	tview.Styles.TertiaryTextColor = tcell.GetColor(conf.Theme.Text)
