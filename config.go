@@ -12,62 +12,24 @@ const userAgent = "" +
 	"AppleWebKit/537.36 (KHTML, like Gecko) " +
 	"Chrome/92.0.4515.131 Safari/537.36"
 
-type keybindingsChannelsTree struct {
-	Focus string
-}
-
-type keybindingsMessagesView struct {
-	Focus          string
-	SelectPrevious string
-	SelectNext     string
-	SelectFirst    string
-	SelectLast     string
-	Reply          string
-	ReplyMention   string
-}
-
-type keybindingsMessageInputField struct {
-	Focus string
-}
-
 type keybindings struct {
-	ChannelsTree      keybindingsChannelsTree
-	MessagesView      keybindingsMessagesView
-	MessageInputField keybindingsMessageInputField
-}
+	FocusChannelsTree      string `toml:"focus_channels_tree"`
+	FocusMessagesView      string `toml:"focus_messages_view"`
+	FocusMessageInputField string `toml:"focus_message_input_field"`
 
-type themeBackground struct {
-	// Main background color for primitives.
-	Primitive string
-	// Background color for contrasting elements.
-	Contrast string
-	// Background color for even more contrasting elements.
-	MoreContrast string
-}
-
-type themeText struct {
-	// Primary text.
-	Primary string
-	// Secondary text (e.g. labels).
-	Secondary string
-	// Tertiary text (e.g. subtitles, notes).
-	Tertiary string
-	// Text on primary-colored backgrounds.
-	Inverse string
-	// Secondary text on ContrastBackgroundColor-colored backgrounds.
-	ContrastSecondary string
+	SelectPreviousMessage       string `toml:"select_previous_message"`
+	SelectNextMessage           string `toml:"select_next_message"`
+	SelectFirstMessage          string `toml:"select_first_message"`
+	SelectLastMessage           string `toml:"select_last_message"`
+	ReplySelectedMessage        string `toml:"reply_selected_message"`
+	MentionReplySelectedMessage string `toml:"mention_reply_selected_message"`
 }
 
 type theme struct {
-	// Box borders.
-	Border string
-	// Box titles.
-	Title string
-	// Graphics.
-	Graphics string
-
-	Background themeBackground
-	Text       themeText
+	Border     string `toml:"border"`
+	Title      string `toml:"title"`
+	Background string `toml:"background"`
+	Text       string `toml:"text"`
 }
 
 type borders struct {
@@ -93,14 +55,15 @@ type borders struct {
 }
 
 type config struct {
-	Token            string
-	UserAgent        string
-	Mouse            bool
-	Notifications    bool
-	GetMessagesLimit int
-	Theme            theme
-	Keybindings      keybindings
-	Borders          borders
+	Token            string `toml:"token"`
+	UserAgent        string `toml:"user_agent"`
+	Mouse            bool   `toml:"mouse"`
+	Notifications    bool   `toml:"notifications"`
+	GetMessagesLimit int    `toml:"get_messages_limit"`
+
+	Theme       theme       `toml:"theme"`
+	Keybindings keybindings `toml:"keybindings"`
+	Borders     borders     `toml:"borders"`
 }
 
 func loadConfig() *config {
@@ -124,38 +87,22 @@ func loadConfig() *config {
 		c.UserAgent = userAgent
 		c.GetMessagesLimit = 50
 		c.Theme = theme{
-			Border:   "white",
-			Title:    "white",
-			Graphics: "white",
-			Background: themeBackground{
-				Primitive:    "black",
-				Contrast:     "blue",
-				MoreContrast: "green",
-			},
-			Text: themeText{
-				Primary:           "white",
-				Secondary:         "yellow",
-				Tertiary:          "green",
-				Inverse:           "blue",
-				ContrastSecondary: "darkcyan",
-			},
+			Border:     "white",
+			Title:      "cyan",
+			Background: "black",
+			Text:       "white",
 		}
 		c.Keybindings = keybindings{
-			ChannelsTree: keybindingsChannelsTree{
-				Focus: "Alt+Left",
-			},
-			MessagesView: keybindingsMessagesView{
-				Focus:          "Alt+Right",
-				SelectPrevious: "Up",
-				SelectNext:     "Down",
-				SelectFirst:    "Home",
-				SelectLast:     "End",
-				Reply:          "Rune[r]",
-				ReplyMention:   "Rune[R]",
-			},
-			MessageInputField: keybindingsMessageInputField{
-				Focus: "Alt+Down",
-			},
+			FocusChannelsTree:      "Alt+Left",
+			FocusMessagesView:      "Alt+Right",
+			FocusMessageInputField: "Alt+Down",
+
+			SelectPreviousMessage:       "Up",
+			SelectNextMessage:           "Down",
+			SelectFirstMessage:          "Home",
+			SelectLastMessage:           "End",
+			ReplySelectedMessage:        "Rune[r]",
+			MentionReplySelectedMessage: "Rune[R]",
 		}
 		c.Borders = tview.Borders
 

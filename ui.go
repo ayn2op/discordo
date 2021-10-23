@@ -25,13 +25,13 @@ func newApp() *tview.Application {
 
 func onAppInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	switch e.Name() {
-	case conf.Keybindings.ChannelsTree.Focus:
+	case conf.Keybindings.FocusChannelsTree:
 		app.SetFocus(channelsTree)
 		return nil
-	case conf.Keybindings.MessagesView.Focus:
+	case conf.Keybindings.FocusMessagesView:
 		app.SetFocus(messagesView)
 		return nil
-	case conf.Keybindings.MessageInputField.Focus:
+	case conf.Keybindings.FocusMessageInputField:
 		app.SetFocus(messageInputField)
 		return nil
 	}
@@ -137,7 +137,7 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	}
 
 	switch e.Name() {
-	case conf.Keybindings.MessagesView.SelectPrevious:
+	case conf.Keybindings.SelectPreviousMessage:
 		if len(messagesView.GetHighlights()) == 0 {
 			selectedMessage = len(ms) - 1
 		} else {
@@ -151,7 +151,7 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			Highlight(ms[selectedMessage].ID).
 			ScrollToHighlight()
 		return nil
-	case conf.Keybindings.MessagesView.SelectNext:
+	case conf.Keybindings.SelectNextMessage:
 		if len(messagesView.GetHighlights()) == 0 {
 			selectedMessage = len(ms) - 1
 		} else {
@@ -165,19 +165,19 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			Highlight(ms[selectedMessage].ID).
 			ScrollToHighlight()
 		return nil
-	case conf.Keybindings.MessagesView.SelectFirst:
+	case conf.Keybindings.SelectFirstMessage:
 		selectedMessage = 0
 		messagesView.
 			Highlight(ms[selectedMessage].ID).
 			ScrollToHighlight()
 		return nil
-	case conf.Keybindings.MessagesView.SelectLast:
+	case conf.Keybindings.SelectLastMessage:
 		selectedMessage = len(ms) - 1
 		messagesView.
 			Highlight(ms[selectedMessage].ID).
 			ScrollToHighlight()
 		return nil
-	case conf.Keybindings.MessagesView.Reply:
+	case conf.Keybindings.ReplySelectedMessage:
 		hs := messagesView.GetHighlights()
 		if len(hs) == 0 {
 			return nil
@@ -187,7 +187,7 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		messageInputField.SetTitle("Replying to " + m.Author.Username)
 		app.SetFocus(messageInputField)
 		return nil
-	case conf.Keybindings.MessagesView.ReplyMention:
+	case conf.Keybindings.MentionReplySelectedMessage:
 		hs := messagesView.GetHighlights()
 		if len(hs) == 0 {
 			return nil
@@ -217,11 +217,6 @@ func newMessageInputField() *tview.InputField {
 }
 
 func onMessageInputFieldInputCapture(e *tcell.EventKey) *tcell.EventKey {
-	// If the "Alt" modifier key is pressed, do not handle the event.
-	if e.Modifiers() == tcell.ModAlt {
-		return nil
-	}
-
 	switch e.Key() {
 	case tcell.KeyEnter:
 		if selectedChannel == nil {
