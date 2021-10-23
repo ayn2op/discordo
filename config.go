@@ -142,10 +142,10 @@ func loadConfig() *config {
 		}
 		c.Keybindings = keybindings{
 			ChannelsTree: keybindingsChannelsTree{
-				Focus: "Alt+Rune[1]",
+				Focus: "Alt+Left",
 			},
 			MessagesView: keybindingsMessagesView{
-				Focus:          "Alt+Rune[2]",
+				Focus:          "Alt+Right",
 				SelectPrevious: "Up",
 				SelectNext:     "Down",
 				SelectFirst:    "Home",
@@ -154,7 +154,7 @@ func loadConfig() *config {
 				ReplyMention:   "Rune[R]",
 			},
 			MessageInputField: keybindingsMessageInputField{
-				Focus: "Alt+Rune[3]",
+				Focus: "Alt+Down",
 			},
 		}
 		c.Borders = tview.Borders
