@@ -184,7 +184,7 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		}
 
 		m := findByMessageID(hs[0])
-		messageInputField.SetTitle("Replying to " + m.Author.Username)
+		messageInputField.SetTitle("Replying to " + m.Author.String())
 		app.SetFocus(messageInputField)
 		return nil
 	case conf.Keybindings.MentionReplySelectedMessage:
@@ -194,7 +194,7 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		}
 
 		m := findByMessageID(hs[0])
-		messageInputField.SetTitle("[@] Replying to " + m.Author.Username)
+		messageInputField.SetTitle("[@] Replying to " + m.Author.String())
 		app.SetFocus(messageInputField)
 		return nil
 	}
