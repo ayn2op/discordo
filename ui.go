@@ -208,6 +208,29 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		if err != nil {
 			return nil
 		}
+	case conf.Keybindings.OpenAttachmentInSelectedMessage:
+		hs := messagesView.GetHighlights()
+		if len(hs) == 0 {
+			return nil
+		}
+
+		m := findByMessageID(hs[0])
+		as := m.Attachments
+		if len(as) < 1 {
+			return nil
+		}
+
+		if len(as) < 2 {
+			a := as[0]
+			err := openInDefaultBrowser(a.URL)
+			if (err != nil) {
+				return nil
+			}
+
+			return nil
+		}
+
+		return nil
 	}
 
 	return e

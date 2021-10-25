@@ -24,6 +24,7 @@ type keybindings struct {
 	ReplySelectedMessage        string `toml:"reply_selected_message"`
 	MentionReplySelectedMessage string `toml:"mention_reply_selected_message"`
 	CopySelectedMessage         string `toml:"copy_selected_message"`
+	OpenAttachmentInSelectedMessage string `toml:"open_attachment_in_selected_message"`
 }
 
 type theme struct {
@@ -109,6 +110,7 @@ func loadConfig() *config {
 			ReplySelectedMessage:        "Rune[r]",
 			MentionReplySelectedMessage: "Rune[R]",
 			CopySelectedMessage:         "Rune[c]",
+			OpenAttachmentInSelectedMessage: "Rune[o]",
 		}
 		c.Borders = tview.Borders
 

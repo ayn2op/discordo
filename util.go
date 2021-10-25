@@ -3,6 +3,9 @@ package main
 import (
 	"sort"
 	"strings"
+	"runtime"
+	"fmt"
+	"os/exec"
 
 	"github.com/ayntgl/discordgo"
 	"github.com/rivo/tview"
@@ -203,7 +206,7 @@ func isUnread(c *discordgo.Channel) bool {
 }
 
 func openInDefaultBrowser(url string) error {
-	// source: https://stackoverflow.com/questions/10377243/
+	// source: https://stackoverflow.com/a/10380889/13173909 
 	var err error
 	switch runtime.GOOS {
 		case "linux":
