@@ -108,6 +108,7 @@ func loadConfig() *config {
 			SelectLastMessage:           "End",
 			ReplySelectedMessage:        "Rune[r]",
 			MentionReplySelectedMessage: "Rune[R]",
+			CopySelectedMessage: "Rune[c]",
 		}
 		c.Borders = tview.Borders
 
