@@ -197,6 +197,17 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		messageInputField.SetTitle("[@] Replying to " + m.Author.String())
 		app.SetFocus(messageInputField)
 		return nil
+	case conf.Keybindings.CopySelectedMessage:
+		hs := messagesView.GetHighlights()
+		if len(hs) == 0 {
+			return nil
+		}
+
+		m := findByMessageID(hs[0])
+		err := clipboard.WriteAll(m.Content)
+		if err != nil {
+			return nil
+		}
 	}
 
 	return e

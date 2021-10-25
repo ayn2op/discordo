@@ -23,6 +23,7 @@ type keybindings struct {
 	SelectLastMessage           string `toml:"select_last_message"`
 	ReplySelectedMessage        string `toml:"reply_selected_message"`
 	MentionReplySelectedMessage string `toml:"mention_reply_selected_message"`
+	CopySelectedMessage	    string `toml:"copy_selected_message"`
 }
 
 type theme struct {
