@@ -201,3 +201,18 @@ func isUnread(c *discordgo.Channel) bool {
 
 	return false
 }
+
+func openInDefaultBrowser(url string) error {
+	// source: https://stackoverflow.com/questions/10377243/
+	var err error
+	switch runtime.GOOS {
+		case "linux":
+			err = exec.Command("xdg-open", url).Start()
+		case "windows", "darwin":
+			err = exec.Command("open", url).Start()
+		default:
+			err = fmt.Errorf("unsupported platform")
+	}
+
+	return err
+}
