@@ -12,6 +12,6 @@ jobs:
         with:
           go-version: '^1.17'
       - name: Format
-        run: go fmt .
+        run: gofmt -d -e -s .
       - name: Build
         run: go build .
