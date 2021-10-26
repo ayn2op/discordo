@@ -48,6 +48,7 @@ On Linux, clipboard support requires:
 - `xclip` or `xsel` for X11.
   - Ubuntu: `apt install xclip`
   - Arch Linux: `pacman -S xclip`
+  - Fedora: `dnf install xclip`
 - `wl-clipboard` for Wayland.
 
 ## Disclaimer
