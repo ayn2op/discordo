@@ -208,7 +208,7 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		if err != nil {
 			return nil
 		}
-	case conf.Keybindings.OpenAttachmentInSelectedMessage:
+	case conf.Keybindings.OpenSelectedMessageAttachments:
 		hs := messagesView.GetHighlights()
 		if len(hs) == 0 {
 			return nil

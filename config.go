@@ -24,7 +24,7 @@ type keybindings struct {
 	ReplySelectedMessage        string `toml:"reply_selected_message"`
 	MentionReplySelectedMessage string `toml:"mention_reply_selected_message"`
 	CopySelectedMessage         string `toml:"copy_selected_message"`
-	OpenAttachmentInSelectedMessage string `toml:"open_attachment_in_selected_message"`
+	OpenSelectedMessageAttachments string `toml:"open_selected_message_attachments"`
 }
 
 type theme struct {
