@@ -211,8 +211,10 @@ func openInDefaultBrowser(url string) error {
 	switch runtime.GOOS {
 		case "linux":
 			err = exec.Command("xdg-open", url).Start()
-		case "windows", "darwin":
+		case "darwin":
 			err = exec.Command("open", url).Start()
+		case "windows":
+			err = exec.Command("start", url).Start()
 		default:
 			err = fmt.Errorf("unsupported platform")
 	}
