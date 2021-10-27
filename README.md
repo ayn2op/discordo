@@ -24,7 +24,7 @@ Discordo is a lightweight, secure, and feature-rich Discord terminal client. Hea
 ```bash
 git clone https://github.com/ayntgl/discordo
 cd discordo
-go build
+make build
 
 # optional
 sudo mv ./discordo /usr/local/bin
