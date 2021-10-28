@@ -21,6 +21,7 @@ type keybindings struct {
 	SelectNextMessage           string `toml:"select_next_message"`
 	SelectFirstMessage          string `toml:"select_first_message"`
 	SelectLastMessage           string `toml:"select_last_message"`
+	SelectMessageReference      string `toml:"select_message_reference"`
 	ReplySelectedMessage        string `toml:"reply_selected_message"`
 	MentionReplySelectedMessage string `toml:"mention_reply_selected_message"`
 	CopySelectedMessage         string `toml:"copy_selected_message"`
@@ -109,6 +110,7 @@ func loadConfig() *config {
 			ReplySelectedMessage:        "Rune[r]",
 			MentionReplySelectedMessage: "Rune[R]",
 			CopySelectedMessage:         "Rune[c]",
+			SelectMessageReference:      "Rune[m]",
 		}
 		c.Borders = tview.Borders
 

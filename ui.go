@@ -178,13 +178,28 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			Highlight(ms[selectedMessage].ID).
 			ScrollToHighlight()
 		return nil
+	case conf.Keybindings.SelectMessageReference:
+		hs := messagesView.GetHighlights()
+		if len(hs) == 0 {
+			return nil
+		}
+
+		_, m := findByMessageID(hs[0])
+		if m.ReferencedMessage != nil {
+			selectedMessage, _ = findByMessageID(m.ReferencedMessage.ID)
+			messagesView.
+				Highlight(m.ReferencedMessage.ID).
+				ScrollToHighlight()
+		}
+
+		return nil
 	case conf.Keybindings.ReplySelectedMessage:
 		hs := messagesView.GetHighlights()
 		if len(hs) == 0 {
 			return nil
 		}
 
-		m := findByMessageID(hs[0])
+		_, m := findByMessageID(hs[0])
 		messageInputField.SetTitle("Replying to " + m.Author.String())
 		app.SetFocus(messageInputField)
 		return nil
@@ -194,7 +209,7 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
-		m := findByMessageID(hs[0])
+		_, m := findByMessageID(hs[0])
 		messageInputField.SetTitle("[@] Replying to " + m.Author.String())
 		app.SetFocus(messageInputField)
 		return nil
@@ -204,7 +219,7 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
-		m := findByMessageID(hs[0])
+		_, m := findByMessageID(hs[0])
 		err := clipboard.WriteAll(m.Content)
 		if err != nil {
 			return nil
