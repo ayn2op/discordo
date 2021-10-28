@@ -17,13 +17,14 @@ type keybindings struct {
 	FocusMessagesView      string `toml:"focus_messages_view"`
 	FocusMessageInputField string `toml:"focus_message_input_field"`
 
-	SelectPreviousMessage       string `toml:"select_previous_message"`
-	SelectNextMessage           string `toml:"select_next_message"`
-	SelectFirstMessage          string `toml:"select_first_message"`
-	SelectLastMessage           string `toml:"select_last_message"`
-	ReplySelectedMessage        string `toml:"reply_selected_message"`
-	MentionReplySelectedMessage string `toml:"mention_reply_selected_message"`
-	CopySelectedMessage         string `toml:"copy_selected_message"`
+	SelectPreviousMessage          string `toml:"select_previous_message"`
+	SelectNextMessage              string `toml:"select_next_message"`
+	SelectFirstMessage             string `toml:"select_first_message"`
+	SelectLastMessage              string `toml:"select_last_message"`
+	ReplySelectedMessage           string `toml:"reply_selected_message"`
+	MentionReplySelectedMessage    string `toml:"mention_reply_selected_message"`
+	CopySelectedMessage            string `toml:"copy_selected_message"`
+	JumpToSelectedMessageReference string `toml:"jump_to_selected_message_reference"`
 }
 
 type theme struct {
@@ -102,13 +103,14 @@ func loadConfig() *config {
 			FocusMessagesView:      "Alt+Right",
 			FocusMessageInputField: "Alt+Down",
 
-			SelectPreviousMessage:       "Up",
-			SelectNextMessage:           "Down",
-			SelectFirstMessage:          "Home",
-			SelectLastMessage:           "End",
-			ReplySelectedMessage:        "Rune[r]",
-			MentionReplySelectedMessage: "Rune[R]",
-			CopySelectedMessage:         "Rune[c]",
+			SelectPreviousMessage:          "Up",
+			SelectNextMessage:              "Down",
+			SelectFirstMessage:             "Home",
+			SelectLastMessage:              "End",
+			ReplySelectedMessage:           "Rune[r]",
+			MentionReplySelectedMessage:    "Rune[R]",
+			CopySelectedMessage:            "Rune[c]",
+			JumpToSelectedMessageReference: "Rune[j]",
 		}
 		c.Borders = tview.Borders
 
