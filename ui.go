@@ -100,6 +100,8 @@ func onChannelsTreeSelected(n *tview.TreeNode) {
 				selectedChannel.Messages = append(selectedChannel.Messages, ms[i])
 				messagesView.Write(buildMessage(ms[i]))
 			}
+			// Scroll to the end of the text after the messages have been written to the TextView.
+			messagesView.ScrollToEnd()
 
 			if len(ms) != 0 && isUnread(c) {
 				session.ChannelMessageAck(c.ID, c.LastMessageID, "")
@@ -114,7 +116,6 @@ func newMessagesView() *tview.TextView {
 		SetRegions(true).
 		SetDynamicColors(true).
 		SetWordWrap(true).
-		ScrollToEnd().
 		SetChangedFunc(func() {
 			app.Draw()
 		}).
