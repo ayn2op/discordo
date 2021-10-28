@@ -177,7 +177,7 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			Highlight(ms[selectedMessage].ID).
 			ScrollToHighlight()
 		return nil
-	case conf.Keybindings.JumpToSelectedMessageReference:
+	case conf.Keybindings.JumpSelectedMessageReference:
 		hs := messagesView.GetHighlights()
 		if len(hs) == 0 {
 			return nil
