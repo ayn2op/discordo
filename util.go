@@ -2,40 +2,11 @@ package main
 
 import (
 	"sort"
-	"strings"
 
 	"github.com/ayntgl/discordgo"
+	"github.com/ayntgl/discordo/util"
 	"github.com/rivo/tview"
 )
-
-func generateChannelRepr(c *discordgo.Channel) string {
-	var repr string
-	if c.Name != "" {
-		repr = "#" + c.Name
-	} else if len(c.Recipients) == 1 {
-		rp := c.Recipients[0]
-		repr = rp.Username + "#" + rp.Discriminator
-	} else {
-		rps := make([]string, len(c.Recipients))
-		for i, r := range c.Recipients {
-			rps[i] = r.Username + "#" + r.Discriminator
-		}
-
-		repr = strings.Join(rps, ", ")
-	}
-
-	return repr
-}
-
-func findByMessageID(mID string) (int, *discordgo.Message) {
-	for i, m := range selectedChannel.Messages {
-		if m.ID == mID {
-			return i, m
-		}
-	}
-
-	return -1, nil
-}
 
 func createPrivateChannels(n *tview.TreeNode) {
 	cs := session.State.PrivateChannels
@@ -45,13 +16,13 @@ func createPrivateChannels(n *tview.TreeNode) {
 
 	for _, c := range cs {
 		var tag string
-		if isUnread(c) {
+		if util.ChannelIsUnread(session.State, c) {
 			tag = "[::b]"
 		} else {
 			tag = "[::d]"
 		}
 
-		cn := tview.NewTreeNode(tag + generateChannelRepr(c) + "[::-]").
+		cn := tview.NewTreeNode(tag + util.ChannelToString(c) + "[::-]").
 			SetReference(c.ID)
 		n.AddChild(cn)
 	}
@@ -107,13 +78,13 @@ func createTopLevelChannelsTreeNodes(
 			}
 
 			var tag string
-			if isUnread(c) {
+			if util.ChannelIsUnread(session.State, c) {
 				tag = "[::b]"
 			} else {
 				tag = "[::d]"
 			}
 
-			cn := tview.NewTreeNode(tag + generateChannelRepr(c) + "[::-]").
+			cn := tview.NewTreeNode(tag + util.ChannelToString(c) + "[::-]").
 				SetReference(c.ID)
 			n.AddChild(cn)
 			continue
@@ -159,45 +130,18 @@ func createSecondLevelChannelsTreeNodes(cs []*discordgo.Channel) {
 			}
 
 			var tag string
-			if isUnread(c) {
+			if util.ChannelIsUnread(session.State, c) {
 				tag = "[::b]"
 			} else {
 				tag = "[::d]"
 			}
 
-			pn := getTreeNodeByReference(c.ParentID)
+			pn := util.GetTreeNodeByReference(channelsTree, c.ParentID)
 			if pn != nil {
-				cn := tview.NewTreeNode(tag + generateChannelRepr(c) + "[::-]").
+				cn := tview.NewTreeNode(tag + util.ChannelToString(c) + "[::-]").
 					SetReference(c.ID)
 				pn.AddChild(cn)
 			}
 		}
 	}
-}
-
-func getTreeNodeByReference(r interface{}) (mn *tview.TreeNode) {
-	channelsTree.GetRoot().Walk(func(n, _ *tview.TreeNode) bool {
-		if n.GetReference() == r {
-			mn = n
-			return false
-		}
-
-		return true
-	})
-
-	return
-}
-
-func isUnread(c *discordgo.Channel) bool {
-	if c.LastMessageID == "" {
-		return false
-	}
-
-	for _, rs := range session.State.ReadState {
-		if c.ID == rs.ID {
-			return c.LastMessageID != rs.LastMessageID
-		}
-	}
-
-	return false
 }

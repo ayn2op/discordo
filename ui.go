@@ -5,6 +5,7 @@ import (
 
 	"github.com/atotto/clipboard"
 	"github.com/ayntgl/discordgo"
+	"github.com/ayntgl/discordo/util"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -76,18 +77,18 @@ func onChannelsTreeSelected(n *tview.TreeNode) {
 
 		switch c.Type {
 		case discordgo.ChannelTypeGuildText, discordgo.ChannelTypeGuildNews:
-			title := generateChannelRepr(c)
+			title := util.ChannelToString(c)
 			if c.Topic != "" {
 				title += " - " + c.Topic
 			}
 
 			messagesView.SetTitle(title)
 		case discordgo.ChannelTypeDM, discordgo.ChannelTypeGroupDM:
-			messagesView.SetTitle(generateChannelRepr(c))
+			messagesView.SetTitle(util.ChannelToString(c))
 		}
 
 		if strings.HasPrefix(n.GetText(), "[::b]") {
-			n.SetText("[::d]" + generateChannelRepr(c) + "[::-]")
+			n.SetText("[::d]" + util.ChannelToString(c) + "[::-]")
 		}
 
 		go func() {
@@ -103,7 +104,7 @@ func onChannelsTreeSelected(n *tview.TreeNode) {
 			// Scroll to the end of the text after the messages have been written to the TextView.
 			messagesView.ScrollToEnd()
 
-			if len(ms) != 0 && isUnread(c) {
+			if len(ms) != 0 && util.ChannelIsUnread(session.State, c) {
 				session.ChannelMessageAck(c.ID, c.LastMessageID, "")
 			}
 		}()
@@ -184,9 +185,9 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
-		_, m := findByMessageID(hs[0])
+		_, m := util.FindMessageByID(selectedChannel.Messages, hs[0])
 		if m.ReferencedMessage != nil {
-			selectedMessage, _ = findByMessageID(m.ReferencedMessage.ID)
+			selectedMessage, _ = util.FindMessageByID(selectedChannel.Messages, m.ReferencedMessage.ID)
 			messagesView.
 				Highlight(m.ReferencedMessage.ID).
 				ScrollToHighlight()
@@ -199,7 +200,7 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
-		_, m := findByMessageID(hs[0])
+		_, m := util.FindMessageByID(selectedChannel.Messages, hs[0])
 		messageInputField.SetTitle("Replying to " + m.Author.String())
 		app.SetFocus(messageInputField)
 		return nil
@@ -209,7 +210,7 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
-		_, m := findByMessageID(hs[0])
+		_, m := util.FindMessageByID(selectedChannel.Messages, hs[0])
 		messageInputField.SetTitle("[@] Replying to " + m.Author.String())
 		app.SetFocus(messageInputField)
 		return nil
@@ -219,7 +220,7 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
-		_, m := findByMessageID(hs[0])
+		_, m := util.FindMessageByID(selectedChannel.Messages, hs[0])
 		err := clipboard.WriteAll(m.Content)
 		if err != nil {
 			return nil

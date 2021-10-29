@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/ayntgl/discordgo"
+	"github.com/ayntgl/discordo/util"
 	"github.com/gen2brain/beeep"
 	"github.com/rivo/tview"
 )
@@ -71,11 +72,11 @@ func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
 			}
 		}
 
-		cn := getTreeNodeByReference(c.ID)
+		cn := util.GetTreeNodeByReference(channelsTree, c.ID)
 		if cn == nil {
 			return
 		}
-		cn.SetText("[::b]" + generateChannelRepr(c) + "[::-]")
+		cn.SetText("[::b]" + util.ChannelToString(c) + "[::-]")
 		app.Draw()
 	} else {
 		selectedChannel.Messages = append(selectedChannel.Messages, m.Message)
