@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/ayntgl/discordgo"
+	"github.com/ayntgl/discordo/util"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/zalando/go-keyring"
@@ -17,12 +18,12 @@ var (
 	messageInputField *tview.InputField
 	mainFlex          *tview.Flex
 
-	conf    *config
+	conf    *util.Config
 	session *discordgo.Session
 )
 
 func main() {
-	conf = loadConfig()
+	conf = util.LoadConfig()
 
 	tview.Borders = conf.Borders
 

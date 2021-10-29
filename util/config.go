@@ -1,4 +1,4 @@
-package main
+package util
 
 import (
 	"os"
@@ -58,7 +58,7 @@ type borders struct {
 	BottomRightFocus rune
 }
 
-type config struct {
+type Config struct {
 	Token            string `toml:"token"`
 	UserAgent        string `toml:"user_agent"`
 	Mouse            bool   `toml:"mouse"`
@@ -70,15 +70,14 @@ type config struct {
 	Borders     borders     `toml:"borders"`
 }
 
-func loadConfig() *config {
+func LoadConfig() *Config {
 	configPath, err := os.UserConfigDir()
 	if err != nil {
 		panic(err)
 	}
 
 	configPath += "/discordo.toml"
-
-	var c config
+	var c Config
 	if _, err = os.Stat(configPath); os.IsNotExist(err) {
 		f, err := os.Create(configPath)
 		if err != nil {
@@ -86,34 +85,35 @@ func loadConfig() *config {
 		}
 		defer f.Close()
 
-		c.Mouse = true
-		c.Notifications = true
-		c.UserAgent = userAgent
-		c.GetMessagesLimit = 50
-		c.Theme = theme{
-			Background: "black",
+		c = Config{
+			Mouse:            true,
+			Notifications:    true,
+			UserAgent:        userAgent,
+			GetMessagesLimit: 50,
+			Borders:          tview.Borders,
+			Theme: theme{
+				Background: "black",
 
-			Border:   "white",
-			Title:    "white",
-			Graphics: "white",
-			Text:     "white",
+				Border:   "white",
+				Title:    "white",
+				Graphics: "white",
+				Text:     "white",
+			},
+			Keybindings: keybindings{
+				FocusChannelsTree:      "Alt+Left",
+				FocusMessagesView:      "Alt+Right",
+				FocusMessageInputField: "Alt+Down",
+
+				SelectPreviousMessage:       "Up",
+				SelectNextMessage:           "Down",
+				SelectFirstMessage:          "Home",
+				SelectLastMessage:           "End",
+				ReplySelectedMessage:        "Rune[r]",
+				MentionReplySelectedMessage: "Rune[R]",
+				CopySelectedMessage:         "Rune[c]",
+				SelectMessageReference:      "Rune[m]",
+			},
 		}
-		c.Keybindings = keybindings{
-			FocusChannelsTree:      "Alt+Left",
-			FocusMessagesView:      "Alt+Right",
-			FocusMessageInputField: "Alt+Down",
-
-			SelectPreviousMessage:       "Up",
-			SelectNextMessage:           "Down",
-			SelectFirstMessage:          "Home",
-			SelectLastMessage:           "End",
-			ReplySelectedMessage:        "Rune[r]",
-			MentionReplySelectedMessage: "Rune[R]",
-			CopySelectedMessage:         "Rune[c]",
-			SelectMessageReference:      "Rune[m]",
-		}
-		c.Borders = tview.Borders
-
 		err = toml.NewEncoder(f).Encode(c)
 		if err != nil {
 			panic(err)
