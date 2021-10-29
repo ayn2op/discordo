@@ -1,6 +1,7 @@
 package main
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/atotto/clipboard"
@@ -63,12 +64,50 @@ func onChannelsTreeSelected(n *tview.TreeNode) {
 	// Unhighlight the already-highlighted regions.
 	messagesView.Highlight()
 
-	ref := n.GetReference()
-	// If the node's reference is nil, the selected node is a guild or direct messages node; expand or collapse accordingly.
-	if ref == nil {
+	id := n.GetReference()
+	switch n.GetLevel() {
+	case 1: // Guilds or Direct Messages
+		if len(n.GetChildren()) == 0 {
+			// If the reference of the selected `*TreeNode` is `nil`, it is the direct messages `*TreeNode`.
+			if id == nil {
+				cs := session.State.PrivateChannels
+				sort.Slice(cs, func(i, j int) bool {
+					return cs[i].LastMessageID > cs[j].LastMessageID
+				})
+
+				for _, c := range cs {
+					tag := "[::d]"
+					if util.ChannelIsUnread(session.State, c) {
+						tag = "[::b]"
+					}
+
+					cn := tview.NewTreeNode(tag + util.ChannelToString(c) + "[::-]").
+						SetReference(c.ID).
+						Collapse()
+					n.AddChild(cn)
+				}
+			} else {
+				g, err := session.State.Guild(id.(string))
+				if err != nil {
+					return
+				}
+
+				sort.Slice(g.Channels, func(i, j int) bool {
+					return g.Channels[i].Position < g.Channels[j].Position
+				})
+
+				// Top-level channels
+				createTopLevelChannelsTreeNodes(n, g.Channels)
+				// Category channels
+				createCategoryChannelsTreeNodes(n, g.Channels)
+				// Second-level channels
+				createSecondLevelChannelsTreeNodes(g.Channels)
+			}
+		}
+
 		n.SetExpanded(!n.IsExpanded())
-	} else {
-		c, err := session.State.Channel(ref.(string))
+	default: // Channels
+		c, err := session.State.Channel(id.(string))
 		if err != nil {
 			return
 		}

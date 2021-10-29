@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/ayntgl/discordgo"
@@ -45,8 +46,29 @@ func onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 	n := channelsTree.GetRoot()
 	n.AddChild(dmNode)
 
-	createPrivateChannels(dmNode)
-	createGuilds(n)
+	sort.Slice(r.Guilds, func(a, b int) bool {
+		found := false
+		for _, gID := range session.State.Settings.GuildPositions {
+			if found {
+				if gID == r.Guilds[b].ID {
+					return true
+				}
+			} else {
+				if gID == r.Guilds[a].ID {
+					found = true
+				}
+			}
+		}
+
+		return false
+	})
+
+	for _, g := range r.Guilds {
+		gn := tview.NewTreeNode(g.Name).
+			SetReference(g.ID).
+			Collapse()
+		n.AddChild(gn)
+	}
 
 	channelsTree.SetCurrentNode(n)
 }
