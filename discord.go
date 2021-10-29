@@ -103,8 +103,10 @@ func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
 	} else {
 		selectedChannel.Messages = append(selectedChannel.Messages, m.Message)
 		messagesView.Write(buildMessage(m.Message))
-		// Scroll to the end of the text after the message has been written to the TextView.
-		messagesView.ScrollToEnd()
+		// Scroll to the end of the text if any message is selected.
+		if len(messagesView.GetHighlights()) != 0 {
+			messagesView.ScrollToEnd()
+		}
 	}
 }
 
