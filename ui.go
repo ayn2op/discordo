@@ -46,6 +46,7 @@ func newChannelsTree() *tview.TreeView {
 		SetSelectedFunc(onChannelsTreeSelected).
 		SetTopLevel(1).
 		SetRoot(tview.NewTreeNode("")).
+		SetTitle("Channels").
 		SetBorder(true).
 		SetBorderPadding(0, 0, 1, 0)
 
