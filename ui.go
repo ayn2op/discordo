@@ -75,11 +75,11 @@ func onChannelsTreeSelected(n *tview.TreeNode) {
 				})
 
 				// Top-level channels
-				createTopLevelChannelsTreeNodes(n, g.Channels)
+				util.CreateTopLevelChannelsNodes(channelsTree, session.State, n, g.Channels)
 				// Category channels
-				createCategoryChannelsTreeNodes(n, g.Channels)
+				util.CreateCategoryChannelsNodes(channelsTree, session.State, n, g.Channels)
 				// Second-level channels
-				createSecondLevelChannelsTreeNodes(g.Channels)
+				util.CreateSecondLevelChannelsNodes(channelsTree, session.State, g.Channels)
 			}
 		}
 
