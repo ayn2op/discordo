@@ -48,7 +48,7 @@ func onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 
 	sort.Slice(r.Guilds, func(a, b int) bool {
 		found := false
-		for _, gID := range session.State.Settings.GuildPositions {
+		for _, gID := range r.Settings.GuildPositions {
 			if found {
 				if gID == r.Guilds[b].ID {
 					return true
