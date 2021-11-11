@@ -1,7 +1,5 @@
 github.com/BurntSushi/toml v0.4.1 h1:GaI7EiDXDRfa8VshkTj7Fym7ha+y8/XxIgD2okUIjLw=
 github.com/BurntSushi/toml v0.4.1/go.mod h1:CxXYINrC8qIiEnFrOxCa7Jy5BFHlXnUU2pbicEuybxQ=
-github.com/atotto/clipboard v0.1.4 h1:EH0zSVneZPSuFR11BlR9YppQTVDbh5+16AmcJi4g1z4=
-github.com/atotto/clipboard v0.1.4/go.mod h1:ZY9tmq7sm5xIbd9bOK4onWV4S6X0u6GY7Vn0Yu86PYI=
 github.com/ayntgl/discordgo v0.23.3-0.20211016111152-3b0092664e53 h1:NAkV8Wg1uDqnzHYku4dBLA1GQHZwt3CBVYmm6H8NHFk=
 github.com/ayntgl/discordgo v0.23.3-0.20211016111152-3b0092664e53/go.mod h1:+adn4Eyw2HPVkt6ehSK1uWzB3N+a8LjuMxKw+1mDOh4=
 github.com/bwmarrin/discordgo v0.23.2 h1:BzrtTktixGHIu9Tt7dEE6diysEF9HWnXeHuoJEt2fH4=
