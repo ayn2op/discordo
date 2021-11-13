@@ -24,7 +24,7 @@ var (
 )
 
 func main() {
-	conf = util.LoadConfig()
+	conf = util.NewConfig()
 
 	tview.Borders = conf.Borders
 

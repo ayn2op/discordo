@@ -70,7 +70,8 @@ type Config struct {
 	Borders     borders     `toml:"borders"`
 }
 
-func LoadConfig() *Config {
+// NewConfig loads the configuration file, if the configuration file exists or creates a new one if not, and returns it.
+func NewConfig() *Config {
 	configPath, err := os.UserConfigDir()
 	if err != nil {
 		panic(err)
