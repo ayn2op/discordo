@@ -18,7 +18,7 @@ func commandExists(cmd string) bool {
 	return err == nil
 }
 
-func getXclip() ([]byte, error) {
+func readXclip() ([]byte, error) {
 	if !commandExists("xclip") {
 		return nil, ErrXclipNotInstalled
 	}
@@ -52,7 +52,7 @@ func writeXclip(in []byte) error {
 	return nil
 }
 
-func getWlClipboard() ([]byte, error) {
+func readWlClipboard() ([]byte, error) {
 	if !commandExists("wl-paste") {
 		return nil, ErrWlClipboardNotInstalled
 	}
@@ -86,11 +86,11 @@ func writeWlClipboard(in []byte) error {
 	return nil
 }
 
-func get() ([]byte, error) {
+func read() ([]byte, error) {
 	if os.Getenv("XDG_SESSION_TYPE") == "wayland" {
-		return getWlClipboard()
+		return readWlClipboard()
 	} else {
-		return getXclip()
+		return readXclip()
 	}
 }
 

@@ -1,7 +1,7 @@
 package clipboard
 
-func Get() ([]byte, error) {
-	return get()
+func Read() ([]byte, error) {
+	return read()
 }
 
 func Write(in []byte) error {

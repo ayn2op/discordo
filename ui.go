@@ -265,7 +265,7 @@ func onMessageInputFieldInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		messageInputField.SetText("")
 		return nil
 	case tcell.KeyCtrlV:
-		b, err := clipboard.Get()
+		b, err := clipboard.Read()
 		if err != nil {
 			return nil
 		}
