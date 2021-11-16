@@ -257,6 +257,10 @@ func onMessageInputFieldInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			}
 
 			go session.ChannelMessageSendComplex(m.ChannelID, d)
+
+			selectedMessage = -1
+			messagesView.Highlight()
+
 			messageInputField.SetTitle("")
 		} else {
 			go session.ChannelMessageSend(selectedChannel.ID, t)
