@@ -101,3 +101,13 @@ func HasPermission(s *discordgo.State, cID string, p int64) bool {
 
 	return perm&p == p
 }
+
+func HasKeybinding(sl []string, s string) bool {
+	for _, str := range sl {
+		if str == s {
+			return true
+		}
+	}
+
+	return false
+}
