@@ -13,18 +13,18 @@ const userAgent = "" +
 	"Chrome/92.0.4515.131 Safari/537.36"
 
 type keybindings struct {
-	FocusChannelsTree      string `toml:"focus_channels_tree"`
-	FocusMessagesView      string `toml:"focus_messages_view"`
-	FocusMessageInputField string `toml:"focus_message_input_field"`
+	FocusChannelsTree      []string `toml:"focus_channels_tree"`
+	FocusMessagesView      []string `toml:"focus_messages_view"`
+	FocusMessageInputField []string `toml:"focus_message_input_field"`
 
-	SelectPreviousMessage       string `toml:"select_previous_message"`
-	SelectNextMessage           string `toml:"select_next_message"`
-	SelectFirstMessage          string `toml:"select_first_message"`
-	SelectLastMessage           string `toml:"select_last_message"`
-	SelectMessageReference      string `toml:"select_message_reference"`
-	ReplySelectedMessage        string `toml:"reply_selected_message"`
-	MentionReplySelectedMessage string `toml:"mention_reply_selected_message"`
-	CopySelectedMessage         string `toml:"copy_selected_message"`
+	SelectPreviousMessage       []string `toml:"select_previous_message"`
+	SelectNextMessage           []string `toml:"select_next_message"`
+	SelectFirstMessage          []string `toml:"select_first_message"`
+	SelectLastMessage           []string `toml:"select_last_message"`
+	SelectMessageReference      []string `toml:"select_message_reference"`
+	ReplySelectedMessage        []string `toml:"reply_selected_message"`
+	MentionReplySelectedMessage []string `toml:"mention_reply_selected_message"`
+	CopySelectedMessage         []string `toml:"copy_selected_message"`
 }
 
 type theme struct {
@@ -101,18 +101,18 @@ func NewConfig() *Config {
 				Text:     "white",
 			},
 			Keybindings: keybindings{
-				FocusChannelsTree:      "Alt+Left",
-				FocusMessagesView:      "Alt+Right",
-				FocusMessageInputField: "Alt+Down",
+				FocusChannelsTree:      []string{"Alt+Left"},
+				FocusMessagesView:      []string{"Alt+Right"},
+				FocusMessageInputField: []string{"Alt+Down"},
 
-				SelectPreviousMessage:       "Up",
-				SelectNextMessage:           "Down",
-				SelectFirstMessage:          "Home",
-				SelectLastMessage:           "End",
-				ReplySelectedMessage:        "Rune[r]",
-				MentionReplySelectedMessage: "Rune[R]",
-				CopySelectedMessage:         "Rune[c]",
-				SelectMessageReference:      "Rune[m]",
+				SelectPreviousMessage:       []string{"Up"},
+				SelectNextMessage:           []string{"Down"},
+				SelectFirstMessage:          []string{"Home"},
+				SelectLastMessage:           []string{"End"},
+				ReplySelectedMessage:        []string{"Rune[r]"},
+				MentionReplySelectedMessage: []string{"Rune[R]"},
+				CopySelectedMessage:         []string{"Rune[c]"},
+				SelectMessageReference:      []string{"Rune[m]"},
 			},
 		}
 		err = toml.NewEncoder(f).Encode(c)

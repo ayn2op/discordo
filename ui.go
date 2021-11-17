@@ -17,14 +17,13 @@ var (
 )
 
 func onAppInputCapture(e *tcell.EventKey) *tcell.EventKey {
-	switch e.Name() {
-	case conf.Keybindings.FocusChannelsTree:
+	if util.HasKeybinding(conf.Keybindings.FocusChannelsTree, e.Name()) {
 		app.SetFocus(channelsTree)
 		return nil
-	case conf.Keybindings.FocusMessagesView:
+	} else if util.HasKeybinding(conf.Keybindings.FocusMessagesView, e.Name()) {
 		app.SetFocus(messagesView)
 		return nil
-	case conf.Keybindings.FocusMessageInputField:
+	} else if util.HasKeybinding(conf.Keybindings.FocusMessageInputField, e.Name()) {
 		app.SetFocus(messageInputField)
 		return nil
 	}
@@ -139,8 +138,7 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		return nil
 	}
 
-	switch e.Name() {
-	case conf.Keybindings.SelectPreviousMessage:
+	if util.HasKeybinding(conf.Keybindings.SelectPreviousMessage, e.Name()) {
 		if len(messagesView.GetHighlights()) == 0 {
 			selectedMessage = len(ms) - 1
 		} else {
@@ -154,7 +152,7 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			Highlight(ms[selectedMessage].ID).
 			ScrollToHighlight()
 		return nil
-	case conf.Keybindings.SelectNextMessage:
+	} else if util.HasKeybinding(conf.Keybindings.SelectNextMessage, e.Name()) {
 		if len(messagesView.GetHighlights()) == 0 {
 			selectedMessage = len(ms) - 1
 		} else {
@@ -168,19 +166,19 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			Highlight(ms[selectedMessage].ID).
 			ScrollToHighlight()
 		return nil
-	case conf.Keybindings.SelectFirstMessage:
+	} else if util.HasKeybinding(conf.Keybindings.SelectFirstMessage, e.Name()) {
 		selectedMessage = 0
 		messagesView.
 			Highlight(ms[selectedMessage].ID).
 			ScrollToHighlight()
 		return nil
-	case conf.Keybindings.SelectLastMessage:
+	} else if util.HasKeybinding(conf.Keybindings.SelectLastMessage, e.Name()) {
 		selectedMessage = len(ms) - 1
 		messagesView.
 			Highlight(ms[selectedMessage].ID).
 			ScrollToHighlight()
 		return nil
-	case conf.Keybindings.SelectMessageReference:
+	} else if util.HasKeybinding(conf.Keybindings.SelectMessageReference, e.Name()) {
 		hs := messagesView.GetHighlights()
 		if len(hs) == 0 {
 			return nil
@@ -195,7 +193,7 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		}
 
 		return nil
-	case conf.Keybindings.ReplySelectedMessage:
+	} else if util.HasKeybinding(conf.Keybindings.ReplySelectedMessage, e.Name()) {
 		hs := messagesView.GetHighlights()
 		if len(hs) == 0 {
 			return nil
@@ -205,7 +203,7 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		messageInputField.SetTitle("Replying to " + m.Author.String())
 		app.SetFocus(messageInputField)
 		return nil
-	case conf.Keybindings.MentionReplySelectedMessage:
+	} else if util.HasKeybinding(conf.Keybindings.ReplySelectedMessage, e.Name()) {
 		hs := messagesView.GetHighlights()
 		if len(hs) == 0 {
 			return nil
@@ -215,7 +213,7 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		messageInputField.SetTitle("[@] Replying to " + m.Author.String())
 		app.SetFocus(messageInputField)
 		return nil
-	case conf.Keybindings.CopySelectedMessage:
+	} else if util.HasKeybinding(conf.Keybindings.CopySelectedMessage, e.Name()) {
 		hs := messagesView.GetHighlights()
 		if len(hs) == 0 {
 			return nil
@@ -226,6 +224,8 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		if err != nil {
 			return nil
 		}
+
+		return nil
 	}
 
 	return e
