@@ -203,7 +203,7 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		messageInputField.SetTitle("Replying to " + m.Author.String())
 		app.SetFocus(messageInputField)
 		return nil
-	} else if util.HasKeybinding(conf.Keybindings.ReplySelectedMessage, e.Name()) {
+	} else if util.HasKeybinding(conf.Keybindings.MentionReplySelectedMessage, e.Name()) {
 		hs := messagesView.GetHighlights()
 		if len(hs) == 0 {
 			return nil
