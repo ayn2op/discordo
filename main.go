@@ -25,7 +25,18 @@ var (
 func main() {
 	conf = util.NewConfig()
 
-	tview.Borders = conf.Borders
+	tview.Borders.Horizontal = conf.Borders.Horizontal
+	tview.Borders.Vertical = conf.Borders.Vertical
+	tview.Borders.TopLeft = conf.Borders.TopLeft
+	tview.Borders.TopRight = conf.Borders.TopRight
+	tview.Borders.BottomLeft = conf.Borders.BottomLeft
+	tview.Borders.BottomRight = conf.Borders.BottomRight
+	tview.Borders.HorizontalFocus = conf.Borders.HorizontalFocus
+	tview.Borders.VerticalFocus = conf.Borders.VerticalFocus
+	tview.Borders.TopLeftFocus = conf.Borders.TopLeftFocus
+	tview.Borders.TopRightFocus = conf.Borders.TopRightFocus
+	tview.Borders.BottomLeftFocus = conf.Borders.BottomLeftFocus
+	tview.Borders.BottomRightFocus = conf.Borders.BottomRightFocus
 
 	tview.Styles.PrimitiveBackgroundColor = tcell.GetColor(conf.Theme.Background)
 	tview.Styles.ContrastBackgroundColor = tcell.GetColor(conf.Theme.Background)

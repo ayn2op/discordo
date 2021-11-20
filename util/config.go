@@ -44,12 +44,6 @@ type borders struct {
 	BottomLeft  rune
 	BottomRight rune
 
-	LeftT   rune
-	RightT  rune
-	TopT    rune
-	BottomT rune
-	Cross   rune
-
 	HorizontalFocus  rune
 	VerticalFocus    rune
 	TopLeftFocus     rune
@@ -91,7 +85,21 @@ func NewConfig() *Config {
 			Notifications:    true,
 			UserAgent:        userAgent,
 			GetMessagesLimit: 50,
-			Borders:          tview.Borders,
+			Borders: borders{
+				Horizontal:  0,
+				Vertical:    0,
+				TopLeft:     0,
+				TopRight:    0,
+				BottomLeft:  0,
+				BottomRight: 0,
+
+				HorizontalFocus:  tview.BoxDrawingsLightHorizontal,
+				VerticalFocus:    tview.BoxDrawingsLightVertical,
+				TopLeftFocus:     tview.BoxDrawingsLightDownAndRight,
+				TopRightFocus:    tview.BoxDrawingsLightDownAndLeft,
+				BottomLeftFocus:  tview.BoxDrawingsLightUpAndRight,
+				BottomRightFocus: tview.BoxDrawingsLightUpAndLeft,
+			},
 			Theme: theme{
 				Background: "black",
 
