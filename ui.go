@@ -31,6 +31,19 @@ func onAppInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	return e
 }
 
+func newChannelsTree() *tview.TreeView {
+	treeView := tview.NewTreeView()
+	treeView.
+		SetTopLevel(1).
+		SetRoot(tview.NewTreeNode("")).
+		SetTitle("Channels").
+		SetTitleAlign(tview.AlignLeft).
+		SetBorder(true).
+		SetBorderPadding(0, 0, 1, 0)
+
+	return treeView
+}
+
 func onChannelsTreeSelected(n *tview.TreeNode) {
 	selectedChannel = nil
 	selectedMessage = 0
@@ -126,6 +139,19 @@ func onChannelsTreeSelected(n *tview.TreeNode) {
 			}
 		}()
 	}
+}
+
+func newMessagesView() *tview.TextView {
+	textView := tview.NewTextView()
+	textView.
+		SetRegions(true).
+		SetDynamicColors(true).
+		SetWordWrap(true).
+		SetBorder(true).
+		SetBorderPadding(0, 0, 1, 0).
+		SetTitleAlign(tview.AlignLeft)
+
+	return textView
 }
 
 func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
@@ -231,6 +257,19 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	return e
 }
 
+func newMessageInputField() *tview.InputField {
+	inputField := tview.NewInputField()
+	inputField.
+		SetPlaceholder("Message...").
+		SetPlaceholderTextColor(tcell.ColorWhite).
+		SetFieldBackgroundColor(tview.Styles.PrimitiveBackgroundColor).
+		SetBorder(true).
+		SetBorderPadding(0, 0, 1, 0).
+		SetTitleAlign(tview.AlignLeft)
+
+	return inputField
+}
+
 func onMessageInputFieldInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	switch e.Key() {
 	case tcell.KeyEnter:
@@ -283,4 +322,23 @@ func onMessageInputFieldInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	}
 
 	return e
+}
+
+func newLoginForm(onLoginFormLoginButtonSelected func(), mfa bool) *tview.Form {
+	w := tview.NewForm()
+	w.
+		AddButton("Login", onLoginFormLoginButtonSelected).
+		SetButtonsAlign(tview.AlignCenter).
+		SetBorder(true).
+		SetBorderPadding(0, 0, 1, 0)
+
+	if mfa {
+		w.AddPasswordField("Code", "", 0, 0, nil)
+	} else {
+		w.
+			AddInputField("Email", "", 0, nil, nil).
+			AddPasswordField("Password", "", 0, 0, nil)
+	}
+
+	return w
 }

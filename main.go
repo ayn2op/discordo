@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/ayntgl/discordgo"
-	"github.com/ayntgl/discordo/ui"
 	"github.com/ayntgl/discordo/util"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -45,17 +44,17 @@ func main() {
 		EnableMouse(conf.Mouse).
 		SetInputCapture(onAppInputCapture)
 
-	channelsTree = ui.NewChannelsTree()
+	channelsTree = newChannelsTree()
 	channelsTree.SetSelectedFunc(onChannelsTreeSelected)
 
-	messagesView = ui.NewMessagesView()
+	messagesView = newMessagesView()
 	messagesView.
 		SetChangedFunc(func() {
 			app.Draw()
 		}).
 		SetInputCapture(onMessagesViewInputCapture)
 
-	messageInputField = ui.NewMessageInputField()
+	messageInputField = newMessageInputField()
 	messageInputField.SetInputCapture(onMessageInputFieldInputCapture)
 
 	rightFlex := tview.NewFlex().
@@ -83,7 +82,7 @@ func main() {
 			panic(err)
 		}
 	} else {
-		loginForm = ui.NewLoginForm(onLoginFormLoginButtonSelected, false)
+		loginForm = newLoginForm(onLoginFormLoginButtonSelected, false)
 		app.SetRoot(loginForm, true)
 	}
 
@@ -120,7 +119,7 @@ func onLoginFormLoginButtonSelected() {
 		go keyring.Set(service, "token", lr.Token)
 	} else if lr.MFA {
 		// The account has MFA enabled, reattempt login with code and ticket.
-		loginForm = ui.NewLoginForm(func() {
+		loginForm = newLoginForm(func() {
 			code := loginForm.GetFormItem(0).(*tview.InputField).GetText()
 			if code == "" {
 				return
