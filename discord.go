@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/ayntgl/discordgo"
-	"github.com/ayntgl/discordo/util"
 	"github.com/gen2brain/beeep"
 	"github.com/rivo/tview"
 )
@@ -94,11 +93,11 @@ func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
 			}
 		}
 
-		cn := util.GetTreeNodeByReference(channelsTree, c.ID)
+		cn := getTreeNodeByReference(channelsTree, c.ID)
 		if cn == nil {
 			return
 		}
-		cn.SetText("[::b]" + util.ChannelToString(c) + "[::-]")
+		cn.SetText("[::b]" + channelToString(c) + "[::-]")
 		app.Draw()
 	} else {
 		selectedChannel.Messages = append(selectedChannel.Messages, m.Message)
@@ -108,6 +107,26 @@ func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
 			messagesView.ScrollToEnd()
 		}
 	}
+}
+
+// channelToString constructs a string representation of the given channel. The string representation may vary for different channel types.
+func channelToString(c *discordgo.Channel) string {
+	var repr string
+	if c.Name != "" {
+		repr = "#" + c.Name
+	} else if len(c.Recipients) == 1 {
+		rp := c.Recipients[0]
+		repr = rp.Username + "#" + rp.Discriminator
+	} else {
+		rps := make([]string, len(c.Recipients))
+		for i, r := range c.Recipients {
+			rps[i] = r.Username + "#" + r.Discriminator
+		}
+
+		repr = strings.Join(rps, ", ")
+	}
+
+	return repr
 }
 
 type loginResponse struct {
@@ -365,4 +384,30 @@ func parseMarkdown(md string) string {
 	res = strikeThroughRegex.ReplaceAllString(res, "[::s]$1[::-]")
 
 	return res
+}
+
+// channelIsUnread returns `true` if the given channel is marked as read by the client user, otherwise `false`.
+func channelIsUnread(s *discordgo.State, c *discordgo.Channel) bool {
+	if c.LastMessageID == "" {
+		return false
+	}
+
+	for _, rs := range s.ReadState {
+		if c.ID == rs.ID {
+			return c.LastMessageID != rs.LastMessageID
+		}
+	}
+
+	return false
+}
+
+// findMessageByID returns the index and the `*Message` struct of the current message if the given message ID *mID* is equal to the current message ID. If the given message ID *mID* is not found in the given slice *ms*, `-1` and `nil` are returned instead.
+func findMessageByID(ms []*discordgo.Message, mID string) (int, *discordgo.Message) {
+	for i, m := range ms {
+		if m.ID == mID {
+			return i, m
+		}
+	}
+
+	return -1, nil
 }

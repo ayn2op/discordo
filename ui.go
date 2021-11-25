@@ -6,7 +6,6 @@ import (
 
 	"github.com/atotto/clipboard"
 	"github.com/ayntgl/discordgo"
-	"github.com/ayntgl/discordo/util"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -17,13 +16,13 @@ var (
 )
 
 func onAppInputCapture(e *tcell.EventKey) *tcell.EventKey {
-	if util.HasKeybinding(conf.Keybindings.FocusChannelsTree, e.Name()) {
+	if hasKeybinding(conf.Keybindings.FocusChannelsTree, e.Name()) {
 		app.SetFocus(channelsTree)
 		return nil
-	} else if util.HasKeybinding(conf.Keybindings.FocusMessagesView, e.Name()) {
+	} else if hasKeybinding(conf.Keybindings.FocusMessagesView, e.Name()) {
 		app.SetFocus(messagesView)
 		return nil
-	} else if util.HasKeybinding(conf.Keybindings.FocusMessageInputField, e.Name()) {
+	} else if hasKeybinding(conf.Keybindings.FocusMessageInputField, e.Name()) {
 		app.SetFocus(messageInputField)
 		return nil
 	}
@@ -67,11 +66,11 @@ func onChannelsTreeSelected(n *tview.TreeNode) {
 
 				for _, c := range cs {
 					tag := "[::d]"
-					if util.ChannelIsUnread(session.State, c) {
+					if channelIsUnread(session.State, c) {
 						tag = "[::b]"
 					}
 
-					cn := tview.NewTreeNode(tag + util.ChannelToString(c) + "[::-]").
+					cn := tview.NewTreeNode(tag + channelToString(c) + "[::-]").
 						SetReference(c.ID).
 						Collapse()
 					n.AddChild(cn)
@@ -87,11 +86,11 @@ func onChannelsTreeSelected(n *tview.TreeNode) {
 				})
 
 				// Top-level channels
-				util.CreateTopLevelChannelsNodes(channelsTree, session.State, n, g.Channels)
+				createTopLevelChannelsNodes(channelsTree, session.State, n, g.Channels)
 				// Category channels
-				util.CreateCategoryChannelsNodes(channelsTree, session.State, n, g.Channels)
+				createCategoryChannelsNodes(channelsTree, session.State, n, g.Channels)
 				// Second-level channels
-				util.CreateSecondLevelChannelsNodes(channelsTree, session.State, g.Channels)
+				createSecondLevelChannelsNodes(channelsTree, session.State, g.Channels)
 			}
 		}
 
@@ -107,18 +106,18 @@ func onChannelsTreeSelected(n *tview.TreeNode) {
 
 		switch c.Type {
 		case discordgo.ChannelTypeGuildText, discordgo.ChannelTypeGuildNews:
-			title := util.ChannelToString(c)
+			title := channelToString(c)
 			if c.Topic != "" {
 				title += " - " + c.Topic
 			}
 
 			messagesView.SetTitle(title)
 		case discordgo.ChannelTypeDM, discordgo.ChannelTypeGroupDM:
-			messagesView.SetTitle(util.ChannelToString(c))
+			messagesView.SetTitle(channelToString(c))
 		}
 
 		if strings.HasPrefix(n.GetText(), "[::b]") {
-			n.SetText("[::d]" + util.ChannelToString(c) + "[::-]")
+			n.SetText("[::d]" + channelToString(c) + "[::-]")
 		}
 
 		go func() {
@@ -134,10 +133,63 @@ func onChannelsTreeSelected(n *tview.TreeNode) {
 			// Scroll to the end of the text after the messages have been written to the TextView.
 			messagesView.ScrollToEnd()
 
-			if len(ms) != 0 && util.ChannelIsUnread(session.State, c) {
+			if len(ms) != 0 && channelIsUnread(session.State, c) {
 				session.ChannelMessageAck(c.ID, c.LastMessageID, "")
 			}
 		}()
+	}
+}
+
+// createTopLevelChannelsNodes builds and creates `*tview.TreeNode`s for top-level (channels that have an empty parent ID and of type GUILD_TEXT, GUILD_NEWS) channels. If the client user does not have the VIEW_CHANNEL permission for a channel, the channel is excluded from the parent.
+func createTopLevelChannelsNodes(treeView *tview.TreeView, s *discordgo.State, n *tview.TreeNode, cs []*discordgo.Channel) {
+	for _, c := range cs {
+		if (c.Type == discordgo.ChannelTypeGuildText || c.Type == discordgo.ChannelTypeGuildNews) &&
+			(c.ParentID == "") {
+			if !hasPermission(s, c.ID, discordgo.PermissionViewChannel) {
+				continue
+			}
+
+			n.AddChild(createChannelNode(s, c))
+			continue
+		}
+	}
+}
+
+// createCategoryChannelsNodes builds and creates `*tview.TreeNode`s for category (type: GUILD_CATEGORY) channels. If the client user does not have the VIEW_CHANNEL permission for a channel, the channel is excluded from the parent.
+func createCategoryChannelsNodes(treeView *tview.TreeView, s *discordgo.State, n *tview.TreeNode, cs []*discordgo.Channel) {
+CategoryLoop:
+	for _, c := range cs {
+		if c.Type == discordgo.ChannelTypeGuildCategory {
+			if !hasPermission(s, c.ID, discordgo.PermissionViewChannel) {
+				continue
+			}
+
+			for _, child := range cs {
+				if child.ParentID == c.ID {
+					n.AddChild(createChannelNode(s, c))
+					continue CategoryLoop
+				}
+			}
+
+			n.AddChild(createChannelNode(s, c))
+		}
+	}
+}
+
+// createSecondLevelChannelsNodes builds and creates `*tview.TreeNode`s for second-level (channels that have a non-empty parent ID and of type GUILD_TEXT, GUILD_NEWS) channels. If the client user does not have the VIEW_CHANNEL permission for a channel, the channel is excluded from the parent.
+func createSecondLevelChannelsNodes(treeView *tview.TreeView, s *discordgo.State, cs []*discordgo.Channel) {
+	for _, c := range cs {
+		if (c.Type == discordgo.ChannelTypeGuildText || c.Type == discordgo.ChannelTypeGuildNews) &&
+			(c.ParentID != "") {
+			if !hasPermission(s, c.ID, discordgo.PermissionViewChannel) {
+				continue
+			}
+
+			pn := getTreeNodeByReference(treeView, c.ParentID)
+			if pn != nil {
+				pn.AddChild(createChannelNode(s, c))
+			}
+		}
 	}
 }
 
@@ -164,7 +216,7 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		return nil
 	}
 
-	if util.HasKeybinding(conf.Keybindings.SelectPreviousMessage, e.Name()) {
+	if hasKeybinding(conf.Keybindings.SelectPreviousMessage, e.Name()) {
 		if len(messagesView.GetHighlights()) == 0 {
 			selectedMessage = len(ms) - 1
 		} else {
@@ -178,7 +230,7 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			Highlight(ms[selectedMessage].ID).
 			ScrollToHighlight()
 		return nil
-	} else if util.HasKeybinding(conf.Keybindings.SelectNextMessage, e.Name()) {
+	} else if hasKeybinding(conf.Keybindings.SelectNextMessage, e.Name()) {
 		if len(messagesView.GetHighlights()) == 0 {
 			selectedMessage = len(ms) - 1
 		} else {
@@ -192,60 +244,60 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			Highlight(ms[selectedMessage].ID).
 			ScrollToHighlight()
 		return nil
-	} else if util.HasKeybinding(conf.Keybindings.SelectFirstMessage, e.Name()) {
+	} else if hasKeybinding(conf.Keybindings.SelectFirstMessage, e.Name()) {
 		selectedMessage = 0
 		messagesView.
 			Highlight(ms[selectedMessage].ID).
 			ScrollToHighlight()
 		return nil
-	} else if util.HasKeybinding(conf.Keybindings.SelectLastMessage, e.Name()) {
+	} else if hasKeybinding(conf.Keybindings.SelectLastMessage, e.Name()) {
 		selectedMessage = len(ms) - 1
 		messagesView.
 			Highlight(ms[selectedMessage].ID).
 			ScrollToHighlight()
 		return nil
-	} else if util.HasKeybinding(conf.Keybindings.SelectMessageReference, e.Name()) {
+	} else if hasKeybinding(conf.Keybindings.SelectMessageReference, e.Name()) {
 		hs := messagesView.GetHighlights()
 		if len(hs) == 0 {
 			return nil
 		}
 
-		_, m := util.FindMessageByID(selectedChannel.Messages, hs[0])
+		_, m := findMessageByID(selectedChannel.Messages, hs[0])
 		if m.ReferencedMessage != nil {
-			selectedMessage, _ = util.FindMessageByID(selectedChannel.Messages, m.ReferencedMessage.ID)
+			selectedMessage, _ = findMessageByID(selectedChannel.Messages, m.ReferencedMessage.ID)
 			messagesView.
 				Highlight(m.ReferencedMessage.ID).
 				ScrollToHighlight()
 		}
 
 		return nil
-	} else if util.HasKeybinding(conf.Keybindings.ReplySelectedMessage, e.Name()) {
+	} else if hasKeybinding(conf.Keybindings.ReplySelectedMessage, e.Name()) {
 		hs := messagesView.GetHighlights()
 		if len(hs) == 0 {
 			return nil
 		}
 
-		_, m := util.FindMessageByID(selectedChannel.Messages, hs[0])
+		_, m := findMessageByID(selectedChannel.Messages, hs[0])
 		messageInputField.SetTitle("Replying to " + m.Author.String())
 		app.SetFocus(messageInputField)
 		return nil
-	} else if util.HasKeybinding(conf.Keybindings.MentionReplySelectedMessage, e.Name()) {
+	} else if hasKeybinding(conf.Keybindings.MentionReplySelectedMessage, e.Name()) {
 		hs := messagesView.GetHighlights()
 		if len(hs) == 0 {
 			return nil
 		}
 
-		_, m := util.FindMessageByID(selectedChannel.Messages, hs[0])
+		_, m := findMessageByID(selectedChannel.Messages, hs[0])
 		messageInputField.SetTitle("[@] Replying to " + m.Author.String())
 		app.SetFocus(messageInputField)
 		return nil
-	} else if util.HasKeybinding(conf.Keybindings.CopySelectedMessage, e.Name()) {
+	} else if hasKeybinding(conf.Keybindings.CopySelectedMessage, e.Name()) {
 		hs := messagesView.GetHighlights()
 		if len(hs) == 0 {
 			return nil
 		}
 
-		_, m := util.FindMessageByID(selectedChannel.Messages, hs[0])
+		_, m := findMessageByID(selectedChannel.Messages, hs[0])
 		err := clipboard.WriteAll(m.Content)
 		if err != nil {
 			return nil
@@ -341,4 +393,58 @@ func newLoginForm(onLoginFormLoginButtonSelected func(), mfa bool) *tview.Form {
 	}
 
 	return w
+}
+
+// getTreeNodeByReference walks the root `*TreeNode` of the given `*TreeView` *treeView* and returns the TreeNode whose reference is equal to the given reference *r*. If the `*TreeNode` is not found, `nil` is returned instead.
+func getTreeNodeByReference(treeView *tview.TreeView, r interface{}) (mn *tview.TreeNode) {
+	treeView.GetRoot().Walk(func(n, _ *tview.TreeNode) bool {
+		if n.GetReference() == r {
+			mn = n
+			return false
+		}
+
+		return true
+	})
+
+	return
+}
+
+// createChannelNode builds (encorporates unread channels in bold tag, otherwise dim, etc.) and returns a node according to the type of the given channel *c*.
+func createChannelNode(s *discordgo.State, c *discordgo.Channel) *tview.TreeNode {
+	var cn *tview.TreeNode
+	switch c.Type {
+	case discordgo.ChannelTypeGuildText, discordgo.ChannelTypeGuildNews:
+		tag := "[::d]"
+		if channelIsUnread(s, c) {
+			tag = "[::b]"
+		}
+
+		cn = tview.NewTreeNode(tag + channelToString(c) + "[::-]").
+			SetReference(c.ID)
+	case discordgo.ChannelTypeGuildCategory:
+		cn = tview.NewTreeNode(c.Name).
+			SetReference(c.ID)
+	}
+
+	return cn
+}
+
+// hasPermission returns a boolean that indicates whether the client user has the given permission *p* in the given channel ID *cID*.
+func hasPermission(s *discordgo.State, cID string, p int64) bool {
+	perm, err := s.UserChannelPermissions(s.User.ID, cID)
+	if err != nil {
+		return false
+	}
+
+	return perm&p == p
+}
+
+func hasKeybinding(sl []string, s string) bool {
+	for _, str := range sl {
+		if str == s {
+			return true
+		}
+	}
+
+	return false
 }
