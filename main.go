@@ -55,18 +55,36 @@ func main() {
 		EnableMouse(conf.Mouse).
 		SetInputCapture(onAppInputCapture)
 
-	channelsTree = newChannelsTree()
-	channelsTree.SetSelectedFunc(onChannelsTreeSelected)
+	channelsTree = tview.NewTreeView()
+	channelsTree.
+		SetTopLevel(1).
+		SetRoot(tview.NewTreeNode("")).
+		SetSelectedFunc(onChannelsTreeSelected).
+		SetTitle("Channels").
+		SetTitleAlign(tview.AlignLeft).
+		SetBorder(true).
+		SetBorderPadding(0, 0, 1, 0)
 
-	messagesView = newMessagesView()
+	messagesView = tview.NewTextView()
 	messagesView.
-		SetChangedFunc(func() {
-			app.Draw()
-		}).
+		SetRegions(true).
+		SetDynamicColors(true).
+		SetWordWrap(true).
+		SetChangedFunc(func() { app.Draw() }).
+		SetBorder(true).
+		SetBorderPadding(0, 0, 1, 0).
+		SetTitleAlign(tview.AlignLeft).
 		SetInputCapture(onMessagesViewInputCapture)
 
-	messageInputField = newMessageInputField()
-	messageInputField.SetInputCapture(onMessageInputFieldInputCapture)
+	messageInputField = tview.NewInputField()
+	messageInputField.
+		SetPlaceholder("Message...").
+		SetPlaceholderTextColor(tcell.ColorWhite).
+		SetFieldBackgroundColor(tview.Styles.PrimitiveBackgroundColor).
+		SetBorder(true).
+		SetBorderPadding(0, 0, 1, 0).
+		SetTitleAlign(tview.AlignLeft).
+		SetInputCapture(onMessageInputFieldInputCapture)
 
 	rightFlex := tview.NewFlex().
 		SetDirection(tview.FlexRow).
