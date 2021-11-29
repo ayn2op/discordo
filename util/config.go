@@ -64,14 +64,15 @@ type Config struct {
 	Borders     borders     `toml:"borders"`
 }
 
-// NewConfig loads the configuration file, if the configuration file exists or creates a new one if not, and returns it.
-func NewConfig() *Config {
+// LoadConfig loads the configuration file, if the configuration file exists or creates a new one if not, and returns it.
+func LoadConfig() *Config {
 	configPath, err := os.UserConfigDir()
 	if err != nil {
 		panic(err)
 	}
 
 	configPath += "/discordo.toml"
+
 	var c Config
 	if _, err = os.Stat(configPath); os.IsNotExist(err) {
 		f, err := os.Create(configPath)
