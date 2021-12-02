@@ -6,6 +6,7 @@ import (
 
 	"github.com/atotto/clipboard"
 	"github.com/ayntgl/discordgo"
+	"github.com/ayntgl/discordo/util"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -57,7 +58,7 @@ func onChannelsTreeSelected(n *tview.TreeNode) {
 						tag = "[::b]"
 					}
 
-					cn := tview.NewTreeNode(tag + channelToString(c) + "[::-]").
+					cn := tview.NewTreeNode(tag + util.ChannelToString(c) + "[::-]").
 						SetReference(c.ID).
 						Collapse()
 					n.AddChild(cn)
@@ -93,18 +94,18 @@ func onChannelsTreeSelected(n *tview.TreeNode) {
 
 		switch c.Type {
 		case discordgo.ChannelTypeGuildText, discordgo.ChannelTypeGuildNews:
-			title := channelToString(c)
+			title := util.ChannelToString(c)
 			if c.Topic != "" {
 				title += " - " + c.Topic
 			}
 
 			messagesView.SetTitle(title)
 		case discordgo.ChannelTypeDM, discordgo.ChannelTypeGroupDM:
-			messagesView.SetTitle(channelToString(c))
+			messagesView.SetTitle(util.ChannelToString(c))
 		}
 
 		if strings.HasPrefix(n.GetText(), "[::b]") {
-			n.SetText("[::d]" + channelToString(c) + "[::-]")
+			n.SetText("[::d]" + util.ChannelToString(c) + "[::-]")
 		}
 
 		go func() {
@@ -172,7 +173,7 @@ func createSecondLevelChannelsNodes(treeView *tview.TreeView, s *discordgo.State
 				continue
 			}
 
-			pn := getTreeNodeByReference(treeView, c.ParentID)
+			pn := util.GetNodeByReference(treeView, c.ParentID)
 			if pn != nil {
 				pn.AddChild(createChannelNode(s, c))
 			}
@@ -356,20 +357,6 @@ func newLoginForm(onLoginFormLoginButtonSelected func(), mfa bool) *tview.Form {
 	return w
 }
 
-// getTreeNodeByReference walks the root `*TreeNode` of the given `*TreeView` *treeView* and returns the TreeNode whose reference is equal to the given reference *r*. If the `*TreeNode` is not found, `nil` is returned instead.
-func getTreeNodeByReference(treeView *tview.TreeView, r interface{}) (mn *tview.TreeNode) {
-	treeView.GetRoot().Walk(func(n, _ *tview.TreeNode) bool {
-		if n.GetReference() == r {
-			mn = n
-			return false
-		}
-
-		return true
-	})
-
-	return
-}
-
 // createChannelNode builds (encorporates unread channels in bold tag, otherwise dim, etc.) and returns a node according to the type of the given channel *c*.
 func createChannelNode(s *discordgo.State, c *discordgo.Channel) *tview.TreeNode {
 	var cn *tview.TreeNode
@@ -380,7 +367,7 @@ func createChannelNode(s *discordgo.State, c *discordgo.Channel) *tview.TreeNode
 			tag = "[::b]"
 		}
 
-		cn = tview.NewTreeNode(tag + channelToString(c) + "[::-]").
+		cn = tview.NewTreeNode(tag + util.ChannelToString(c) + "[::-]").
 			SetReference(c.ID)
 	case discordgo.ChannelTypeGuildCategory:
 		cn = tview.NewTreeNode(c.Name).
@@ -400,9 +387,10 @@ func hasPermission(s *discordgo.State, cID string, p int64) bool {
 	return perm&p == p
 }
 
-func hasKeybinding(sl []string, s string) bool {
-	for _, str := range sl {
-		if str == s {
+// hasKeybinding returns a boolean that indicates whether the given keybinding string representation *k* is in the slice *ks*.
+func hasKeybinding(ks []string, k string) bool {
+	for _, repr := range ks {
+		if repr == k {
 			return true
 		}
 	}

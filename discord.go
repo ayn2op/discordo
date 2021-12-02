@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/ayntgl/discordgo"
+	"github.com/ayntgl/discordo/util"
 	"github.com/gen2brain/beeep"
 	"github.com/rivo/tview"
 )
@@ -93,11 +94,11 @@ func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
 			}
 		}
 
-		cn := getTreeNodeByReference(channelsTree, c.ID)
+		cn := util.GetNodeByReference(channelsTree, c.ID)
 		if cn == nil {
 			return
 		}
-		cn.SetText("[::b]" + channelToString(c) + "[::-]")
+		cn.SetText("[::b]" + util.ChannelToString(c) + "[::-]")
 		app.Draw()
 	} else {
 		selectedChannel.Messages = append(selectedChannel.Messages, m.Message)
@@ -107,26 +108,6 @@ func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
 			messagesView.ScrollToEnd()
 		}
 	}
-}
-
-// channelToString constructs a string representation of the given channel. The string representation may vary for different channel types.
-func channelToString(c *discordgo.Channel) string {
-	var repr string
-	if c.Name != "" {
-		repr = "#" + c.Name
-	} else if len(c.Recipients) == 1 {
-		rp := c.Recipients[0]
-		repr = rp.Username + "#" + rp.Discriminator
-	} else {
-		rps := make([]string, len(c.Recipients))
-		for i, r := range c.Recipients {
-			rps[i] = r.Username + "#" + r.Discriminator
-		}
-
-		repr = strings.Join(rps, ", ")
-	}
-
-	return repr
 }
 
 type loginResponse struct {
