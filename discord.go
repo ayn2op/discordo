@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/ayntgl/discordgo"
-	"github.com/ayntgl/discordo/util"
 	"github.com/gen2brain/beeep"
 	"github.com/rivo/tview"
 )
@@ -74,11 +73,6 @@ func onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 }
 
 func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
-	c, err := session.State.Channel(m.ChannelID)
-	if err != nil {
-		return
-	}
-
 	if selectedChannel == nil || selectedChannel.ID != m.ChannelID {
 		if conf.Notifications {
 			for _, u := range m.Mentions {
@@ -88,23 +82,21 @@ func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
 						return
 					}
 
+					c, err := session.State.Channel(m.ChannelID)
+					if err != nil {
+						return
+					}
+
 					go beeep.Alert(fmt.Sprintf("%s (#%s)", g.Name, c.Name), m.ContentWithMentionsReplaced(), "")
-					return
 				}
 			}
 		}
-
-		cn := util.GetNodeByReference(channelsTree, c.ID)
-		if cn == nil {
-			return
-		}
-		cn.SetText("[::b]" + util.ChannelToString(c) + "[::-]")
-		app.Draw()
 	} else {
 		selectedChannel.Messages = append(selectedChannel.Messages, m.Message)
 		messagesView.Write(buildMessage(m.Message))
-		// Scroll to the end of the text if any message is selected.
-		if len(messagesView.GetHighlights()) != 0 {
+
+		// Scroll to the end of the text if a message is not selected.
+		if len(messagesView.GetHighlights()) == 0 {
 			messagesView.ScrollToEnd()
 		}
 	}
