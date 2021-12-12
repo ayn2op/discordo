@@ -53,6 +53,9 @@ On Linux, clipboard support requires:
   - Arch Linux: `pacman -S xclip`
   - Fedora: `dnf install xclip`
 - `wl-clipboard` for Wayland.
+  - Ubuntu: `apt install wl-clipboard`
+  - Arch Linux: `pacman -S wl-clipboard`
+  - Fedora: `dnf install wl-clipboard`
 
 ## Disclaimer
 
