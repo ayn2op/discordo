@@ -42,7 +42,7 @@ func newSession() *discordgo.Session {
 func onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 	dmNode := tview.NewTreeNode("Direct Messages").
 		Collapse()
-	n := channelsTree.GetRoot()
+	n := channelsTreeView.GetRoot()
 	n.AddChild(dmNode)
 
 	sort.Slice(r.Guilds, func(a, b int) bool {
@@ -69,7 +69,7 @@ func onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 		n.AddChild(gn)
 	}
 
-	channelsTree.SetCurrentNode(n)
+	channelsTreeView.SetCurrentNode(n)
 }
 
 func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
@@ -93,11 +93,11 @@ func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 	} else {
 		selectedChannel.Messages = append(selectedChannel.Messages, m.Message)
-		messagesView.Write(buildMessage(m.Message))
+		messagesTextView.Write(buildMessage(m.Message))
 
 		// Scroll to the end of the text if a message is not selected.
-		if len(messagesView.GetHighlights()) == 0 {
-			messagesView.ScrollToEnd()
+		if len(messagesTextView.GetHighlights()) == 0 {
+			messagesTextView.ScrollToEnd()
 		}
 	}
 }
@@ -357,30 +357,4 @@ func parseMarkdown(md string) string {
 	res = strikeThroughRegex.ReplaceAllString(res, "[::s]$1[::-]")
 
 	return res
-}
-
-// channelIsUnread returns `true` if the given channel is marked as read by the client user, otherwise `false`.
-func channelIsUnread(s *discordgo.State, c *discordgo.Channel) bool {
-	if c.LastMessageID == "" {
-		return false
-	}
-
-	for _, rs := range s.ReadState {
-		if c.ID == rs.ID {
-			return c.LastMessageID != rs.LastMessageID
-		}
-	}
-
-	return false
-}
-
-// findMessageByID returns the index and the `*Message` struct of the current message if the given message ID *mID* is equal to the current message ID. If the given message ID *mID* is not found in the given slice *ms*, `-1` and `nil` are returned instead.
-func findMessageByID(ms []*discordgo.Message, mID string) (int, *discordgo.Message) {
-	for i, m := range ms {
-		if m.ID == mID {
-			return i, m
-		}
-	}
-
-	return -1, nil
 }

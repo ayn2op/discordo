@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/ayntgl/discordgo"
+	"github.com/ayntgl/discordo/ui"
 	"github.com/ayntgl/discordo/util"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -13,13 +14,16 @@ const service = "discordo"
 var (
 	app               *tview.Application
 	loginForm         *tview.Form
-	channelsTree      *tview.TreeView
-	messagesView      *tview.TextView
+	channelsTreeView  *tview.TreeView
+	messagesTextView  *tview.TextView
 	messageInputField *tview.InputField
 	mainFlex          *tview.Flex
 
 	conf    *util.Config
 	session *discordgo.Session
+
+	selectedChannel *discordgo.Channel
+	selectedMessage int = -1
 )
 
 func main() {
@@ -55,43 +59,23 @@ func main() {
 		EnableMouse(conf.Mouse).
 		SetInputCapture(onAppInputCapture)
 
-	channelsTree = tview.NewTreeView()
-	channelsTree.
-		SetTopLevel(1).
-		SetRoot(tview.NewTreeNode("")).
-		SetSelectedFunc(onChannelsTreeSelected).
-		SetTitle("Channels").
-		SetTitleAlign(tview.AlignLeft).
-		SetBorder(true).
-		SetBorderPadding(0, 0, 1, 0)
+	channelsTreeView = ui.NewChannelsTreeView()
+	channelsTreeView.SetSelectedFunc(onChannelsTreeSelected)
 
-	messagesView = tview.NewTextView()
-	messagesView.
-		SetRegions(true).
-		SetDynamicColors(true).
-		SetWordWrap(true).
+	messagesTextView = ui.NewMessagesTextView()
+	messagesTextView.
 		SetChangedFunc(func() { app.Draw() }).
-		SetBorder(true).
-		SetBorderPadding(0, 0, 1, 0).
-		SetTitleAlign(tview.AlignLeft).
 		SetInputCapture(onMessagesViewInputCapture)
 
-	messageInputField = tview.NewInputField()
-	messageInputField.
-		SetPlaceholder("Message...").
-		SetPlaceholderTextColor(tcell.ColorWhite).
-		SetFieldBackgroundColor(tview.Styles.PrimitiveBackgroundColor).
-		SetBorder(true).
-		SetBorderPadding(0, 0, 1, 0).
-		SetTitleAlign(tview.AlignLeft).
-		SetInputCapture(onMessageInputFieldInputCapture)
+	messageInputField = ui.NewMessageInputField()
+	messageInputField.SetInputCapture(onMessageInputFieldInputCapture)
 
 	rightFlex := tview.NewFlex().
 		SetDirection(tview.FlexRow).
-		AddItem(messagesView, 0, 1, false).
+		AddItem(messagesTextView, 0, 1, false).
 		AddItem(messageInputField, 3, 1, false)
 	mainFlex = tview.NewFlex().
-		AddItem(channelsTree, 0, 1, false).
+		AddItem(channelsTreeView, 0, 1, false).
 		AddItem(rightFlex, 0, 4, false)
 
 	token, err := keyring.Get(service, "token")
@@ -102,7 +86,7 @@ func main() {
 	if token != "" {
 		app.
 			SetRoot(mainFlex, true).
-			SetFocus(channelsTree)
+			SetFocus(channelsTreeView)
 
 		session = newSession()
 		session.Token = token
@@ -111,7 +95,7 @@ func main() {
 			panic(err)
 		}
 	} else {
-		loginForm = newLoginForm(onLoginFormLoginButtonSelected, false)
+		loginForm = ui.NewLoginForm(onLoginFormLoginButtonSelected, false)
 		app.SetRoot(loginForm, true)
 	}
 
@@ -137,7 +121,7 @@ func onLoginFormLoginButtonSelected() {
 	if lr.Token != "" && !lr.MFA {
 		app.
 			SetRoot(mainFlex, true).
-			SetFocus(channelsTree)
+			SetFocus(channelsTreeView)
 
 		session.Token = lr.Token
 		session.Identify.Token = lr.Token
@@ -148,7 +132,7 @@ func onLoginFormLoginButtonSelected() {
 		go keyring.Set(service, "token", lr.Token)
 	} else if lr.MFA {
 		// The account has MFA enabled, reattempt login with code and ticket.
-		loginForm = newLoginForm(func() {
+		loginForm = ui.NewLoginForm(func() {
 			code := loginForm.GetFormItem(0).(*tview.InputField).GetText()
 			if code == "" {
 				return
@@ -161,7 +145,7 @@ func onLoginFormLoginButtonSelected() {
 
 			app.
 				SetRoot(mainFlex, true).
-				SetFocus(channelsTree)
+				SetFocus(channelsTreeView)
 
 			session.Token = lr.Token
 			session.Identify.Token = lr.Token
