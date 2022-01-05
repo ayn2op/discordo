@@ -292,7 +292,7 @@ func onMessageInputFieldInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		}
 
 		if len(messagesTextView.GetHighlights()) != 0 {
-			m := selectedChannel.Messages[selectedMessage]
+			_, m := util.FindMessageByID(selectedChannel.Messages, messagesTextView.GetHighlights()[0])
 			d := &discordgo.MessageSend{
 				Content:         t,
 				Reference:       m.Reference(),
