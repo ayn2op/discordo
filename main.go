@@ -1,9 +1,11 @@
 package main
 
 import (
+	"os"
+
 	"github.com/ayntgl/discordgo"
+	"github.com/ayntgl/discordo/config"
 	"github.com/ayntgl/discordo/ui"
-	"github.com/ayntgl/discordo/util"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/zalando/go-keyring"
@@ -12,63 +14,49 @@ import (
 const service = "discordo"
 
 var (
-	app               *tview.Application
+	app               *ui.App
 	loginForm         *tview.Form
 	channelsTreeView  *tview.TreeView
 	messagesTextView  *tview.TextView
 	messageInputField *tview.InputField
 	mainFlex          *tview.Flex
 
-	conf    *util.Config
-	session *discordgo.Session
-
 	selectedChannel *discordgo.Channel
 	selectedMessage int = -1
 )
 
 func main() {
-	conf = util.LoadConfig()
-
-	tview.Borders.Horizontal = conf.Borders.Horizontal
-	tview.Borders.Vertical = conf.Borders.Vertical
-	tview.Borders.TopLeft = conf.Borders.TopLeft
-	tview.Borders.TopRight = conf.Borders.TopRight
-	tview.Borders.BottomLeft = conf.Borders.BottomLeft
-	tview.Borders.BottomRight = conf.Borders.BottomRight
-	tview.Borders.HorizontalFocus = conf.Borders.HorizontalFocus
-	tview.Borders.VerticalFocus = conf.Borders.VerticalFocus
-	tview.Borders.TopLeftFocus = conf.Borders.TopLeftFocus
-	tview.Borders.TopRightFocus = conf.Borders.TopRightFocus
-	tview.Borders.BottomLeftFocus = conf.Borders.BottomLeftFocus
-	tview.Borders.BottomRightFocus = conf.Borders.BottomRightFocus
-
-	tview.Styles.PrimitiveBackgroundColor = tcell.GetColor(conf.Theme.Background)
-	tview.Styles.ContrastBackgroundColor = tcell.GetColor(conf.Theme.Background)
-	tview.Styles.MoreContrastBackgroundColor = tcell.GetColor(conf.Theme.Background)
-	tview.Styles.BorderColor = tcell.GetColor(conf.Theme.Border)
-	tview.Styles.TitleColor = tcell.GetColor(conf.Theme.Title)
-	tview.Styles.GraphicsColor = tcell.GetColor(conf.Theme.Graphics)
-	tview.Styles.PrimaryTextColor = tcell.GetColor(conf.Theme.Text)
-	tview.Styles.SecondaryTextColor = tcell.GetColor(conf.Theme.Text)
-	tview.Styles.TertiaryTextColor = tcell.GetColor(conf.Theme.Text)
-	tview.Styles.InverseTextColor = tcell.GetColor(conf.Theme.Text)
-	tview.Styles.ContrastSecondaryTextColor = tcell.GetColor(conf.Theme.Text)
-
-	app = tview.NewApplication()
+	app = ui.NewApp()
 	app.
-		EnableMouse(conf.Mouse).
+		EnableMouse(config.General.Mouse).
 		SetInputCapture(onAppInputCapture)
 
-	channelsTreeView = ui.NewChannelsTreeView()
-	channelsTreeView.SetSelectedFunc(onChannelsTreeSelected)
+	app.ChannelsTreeView.
+		SetTopLevel(1).
+		SetRoot(tview.NewTreeNode("")).
+		SetSelectedFunc(onChannelsTreeSelected).
+		SetTitleAlign(tview.AlignLeft).
+		SetBorder(true).
+		SetBorderPadding(0, 0, 1, 0)
 
-	messagesTextView = ui.NewMessagesTextView()
-	messagesTextView.
+	app.MessagesTextView.
+		SetRegions(true).
+		SetDynamicColors(true).
+		SetWordWrap(true).
 		SetChangedFunc(func() { app.Draw() }).
-		SetInputCapture(onMessagesViewInputCapture)
+		SetTitleAlign(tview.AlignLeft).
+		SetInputCapture(onMessagesViewInputCapture).
+		SetBorder(true).
+		SetBorderPadding(0, 0, 1, 0)
 
-	messageInputField = ui.NewMessageInputField()
-	messageInputField.SetInputCapture(onMessageInputFieldInputCapture)
+	app.MessageInputField.
+		SetPlaceholder("Message...").
+		SetPlaceholderTextColor(tcell.ColorWhite).
+		SetFieldBackgroundColor(tview.Styles.PrimitiveBackgroundColor).
+		SetInputCapture(onMessageInputFieldInputCapture).
+		SetTitleAlign(tview.AlignLeft).
+		SetBorder(true).
+		SetBorderPadding(0, 0, 1, 0)
 
 	rightFlex := tview.NewFlex().
 		SetDirection(tview.FlexRow).
@@ -78,9 +66,9 @@ func main() {
 		AddItem(channelsTreeView, 0, 1, false).
 		AddItem(rightFlex, 0, 4, false)
 
-	token, err := keyring.Get(service, "token")
-	if err != nil {
-		token = conf.Token
+	token := os.Getenv("DISCORDO_TOKEN")
+	if token == "" {
+		token, _ = keyring.Get(service, "token")
 	}
 
 	if token != "" {
@@ -88,10 +76,10 @@ func main() {
 			SetRoot(mainFlex, true).
 			SetFocus(channelsTreeView)
 
-		session = newSession()
-		session.Token = token
-		session.Identify.Token = token
-		if err := session.Open(); err != nil {
+		app.Session.AddHandlerOnce(onSessionReady)
+		app.Session.AddHandler(onSessionMessageCreate)
+		err := app.Connect(token)
+		if err != nil {
 			panic(err)
 		}
 	} else {
@@ -111,7 +99,6 @@ func onLoginFormLoginButtonSelected() {
 		return
 	}
 
-	session = newSession()
 	// Login using the email and password
 	lr, err := login(email, password)
 	if err != nil {
@@ -123,9 +110,10 @@ func onLoginFormLoginButtonSelected() {
 			SetRoot(mainFlex, true).
 			SetFocus(channelsTreeView)
 
-		session.Token = lr.Token
-		session.Identify.Token = lr.Token
-		if err = session.Open(); err != nil {
+		app.Session.AddHandlerOnce(onSessionReady)
+		app.Session.AddHandler(onSessionMessageCreate)
+		err = app.Connect(lr.Token)
+		if err != nil {
 			panic(err)
 		}
 
@@ -147,9 +135,10 @@ func onLoginFormLoginButtonSelected() {
 				SetRoot(mainFlex, true).
 				SetFocus(channelsTreeView)
 
-			session.Token = lr.Token
-			session.Identify.Token = lr.Token
-			if err = session.Open(); err != nil {
+			app.Session.AddHandlerOnce(onSessionReady)
+			app.Session.AddHandler(onSessionMessageCreate)
+			err = app.Connect(lr.Token)
+			if err != nil {
 				panic(err)
 			}
 

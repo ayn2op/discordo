@@ -6,19 +6,20 @@ import (
 
 	"github.com/atotto/clipboard"
 	"github.com/ayntgl/discordgo"
+	"github.com/ayntgl/discordo/config"
 	"github.com/ayntgl/discordo/util"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
 func onAppInputCapture(e *tcell.EventKey) *tcell.EventKey {
-	if util.HasKeybinding(conf.Keybindings.FocusChannelsTree, e.Name()) {
+	if util.HasKeybinding(config.Keybindings.FocusChannelsTreeView, e.Name()) {
 		app.SetFocus(channelsTreeView)
 		return nil
-	} else if util.HasKeybinding(conf.Keybindings.FocusMessagesView, e.Name()) {
+	} else if util.HasKeybinding(config.Keybindings.FocusMessagesView, e.Name()) {
 		app.SetFocus(messagesTextView)
 		return nil
-	} else if util.HasKeybinding(conf.Keybindings.FocusMessageInputField, e.Name()) {
+	} else if util.HasKeybinding(config.Keybindings.FocusMessageInputField, e.Name()) {
 		app.SetFocus(messageInputField)
 		return nil
 	}
@@ -42,14 +43,14 @@ func onChannelsTreeSelected(n *tview.TreeNode) {
 		if len(n.GetChildren()) == 0 {
 			// If the reference of the selected `*TreeNode` is `nil`, it is the direct messages `*TreeNode`.
 			if id == nil {
-				cs := session.State.PrivateChannels
+				cs := app.Session.State.PrivateChannels
 				sort.Slice(cs, func(i, j int) bool {
 					return cs[i].LastMessageID > cs[j].LastMessageID
 				})
 
 				for _, c := range cs {
 					tag := "[::d]"
-					if util.ChannelIsUnread(session.State, c) {
+					if util.ChannelIsUnread(app.Session.State, c) {
 						tag = "[::b]"
 					}
 
@@ -59,7 +60,7 @@ func onChannelsTreeSelected(n *tview.TreeNode) {
 					n.AddChild(cn)
 				}
 			} else {
-				g, err := session.State.Guild(id.(string))
+				g, err := app.Session.State.Guild(id.(string))
 				if err != nil {
 					return
 				}
@@ -69,17 +70,17 @@ func onChannelsTreeSelected(n *tview.TreeNode) {
 				})
 
 				// Top-level channels
-				createTopLevelChannelsNodes(channelsTreeView, session.State, n, g.Channels)
+				createTopLevelChannelsNodes(channelsTreeView, app.Session.State, n, g.Channels)
 				// Category channels
-				createCategoryChannelsNodes(channelsTreeView, session.State, n, g.Channels)
+				createCategoryChannelsNodes(channelsTreeView, app.Session.State, n, g.Channels)
 				// Second-level channels
-				createSecondLevelChannelsNodes(channelsTreeView, session.State, g.Channels)
+				createSecondLevelChannelsNodes(channelsTreeView, app.Session.State, g.Channels)
 			}
 		}
 
 		n.SetExpanded(!n.IsExpanded())
 	default: // Channels
-		c, err := session.State.Channel(id.(string))
+		c, err := app.Session.State.Channel(id.(string))
 		if err != nil {
 			return
 		}
@@ -104,7 +105,7 @@ func onChannelsTreeSelected(n *tview.TreeNode) {
 		}
 
 		go func() {
-			ms, err := session.ChannelMessages(c.ID, conf.GetMessagesLimit, "", "", "")
+			ms, err := app.Session.ChannelMessages(c.ID, config.General.FetchMessagesLimit, "", "", "")
 			if err != nil {
 				return
 			}
@@ -116,8 +117,8 @@ func onChannelsTreeSelected(n *tview.TreeNode) {
 			// Scroll to the end of the text after the messages have been written to the TextView.
 			messagesTextView.ScrollToEnd()
 
-			if len(ms) != 0 && util.ChannelIsUnread(session.State, c) {
-				session.ChannelMessageAck(c.ID, c.LastMessageID, "")
+			if len(ms) != 0 && util.ChannelIsUnread(app.Session.State, c) {
+				app.Session.ChannelMessageAck(c.ID, c.LastMessageID, "")
 			}
 		}()
 	}
@@ -186,7 +187,7 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		return nil
 	}
 
-	if util.HasKeybinding(conf.Keybindings.SelectPreviousMessage, e.Name()) {
+	if util.HasKeybinding(config.Keybindings.SelectPreviousMessage, e.Name()) {
 		if len(messagesTextView.GetHighlights()) == 0 {
 			selectedMessage = len(ms) - 1
 		} else {
@@ -200,7 +201,7 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			Highlight(ms[selectedMessage].ID).
 			ScrollToHighlight()
 		return nil
-	} else if util.HasKeybinding(conf.Keybindings.SelectNextMessage, e.Name()) {
+	} else if util.HasKeybinding(config.Keybindings.SelectNextMessage, e.Name()) {
 		if len(messagesTextView.GetHighlights()) == 0 {
 			selectedMessage = len(ms) - 1
 		} else {
@@ -214,19 +215,19 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			Highlight(ms[selectedMessage].ID).
 			ScrollToHighlight()
 		return nil
-	} else if util.HasKeybinding(conf.Keybindings.SelectFirstMessage, e.Name()) {
+	} else if util.HasKeybinding(config.Keybindings.SelectFirstMessage, e.Name()) {
 		selectedMessage = 0
 		messagesTextView.
 			Highlight(ms[selectedMessage].ID).
 			ScrollToHighlight()
 		return nil
-	} else if util.HasKeybinding(conf.Keybindings.SelectLastMessage, e.Name()) {
+	} else if util.HasKeybinding(config.Keybindings.SelectLastMessage, e.Name()) {
 		selectedMessage = len(ms) - 1
 		messagesTextView.
 			Highlight(ms[selectedMessage].ID).
 			ScrollToHighlight()
 		return nil
-	} else if util.HasKeybinding(conf.Keybindings.SelectMessageReference, e.Name()) {
+	} else if util.HasKeybinding(config.Keybindings.SelectMessageReference, e.Name()) {
 		hs := messagesTextView.GetHighlights()
 		if len(hs) == 0 {
 			return nil
@@ -241,7 +242,7 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		}
 
 		return nil
-	} else if util.HasKeybinding(conf.Keybindings.ReplySelectedMessage, e.Name()) {
+	} else if util.HasKeybinding(config.Keybindings.ReplySelectedMessage, e.Name()) {
 		hs := messagesTextView.GetHighlights()
 		if len(hs) == 0 {
 			return nil
@@ -251,7 +252,7 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		messageInputField.SetTitle("Replying to " + m.Author.String())
 		app.SetFocus(messageInputField)
 		return nil
-	} else if util.HasKeybinding(conf.Keybindings.MentionReplySelectedMessage, e.Name()) {
+	} else if util.HasKeybinding(config.Keybindings.MentionReplySelectedMessage, e.Name()) {
 		hs := messagesTextView.GetHighlights()
 		if len(hs) == 0 {
 			return nil
@@ -261,7 +262,7 @@ func onMessagesViewInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		messageInputField.SetTitle("[@] Replying to " + m.Author.String())
 		app.SetFocus(messageInputField)
 		return nil
-	} else if util.HasKeybinding(conf.Keybindings.CopySelectedMessage, e.Name()) {
+	} else if util.HasKeybinding(config.Keybindings.CopySelectedMessage, e.Name()) {
 		hs := messagesTextView.GetHighlights()
 		if len(hs) == 0 {
 			return nil
@@ -304,14 +305,14 @@ func onMessageInputFieldInputCapture(e *tcell.EventKey) *tcell.EventKey {
 				d.AllowedMentions.RepliedUser = false
 			}
 
-			go session.ChannelMessageSendComplex(m.ChannelID, d)
+			go app.Session.ChannelMessageSendComplex(m.ChannelID, d)
 
 			selectedMessage = -1
 			messagesTextView.Highlight()
 
 			messageInputField.SetTitle("")
 		} else {
-			go session.ChannelMessageSend(selectedChannel.ID, t)
+			go app.Session.ChannelMessageSend(selectedChannel.ID, t)
 		}
 
 		messageInputField.SetText("")

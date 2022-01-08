@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/ayntgl/discordgo"
+	"github.com/ayntgl/discordo/config"
 	"github.com/gen2brain/beeep"
 	"github.com/rivo/tview"
 )
@@ -18,26 +19,6 @@ var (
 	underlineRegex     = regexp.MustCompile(`(?m)__(.*?)__`)
 	strikeThroughRegex = regexp.MustCompile(`(?m)~~(.*?)~~`)
 )
-
-func newSession() *discordgo.Session {
-	s, err := discordgo.New()
-	if err != nil {
-		panic(err)
-	}
-
-	s.UserAgent = conf.UserAgent
-	s.Identify.Compress = false
-	s.Identify.Intents = 0
-	s.Identify.LargeThreshold = 0
-	s.Identify.Properties.Device = ""
-	s.Identify.Properties.Browser = "Chrome"
-	s.Identify.Properties.OS = "Linux"
-
-	s.AddHandlerOnce(onSessionReady)
-	s.AddHandler(onSessionMessageCreate)
-
-	return s
-}
 
 func onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 	dmNode := tview.NewTreeNode("Direct Messages").
@@ -74,15 +55,15 @@ func onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 
 func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
 	if selectedChannel == nil || selectedChannel.ID != m.ChannelID {
-		if conf.Notifications {
+		if config.General.Notifications {
 			for _, u := range m.Mentions {
-				if u.ID == session.State.User.ID {
-					g, err := session.State.Guild(m.GuildID)
+				if u.ID == app.Session.State.User.ID {
+					g, err := app.Session.State.Guild(m.GuildID)
 					if err != nil {
 						return
 					}
 
-					c, err := session.State.Channel(m.ChannelID)
+					c, err := app.Session.State.Channel(m.ChannelID)
 					if err != nil {
 						return
 					}
@@ -114,7 +95,7 @@ func login(email, password string) (*loginResponse, error) {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}{email, password}
-	resp, err := session.RequestWithBucketID(
+	resp, err := app.Session.RequestWithBucketID(
 		"POST",
 		discordgo.EndpointLogin,
 		data,
@@ -139,7 +120,7 @@ func totp(code, ticket string) (*loginResponse, error) {
 		Ticket string `json:"ticket"`
 	}{code, ticket}
 	e := discordgo.EndpointAuth + "mfa/totp"
-	resp, err := session.RequestWithBucketID("POST", e, data, e)
+	resp, err := app.Session.RequestWithBucketID("POST", e, data, e)
 	if err != nil {
 		return nil, err
 	}
@@ -314,7 +295,7 @@ func buildAttachments(b *strings.Builder, as []*discordgo.MessageAttachment) {
 func buildMentions(content string, mentions []*discordgo.User) string {
 	for _, mUser := range mentions {
 		var color string
-		if mUser.ID == session.State.User.ID {
+		if mUser.ID == app.Session.State.User.ID {
 			color = "[:#5865F2]"
 		} else {
 			color = "[#EB459E]"
@@ -334,7 +315,7 @@ func buildMentions(content string, mentions []*discordgo.User) string {
 }
 
 func buildAuthor(b *strings.Builder, u *discordgo.User) {
-	if u.ID == session.State.User.ID {
+	if u.ID == app.Session.State.User.ID {
 		b.WriteString("[#57F287]")
 	} else {
 		b.WriteString("[#ED4245]")
