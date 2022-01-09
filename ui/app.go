@@ -14,7 +14,6 @@ type App struct {
 	*tview.Application
 
 	LoginForm         *tview.Form
-	MainFlex          *tview.Flex
 	GuildsList        *tview.List
 	ChannelsTreeView  *tview.TreeView
 	MessagesTextView  *tview.TextView
@@ -23,15 +22,14 @@ type App struct {
 	Session         *discordgo.Session
 	SelectedChannel *discordgo.Channel
 	SelectedMessage int
+	Config          *config.Config
 }
 
 func NewApp() *App {
 	s, _ := discordgo.New()
 	return &App{
-		Application: tview.NewApplication(),
-
+		Application:       tview.NewApplication(),
 		LoginForm:         tview.NewForm(),
-		MainFlex:          tview.NewFlex(),
 		GuildsList:        tview.NewList(),
 		ChannelsTreeView:  tview.NewTreeView(),
 		MessagesTextView:  tview.NewTextView(),
@@ -39,12 +37,13 @@ func NewApp() *App {
 
 		Session:         s,
 		SelectedMessage: -1,
+		Config:          config.New(),
 	}
 }
 
 func (app *App) Connect(token string) error {
 	app.Session.Token = token
-	app.Session.UserAgent = config.General.UserAgent
+	app.Session.UserAgent = app.Config.General.UserAgent
 
 	app.Session.Identify = discordgo.Identify{
 		Token:          token,
@@ -85,7 +84,7 @@ func (app *App) onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 
 func (app *App) onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
 	if app.SelectedChannel == nil || app.SelectedChannel.ID != m.ChannelID {
-		if config.General.Notifications {
+		if app.Config.General.Notifications {
 			for _, u := range m.Mentions {
 				if u.ID == app.Session.State.User.ID {
 					g, err := app.Session.State.Guild(m.GuildID)

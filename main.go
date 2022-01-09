@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/ayntgl/discordgo"
-	"github.com/ayntgl/discordo/config"
 	"github.com/ayntgl/discordo/ui"
 	"github.com/rivo/tview"
 	"github.com/zalando/go-keyring"
@@ -15,7 +14,7 @@ const service = "discordo"
 
 func main() {
 	app := ui.NewApp()
-	app.EnableMouse(config.General.Mouse)
+	app.Config.Load()
 
 	token := os.Getenv("DISCORDO_TOKEN")
 	if token == "" {
@@ -28,9 +27,8 @@ func main() {
 			panic(err)
 		}
 
-		ui.DrawMainFlex(app)
 		app.
-			SetRoot(app.MainFlex, true).
+			SetRoot(ui.NewMainFlex(app), true).
 			SetFocus(app.GuildsList)
 	} else {
 		app.LoginForm = ui.NewLoginForm(func() {
@@ -39,7 +37,7 @@ func main() {
 		app.SetRoot(app.LoginForm, true)
 	}
 
-	if err := app.Run(); err != nil {
+	if err := app.EnableMouse(app.Config.General.Mouse).Run(); err != nil {
 		panic(err)
 	}
 }
@@ -59,7 +57,7 @@ func onLoginFormLoginButtonSelected(app *ui.App) {
 
 	if lr.Token != "" && !lr.MFA {
 		app.
-			SetRoot(app.MainFlex, true).
+			SetRoot(ui.NewMainFlex(app), true).
 			SetFocus(app.GuildsList)
 
 		err = app.Connect(lr.Token)
@@ -82,7 +80,7 @@ func onLoginFormLoginButtonSelected(app *ui.App) {
 			}
 
 			app.
-				SetRoot(app.MainFlex, true).
+				SetRoot(ui.NewMainFlex(app), true).
 				SetFocus(app.GuildsList)
 
 			err = app.Connect(lr.Token)

@@ -5,7 +5,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-func DrawMainFlex(app *App) {
+func NewMainFlex(app *App) *tview.Flex {
 	app.SetInputCapture(func(e *tcell.EventKey) *tcell.EventKey {
 		return onAppInputCapture(app, e)
 	})
@@ -63,7 +63,7 @@ func DrawMainFlex(app *App) {
 		AddItem(app.MessagesTextView, 0, 1, false).
 		AddItem(app.MessageInputField, 3, 1, false)
 
-	app.MainFlex.
+	return tview.NewFlex().
 		AddItem(leftFlex, 0, 1, false).
 		AddItem(rightFlex, 0, 4, false)
 }
