@@ -6,9 +6,10 @@ import (
 
 	"github.com/atotto/clipboard"
 	"github.com/ayntgl/discordgo"
-	"github.com/ayntgl/discordo/util"
+	util "github.com/ayntgl/discordo/discord"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	"github.com/zalando/go-keyring"
 )
 
 func onAppInputCapture(app *App, e *tcell.EventKey) *tcell.EventKey {
@@ -289,4 +290,57 @@ func onMessageInputFieldInputCapture(app *App, e *tcell.EventKey) *tcell.EventKe
 	}
 
 	return e
+}
+
+func OnLoginFormLoginButtonSelected(app *App) {
+	email := app.LoginForm.GetFormItem(0).(*tview.InputField).GetText()
+	password := app.LoginForm.GetFormItem(1).(*tview.InputField).GetText()
+	if email == "" || password == "" {
+		return
+	}
+
+	// Login using the email and password
+	lr, err := util.Login(app.Session, email, password)
+	if err != nil {
+		panic(err)
+	}
+
+	if lr.Token != "" && !lr.MFA {
+		app.
+			SetRoot(NewMainFlex(app), true).
+			SetFocus(app.GuildsList)
+
+		err = app.Connect(lr.Token)
+		if err != nil {
+			panic(err)
+		}
+
+		go keyring.Set("discordo", "token", lr.Token)
+	} else if lr.MFA {
+		// The account has MFA enabled, reattempt login with code and ticket.
+		NewLoginForm(app, func() {
+			code := app.LoginForm.GetFormItem(0).(*tview.InputField).GetText()
+			if code == "" {
+				return
+			}
+
+			lr, err = util.TOTP(app.Session, code, lr.Ticket)
+			if err != nil {
+				panic(err)
+			}
+
+			app.
+				SetRoot(NewMainFlex(app), true).
+				SetFocus(app.GuildsList)
+
+			err = app.Connect(lr.Token)
+			if err != nil {
+				panic(err)
+			}
+
+			go keyring.Set("discordo", "token", lr.Token)
+		}, true)
+
+		app.SetRoot(app.LoginForm, true)
+	}
 }

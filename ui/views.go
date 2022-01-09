@@ -68,21 +68,18 @@ func NewMainFlex(app *App) *tview.Flex {
 		AddItem(rightFlex, 0, 4, false)
 }
 
-func NewLoginForm(onLoginFormLoginButtonSelected func(), mfa bool) *tview.Form {
-	f := tview.NewForm()
-	f.
+func NewLoginForm(app *App, onLoginFormLoginButtonSelected func(), mfa bool) {
+	app.LoginForm.
 		AddButton("Login", onLoginFormLoginButtonSelected).
 		SetButtonsAlign(tview.AlignCenter).
 		SetBorder(true).
 		SetBorderPadding(0, 0, 1, 0)
 
 	if mfa {
-		f.AddPasswordField("Code", "", 0, 0, nil)
+		app.LoginForm.AddPasswordField("Code", "", 0, 0, nil)
 	} else {
-		f.
+		app.LoginForm.
 			AddInputField("Email", "", 0, nil, nil).
 			AddPasswordField("Password", "", 0, 0, nil)
 	}
-
-	return f
 }
