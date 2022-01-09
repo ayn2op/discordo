@@ -1,70 +1,21 @@
 package main
 
 import (
+	"encoding/json"
 	"os"
 
 	"github.com/ayntgl/discordgo"
 	"github.com/ayntgl/discordo/config"
 	"github.com/ayntgl/discordo/ui"
-	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/zalando/go-keyring"
 )
 
 const service = "discordo"
 
-var (
-	app               *ui.App
-	loginForm         *tview.Form
-	channelsTreeView  *tview.TreeView
-	messagesTextView  *tview.TextView
-	messageInputField *tview.InputField
-	mainFlex          *tview.Flex
-
-	selectedChannel *discordgo.Channel
-	selectedMessage int = -1
-)
-
 func main() {
-	app = ui.NewApp()
-	app.
-		EnableMouse(config.General.Mouse).
-		SetInputCapture(onAppInputCapture)
-
-	app.ChannelsTreeView.
-		SetTopLevel(1).
-		SetRoot(tview.NewTreeNode("")).
-		SetSelectedFunc(onChannelsTreeSelected).
-		SetTitleAlign(tview.AlignLeft).
-		SetBorder(true).
-		SetBorderPadding(0, 0, 1, 0)
-
-	app.MessagesTextView.
-		SetRegions(true).
-		SetDynamicColors(true).
-		SetWordWrap(true).
-		SetChangedFunc(func() { app.Draw() }).
-		SetTitleAlign(tview.AlignLeft).
-		SetInputCapture(onMessagesViewInputCapture).
-		SetBorder(true).
-		SetBorderPadding(0, 0, 1, 0)
-
-	app.MessageInputField.
-		SetPlaceholder("Message...").
-		SetPlaceholderTextColor(tcell.ColorWhite).
-		SetFieldBackgroundColor(tview.Styles.PrimitiveBackgroundColor).
-		SetInputCapture(onMessageInputFieldInputCapture).
-		SetTitleAlign(tview.AlignLeft).
-		SetBorder(true).
-		SetBorderPadding(0, 0, 1, 0)
-
-	rightFlex := tview.NewFlex().
-		SetDirection(tview.FlexRow).
-		AddItem(messagesTextView, 0, 1, false).
-		AddItem(messageInputField, 3, 1, false)
-	mainFlex = tview.NewFlex().
-		AddItem(channelsTreeView, 0, 1, false).
-		AddItem(rightFlex, 0, 4, false)
+	app := ui.NewApp()
+	app.EnableMouse(config.General.Mouse)
 
 	token := os.Getenv("DISCORDO_TOKEN")
 	if token == "" {
@@ -72,19 +23,20 @@ func main() {
 	}
 
 	if token != "" {
-		app.
-			SetRoot(mainFlex, true).
-			SetFocus(channelsTreeView)
-
-		app.Session.AddHandlerOnce(onSessionReady)
-		app.Session.AddHandler(onSessionMessageCreate)
 		err := app.Connect(token)
 		if err != nil {
 			panic(err)
 		}
+
+		ui.DrawMainFlex(app)
+		app.
+			SetRoot(app.MainFlex, true).
+			SetFocus(app.GuildsList)
 	} else {
-		loginForm = ui.NewLoginForm(onLoginFormLoginButtonSelected, false)
-		app.SetRoot(loginForm, true)
+		app.LoginForm = ui.NewLoginForm(func() {
+			onLoginFormLoginButtonSelected(app)
+		}, false)
+		app.SetRoot(app.LoginForm, true)
 	}
 
 	if err := app.Run(); err != nil {
@@ -92,26 +44,24 @@ func main() {
 	}
 }
 
-func onLoginFormLoginButtonSelected() {
-	email := loginForm.GetFormItem(0).(*tview.InputField).GetText()
-	password := loginForm.GetFormItem(1).(*tview.InputField).GetText()
+func onLoginFormLoginButtonSelected(app *ui.App) {
+	email := app.LoginForm.GetFormItem(0).(*tview.InputField).GetText()
+	password := app.LoginForm.GetFormItem(1).(*tview.InputField).GetText()
 	if email == "" || password == "" {
 		return
 	}
 
 	// Login using the email and password
-	lr, err := login(email, password)
+	lr, err := login(app.Session, email, password)
 	if err != nil {
 		panic(err)
 	}
 
 	if lr.Token != "" && !lr.MFA {
 		app.
-			SetRoot(mainFlex, true).
-			SetFocus(channelsTreeView)
+			SetRoot(app.MainFlex, true).
+			SetFocus(app.GuildsList)
 
-		app.Session.AddHandlerOnce(onSessionReady)
-		app.Session.AddHandler(onSessionMessageCreate)
 		err = app.Connect(lr.Token)
 		if err != nil {
 			panic(err)
@@ -120,23 +70,21 @@ func onLoginFormLoginButtonSelected() {
 		go keyring.Set(service, "token", lr.Token)
 	} else if lr.MFA {
 		// The account has MFA enabled, reattempt login with code and ticket.
-		loginForm = ui.NewLoginForm(func() {
-			code := loginForm.GetFormItem(0).(*tview.InputField).GetText()
+		app.LoginForm = ui.NewLoginForm(func() {
+			code := app.LoginForm.GetFormItem(0).(*tview.InputField).GetText()
 			if code == "" {
 				return
 			}
 
-			lr, err = totp(code, lr.Ticket)
+			lr, err = totp(app.Session, code, lr.Ticket)
 			if err != nil {
 				panic(err)
 			}
 
 			app.
-				SetRoot(mainFlex, true).
-				SetFocus(channelsTreeView)
+				SetRoot(app.MainFlex, true).
+				SetFocus(app.GuildsList)
 
-			app.Session.AddHandlerOnce(onSessionReady)
-			app.Session.AddHandler(onSessionMessageCreate)
 			err = app.Connect(lr.Token)
 			if err != nil {
 				panic(err)
@@ -145,6 +93,57 @@ func onLoginFormLoginButtonSelected() {
 			go keyring.Set(service, "token", lr.Token)
 		}, true)
 
-		app.SetRoot(loginForm, true)
+		app.SetRoot(app.LoginForm, true)
 	}
+}
+
+type loginResponse struct {
+	MFA    bool   `json:"mfa"`
+	SMS    bool   `json:"sms"`
+	Ticket string `json:"ticket"`
+	Token  string `json:"token"`
+}
+
+func login(s *discordgo.Session, email string, password string) (*loginResponse, error) {
+	data := struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}{email, password}
+	resp, err := s.RequestWithBucketID(
+		"POST",
+		discordgo.EndpointLogin,
+		data,
+		discordgo.EndpointLogin,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	var lr loginResponse
+	err = json.Unmarshal(resp, &lr)
+	if err != nil {
+		return nil, err
+	}
+
+	return &lr, nil
+}
+
+func totp(s *discordgo.Session, code string, ticket string) (*loginResponse, error) {
+	data := struct {
+		Code   string `json:"code"`
+		Ticket string `json:"ticket"`
+	}{code, ticket}
+	e := discordgo.EndpointAuth + "mfa/totp"
+	resp, err := s.RequestWithBucketID("POST", e, data, e)
+	if err != nil {
+		return nil, err
+	}
+
+	var lr loginResponse
+	err = json.Unmarshal(resp, &lr)
+	if err != nil {
+		return nil, err
+	}
+
+	return &lr, nil
 }

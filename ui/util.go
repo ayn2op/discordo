@@ -1,16 +1,11 @@
-package main
+package ui
 
 import (
-	"encoding/json"
 	"fmt"
 	"regexp"
-	"sort"
 	"strings"
 
 	"github.com/ayntgl/discordgo"
-	"github.com/ayntgl/discordo/config"
-	"github.com/gen2brain/beeep"
-	"github.com/rivo/tview"
 )
 
 var (
@@ -20,121 +15,36 @@ var (
 	strikeThroughRegex = regexp.MustCompile(`(?m)~~(.*?)~~`)
 )
 
-func onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
-	dmNode := tview.NewTreeNode("Direct Messages").
-		Collapse()
-	n := channelsTreeView.GetRoot()
-	n.AddChild(dmNode)
-
-	sort.Slice(r.Guilds, func(a, b int) bool {
-		found := false
-		for _, gID := range r.Settings.GuildPositions {
-			if found {
-				if gID == r.Guilds[b].ID {
-					return true
-				}
-			} else {
-				if gID == r.Guilds[a].ID {
-					found = true
-				}
-			}
-		}
-
-		return false
-	})
-
-	for _, g := range r.Guilds {
-		gn := tview.NewTreeNode(g.Name).
-			SetReference(g.ID).
-			Collapse()
-		n.AddChild(gn)
-	}
-
-	channelsTreeView.SetCurrentNode(n)
-}
-
-func onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
-	if selectedChannel == nil || selectedChannel.ID != m.ChannelID {
-		if config.General.Notifications {
-			for _, u := range m.Mentions {
-				if u.ID == app.Session.State.User.ID {
-					g, err := app.Session.State.Guild(m.GuildID)
-					if err != nil {
-						return
-					}
-
-					c, err := app.Session.State.Channel(m.ChannelID)
-					if err != nil {
-						return
-					}
-
-					go beeep.Alert(fmt.Sprintf("%s (#%s)", g.Name, c.Name), m.ContentWithMentionsReplaced(), "")
-				}
-			}
-		}
+func channelToString(c *discordgo.Channel) string {
+	var repr string
+	if c.Name != "" {
+		repr = "#" + c.Name
+	} else if len(c.Recipients) == 1 {
+		rp := c.Recipients[0]
+		repr = rp.Username + "#" + rp.Discriminator
 	} else {
-		selectedChannel.Messages = append(selectedChannel.Messages, m.Message)
-		messagesTextView.Write(buildMessage(m.Message))
+		rps := make([]string, len(c.Recipients))
+		for i, r := range c.Recipients {
+			rps[i] = r.Username + "#" + r.Discriminator
+		}
 
-		// Scroll to the end of the text if a message is not selected.
-		if len(messagesTextView.GetHighlights()) == 0 {
-			messagesTextView.ScrollToEnd()
+		repr = strings.Join(rps, ", ")
+	}
+
+	return repr
+}
+
+func hasKeybinding(ks []string, k string) bool {
+	for _, repr := range ks {
+		if repr == k {
+			return true
 		}
 	}
+
+	return false
 }
 
-type loginResponse struct {
-	MFA    bool   `json:"mfa"`
-	SMS    bool   `json:"sms"`
-	Ticket string `json:"ticket"`
-	Token  string `json:"token"`
-}
-
-func login(email, password string) (*loginResponse, error) {
-	data := struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}{email, password}
-	resp, err := app.Session.RequestWithBucketID(
-		"POST",
-		discordgo.EndpointLogin,
-		data,
-		discordgo.EndpointLogin,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	var lr loginResponse
-	err = json.Unmarshal(resp, &lr)
-	if err != nil {
-		return nil, err
-	}
-
-	return &lr, nil
-}
-
-func totp(code, ticket string) (*loginResponse, error) {
-	data := struct {
-		Code   string `json:"code"`
-		Ticket string `json:"ticket"`
-	}{code, ticket}
-	e := discordgo.EndpointAuth + "mfa/totp"
-	resp, err := app.Session.RequestWithBucketID("POST", e, data, e)
-	if err != nil {
-		return nil, err
-	}
-
-	var lr loginResponse
-	err = json.Unmarshal(resp, &lr)
-	if err != nil {
-		return nil, err
-	}
-
-	return &lr, nil
-}
-
-func buildMessage(m *discordgo.Message) []byte {
+func buildMessage(app *App, m *discordgo.Message) []byte {
 	var b strings.Builder
 
 	switch m.Type {
@@ -146,11 +56,11 @@ func buildMessage(m *discordgo.Message) []byte {
 		b.WriteString(m.ID)
 		b.WriteString("\"]")
 		// Build the message associated with crosspost, channel follow add, pin, or a reply.
-		buildReferencedMessage(&b, m.ReferencedMessage)
+		buildReferencedMessage(&b, m.ReferencedMessage, app.Session.State.User.ID)
 		// Build the author of this message.
-		buildAuthor(&b, m.Author)
+		buildAuthor(&b, m.Author, app.Session.State.User.ID)
 		// Build the contents of the message.
-		buildContent(&b, m)
+		buildContent(&b, m, app.Session.State.User.ID)
 
 		if m.EditedTimestamp != "" {
 			b.WriteString(" [::d](edited)[::-]")
@@ -194,14 +104,14 @@ func buildMessage(m *discordgo.Message) []byte {
 	return nil
 }
 
-func buildReferencedMessage(b *strings.Builder, rm *discordgo.Message) {
+func buildReferencedMessage(b *strings.Builder, rm *discordgo.Message, clientID string) {
 	if rm != nil {
 		b.WriteString(" ╭ ")
 		b.WriteString("[::d]")
-		buildAuthor(b, rm.Author)
+		buildAuthor(b, rm.Author, clientID)
 
 		if rm.Content != "" {
-			rm.Content = buildMentions(rm.Content, rm.Mentions)
+			rm.Content = buildMentions(rm.Content, rm.Mentions, clientID)
 			b.WriteString(parseMarkdown(rm.Content))
 		}
 
@@ -210,9 +120,9 @@ func buildReferencedMessage(b *strings.Builder, rm *discordgo.Message) {
 	}
 }
 
-func buildContent(b *strings.Builder, m *discordgo.Message) {
+func buildContent(b *strings.Builder, m *discordgo.Message, clientID string) {
 	if m.Content != "" {
-		m.Content = buildMentions(m.Content, m.Mentions)
+		m.Content = buildMentions(m.Content, m.Mentions, clientID)
 		b.WriteString(parseMarkdown(m.Content))
 	}
 }
@@ -292,10 +202,10 @@ func buildAttachments(b *strings.Builder, as []*discordgo.MessageAttachment) {
 	}
 }
 
-func buildMentions(content string, mentions []*discordgo.User) string {
+func buildMentions(content string, mentions []*discordgo.User, clientID string) string {
 	for _, mUser := range mentions {
 		var color string
-		if mUser.ID == app.Session.State.User.ID {
+		if mUser.ID == clientID {
 			color = "[:#5865F2]"
 		} else {
 			color = "[#EB459E]"
@@ -314,8 +224,8 @@ func buildMentions(content string, mentions []*discordgo.User) string {
 	return content
 }
 
-func buildAuthor(b *strings.Builder, u *discordgo.User) {
-	if u.ID == app.Session.State.User.ID {
+func buildAuthor(b *strings.Builder, u *discordgo.User, clientID string) {
+	if u.ID == clientID {
 		b.WriteString("[#57F287]")
 	} else {
 		b.WriteString("[#ED4245]")

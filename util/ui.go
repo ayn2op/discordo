@@ -60,14 +60,3 @@ func CreateChannelNode(s *discordgo.State, c *discordgo.Channel) *tview.TreeNode
 
 	return cn
 }
-
-// HasKeybinding returns a boolean that indicates whether the given keybinding string representation *k* is in the slice *ks*.
-func HasKeybinding(ks []string, k string) bool {
-	for _, repr := range ks {
-		if repr == k {
-			return true
-		}
-	}
-
-	return false
-}
