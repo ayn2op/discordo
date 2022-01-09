@@ -22,7 +22,7 @@ type App struct {
 	Session         *discordgo.Session
 	SelectedChannel *discordgo.Channel
 	SelectedMessage int
-	Config          *config.Config
+	Config          config.Config
 }
 
 func NewApp() *App {
@@ -37,7 +37,6 @@ func NewApp() *App {
 
 		Session:         s,
 		SelectedMessage: -1,
-		Config:          config.New(),
 	}
 }
 

@@ -78,12 +78,13 @@ func (c *Config) Load() {
 		e := json.NewEncoder(f)
 		e.SetIndent("", "\t")
 
+		c = New()
 		err = e.Encode(c)
 		if err != nil {
 			panic(err)
 		}
 	} else {
-		err = json.NewDecoder(f).Decode(&c)
+		err = json.NewDecoder(f).Decode(c)
 		if err != nil {
 			panic(err)
 		}
