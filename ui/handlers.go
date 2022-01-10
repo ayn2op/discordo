@@ -13,7 +13,10 @@ import (
 )
 
 func onAppInputCapture(app *App, e *tcell.EventKey) *tcell.EventKey {
-	if hasKeybinding(app.Config.Keybindings.FocusChannelsTreeView, e.Name()) {
+	if hasKeybinding(app.Config.Keybindings.FocusGuildsList, e.Name()) {
+		app.SetFocus(app.GuildsList)
+		return nil
+	} else if hasKeybinding(app.Config.Keybindings.FocusChannelsTreeView, e.Name()) {
 		app.SetFocus(app.ChannelsTreeView)
 		return nil
 	} else if hasKeybinding(app.Config.Keybindings.FocusMessagesTextView, e.Name()) {
@@ -239,6 +242,11 @@ func onMessagesTextViewInputCapture(app *App, e *tcell.EventKey) *tcell.EventKey
 }
 
 func onMessageInputFieldInputCapture(app *App, e *tcell.EventKey) *tcell.EventKey {
+	// The default global navigation shortcut for guilds list is Alt+<rune>.
+	if e.Modifiers() == tcell.ModAlt {
+		return nil
+	}
+
 	switch e.Key() {
 	case tcell.KeyEnter:
 		if app.SelectedChannel == nil {

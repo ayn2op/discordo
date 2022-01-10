@@ -13,6 +13,7 @@ type GeneralConfig struct {
 }
 
 type KeybindingsConfig struct {
+	FocusGuildsList        []string `json:"focusGuildsList"`
 	FocusChannelsTreeView  []string `json:"focusChannelsTreeView"`
 	FocusMessagesTextView  []string `json:"focusMessagesTextView"`
 	FocusMessageInputField []string `json:"focusMessageInputField"`
@@ -41,9 +42,10 @@ func New() *Config {
 			Notifications:      true,
 		},
 		Keybindings: KeybindingsConfig{
-			FocusChannelsTreeView:  []string{"Alt+Left"},
-			FocusMessagesTextView:  []string{"Alt+Right"},
-			FocusMessageInputField: []string{"Alt+Down"},
+			FocusGuildsList:        []string{"Alt+Rune[g]"},
+			FocusChannelsTreeView:  []string{"Alt+Rune[t]"},
+			FocusMessagesTextView:  []string{"Alt+Rune[m]"},
+			FocusMessageInputField: []string{"Alt+Rune[i]"},
 
 			SelectPreviousMessage:       []string{"Up"},
 			SelectNextMessage:           []string{"Down"},
