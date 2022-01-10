@@ -14,4 +14,6 @@ jobs:
       - name: Format
         run: gofmt -d -e -s .
       - name: Build
-        run: go build .
+        run: make build
+      - name: Test
+        run: make test
