@@ -5,37 +5,8 @@ import (
 	"strings"
 
 	"github.com/ayntgl/discordgo"
-	"github.com/ayntgl/discordo/discord"
+	"github.com/ayntgl/discordo/util"
 )
-
-func channelToString(c *discordgo.Channel) string {
-	var repr string
-	if c.Name != "" {
-		repr = "#" + c.Name
-	} else if len(c.Recipients) == 1 {
-		rp := c.Recipients[0]
-		repr = rp.Username + "#" + rp.Discriminator
-	} else {
-		rps := make([]string, len(c.Recipients))
-		for i, r := range c.Recipients {
-			rps[i] = r.Username + "#" + r.Discriminator
-		}
-
-		repr = strings.Join(rps, ", ")
-	}
-
-	return repr
-}
-
-func hasKeybinding(ks []string, k string) bool {
-	for _, repr := range ks {
-		if repr == k {
-			return true
-		}
-	}
-
-	return false
-}
 
 func buildMessage(app *App, m *discordgo.Message) []byte {
 	var b strings.Builder
@@ -105,7 +76,7 @@ func buildReferencedMessage(b *strings.Builder, rm *discordgo.Message, clientID 
 
 		if rm.Content != "" {
 			rm.Content = buildMentions(rm.Content, rm.Mentions, clientID)
-			b.WriteString(discord.ParseMarkdown(rm.Content))
+			b.WriteString(util.ParseMarkdown(rm.Content))
 		}
 
 		b.WriteString("[::-]")
@@ -116,7 +87,7 @@ func buildReferencedMessage(b *strings.Builder, rm *discordgo.Message, clientID 
 func buildContent(b *strings.Builder, m *discordgo.Message, clientID string) {
 	if m.Content != "" {
 		m.Content = buildMentions(m.Content, m.Mentions, clientID)
-		b.WriteString(discord.ParseMarkdown(m.Content))
+		b.WriteString(util.ParseMarkdown(m.Content))
 	}
 }
 
@@ -152,7 +123,7 @@ func buildEmbeds(b *strings.Builder, es []*discordgo.MessageEmbed) {
 				embedBuilder.WriteString("\n\n")
 			}
 
-			embedBuilder.WriteString(discord.ParseMarkdown(e.Description))
+			embedBuilder.WriteString(util.ParseMarkdown(e.Description))
 		}
 
 		if len(e.Fields) != 0 {
@@ -165,7 +136,7 @@ func buildEmbeds(b *strings.Builder, es []*discordgo.MessageEmbed) {
 				embedBuilder.WriteString(ef.Name)
 				embedBuilder.WriteString("[::-]")
 				embedBuilder.WriteByte('\n')
-				embedBuilder.WriteString(discord.ParseMarkdown(ef.Value))
+				embedBuilder.WriteString(util.ParseMarkdown(ef.Value))
 
 				if i != len(e.Fields)-1 {
 					embedBuilder.WriteString("\n\n")

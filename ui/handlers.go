@@ -6,22 +6,22 @@ import (
 
 	"github.com/atotto/clipboard"
 	"github.com/ayntgl/discordgo"
-	"github.com/ayntgl/discordo/discord"
+	"github.com/ayntgl/discordo/util"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
 func onAppInputCapture(app *App, e *tcell.EventKey) *tcell.EventKey {
-	if hasKeybinding(app.Config.Keybindings.FocusGuildsList, e.Name()) {
+	if util.HasKeybinding(app.Config.Keybindings.FocusGuildsList, e.Name()) {
 		app.SetFocus(app.GuildsList)
 		return nil
-	} else if hasKeybinding(app.Config.Keybindings.FocusChannelsTreeView, e.Name()) {
+	} else if util.HasKeybinding(app.Config.Keybindings.FocusChannelsTreeView, e.Name()) {
 		app.SetFocus(app.ChannelsTreeView)
 		return nil
-	} else if hasKeybinding(app.Config.Keybindings.FocusMessagesTextView, e.Name()) {
+	} else if util.HasKeybinding(app.Config.Keybindings.FocusMessagesTextView, e.Name()) {
 		app.SetFocus(app.MessagesTextView)
 		return nil
-	} else if hasKeybinding(app.Config.Keybindings.FocusMessageInputField, e.Name()) {
+	} else if util.HasKeybinding(app.Config.Keybindings.FocusMessageInputField, e.Name()) {
 		app.SetFocus(app.MessageInputField)
 		return nil
 	}
@@ -45,7 +45,7 @@ func onGuildsListSelected(app *App, guildIdx int) {
 		})
 
 		for _, c := range cs {
-			channelTreeNode := tview.NewTreeNode(channelToString(c)).
+			channelTreeNode := tview.NewTreeNode(util.ChannelToString(c)).
 				SetReference(c.ID)
 			rootTreeNode.AddChild(channelTreeNode)
 		}
@@ -57,7 +57,7 @@ func onGuildsListSelected(app *App, guildIdx int) {
 
 		for _, c := range cs {
 			if (c.Type == discordgo.ChannelTypeGuildText || c.Type == discordgo.ChannelTypeGuildNews) && (c.ParentID == "") {
-				channelTreeNode := tview.NewTreeNode(channelToString(c)).
+				channelTreeNode := tview.NewTreeNode(util.ChannelToString(c)).
 					SetReference(c.ID)
 				rootTreeNode.AddChild(channelTreeNode)
 			}
@@ -94,7 +94,7 @@ func onGuildsListSelected(app *App, guildIdx int) {
 				})
 
 				if parentTreeNode != nil {
-					channelTreeNode := tview.NewTreeNode(channelToString(c)).
+					channelTreeNode := tview.NewTreeNode(util.ChannelToString(c)).
 						SetReference(c.ID)
 					parentTreeNode.AddChild(channelTreeNode)
 				}
@@ -119,7 +119,7 @@ func onChannelsTreeViewSelected(app *App, n *tview.TreeNode) {
 
 	app.SelectedChannel = c
 
-	app.MessagesTextView.SetTitle(channelToString(c))
+	app.MessagesTextView.SetTitle(util.ChannelToString(c))
 	app.SetFocus(app.MessageInputField)
 
 	go func() {
@@ -147,7 +147,7 @@ func onMessagesTextViewInputCapture(app *App, e *tcell.EventKey) *tcell.EventKey
 		return nil
 	}
 
-	if hasKeybinding(app.Config.Keybindings.SelectPreviousMessage, e.Name()) {
+	if util.HasKeybinding(app.Config.Keybindings.SelectPreviousMessage, e.Name()) {
 		if len(app.MessagesTextView.GetHighlights()) == 0 {
 			app.SelectedMessage = len(ms) - 1
 		} else {
@@ -161,7 +161,7 @@ func onMessagesTextViewInputCapture(app *App, e *tcell.EventKey) *tcell.EventKey
 			Highlight(ms[app.SelectedMessage].ID).
 			ScrollToHighlight()
 		return nil
-	} else if hasKeybinding(app.Config.Keybindings.SelectNextMessage, e.Name()) {
+	} else if util.HasKeybinding(app.Config.Keybindings.SelectNextMessage, e.Name()) {
 		if len(app.MessagesTextView.GetHighlights()) == 0 {
 			app.SelectedMessage = len(ms) - 1
 		} else {
@@ -175,60 +175,60 @@ func onMessagesTextViewInputCapture(app *App, e *tcell.EventKey) *tcell.EventKey
 			Highlight(ms[app.SelectedMessage].ID).
 			ScrollToHighlight()
 		return nil
-	} else if hasKeybinding(app.Config.Keybindings.SelectFirstMessage, e.Name()) {
+	} else if util.HasKeybinding(app.Config.Keybindings.SelectFirstMessage, e.Name()) {
 		app.SelectedMessage = 0
 		app.MessagesTextView.
 			Highlight(ms[app.SelectedMessage].ID).
 			ScrollToHighlight()
 		return nil
-	} else if hasKeybinding(app.Config.Keybindings.SelectLastMessage, e.Name()) {
+	} else if util.HasKeybinding(app.Config.Keybindings.SelectLastMessage, e.Name()) {
 		app.SelectedMessage = len(ms) - 1
 		app.MessagesTextView.
 			Highlight(ms[app.SelectedMessage].ID).
 			ScrollToHighlight()
 		return nil
-	} else if hasKeybinding(app.Config.Keybindings.SelectMessageReference, e.Name()) {
+	} else if util.HasKeybinding(app.Config.Keybindings.SelectMessageReference, e.Name()) {
 		hs := app.MessagesTextView.GetHighlights()
 		if len(hs) == 0 {
 			return nil
 		}
 
-		_, m := discord.FindMessageByID(app.SelectedChannel.Messages, hs[0])
+		_, m := util.FindMessageByID(app.SelectedChannel.Messages, hs[0])
 		if m.ReferencedMessage != nil {
-			app.SelectedMessage, _ = discord.FindMessageByID(app.SelectedChannel.Messages, m.ReferencedMessage.ID)
+			app.SelectedMessage, _ = util.FindMessageByID(app.SelectedChannel.Messages, m.ReferencedMessage.ID)
 			app.MessagesTextView.
 				Highlight(m.ReferencedMessage.ID).
 				ScrollToHighlight()
 		}
 
 		return nil
-	} else if hasKeybinding(app.Config.Keybindings.ReplySelectedMessage, e.Name()) {
+	} else if util.HasKeybinding(app.Config.Keybindings.ReplySelectedMessage, e.Name()) {
 		hs := app.MessagesTextView.GetHighlights()
 		if len(hs) == 0 {
 			return nil
 		}
 
-		_, m := discord.FindMessageByID(app.SelectedChannel.Messages, hs[0])
+		_, m := util.FindMessageByID(app.SelectedChannel.Messages, hs[0])
 		app.MessageInputField.SetTitle("Replying to " + m.Author.String())
 		app.SetFocus(app.MessageInputField)
 		return nil
-	} else if hasKeybinding(app.Config.Keybindings.MentionReplySelectedMessage, e.Name()) {
+	} else if util.HasKeybinding(app.Config.Keybindings.MentionReplySelectedMessage, e.Name()) {
 		hs := app.MessagesTextView.GetHighlights()
 		if len(hs) == 0 {
 			return nil
 		}
 
-		_, m := discord.FindMessageByID(app.SelectedChannel.Messages, hs[0])
+		_, m := util.FindMessageByID(app.SelectedChannel.Messages, hs[0])
 		app.MessageInputField.SetTitle("[@] Replying to " + m.Author.String())
 		app.SetFocus(app.MessageInputField)
 		return nil
-	} else if hasKeybinding(app.Config.Keybindings.CopySelectedMessage, e.Name()) {
+	} else if util.HasKeybinding(app.Config.Keybindings.CopySelectedMessage, e.Name()) {
 		hs := app.MessagesTextView.GetHighlights()
 		if len(hs) == 0 {
 			return nil
 		}
 
-		_, m := discord.FindMessageByID(app.SelectedChannel.Messages, hs[0])
+		_, m := util.FindMessageByID(app.SelectedChannel.Messages, hs[0])
 		err := clipboard.WriteAll(m.Content)
 		if err != nil {
 			return nil
@@ -258,7 +258,7 @@ func onMessageInputFieldInputCapture(app *App, e *tcell.EventKey) *tcell.EventKe
 		}
 
 		if len(app.MessagesTextView.GetHighlights()) != 0 {
-			_, m := discord.FindMessageByID(app.SelectedChannel.Messages, app.MessagesTextView.GetHighlights()[0])
+			_, m := util.FindMessageByID(app.SelectedChannel.Messages, app.MessagesTextView.GetHighlights()[0])
 			d := &discordgo.MessageSend{
 				Content:         t,
 				Reference:       m.Reference(),
