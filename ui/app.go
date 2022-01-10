@@ -13,7 +13,6 @@ import (
 type App struct {
 	*tview.Application
 
-	LoginForm         *tview.Form
 	GuildsList        *tview.List
 	ChannelsTreeView  *tview.TreeView
 	MessagesTextView  *tview.TextView
@@ -29,7 +28,6 @@ func NewApp() *App {
 	s, _ := discordgo.New()
 	return &App{
 		Application:       tview.NewApplication(),
-		LoginForm:         tview.NewForm(),
 		GuildsList:        tview.NewList(),
 		ChannelsTreeView:  tview.NewTreeView(),
 		MessagesTextView:  tview.NewTextView(),
