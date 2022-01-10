@@ -58,10 +58,10 @@ func HasPermission(s *discordgo.State, cID string, p int64) bool {
 }
 
 type loginResponse struct {
-	MFA    bool   `json:"mfa"`
-	SMS    bool   `json:"sms"`
 	Ticket string `json:"ticket"`
 	Token  string `json:"token"`
+	MFA    bool   `json:"mfa"`
+	SMS    bool   `json:"sms"`
 }
 
 func Login(s *discordgo.Session, email string, password string) (*loginResponse, error) {

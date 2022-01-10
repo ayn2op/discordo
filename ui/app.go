@@ -12,16 +12,14 @@ import (
 
 type App struct {
 	*tview.Application
-
 	GuildsList        *tview.List
 	ChannelsTreeView  *tview.TreeView
 	MessagesTextView  *tview.TextView
 	MessageInputField *tview.InputField
-
-	Session         *discordgo.Session
-	SelectedChannel *discordgo.Channel
-	SelectedMessage int
-	Config          config.Config
+	Session           *discordgo.Session
+	SelectedChannel   *discordgo.Channel
+	Config            config.Config
+	SelectedMessage   int
 }
 
 func NewApp() *App {

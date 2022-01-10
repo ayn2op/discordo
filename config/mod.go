@@ -29,8 +29,8 @@ type KeybindingsConfig struct {
 }
 
 type Config struct {
-	General     GeneralConfig     `json:"general"`
 	Keybindings KeybindingsConfig `json:"keybindings"`
+	General     GeneralConfig     `json:"general"`
 }
 
 func New() *Config {
