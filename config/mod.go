@@ -13,19 +13,16 @@ type GeneralConfig struct {
 }
 
 type KeybindingsConfig struct {
-	FocusGuildsList        []string `json:"focusGuildsList"`
-	FocusChannelsTreeView  []string `json:"focusChannelsTreeView"`
-	FocusMessagesTextView  []string `json:"focusMessagesTextView"`
-	FocusMessageInputField []string `json:"focusMessageInputField"`
+	FocusGuildsList         []string `json:"focusGuildsList"`
+	FocusChannelsTreeView   []string `json:"focusChannelsTreeView"`
+	FocusMessagesTextView   []string `json:"focusMessagesTextView"`
+	FocusMessageInputField  []string `json:"focusMessageInputField"`
+	FocusMessageActionsList []string `json:"focusMessageActionsList"`
 
-	SelectPreviousMessage       []string `json:"selectPreviousMessage"`
-	SelectNextMessage           []string `json:"selectNextMessage"`
-	SelectFirstMessage          []string `json:"selectFirstMessage"`
-	SelectLastMessage           []string `json:"selectLastMessage"`
-	SelectMessageReference      []string `json:"selectMessageReference"`
-	ReplySelectedMessage        []string `json:"replySelectedMessage"`
-	MentionReplySelectedMessage []string `json:"mentionReplySelectedMessage"`
-	CopySelectedMessage         []string `json:"copySelectedMessage"`
+	SelectPreviousMessage []string `json:"selectPreviousMessage"`
+	SelectNextMessage     []string `json:"selectNextMessage"`
+	SelectFirstMessage    []string `json:"selectFirstMessage"`
+	SelectLastMessage     []string `json:"selectLastMessage"`
 }
 
 type Config struct {
@@ -42,19 +39,16 @@ func New() *Config {
 			Notifications:      true,
 		},
 		Keybindings: KeybindingsConfig{
-			FocusGuildsList:        []string{"Alt+Rune[g]"},
-			FocusChannelsTreeView:  []string{"Alt+Rune[t]"},
-			FocusMessagesTextView:  []string{"Alt+Rune[m]"},
-			FocusMessageInputField: []string{"Alt+Rune[i]"},
+			FocusGuildsList:         []string{"Alt+Rune[g]"},
+			FocusChannelsTreeView:   []string{"Alt+Rune[t]"},
+			FocusMessagesTextView:   []string{"Alt+Rune[m]"},
+			FocusMessageInputField:  []string{"Alt+Rune[i]"},
+			FocusMessageActionsList: []string{"Alt+Rune[a]"},
 
-			SelectPreviousMessage:       []string{"Up"},
-			SelectNextMessage:           []string{"Down"},
-			SelectFirstMessage:          []string{"Home"},
-			SelectLastMessage:           []string{"End"},
-			SelectMessageReference:      []string{"Rune[m]"},
-			ReplySelectedMessage:        []string{"Rune[r]"},
-			MentionReplySelectedMessage: []string{"Rune[R]"},
-			CopySelectedMessage:         []string{"Rune[c]"},
+			SelectPreviousMessage: []string{"Up"},
+			SelectNextMessage:     []string{"Down"},
+			SelectFirstMessage:    []string{"Home"},
+			SelectLastMessage:     []string{"End"},
 		},
 	}
 }

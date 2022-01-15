@@ -63,9 +63,11 @@ func NewMainFlex(app *App) *tview.Flex {
 		AddItem(app.MessagesTextView, 0, 1, false).
 		AddItem(app.MessageInputField, 3, 1, false)
 
-	return tview.NewFlex().
+	app.MainFlex = tview.NewFlex().
 		AddItem(leftFlex, 0, 1, false).
 		AddItem(rightFlex, 0, 4, false)
+
+	return app.MainFlex
 }
 
 func NewLoginForm(mfa bool) *tview.Form {

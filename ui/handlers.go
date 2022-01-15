@@ -187,57 +187,75 @@ func onMessagesTextViewInputCapture(app *App, e *tcell.EventKey) *tcell.EventKey
 			Highlight(ms[app.SelectedMessage].ID).
 			ScrollToHighlight()
 		return nil
-	} else if util.HasKeybinding(app.Config.Keybindings.SelectMessageReference, e.Name()) {
+	} else if util.HasKeybinding(app.Config.Keybindings.FocusMessageActionsList, e.Name()) {
+		messageActionsList := tview.NewList()
+
 		hs := app.MessagesTextView.GetHighlights()
 		if len(hs) == 0 {
 			return nil
 		}
 
 		_, m := util.FindMessageByID(app.SelectedChannel.Messages, hs[0])
+		if m == nil {
+			return nil
+		}
+
+		if util.HasPermission(app.Session.State, app.SelectedChannel.ID, discordgo.PermissionManageMessages) || m.Author.ID == app.Session.State.User.ID {
+			messageActionsList.AddItem("Edit", "", 'e', nil)
+		}
+
+		if util.HasPermission(app.Session.State, app.SelectedChannel.ID, discordgo.PermissionSendMessages) {
+			messageActionsList.AddItem("Reply", "", 'r', nil)
+			messageActionsList.AddItem("Mention Reply", "", 'R', nil)
+		}
+
 		if m.ReferencedMessage != nil {
-			app.SelectedMessage, _ = util.FindMessageByID(app.SelectedChannel.Messages, m.ReferencedMessage.ID)
-			app.MessagesTextView.
-				Highlight(m.ReferencedMessage.ID).
-				ScrollToHighlight()
+			messageActionsList.AddItem("Select Reply", "", 'r', nil)
 		}
 
-		return nil
-	} else if util.HasKeybinding(app.Config.Keybindings.ReplySelectedMessage, e.Name()) {
-		hs := app.MessagesTextView.GetHighlights()
-		if len(hs) == 0 {
-			return nil
-		}
+		messageActionsList.
+			ShowSecondaryText(false).
+			AddItem("Copy Content", "", 'c', nil).
+			AddItem("Copy ID", "", 'i', nil).
+			SetDoneFunc(func() {
+				app.SetRoot(app.MainFlex, true)
+			}).
+			SetSelectedFunc(func(_ int, mainText string, _ string, _ rune) {
+				onMessageActionsListSelected(app, mainText, m)
+			}).
+			SetTitle("Press the Escape key to close").
+			SetBorder(true)
 
-		_, m := util.FindMessageByID(app.SelectedChannel.Messages, hs[0])
-		app.MessageInputField.SetTitle("Replying to " + m.Author.String())
-		app.SetFocus(app.MessageInputField)
-		return nil
-	} else if util.HasKeybinding(app.Config.Keybindings.MentionReplySelectedMessage, e.Name()) {
-		hs := app.MessagesTextView.GetHighlights()
-		if len(hs) == 0 {
-			return nil
-		}
-
-		_, m := util.FindMessageByID(app.SelectedChannel.Messages, hs[0])
-		app.MessageInputField.SetTitle("[@] Replying to " + m.Author.String())
-		app.SetFocus(app.MessageInputField)
-		return nil
-	} else if util.HasKeybinding(app.Config.Keybindings.CopySelectedMessage, e.Name()) {
-		hs := app.MessagesTextView.GetHighlights()
-		if len(hs) == 0 {
-			return nil
-		}
-
-		_, m := util.FindMessageByID(app.SelectedChannel.Messages, hs[0])
-		err := clipboard.WriteAll(m.Content)
-		if err != nil {
-			return nil
-		}
-
-		return nil
+		app.SetRoot(messageActionsList, true)
 	}
 
 	return e
+}
+
+func onMessageActionsListSelected(app *App, mainText string, m *discordgo.Message) {
+	switch mainText {
+	case "Copy Content":
+		if err := clipboard.WriteAll(m.Content); err != nil {
+			return
+		}
+	case "Copy ID":
+		if err := clipboard.WriteAll(m.ID); err != nil {
+			return
+		}
+	case "Reply":
+		app.SetFocus(app.MessageInputField)
+		app.MessageInputField.SetTitle("Replying to " + m.Author.String())
+	case "Mention Reply":
+		app.SetFocus(app.MessageInputField)
+		app.MessageInputField.SetTitle("[@] Replying to " + m.Author.String())
+	case "Select Reply":
+		app.SelectedMessage, _ = util.FindMessageByID(app.SelectedChannel.Messages, m.ReferencedMessage.ID)
+		app.MessagesTextView.
+			Highlight(m.ReferencedMessage.ID).
+			ScrollToHighlight()
+	}
+
+	app.SetRoot(app.MainFlex, true)
 }
 
 func onMessageInputFieldInputCapture(app *App, e *tcell.EventKey) *tcell.EventKey {

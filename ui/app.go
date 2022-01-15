@@ -12,6 +12,7 @@ import (
 
 type App struct {
 	*tview.Application
+	MainFlex          *tview.Flex
 	GuildsList        *tview.List
 	ChannelsTreeView  *tview.TreeView
 	MessagesTextView  *tview.TextView
