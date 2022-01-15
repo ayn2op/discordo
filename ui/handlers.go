@@ -129,7 +129,7 @@ func onChannelsTreeViewSelected(app *App, n *tview.TreeNode) {
 		}
 
 		for i := len(ms) - 1; i >= 0; i-- {
-			app.SelectedChannel.Messages = ms
+			app.SelectedChannel.Messages = append(app.SelectedChannel.Messages, ms[i])
 			app.MessagesTextView.Write(buildMessage(app, ms[i]))
 		}
 
