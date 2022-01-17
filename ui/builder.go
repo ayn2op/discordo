@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/ayntgl/discordgo"
 	"github.com/ayntgl/discordo/util"
@@ -21,18 +22,35 @@ func buildMessage(app *App, m *discordgo.Message) []byte {
 		b.WriteString("\"]")
 		// Build the message associated with crosspost, channel follow add, pin, or a reply.
 		buildReferencedMessage(&b, m.ReferencedMessage, app.Session.State.User.ID)
+
+		if app.Config.General.Timestamps {
+			t, err := m.Timestamp.Parse()
+			if err != nil {
+				return nil
+			}
+
+			b.WriteString("[::d]")
+			b.WriteString(t.Format(time.Stamp))
+			b.WriteString("[::-]")
+			b.WriteByte(' ')
+		}
+
 		// Build the author of this message.
 		buildAuthor(&b, m.Author, app.Session.State.User.ID)
+
 		// Build the contents of the message.
 		buildContent(&b, m, app.Session.State.User.ID)
 
 		if m.EditedTimestamp != "" {
 			b.WriteString(" [::d](edited)[::-]")
 		}
+
 		// Build the embeds associated with the message.
 		buildEmbeds(&b, m.Embeds)
+
 		// Build the message attachments (attached files to the message).
 		buildAttachments(&b, m.Attachments)
+
 		// Tags with no region ID ([""]) do not start new regions. They can
 		// therefore be used to mark the end of a region.
 		b.WriteString("[\"\"]")
