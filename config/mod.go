@@ -10,6 +10,7 @@ type GeneralConfig struct {
 	FetchMessagesLimit int    `json:"fetchMessagesLimit"`
 	Mouse              bool   `json:"mouse"`
 	Notifications      bool   `json:"notifications"`
+	Timestamps         bool   `json:"timestamps"`
 }
 
 type KeybindingsConfig struct {
@@ -37,6 +38,7 @@ func New() *Config {
 			FetchMessagesLimit: 50,
 			Mouse:              true,
 			Notifications:      true,
+			Timestamps:         false,
 		},
 		Keybindings: KeybindingsConfig{
 			FocusGuildsList:         []string{"Alt+Rune[g]"},
