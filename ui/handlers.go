@@ -12,16 +12,17 @@ import (
 )
 
 func onAppInputCapture(app *App, e *tcell.EventKey) *tcell.EventKey {
-	if util.HasKeybinding(app.Config.Keybindings.FocusGuildsList, e.Name()) {
+	switch e.Name() {
+	case app.Config.Keybindings.FocusGuildsList:
 		app.SetFocus(app.GuildsList)
 		return nil
-	} else if util.HasKeybinding(app.Config.Keybindings.FocusChannelsTreeView, e.Name()) {
+	case app.Config.Keybindings.FocusChannelsTreeView:
 		app.SetFocus(app.ChannelsTreeView)
 		return nil
-	} else if util.HasKeybinding(app.Config.Keybindings.FocusMessagesTextView, e.Name()) {
+	case app.Config.Keybindings.FocusMessagesTextView:
 		app.SetFocus(app.MessagesTextView)
 		return nil
-	} else if util.HasKeybinding(app.Config.Keybindings.FocusMessageInputField, e.Name()) {
+	case app.Config.Keybindings.FocusMessageInputField:
 		app.SetFocus(app.MessageInputField)
 		return nil
 	}
@@ -147,7 +148,8 @@ func onMessagesTextViewInputCapture(app *App, e *tcell.EventKey) *tcell.EventKey
 		return nil
 	}
 
-	if util.HasKeybinding(app.Config.Keybindings.SelectPreviousMessage, e.Name()) {
+	switch e.Name() {
+	case app.Config.Keybindings.SelectPreviousMessage:
 		if len(app.MessagesTextView.GetHighlights()) == 0 {
 			app.SelectedMessage = len(ms) - 1
 		} else {
@@ -161,7 +163,7 @@ func onMessagesTextViewInputCapture(app *App, e *tcell.EventKey) *tcell.EventKey
 			Highlight(ms[app.SelectedMessage].ID).
 			ScrollToHighlight()
 		return nil
-	} else if util.HasKeybinding(app.Config.Keybindings.SelectNextMessage, e.Name()) {
+	case app.Config.Keybindings.SelectNextMessage:
 		if len(app.MessagesTextView.GetHighlights()) == 0 {
 			app.SelectedMessage = len(ms) - 1
 		} else {
@@ -175,19 +177,19 @@ func onMessagesTextViewInputCapture(app *App, e *tcell.EventKey) *tcell.EventKey
 			Highlight(ms[app.SelectedMessage].ID).
 			ScrollToHighlight()
 		return nil
-	} else if util.HasKeybinding(app.Config.Keybindings.SelectFirstMessage, e.Name()) {
+	case app.Config.Keybindings.SelectFirstMessage:
 		app.SelectedMessage = 0
 		app.MessagesTextView.
 			Highlight(ms[app.SelectedMessage].ID).
 			ScrollToHighlight()
 		return nil
-	} else if util.HasKeybinding(app.Config.Keybindings.SelectLastMessage, e.Name()) {
+	case app.Config.Keybindings.SelectLastMessage:
 		app.SelectedMessage = len(ms) - 1
 		app.MessagesTextView.
 			Highlight(ms[app.SelectedMessage].ID).
 			ScrollToHighlight()
 		return nil
-	} else if util.HasKeybinding(app.Config.Keybindings.FocusMessageActionsList, e.Name()) {
+	case app.Config.Keybindings.FocusMessageActionsList:
 		messageActionsList := tview.NewList()
 
 		hs := app.MessagesTextView.GetHighlights()
@@ -210,7 +212,7 @@ func onMessagesTextViewInputCapture(app *App, e *tcell.EventKey) *tcell.EventKey
 		}
 
 		if m.ReferencedMessage != nil {
-			messageActionsList.AddItem("Select Reply", "", 'r', nil)
+			messageActionsList.AddItem("Select Reply", "", 'm', nil)
 		}
 
 		messageActionsList.
@@ -243,19 +245,24 @@ func onMessageActionsListSelected(app *App, mainText string, m *discordgo.Messag
 			return
 		}
 	case "Reply":
-		app.SetFocus(app.MessageInputField)
 		app.MessageInputField.SetTitle("Replying to " + m.Author.String())
+		app.
+			SetRoot(app.MainFlex, true).
+			SetFocus(app.MessageInputField)
 	case "Mention Reply":
-		app.SetFocus(app.MessageInputField)
 		app.MessageInputField.SetTitle("[@] Replying to " + m.Author.String())
+		app.
+			SetRoot(app.MainFlex, true).
+			SetFocus(app.MessageInputField)
 	case "Select Reply":
 		app.SelectedMessage, _ = util.FindMessageByID(app.SelectedChannel.Messages, m.ReferencedMessage.ID)
 		app.MessagesTextView.
 			Highlight(m.ReferencedMessage.ID).
 			ScrollToHighlight()
+		app.
+			SetRoot(app.MainFlex, true).
+			SetFocus(app.MessagesTextView)
 	}
-
-	app.SetRoot(app.MainFlex, true)
 }
 
 func onMessageInputFieldInputCapture(app *App, e *tcell.EventKey) *tcell.EventKey {
