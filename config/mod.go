@@ -14,16 +14,16 @@ type GeneralConfig struct {
 }
 
 type KeybindingsConfig struct {
-	FocusGuildsList         []string `json:"focusGuildsList"`
-	FocusChannelsTreeView   []string `json:"focusChannelsTreeView"`
-	FocusMessagesTextView   []string `json:"focusMessagesTextView"`
-	FocusMessageInputField  []string `json:"focusMessageInputField"`
-	FocusMessageActionsList []string `json:"focusMessageActionsList"`
+	FocusGuildsList         string `json:"focusGuildsList"`
+	FocusChannelsTreeView   string `json:"focusChannelsTreeView"`
+	FocusMessagesTextView   string `json:"focusMessagesTextView"`
+	FocusMessageInputField  string `json:"focusMessageInputField"`
+	FocusMessageActionsList string `json:"focusMessageActionsList"`
 
-	SelectPreviousMessage []string `json:"selectPreviousMessage"`
-	SelectNextMessage     []string `json:"selectNextMessage"`
-	SelectFirstMessage    []string `json:"selectFirstMessage"`
-	SelectLastMessage     []string `json:"selectLastMessage"`
+	SelectPreviousMessage string `json:"selectPreviousMessage"`
+	SelectNextMessage     string `json:"selectNextMessage"`
+	SelectFirstMessage    string `json:"selectFirstMessage"`
+	SelectLastMessage     string `json:"selectLastMessage"`
 }
 
 type Config struct {
@@ -41,16 +41,16 @@ func New() *Config {
 			Timestamps:         false,
 		},
 		Keybindings: KeybindingsConfig{
-			FocusGuildsList:         []string{"Alt+Rune[g]"},
-			FocusChannelsTreeView:   []string{"Alt+Rune[t]"},
-			FocusMessagesTextView:   []string{"Alt+Rune[m]"},
-			FocusMessageInputField:  []string{"Alt+Rune[i]"},
-			FocusMessageActionsList: []string{"Alt+Rune[a]"},
+			FocusGuildsList:         "Alt+Rune[g]",
+			FocusChannelsTreeView:   "Alt+Rune[t]",
+			FocusMessagesTextView:   "Alt+Rune[m]",
+			FocusMessageInputField:  "Alt+Rune[i]",
+			FocusMessageActionsList: "Alt+Rune[a]",
 
-			SelectPreviousMessage: []string{"Up"},
-			SelectNextMessage:     []string{"Down"},
-			SelectFirstMessage:    []string{"Home"},
-			SelectLastMessage:     []string{"End"},
+			SelectPreviousMessage: "Up",
+			SelectNextMessage:     "Down",
+			SelectFirstMessage:    "Home",
+			SelectLastMessage:     "End",
 		},
 	}
 }
