@@ -220,7 +220,9 @@ func onMessagesTextViewInputCapture(app *App, e *tcell.EventKey) *tcell.EventKey
 			AddItem("Copy Content", "", 'c', nil).
 			AddItem("Copy ID", "", 'i', nil).
 			SetDoneFunc(func() {
-				app.SetRoot(app.MainFlex, true)
+				app.
+					SetRoot(app.MainFlex, true).
+					SetFocus(app.MessagesTextView)
 			}).
 			SetSelectedFunc(func(_ int, mainText string, _ string, _ rune) {
 				onMessageActionsListSelected(app, mainText, m)
