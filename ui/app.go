@@ -33,6 +33,7 @@ func NewApp() *App {
 		MessageInputField: tview.NewInputField(),
 
 		Session:         s,
+		Config:          config.Load(),
 		SelectedMessage: -1,
 	}
 }

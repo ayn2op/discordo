@@ -11,7 +11,6 @@ import (
 
 func main() {
 	app := ui.NewApp()
-	app.Config.Load()
 
 	token := os.Getenv("DISCORDO_TOKEN")
 	if token == "" {

@@ -1,8 +1,9 @@
 package config
 
 import (
-	"encoding/json"
 	"os"
+
+	"github.com/BurntSushi/toml"
 )
 
 type GeneralConfig struct {
@@ -31,8 +32,39 @@ type Config struct {
 	General     GeneralConfig     `json:"general"`
 }
 
-func New() *Config {
-	return &Config{
+func Load() Config {
+	configPath, err := os.UserConfigDir()
+	if err != nil {
+		panic(err)
+	}
+
+	configPath += "/discordo.toml"
+	c := Config{}
+	// If the configuration file does not exist, create and write the default configuration to the file.
+	if _, err = os.Stat(configPath); os.IsNotExist(err) {
+		f, err := os.Create(configPath)
+		if err != nil {
+			panic(err)
+		}
+		defer f.Close()
+
+		c = newDefaultConfig()
+		err = toml.NewEncoder(f).Encode(c)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		_, err = toml.DecodeFile(configPath, &c)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	return c
+}
+
+func newDefaultConfig() Config {
+	return Config{
 		General: GeneralConfig{
 			UserAgent:          "Mozilla/5.0 (X11; Linux x86_64; rv:95.0) Gecko/20100101 Firefox/95.0",
 			FetchMessagesLimit: 50,
@@ -52,39 +84,5 @@ func New() *Config {
 			SelectFirstMessage:    "Home",
 			SelectLastMessage:     "End",
 		},
-	}
-}
-
-func (c *Config) Load() {
-	configPath, err := os.UserConfigDir()
-	if err != nil {
-		panic(err)
-	}
-
-	configPath += "/discordo.json"
-	f, err := os.OpenFile(configPath, os.O_CREATE|os.O_RDWR, os.ModePerm)
-	if err != nil {
-		panic(err)
-	}
-
-	fi, err := f.Stat()
-	if err != nil {
-		panic(err)
-	}
-	// If the size of the file is zero (the file is empty), write the default configuration to the file.
-	if fi.Size() == 0 {
-		e := json.NewEncoder(f)
-		e.SetIndent("", "\t")
-
-		c = New()
-		err = e.Encode(c)
-		if err != nil {
-			panic(err)
-		}
-	} else {
-		err = json.NewDecoder(f).Decode(c)
-		if err != nil {
-			panic(err)
-		}
 	}
 }
