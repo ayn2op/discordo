@@ -39,6 +39,11 @@ func onGuildsListSelected(app *App, guildIdx int) {
 		SetTitle("")
 	app.MessageInputField.SetText("")
 
+	// If the user is a bot account, the direct messages item does not exist in the guilds list.
+	if app.Session.State.User.Bot && guildIdx == 0 {
+		guildIdx = 1
+	}
+
 	if guildIdx == 0 { // Direct Messages
 		cs := app.Session.State.PrivateChannels
 		sort.Slice(cs, func(i, j int) bool {

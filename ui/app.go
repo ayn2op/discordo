@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/ayntgl/discordgo"
 	"github.com/ayntgl/discordo/config"
@@ -27,6 +28,7 @@ func NewApp() *App {
 	s, _ := discordgo.New()
 	return &App{
 		Application:       tview.NewApplication(),
+		MainFlex:          tview.NewFlex(),
 		GuildsList:        tview.NewList(),
 		ChannelsTreeView:  tview.NewTreeView(),
 		MessagesTextView:  tview.NewTextView(),
@@ -39,27 +41,32 @@ func NewApp() *App {
 }
 
 func (app *App) Connect(token string) error {
-	app.Session.Token = token
-	app.Session.UserAgent = app.Config.General.UserAgent
-
-	app.Session.Identify = discordgo.Identify{
-		Token:          token,
-		Compress:       false,
-		LargeThreshold: 0,
-		Intents:        0,
-		Properties: discordgo.IdentifyProperties{
-			OS:      "Linux",
-			Browser: "Firefox",
-			Device:  "",
-		},
+	if !strings.HasPrefix(token, "Bot") {
+		app.Session.UserAgent = app.Config.General.UserAgent
+		app.Session.Identify = discordgo.Identify{
+			Compress:       false,
+			LargeThreshold: 0,
+			Intents:        0,
+			Properties: discordgo.IdentifyProperties{
+				OS:      "Linux",
+				Browser: "Firefox",
+				Device:  "",
+			},
+		}
+		app.Session.AddHandlerOnce(app.onSessionReady)
 	}
-	app.Session.AddHandlerOnce(app.onSessionReady)
+
+	app.Session.Token = token
+	app.Session.Identify.Token = token
+	app.Session.AddHandler(app.onGuildCreate)
 	app.Session.AddHandler(app.onSessionMessageCreate)
 
 	return app.Session.Open()
 }
 
 func (app *App) onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
+	app.GuildsList.AddItem("Direct Messages", "", 0, nil)
+
 	sort.Slice(r.Guilds, func(a, b int) bool {
 		found := false
 		for _, guildID := range r.Settings.GuildPositions {
@@ -77,6 +84,10 @@ func (app *App) onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 	for _, g := range r.Guilds {
 		app.GuildsList.AddItem(g.Name, "", 0, nil)
 	}
+}
+
+func (app *App) onGuildCreate(_ *discordgo.Session, g *discordgo.GuildCreate) {
+	app.GuildsList.AddItem(g.Name, "", 0, nil)
 }
 
 func (app *App) onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {

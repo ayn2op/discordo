@@ -12,7 +12,6 @@ func NewMainFlex(app *App) *tview.Flex {
 
 	app.GuildsList.
 		ShowSecondaryText(false).
-		AddItem("Direct Messages", "", 0, nil).
 		SetSelectedFunc(func(guildIdx int, _ string, _ string, _ rune) {
 			onGuildsListSelected(app, guildIdx)
 		}).
@@ -62,8 +61,7 @@ func NewMainFlex(app *App) *tview.Flex {
 		SetDirection(tview.FlexRow).
 		AddItem(app.MessagesTextView, 0, 1, false).
 		AddItem(app.MessageInputField, 3, 1, false)
-
-	app.MainFlex = tview.NewFlex().
+	app.MainFlex.
 		AddItem(leftFlex, 0, 1, false).
 		AddItem(rightFlex, 0, 4, false)
 
