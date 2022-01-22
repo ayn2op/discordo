@@ -2,27 +2,9 @@ package util
 
 import (
 	"encoding/json"
-	"regexp"
 
 	"github.com/ayntgl/discordgo"
 )
-
-var (
-	boldRegex          = regexp.MustCompile(`(?m)\*\*(.*?)\*\*`)
-	italicRegex        = regexp.MustCompile(`(?m)\*(.*?)\*`)
-	underlineRegex     = regexp.MustCompile(`(?m)__(.*?)__`)
-	strikeThroughRegex = regexp.MustCompile(`(?m)~~(.*?)~~`)
-)
-
-func ParseMarkdown(md string) string {
-	var res string
-	res = boldRegex.ReplaceAllString(md, "[::b]$1[::-]")
-	res = italicRegex.ReplaceAllString(res, "[::i]$1[::-]")
-	res = underlineRegex.ReplaceAllString(res, "[::u]$1[::-]")
-	res = strikeThroughRegex.ReplaceAllString(res, "[::s]$1[::-]")
-
-	return res
-}
 
 func FindMessageByID(ms []*discordgo.Message, mID string) (int, *discordgo.Message) {
 	for i, m := range ms {
@@ -32,20 +14,6 @@ func FindMessageByID(ms []*discordgo.Message, mID string) (int, *discordgo.Messa
 	}
 
 	return -1, nil
-}
-
-func ChannelIsUnread(s *discordgo.State, c *discordgo.Channel) bool {
-	if c.LastMessageID == "" {
-		return false
-	}
-
-	for _, rs := range s.ReadState {
-		if c.ID == rs.ID {
-			return c.LastMessageID != rs.LastMessageID
-		}
-	}
-
-	return false
 }
 
 func HasPermission(s *discordgo.State, cID string, p int64) bool {
