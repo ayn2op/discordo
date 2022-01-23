@@ -46,6 +46,7 @@ func NewMainFlex(app *App) *tview.Flex {
 	app.MessageInputField.
 		SetPlaceholder("Message...").
 		SetFieldBackgroundColor(tview.Styles.PrimitiveBackgroundColor).
+		SetPlaceholderStyle(tcell.StyleDefault.Background(tview.Styles.PrimitiveBackgroundColor)).
 		SetInputCapture(func(e *tcell.EventKey) *tcell.EventKey {
 			return onMessageInputFieldInputCapture(app, e)
 		}).
