@@ -26,5 +26,5 @@ jobs:
   
       - uses: actions/upload-artifact@v2
         with:
-          name: discordo_${{ go env GOARCH }}_${{ go env GOOS }}
+          name: discordo_${{ runner.os }}_${{ runner.arch }}
           path: discordo(.exe)?
