@@ -19,6 +19,10 @@ Discordo is a lightweight, secure, and feature-rich Discord terminal client. Hea
 
 ## Installation
 
+## Pre-built binaries
+
+You can download and install a [pre-built binary here](https://nightly.link/ayntgl/discordo/workflows/ci/main) for Windows, macOS, or Linux.
+
 ### Building from source
 
 ```bash
@@ -32,7 +36,7 @@ sudo mv ./discordo /usr/local/bin
 
 ### Package managers
 
-- Arch Linux (AUR, unofficial): `yay -S discordo-git`
+- Arch Linux: `yay -S discordo-git`
 
 ## Usage
 
