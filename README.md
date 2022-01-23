@@ -1,4 +1,4 @@
-# discordo &middot; [![ci](https://img.shields.io/github/workflow/status/ayntgl/discordo/ci?color=5865F2&logo=github)](https://github.com/ayntgl/discordo/actions/workflows/ci.yml) [![license](https://img.shields.io/github/license/ayntgl/discordo?color=5865F2&logo=github)](https://github.com/ayntgl/discordo/blob/master/LICENSE)
+# discordo &middot; [![ci](https://github.com/ayntgl/discordo/actions/workflows/ci.yml/badge.svg)](https://github.com/ayntgl/discordo/actions/workflows/ci.yml) [![license](https://img.shields.io/github/license/ayntgl/discordo?logo=github)](https://github.com/ayntgl/discordo/blob/master/LICENSE)
 
 Discordo is a lightweight, secure, and feature-rich Discord terminal client. Heavily work-in-progress, expect breaking changes.
 
