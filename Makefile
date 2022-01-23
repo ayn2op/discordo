@@ -4,5 +4,8 @@ build:
 test:
 	go test -v ./...
 
+fmt:
+	gofmt -d -e -s .
+
 clean:
 	go clean
