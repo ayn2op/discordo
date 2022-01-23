@@ -26,5 +26,5 @@ jobs:
   
       - uses: actions/upload-artifact@v2
         with:
-          name: discordo
-          path: discordo
+          name: discordo_${{ go env GOARCH }}_${{ go env GOOS }}
+          path: discordo(.exe)?
