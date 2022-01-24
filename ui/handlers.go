@@ -314,8 +314,10 @@ func onMessageInputFieldInputCapture(app *App, e *tcell.EventKey) *tcell.EventKe
 		app.MessageInputField.SetText(text)
 		return nil
 	case "Esc":
-		app.MessageInputField.SetText("")
-		app.MessageInputField.SetTitle("")
+		app.MessageInputField.
+			SetText("").
+			SetTitle("")
+		app.SetFocus(app.MainFlex)
 
 		app.SelectedMessage = -1
 		app.MessagesTextView.Highlight()
