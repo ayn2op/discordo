@@ -16,16 +16,16 @@ import (
 
 func onAppInputCapture(app *App, e *tcell.EventKey) *tcell.EventKey {
 	switch e.Name() {
-	case app.Config.Keybindings.FocusGuildsList:
+	case app.Config.Keybindings.ToggleGuildsList:
 		app.SetFocus(app.GuildsList)
 		return nil
-	case app.Config.Keybindings.FocusChannelsTreeView:
+	case app.Config.Keybindings.ToggleChannelsTreeView:
 		app.SetFocus(app.ChannelsTreeView)
 		return nil
-	case app.Config.Keybindings.FocusMessagesTextView:
+	case app.Config.Keybindings.ToggleMessagesTextView:
 		app.SetFocus(app.MessagesTextView)
 		return nil
-	case app.Config.Keybindings.FocusMessageInputField:
+	case app.Config.Keybindings.ToggleMessageInputField:
 		app.SetFocus(app.MessageInputField)
 		return nil
 	}
@@ -197,7 +197,7 @@ func onMessagesTextViewInputCapture(app *App, e *tcell.EventKey) *tcell.EventKey
 			Highlight(ms[app.SelectedMessage].ID).
 			ScrollToHighlight()
 		return nil
-	case app.Config.Keybindings.FocusMessageActionsList:
+	case app.Config.Keybindings.ToggleMessageActionsList:
 		messageActionsList := tview.NewList()
 
 		hs := app.MessagesTextView.GetHighlights()
@@ -320,7 +320,7 @@ func onMessageInputFieldInputCapture(app *App, e *tcell.EventKey) *tcell.EventKe
 		app.SelectedMessage = -1
 		app.MessagesTextView.Highlight()
 		return nil
-	case app.Config.Keybindings.OpenEditor:
+	case app.Config.Keybindings.ToggleExternalEditor:
 		e := os.Getenv("EDITOR")
 		if e == "" {
 			return nil
@@ -349,11 +349,6 @@ func onMessageInputFieldInputCapture(app *App, e *tcell.EventKey) *tcell.EventKe
 		}
 
 		app.MessageInputField.SetText(string(b))
-	}
-
-	// The default global navigation shortcuts include Alt as the mod key.
-	if e.Modifiers() == tcell.ModAlt {
-		return nil
 	}
 
 	return e

@@ -15,18 +15,17 @@ type GeneralConfig struct {
 }
 
 type KeybindingsConfig struct {
-	FocusGuildsList         string `json:"focusGuildsList"`
-	FocusChannelsTreeView   string `json:"focusChannelsTreeView"`
-	FocusMessagesTextView   string `json:"focusMessagesTextView"`
-	FocusMessageInputField  string `json:"focusMessageInputField"`
-	FocusMessageActionsList string `json:"focusMessageActionsList"`
+	ToggleGuildsList         string `toml:"toggle_guilds_list"`
+	ToggleChannelsTreeView   string `toml:"toggle_channels_tree_view"`
+	ToggleMessagesTextView   string `toml:"toggle_messages_text_view"`
+	ToggleMessageInputField  string `toml:"toggle_message_input_field"`
+	ToggleMessageActionsList string `toml:"toggle_message_actions_list"`
+	ToggleExternalEditor     string `toml:"toggle_external_editor"`
 
-	OpenEditor string `json:"open_editor"`
-
-	SelectPreviousMessage string `json:"selectPreviousMessage"`
-	SelectNextMessage     string `json:"selectNextMessage"`
-	SelectFirstMessage    string `json:"selectFirstMessage"`
-	SelectLastMessage     string `json:"selectLastMessage"`
+	SelectPreviousMessage string `toml:"select_previous_message"`
+	SelectNextMessage     string `toml:"select_next_message"`
+	SelectFirstMessage    string `toml:"select_first_message"`
+	SelectLastMessage     string `toml:"select_last_message"`
 }
 
 type Config struct {
@@ -75,13 +74,12 @@ func newDefaultConfig() Config {
 			Timestamps:         false,
 		},
 		Keybindings: KeybindingsConfig{
-			FocusGuildsList:         "Alt+Rune[g]",
-			FocusChannelsTreeView:   "Alt+Rune[t]",
-			FocusMessagesTextView:   "Alt+Rune[m]",
-			FocusMessageInputField:  "Alt+Rune[i]",
-			FocusMessageActionsList: "Alt+Rune[a]",
-
-			OpenEditor: "Alt+Rune[e]",
+			ToggleGuildsList:         "g",
+			ToggleChannelsTreeView:   "c",
+			ToggleMessagesTextView:   "m",
+			ToggleMessageInputField:  "i",
+			ToggleMessageActionsList: "a",
+			ToggleExternalEditor:     "Ctrl-E",
 
 			SelectPreviousMessage: "Up",
 			SelectNextMessage:     "Down",
