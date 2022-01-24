@@ -210,10 +210,6 @@ func onMessagesTextViewInputCapture(app *App, e *tcell.EventKey) *tcell.EventKey
 			return nil
 		}
 
-		if util.HasPermission(app.Session.State, app.SelectedChannel.ID, discordgo.PermissionManageMessages) || m.Author.ID == app.Session.State.User.ID {
-			messageActionsList.AddItem("Edit", "", 'e', nil)
-		}
-
 		if util.HasPermission(app.Session.State, app.SelectedChannel.ID, discordgo.PermissionSendMessages) {
 			messageActionsList.AddItem("Reply", "", 'r', nil)
 			messageActionsList.AddItem("Mention Reply", "", 'R', nil)
