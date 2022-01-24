@@ -239,6 +239,7 @@ func onMessagesTextViewInputCapture(app *App, e *tcell.EventKey) *tcell.EventKey
 			SetBorder(true)
 
 		app.SetRoot(messageActionsList, true)
+		return nil
 	}
 
 	return e
