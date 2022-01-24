@@ -74,11 +74,11 @@ func newDefaultConfig() Config {
 			Timestamps:         false,
 		},
 		Keybindings: KeybindingsConfig{
-			ToggleGuildsList:         "g",
-			ToggleChannelsTreeView:   "c",
-			ToggleMessagesTextView:   "m",
-			ToggleMessageInputField:  "i",
-			ToggleMessageActionsList: "a",
+			ToggleGuildsList:         "Rune[g]",
+			ToggleChannelsTreeView:   "Rune[c]",
+			ToggleMessagesTextView:   "Rune[m]",
+			ToggleMessageInputField:  "Rune[i]",
+			ToggleMessageActionsList: "Rune[a]",
 			ToggleExternalEditor:     "Ctrl-E",
 
 			SelectPreviousMessage: "Up",

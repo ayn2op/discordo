@@ -15,6 +15,10 @@ import (
 )
 
 func onAppInputCapture(app *App, e *tcell.EventKey) *tcell.EventKey {
+	if app.MessageInputField.HasFocus() {
+		return e
+	}
+
 	switch e.Name() {
 	case app.Config.Keybindings.ToggleGuildsList:
 		app.SetFocus(app.GuildsList)
