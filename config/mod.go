@@ -21,6 +21,8 @@ type KeybindingsConfig struct {
 	FocusMessageInputField  string `json:"focusMessageInputField"`
 	FocusMessageActionsList string `json:"focusMessageActionsList"`
 
+	OpenEditor string `json:"open_editor"`
+
 	SelectPreviousMessage string `json:"selectPreviousMessage"`
 	SelectNextMessage     string `json:"selectNextMessage"`
 	SelectFirstMessage    string `json:"selectFirstMessage"`
@@ -78,6 +80,8 @@ func newDefaultConfig() Config {
 			FocusMessagesTextView:   "Alt+Rune[m]",
 			FocusMessageInputField:  "Alt+Rune[i]",
 			FocusMessageActionsList: "Alt+Rune[a]",
+
+			OpenEditor: "Alt+Rune[e]",
 
 			SelectPreviousMessage: "Up",
 			SelectNextMessage:     "Down",
