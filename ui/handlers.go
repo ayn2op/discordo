@@ -1,6 +1,9 @@
 package ui
 
 import (
+	"io"
+	"os"
+	"os/exec"
 	"sort"
 	"strings"
 
@@ -273,13 +276,8 @@ func onMessageActionsListSelected(app *App, mainText string, m *discordgo.Messag
 }
 
 func onMessageInputFieldInputCapture(app *App, e *tcell.EventKey) *tcell.EventKey {
-	// The default global navigation shortcut for guilds list is Alt+<rune>.
-	if e.Modifiers() == tcell.ModAlt {
-		return nil
-	}
-
-	switch e.Key() {
-	case tcell.KeyEnter:
+	switch e.Name() {
+	case "Enter":
 		if app.SelectedChannel == nil {
 			return nil
 		}
@@ -314,17 +312,51 @@ func onMessageInputFieldInputCapture(app *App, e *tcell.EventKey) *tcell.EventKe
 
 		app.MessageInputField.SetText("")
 		return nil
-	case tcell.KeyCtrlV:
+	case "Ctrl+V":
 		text, _ := clipboard.ReadAll()
 		text = app.MessageInputField.GetText() + text
 		app.MessageInputField.SetText(text)
 		return nil
-	case tcell.KeyEscape:
+	case "Escape":
 		app.MessageInputField.SetText("")
 		app.MessageInputField.SetTitle("")
 
 		app.SelectedMessage = -1
 		app.MessagesTextView.Highlight()
+		return nil
+	case app.Config.Keybindings.OpenEditor:
+		e := os.Getenv("EDITOR")
+		if e == "" {
+			return nil
+		}
+
+		f, err := os.CreateTemp(os.TempDir(), "discordo-*.md")
+		if err != nil {
+			return nil
+		}
+		defer os.Remove(f.Name())
+
+		cmd := exec.Command(e, f.Name())
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+
+		app.Suspend(func() {
+			err = cmd.Run()
+			if err != nil {
+				return
+			}
+		})
+
+		b, err := io.ReadAll(f)
+		if err != nil {
+			return nil
+		}
+
+		app.MessageInputField.SetText(string(b))
+	}
+
+	// The default global navigation shortcuts include Alt as the mod key.
+	if e.Modifiers() == tcell.ModAlt {
 		return nil
 	}
 
