@@ -313,7 +313,7 @@ func onMessageInputFieldInputCapture(app *App, e *tcell.EventKey) *tcell.EventKe
 		text = app.MessageInputField.GetText() + text
 		app.MessageInputField.SetText(text)
 		return nil
-	case "Escape":
+	case "Esc":
 		app.MessageInputField.SetText("")
 		app.MessageInputField.SetTitle("")
 
