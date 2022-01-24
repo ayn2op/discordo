@@ -24,13 +24,8 @@ func buildMessage(app *App, m *discordgo.Message) []byte {
 		buildReferencedMessage(&b, m.ReferencedMessage, app.Session.State.User.ID)
 
 		if app.Config.General.Timestamps {
-			t, err := m.Timestamp.Parse()
-			if err != nil {
-				return nil
-			}
-
 			b.WriteString("[::d]")
-			b.WriteString(t.Format(time.Stamp))
+			b.WriteString(m.Timestamp.Format(time.Stamp))
 			b.WriteString("[::-]")
 			b.WriteByte(' ')
 		}
@@ -41,7 +36,7 @@ func buildMessage(app *App, m *discordgo.Message) []byte {
 		// Build the contents of the message.
 		buildContent(&b, m, app.Session.State.User.ID)
 
-		if m.EditedTimestamp != "" {
+		if m.EditedTimestamp != nil {
 			b.WriteString(" [::d](edited)[::-]")
 		}
 
