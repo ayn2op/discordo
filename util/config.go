@@ -1,4 +1,4 @@
-package config
+package util
 
 import (
 	"os"
@@ -33,7 +33,7 @@ type Config struct {
 	Keybindings KeybindingsConfig `toml:"keybindings"`
 }
 
-func Load() Config {
+func LoadConfig() Config {
 	configPath, err := os.UserConfigDir()
 	if err != nil {
 		panic(err)
