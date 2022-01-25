@@ -13,6 +13,7 @@ Discordo is a lightweight, secure, and feature-rich Discord terminal client. Hea
   - [Building from source](#building-from-source)
 - [Usage](#usage)
   - [Configuration](#configuration)
+- [Disclaimer](#disclaimer)
 
 ## Features
 
