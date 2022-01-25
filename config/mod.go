@@ -7,11 +7,11 @@ import (
 )
 
 type GeneralConfig struct {
-	UserAgent          string `json:"userAgent"`
-	FetchMessagesLimit int    `json:"fetchMessagesLimit"`
-	Mouse              bool   `json:"mouse"`
-	Notifications      bool   `json:"notifications"`
-	Timestamps         bool   `json:"timestamps"`
+	UserAgent          string `toml:"user_agent"`
+	FetchMessagesLimit int    `toml:"fetch_messages_limit"`
+	Mouse              bool   `toml:"mouse"`
+	Notifications      bool   `toml:"notifications"`
+	Timestamps         bool   `toml:"timestamps"`
 }
 
 type KeybindingsConfig struct {
@@ -29,8 +29,8 @@ type KeybindingsConfig struct {
 }
 
 type Config struct {
-	Keybindings KeybindingsConfig `json:"keybindings"`
-	General     GeneralConfig     `json:"general"`
+	General     GeneralConfig     `toml:"general"`
+	Keybindings KeybindingsConfig `toml:"keybindings"`
 }
 
 func Load() Config {
