@@ -1,13 +1,11 @@
 package ui
 
 import (
-	"fmt"
 	"sort"
 	"strings"
 
 	"github.com/ayntgl/discordgo"
 	"github.com/ayntgl/discordo/util"
-	"github.com/gen2brain/beeep"
 	"github.com/rivo/tview"
 )
 
@@ -91,30 +89,14 @@ func (app *App) onGuildCreate(_ *discordgo.Session, g *discordgo.GuildCreate) {
 }
 
 func (app *App) onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
-	if app.SelectedChannel == nil || app.SelectedChannel.ID != m.ChannelID {
-		if app.Config.General.Notifications {
-			for _, u := range m.Mentions {
-				if u.ID == app.Session.State.User.ID {
-					g, err := app.Session.State.Guild(m.GuildID)
-					if err != nil {
-						return
-					}
+	if app.SelectedChannel == nil {
+		return
+	}
 
-					c, err := app.Session.State.Channel(m.ChannelID)
-					if err != nil {
-						return
-					}
+	app.SelectedChannel.Messages = append(app.SelectedChannel.Messages, m.Message)
+	app.MessagesTextView.Write(buildMessage(app, m.Message))
 
-					go beeep.Alert(fmt.Sprintf("%s (#%s)", g.Name, c.Name), m.ContentWithMentionsReplaced(), "")
-				}
-			}
-		}
-	} else {
-		app.SelectedChannel.Messages = append(app.SelectedChannel.Messages, m.Message)
-		app.MessagesTextView.Write(buildMessage(app, m.Message))
-
-		if len(app.MessagesTextView.GetHighlights()) == 0 {
-			app.MessagesTextView.ScrollToEnd()
-		}
+	if len(app.MessagesTextView.GetHighlights()) == 0 {
+		app.MessagesTextView.ScrollToEnd()
 	}
 }
