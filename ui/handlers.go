@@ -40,6 +40,7 @@ func onAppInputCapture(app *App, e *tcell.EventKey) *tcell.EventKey {
 func onGuildsListSelected(app *App, guildIdx int) {
 	rootTreeNode := app.ChannelsTreeView.GetRoot()
 	rootTreeNode.ClearChildren()
+	app.SelectedMessage = -1
 	app.MessagesTextView.
 		Highlight().
 		Clear().
@@ -120,6 +121,12 @@ func onGuildsListSelected(app *App, guildIdx int) {
 }
 
 func onChannelsTreeViewSelected(app *App, n *tview.TreeNode) {
+	app.SelectedMessage = -1
+	app.MessagesTextView.
+		Highlight().
+		Clear()
+	app.MessageInputField.SetText("")
+
 	c, err := app.Session.State.Channel(n.GetReference().(string))
 	if err != nil {
 		return
@@ -215,8 +222,9 @@ func onMessagesTextViewInputCapture(app *App, e *tcell.EventKey) *tcell.EventKey
 		}
 
 		if util.HasPermission(app.Session.State, app.SelectedChannel.ID, discordgo.PermissionSendMessages) {
-			messageActionsList.AddItem("Reply", "", 'r', nil)
-			messageActionsList.AddItem("Mention Reply", "", 'R', nil)
+			messageActionsList.
+				AddItem("Reply", "", 'r', nil).
+				AddItem("Mention Reply", "", 'R', nil)
 		}
 
 		if m.ReferencedMessage != nil {
