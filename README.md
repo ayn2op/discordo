@@ -4,6 +4,16 @@ Discordo is a lightweight, secure, and feature-rich Discord terminal client. Hea
 
 ![Preview](.github/preview.png)
 
+## Table of Contents
+
+- [Features](#features)
+- [Installation](#installation)
+  - [Prebuilt binaries](#prebuilt-binaries)
+  - [Package managers](#package-managers)
+  - [Building from source](#building-from-source)
+- [Usage](#usage)
+  - [Configuration](#configuration)
+
 ## Features
 
 - Lightweight
@@ -19,9 +29,13 @@ Discordo is a lightweight, secure, and feature-rich Discord terminal client. Hea
 
 ## Installation
 
-## Pre-built binaries
+## Prebuilt binaries
 
-You can download and install a [pre-built binary here](https://nightly.link/ayntgl/discordo/workflows/ci/main) for Windows, macOS, or Linux.
+You can download and install a [prebuilt binary here](https://nightly.link/ayntgl/discordo/workflows/ci/main) for Windows, macOS, or Linux.
+
+### Package managers
+
+- [Arch Linux](https://aur.archlinux.org/packages/discordo-git/): `yay -S discordo-git`
 
 ### Building from source
 
@@ -34,9 +48,16 @@ make build
 sudo mv ./discordo /usr/local/bin
 ```
 
-### Package managers
+### Linux clipboard support
 
-- Arch Linux: `yay -S discordo-git`
+- `xclip` or `xsel` for X11.
+  - Ubuntu: `apt install xclip`
+  - Arch Linux: `pacman -S xclip`
+  - Fedora: `dnf install xclip`
+- `wl-clipboard` for Wayland.
+  - Ubuntu: `apt install wl-clipboard`
+  - Arch Linux: `pacman -S wl-clipboard`
+  - Fedora: `dnf install wl-clipboard`
 
 ## Usage
 
@@ -48,18 +69,9 @@ sudo mv ./discordo /usr/local/bin
 
   - By default, Discordo utilizes OS-specific keyring to store the authentication token. However, if you prefer not to use a keyring (not recommended), you may set the `DISCORDO_TOKEN` environment variable and Discordo will prioritize the usage of the provided token to login instead of keyring.
 
-### Clipboard support
+### Configuration
 
-On Linux, clipboard support requires:
-
-- `xclip` or `xsel` for X11.
-  - Ubuntu: `apt install xclip`
-  - Arch Linux: `pacman -S xclip`
-  - Fedora: `dnf install xclip`
-- `wl-clipboard` for Wayland.
-  - Ubuntu: `apt install wl-clipboard`
-  - Arch Linux: `pacman -S wl-clipboard`
-  - Fedora: `dnf install wl-clipboard`
+A default configuration file is created on first start-up at `$HOME/.config/discordo.toml` on Unix, `$HOME/Library/Application Support/discordo.toml` on Darwin, and `%AppData%/discordo.toml` on Windows.
 
 ## Disclaimer
 
