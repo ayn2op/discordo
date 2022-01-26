@@ -12,15 +12,15 @@ require (
 )
 
 require (
-	github.com/danieljoos/wincred v1.1.0 // indirect
+	github.com/danieljoos/wincred v1.1.2 // indirect
 	github.com/gdamore/encoding v1.0.0 // indirect
-	github.com/godbus/dbus/v5 v5.0.3 // indirect
+	github.com/godbus/dbus/v5 v5.0.6 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
-	golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b // indirect
-	golang.org/x/sys v0.0.0-20210309074719-68d13333faf2 // indirect
-	golang.org/x/term v0.0.0-20210220032956-6a3ed077a48d // indirect
-	golang.org/x/text v0.3.6 // indirect
+	golang.org/x/crypto v0.0.0-20220112180741-5e0467b6c7ce // indirect
+	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9 // indirect
+	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
+	golang.org/x/text v0.3.7 // indirect
 )
