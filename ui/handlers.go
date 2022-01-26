@@ -259,19 +259,21 @@ func onMessageActionsListSelected(app *App, mainText string, m *discordgo.Messag
 		if err := clipboard.WriteAll(m.Content); err != nil {
 			return
 		}
+		app.SetRoot(app.MainFlex, false)
 	case "Copy ID":
 		if err := clipboard.WriteAll(m.ID); err != nil {
 			return
 		}
+		app.SetRoot(app.MainFlex, false)
 	case "Reply":
 		app.MessageInputField.SetTitle("Replying to " + m.Author.String())
 		app.
-			SetRoot(app.MainFlex, true).
+			SetRoot(app.MainFlex, false).
 			SetFocus(app.MessageInputField)
 	case "Mention Reply":
 		app.MessageInputField.SetTitle("[@] Replying to " + m.Author.String())
 		app.
-			SetRoot(app.MainFlex, true).
+			SetRoot(app.MainFlex, false).
 			SetFocus(app.MessageInputField)
 	case "Select Reply":
 		app.SelectedMessage, _ = util.FindMessageByID(app.SelectedChannel.Messages, m.ReferencedMessage.ID)
@@ -279,7 +281,7 @@ func onMessageActionsListSelected(app *App, mainText string, m *discordgo.Messag
 			Highlight(m.ReferencedMessage.ID).
 			ScrollToHighlight()
 		app.
-			SetRoot(app.MainFlex, true).
+			SetRoot(app.MainFlex, false).
 			SetFocus(app.MessagesTextView)
 	}
 }
