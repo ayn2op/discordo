@@ -89,14 +89,12 @@ func (app *App) onGuildCreate(_ *discordgo.Session, g *discordgo.GuildCreate) {
 }
 
 func (app *App) onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
-	if app.SelectedChannel == nil {
-		return
-	}
+	if app.SelectedChannel != nil && app.SelectedChannel.ID == m.ChannelID {
+		app.SelectedChannel.Messages = append(app.SelectedChannel.Messages, m.Message)
+		app.MessagesTextView.Write(buildMessage(app, m.Message))
 
-	app.SelectedChannel.Messages = append(app.SelectedChannel.Messages, m.Message)
-	app.MessagesTextView.Write(buildMessage(app, m.Message))
-
-	if len(app.MessagesTextView.GetHighlights()) == 0 {
-		app.MessagesTextView.ScrollToEnd()
+		if len(app.MessagesTextView.GetHighlights()) == 0 {
+			app.MessagesTextView.ScrollToEnd()
+		}
 	}
 }
