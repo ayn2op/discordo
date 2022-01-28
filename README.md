@@ -36,7 +36,7 @@ You can download and install a [prebuilt binary here](https://nightly.link/ayntg
 
 ### Package managers
 
-- [Arch Linux](https://aur.archlinux.org/packages/discordo-git/): `yay -S discordo-git`
+- [Arch Linux](https://aur.archlinux.org/packages/discordo-git/): `yay -S discordo-git` (thanks to [Alyxia Sother](https://github.com/lexisother) for maintaining the AUR package).
 
 ### Building from source
 
