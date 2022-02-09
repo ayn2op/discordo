@@ -7,6 +7,8 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
+const userAgent = "Mozilla/5.0 (X11; Linux x86_64; rv:95.0) Gecko/20100101 Firefox/95.0"
+
 type GeneralConfig struct {
 	UserAgent          string `toml:"user_agent"`
 	FetchMessagesLimit int    `toml:"fetch_messages_limit"`
@@ -33,7 +35,7 @@ type Config struct {
 	Keybindings KeybindingsConfig `toml:"keybindings"`
 }
 
-func LoadConfig() Config {
+func LoadConfig() *Config {
 	configPath, err := os.UserConfigDir()
 	if err != nil {
 		panic(err)
@@ -45,7 +47,7 @@ func LoadConfig() Config {
 		panic(err)
 	}
 
-	c := Config{}
+	c := &Config{}
 	// If the configuration file does not exist, create and write the default configuration to the file.
 	if _, err = os.Stat(configPath); os.IsNotExist(err) {
 		f, err := os.Create(configPath)
@@ -60,7 +62,7 @@ func LoadConfig() Config {
 			panic(err)
 		}
 	} else {
-		_, err = toml.DecodeFile(configPath, &c)
+		_, err = toml.DecodeFile(configPath, c)
 		if err != nil {
 			panic(err)
 		}
@@ -69,10 +71,10 @@ func LoadConfig() Config {
 	return c
 }
 
-func newDefaultConfig() Config {
-	return Config{
+func newDefaultConfig() *Config {
+	return &Config{
 		General: GeneralConfig{
-			UserAgent:          "Mozilla/5.0 (X11; Linux x86_64; rv:95.0) Gecko/20100101 Firefox/95.0",
+			UserAgent:          userAgent,
 			FetchMessagesLimit: 50,
 			Mouse:              true,
 			Timestamps:         false,

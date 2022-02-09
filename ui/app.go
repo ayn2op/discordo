@@ -18,7 +18,7 @@ type App struct {
 	MessageInputField *tview.InputField
 	Session           *discordgo.Session
 	SelectedChannel   *discordgo.Channel
-	Config            util.Config
+	Config            *util.Config
 	SelectedMessage   int
 }
 
