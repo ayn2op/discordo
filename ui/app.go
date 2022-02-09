@@ -24,6 +24,7 @@ type App struct {
 
 func NewApp() *App {
 	s, _ := discordgo.New()
+
 	return &App{
 		Application:       tview.NewApplication(),
 		MainFlex:          tview.NewFlex(),

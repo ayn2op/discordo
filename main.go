@@ -13,6 +13,7 @@ const keyringServiceName = "discordo"
 
 func main() {
 	app := ui.NewApp()
+	app.EnableMouse(app.Config.General.Mouse)
 
 	token := os.Getenv("DISCORDO_TOKEN")
 	if token == "" {
@@ -85,7 +86,8 @@ func main() {
 		app.SetRoot(loginForm, true)
 	}
 
-	if err := app.EnableMouse(app.Config.General.Mouse).Run(); err != nil {
+	err := app.Run()
+	if err != nil {
 		panic(err)
 	}
 }
