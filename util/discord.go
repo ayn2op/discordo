@@ -25,14 +25,14 @@ func HasPermission(s *discordgo.State, cID string, p int64) bool {
 	return perm&p == p
 }
 
-type loginResponse struct {
+type LoginResponse struct {
 	Ticket string `json:"ticket"`
 	Token  string `json:"token"`
 	MFA    bool   `json:"mfa"`
 	SMS    bool   `json:"sms"`
 }
 
-func Login(s *discordgo.Session, email string, password string) (*loginResponse, error) {
+func Login(s *discordgo.Session, email string, password string) (*LoginResponse, error) {
 	data := struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
@@ -47,7 +47,7 @@ func Login(s *discordgo.Session, email string, password string) (*loginResponse,
 		return nil, err
 	}
 
-	var lr loginResponse
+	var lr LoginResponse
 	err = json.Unmarshal(resp, &lr)
 	if err != nil {
 		return nil, err
@@ -56,7 +56,7 @@ func Login(s *discordgo.Session, email string, password string) (*loginResponse,
 	return &lr, nil
 }
 
-func TOTP(s *discordgo.Session, code string, ticket string) (*loginResponse, error) {
+func TOTP(s *discordgo.Session, code string, ticket string) (*LoginResponse, error) {
 	data := struct {
 		Code   string `json:"code"`
 		Ticket string `json:"ticket"`
@@ -67,7 +67,7 @@ func TOTP(s *discordgo.Session, code string, ticket string) (*loginResponse, err
 		return nil, err
 	}
 
-	var lr loginResponse
+	var lr LoginResponse
 	err = json.Unmarshal(resp, &lr)
 	if err != nil {
 		return nil, err
