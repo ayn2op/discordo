@@ -2,6 +2,7 @@ package util
 
 import (
 	"os"
+	"path/filepath"
 
 	"github.com/BurntSushi/toml"
 )
@@ -37,8 +38,13 @@ func LoadConfig() Config {
 	if err != nil {
 		panic(err)
 	}
+	configPath += "/discordo/config.toml"
+	// Create a directory as well as create all of the nested directories, recursively.
+	err = os.MkdirAll(filepath.Dir(configPath), os.ModePerm)
+	if err != nil {
+		panic(err)
+	}
 
-	configPath += "/discordo.toml"
 	c := Config{}
 	// If the configuration file does not exist, create and write the default configuration to the file.
 	if _, err = os.Stat(configPath); os.IsNotExist(err) {
