@@ -31,8 +31,8 @@ type KeybindingsConfig struct {
 }
 
 type Config struct {
-	General     GeneralConfig     `toml:"general"`
 	Keybindings KeybindingsConfig `toml:"keybindings"`
+	General     GeneralConfig     `toml:"general"`
 }
 
 func LoadConfig() *Config {

@@ -39,6 +39,8 @@ func NewApp() *App {
 }
 
 func (app *App) Connect(token string) error {
+	// For user accounts, all of the guilds, the user is in, are dispatched in the READY gateway event.
+	// Whereas, for bot accounts, the guilds are dispatched discretely in the GUILD_CREATE gateway events.
 	if !strings.HasPrefix(token, "Bot") {
 		app.Session.UserAgent = app.Config.General.UserAgent
 		app.Session.Identify = discordgo.Identify{
