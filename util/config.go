@@ -40,6 +40,7 @@ func LoadConfig() *Config {
 	if err != nil {
 		panic(err)
 	}
+
 	configPath += "/discordo/config.toml"
 	// Create a directory as well as create all of the nested directories, recursively.
 	err = os.MkdirAll(filepath.Dir(configPath), os.ModePerm)

@@ -184,6 +184,7 @@ func onMessagesTextViewInputCapture(app *App, e *tcell.EventKey) *tcell.EventKey
 		app.MessagesTextView.
 			Highlight(ms[app.SelectedMessage].ID).
 			ScrollToHighlight()
+
 		return nil
 	case app.Config.Keybindings.SelectNextMessage:
 		if len(app.MessagesTextView.GetHighlights()) == 0 {
@@ -198,18 +199,21 @@ func onMessagesTextViewInputCapture(app *App, e *tcell.EventKey) *tcell.EventKey
 		app.MessagesTextView.
 			Highlight(ms[app.SelectedMessage].ID).
 			ScrollToHighlight()
+
 		return nil
 	case app.Config.Keybindings.SelectFirstMessage:
 		app.SelectedMessage = 0
 		app.MessagesTextView.
 			Highlight(ms[app.SelectedMessage].ID).
 			ScrollToHighlight()
+
 		return nil
 	case app.Config.Keybindings.SelectLastMessage:
 		app.SelectedMessage = len(ms) - 1
 		app.MessagesTextView.
 			Highlight(ms[app.SelectedMessage].ID).
 			ScrollToHighlight()
+
 		return nil
 	case app.Config.Keybindings.ToggleMessageActionsList:
 		messageActionsList := tview.NewList()
@@ -250,6 +254,7 @@ func onMessagesTextViewInputCapture(app *App, e *tcell.EventKey) *tcell.EventKey
 			SetBorder(true)
 
 		app.SetRoot(messageActionsList, true)
+
 		return nil
 	}
 
@@ -262,11 +267,13 @@ func onMessageActionsListSelected(app *App, mainText string, m *discordgo.Messag
 		if err := clipboard.WriteAll(m.Content); err != nil {
 			return
 		}
+
 		app.SetRoot(app.MainFlex, false)
 	case "Copy ID":
 		if err := clipboard.WriteAll(m.ID); err != nil {
 			return
 		}
+
 		app.SetRoot(app.MainFlex, false)
 	case "Reply":
 		app.MessageInputField.SetTitle("Replying to " + m.Author.String())
@@ -325,11 +332,13 @@ func onMessageInputFieldInputCapture(app *App, e *tcell.EventKey) *tcell.EventKe
 		}
 
 		app.MessageInputField.SetText("")
+
 		return nil
 	case "Ctrl+V":
 		text, _ := clipboard.ReadAll()
 		text = app.MessageInputField.GetText() + text
 		app.MessageInputField.SetText(text)
+
 		return nil
 	case "Esc":
 		app.MessageInputField.
@@ -339,6 +348,7 @@ func onMessageInputFieldInputCapture(app *App, e *tcell.EventKey) *tcell.EventKe
 
 		app.SelectedMessage = -1
 		app.MessagesTextView.Highlight()
+
 		return nil
 	case app.Config.Keybindings.ToggleExternalEditor:
 		e := os.Getenv("EDITOR")
@@ -369,6 +379,8 @@ func onMessageInputFieldInputCapture(app *App, e *tcell.EventKey) *tcell.EventKe
 		}
 
 		app.MessageInputField.SetText(string(b))
+
+		return nil
 	}
 
 	return e
