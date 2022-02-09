@@ -165,7 +165,7 @@ func buildEmbeds(b *strings.Builder, es []*discordgo.MessageEmbed) {
 			embedBuilder.WriteString(e.Footer.Text)
 		}
 
-		b.WriteString(strings.Replace(embedBuilder.String(), "\n", "\n"+prefix, -1))
+		b.WriteString(strings.ReplaceAll(embedBuilder.String(), "\n", "\n"+prefix))
 	}
 }
 
