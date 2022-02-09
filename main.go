@@ -9,12 +9,14 @@ import (
 	"github.com/zalando/go-keyring"
 )
 
+const keyringServiceName = "discordo"
+
 func main() {
 	app := ui.NewApp()
 
 	token := os.Getenv("DISCORDO_TOKEN")
 	if token == "" {
-		token, _ = keyring.Get("discordo", "token")
+		token, _ = keyring.Get(keyringServiceName, "token")
 	}
 
 	if token != "" {
@@ -75,7 +77,7 @@ func main() {
 						SetRoot(ui.NewMainFlex(app), true).
 						SetFocus(app.GuildsList)
 
-					go keyring.Set("discordo", "token", lr.Token)
+					go keyring.Set(keyringServiceName, "token", lr.Token)
 				})
 			}
 		})
