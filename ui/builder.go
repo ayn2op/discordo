@@ -110,8 +110,10 @@ func buildEmbeds(b *strings.Builder, es []*discordgo.MessageEmbed) {
 			continue
 		}
 
-		var embedBuilder strings.Builder
-		var hasHeading bool
+		var (
+			embedBuilder strings.Builder
+			hasHeading   bool
+		)
 		prefix := fmt.Sprintf("[#%06X]▐[-] ", e.Color)
 
 		b.WriteByte('\n')
