@@ -3,8 +3,8 @@ package main
 import (
 	"os"
 
+	"github.com/ayntgl/discordo/discord"
 	"github.com/ayntgl/discordo/ui"
-	"github.com/ayntgl/discordo/util"
 	"github.com/rivo/tview"
 	"github.com/zalando/go-keyring"
 )
@@ -39,7 +39,7 @@ func main() {
 			}
 
 			// Login using the email and password
-			lr, err := util.Login(app.Session, email, password)
+			lr, err := discord.Login(app.Session, email, password)
 			if err != nil {
 				panic(err)
 			}
@@ -64,7 +64,7 @@ func main() {
 						return
 					}
 
-					lr, err = util.TOTP(app.Session, mfaCode, lr.Ticket)
+					lr, err = discord.TOTP(app.Session, mfaCode, lr.Ticket)
 					if err != nil {
 						panic(err)
 					}

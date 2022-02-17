@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/ayntgl/discordgo"
-	"github.com/ayntgl/discordo/util"
+	"github.com/ayntgl/discordo/config"
 	"github.com/rivo/tview"
 )
 
@@ -18,7 +18,7 @@ type App struct {
 	MessageInputField *tview.InputField
 	Session           *discordgo.Session
 	SelectedChannel   *discordgo.Channel
-	Config            *util.Config
+	Config            *config.Config
 	SelectedMessage   int
 }
 
@@ -34,7 +34,7 @@ func NewApp() *App {
 		MessageInputField: tview.NewInputField(),
 
 		Session:         s,
-		Config:          util.LoadConfig(),
+		Config:          config.LoadConfig(),
 		SelectedMessage: -1,
 	}
 }

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/ayntgl/discordgo"
-	"github.com/ayntgl/discordo/util"
 )
 
 func buildMessage(app *App, m *discordgo.Message) []byte {
@@ -89,7 +88,7 @@ func buildReferencedMessage(b *strings.Builder, rm *discordgo.Message, clientID 
 
 		if rm.Content != "" {
 			rm.Content = buildMentions(rm.Content, rm.Mentions, clientID)
-			b.WriteString(util.ParseMarkdown(rm.Content))
+			b.WriteString(parseMarkdown(rm.Content))
 		}
 
 		b.WriteString("[::-]")
@@ -100,7 +99,7 @@ func buildReferencedMessage(b *strings.Builder, rm *discordgo.Message, clientID 
 func buildContent(b *strings.Builder, m *discordgo.Message, clientID string) {
 	if m.Content != "" {
 		m.Content = buildMentions(m.Content, m.Mentions, clientID)
-		b.WriteString(util.ParseMarkdown(m.Content))
+		b.WriteString(parseMarkdown(m.Content))
 	}
 }
 
@@ -138,7 +137,7 @@ func buildEmbeds(b *strings.Builder, es []*discordgo.MessageEmbed) {
 				embedBuilder.WriteString("\n\n")
 			}
 
-			embedBuilder.WriteString(util.ParseMarkdown(e.Description))
+			embedBuilder.WriteString(parseMarkdown(e.Description))
 		}
 
 		if len(e.Fields) != 0 {
@@ -151,7 +150,7 @@ func buildEmbeds(b *strings.Builder, es []*discordgo.MessageEmbed) {
 				embedBuilder.WriteString(ef.Name)
 				embedBuilder.WriteString("[::-]")
 				embedBuilder.WriteByte('\n')
-				embedBuilder.WriteString(util.ParseMarkdown(ef.Value))
+				embedBuilder.WriteString(parseMarkdown(ef.Value))
 
 				if i != len(e.Fields)-1 {
 					embedBuilder.WriteString("\n\n")

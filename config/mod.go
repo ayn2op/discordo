@@ -1,4 +1,4 @@
-package util
+package config
 
 import (
 	"os"
@@ -35,6 +35,30 @@ type Config struct {
 	General     GeneralConfig     `toml:"general"`
 }
 
+func NewConfig() *Config {
+	return &Config{
+		General: GeneralConfig{
+			UserAgent:          userAgent,
+			FetchMessagesLimit: 50,
+			Mouse:              true,
+			Timestamps:         false,
+		},
+		Keybindings: KeybindingsConfig{
+			ToggleGuildsList:         "Rune[g]",
+			ToggleChannelsTreeView:   "Rune[c]",
+			ToggleMessagesTextView:   "Rune[m]",
+			ToggleMessageInputField:  "Rune[i]",
+			ToggleMessageActionsList: "Rune[a]",
+			ToggleExternalEditor:     "Ctrl-E",
+
+			SelectPreviousMessage: "Up",
+			SelectNextMessage:     "Down",
+			SelectFirstMessage:    "Home",
+			SelectLastMessage:     "End",
+		},
+	}
+}
+
 func LoadConfig() *Config {
 	configPath, err := os.UserConfigDir()
 	if err != nil {
@@ -57,7 +81,7 @@ func LoadConfig() *Config {
 		}
 		defer f.Close()
 
-		c = newDefaultConfig()
+		c = NewConfig()
 		err = toml.NewEncoder(f).Encode(c)
 		if err != nil {
 			panic(err)
@@ -70,28 +94,4 @@ func LoadConfig() *Config {
 	}
 
 	return c
-}
-
-func newDefaultConfig() *Config {
-	return &Config{
-		General: GeneralConfig{
-			UserAgent:          userAgent,
-			FetchMessagesLimit: 50,
-			Mouse:              true,
-			Timestamps:         false,
-		},
-		Keybindings: KeybindingsConfig{
-			ToggleGuildsList:         "Rune[g]",
-			ToggleChannelsTreeView:   "Rune[c]",
-			ToggleMessagesTextView:   "Rune[m]",
-			ToggleMessageInputField:  "Rune[i]",
-			ToggleMessageActionsList: "Rune[a]",
-			ToggleExternalEditor:     "Ctrl-E",
-
-			SelectPreviousMessage: "Up",
-			SelectNextMessage:     "Down",
-			SelectFirstMessage:    "Home",
-			SelectLastMessage:     "End",
-		},
-	}
 }

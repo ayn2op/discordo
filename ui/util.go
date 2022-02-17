@@ -1,4 +1,4 @@
-package util
+package ui
 
 import (
 	"regexp"
@@ -14,7 +14,7 @@ var (
 	strikeThroughRegex = regexp.MustCompile(`(?m)~~(.*?)~~`)
 )
 
-func ParseMarkdown(md string) string {
+func parseMarkdown(md string) string {
 	var res string
 	res = boldRegex.ReplaceAllString(md, "[::b]$1[::-]")
 	res = italicRegex.ReplaceAllString(res, "[::i]$1[::-]")
@@ -24,7 +24,7 @@ func ParseMarkdown(md string) string {
 	return res
 }
 
-func ChannelToString(c *discordgo.Channel) string {
+func channelToString(c *discordgo.Channel) string {
 	var repr string
 	if c.Name != "" {
 		repr = "#" + c.Name
@@ -43,7 +43,7 @@ func ChannelToString(c *discordgo.Channel) string {
 	return repr
 }
 
-func HasKeybinding(ks []string, k string) bool {
+func hasKeybinding(ks []string, k string) bool {
 	for _, repr := range ks {
 		if repr == k {
 			return true

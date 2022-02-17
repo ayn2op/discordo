@@ -9,7 +9,7 @@ import (
 
 	"github.com/atotto/clipboard"
 	"github.com/ayntgl/discordgo"
-	"github.com/ayntgl/discordo/util"
+	"github.com/ayntgl/discordo/discord"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -59,7 +59,7 @@ func onGuildsListSelected(app *App, guildIdx int) {
 		})
 
 		for _, c := range cs {
-			channelTreeNode := tview.NewTreeNode(util.ChannelToString(c)).
+			channelTreeNode := tview.NewTreeNode(channelToString(c)).
 				SetReference(c.ID)
 			rootTreeNode.AddChild(channelTreeNode)
 		}
@@ -71,7 +71,7 @@ func onGuildsListSelected(app *App, guildIdx int) {
 
 		for _, c := range cs {
 			if (c.Type == discordgo.ChannelTypeGuildText || c.Type == discordgo.ChannelTypeGuildNews) && (c.ParentID == "") {
-				channelTreeNode := tview.NewTreeNode(util.ChannelToString(c)).
+				channelTreeNode := tview.NewTreeNode(channelToString(c)).
 					SetReference(c.ID)
 				rootTreeNode.AddChild(channelTreeNode)
 			}
@@ -108,7 +108,7 @@ func onGuildsListSelected(app *App, guildIdx int) {
 				})
 
 				if parentTreeNode != nil {
-					channelTreeNode := tview.NewTreeNode(util.ChannelToString(c)).
+					channelTreeNode := tview.NewTreeNode(channelToString(c)).
 						SetReference(c.ID)
 					parentTreeNode.AddChild(channelTreeNode)
 				}
@@ -139,7 +139,7 @@ func onChannelsTreeViewSelected(app *App, n *tview.TreeNode) {
 
 	app.SelectedChannel = c
 
-	app.MessagesTextView.SetTitle(util.ChannelToString(c))
+	app.MessagesTextView.SetTitle(channelToString(c))
 	app.SetFocus(app.MessageInputField)
 
 	go func() {
@@ -223,12 +223,12 @@ func onMessagesTextViewInputCapture(app *App, e *tcell.EventKey) *tcell.EventKey
 			return nil
 		}
 
-		_, m := util.FindMessageByID(app.SelectedChannel.Messages, hs[0])
+		_, m := discord.FindMessageByID(app.SelectedChannel.Messages, hs[0])
 		if m == nil {
 			return nil
 		}
 
-		if util.HasPermission(app.Session.State, app.SelectedChannel.ID, discordgo.PermissionSendMessages) {
+		if discord.HasPermission(app.Session.State, app.SelectedChannel.ID, discordgo.PermissionSendMessages) {
 			messageActionsList.
 				AddItem("Reply", "", 'r', nil).
 				AddItem("Mention Reply", "", 'R', nil)
@@ -286,7 +286,7 @@ func onMessageActionsListSelected(app *App, mainText string, m *discordgo.Messag
 			SetRoot(app.MainFlex, false).
 			SetFocus(app.MessageInputField)
 	case "Select Reply":
-		app.SelectedMessage, _ = util.FindMessageByID(app.SelectedChannel.Messages, m.ReferencedMessage.ID)
+		app.SelectedMessage, _ = discord.FindMessageByID(app.SelectedChannel.Messages, m.ReferencedMessage.ID)
 		app.MessagesTextView.
 			Highlight(m.ReferencedMessage.ID).
 			ScrollToHighlight()
@@ -309,7 +309,7 @@ func onMessageInputFieldInputCapture(app *App, e *tcell.EventKey) *tcell.EventKe
 		}
 
 		if len(app.MessagesTextView.GetHighlights()) != 0 {
-			_, m := util.FindMessageByID(app.SelectedChannel.Messages, app.MessagesTextView.GetHighlights()[0])
+			_, m := discord.FindMessageByID(app.SelectedChannel.Messages, app.MessagesTextView.GetHighlights()[0])
 			d := &discordgo.MessageSend{
 				Content:         t,
 				Reference:       m.Reference(),
