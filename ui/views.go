@@ -39,7 +39,6 @@ func NewMainFlex(app *App) *tview.Flex {
 		SetInputCapture(func(e *tcell.EventKey) *tcell.EventKey {
 			return onMessagesTextViewInputCapture(app, e)
 		}).
-		SetTitleAlign(tview.AlignLeft).
 		SetBorder(true).
 		SetBorderPadding(0, 0, 1, 1)
 
