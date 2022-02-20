@@ -43,8 +43,7 @@ func onGuildsListSelected(app *App, guildIdx int) {
 	app.SelectedMessage = -1
 	app.MessagesTextView.
 		Highlight().
-		Clear().
-		SetTitle("")
+		Clear()
 	app.MessageInputField.SetText("")
 
 	// If the user is a bot account, the direct messages item does not exist in the guilds list.
@@ -138,8 +137,6 @@ func onChannelsTreeViewSelected(app *App, n *tview.TreeNode) {
 	}
 
 	app.SelectedChannel = c
-
-	app.MessagesTextView.SetTitle(channelToString(c))
 	app.SetFocus(app.MessageInputField)
 
 	go func() {
@@ -254,6 +251,14 @@ func onMessagesTextViewInputCapture(app *App, e *tcell.EventKey) *tcell.EventKey
 			SetBorder(true)
 
 		app.SetRoot(messageActionsList, true)
+
+		return nil
+	case "Esc":
+		app.SelectedMessage = -1
+		app.SetFocus(app.MainFlex)
+		app.MessagesTextView.
+			Clear().
+			Highlight()
 
 		return nil
 	}

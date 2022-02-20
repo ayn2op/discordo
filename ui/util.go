@@ -42,13 +42,3 @@ func channelToString(c *discordgo.Channel) string {
 
 	return repr
 }
-
-func hasKeybinding(ks []string, k string) bool {
-	for _, repr := range ks {
-		if repr == k {
-			return true
-		}
-	}
-
-	return false
-}
