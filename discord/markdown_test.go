@@ -1,8 +1,6 @@
-package ui
+package discord
 
-import (
-	"testing"
-)
+import "testing"
 
 func TestParseMarkdown(t *testing.T) {
 	tests := []struct {
@@ -18,7 +16,7 @@ func TestParseMarkdown(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			if got := parseMarkdown(test.in); got != test.want {
+			if got := ParseMarkdown(test.in); got != test.want {
 				t.Errorf("got: %s\nwant: %s", got, test.want)
 			}
 		})
@@ -31,6 +29,6 @@ func BenchmarkParseMarkdown(b *testing.B) {
 	Sit commodi sed iure et sed quae eveniet. *Sit non distinctio nihil sunt. Nesciunt cumque aspernatur *nulla* porro et earum quidem.* Sed omnis at commodi vel quasi. Fuga et **consequatur** molestias dicta vel provident et aspernatur. Dolorem molestias ipsa aut ~~facilis quae dolorem~~ eveniet dicta.`
 
 	for i := 0; i < b.N; i++ {
-		parseMarkdown(in)
+		ParseMarkdown(in)
 	}
 }

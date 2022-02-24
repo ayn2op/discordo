@@ -58,7 +58,7 @@ func onGuildsListSelected(app *App, guildIdx int) {
 		})
 
 		for _, c := range cs {
-			channelTreeNode := tview.NewTreeNode(channelToString(c)).
+			channelTreeNode := tview.NewTreeNode(discord.ChannelToString(c)).
 				SetReference(c.ID)
 			rootTreeNode.AddChild(channelTreeNode)
 		}
@@ -70,7 +70,7 @@ func onGuildsListSelected(app *App, guildIdx int) {
 
 		for _, c := range cs {
 			if (c.Type == discordgo.ChannelTypeGuildText || c.Type == discordgo.ChannelTypeGuildNews) && (c.ParentID == "") {
-				channelTreeNode := tview.NewTreeNode(channelToString(c)).
+				channelTreeNode := tview.NewTreeNode(discord.ChannelToString(c)).
 					SetReference(c.ID)
 				rootTreeNode.AddChild(channelTreeNode)
 			}
@@ -107,7 +107,7 @@ func onGuildsListSelected(app *App, guildIdx int) {
 				})
 
 				if parentTreeNode != nil {
-					channelTreeNode := tview.NewTreeNode(channelToString(c)).
+					channelTreeNode := tview.NewTreeNode(discord.ChannelToString(c)).
 						SetReference(c.ID)
 					parentTreeNode.AddChild(channelTreeNode)
 				}
