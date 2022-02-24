@@ -32,19 +32,12 @@ func NewConfig() *Config {
 		panic(err)
 	}
 
-	f, err := os.Open(path)
-	if err != nil {
-		panic(err)
-	}
-	defer f.Close()
-
 	var c Config
-	if _, err = f.Stat(); os.IsNotExist(err) {
-		f, err = os.Create(path)
+	if _, err = os.Stat(path); os.IsNotExist(err) {
+		f, err := os.Create(path)
 		if err != nil {
 			panic(err)
 		}
-		defer f.Close()
 
 		c = newConfig()
 		err = toml.NewEncoder(f).Encode(c)
@@ -52,7 +45,7 @@ func NewConfig() *Config {
 			panic(err)
 		}
 	} else {
-		_, err = toml.NewDecoder(f).Decode(&c)
+		_, err = toml.DecodeFile(path, &c)
 		if err != nil {
 			panic(err)
 		}
