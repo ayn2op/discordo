@@ -13,7 +13,6 @@ const keyringServiceName = "discordo"
 
 func main() {
 	app := ui.NewApp()
-	app.EnableMouse(app.Config.General.Mouse)
 
 	token := os.Getenv("DISCORDO_TOKEN")
 	if token == "" {
@@ -26,9 +25,8 @@ func main() {
 			panic(err)
 		}
 
-		app.
-			SetRoot(ui.NewMainFlex(app), true).
-			SetFocus(app.GuildsList)
+		app.DrawMainFlex()
+		app.SetFocus(app.GuildsList)
 	} else {
 		loginForm := ui.NewLoginForm(false)
 		loginForm.AddButton("Login", func() {
@@ -50,9 +48,8 @@ func main() {
 					panic(err)
 				}
 
-				app.
-					SetRoot(ui.NewMainFlex(app), true).
-					SetFocus(app.GuildsList)
+				app.DrawMainFlex()
+				app.SetFocus(app.GuildsList)
 
 				go keyring.Set("discordo", "token", lr.Token)
 			} else {
@@ -74,9 +71,8 @@ func main() {
 						panic(err)
 					}
 
-					app.
-						SetRoot(ui.NewMainFlex(app), true).
-						SetFocus(app.GuildsList)
+					app.DrawMainFlex()
+					app.SetFocus(app.GuildsList)
 
 					go keyring.Set(keyringServiceName, "token", lr.Token)
 				})

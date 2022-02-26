@@ -6,16 +6,17 @@ import (
 
 	"github.com/ayntgl/discordgo"
 	"github.com/ayntgl/discordo/config"
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
 type App struct {
 	*tview.Application
 	MainFlex          *tview.Flex
-	GuildsList        *tview.List
-	ChannelsTreeView  *tview.TreeView
-	MessagesTextView  *tview.TextView
-	MessageInputField *tview.InputField
+	GuildsList        *GuildsList
+	ChannelsTreeView  *ChannelsTreeView
+	MessagesTextView  *MessagesTextView
+	MessageInputField *MessageInputField
 	Session           *discordgo.Session
 	SelectedChannel   *discordgo.Channel
 	Config            *config.Config
@@ -23,20 +24,24 @@ type App struct {
 }
 
 func NewApp() *App {
-	s, _ := discordgo.New()
-
-	return &App{
-		Application:       tview.NewApplication(),
-		MainFlex:          tview.NewFlex(),
-		GuildsList:        tview.NewList(),
-		ChannelsTreeView:  tview.NewTreeView(),
-		MessagesTextView:  tview.NewTextView(),
-		MessageInputField: tview.NewInputField(),
-
-		Session:         s,
-		Config:          config.NewConfig(),
+	app := &App{
+		MainFlex:        tview.NewFlex(),
 		SelectedMessage: -1,
 	}
+
+	app.GuildsList = NewGuildsList(app)
+	app.ChannelsTreeView = NewChannelsTreeView(app)
+	app.MessagesTextView = NewMessagesTextView(app)
+	app.MessageInputField = NewMessageInputField(app)
+
+	app.Session, _ = discordgo.New()
+	app.Config = config.NewConfig()
+
+	app.Application = tview.NewApplication()
+	app.EnableMouse(app.Config.General.Mouse)
+	app.SetInputCapture(app.onInputCapture)
+
+	return app
 }
 
 func (app *App) Connect(token string) error {
@@ -59,10 +64,49 @@ func (app *App) Connect(token string) error {
 
 	app.Session.Token = token
 	app.Session.Identify.Token = token
-	app.Session.AddHandler(app.onGuildCreate)
+	app.Session.AddHandler(app.onSessionGuildCreate)
 	app.Session.AddHandler(app.onSessionMessageCreate)
 
 	return app.Session.Open()
+}
+
+func (app *App) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
+	if app.MessageInputField.HasFocus() {
+		return e
+	}
+
+	switch e.Name() {
+	case app.Config.Keybindings.ToggleGuildsList:
+		app.SetFocus(app.GuildsList)
+		return nil
+	case app.Config.Keybindings.ToggleChannelsTreeView:
+		app.SetFocus(app.ChannelsTreeView)
+		return nil
+	case app.Config.Keybindings.ToggleMessagesTextView:
+		app.SetFocus(app.MessagesTextView)
+		return nil
+	case app.Config.Keybindings.ToggleMessageInputField:
+		app.SetFocus(app.MessageInputField)
+		return nil
+	}
+
+	return e
+}
+
+func (app *App) DrawMainFlex() {
+	leftFlex := tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(app.GuildsList, 10, 1, false).
+		AddItem(app.ChannelsTreeView, 0, 1, false)
+	rightFlex := tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(app.MessagesTextView, 0, 1, false).
+		AddItem(app.MessageInputField, 3, 1, false)
+	app.MainFlex.
+		AddItem(leftFlex, 0, 1, false).
+		AddItem(rightFlex, 0, 4, false)
+
+	app.SetRoot(app.MainFlex, true)
 }
 
 func (app *App) onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
@@ -87,7 +131,7 @@ func (app *App) onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 	}
 }
 
-func (app *App) onGuildCreate(_ *discordgo.Session, g *discordgo.GuildCreate) {
+func (app *App) onSessionGuildCreate(_ *discordgo.Session, g *discordgo.GuildCreate) {
 	app.GuildsList.AddItem(g.Name, "", 0, nil)
 }
 
