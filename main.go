@@ -82,6 +82,19 @@ func main() {
 		app.SetRoot(loginForm, true)
 	}
 
+	tview.Borders.TopLeftFocus = tview.Borders.TopLeft
+	tview.Borders.TopRightFocus = tview.Borders.TopRight
+	tview.Borders.BottomLeftFocus = tview.Borders.BottomLeft
+	tview.Borders.BottomRightFocus = tview.Borders.BottomRight
+	tview.Borders.HorizontalFocus = tview.Borders.Horizontal
+	tview.Borders.VerticalFocus = tview.Borders.Vertical
+	tview.Borders.TopLeft = 0
+	tview.Borders.TopRight = 0
+	tview.Borders.BottomLeft = 0
+	tview.Borders.BottomRight = 0
+	tview.Borders.Horizontal = 0
+	tview.Borders.Vertical = 0
+
 	err := app.Run()
 	if err != nil {
 		panic(err)
