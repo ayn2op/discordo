@@ -127,7 +127,11 @@ func buildEmbeds(b *strings.Builder, es []*discordgo.MessageEmbed) {
 		}
 
 		if e.Title != "" {
-			hasHeading = true
+			if hasHeading {
+				embedBuilder.WriteByte('\n')
+				embedBuilder.WriteByte('\n')
+			}
+
 			embedBuilder.WriteString("[::b]")
 			embedBuilder.WriteString(e.Title)
 			embedBuilder.WriteString("[::-]")
@@ -135,7 +139,8 @@ func buildEmbeds(b *strings.Builder, es []*discordgo.MessageEmbed) {
 
 		if e.Description != "" {
 			if hasHeading {
-				embedBuilder.WriteString("\n\n")
+				embedBuilder.WriteByte('\n')
+				embedBuilder.WriteByte('\n')
 			}
 
 			embedBuilder.WriteString(discord.ParseMarkdown(e.Description))
@@ -143,7 +148,8 @@ func buildEmbeds(b *strings.Builder, es []*discordgo.MessageEmbed) {
 
 		if len(e.Fields) != 0 {
 			if hasHeading || e.Description != "" {
-				embedBuilder.WriteString("\n\n")
+				embedBuilder.WriteByte('\n')
+				embedBuilder.WriteByte('\n')
 			}
 
 			for i, ef := range e.Fields {
