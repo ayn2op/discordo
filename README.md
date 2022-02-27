@@ -28,6 +28,18 @@ Discordo is a lightweight, secure, and feature-rich Discord terminal client. Hea
   - Desktop notifications
   - Partial [Discord-flavored markdown](https://support.discord.com/hc/en-us/articles/210298617-Markdown-Text-101-Chat-Formatting-Bold-Italic-Underline-)
 
+### Roadmap
+
+- [] Mentions (autocompletion & suggestions)
+- [] Attachments
+- [] Typing indicator
+- [] Scripting interface
+- [] Threads
+- [] Members sidebar
+- [] Search/filter messages
+- [] User profile
+- [] Settings widgets
+
 ## Installation
 
 ## Prebuilt binaries
