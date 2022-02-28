@@ -37,12 +37,7 @@ func (gl *GuildsList) onSelected(idx int, mainText string, secondaryText string,
 		Clear()
 	gl.app.MessageInputField.SetText("")
 
-	// If the user is a bot account, the direct messages item does not exist in the guilds list.
-	if gl.app.Session.State.User.Bot && idx == 0 {
-		idx = 1
-	}
-
-	if idx == 0 { // Direct Messages
+	if mainText == "Direct Messages" {
 		cs := gl.app.Session.State.PrivateChannels
 		sort.Slice(cs, func(i, j int) bool {
 			return cs[i].LastMessageID > cs[j].LastMessageID
@@ -54,7 +49,7 @@ func (gl *GuildsList) onSelected(idx int, mainText string, secondaryText string,
 			rootTreeNode.AddChild(channelTreeNode)
 		}
 	} else { // Guild
-		cs := gl.app.Session.State.Guilds[idx-1].Channels
+		cs := gl.app.Session.State.Guilds[idx].Channels
 		sort.Slice(cs, func(i, j int) bool {
 			return cs[i].Position < cs[j].Position
 		})

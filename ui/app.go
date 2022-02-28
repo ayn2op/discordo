@@ -110,8 +110,6 @@ func (app *App) DrawMainFlex() {
 }
 
 func (app *App) onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
-	app.GuildsList.AddItem("Direct Messages", "", 0, nil)
-
 	sort.Slice(r.Guilds, func(a, b int) bool {
 		found := false
 		for _, guildID := range r.Settings.GuildPositions {
@@ -129,6 +127,8 @@ func (app *App) onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 	for _, g := range r.Guilds {
 		app.GuildsList.AddItem(g.Name, "", 0, nil)
 	}
+
+	app.GuildsList.AddItem("Direct Messages", "", 0, nil)
 }
 
 func (app *App) onSessionGuildCreate(_ *discordgo.Session, g *discordgo.GuildCreate) {

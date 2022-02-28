@@ -30,15 +30,15 @@ Discordo is a lightweight, secure, and feature-rich Discord terminal client. Hea
 
 ### Roadmap
 
-- [] Mentions (autocompletion & suggestions)
-- [] Attachments
-- [] Typing indicator
-- [] Scripting interface
-- [] Threads
-- [] Members sidebar
-- [] Search/filter messages
-- [] User profile
-- [] Settings widgets
+- [ ] Mentions (autocompletion & suggestions)
+- [ ] Attachments
+- [ ] Typing indicator
+- [ ] Scripting interface
+- [ ] Threads
+- [ ] Members sidebar
+- [ ] Search/filter messages
+- [ ] User profile
+- [ ] Settings widgets
 
 ## Installation
 
