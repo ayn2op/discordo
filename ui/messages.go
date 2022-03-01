@@ -91,7 +91,7 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			ScrollToHighlight()
 
 		return nil
-	case mtv.app.Config.Keybindings.ToggleMessageActionsList:
+	case mtv.app.Config.Keybindings.OpenMessageActionsList:
 		messageActionsList := tview.NewList()
 
 		hs := mtv.app.MessagesTextView.GetHighlights()
@@ -255,7 +255,7 @@ func (mi *MessageInputField) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		mi.app.MessagesTextView.Highlight()
 
 		return nil
-	case mi.app.Config.Keybindings.ToggleExternalEditor:
+	case mi.app.Config.Keybindings.OpenExternalEditor:
 		e := os.Getenv("EDITOR")
 		if e == "" {
 			return nil
