@@ -75,19 +75,21 @@ func (app *App) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		return e
 	}
 
-	switch e.Name() {
-	case app.Config.Keybindings.ToggleGuildsList:
-		app.SetFocus(app.GuildsList)
-		return nil
-	case app.Config.Keybindings.ToggleChannelsTreeView:
-		app.SetFocus(app.ChannelsTreeView)
-		return nil
-	case app.Config.Keybindings.ToggleMessagesTextView:
-		app.SetFocus(app.MessagesTextView)
-		return nil
-	case app.Config.Keybindings.ToggleMessageInputField:
-		app.SetFocus(app.MessageInputField)
-		return nil
+	if app.MainFlex.GetItemCount() != 0 {
+		switch e.Name() {
+		case app.Config.Keybindings.ToggleGuildsList:
+			app.SetFocus(app.GuildsList)
+			return nil
+		case app.Config.Keybindings.ToggleChannelsTreeView:
+			app.SetFocus(app.ChannelsTreeView)
+			return nil
+		case app.Config.Keybindings.ToggleMessagesTextView:
+			app.SetFocus(app.MessagesTextView)
+			return nil
+		case app.Config.Keybindings.ToggleMessageInputField:
+			app.SetFocus(app.MessageInputField)
+			return nil
+		}
 	}
 
 	return e
