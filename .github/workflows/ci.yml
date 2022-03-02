@@ -25,6 +25,7 @@ jobs:
         run: make build
   
       - uses: actions/upload-artifact@v2
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         with:
           name: discordo_${{ runner.os }}_${{ runner.arch }}
           path: |
