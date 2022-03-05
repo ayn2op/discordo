@@ -51,7 +51,7 @@ func main() {
 				app.DrawMainFlex()
 				app.SetFocus(app.GuildsList)
 
-				go keyring.Set("discordo", "token", lr.Token)
+				go keyring.Set(keyringServiceName, "token", lr.Token)
 			} else {
 				// The account has MFA enabled, reattempt login with MFA code and ticket.
 				mfaLoginForm := ui.NewLoginForm(true)
