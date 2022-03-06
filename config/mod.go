@@ -8,13 +8,15 @@ import (
 )
 
 type Config struct {
-	Keybindings KeybindingsConfig `toml:"keybindings"`
 	General     GeneralConfig     `toml:"general"`
+	Theme       ThemeConfig       `toml:"theme"`
+	Keybindings KeybindingsConfig `toml:"keybindings"`
 }
 
 func newConfig() Config {
 	return Config{
 		General:     newGeneralConfig(),
+		Theme:       newThemeConfig(),
 		Keybindings: newKeybindingsConfig(),
 	}
 }

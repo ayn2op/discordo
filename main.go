@@ -5,6 +5,7 @@ import (
 
 	"github.com/ayntgl/discordo/discord"
 	"github.com/ayntgl/discordo/ui"
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/zalando/go-keyring"
 )
@@ -94,6 +95,10 @@ func main() {
 	tview.Borders.BottomRight = 0
 	tview.Borders.Horizontal = 0
 	tview.Borders.Vertical = 0
+
+	tview.Styles.PrimitiveBackgroundColor = tcell.GetColor(app.Config.Theme.Background)
+	tview.Styles.BorderColor = tcell.GetColor(app.Config.Theme.Border)
+	tview.Styles.TitleColor = tcell.GetColor(app.Config.Theme.Title)
 
 	err := app.Run()
 	if err != nil {
