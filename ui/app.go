@@ -54,9 +54,8 @@ func (app *App) Connect(token string) error {
 			LargeThreshold: 0,
 			Intents:        0,
 			Properties: discordgo.IdentifyProperties{
-				OS:      "Linux",
-				Browser: "Firefox",
-				Device:  "",
+				OS:      app.Config.General.Identify.Os,
+				Browser: app.Config.General.Identify.Browser,
 			},
 		}
 		app.Session.AddHandlerOnce(app.onSessionReady)
