@@ -2,8 +2,11 @@ package ui
 
 import (
 	"io"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 
 	"github.com/atotto/clipboard"
@@ -91,6 +94,78 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			ScrollToHighlight()
 
 		return nil
+
+	case mtv.app.Config.Keybindings.OpenAttachment:
+		if ms[mtv.app.SelectedMessage].Attachments != nil {
+			// Download the files to a temporary location
+			for _, a := range ms[mtv.app.SelectedMessage].Attachments {
+				f, err := os.Create(os.TempDir() + a.Filename)
+				if err != nil {
+					return nil
+				}
+				response, err := http.Get(a.URL)
+				if err != nil {
+					return nil
+				}
+
+				d, err := ioutil.ReadAll(response.Body)
+				if err != nil {
+					return nil
+				}
+				f.Write(d)
+				// defer os.Remove(f.Name())
+
+				if runtime.GOOS == "windows" {
+					// On windows, `start` can do all the heavy lifting through `cmd`
+					cmd := exec.Command("cmd", "/C start "+f.Name())
+					err := cmd.Run()
+					if err != nil {
+						return nil
+					}
+				} else if runtime.GOOS == "linux" {
+					// On linux, we'll assume xdg-open exists and try using that
+					cmd := exec.Command("xdg-open", f.Name())
+					err := cmd.Run()
+					if err != nil {
+						return nil
+					}
+				} else if runtime.GOOS == "darwin" {
+					// On MacOS open should do the trick
+					cmd := exec.Command("open", f.Name())
+					err := cmd.Run()
+					if err != nil {
+						return nil
+					}
+				} else {
+					// If we're on none of those platforms, I think I made some sort of fatal mistake
+					return nil
+				}
+			}
+		}
+		return nil
+	case mtv.app.Config.Keybindings.DownloadAttachment:
+		if ms[mtv.app.SelectedMessage].Attachments != nil {
+			// Download the files to the configured location
+			for _, a := range ms[mtv.app.SelectedMessage].Attachments {
+				f, err := os.Create(mtv.app.Config.General.DownloadLocation + a.Filename)
+				if err != nil {
+					println("An error has occured while creating the file " + mtv.app.Config.General.DownloadLocation + a.Filename + "!")
+					return nil
+				}
+
+				response, err := http.Get(a.URL)
+				if err != nil {
+					println("An error has occured while downloading the file " + a.URL + "!")
+					return nil
+				}
+
+				d, err := ioutil.ReadAll(response.Body)
+				if err != nil {
+					return nil
+				}
+				f.Write(d)
+			}
+		}
 	case mtv.app.Config.Keybindings.OpenMessageActionsList:
 		messageActionsList := tview.NewList()
 
