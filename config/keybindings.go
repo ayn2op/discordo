@@ -7,12 +7,17 @@ type KeybindingsConfig struct {
 	ToggleMessageInputField string `toml:"toggle_message_input_field"`
 
 	OpenMessageActionsList string `toml:"open_message_actions_list"`
+
 	OpenExternalEditor     string `toml:"open_external_editor"`
+
+	OpenAttachment         string `toml:"open_attachment"`
+	DownloadAttachment     string `toml:"download_attachment"`
 
 	SelectPreviousMessage string `toml:"select_previous_message"`
 	SelectNextMessage     string `toml:"select_next_message"`
 	SelectFirstMessage    string `toml:"select_first_message"`
 	SelectLastMessage     string `toml:"select_last_message"`
+
 }
 
 func newKeybindingsConfig() KeybindingsConfig {
@@ -24,6 +29,9 @@ func newKeybindingsConfig() KeybindingsConfig {
 
 		OpenMessageActionsList: "Rune[a]",
 		OpenExternalEditor:     "Ctrl+E",
+
+		OpenAttachment: 		"Rune[o]",
+		DownloadAttachment:		"Rune[d]",
 
 		SelectPreviousMessage: "Up",
 		SelectNextMessage:     "Down",

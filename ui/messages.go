@@ -2,8 +2,12 @@ package ui
 
 import (
 	"io"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/atotto/clipboard"
@@ -91,6 +95,83 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			ScrollToHighlight()
 
 		return nil
+
+	case mtv.app.Config.Keybindings.OpenAttachment:
+		if ms[mtv.app.SelectedMessage].Attachments != nil {
+			for _, a := range ms[mtv.app.SelectedMessage].Attachments {
+				// We are caching the files, but files with the same name can still exist, so it ultimately does not matter
+				t, _ := os.UserCacheDir()
+				f, err := os.Create(filepath.Join(t, a.Filename))
+				if err != nil {
+					f.Close()
+					return nil
+				}
+				response, err := http.Get(a.URL)
+				if err != nil {
+					f.Close()
+					return nil
+				}
+
+				d, err := ioutil.ReadAll(response.Body)
+				if err != nil {
+					f.Close()
+					return nil
+				}
+				f.Write(d)
+				f.Close()
+				if runtime.GOOS == "windows" {
+					// On windows, `start` can do all the heavy lifting through `cmd`
+					cmd := exec.Command("cmd", "/C start "+f.Name())
+					err := cmd.Run()
+					if err != nil {
+						return nil
+					}
+				} else if runtime.GOOS == "linux" {
+					// On linux, we'll assume xdg-open exists and try using that
+					cmd := exec.Command("xdg-open", f.Name())
+					err := cmd.Run()
+					if err != nil {
+						return nil
+					}
+				} else if runtime.GOOS == "darwin" {
+					// On MacOS open should do the trick
+					cmd := exec.Command("open", f.Name())
+					err := cmd.Run()
+					if err != nil {
+						return nil
+					}
+				} else {
+					// If we're on none of those platforms, I think I made some sort of fatal mistake
+					return nil
+				}
+			}
+		}
+		return nil
+	case mtv.app.Config.Keybindings.DownloadAttachment:
+		if ms[mtv.app.SelectedMessage].Attachments != nil {
+			// Download the files to the configured location
+			for _, a := range ms[mtv.app.SelectedMessage].Attachments {
+				f, err := os.Create(filepath.Join(mtv.app.Config.General.AttachmentDownloadsDir + a.Filename))
+				if err != nil {
+					f.Close()
+					return nil
+				}
+
+				response, err := http.Get(a.URL)
+				if err != nil {
+					f.Close()
+					return nil
+				}
+
+				d, err := ioutil.ReadAll(response.Body)
+				if err != nil {
+					f.Close()
+					return nil
+				}
+				f.Write(d)
+				f.Close()
+			}
+		}
 	case mtv.app.Config.Keybindings.OpenMessageActionsList:
 		messageActionsList := tview.NewList()
 
