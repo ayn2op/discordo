@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -97,9 +98,10 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 
 	case mtv.app.Config.Keybindings.OpenAttachment:
 		if ms[mtv.app.SelectedMessage].Attachments != nil {
-			// Download the files to a temporary location
 			for _, a := range ms[mtv.app.SelectedMessage].Attachments {
-				f, err := os.Create(os.TempDir() + a.Filename)
+				// We are caching the files, but files with the same name can still exist, so it ultimately does not matter
+				t, _ := os.UserCacheDir()
+				f, err := os.Create(filepath.Join(t, a.Filename))
 				if err != nil {
 					f.Close()
 					return nil
