@@ -113,7 +113,6 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 					return nil
 				}
 				f.Write(d)
-				// defer os.Remove(f.Name())
 
 				if runtime.GOOS == "windows" {
 					// On windows, `start` can do all the heavy lifting through `cmd`
@@ -149,13 +148,11 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			for _, a := range ms[mtv.app.SelectedMessage].Attachments {
 				f, err := os.Create(mtv.app.Config.General.DownloadLocation + a.Filename)
 				if err != nil {
-					println("An error has occured while creating the file " + mtv.app.Config.General.DownloadLocation + a.Filename + "!")
 					return nil
 				}
 
 				response, err := http.Get(a.URL)
 				if err != nil {
-					println("An error has occured while downloading the file " + a.URL + "!")
 					return nil
 				}
 
