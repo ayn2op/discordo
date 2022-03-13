@@ -101,19 +101,22 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			for _, a := range ms[mtv.app.SelectedMessage].Attachments {
 				f, err := os.Create(os.TempDir() + a.Filename)
 				if err != nil {
+					f.Close()
 					return nil
 				}
 				response, err := http.Get(a.URL)
 				if err != nil {
+					f.Close()
 					return nil
 				}
 
 				d, err := ioutil.ReadAll(response.Body)
 				if err != nil {
+					f.Close()
 					return nil
 				}
 				f.Write(d)
-
+				f.Close()
 				if runtime.GOOS == "windows" {
 					// On windows, `start` can do all the heavy lifting through `cmd`
 					cmd := exec.Command("cmd", "/C start "+f.Name())
@@ -148,19 +151,23 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			for _, a := range ms[mtv.app.SelectedMessage].Attachments {
 				f, err := os.Create(mtv.app.Config.General.DownloadLocation + a.Filename)
 				if err != nil {
+					f.Close()
 					return nil
 				}
 
 				response, err := http.Get(a.URL)
 				if err != nil {
+					f.Close()
 					return nil
 				}
 
 				d, err := ioutil.ReadAll(response.Body)
 				if err != nil {
+					f.Close()
 					return nil
 				}
 				f.Write(d)
+				f.Close()
 			}
 		}
 	case mtv.app.Config.Keybindings.OpenMessageActionsList:
