@@ -151,7 +151,7 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		if ms[mtv.app.SelectedMessage].Attachments != nil {
 			// Download the files to the configured location
 			for _, a := range ms[mtv.app.SelectedMessage].Attachments {
-				f, err := os.Create(mtv.app.Config.General.DownloadLocation + a.Filename)
+				f, err := os.Create(filepath.Join(mtv.app.Config.General.AttachmentDownloadsDir + a.Filename))
 				if err != nil {
 					f.Close()
 					return nil
