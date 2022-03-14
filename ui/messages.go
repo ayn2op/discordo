@@ -95,83 +95,6 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			ScrollToHighlight()
 
 		return nil
-
-	case mtv.app.Config.Keybindings.OpenAttachment:
-		if ms[mtv.app.SelectedMessage].Attachments != nil {
-			for _, a := range ms[mtv.app.SelectedMessage].Attachments {
-				// We are caching the files, but files with the same name can still exist, so it ultimately does not matter
-				t, _ := os.UserCacheDir()
-				f, err := os.Create(filepath.Join(t, a.Filename))
-				if err != nil {
-					f.Close()
-					return nil
-				}
-				response, err := http.Get(a.URL)
-				if err != nil {
-					f.Close()
-					return nil
-				}
-
-				d, err := ioutil.ReadAll(response.Body)
-				if err != nil {
-					f.Close()
-					return nil
-				}
-				f.Write(d)
-				f.Close()
-				if runtime.GOOS == "windows" {
-					// On windows, `start` can do all the heavy lifting through `cmd`
-					cmd := exec.Command("cmd", "/C start "+f.Name())
-					err := cmd.Run()
-					if err != nil {
-						return nil
-					}
-				} else if runtime.GOOS == "linux" {
-					// On linux, we'll assume xdg-open exists and try using that
-					cmd := exec.Command("xdg-open", f.Name())
-					err := cmd.Run()
-					if err != nil {
-						return nil
-					}
-				} else if runtime.GOOS == "darwin" {
-					// On MacOS open should do the trick
-					cmd := exec.Command("open", f.Name())
-					err := cmd.Run()
-					if err != nil {
-						return nil
-					}
-				} else {
-					// If we're on none of those platforms, I think I made some sort of fatal mistake
-					return nil
-				}
-			}
-		}
-		return nil
-	case mtv.app.Config.Keybindings.DownloadAttachment:
-		if ms[mtv.app.SelectedMessage].Attachments != nil {
-			// Download the files to the configured location
-			for _, a := range ms[mtv.app.SelectedMessage].Attachments {
-				f, err := os.Create(filepath.Join(mtv.app.Config.General.AttachmentDownloadsDir + a.Filename))
-				if err != nil {
-					f.Close()
-					return nil
-				}
-
-				response, err := http.Get(a.URL)
-				if err != nil {
-					f.Close()
-					return nil
-				}
-
-				d, err := ioutil.ReadAll(response.Body)
-				if err != nil {
-					f.Close()
-					return nil
-				}
-				f.Write(d)
-				f.Close()
-			}
-		}
 	case mtv.app.Config.Keybindings.OpenMessageActionsList:
 		messageActionsList := tview.NewList()
 
@@ -186,13 +109,17 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		}
 
 		if discord.HasPermission(mtv.app.Session.State, mtv.app.SelectedChannel.ID, discordgo.PermissionSendMessages) {
-			messageActionsList.
-				AddItem("Reply", "", 'r', nil).
-				AddItem("Mention Reply", "", 'R', nil)
+			messageActionsList.AddItem("Reply", "", 'r', nil)
+			messageActionsList.AddItem("Mention Reply", "", 'R', nil)
 		}
 
 		if m.ReferencedMessage != nil {
 			messageActionsList.AddItem("Select Reply", "", 'm', nil)
+		}
+
+		if len(m.Attachments) != 0 {
+			messageActionsList.AddItem("Download Attachment", "", 'd', nil)
+			messageActionsList.AddItem("Open Attachment", "", 'o', nil)
 		}
 
 		messageActionsList.
@@ -258,6 +185,77 @@ func onMessageActionsListSelected(app *App, mainText string, m *discordgo.Messag
 		app.
 			SetRoot(app.MainFlex, false).
 			SetFocus(app.MessagesTextView)
+	case "Download Attachment":
+		for _, a := range m.Attachments {
+			f, err := os.Create(filepath.Join(app.Config.General.AttachmentDownloadsDir, a.Filename))
+			if err != nil {
+				f.Close()
+				return
+			}
+			defer f.Close()
+
+			resp, err := http.Get(a.URL)
+			if err != nil {
+				return
+			}
+
+			d, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				return
+			}
+
+			f.Write(d)
+		}
+
+		app.SetRoot(app.MainFlex, false)
+	case "Open Attachment":
+		for _, a := range m.Attachments {
+			// We are caching the files, but files with the same name can still exist, so it ultimately does not matter
+			cachePath, _ := os.UserCacheDir()
+			f, err := os.Create(filepath.Join(cachePath, a.Filename))
+			if err != nil {
+				return
+			}
+			defer f.Close()
+
+			resp, err := http.Get(a.URL)
+			if err != nil {
+				return
+			}
+
+			d, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				return
+			}
+
+			f.Write(d)
+			go Open(f.Name())
+		}
+
+		app.SetRoot(app.MainFlex, false)
+	}
+}
+
+func Open(input string) {
+	switch runtime.GOOS {
+	case "windows":
+		cmd := exec.Command("cmd", "/C start "+input)
+		err := cmd.Run()
+		if err != nil {
+			return
+		}
+	case "darwin":
+		cmd := exec.Command("open", input)
+		err := cmd.Run()
+		if err != nil {
+			return
+		}
+	default: // Unix
+		cmd := exec.Command("xdg-open", input)
+		err := cmd.Run()
+		if err != nil {
+			return
+		}
 	}
 }
 
