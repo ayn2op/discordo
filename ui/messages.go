@@ -8,7 +8,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strings"
 
 	"github.com/atotto/clipboard"
@@ -16,6 +15,7 @@ import (
 	"github.com/ayntgl/discordo/discord"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	"github.com/skratchdot/open-golang/open"
 )
 
 var linkRegex = regexp.MustCompile("https?://.+")
@@ -135,7 +135,7 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		if len(links) != 0 {
 			messageActionsList.AddItem("Open Link", "", 'l', func() {
 				for _, l := range links {
-					go Open(l)
+					go open.Run(l)
 				}
 			})
 		}
@@ -245,33 +245,10 @@ func onMessageActionsListSelected(app *App, mainText string, m *discordgo.Messag
 			}
 
 			f.Write(d)
-			go Open(f.Name())
+			go open.Run(f.Name())
 		}
 
 		app.SetRoot(app.MainFlex, false)
-	}
-}
-
-func Open(input string) {
-	switch runtime.GOOS {
-	case "windows":
-		cmd := exec.Command("cmd", "/C start "+input)
-		err := cmd.Run()
-		if err != nil {
-			return
-		}
-	case "darwin":
-		cmd := exec.Command("open", input)
-		err := cmd.Run()
-		if err != nil {
-			return
-		}
-	default: // Unix
-		cmd := exec.Command("xdg-open", input)
-		err := cmd.Run()
-		if err != nil {
-			return
-		}
 	}
 }
 
