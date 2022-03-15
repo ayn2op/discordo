@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 
@@ -16,6 +17,8 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
+
+var linkRegex = regexp.MustCompile("https?://.+")
 
 type MessagesTextView struct {
 	*tview.TextView
@@ -109,12 +112,32 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		}
 
 		if discord.HasPermission(mtv.app.Session.State, mtv.app.SelectedChannel.ID, discordgo.PermissionSendMessages) {
-			messageActionsList.AddItem("Reply", "", 'r', nil)
-			messageActionsList.AddItem("Mention Reply", "", 'R', nil)
+			messageActionsList.AddItem("Reply", "", 'r', func() {
+				mtv.app.MessageInputField.SetTitle("Replying to " + m.Author.String())
+				mtv.app.
+					SetRoot(mtv.app.MainFlex, true).
+					SetFocus(mtv.app.MessageInputField)
+			})
+
+			messageActionsList.AddItem("Mention Reply", "", 'R', func() {
+				mtv.app.MessageInputField.SetTitle("[@] Replying to " + m.Author.String())
+				mtv.app.
+					SetRoot(mtv.app.MainFlex, false).
+					SetFocus(mtv.app.MessageInputField)
+			})
 		}
 
 		if m.ReferencedMessage != nil {
 			messageActionsList.AddItem("Select Reply", "", 'm', nil)
+		}
+
+		links := linkRegex.FindAllString(m.Content, -1)
+		if len(links) != 0 {
+			messageActionsList.AddItem("Open Link", "", 'l', func() {
+				for _, l := range links {
+					go Open(l)
+				}
+			})
 		}
 
 		if len(m.Attachments) != 0 {
@@ -122,9 +145,24 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			messageActionsList.AddItem("Open Attachment", "", 'o', nil)
 		}
 
+		messageActionsList.AddItem("Copy Content", "", 'c', func() {
+			if err := clipboard.WriteAll(m.Content); err != nil {
+				return
+			}
+
+			mtv.app.SetRoot(mtv.app.MainFlex, false)
+		})
+
+		messageActionsList.AddItem("Copy ID", "", 'i', func() {
+			if err := clipboard.WriteAll(m.ID); err != nil {
+				return
+			}
+
+			mtv.app.SetRoot(mtv.app.MainFlex, true)
+		})
+
 		messageActionsList.
 			ShowSecondaryText(false).
-			AddItem("Copy Content", "", 'c', nil).
 			AddItem("Copy ID", "", 'i', nil).
 			SetDoneFunc(func() {
 				mtv.app.
@@ -155,28 +193,6 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 
 func onMessageActionsListSelected(app *App, mainText string, m *discordgo.Message) {
 	switch mainText {
-	case "Copy Content":
-		if err := clipboard.WriteAll(m.Content); err != nil {
-			return
-		}
-
-		app.SetRoot(app.MainFlex, false)
-	case "Copy ID":
-		if err := clipboard.WriteAll(m.ID); err != nil {
-			return
-		}
-
-		app.SetRoot(app.MainFlex, false)
-	case "Reply":
-		app.MessageInputField.SetTitle("Replying to " + m.Author.String())
-		app.
-			SetRoot(app.MainFlex, false).
-			SetFocus(app.MessageInputField)
-	case "Mention Reply":
-		app.MessageInputField.SetTitle("[@] Replying to " + m.Author.String())
-		app.
-			SetRoot(app.MainFlex, false).
-			SetFocus(app.MessageInputField)
 	case "Select Reply":
 		app.SelectedMessage, _ = discord.FindMessageByID(app.SelectedChannel.Messages, m.ReferencedMessage.ID)
 		app.MessagesTextView.
