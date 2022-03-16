@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/BurntSushi/toml v1.0.0
+	github.com/alecthomas/kong v0.5.0
 	github.com/atotto/clipboard v0.1.4
 	github.com/ayntgl/discordgo v0.23.3-0.20220124081725-decdb6a611b6
 	github.com/gdamore/tcell/v2 v2.4.1-0.20210905002822-f057f0a857a1
@@ -20,6 +21,7 @@ require (
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	golang.org/x/crypto v0.0.0-20220315160706-3147a52a75dd // indirect
 	golang.org/x/sys v0.0.0-20220315194320-039c03cc5b86 // indirect
