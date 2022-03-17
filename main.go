@@ -1,7 +1,8 @@
 package main
 
 import (
-	"github.com/alecthomas/kong"
+	"flag"
+
 	"github.com/ayntgl/discordo/config"
 	"github.com/ayntgl/discordo/discord"
 	"github.com/ayntgl/discordo/ui"
@@ -13,22 +14,25 @@ import (
 const name = "discordo"
 
 func main() {
-	cfg := config.New()
-	kong.Parse(cfg,
-		kong.Name(name),
-		kong.UsageOnError(),
-		kong.Vars{
-			"config": config.DefaultPath(),
-		},
-	)
+	var token string
+	var cfg string
+	flag.StringVar(&token, "token", "", "The authentication token.")
+	flag.StringVar(&cfg, "config", "", "The path of the configuration file.")
+	flag.Parse()
 
-	if cfg.Token == "" {
-		cfg.Token, _ = keyring.Get(name, "token")
+	if token == "" {
+		token, _ = keyring.Get(name, "token")
 	}
 
-	app := ui.NewApp(cfg)
-	if cfg.Token != "" {
-		err := app.Connect(cfg.Token)
+	c := config.New()
+	if cfg != "" {
+		c.Path = cfg
+	}
+	c.Load()
+
+	app := ui.NewApp(c)
+	if token != "" {
+		err := app.Connect(token)
 		if err != nil {
 			panic(err)
 		}

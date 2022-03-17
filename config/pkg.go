@@ -8,16 +8,15 @@ import (
 )
 
 type Config struct {
-	Token  string `toml:"-" name:"token" help:"The authentication token." short:"T"`
-	Config string `toml:"-" name:"config" help:"The path of the configuration file." default:"${config}" type:"path" short:"C"`
-
-	General GeneralConfig `toml:"general" kong:"-"`
-	Theme   ThemeConfig   `toml:"theme" kong:"-"`
-	Keys    KeysConfig    `toml:"keys" kong:"-"`
+	Path    string        `toml:"-"`
+	General GeneralConfig `toml:"general"`
+	Theme   ThemeConfig   `toml:"theme"`
+	Keys    KeysConfig    `toml:"keys"`
 }
 
 func New() *Config {
 	return &Config{
+		Path:    DefaultPath(),
 		General: newGeneralConfig(),
 		Theme:   newThemeConfig(),
 		Keys:    newKeysConfig(),
@@ -25,13 +24,13 @@ func New() *Config {
 }
 
 func (c *Config) Load() {
-	err := os.MkdirAll(filepath.Dir(c.Config), os.ModePerm)
+	err := os.MkdirAll(filepath.Dir(c.Path), os.ModePerm)
 	if err != nil {
 		panic(err)
 	}
 
-	if _, err = os.Stat(c.Config); os.IsNotExist(err) {
-		f, err := os.Create(c.Config)
+	if _, err = os.Stat(c.Path); os.IsNotExist(err) {
+		f, err := os.Create(c.Path)
 		if err != nil {
 			panic(err)
 		}
@@ -41,7 +40,7 @@ func (c *Config) Load() {
 			panic(err)
 		}
 	} else {
-		_, err = toml.DecodeFile(c.Config, &c)
+		_, err = toml.DecodeFile(c.Path, &c)
 		if err != nil {
 			panic(err)
 		}

@@ -66,7 +66,7 @@ sudo mv ./discordo /usr/local/bin
 
 - Log in using the account email and password (first-time login) and click on the "Login" button to continue.
 
-  - If you are using a bot account to login, set the `token` command-line flag to the token of the bot and prefix it with `Bot ` (eg: `--token "Bot OTI2MDU5NTQxNDE2Nzc5ODA2.Yc2KKA.2iZ-5JxgxG-9Ub8GHzBSn-NJjNg"`).
+  - If you are using a bot account to login, set the `token` command-line flag to the token of the bot and prefix it with `Bot ` (eg: `-token "Bot OTI2MDU5NTQxNDE2Nzc5ODA2.Yc2KKA.2iZ-5JxgxG-9Ub8GHzBSn-NJjNg"`).
 
   - By default, Discordo utilizes OS-specific keyring to store the authentication token. However, if you prefer not to use a keyring (not recommended), you may set the `token` command-line flag to the authentication token and Discordo will prioritize the usage of the provided token to login instead of keyring.
 

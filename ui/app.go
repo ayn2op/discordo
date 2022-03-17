@@ -30,8 +30,6 @@ func NewApp(c *config.Config) *App {
 		SelectedMessage: -1,
 	}
 
-	c.Load()
-
 	app.GuildsList = NewGuildsList(app)
 	app.ChannelsTreeView = NewChannelsTreeView(app)
 	app.MessagesTextView = NewMessagesTextView(app)
