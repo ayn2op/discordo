@@ -13,35 +13,26 @@ type Config struct {
 	Keybindings KeybindingsConfig `toml:"keybindings"`
 }
 
-func newConfig() Config {
-	return Config{
+func New() *Config {
+	return &Config{
 		General:     newGeneralConfig(),
 		Theme:       newThemeConfig(),
 		Keybindings: newKeybindingsConfig(),
 	}
 }
 
-func NewConfig() *Config {
-	path, err := os.UserConfigDir()
+func (c *Config) Load(path string) {
+	err := os.MkdirAll(filepath.Dir(path), os.ModePerm)
 	if err != nil {
 		panic(err)
 	}
 
-	path += "/discordo/config.toml"
-
-	err = os.MkdirAll(filepath.Dir(path), os.ModePerm)
-	if err != nil {
-		panic(err)
-	}
-
-	var c Config
 	if _, err = os.Stat(path); os.IsNotExist(err) {
 		f, err := os.Create(path)
 		if err != nil {
 			panic(err)
 		}
 
-		c = newConfig()
 		err = toml.NewEncoder(f).Encode(c)
 		if err != nil {
 			panic(err)
@@ -52,6 +43,14 @@ func NewConfig() *Config {
 			panic(err)
 		}
 	}
+}
 
-	return &c
+func DefaultPath() string {
+	path, err := os.UserConfigDir()
+	if err != nil {
+		panic(err)
+	}
+
+	path += "/discordo/config.toml"
+	return path
 }

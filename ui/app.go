@@ -23,9 +23,10 @@ type App struct {
 	SelectedMessage   int
 }
 
-func NewApp() *App {
+func NewApp(c *config.Config) *App {
 	app := &App{
 		MainFlex:        tview.NewFlex(),
+		Config:          c,
 		SelectedMessage: -1,
 	}
 
@@ -35,7 +36,6 @@ func NewApp() *App {
 	app.MessageInputField = NewMessageInputField(app)
 
 	app.Session, _ = discordgo.New()
-	app.Config = config.NewConfig()
 
 	app.Application = tview.NewApplication()
 	app.EnableMouse(app.Config.General.Mouse)

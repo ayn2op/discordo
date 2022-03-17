@@ -1,8 +1,8 @@
 package main
 
 import (
-	"os"
-
+	"github.com/alecthomas/kong"
+	"github.com/ayntgl/discordo/config"
 	"github.com/ayntgl/discordo/discord"
 	"github.com/ayntgl/discordo/ui"
 	"github.com/gdamore/tcell/v2"
@@ -10,18 +10,29 @@ import (
 	"github.com/zalando/go-keyring"
 )
 
-const keyringServiceName = "discordo"
+const name = "discordo"
 
 func main() {
-	app := ui.NewApp()
+	var cli struct {
+		Token  string `name:"token" help:"The authentication token." short:"T"`
+		Config string `name:"config" help:"The path of the configuration file." short:"C"`
+	}
+	kong.Parse(&cli, kong.Name(name), kong.UsageOnError())
 
-	token := os.Getenv("DISCORDO_TOKEN")
-	if token == "" {
-		token, _ = keyring.Get(keyringServiceName, "token")
+	if cli.Token == "" {
+		cli.Token, _ = keyring.Get(name, "token")
 	}
 
-	if token != "" {
-		err := app.Connect(token)
+	if cli.Config == "" {
+		cli.Config = config.DefaultPath()
+	}
+
+	c := config.New()
+	c.Load(cli.Config)
+
+	app := ui.NewApp(c)
+	if cli.Token != "" {
+		err := app.Connect(cli.Token)
 		if err != nil {
 			panic(err)
 		}
@@ -52,7 +63,7 @@ func main() {
 				app.DrawMainFlex()
 				app.SetFocus(app.GuildsList)
 
-				go keyring.Set(keyringServiceName, "token", lr.Token)
+				go keyring.Set(name, "token", lr.Token)
 			} else {
 				// The account has MFA enabled, reattempt login with MFA code and ticket.
 				mfaLoginForm := ui.NewLoginForm(true)
@@ -75,7 +86,7 @@ func main() {
 					app.DrawMainFlex()
 					app.SetFocus(app.GuildsList)
 
-					go keyring.Set(keyringServiceName, "token", lr.Token)
+					go keyring.Set(name, "token", lr.Token)
 				})
 			}
 		})
