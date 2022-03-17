@@ -9,7 +9,7 @@ import (
 
 type Config struct {
 	Token  string `toml:"-" name:"token" help:"The authentication token." short:"T"`
-	Config string `toml:"-" name:"config" help:"The path of the configuration file." type:"path" short:"C"`
+	Config string `toml:"-" name:"config" help:"The path of the configuration file." default:"${config}" type:"path" short:"C"`
 
 	General GeneralConfig `toml:"general" kong:"-"`
 	Theme   ThemeConfig   `toml:"theme" kong:"-"`
@@ -18,8 +18,6 @@ type Config struct {
 
 func New() *Config {
 	return &Config{
-		Config: DefaultPath(),
-
 		General: newGeneralConfig(),
 		Theme:   newThemeConfig(),
 		Keys:    newKeysConfig(),

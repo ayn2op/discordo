@@ -14,7 +14,13 @@ const name = "discordo"
 
 func main() {
 	cfg := config.New()
-	kong.Parse(cfg, kong.Name(name), kong.UsageOnError())
+	kong.Parse(cfg,
+		kong.Name(name),
+		kong.UsageOnError(),
+		kong.Vars{
+			"config": config.DefaultPath(),
+		},
+	)
 
 	if cfg.Token == "" {
 		cfg.Token, _ = keyring.Get(name, "token")
