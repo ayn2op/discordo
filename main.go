@@ -14,8 +14,8 @@ const name = "discordo"
 
 func main() {
 	var cli struct {
-		Token  string `env:"DISCORDO_TOKEN" name:"token" help:"The authentication token." short:"t"`
-		Config string `env:"DISCORDO_CONFIG" name:"config" help:"The path of the configuration file." short:"c"`
+		Token  string `name:"token" help:"The authentication token." short:"T"`
+		Config string `name:"config" help:"The path of the configuration file." short:"C"`
 	}
 	kong.Parse(&cli, kong.Name(name), kong.UsageOnError())
 
