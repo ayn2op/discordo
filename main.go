@@ -13,26 +13,16 @@ import (
 const name = "discordo"
 
 func main() {
-	var cli struct {
-		Token  string `name:"token" help:"The authentication token." short:"T"`
-		Config string `name:"config" help:"The path of the configuration file." short:"C"`
-	}
-	kong.Parse(&cli, kong.Name(name), kong.UsageOnError())
+	cfg := config.New()
+	kong.Parse(cfg, kong.Name(name), kong.UsageOnError())
 
-	if cli.Token == "" {
-		cli.Token, _ = keyring.Get(name, "token")
+	if cfg.Token == "" {
+		cfg.Token, _ = keyring.Get(name, "token")
 	}
 
-	if cli.Config == "" {
-		cli.Config = config.DefaultPath()
-	}
-
-	c := config.New()
-	c.Load(cli.Config)
-
-	app := ui.NewApp(c)
-	if cli.Token != "" {
-		err := app.Connect(cli.Token)
+	app := ui.NewApp(cfg)
+	if cfg.Token != "" {
+		err := app.Connect(cfg.Token)
 		if err != nil {
 			panic(err)
 		}

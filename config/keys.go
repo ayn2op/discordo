@@ -1,6 +1,6 @@
 package config
 
-type KeybindingsConfig struct {
+type KeysConfig struct {
 	ToggleGuildsList        string `toml:"toggle_guilds_list"`
 	ToggleChannelsTreeView  string `toml:"toggle_channels_tree_view"`
 	ToggleMessagesTextView  string `toml:"toggle_messages_text_view"`
@@ -15,8 +15,8 @@ type KeybindingsConfig struct {
 	SelectLastMessage     string `toml:"select_last_message"`
 }
 
-func newKeybindingsConfig() KeybindingsConfig {
-	return KeybindingsConfig{
+func newKeysConfig() KeysConfig {
+	return KeysConfig{
 		ToggleGuildsList:        "Rune[g]",
 		ToggleChannelsTreeView:  "Rune[c]",
 		ToggleMessagesTextView:  "Rune[m]",

@@ -30,6 +30,8 @@ func NewApp(c *config.Config) *App {
 		SelectedMessage: -1,
 	}
 
+	c.Load()
+
 	app.GuildsList = NewGuildsList(app)
 	app.ChannelsTreeView = NewChannelsTreeView(app)
 	app.MessagesTextView = NewMessagesTextView(app)
@@ -76,16 +78,16 @@ func (app *App) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 
 	if app.MainFlex.GetItemCount() != 0 {
 		switch e.Name() {
-		case app.Config.Keybindings.ToggleGuildsList:
+		case app.Config.Keys.ToggleGuildsList:
 			app.SetFocus(app.GuildsList)
 			return nil
-		case app.Config.Keybindings.ToggleChannelsTreeView:
+		case app.Config.Keys.ToggleChannelsTreeView:
 			app.SetFocus(app.ChannelsTreeView)
 			return nil
-		case app.Config.Keybindings.ToggleMessagesTextView:
+		case app.Config.Keys.ToggleMessagesTextView:
 			app.SetFocus(app.MessagesTextView)
 			return nil
-		case app.Config.Keybindings.ToggleMessageInputField:
+		case app.Config.Keys.ToggleMessageInputField:
 			app.SetFocus(app.MessageInputField)
 			return nil
 		}

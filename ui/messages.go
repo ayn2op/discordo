@@ -54,7 +54,7 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	}
 
 	switch e.Name() {
-	case mtv.app.Config.Keybindings.SelectPreviousMessage:
+	case mtv.app.Config.Keys.SelectPreviousMessage:
 		if len(mtv.app.MessagesTextView.GetHighlights()) == 0 {
 			mtv.app.SelectedMessage = len(ms) - 1
 		} else {
@@ -69,7 +69,7 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			ScrollToHighlight()
 
 		return nil
-	case mtv.app.Config.Keybindings.SelectNextMessage:
+	case mtv.app.Config.Keys.SelectNextMessage:
 		if len(mtv.app.MessagesTextView.GetHighlights()) == 0 {
 			mtv.app.SelectedMessage = len(ms) - 1
 		} else {
@@ -84,21 +84,21 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			ScrollToHighlight()
 
 		return nil
-	case mtv.app.Config.Keybindings.SelectFirstMessage:
+	case mtv.app.Config.Keys.SelectFirstMessage:
 		mtv.app.SelectedMessage = 0
 		mtv.app.MessagesTextView.
 			Highlight(ms[mtv.app.SelectedMessage].ID).
 			ScrollToHighlight()
 
 		return nil
-	case mtv.app.Config.Keybindings.SelectLastMessage:
+	case mtv.app.Config.Keys.SelectLastMessage:
 		mtv.app.SelectedMessage = len(ms) - 1
 		mtv.app.MessagesTextView.
 			Highlight(ms[mtv.app.SelectedMessage].ID).
 			ScrollToHighlight()
 
 		return nil
-	case mtv.app.Config.Keybindings.OpenMessageActionsList:
+	case mtv.app.Config.Keys.OpenMessageActionsList:
 		messageActionsList := tview.NewList()
 
 		hs := mtv.app.MessagesTextView.GetHighlights()
@@ -327,7 +327,7 @@ func (mi *MessageInputField) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		mi.app.MessagesTextView.Highlight()
 
 		return nil
-	case mi.app.Config.Keybindings.OpenExternalEditor:
+	case mi.app.Config.Keys.OpenExternalEditor:
 		e := os.Getenv("EDITOR")
 		if e == "" {
 			return nil
