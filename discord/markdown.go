@@ -3,10 +3,10 @@ package discord
 import "regexp"
 
 var (
-	boldRegex          = regexp.MustCompile(`(?m)\*\*(.*?)\*\*`)
-	italicRegex        = regexp.MustCompile(`(?m)\*(.*?)\*`)
-	underlineRegex     = regexp.MustCompile(`(?m)__(.*?)__`)
-	strikeThroughRegex = regexp.MustCompile(`(?m)~~(.*?)~~`)
+	boldRegex          = regexp.MustCompile(`(?ms)\*\*(.*?)\*\*`)
+	italicRegex        = regexp.MustCompile(`(?ms)\*(.*?)\*`)
+	underlineRegex     = regexp.MustCompile(`(?ms)__(.*?)__`)
+	strikeThroughRegex = regexp.MustCompile(`(?ms)~~(.*?)~~`)
 )
 
 func ParseMarkdown(md string) string {
