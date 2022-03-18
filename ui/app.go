@@ -21,6 +21,7 @@ type App struct {
 	SelectedChannel   *discordgo.Channel
 	Config            *config.Config
 	SelectedMessage   int
+	EditingMessage    *string
 }
 
 func NewApp(c *config.Config) *App {
@@ -28,6 +29,7 @@ func NewApp(c *config.Config) *App {
 		MainFlex:        tview.NewFlex(),
 		Config:          c,
 		SelectedMessage: -1,
+		EditingMessage:  nil,
 	}
 
 	app.GuildsList = NewGuildsList(app)
