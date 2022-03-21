@@ -21,7 +21,7 @@ func buildMessage(app *App, m *discordgo.Message) []byte {
 		b.WriteString(m.ID)
 		b.WriteString("\"]")
 		// Build the message associated with crosspost, channel follow add, pin, or a reply.
-		buildReferencedMessage(&b, m.ReferencedMessage, app.Session.State.User.ID)
+		buildReferencedMessage(app, &b, m.ReferencedMessage, app.Session.State.User.ID)
 
 		if app.Config.General.Timestamps {
 			b.WriteString("[::d]")
@@ -31,10 +31,10 @@ func buildMessage(app *App, m *discordgo.Message) []byte {
 		}
 
 		// Build the author of this message.
-		buildAuthor(&b, m.Author, app.Session.State.User.ID)
+		buildAuthor(app, &b, m.Author, app.Session.State.User.ID)
 
 		// Build the contents of the message.
-		buildContent(&b, m, app.Session.State.User.ID)
+		buildContent(app, &b, m, app.Session.State.User.ID)
 
 		if m.EditedTimestamp != nil {
 			b.WriteString(" [::d](edited)[::-]")
@@ -52,19 +52,19 @@ func buildMessage(app *App, m *discordgo.Message) []byte {
 
 		b.WriteByte('\n')
 	case discordgo.MessageTypeGuildMemberJoin:
-		b.WriteString("[#5865F2]")
+		b.WriteString("["+app.Config.Theme.ChannelUpdate+"]")
 		b.WriteString(m.Author.Username)
 		b.WriteString("[-] joined the server.")
 
 		b.WriteByte('\n')
 	case discordgo.MessageTypeCall:
-		b.WriteString("[#5865F2]")
+		b.WriteString("["+app.Config.Theme.ChannelUpdate+"]")
 		b.WriteString(m.Author.Username)
 		b.WriteString("[-] started a call.")
 
 		b.WriteByte('\n')
 	case discordgo.MessageTypeChannelPinnedMessage:
-		b.WriteString("[#5865F2]")
+		b.WriteString("["+app.Config.Theme.ChannelUpdate+"]")
 		b.WriteString(m.Author.Username)
 		b.WriteString("[-] pinned a message.")
 
@@ -81,14 +81,14 @@ func buildMessage(app *App, m *discordgo.Message) []byte {
 	return nil
 }
 
-func buildReferencedMessage(b *strings.Builder, rm *discordgo.Message, clientID string) {
+func buildReferencedMessage(app *App, b *strings.Builder, rm *discordgo.Message, clientID string) {
 	if rm != nil {
 		b.WriteString(" ╭ ")
 		b.WriteString("[::d]")
-		buildAuthor(b, rm.Author, clientID)
+		buildAuthor(app, b, rm.Author, clientID)
 
 		if rm.Content != "" {
-			rm.Content = buildMentions(rm.Content, rm.Mentions, clientID)
+			rm.Content = buildMentions(app, rm.Content, rm.Mentions, clientID)
 			b.WriteString(discord.ParseMarkdown(rm.Content))
 		}
 
@@ -97,9 +97,9 @@ func buildReferencedMessage(b *strings.Builder, rm *discordgo.Message, clientID 
 	}
 }
 
-func buildContent(b *strings.Builder, m *discordgo.Message, clientID string) {
+func buildContent(app *App, b *strings.Builder, m *discordgo.Message, clientID string) {
 	if m.Content != "" {
-		m.Content = buildMentions(m.Content, m.Mentions, clientID)
+		m.Content = buildMentions(app, m.Content, m.Mentions, clientID)
 		b.WriteString(discord.ParseMarkdown(m.Content))
 	}
 }
@@ -187,13 +187,13 @@ func buildAttachments(b *strings.Builder, as []*discordgo.MessageAttachment) {
 	}
 }
 
-func buildMentions(content string, mentions []*discordgo.User, clientID string) string {
+func buildMentions(app *App, content string, mentions []*discordgo.User, clientID string) string {
 	for _, mUser := range mentions {
 		var color string
 		if mUser.ID == clientID {
-			color = "[:#5865F2]"
+			color = "[:"+app.Config.Theme.MentionSelf+"]"
 		} else {
-			color = "[#EB459E]"
+			color = "["+app.Config.Theme.MentionOther+"]"
 		}
 
 		content = strings.NewReplacer(
@@ -209,11 +209,11 @@ func buildMentions(content string, mentions []*discordgo.User, clientID string) 
 	return content
 }
 
-func buildAuthor(b *strings.Builder, u *discordgo.User, clientID string) {
+func buildAuthor(app *App, b *strings.Builder, u *discordgo.User, clientID string) {
 	if u.ID == clientID {
-		b.WriteString("[#57F287]")
+		b.WriteString("["+app.Config.Theme.NameSelf+"]")
 	} else {
-		b.WriteString("[#ED4245]")
+		b.WriteString("["+app.Config.Theme.NameOther+"]")
 	}
 
 	b.WriteString(u.Username)
@@ -221,6 +221,6 @@ func buildAuthor(b *strings.Builder, u *discordgo.User, clientID string) {
 	// If the message author is a bot account, render the message with bot label
 	// for distinction.
 	if u.Bot {
-		b.WriteString("[#EB459E]BOT[-] ")
+		b.WriteString("["+app.Config.Theme.NameBot+"]BOT[-] ")
 	}
 }
