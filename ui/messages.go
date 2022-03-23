@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/atotto/clipboard"
-	"github.com/ayntgl/discordgo"
+	"github.com/ayntgl/astatine"
 	"github.com/ayntgl/discordo/discord"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -111,7 +111,7 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
-		if discord.HasPermission(mtv.app.Session.State, mtv.app.SelectedChannel.ID, discordgo.PermissionSendMessages) {
+		if discord.HasPermission(mtv.app.Session.State, mtv.app.SelectedChannel.ID, astatine.PermissionSendMessages) {
 			messageActionsList.AddItem("Reply", "", 'r', func() {
 				mtv.app.MessageInputField.SetTitle("Replying to " + m.Author.String())
 				mtv.app.
@@ -191,7 +191,7 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	return e
 }
 
-func onMessageActionsListSelected(app *App, mainText string, m *discordgo.Message) {
+func onMessageActionsListSelected(app *App, mainText string, m *astatine.Message) {
 	switch mainText {
 	case "Select Reply":
 		app.SelectedMessage, _ = discord.FindMessageByID(app.SelectedChannel.Messages, m.ReferencedMessage.ID)
@@ -287,10 +287,10 @@ func (mi *MessageInputField) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 
 		if len(mi.app.MessagesTextView.GetHighlights()) != 0 {
 			_, m := discord.FindMessageByID(mi.app.SelectedChannel.Messages, mi.app.MessagesTextView.GetHighlights()[0])
-			d := &discordgo.MessageSend{
+			d := &astatine.MessageSend{
 				Content:         t,
 				Reference:       m.Reference(),
-				AllowedMentions: &discordgo.MessageAllowedMentions{RepliedUser: false},
+				AllowedMentions: &astatine.MessageAllowedMentions{RepliedUser: false},
 			}
 			if strings.HasPrefix(mi.app.MessageInputField.GetTitle(), "[@]") {
 				d.AllowedMentions.RepliedUser = true

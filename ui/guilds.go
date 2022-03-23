@@ -3,7 +3,7 @@ package ui
 import (
 	"sort"
 
-	"github.com/ayntgl/discordgo"
+	"github.com/ayntgl/astatine"
 	"github.com/ayntgl/discordo/discord"
 	"github.com/rivo/tview"
 )
@@ -55,7 +55,7 @@ func (gl *GuildsList) onSelected(idx int, mainText string, secondaryText string,
 		})
 
 		for _, c := range cs {
-			if (c.Type == discordgo.ChannelTypeGuildText || c.Type == discordgo.ChannelTypeGuildNews) && (c.ParentID == "") {
+			if (c.Type == astatine.ChannelTypeGuildText || c.Type == astatine.ChannelTypeGuildNews) && (c.ParentID == "") {
 				channelTreeNode := tview.NewTreeNode(discord.ChannelToString(c)).
 					SetReference(c.ID)
 				rootTreeNode.AddChild(channelTreeNode)
@@ -64,7 +64,7 @@ func (gl *GuildsList) onSelected(idx int, mainText string, secondaryText string,
 
 	CATEGORY:
 		for _, c := range cs {
-			if c.Type == discordgo.ChannelTypeGuildCategory {
+			if c.Type == astatine.ChannelTypeGuildCategory {
 				for _, nestedChannel := range cs {
 					if nestedChannel.ParentID == c.ID {
 						channelTreeNode := tview.NewTreeNode(c.Name).
@@ -81,7 +81,7 @@ func (gl *GuildsList) onSelected(idx int, mainText string, secondaryText string,
 		}
 
 		for _, c := range cs {
-			if (c.Type == discordgo.ChannelTypeGuildText || c.Type == discordgo.ChannelTypeGuildNews) && (c.ParentID != "") {
+			if (c.Type == astatine.ChannelTypeGuildText || c.Type == astatine.ChannelTypeGuildNews) && (c.ParentID != "") {
 				var parentTreeNode *tview.TreeNode
 				rootTreeNode.Walk(func(node, _ *tview.TreeNode) bool {
 					if node.GetReference() == c.ParentID {

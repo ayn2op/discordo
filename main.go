@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 
+	"github.com/ayntgl/astatine"
 	"github.com/ayntgl/discordo/config"
-	"github.com/ayntgl/discordo/discord"
 	"github.com/ayntgl/discordo/ui"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -32,7 +32,8 @@ func main() {
 
 	app := ui.NewApp(c)
 	if token != "" {
-		err := app.Connect(token)
+		app.Session = astatine.New(token)
+		err := app.Connect()
 		if err != nil {
 			panic(err)
 		}
@@ -40,6 +41,8 @@ func main() {
 		app.DrawMainFlex()
 		app.SetFocus(app.GuildsList)
 	} else {
+		app.Session = astatine.New(token)
+
 		loginForm := ui.NewLoginForm(false)
 		loginForm.AddButton("Login", func() {
 			email := loginForm.GetFormItem(0).(*tview.InputField).GetText()
@@ -49,13 +52,15 @@ func main() {
 			}
 
 			// Login using the email and password
-			lr, err := discord.Login(app.Session, email, password)
+			lr, err := app.Session.Login(email, password)
 			if err != nil {
 				panic(err)
 			}
 
-			if lr.Token != "" && !lr.MFA {
-				err = app.Connect(lr.Token)
+			if lr.Token != "" && !lr.Mfa {
+				app.Session.Token = lr.Token
+				app.Session.Identify.Token = lr.Token
+				err = app.Connect()
 				if err != nil {
 					panic(err)
 				}
@@ -68,17 +73,19 @@ func main() {
 				// The account has MFA enabled, reattempt login with MFA code and ticket.
 				mfaLoginForm := ui.NewLoginForm(true)
 				mfaLoginForm.AddButton("Login", func() {
-					mfaCode := loginForm.GetFormItem(0).(*tview.InputField).GetText()
-					if mfaCode == "" {
+					code := loginForm.GetFormItem(0).(*tview.InputField).GetText()
+					if code == "" {
 						return
 					}
 
-					lr, err = discord.TOTP(app.Session, mfaCode, lr.Ticket)
+					lr, err = app.Session.Totp(code, lr.Ticket)
 					if err != nil {
 						panic(err)
 					}
 
-					err = app.Connect(lr.Token)
+					app.Session.Token = lr.Token
+					app.Session.Identify.Token = lr.Token
+					err = app.Connect()
 					if err != nil {
 						panic(err)
 					}

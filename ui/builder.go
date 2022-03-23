@@ -5,15 +5,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ayntgl/discordgo"
+	"github.com/ayntgl/astatine"
 	"github.com/ayntgl/discordo/discord"
 )
 
-func buildMessage(app *App, m *discordgo.Message) []byte {
+func buildMessage(app *App, m *astatine.Message) []byte {
 	var b strings.Builder
 
 	switch m.Type {
-	case discordgo.MessageTypeDefault, discordgo.MessageTypeReply:
+	case astatine.MessageTypeDefault, astatine.MessageTypeReply:
 		// Define a new region and assign message ID as the region ID.
 		// Learn more:
 		// https://pkg.go.dev/github.com/rivo/tview#hdr-Regions_and_Highlights
@@ -51,19 +51,19 @@ func buildMessage(app *App, m *discordgo.Message) []byte {
 		b.WriteString("[\"\"]")
 
 		b.WriteByte('\n')
-	case discordgo.MessageTypeGuildMemberJoin:
+	case astatine.MessageTypeGuildMemberJoin:
 		b.WriteString("[#5865F2]")
 		b.WriteString(m.Author.Username)
 		b.WriteString("[-] joined the server.")
 
 		b.WriteByte('\n')
-	case discordgo.MessageTypeCall:
+	case astatine.MessageTypeCall:
 		b.WriteString("[#5865F2]")
 		b.WriteString(m.Author.Username)
 		b.WriteString("[-] started a call.")
 
 		b.WriteByte('\n')
-	case discordgo.MessageTypeChannelPinnedMessage:
+	case astatine.MessageTypeChannelPinnedMessage:
 		b.WriteString("[#5865F2]")
 		b.WriteString(m.Author.Username)
 		b.WriteString("[-] pinned a message.")
@@ -81,7 +81,7 @@ func buildMessage(app *App, m *discordgo.Message) []byte {
 	return nil
 }
 
-func buildReferencedMessage(b *strings.Builder, rm *discordgo.Message, clientID string) {
+func buildReferencedMessage(b *strings.Builder, rm *astatine.Message, clientID string) {
 	if rm != nil {
 		b.WriteString(" ╭ ")
 		b.WriteString("[::d]")
@@ -97,16 +97,16 @@ func buildReferencedMessage(b *strings.Builder, rm *discordgo.Message, clientID 
 	}
 }
 
-func buildContent(b *strings.Builder, m *discordgo.Message, clientID string) {
+func buildContent(b *strings.Builder, m *astatine.Message, clientID string) {
 	if m.Content != "" {
 		m.Content = buildMentions(m.Content, m.Mentions, clientID)
 		b.WriteString(discord.ParseMarkdown(m.Content))
 	}
 }
 
-func buildEmbeds(b *strings.Builder, es []*discordgo.MessageEmbed) {
+func buildEmbeds(b *strings.Builder, es []*astatine.MessageEmbed) {
 	for _, e := range es {
-		if e.Type != discordgo.EmbedTypeRich {
+		if e.Type != astatine.EmbedTypeRich {
 			continue
 		}
 
@@ -177,7 +177,7 @@ func buildEmbeds(b *strings.Builder, es []*discordgo.MessageEmbed) {
 	}
 }
 
-func buildAttachments(b *strings.Builder, as []*discordgo.MessageAttachment) {
+func buildAttachments(b *strings.Builder, as []*astatine.MessageAttachment) {
 	for _, a := range as {
 		b.WriteByte('\n')
 		b.WriteByte('[')
@@ -187,7 +187,7 @@ func buildAttachments(b *strings.Builder, as []*discordgo.MessageAttachment) {
 	}
 }
 
-func buildMentions(content string, mentions []*discordgo.User, clientID string) string {
+func buildMentions(content string, mentions []*astatine.User, clientID string) string {
 	for _, mUser := range mentions {
 		var color string
 		if mUser.ID == clientID {
@@ -209,7 +209,7 @@ func buildMentions(content string, mentions []*discordgo.User, clientID string) 
 	return content
 }
 
-func buildAuthor(b *strings.Builder, u *discordgo.User, clientID string) {
+func buildAuthor(b *strings.Builder, u *astatine.User, clientID string) {
 	if u.ID == clientID {
 		b.WriteString("[#57F287]")
 	} else {

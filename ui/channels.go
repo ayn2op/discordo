@@ -1,7 +1,7 @@
 package ui
 
 import (
-	"github.com/ayntgl/discordgo"
+	"github.com/ayntgl/astatine"
 	"github.com/rivo/tview"
 )
 
@@ -38,7 +38,7 @@ func (ctv *ChannelsTreeView) onSelected(n *tview.TreeNode) {
 		return
 	}
 
-	if c.Type == discordgo.ChannelTypeGuildCategory {
+	if c.Type == astatine.ChannelTypeGuildCategory {
 		n.SetExpanded(!n.IsExpanded())
 		return
 	}

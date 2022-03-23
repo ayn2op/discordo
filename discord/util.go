@@ -3,10 +3,10 @@ package discord
 import (
 	"strings"
 
-	"github.com/ayntgl/discordgo"
+	"github.com/ayntgl/astatine"
 )
 
-func ChannelToString(c *discordgo.Channel) string {
+func ChannelToString(c *astatine.Channel) string {
 	var repr string
 	if c.Name != "" {
 		repr = "#" + c.Name
@@ -25,7 +25,7 @@ func ChannelToString(c *discordgo.Channel) string {
 	return repr
 }
 
-func FindMessageByID(ms []*discordgo.Message, mID string) (int, *discordgo.Message) {
+func FindMessageByID(ms []*astatine.Message, mID string) (int, *astatine.Message) {
 	for i, m := range ms {
 		if m.ID == mID {
 			return i, m
@@ -35,7 +35,7 @@ func FindMessageByID(ms []*discordgo.Message, mID string) (int, *discordgo.Messa
 	return -1, nil
 }
 
-func HasPermission(s *discordgo.State, cID string, p int64) bool {
+func HasPermission(s *astatine.State, cID string, p int64) bool {
 	perm, err := s.UserChannelPermissions(s.User.ID, cID)
 	if err != nil {
 		return false

@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ayntgl/discordgo"
+	"github.com/ayntgl/astatine"
 	"github.com/ayntgl/discordo/config"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -17,8 +17,8 @@ type App struct {
 	ChannelsTreeView  *ChannelsTreeView
 	MessagesTextView  *MessagesTextView
 	MessageInputField *MessageInputField
-	Session           *discordgo.Session
-	SelectedChannel   *discordgo.Channel
+	Session           *astatine.Session
+	SelectedChannel   *astatine.Channel
 	Config            *config.Config
 	SelectedMessage   int
 }
@@ -35,8 +35,6 @@ func NewApp(c *config.Config) *App {
 	app.MessagesTextView = NewMessagesTextView(app)
 	app.MessageInputField = NewMessageInputField(app)
 
-	app.Session, _ = discordgo.New()
-
 	app.Application = tview.NewApplication()
 	app.EnableMouse(app.Config.General.Mouse)
 	app.SetInputCapture(app.onInputCapture)
@@ -44,16 +42,16 @@ func NewApp(c *config.Config) *App {
 	return app
 }
 
-func (app *App) Connect(token string) error {
+func (app *App) Connect() error {
 	// For user accounts, all of the guilds, the user is in, are dispatched in the READY gateway event.
 	// Whereas, for bot accounts, the guilds are dispatched discretely in the GUILD_CREATE gateway events.
-	if !strings.HasPrefix(token, "Bot") {
+	if !strings.HasPrefix(app.Session.Identify.Token, "Bot") {
 		app.Session.UserAgent = app.Config.General.UserAgent
-		app.Session.Identify = discordgo.Identify{
+		app.Session.Identify = astatine.Identify{
 			Compress:       false,
 			LargeThreshold: 0,
 			Intents:        0,
-			Properties: discordgo.IdentifyProperties{
+			Properties: astatine.IdentifyProperties{
 				OS:      app.Config.General.Identify.Os,
 				Browser: app.Config.General.Identify.Browser,
 			},
@@ -61,8 +59,6 @@ func (app *App) Connect(token string) error {
 		app.Session.AddHandlerOnce(app.onSessionReady)
 	}
 
-	app.Session.Token = token
-	app.Session.Identify.Token = token
 	app.Session.AddHandler(app.onSessionGuildCreate)
 	app.Session.AddHandler(app.onSessionMessageCreate)
 
@@ -110,7 +106,7 @@ func (app *App) DrawMainFlex() {
 	app.SetRoot(app.MainFlex, true)
 }
 
-func (app *App) onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
+func (app *App) onSessionReady(_ *astatine.Session, r *astatine.Ready) {
 	sort.Slice(r.Guilds, func(a, b int) bool {
 		found := false
 		for _, guildID := range r.Settings.GuildPositions {
@@ -132,11 +128,11 @@ func (app *App) onSessionReady(_ *discordgo.Session, r *discordgo.Ready) {
 	app.GuildsList.AddItem("Direct Messages", "", 0, nil)
 }
 
-func (app *App) onSessionGuildCreate(_ *discordgo.Session, g *discordgo.GuildCreate) {
+func (app *App) onSessionGuildCreate(_ *astatine.Session, g *astatine.GuildCreate) {
 	app.GuildsList.AddItem(g.Name, "", 0, nil)
 }
 
-func (app *App) onSessionMessageCreate(_ *discordgo.Session, m *discordgo.MessageCreate) {
+func (app *App) onSessionMessageCreate(_ *astatine.Session, m *astatine.MessageCreate) {
 	if app.SelectedChannel != nil && app.SelectedChannel.ID == m.ChannelID {
 		app.SelectedChannel.Messages = append(app.SelectedChannel.Messages, m.Message)
 		_, err := app.MessagesTextView.Write(buildMessage(app, m.Message))
