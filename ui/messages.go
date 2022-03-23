@@ -27,8 +27,8 @@ type MessagesTextView struct {
 
 func NewMessagesTextView(app *App) *MessagesTextView {
 	mtv := &MessagesTextView{
-		TextView: tview.NewTextView(),
-		app:      app,
+		TextView:      tview.NewTextView(),
+		app:           app,
 	}
 
 	mtv.SetDynamicColors(true)
@@ -111,8 +111,26 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
+		if m.Author != nil && m.Author.ID == mtv.app.Session.State.User.ID {
+			messageActionsList.AddItem("Delete", "", 'd', func() {
+				mtv.app.Session.ChannelMessageDelete(mtv.app.SelectedChannel.ID, m.ID)
+				mtv.app.
+					SetRoot(mtv.app.MainFlex, false).
+					SetFocus(mtv.app.MessageInputField)
+			})
+			messageActionsList.AddItem("Edit", "", 'e', func() {
+				mtv.app.EditingMessage = &m.ID
+				mtv.app.MessageInputField.SetTitle("Editing message")
+				mtv.app.MessageInputField.SetText(m.Content)
+				mtv.app.
+					SetRoot(mtv.app.MainFlex, true).
+					SetFocus(mtv.app.MessageInputField)
+			})
+		}
+
 		if discord.HasPermission(mtv.app.Session.State, mtv.app.SelectedChannel.ID, discordgo.PermissionSendMessages) {
 			messageActionsList.AddItem("Reply", "", 'r', func() {
+				mtv.app.EditingMessage = nil
 				mtv.app.MessageInputField.SetTitle("Replying to " + m.Author.String())
 				mtv.app.
 					SetRoot(mtv.app.MainFlex, true).
@@ -120,6 +138,7 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			})
 
 			messageActionsList.AddItem("Mention Reply", "", 'R', func() {
+				mtv.app.EditingMessage = nil
 				mtv.app.MessageInputField.SetTitle("[@] Replying to " + m.Author.String())
 				mtv.app.
 					SetRoot(mtv.app.MainFlex, false).
@@ -179,6 +198,7 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 
 		return nil
 	case "Esc":
+		mtv.app.EditingMessage = nil
 		mtv.app.SelectedMessage = -1
 		mtv.app.SetFocus(mtv.app.MainFlex)
 		mtv.app.MessagesTextView.
@@ -282,10 +302,19 @@ func (mi *MessageInputField) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 
 		t := strings.TrimSpace(mi.app.MessageInputField.GetText())
 		if t == "" {
+			if mi.app.EditingMessage != nil {
+				mi.app.Session.ChannelMessageDelete(mi.app.SelectedChannel.ID, *mi.app.EditingMessage)
+				return nil
+			}
 			return nil
 		}
 
-		if len(mi.app.MessagesTextView.GetHighlights()) != 0 {
+		if mi.app.EditingMessage != nil {
+			go mi.app.Session.ChannelMessageEdit(mi.app.SelectedChannel.ID, *mi.app.EditingMessage, t)
+
+			mi.app.EditingMessage = nil
+			mi.app.MessageInputField.SetTitle("")
+		} else if len(mi.app.MessagesTextView.GetHighlights()) != 0 {
 			_, m := discord.FindMessageByID(mi.app.SelectedChannel.Messages, mi.app.MessagesTextView.GetHighlights()[0])
 			d := &discordgo.MessageSend{
 				Content:         t,
@@ -323,6 +352,7 @@ func (mi *MessageInputField) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			SetTitle("")
 		mi.app.SetFocus(mi.app.MainFlex)
 
+		mi.app.EditingMessage = nil
 		mi.app.SelectedMessage = -1
 		mi.app.MessagesTextView.Highlight()
 
