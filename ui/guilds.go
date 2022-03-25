@@ -19,6 +19,7 @@ func NewGuildsList(app *App) *GuildsList {
 		app:  app,
 	}
 
+	gl.AddItem("Direct Messages", "", 0, nil)
 	gl.ShowSecondaryText(false)
 	gl.SetTitle("Guilds")
 	gl.SetTitleAlign(tview.AlignLeft)
@@ -49,7 +50,7 @@ func (gl *GuildsList) onSelected(idx int, mainText string, secondaryText string,
 			rootTreeNode.AddChild(channelTreeNode)
 		}
 	} else { // Guild
-		cs := gl.app.Session.State.Guilds[idx].Channels
+		cs := gl.app.Session.State.Guilds[idx-1].Channels
 		sort.Slice(cs, func(i, j int) bool {
 			return cs[i].Position < cs[j].Position
 		})

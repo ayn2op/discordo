@@ -60,7 +60,6 @@ func (app *App) Connect() error {
 
 	app.Session.AddHandler(app.onSessionGuildCreate)
 	app.Session.AddHandler(app.onSessionMessageCreate)
-
 	return app.Session.Open()
 }
 
@@ -123,8 +122,6 @@ func (app *App) onSessionReady(_ *astatine.Session, r *astatine.Ready) {
 	for _, g := range r.Guilds {
 		app.GuildsList.AddItem(g.Name, "", 0, nil)
 	}
-
-	app.GuildsList.AddItem("Direct Messages", "", 0, nil)
 }
 
 func (app *App) onSessionGuildCreate(_ *astatine.Session, g *astatine.GuildCreate) {
