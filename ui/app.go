@@ -23,9 +23,10 @@ type App struct {
 	SelectedMessage   int
 }
 
-func NewApp(c *config.Config) *App {
+func NewApp(token string, c *config.Config) *App {
 	app := &App{
 		MainFlex:        tview.NewFlex(),
+		Session:         astatine.New(token),
 		Config:          c,
 		SelectedMessage: -1,
 	}
