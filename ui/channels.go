@@ -2,6 +2,7 @@ package ui
 
 import (
 	"github.com/ayntgl/astatine"
+	"github.com/ayntgl/discordo/discord"
 	"github.com/rivo/tview"
 )
 
@@ -30,7 +31,8 @@ func (ctv *ChannelsTreeView) onSelected(n *tview.TreeNode) {
 	ctv.app.SelectedMessage = -1
 	ctv.app.MessagesTextView.
 		Highlight().
-		Clear()
+		Clear().
+		SetTitle("")
 	ctv.app.MessageInputField.SetText("")
 
 	c, err := ctv.app.Session.State.Channel(n.GetReference().(string))
@@ -45,6 +47,12 @@ func (ctv *ChannelsTreeView) onSelected(n *tview.TreeNode) {
 
 	ctv.app.SelectedChannel = c
 	ctv.app.SetFocus(ctv.app.MessageInputField)
+
+	title := discord.ChannelToString(c)
+	if c.Topic != "" {
+		title += " - " + discord.ParseMarkdown(c.Topic)
+	}
+	ctv.app.MessagesTextView.SetTitle(title)
 
 	go func() {
 		ms, err := ctv.app.Session.ChannelMessages(c.ID, ctv.app.Config.General.FetchMessagesLimit, "", "", "")

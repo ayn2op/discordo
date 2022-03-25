@@ -37,6 +37,7 @@ func NewMessagesTextView(app *App) *MessagesTextView {
 	mtv.SetChangedFunc(func() {
 		mtv.app.Draw()
 	})
+	mtv.SetTitleAlign(tview.AlignLeft)
 	mtv.SetBorder(true)
 	mtv.SetBorderPadding(0, 0, 1, 1)
 	mtv.SetInputCapture(mtv.onInputCapture)
