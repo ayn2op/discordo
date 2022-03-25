@@ -68,7 +68,6 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		mtv.app.MessagesTextView.
 			Highlight(ms[mtv.app.SelectedMessage].ID).
 			ScrollToHighlight()
-
 		return nil
 	case mtv.app.Config.Keys.SelectNextMessage:
 		if len(mtv.app.MessagesTextView.GetHighlights()) == 0 {
@@ -83,25 +82,20 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		mtv.app.MessagesTextView.
 			Highlight(ms[mtv.app.SelectedMessage].ID).
 			ScrollToHighlight()
-
 		return nil
 	case mtv.app.Config.Keys.SelectFirstMessage:
 		mtv.app.SelectedMessage = 0
 		mtv.app.MessagesTextView.
 			Highlight(ms[mtv.app.SelectedMessage].ID).
 			ScrollToHighlight()
-
 		return nil
 	case mtv.app.Config.Keys.SelectLastMessage:
 		mtv.app.SelectedMessage = len(ms) - 1
 		mtv.app.MessagesTextView.
 			Highlight(ms[mtv.app.SelectedMessage].ID).
 			ScrollToHighlight()
-
 		return nil
 	case mtv.app.Config.Keys.OpenMessageActionsList:
-		messageActionsList := tview.NewList()
-
 		hs := mtv.app.MessagesTextView.GetHighlights()
 		if len(hs) == 0 {
 			return nil
@@ -112,71 +106,88 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
+		actionsList := tview.NewList()
+		actionsList.ShowSecondaryText(false)
+		actionsList.SetDoneFunc(func() {
+			mtv.app.
+				SetRoot(mtv.app.MainFlex, true).
+				SetFocus(mtv.app.MessagesTextView)
+		})
+		actionsList.SetTitle("Press the Escape key to close")
+		actionsList.SetTitleAlign(tview.AlignLeft)
+		actionsList.SetBorder(true)
+		actionsList.SetBorderPadding(0, 0, 1, 1)
+
+		// If the client user has `SEND_MESSAGES` permission, add the appropriate actions to the list.
 		if discord.HasPermission(mtv.app.Session.State, mtv.app.SelectedChannel.ID, astatine.PermissionSendMessages) {
-			messageActionsList.AddItem("Reply", "", 'r', func() {
+			actionsList.AddItem("Reply", "", 'r', func() {
 				mtv.app.MessageInputField.SetTitle("Replying to " + m.Author.String())
 				mtv.app.
 					SetRoot(mtv.app.MainFlex, true).
 					SetFocus(mtv.app.MessageInputField)
 			})
 
-			messageActionsList.AddItem("Mention Reply", "", 'R', func() {
+			actionsList.AddItem("Mention Reply", "", 'R', func() {
 				mtv.app.MessageInputField.SetTitle("[@] Replying to " + m.Author.String())
 				mtv.app.
-					SetRoot(mtv.app.MainFlex, false).
+					SetRoot(mtv.app.MainFlex, true).
 					SetFocus(mtv.app.MessageInputField)
 			})
 		}
 
+		// If the referenced message exists, add the appropriate actions to the list.
 		if m.ReferencedMessage != nil {
-			messageActionsList.AddItem("Select Reply", "", 'm', nil)
+			actionsList.AddItem("Select Reply", "", 'm', func() {
+				mtv.app.SelectedMessage, _ = discord.FindMessageByID(mtv.app.SelectedChannel.Messages, m.ReferencedMessage.ID)
+				mtv.app.MessagesTextView.
+					Highlight(m.ReferencedMessage.ID).
+					ScrollToHighlight()
+				mtv.app.
+					SetRoot(mtv.app.MainFlex, true).
+					SetFocus(mtv.app.MessagesTextView)
+			})
 		}
 
+		// If the content of the message contains link(s), add the appropriate actions to the list.
 		links := linkRegex.FindAllString(m.Content, -1)
 		if len(links) != 0 {
-			messageActionsList.AddItem("Open Link", "", 'l', func() {
+			actionsList.AddItem("Open Link", "", 'l', func() {
 				for _, l := range links {
 					go open.Run(l)
 				}
 			})
 		}
 
+		// If the message contains attachments, add the appropriate actions to the actions list.
 		if len(m.Attachments) != 0 {
-			messageActionsList.AddItem("Download Attachment", "", 'd', nil)
-			messageActionsList.AddItem("Open Attachment", "", 'o', nil)
+			actionsList.AddItem("Download Attachment", "", 'd', func() {
+				go mtv.downloadAttachment(m.Attachments)
+				mtv.app.SetRoot(mtv.app.MainFlex, true)
+			})
+			actionsList.AddItem("Open Attachment", "", 'o', func() {
+				go mtv.openAttachment(m.Attachments)
+				mtv.app.SetRoot(mtv.app.MainFlex, true)
+			})
 		}
 
-		messageActionsList.AddItem("Copy Content", "", 'c', func() {
+		actionsList.AddItem("Copy Content", "", 'c', func() {
 			if err := clipboard.WriteAll(m.Content); err != nil {
 				return
 			}
 
-			mtv.app.SetRoot(mtv.app.MainFlex, false)
+			mtv.app.SetRoot(mtv.app.MainFlex, true)
+			mtv.app.SetFocus(mtv.app.MessagesTextView)
 		})
-
-		messageActionsList.AddItem("Copy ID", "", 'i', func() {
+		actionsList.AddItem("Copy ID", "", 'i', func() {
 			if err := clipboard.WriteAll(m.ID); err != nil {
 				return
 			}
 
 			mtv.app.SetRoot(mtv.app.MainFlex, true)
+			mtv.app.SetFocus(mtv.app.MessagesTextView)
 		})
 
-		messageActionsList.
-			ShowSecondaryText(false).
-			SetDoneFunc(func() {
-				mtv.app.
-					SetRoot(mtv.app.MainFlex, true).
-					SetFocus(mtv.app.MessagesTextView)
-			}).
-			SetSelectedFunc(func(_ int, mainText string, _ string, _ rune) {
-				onMessageActionsListSelected(mtv.app, mainText, m)
-			}).
-			SetTitle("Press the Escape key to close").
-			SetBorder(true)
-
-		mtv.app.SetRoot(messageActionsList, true)
-
+		mtv.app.SetRoot(actionsList, true)
 		return nil
 	case "Esc":
 		mtv.app.SelectedMessage = -1
@@ -184,72 +195,60 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		mtv.app.MessagesTextView.
 			Clear().
 			Highlight()
-
 		return nil
 	}
 
 	return e
 }
 
-func onMessageActionsListSelected(app *App, mainText string, m *astatine.Message) {
-	switch mainText {
-	case "Select Reply":
-		app.SelectedMessage, _ = discord.FindMessageByID(app.SelectedChannel.Messages, m.ReferencedMessage.ID)
-		app.MessagesTextView.
-			Highlight(m.ReferencedMessage.ID).
-			ScrollToHighlight()
-		app.
-			SetRoot(app.MainFlex, false).
-			SetFocus(app.MessagesTextView)
-	case "Download Attachment":
-		for _, a := range m.Attachments {
-			f, err := os.Create(filepath.Join(app.Config.General.AttachmentDownloadsDir, a.Filename))
-			if err != nil {
-				f.Close()
-				return
-			}
-			defer f.Close()
+func (mtv *MessagesTextView) downloadAttachment(as []*astatine.MessageAttachment) error {
+	for _, a := range as {
+		f, err := os.Create(filepath.Join(mtv.app.Config.General.AttachmentDownloadsDir, a.Filename))
+		if err != nil {
+			return err
+		}
+		defer f.Close()
 
-			resp, err := http.Get(a.URL)
-			if err != nil {
-				return
-			}
-
-			d, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				return
-			}
-
-			f.Write(d)
+		resp, err := http.Get(a.URL)
+		if err != nil {
+			return err
 		}
 
-		app.SetRoot(app.MainFlex, false)
-	case "Open Attachment":
-		for _, a := range m.Attachments {
-			// We are caching the files, but files with the same name can still exist, so it ultimately does not matter
-			cachePath, _ := os.UserCacheDir()
-			f, err := os.Create(filepath.Join(cachePath, a.Filename))
-			if err != nil {
-				return
-			}
-			defer f.Close()
-
-			resp, err := http.Get(a.URL)
-			if err != nil {
-				return
-			}
-
-			d, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				return
-			}
-
-			f.Write(d)
-			go open.Run(f.Name())
+		d, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return err
 		}
 
-		app.SetRoot(app.MainFlex, false)
+		f.Write(d)
 	}
+
+	return nil
+}
+
+func (mtv *MessagesTextView) openAttachment(as []*astatine.MessageAttachment) error {
+	for _, a := range as {
+		cacheDirPath, _ := os.UserCacheDir()
+		f, err := os.Create(filepath.Join(cacheDirPath, a.Filename))
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+
+		resp, err := http.Get(a.URL)
+		if err != nil {
+			return err
+		}
+
+		d, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+
+		f.Write(d)
+		go open.Run(f.Name())
+	}
+
+	return nil
 }
 
 type MessageInputField struct {
