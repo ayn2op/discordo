@@ -164,7 +164,6 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 
 		messageActionsList.
 			ShowSecondaryText(false).
-			AddItem("Copy ID", "", 'i', nil).
 			SetDoneFunc(func() {
 				mtv.app.
 					SetRoot(mtv.app.MainFlex, true).
