@@ -58,7 +58,6 @@ func main() {
 			}
 
 			if lr.Token != "" && !lr.Mfa {
-				app.Session.Token = lr.Token
 				app.Session.Identify.Token = lr.Token
 				err = app.Connect()
 				if err != nil {
@@ -83,7 +82,6 @@ func main() {
 						panic(err)
 					}
 
-					app.Session.Token = lr.Token
 					app.Session.Identify.Token = lr.Token
 					err = app.Connect()
 					if err != nil {

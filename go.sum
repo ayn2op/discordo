@@ -6,6 +6,8 @@ github.com/atotto/clipboard v0.1.4 h1:EH0zSVneZPSuFR11BlR9YppQTVDbh5+16AmcJi4g1z
 github.com/atotto/clipboard v0.1.4/go.mod h1:ZY9tmq7sm5xIbd9bOK4onWV4S6X0u6GY7Vn0Yu86PYI=
 github.com/ayntgl/astatine v0.24.1-0.20220323171957-44de48cba9b9 h1:7noMugVd2FGlZcq3pawMZ0H+RZu++AFPVPPWFA370v4=
 github.com/ayntgl/astatine v0.24.1-0.20220323171957-44de48cba9b9/go.mod h1:A54lIYhmYBAYhUaiR90Ahlw+oSi5gN+70PNvQ+6xjMY=
+github.com/ayntgl/astatine v0.24.1-0.20220324085605-e85d32085ce8 h1:tn/I/8Zv22Q8ERV/awDfLTSKQR5eH5AAYpzCIuRUaqw=
+github.com/ayntgl/astatine v0.24.1-0.20220324085605-e85d32085ce8/go.mod h1:xRC0h8PGhVmnvNh2eKSkJJ4xvtcQEZpvKmepqRMbNEU=
 github.com/danieljoos/wincred v1.1.0/go.mod h1:XYlo+eRTsVA9aHGp7NGjFkPla4m+DCL7hqDjlFjiygg=
 github.com/danieljoos/wincred v1.1.2 h1:QLdCxFs1/Yl4zduvBdcHB8goaYk9RARS2SgLLRuAyr0=
 github.com/danieljoos/wincred v1.1.2/go.mod h1:GijpziifJoIBfYh+S7BbkdUTU4LfM+QnGqR5Vl2tAx0=

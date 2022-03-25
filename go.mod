@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/BurntSushi/toml v1.0.0
 	github.com/atotto/clipboard v0.1.4
-	github.com/ayntgl/astatine v0.24.1-0.20220323171957-44de48cba9b9
+	github.com/ayntgl/astatine v0.24.1-0.20220324085605-e85d32085ce8
 	github.com/gdamore/tcell/v2 v2.4.1-0.20220313203054-2a1a1b586447
 	github.com/rivo/tview v0.0.0-20220307222120-9994674d60a8
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966

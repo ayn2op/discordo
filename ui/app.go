@@ -47,14 +47,12 @@ func (app *App) Connect() error {
 	// Whereas, for bot accounts, the guilds are dispatched discretely in the GUILD_CREATE gateway events.
 	if !strings.HasPrefix(app.Session.Identify.Token, "Bot") {
 		app.Session.UserAgent = app.Config.General.UserAgent
-		app.Session.Identify = astatine.Identify{
-			Compress:       false,
-			LargeThreshold: 0,
-			Intents:        0,
-			Properties: astatine.IdentifyProperties{
-				OS:      app.Config.General.Identify.Os,
-				Browser: app.Config.General.Identify.Browser,
-			},
+		app.Session.Identify.Compress = false
+		app.Session.Identify.LargeThreshold = 0
+		app.Session.Identify.Intents = 0
+		app.Session.Identify.Properties = astatine.IdentifyProperties{
+			OS:      app.Config.General.Identify.Os,
+			Browser: app.Config.General.Identify.Browser,
 		}
 		app.Session.AddHandlerOnce(app.onSessionReady)
 	}
