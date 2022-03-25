@@ -8,7 +8,6 @@ import (
 )
 
 type Config struct {
-	Path    string        `toml:"-"`
 	General GeneralConfig `toml:"general"`
 	Theme   ThemeConfig   `toml:"theme"`
 	Keys    KeysConfig    `toml:"keys"`
@@ -16,21 +15,20 @@ type Config struct {
 
 func New() *Config {
 	return &Config{
-		Path:    DefaultPath(),
 		General: newGeneralConfig(),
 		Theme:   newThemeConfig(),
 		Keys:    newKeysConfig(),
 	}
 }
 
-func (c *Config) Load() {
-	err := os.MkdirAll(filepath.Dir(c.Path), os.ModePerm)
+func (c *Config) Load(path string) {
+	err := os.MkdirAll(filepath.Dir(path), os.ModePerm)
 	if err != nil {
 		panic(err)
 	}
 
-	if _, err = os.Stat(c.Path); os.IsNotExist(err) {
-		f, err := os.Create(c.Path)
+	if _, err = os.Stat(path); os.IsNotExist(err) {
+		f, err := os.Create(path)
 		if err != nil {
 			panic(err)
 		}
@@ -40,7 +38,7 @@ func (c *Config) Load() {
 			panic(err)
 		}
 	} else {
-		_, err = toml.DecodeFile(c.Path, &c)
+		_, err = toml.DecodeFile(path, &c)
 		if err != nil {
 			panic(err)
 		}
