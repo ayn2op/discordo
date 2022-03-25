@@ -50,6 +50,7 @@ func (gl *GuildsList) onSelected(idx int, mainText string, secondaryText string,
 			rootTreeNode.AddChild(channelTreeNode)
 		}
 	} else { // Guild
+		// Decrement the index of the selected item by one since the first item in the list is always "Direct Messages".
 		cs := gl.app.Session.State.Guilds[idx-1].Channels
 		sort.Slice(cs, func(i, j int) bool {
 			return cs[i].Position < cs[j].Position

@@ -59,6 +59,7 @@ func (app *App) Connect() error {
 	}
 
 	app.Session.AddHandler(app.onSessionGuildCreate)
+	app.Session.AddHandler(app.onSessionGuildDelete)
 	app.Session.AddHandler(app.onSessionMessageCreate)
 	return app.Session.Open()
 }
@@ -126,6 +127,16 @@ func (app *App) onSessionReady(_ *astatine.Session, r *astatine.Ready) {
 
 func (app *App) onSessionGuildCreate(_ *astatine.Session, g *astatine.GuildCreate) {
 	app.GuildsList.AddItem(g.Name, "", 0, nil)
+	app.Draw()
+}
+
+func (app *App) onSessionGuildDelete(_ *astatine.Session, g *astatine.GuildDelete) {
+	items := app.GuildsList.FindItems(g.BeforeDelete.Name, "", false, false)
+	if len(items) != 0 {
+		app.GuildsList.RemoveItem(items[0])
+	}
+
+	app.Draw()
 }
 
 func (app *App) onSessionMessageCreate(_ *astatine.Session, m *astatine.MessageCreate) {
