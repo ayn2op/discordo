@@ -86,7 +86,7 @@ func (c *Config) Load(path string) error {
 		return err
 	}
 
-	// If the configuration file does not exist already, create a new file; otherwwise, open the existing file with read-write flag.
+	// If the configuration file does not exist already, create a new file; otherwise, open the existing file with read-write flag.
 	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, os.ModePerm)
 	if err != nil {
 		return err
@@ -98,7 +98,7 @@ func (c *Config) Load(path string) error {
 		return err
 	}
 
-	// If the file is empty (the size of the file is zero), write the dedfault configuration to the file.
+	// If the file is empty (the size of the file is zero), write the default configuration to the file.
 	if fi.Size() == 0 {
 		return toml.NewEncoder(f).Encode(c)
 	}
