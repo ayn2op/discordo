@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 
 	"github.com/ayntgl/discordo/config"
@@ -42,7 +43,10 @@ func main() {
 
 	cliApp.Action = func(ctx *cli.Context) error {
 		c := config.New()
-		c.Load(ctx.String("config"))
+		err := c.Load(ctx.String("config"))
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		token := ctx.String("token")
 		app := ui.NewApp(token, c)
@@ -128,7 +132,7 @@ func main() {
 		tview.Styles.BorderColor = tcell.GetColor(app.Config.Theme.Border)
 		tview.Styles.TitleColor = tcell.GetColor(app.Config.Theme.Title)
 
-		err := app.Run()
+		err = app.Run()
 		if err != nil {
 			panic(err)
 		}

@@ -203,7 +203,7 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 
 func (mtv *MessagesTextView) downloadAttachment(as []*astatine.MessageAttachment) error {
 	for _, a := range as {
-		f, err := os.Create(filepath.Join(mtv.app.Config.General.AttachmentDownloadsDir, a.Filename))
+		f, err := os.Create(filepath.Join(mtv.app.Config.AttachmentDownloadsDir, a.Filename))
 		if err != nil {
 			return err
 		}

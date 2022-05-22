@@ -37,7 +37,7 @@ func NewApp(token string, c *config.Config) *App {
 	app.MessageInputField = NewMessageInputField(app)
 
 	app.Application = tview.NewApplication()
-	app.EnableMouse(app.Config.General.Mouse)
+	app.EnableMouse(app.Config.Mouse)
 	app.SetInputCapture(app.onInputCapture)
 
 	return app
@@ -47,13 +47,13 @@ func (app *App) Connect() error {
 	// For user accounts, all of the guilds, the user is in, are dispatched in the READY gateway event.
 	// Whereas, for bot accounts, the guilds are dispatched discretely in the GUILD_CREATE gateway events.
 	if !strings.HasPrefix(app.Session.Identify.Token, "Bot") {
-		app.Session.UserAgent = app.Config.General.UserAgent
+		app.Session.UserAgent = app.Config.Identify.UserAgent
 		app.Session.Identify.Compress = false
 		app.Session.Identify.LargeThreshold = 0
 		app.Session.Identify.Intents = 0
 		app.Session.Identify.Properties = astatine.IdentifyProperties{
-			OS:      app.Config.General.Identify.Os,
-			Browser: app.Config.General.Identify.Browser,
+			OS:      app.Config.Identify.Os,
+			Browser: app.Config.Identify.Browser,
 		}
 		app.Session.AddHandlerOnce(app.onSessionReady)
 	}

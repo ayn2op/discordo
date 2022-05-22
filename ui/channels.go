@@ -55,7 +55,7 @@ func (ctv *ChannelsTreeView) onSelected(n *tview.TreeNode) {
 	ctv.app.MessagesTextView.SetTitle(title)
 
 	go func() {
-		ms, err := ctv.app.Session.ChannelMessages(c.ID, ctv.app.Config.General.FetchMessagesLimit, "", "", "")
+		ms, err := ctv.app.Session.ChannelMessages(c.ID, ctv.app.Config.MessagesLimit, "", "", "")
 		if err != nil {
 			return
 		}

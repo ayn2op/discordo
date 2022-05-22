@@ -23,7 +23,7 @@ func buildMessage(app *App, m *astatine.Message) []byte {
 		// Build the message associated with crosspost, channel follow add, pin, or a reply.
 		buildReferencedMessage(&b, m.ReferencedMessage, app.Session.State.User.ID)
 
-		if app.Config.General.Timestamps {
+		if app.Config.Timestamps {
 			b.WriteString("[::d]")
 			b.WriteString(m.Timestamp.Format(time.Stamp))
 			b.WriteString("[::-]")
