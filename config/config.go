@@ -13,8 +13,21 @@ type IdentifyConfig struct {
 	Browser   string `yaml:"browser"`
 }
 
+type GuildsListThemeConfig struct {
+	ItemForeground         string `yaml:"item_foreground"`
+	SelectedItemForeground string `yaml:"selected_item_foreground"`
+}
+
+type MessageInputFieldThemeConfig struct {
+	FieldForeground       string `yaml:"field_foreground"`
+	PlaceholderForeground string `yaml:"placeholder_foreground"`
+}
+
 type ThemeConfig struct {
-	BorderColor string `yaml:"border_color"`
+	Background        string                       `yaml:"background"`
+	BorderForeground  string                       `yaml:"border_foreground"`
+	GuildsList        GuildsListThemeConfig        `yaml:"guilds_list"`
+	MessageInputField MessageInputFieldThemeConfig `yaml:"message_inputfield"`
 }
 
 type Config struct {
@@ -36,7 +49,16 @@ func New() *Config {
 			Browser:   browser,
 		},
 		Theme: ThemeConfig{
-			BorderColor: "#ECEFF4",
+			Background:       "default",
+			BorderForeground: "white",
+			GuildsList: GuildsListThemeConfig{
+				ItemForeground:         "white",
+				SelectedItemForeground: "#96CDFB",
+			},
+			MessageInputField: MessageInputFieldThemeConfig{
+				FieldForeground:       "white",
+				PlaceholderForeground: "#F2CDCD",
+			},
 		},
 	}
 }
