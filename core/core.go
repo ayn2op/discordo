@@ -26,6 +26,7 @@ type Core struct {
 func New(token string, cfg *config.Config) *Core {
 	tview.Styles.PrimitiveBackgroundColor = tcell.GetColor(cfg.Theme.Background)
 	tview.Styles.BorderColor = tcell.GetColor(cfg.Theme.BorderForeground)
+	tview.Styles.TitleColor = tcell.GetColor(cfg.Theme.TitleForeground)
 
 	// Rounded borders
 	tview.Borders.Vertical = '│'

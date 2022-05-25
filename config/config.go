@@ -26,6 +26,7 @@ type MessageInputFieldThemeConfig struct {
 type ThemeConfig struct {
 	Background        string                       `yaml:"background"`
 	BorderForeground  string                       `yaml:"border_foreground"`
+	TitleForeground   string                       `yaml:"title_foreground"`
 	GuildsList        GuildsListThemeConfig        `yaml:"guilds_list"`
 	MessageInputField MessageInputFieldThemeConfig `yaml:"message_inputfield"`
 }
@@ -51,6 +52,7 @@ func New() *Config {
 		Theme: ThemeConfig{
 			Background:       "default",
 			BorderForeground: "white",
+			TitleForeground:  "white",
 			GuildsList: GuildsListThemeConfig{
 				ItemForeground:         "white",
 				SelectedItemForeground: "#96CDFB",
