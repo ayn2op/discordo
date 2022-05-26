@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/ayntgl/discordo/config"
-	"github.com/ayntgl/discordo/core"
+	"github.com/ayntgl/discordo/ui"
 	"github.com/urfave/cli/v2"
 	"github.com/zalando/go-keyring"
 )
@@ -32,8 +32,8 @@ func main() {
 			return err
 		}
 
-		c := core.New(ctx.String("token"), cfg)
-		return c.Run()
+		c := ui.NewApp(ctx.String("token"), cfg)
+		return c.Start()
 	}
 
 	err := cliApp.Run(os.Args)

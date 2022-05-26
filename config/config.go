@@ -18,6 +18,11 @@ type GuildsListThemeConfig struct {
 	SelectedItemForeground string `yaml:"selected_item_foreground"`
 }
 
+type ChannelsTreeThemeConfig struct {
+	Graphics           bool   `yaml:"graphics"`
+	GraphicsForeground string `yaml:"graphics_foreground"`
+}
+
 type MessageInputFieldThemeConfig struct {
 	FieldForeground       string `yaml:"field_foreground"`
 	PlaceholderForeground string `yaml:"placeholder_foreground"`
@@ -28,6 +33,7 @@ type ThemeConfig struct {
 	BorderForeground  string                       `yaml:"border_foreground"`
 	TitleForeground   string                       `yaml:"title_foreground"`
 	GuildsList        GuildsListThemeConfig        `yaml:"guilds_list"`
+	ChannelsTree      ChannelsTreeThemeConfig      `yaml:"channels_tree"`
 	MessageInputField MessageInputFieldThemeConfig `yaml:"message_inputfield"`
 }
 
@@ -56,6 +62,10 @@ func New() *Config {
 			GuildsList: GuildsListThemeConfig{
 				ItemForeground:         "white",
 				SelectedItemForeground: "#96CDFB",
+			},
+			ChannelsTree: ChannelsTreeThemeConfig{
+				Graphics:           false,
+				GraphicsForeground: "white",
 			},
 			MessageInputField: MessageInputFieldThemeConfig{
 				FieldForeground:       "white",
