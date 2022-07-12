@@ -118,7 +118,7 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		actionsList.SetBorder(true)
 		actionsList.SetBorderPadding(0, 0, 1, 1)
 
-		// If the client user has `SEND_MESSAGES` permission, add the appropriate actions to the list.
+		// If the client user has `SEND_MESSAGES` permission, add a new action to reply to the message.
 		if discord.HasPermission(mtv.app.Session.State, mtv.app.SelectedChannel.ID, astatine.PermissionSendMessages) {
 			actionsList.AddItem("Reply", "", 'r', func() {
 				mtv.app.MessageInputField.SetTitle("Replying to " + m.Author.String())
@@ -135,7 +135,17 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			})
 		}
 
-		// If the referenced message exists, add the appropriate actions to the list.
+		// If the client user has the `MANAGE_MESSAGES` permission, add a new action to delete the message.
+		if discord.HasPermission(mtv.app.Session.State, mtv.app.SelectedChannel.ID, astatine.PermissionManageMessages) {
+			actionsList.AddItem("Delete", "", 'd', func() {
+				go mtv.deleteMessage(m)
+				mtv.app.
+					SetRoot(mtv.app.MainFlex, true).
+					SetFocus(mtv.app.MessagesTextView)
+			})
+		}
+
+		// If the referenced message exists, add a new action to select the reply.
 		if m.ReferencedMessage != nil {
 			actionsList.AddItem("Select Reply", "", 'm', func() {
 				mtv.app.SelectedMessage, _ = discord.FindMessageByID(mtv.app.SelectedChannel.Messages, m.ReferencedMessage.ID)
@@ -249,6 +259,21 @@ func (mtv *MessagesTextView) openAttachment(as []*astatine.MessageAttachment) er
 	}
 
 	return nil
+}
+
+func (mtv *MessagesTextView) deleteMessage(m *astatine.Message) {
+	mtv.Clear()
+
+	mtv.app.SelectedChannel.Messages = append(mtv.app.SelectedChannel.Messages[:mtv.app.SelectedMessage], mtv.app.SelectedChannel.Messages[mtv.app.SelectedMessage+1:]...)
+
+	err := mtv.app.Session.ChannelMessageDelete(m.ChannelID, m.ID)
+	if err != nil {
+		return
+	}
+
+	for _, m := range mtv.app.SelectedChannel.Messages {
+		mtv.app.ChannelsTreeView.drawMessage(m)
+	}
 }
 
 type MessageInputField struct {
