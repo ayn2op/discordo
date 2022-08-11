@@ -12,7 +12,7 @@ func NewLoginForm(mfa bool) *LoginForm {
 	}
 
 	if mfa {
-		lf.AddPasswordField("MFA Code (optional)", "", 0, 0, nil)
+		lf.AddPasswordField("Authentication/Backup Code", "", 0, 0, nil)
 	} else {
 		lf.
 			AddInputField("Email", "", 0, nil, nil).
