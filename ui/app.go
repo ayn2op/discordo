@@ -71,29 +71,16 @@ func (app *App) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 
 	if app.MainFlex.GetItemCount() != 0 {
 		switch e.Name() {
-		// Avoid focusing what is already focused so that the widgets can use shortcuts
 		case app.Config.Keys.ToggleGuildsList:
-			if app.GuildsList.HasFocus() {
-				return e
-			}
 			app.SetFocus(app.GuildsList)
 			return nil
 		case app.Config.Keys.ToggleChannelsTreeView:
-			if app.ChannelsTreeView.HasFocus() {
-				return e
-			}
 			app.SetFocus(app.ChannelsTreeView)
 			return nil
 		case app.Config.Keys.ToggleMessagesTextView:
-			if app.ChannelsTreeView.HasFocus() {
-				return e
-			}
 			app.SetFocus(app.MessagesTextView)
 			return nil
 		case app.Config.Keys.ToggleMessageInputField:
-			if app.MessageInputField.HasFocus() {
-				return e
-			}
 			app.SetFocus(app.MessageInputField)
 			return nil
 		}
