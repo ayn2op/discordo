@@ -62,12 +62,16 @@ func (ctv *ChannelsTreeView) onSelected(n *tview.TreeNode) {
 
 		for i := len(ms) - 1; i >= 0; i-- {
 			ctv.app.SelectedChannel.Messages = append(ctv.app.SelectedChannel.Messages, ms[i])
-			_, err = ctv.app.MessagesTextView.Write(buildMessage(ctv.app, ms[i]))
-			if err != nil {
-				return
-			}
+			ctv.drawMessage(ms[i])
 		}
 
 		ctv.app.MessagesTextView.ScrollToEnd()
 	}()
+}
+
+func (ctv *ChannelsTreeView) drawMessage(m *astatine.Message) {
+	_, err := ctv.app.MessagesTextView.Write(buildMessage(ctv.app, m))
+	if err != nil {
+		return
+	}
 }

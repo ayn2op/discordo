@@ -30,7 +30,7 @@ Discordo is a lightweight, secure, and feature-rich Discord terminal client. Hea
 
 ## Installation
 
-## Prebuilt binaries
+### Prebuilt binaries
 
 You can download and install a [prebuilt binary here](https://nightly.link/ayntgl/discordo/workflows/ci/main) for Windows, macOS, or Linux.
 
