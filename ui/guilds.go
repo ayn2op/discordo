@@ -32,23 +32,23 @@ func NewGuildsList(app *App) *GuildsList {
 }
 
 func (gl *GuildsList) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
-	var item = gl.List.GetCurrentItem()
+	i := gl.List.GetCurrentItem()
 	switch e.Rune() {
 	case 'g': // Home.
-		item = 0
+		i = 0
 	case 'G': // End.
-		item = gl.List.GetItemCount() - 1
+		i = gl.List.GetItemCount() - 1
 	case 'j': // Down.
-		item++
+		i++
 	case 'k': // Up.
-		item--
-		if item < 0 {
-			item = 0
+		i--
+		if i < 0 {
+			i = 0
 		}
 	default:
 		return e
 	}
-	gl.List.SetCurrentItem(item)
+	gl.List.SetCurrentItem(i)
 	return nil
 }
 
