@@ -8,6 +8,7 @@ type GuildsList struct {
 
 func NewGuildsList() *GuildsList {
 	l := tview.NewList()
+
 	l.ShowSecondaryText(false)
 
 	l.SetTitle("Guilds")

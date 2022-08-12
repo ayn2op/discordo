@@ -14,21 +14,23 @@ import (
 )
 
 type Core struct {
-	application *tview.Application
-
-	guildsList   *ui.GuildsList
-	channelsTree *ui.ChannelsTree
+	application   *tview.Application
+	guildsList    *ui.GuildsList
+	channelsTree  *ui.ChannelsTree
+	messagesPanel *ui.MessagesPanel
+	messageInput  *ui.MessageInput
 
 	config *config.Config
-
-	state *state.State
+	state  *state.State
 }
 
 func New(token string, cfg *config.Config) *Core {
 	return &Core{
-		application:  tview.NewApplication(),
-		guildsList:   ui.NewGuildsList(),
-		channelsTree: ui.NewChannelsTree(),
+		application:   tview.NewApplication(),
+		guildsList:    ui.NewGuildsList(),
+		channelsTree:  ui.NewChannelsTree(),
+		messagesPanel: ui.NewMessagesPanel(),
+		messageInput:  ui.NewMessageInput(),
 
 		config: cfg,
 
@@ -59,9 +61,7 @@ func (c *Core) Run() error {
 	}
 
 	c.draw()
-
 	c.application.EnableMouse(true)
-
 	return c.application.Run()
 }
 
@@ -73,6 +73,8 @@ func (c *Core) draw() {
 
 	right := tview.NewFlex()
 	right.SetDirection(tview.FlexRow)
+	right.AddItem(c.messagesPanel, 0, 1, false)
+	right.AddItem(c.messageInput, 3, 1, false)
 
 	main := tview.NewFlex()
 	main.AddItem(left, 0, 1, false)

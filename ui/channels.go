@@ -9,6 +9,8 @@ type ChannelsTree struct {
 func NewChannelsTree() *ChannelsTree {
 	tv := tview.NewTreeView()
 
+	tv.SetRoot(tview.NewTreeNode(""))
+
 	tv.SetTitle("Channels")
 	tv.SetTitleAlign(tview.AlignLeft)
 	tv.SetBorder(true)
