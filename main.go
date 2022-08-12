@@ -88,7 +88,7 @@ func main() {
 					// The account has MFA enabled, reattempt login with MFA code and ticket.
 					mfaLoginForm := ui.NewLoginForm(true)
 					mfaLoginForm.AddButton("Login", func() {
-						code := loginForm.GetFormItem(0).(*tview.InputField).GetText()
+						code := mfaLoginForm.GetFormItem(0).(*tview.InputField).GetText()
 						if code == "" {
 							return
 						}
@@ -109,6 +109,8 @@ func main() {
 
 						go keyring.Set(name, "token", lr.Token)
 					})
+
+					app.SetRoot(mfaLoginForm, true)
 				}
 			})
 
@@ -132,16 +134,11 @@ func main() {
 		tview.Styles.BorderColor = tcell.GetColor(app.Config.Theme.Border)
 		tview.Styles.TitleColor = tcell.GetColor(app.Config.Theme.Title)
 
-		err = app.Run()
-		if err != nil {
-			panic(err)
-		}
-
-		return nil
+		return app.Run()
 	}
 
 	err := cliApp.Run(os.Args)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 }
