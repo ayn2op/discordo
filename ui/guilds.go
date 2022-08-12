@@ -5,6 +5,7 @@ import (
 
 	"github.com/ayntgl/astatine"
 	"github.com/ayntgl/discordo/discord"
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
@@ -26,7 +27,29 @@ func NewGuildsList(app *App) *GuildsList {
 	gl.SetBorder(true)
 	gl.SetBorderPadding(0, 0, 1, 1)
 	gl.SetSelectedFunc(gl.onSelected)
+	gl.SetInputCapture(gl.onInputCapture)
 	return gl
+}
+
+func (gl *GuildsList) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
+	i := gl.List.GetCurrentItem()
+	switch e.Rune() {
+	case 'g': // Home.
+		i = 0
+	case 'G': // End.
+		i = gl.List.GetItemCount() - 1
+	case 'j': // Down.
+		i++
+	case 'k': // Up.
+		i--
+		if i < 0 {
+			i = 0
+		}
+	default:
+		return e
+	}
+	gl.List.SetCurrentItem(i)
+	return nil
 }
 
 func (gl *GuildsList) onSelected(idx int, mainText string, secondaryText string, shortcut rune) {
