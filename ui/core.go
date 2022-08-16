@@ -1,4 +1,4 @@
-package core
+package ui
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/ayntgl/discordo/config"
-	"github.com/ayntgl/discordo/ui"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
@@ -15,24 +14,19 @@ import (
 
 type Core struct {
 	application   *tview.Application
-	guildsList    *ui.GuildsList
-	channelsTree  *ui.ChannelsTree
-	messagesPanel *ui.MessagesPanel
-	messageInput  *ui.MessageInput
+	guildsList    *GuildsList
+	channelsTree  *ChannelsTree
+	messagesPanel *MessagesPanel
+	messageInput  *MessageInput
 
 	config *config.Config
 	state  *state.State
 }
 
-func New(token string, cfg *config.Config) *Core {
-	return &Core{
-		application:   tview.NewApplication(),
-		guildsList:    ui.NewGuildsList(),
-		channelsTree:  ui.NewChannelsTree(),
-		messagesPanel: ui.NewMessagesPanel(),
-		messageInput:  ui.NewMessageInput(),
-
-		config: cfg,
+func NewCore(token string, cfg *config.Config) *Core {
+	c := &Core{
+		application: tview.NewApplication(),
+		config:      cfg,
 
 		state: state.NewWithIdentifier(gateway.NewIdentifier(gateway.IdentifyCommand{
 			Token:   token,
@@ -45,6 +39,13 @@ func New(token string, cfg *config.Config) *Core {
 			Compress: false,
 		})),
 	}
+
+	c.guildsList = NewGuildsList(c)
+	c.channelsTree = NewChannelsTree(c)
+	c.messagesPanel = NewMessagesPanel(c)
+	c.messageInput = NewMessageInput(c)
+
+	return c
 }
 
 func (c *Core) Run() error {

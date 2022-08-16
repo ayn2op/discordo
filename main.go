@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/ayntgl/discordo/config"
-	"github.com/ayntgl/discordo/core"
+	"github.com/ayntgl/discordo/ui"
 	"github.com/urfave/cli/v2"
 )
 
@@ -36,7 +36,7 @@ func main() {
 
 	cliApp.Action = func(ctx *cli.Context) error {
 		var (
-			c   *core.Core
+			c   *ui.Core
 			err error
 		)
 
@@ -48,7 +48,7 @@ func main() {
 
 		token := ctx.String("token")
 		if token != "" {
-			c = core.New(token, cfg)
+			c = ui.NewCore(token, cfg)
 		}
 
 		return c.Run()
