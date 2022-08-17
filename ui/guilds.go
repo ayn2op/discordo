@@ -30,9 +30,9 @@ func NewGuildsList(c *Core) *GuildsList {
 }
 
 func (gl *GuildsList) onSelect(index int, mainText string, _ string, _ rune) {
-	rootNode := gl.channelsTree.GetRoot()
+	rootNode := gl.ChannelsTree.GetRoot()
 
-	cs := gl.state.Ready().Guilds[index].Channels
+	cs := gl.State.Ready().Guilds[index].Channels
 	sort.Slice(cs, func(i, j int) bool {
 		return cs[i].Position < cs[j].Position
 	})
@@ -46,5 +46,5 @@ func (gl *GuildsList) onSelect(index int, mainText string, _ string, _ rune) {
 		}
 	}
 
-	gl.channelsTree.SetCurrentNode(rootNode)
+	gl.ChannelsTree.SetCurrentNode(rootNode)
 }

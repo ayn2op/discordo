@@ -13,22 +13,23 @@ import (
 )
 
 type Core struct {
-	application   *tview.Application
-	guildsList    *GuildsList
-	channelsTree  *ChannelsTree
-	messagesPanel *MessagesPanel
-	messageInput  *MessageInput
+	Application   *tview.Application
+	Flex          *tview.Flex
+	GuildsList    *GuildsList
+	ChannelsTree  *ChannelsTree
+	MessagesPanel *MessagesPanel
+	MessageInput  *MessageInput
 
 	config *config.Config
-	state  *state.State
+	State  *state.State
 }
 
 func NewCore(token string, cfg *config.Config) *Core {
 	c := &Core{
-		application: tview.NewApplication(),
+		Application: tview.NewApplication(),
 		config:      cfg,
 
-		state: state.NewWithIdentifier(gateway.NewIdentifier(gateway.IdentifyCommand{
+		State: state.NewWithIdentifier(gateway.NewIdentifier(gateway.IdentifyCommand{
 			Token:   token,
 			Intents: nil,
 			Properties: gateway.IdentifyProperties{
@@ -40,48 +41,43 @@ func NewCore(token string, cfg *config.Config) *Core {
 		})),
 	}
 
-	c.guildsList = NewGuildsList(c)
-	c.channelsTree = NewChannelsTree(c)
-	c.messagesPanel = NewMessagesPanel(c)
-	c.messageInput = NewMessageInput(c)
+	c.Application.EnableMouse(c.config.Mouse)
+
+	c.GuildsList = NewGuildsList(c)
+	c.ChannelsTree = NewChannelsTree(c)
+	c.MessagesPanel = NewMessagesPanel(c)
+	c.MessageInput = NewMessageInput(c)
 
 	return c
 }
 
-func (c *Core) Run() error {
+func (c *Core) Connect() error {
 	// For user accounts, all of the guilds, the client user is in, are dispatched in the READY gateway event.
 	// Whereas, for bot accounts, the guilds are dispatched discretely in the GUILD_CREATE gateway events.
-	if !strings.HasPrefix(c.state.Token, "Bot") {
+	if !strings.HasPrefix(c.State.Token, "Bot") {
 		api.UserAgent = c.config.Identify.UserAgent
-		c.state.AddHandler(c.onStateReady)
+		c.State.AddHandler(c.onStateReady)
 	}
 
-	err := c.state.Open(context.Background())
-	if err != nil {
-		return err
-	}
-
-	c.draw()
-	c.application.EnableMouse(true)
-	return c.application.Run()
+	return c.State.Open(context.Background())
 }
 
-func (c *Core) draw() {
+func (c *Core) DrawFlex() {
 	left := tview.NewFlex()
 	left.SetDirection(tview.FlexRow)
-	left.AddItem(c.guildsList, 10, 1, false)
-	left.AddItem(c.channelsTree, 0, 1, false)
+	left.AddItem(c.GuildsList, 10, 1, false)
+	left.AddItem(c.ChannelsTree, 0, 1, false)
 
 	right := tview.NewFlex()
 	right.SetDirection(tview.FlexRow)
-	right.AddItem(c.messagesPanel, 0, 1, false)
-	right.AddItem(c.messageInput, 3, 1, false)
+	right.AddItem(c.MessagesPanel, 0, 1, false)
+	right.AddItem(c.MessageInput, 3, 1, false)
 
-	main := tview.NewFlex()
-	main.AddItem(left, 0, 1, false)
-	main.AddItem(right, 0, 4, false)
+	c.Flex = tview.NewFlex()
+	c.Flex.AddItem(left, 0, 1, false)
+	c.Flex.AddItem(right, 0, 4, false)
 
-	c.application.SetRoot(main, true)
+	c.Application.SetRoot(c.Flex, true)
 }
 
 func (c *Core) onStateReady(r *gateway.ReadyEvent) {
@@ -100,6 +96,6 @@ func (c *Core) onStateReady(r *gateway.ReadyEvent) {
 	})
 
 	for _, g := range r.Guilds {
-		c.guildsList.AddItem(g.Name, "", 0, nil)
+		c.GuildsList.AddItem(g.Name, "", 0, nil)
 	}
 }
