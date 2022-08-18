@@ -24,8 +24,13 @@ func buildMessage(app *App, m *astatine.Message) []byte {
 		buildReferencedMessage(&b, m.ReferencedMessage, app.Session.State.User.ID)
 
 		if app.Config.Timestamps {
+			loc, err := time.LoadLocation(app.Config.Timezone)
+			if err != nil {
+				return nil
+			}
+
 			b.WriteString("[::d]")
-			b.WriteString(m.Timestamp.Format(time.Stamp))
+			b.WriteString(m.Timestamp.In(loc).Format(time.Stamp))
 			b.WriteString("[::-]")
 			b.WriteByte(' ')
 		}
