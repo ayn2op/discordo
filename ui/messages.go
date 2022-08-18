@@ -12,7 +12,7 @@ import (
 
 	"github.com/atotto/clipboard"
 	"github.com/diamondburned/arikawa/v3/api"
-	dsc "github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -111,12 +111,12 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
-		mID, err := dsc.ParseSnowflake(hs[0])
+		mID, err := discord.ParseSnowflake(hs[0])
 		if err != nil {
 			return nil
 		}
 
-		_, m := findMessageByID(ms, dsc.MessageID(mID))
+		_, m := findMessageByID(ms, discord.MessageID(mID))
 		if m == nil {
 			return nil
 		}
@@ -134,7 +134,7 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		actionsList.SetBorderPadding(0, 0, 1, 1)
 
 		// If the client user has `SEND_MESSAGES` permission, add a new action to reply to the message.
-		if hasPermission(mtv.app.State, mtv.app.SelectedChannel.ID, dsc.PermissionSendMessages) {
+		if hasPermission(mtv.app.State, mtv.app.SelectedChannel.ID, discord.PermissionSendMessages) {
 			actionsList.AddItem("Reply", "", 'r', func() {
 				mtv.app.MessageInputField.SetTitle("Replying to " + m.Author.Tag())
 				mtv.app.
@@ -151,7 +151,7 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		}
 
 		// If the client user has the `MANAGE_MESSAGES` permission, add a new action to delete the message.
-		if hasPermission(mtv.app.State, mtv.app.SelectedChannel.ID, dsc.PermissionManageMessages) {
+		if hasPermission(mtv.app.State, mtv.app.SelectedChannel.ID, discord.PermissionManageMessages) {
 			actionsList.AddItem("Delete", "", 'd', func() {
 				go mtv.deleteMessage(*m)
 				mtv.app.
@@ -226,7 +226,7 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	return e
 }
 
-func (mtv *MessagesTextView) downloadAttachment(as []dsc.Attachment) error {
+func (mtv *MessagesTextView) downloadAttachment(as []discord.Attachment) error {
 	for _, a := range as {
 		f, err := os.Create(filepath.Join(mtv.app.Config.AttachmentDownloadsDir, a.Filename))
 		if err != nil {
@@ -250,7 +250,7 @@ func (mtv *MessagesTextView) downloadAttachment(as []dsc.Attachment) error {
 	return nil
 }
 
-func (mtv *MessagesTextView) openAttachment(as []dsc.Attachment) error {
+func (mtv *MessagesTextView) openAttachment(as []discord.Attachment) error {
 	for _, a := range as {
 		cacheDirPath, _ := os.UserCacheDir()
 		f, err := os.Create(filepath.Join(cacheDirPath, a.Filename))
@@ -276,7 +276,7 @@ func (mtv *MessagesTextView) openAttachment(as []dsc.Attachment) error {
 	return nil
 }
 
-func (mtv *MessagesTextView) deleteMessage(m dsc.Message) {
+func (mtv *MessagesTextView) deleteMessage(m discord.Message) {
 	mtv.Clear()
 
 	err := mtv.app.State.MessageRemove(m.ChannelID, m.ID)
@@ -342,12 +342,12 @@ func (mi *MessageInput) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		}
 
 		if len(mi.app.MessagesTextView.GetHighlights()) != 0 {
-			mID, err := dsc.ParseSnowflake(mi.app.MessagesTextView.GetHighlights()[0])
+			mID, err := discord.ParseSnowflake(mi.app.MessagesTextView.GetHighlights()[0])
 			if err != nil {
 				return nil
 			}
 
-			_, m := findMessageByID(ms, dsc.MessageID(mID))
+			_, m := findMessageByID(ms, discord.MessageID(mID))
 			d := api.SendMessageData{
 				Content:         t,
 				Reference:       m.Reference,
