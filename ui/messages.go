@@ -2,7 +2,6 @@ package ui
 
 import (
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -239,7 +238,7 @@ func (mtv *MessagesTextView) downloadAttachment(as []discord.Attachment) error {
 			return err
 		}
 
-		d, err := ioutil.ReadAll(resp.Body)
+		d, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return err
 		}
@@ -264,7 +263,7 @@ func (mtv *MessagesTextView) openAttachment(as []discord.Attachment) error {
 			return err
 		}
 
-		d, err := ioutil.ReadAll(resp.Body)
+		d, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return err
 		}
