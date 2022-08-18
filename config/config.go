@@ -39,7 +39,7 @@ type ThemeConfig struct {
 type Config struct {
 	Mouse                  bool           `toml:"mouse"`
 	Timestamps             bool           `toml:"timestamps"`
-	MessagesLimit          int            `toml:"messages_limit"`
+	MessagesLimit          uint           `toml:"messages_limit"`
 	Timezone               string         `toml:"timezone"`
 	AttachmentDownloadsDir string         `toml:"attachment_downloads_dir"`
 	Identify               IdentifyConfig `toml:"identify"`

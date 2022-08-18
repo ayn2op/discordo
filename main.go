@@ -57,7 +57,7 @@ func main() {
 			}
 
 			app.DrawMainFlex()
-			app.SetFocus(app.GuildsList)
+			app.SetFocus(app.GuildsTree)
 		} else {
 			loginForm := ui.NewLoginForm(false)
 			loginForm.AddButton("Login", func() {
@@ -67,21 +67,21 @@ func main() {
 					return
 				}
 
-				// Login using the email and password
-				lr, err := app.Session.Login(email, password)
+				// Login using the email and password only
+				lr, err := app.State.Login(email, password)
 				if err != nil {
 					panic(err)
 				}
 
-				if lr.Token != "" && !lr.Mfa {
-					app.Session.Identify.Token = lr.Token
+				if lr.Token != "" && !lr.MFA {
+					app.State.Token = lr.Token
 					err = app.Connect()
 					if err != nil {
 						panic(err)
 					}
 
 					app.DrawMainFlex()
-					app.SetFocus(app.GuildsList)
+					app.SetFocus(app.GuildsTree)
 
 					go keyring.Set(name, "token", lr.Token)
 				} else {
@@ -93,19 +93,19 @@ func main() {
 							return
 						}
 
-						lr, err = app.Session.Totp(code, lr.Ticket)
+						lr, err = app.State.TOTP(code, lr.Ticket)
 						if err != nil {
 							panic(err)
 						}
 
-						app.Session.Identify.Token = lr.Token
+						app.State.Token = lr.Token
 						err = app.Connect()
 						if err != nil {
 							panic(err)
 						}
 
 						app.DrawMainFlex()
-						app.SetFocus(app.GuildsList)
+						app.SetFocus(app.GuildsTree)
 
 						go keyring.Set(name, "token", lr.Token)
 					})

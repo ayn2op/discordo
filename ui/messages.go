@@ -11,8 +11,9 @@ import (
 	"strings"
 
 	"github.com/atotto/clipboard"
-	"github.com/ayntgl/astatine"
-	"github.com/ayntgl/discordo/discord"
+	"github.com/diamondburned/arikawa/v3/api"
+	dsc "github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/skratchdot/open-golang/open"
@@ -49,8 +50,8 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		return nil
 	}
 
-	ms := mtv.app.SelectedChannel.Messages
-	if len(ms) == 0 {
+	ms, err := mtv.app.State.Messages(mtv.app.SelectedChannel.ID, mtv.app.Config.MessagesLimit)
+	if err != nil || len(ms) == 0 {
 		return nil
 	}
 
@@ -66,7 +67,7 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		}
 
 		mtv.app.MessagesTextView.
-			Highlight(ms[mtv.app.SelectedMessage].ID).
+			Highlight(ms[mtv.app.SelectedMessage].ID.String()).
 			ScrollToHighlight()
 		return nil
 	case mtv.app.Config.Keys.SelectNextMessage:
@@ -80,19 +81,19 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		}
 
 		mtv.app.MessagesTextView.
-			Highlight(ms[mtv.app.SelectedMessage].ID).
+			Highlight(ms[mtv.app.SelectedMessage].ID.String()).
 			ScrollToHighlight()
 		return nil
 	case mtv.app.Config.Keys.SelectFirstMessage:
 		mtv.app.SelectedMessage = 0
 		mtv.app.MessagesTextView.
-			Highlight(ms[mtv.app.SelectedMessage].ID).
+			Highlight(ms[mtv.app.SelectedMessage].ID.String()).
 			ScrollToHighlight()
 		return nil
 	case mtv.app.Config.Keys.SelectLastMessage:
 		mtv.app.SelectedMessage = len(ms) - 1
 		mtv.app.MessagesTextView.
-			Highlight(ms[mtv.app.SelectedMessage].ID).
+			Highlight(ms[mtv.app.SelectedMessage].ID.String()).
 			ScrollToHighlight()
 		return nil
 	case mtv.app.Config.Keys.OpenMessageActionsList:
@@ -101,7 +102,12 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
-		_, m := discord.FindMessageByID(mtv.app.SelectedChannel.Messages, hs[0])
+		mID, err := dsc.ParseSnowflake(hs[0])
+		if err != nil {
+			return nil
+		}
+
+		_, m := findMessageByID(ms, dsc.MessageID(mID))
 		if m == nil {
 			return nil
 		}
@@ -119,16 +125,16 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		actionsList.SetBorderPadding(0, 0, 1, 1)
 
 		// If the client user has `SEND_MESSAGES` permission, add a new action to reply to the message.
-		if discord.HasPermission(mtv.app.Session.State, mtv.app.SelectedChannel.ID, astatine.PermissionSendMessages) {
+		if hasPermission(mtv.app.State, mtv.app.SelectedChannel.ID, dsc.PermissionSendMessages) {
 			actionsList.AddItem("Reply", "", 'r', func() {
-				mtv.app.MessageInputField.SetTitle("Replying to " + m.Author.String())
+				mtv.app.MessageInputField.SetTitle("Replying to " + m.Author.Tag())
 				mtv.app.
 					SetRoot(mtv.app.MainFlex, true).
 					SetFocus(mtv.app.MessageInputField)
 			})
 
 			actionsList.AddItem("Mention Reply", "", 'R', func() {
-				mtv.app.MessageInputField.SetTitle("[@] Replying to " + m.Author.String())
+				mtv.app.MessageInputField.SetTitle("[@] Replying to " + m.Author.Tag())
 				mtv.app.
 					SetRoot(mtv.app.MainFlex, true).
 					SetFocus(mtv.app.MessageInputField)
@@ -136,9 +142,9 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		}
 
 		// If the client user has the `MANAGE_MESSAGES` permission, add a new action to delete the message.
-		if discord.HasPermission(mtv.app.Session.State, mtv.app.SelectedChannel.ID, astatine.PermissionManageMessages) {
+		if hasPermission(mtv.app.State, mtv.app.SelectedChannel.ID, dsc.PermissionManageMessages) {
 			actionsList.AddItem("Delete", "", 'd', func() {
-				go mtv.deleteMessage(m)
+				go mtv.deleteMessage(*m)
 				mtv.app.
 					SetRoot(mtv.app.MainFlex, true).
 					SetFocus(mtv.app.MessagesTextView)
@@ -148,9 +154,9 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		// If the referenced message exists, add a new action to select the reply.
 		if m.ReferencedMessage != nil {
 			actionsList.AddItem("Select Reply", "", 'm', func() {
-				mtv.app.SelectedMessage, _ = discord.FindMessageByID(mtv.app.SelectedChannel.Messages, m.ReferencedMessage.ID)
+				mtv.app.SelectedMessage, _ = findMessageByID(ms, m.ReferencedMessage.ID)
 				mtv.app.MessagesTextView.
-					Highlight(m.ReferencedMessage.ID).
+					Highlight(m.ReferencedMessage.ID.String()).
 					ScrollToHighlight()
 				mtv.app.
 					SetRoot(mtv.app.MainFlex, true).
@@ -189,7 +195,7 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			mtv.app.SetFocus(mtv.app.MessagesTextView)
 		})
 		actionsList.AddItem("Copy ID", "", 'i', func() {
-			if err := clipboard.WriteAll(m.ID); err != nil {
+			if err := clipboard.WriteAll(m.ID.String()); err != nil {
 				return
 			}
 
@@ -211,7 +217,7 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	return e
 }
 
-func (mtv *MessagesTextView) downloadAttachment(as []*astatine.MessageAttachment) error {
+func (mtv *MessagesTextView) downloadAttachment(as []dsc.Attachment) error {
 	for _, a := range as {
 		f, err := os.Create(filepath.Join(mtv.app.Config.AttachmentDownloadsDir, a.Filename))
 		if err != nil {
@@ -235,7 +241,7 @@ func (mtv *MessagesTextView) downloadAttachment(as []*astatine.MessageAttachment
 	return nil
 }
 
-func (mtv *MessagesTextView) openAttachment(as []*astatine.MessageAttachment) error {
+func (mtv *MessagesTextView) openAttachment(as []dsc.Attachment) error {
 	for _, a := range as {
 		cacheDirPath, _ := os.UserCacheDir()
 		f, err := os.Create(filepath.Join(cacheDirPath, a.Filename))
@@ -261,18 +267,30 @@ func (mtv *MessagesTextView) openAttachment(as []*astatine.MessageAttachment) er
 	return nil
 }
 
-func (mtv *MessagesTextView) deleteMessage(m *astatine.Message) {
+func (mtv *MessagesTextView) deleteMessage(m dsc.Message) {
 	mtv.Clear()
 
-	mtv.app.SelectedChannel.Messages = append(mtv.app.SelectedChannel.Messages[:mtv.app.SelectedMessage], mtv.app.SelectedChannel.Messages[mtv.app.SelectedMessage+1:]...)
-
-	err := mtv.app.Session.ChannelMessageDelete(m.ChannelID, m.ID)
+	err := mtv.app.State.MessageRemove(m.ChannelID, m.ID)
 	if err != nil {
 		return
 	}
 
-	for _, m := range mtv.app.SelectedChannel.Messages {
-		mtv.app.ChannelsTreeView.drawMessage(m)
+	err = mtv.app.State.DeleteMessage(m.ChannelID, m.ID, "Unknown")
+	if err != nil {
+		return
+	}
+
+	// The returned slice will be sorted from latest to oldest.
+	ms, err := mtv.app.State.Messages(m.ChannelID, mtv.app.Config.MessagesLimit)
+	if err != nil {
+		return
+	}
+
+	for i := len(ms) - 1; i >= 0; i-- {
+		_, err = mtv.app.MessagesTextView.Write(buildMessage(mtv.app, ms[i]))
+		if err != nil {
+			return
+		}
 	}
 }
 
@@ -309,27 +327,37 @@ func (mi *MessageInputField) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
+		ms, err := mi.app.State.Messages(mi.app.SelectedChannel.ID, mi.app.Config.MessagesLimit)
+		if err != nil {
+			return nil
+		}
+
 		if len(mi.app.MessagesTextView.GetHighlights()) != 0 {
-			_, m := discord.FindMessageByID(mi.app.SelectedChannel.Messages, mi.app.MessagesTextView.GetHighlights()[0])
-			d := &astatine.MessageSend{
-				Content:         t,
-				Reference:       m.Reference(),
-				AllowedMentions: &astatine.MessageAllowedMentions{RepliedUser: false},
-			}
-			if strings.HasPrefix(mi.app.MessageInputField.GetTitle(), "[@]") {
-				d.AllowedMentions.RepliedUser = true
-			} else {
-				d.AllowedMentions.RepliedUser = false
+			mID, err := dsc.ParseSnowflake(mi.app.MessagesTextView.GetHighlights()[0])
+			if err != nil {
+				return nil
 			}
 
-			go mi.app.Session.ChannelMessageSendComplex(m.ChannelID, d)
+			_, m := findMessageByID(ms, dsc.MessageID(mID))
+			d := api.SendMessageData{
+				Content:         t,
+				Reference:       m.Reference,
+				AllowedMentions: &api.AllowedMentions{RepliedUser: option.False},
+			}
+
+			// If the title of the message InputField widget has "[@]" as a prefix, send the message as a reply and mention the replied user.
+			if strings.HasPrefix(mi.app.MessageInputField.GetTitle(), "[@]") {
+				d.AllowedMentions.RepliedUser = option.True
+			}
+
+			go mi.app.State.SendMessageComplex(m.ChannelID, d)
 
 			mi.app.SelectedMessage = -1
 			mi.app.MessagesTextView.Highlight()
 
 			mi.app.MessageInputField.SetTitle("")
 		} else {
-			go mi.app.Session.ChannelMessageSend(mi.app.SelectedChannel.ID, t)
+			go mi.app.State.SendMessage(mi.app.SelectedChannel.ID, t)
 		}
 
 		mi.app.MessageInputField.SetText("")

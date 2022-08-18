@@ -3,129 +3,122 @@ package ui
 import (
 	"sort"
 
-	"github.com/ayntgl/astatine"
-	"github.com/ayntgl/discordo/discord"
-	"github.com/gdamore/tcell/v2"
+	dsc "github.com/diamondburned/arikawa/v3/discord"
 	"github.com/rivo/tview"
 )
 
-type GuildsList struct {
-	*tview.List
+type GuildsTree struct {
+	*tview.TreeView
 	app *App
 }
 
-func NewGuildsList(app *App) *GuildsList {
-	gl := &GuildsList{
-		List: tview.NewList(),
-		app:  app,
+func NewGuildsTree(app *App) *GuildsTree {
+	gt := &GuildsTree{
+		TreeView: tview.NewTreeView(),
+		app:      app,
 	}
 
-	gl.AddItem("Direct Messages", "", 0, nil)
-	gl.ShowSecondaryText(false)
-	gl.SetTitle("Guilds")
-	gl.SetTitleAlign(tview.AlignLeft)
-	gl.SetBorder(true)
-	gl.SetBorderPadding(0, 0, 1, 1)
-	gl.SetSelectedFunc(gl.onSelected)
-	gl.SetInputCapture(gl.onInputCapture)
-	return gl
+	rootNode := tview.NewTreeNode("")
+	rootNode.AddChild(tview.NewTreeNode("Direct Messages"))
+
+	gt.SetRoot(rootNode)
+	gt.SetTopLevel(1)
+	gt.SetSelectedFunc(gt.onSelected)
+
+	gt.SetTitle("Guilds")
+	gt.SetTitleAlign(tview.AlignLeft)
+	gt.SetBorder(true)
+	gt.SetBorderPadding(0, 0, 1, 1)
+
+	return gt
 }
 
-func (gl *GuildsList) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
-	i := gl.List.GetCurrentItem()
-	switch e.Rune() {
-	case 'g': // Home.
-		i = 0
-	case 'G': // End.
-		i = gl.List.GetItemCount() - 1
-	case 'j': // Down.
-		i++
-	case 'k': // Up.
-		i--
-		if i < 0 {
-			i = 0
-		}
-	default:
-		return e
-	}
-	gl.List.SetCurrentItem(i)
-	return nil
-}
+func (gt *GuildsTree) onSelected(node *tview.TreeNode) {
+	gt.app.SelectedChannel = nil
+	gt.app.SelectedMessage = -1
 
-func (gl *GuildsList) onSelected(idx int, mainText string, secondaryText string, shortcut rune) {
-	rootTreeNode := gl.app.ChannelsTreeView.GetRoot()
-	rootTreeNode.ClearChildren()
-	gl.app.SelectedMessage = -1
-	gl.app.MessagesTextView.
+	rootNode := gt.app.ChannelsTree.GetRoot()
+	rootNode.ClearChildren()
+	gt.app.MessagesTextView.
 		Highlight().
-		Clear()
-	gl.app.MessageInputField.SetText("")
+		Clear().
+		SetTitle("")
+	gt.app.MessageInputField.SetText("")
 
-	if mainText == "Direct Messages" {
-		cs := gl.app.Session.State.PrivateChannels
+	ref := node.GetReference()
+	// If the reference of the selected node is nil, it must be the direct messages node.
+	if ref == nil {
+		cs, err := gt.app.State.Cabinet.PrivateChannels()
+		if err != nil {
+			return
+		}
+
 		sort.Slice(cs, func(i, j int) bool {
 			return cs[i].LastMessageID > cs[j].LastMessageID
 		})
 
 		for _, c := range cs {
-			channelTreeNode := tview.NewTreeNode(discord.ChannelToString(c)).
-				SetReference(c.ID)
-			rootTreeNode.AddChild(channelTreeNode)
+			channelNode := tview.NewTreeNode(c.Name)
+			channelNode.SetReference(c.ID)
+			rootNode.AddChild(channelNode)
 		}
 	} else { // Guild
-		// Decrement the index of the selected item by one since the first item in the list is always "Direct Messages".
-		cs := gl.app.Session.State.Guilds[idx-1].Channels
+		cs, err := gt.app.State.Cabinet.Channels(ref.(dsc.GuildID))
+		if err != nil {
+			return
+		}
+
 		sort.Slice(cs, func(i, j int) bool {
 			return cs[i].Position < cs[j].Position
 		})
 
 		for _, c := range cs {
-			if (c.Type == astatine.ChannelTypeGuildText || c.Type == astatine.ChannelTypeGuildNews) && (c.ParentID == "") {
-				channelTreeNode := tview.NewTreeNode(discord.ChannelToString(c)).
-					SetReference(c.ID)
-				rootTreeNode.AddChild(channelTreeNode)
+			if (c.Type == dsc.GuildText || c.Type == dsc.GuildNews) && (!c.ParentID.IsValid()) {
+				channelNode := tview.NewTreeNode(channelToString(c))
+				channelNode.SetReference(c.ID)
+				rootNode.AddChild(channelNode)
 			}
 		}
 
 	CATEGORY:
 		for _, c := range cs {
-			if c.Type == astatine.ChannelTypeGuildCategory {
+			if c.Type == dsc.GuildCategory {
 				for _, nestedChannel := range cs {
 					if nestedChannel.ParentID == c.ID {
-						channelTreeNode := tview.NewTreeNode(c.Name).
-							SetReference(c.ID)
-						rootTreeNode.AddChild(channelTreeNode)
+						channelNode := tview.NewTreeNode(c.Name)
+						channelNode.SetReference(c.ID)
+						rootNode.AddChild(channelNode)
 						continue CATEGORY
 					}
 				}
 
-				channelTreeNode := tview.NewTreeNode(c.Name).
-					SetReference(c.ID)
-				rootTreeNode.AddChild(channelTreeNode)
+				channelNode := tview.NewTreeNode(channelToString(c))
+				channelNode.SetReference(c.ID)
+				rootNode.AddChild(channelNode)
 			}
 		}
 
 		for _, c := range cs {
-			if (c.Type == astatine.ChannelTypeGuildText || c.Type == astatine.ChannelTypeGuildNews) && (c.ParentID != "") {
-				var parentTreeNode *tview.TreeNode
-				rootTreeNode.Walk(func(node, _ *tview.TreeNode) bool {
+			if (c.Type == dsc.GuildText || c.Type == dsc.GuildNews) && (c.ParentID.IsValid()) {
+				var parentNode *tview.TreeNode
+				rootNode.Walk(func(node, _ *tview.TreeNode) bool {
 					if node.GetReference() == c.ParentID {
-						parentTreeNode = node
+						parentNode = node
 						return false
 					}
 
 					return true
 				})
 
-				if parentTreeNode != nil {
-					channelTreeNode := tview.NewTreeNode(discord.ChannelToString(c)).
-						SetReference(c.ID)
-					parentTreeNode.AddChild(channelTreeNode)
+				if parentNode != nil {
+					channelNode := tview.NewTreeNode(channelToString(c))
+					channelNode.SetReference(c.ID)
+					parentNode.AddChild(channelNode)
 				}
 			}
 		}
 	}
 
-	gl.app.ChannelsTreeView.SetCurrentNode(rootTreeNode)
-	gl.app.SetFocus(gl.app.ChannelsTreeView)
+	gt.app.ChannelsTree.SetCurrentNode(rootNode)
+	gt.app.SetFocus(gt.app.ChannelsTree)
 }

@@ -1,77 +1,78 @@
 package ui
 
 import (
-	"github.com/ayntgl/astatine"
 	"github.com/ayntgl/discordo/discord"
+	dsc "github.com/diamondburned/arikawa/v3/discord"
 	"github.com/rivo/tview"
 )
 
-type ChannelsTreeView struct {
+type ChannelsTree struct {
 	*tview.TreeView
 	app *App
 }
 
-func NewChannelsTreeView(app *App) *ChannelsTreeView {
-	ctv := &ChannelsTreeView{
+func NewChannelsTree(app *App) *ChannelsTree {
+	ct := &ChannelsTree{
 		TreeView: tview.NewTreeView(),
 		app:      app,
 	}
 
-	ctv.SetTopLevel(1)
-	ctv.SetRoot(tview.NewTreeNode(""))
-	ctv.SetTitle("Channels")
-	ctv.SetTitleAlign(tview.AlignLeft)
-	ctv.SetBorder(true)
-	ctv.SetBorderPadding(0, 0, 1, 1)
-	ctv.SetSelectedFunc(ctv.onSelected)
-	return ctv
+	ct.SetRoot(tview.NewTreeNode(""))
+	ct.SetTopLevel(1)
+	ct.SetSelectedFunc(ct.onSelected)
+
+	ct.SetTitle("Channels")
+	ct.SetTitleAlign(tview.AlignLeft)
+	ct.SetBorder(true)
+	ct.SetBorderPadding(0, 0, 1, 1)
+
+	return ct
 }
 
-func (ctv *ChannelsTreeView) onSelected(n *tview.TreeNode) {
-	ctv.app.SelectedMessage = -1
-	ctv.app.MessagesTextView.
+func (ct *ChannelsTree) onSelected(node *tview.TreeNode) {
+	ct.app.SelectedChannel = nil
+	ct.app.SelectedMessage = -1
+	ct.app.MessagesTextView.
 		Highlight().
 		Clear().
 		SetTitle("")
-	ctv.app.MessageInputField.SetText("")
+	ct.app.MessageInputField.SetText("")
 
-	c, err := ctv.app.Session.State.Channel(n.GetReference().(string))
+	ref := node.GetReference()
+	c, err := ct.app.State.Cabinet.Channel(ref.(dsc.ChannelID))
 	if err != nil {
 		return
 	}
 
-	if c.Type == astatine.ChannelTypeGuildCategory {
-		n.SetExpanded(!n.IsExpanded())
+	// If the channel is a category channel, expend the selected node if it is not expanded already.
+	if c.Type == dsc.GuildCategory {
+		node.SetExpanded(!node.IsExpanded())
 		return
 	}
 
-	ctv.app.SelectedChannel = c
-	ctv.app.SetFocus(ctv.app.MessageInputField)
+	ct.app.SelectedChannel = c
+	ct.app.SetFocus(ct.app.MessageInputField)
 
-	title := discord.ChannelToString(c)
+	title := channelToString(*c)
 	if c.Topic != "" {
 		title += " - " + discord.ParseMarkdown(c.Topic)
 	}
-	ctv.app.MessagesTextView.SetTitle(title)
+	ct.app.MessagesTextView.SetTitle(title)
 
 	go func() {
-		ms, err := ctv.app.Session.ChannelMessages(c.ID, ctv.app.Config.MessagesLimit, "", "", "")
+		// The returned slice will be sorted from latest to oldest.
+		ms, err := ct.app.State.Messages(c.ID, ct.app.Config.MessagesLimit)
 		if err != nil {
 			return
 		}
 
 		for i := len(ms) - 1; i >= 0; i-- {
-			ctv.app.SelectedChannel.Messages = append(ctv.app.SelectedChannel.Messages, ms[i])
-			ctv.drawMessage(ms[i])
+			_, err = ct.app.MessagesTextView.Write(buildMessage(ct.app, ms[i]))
+			if err != nil {
+				return
+			}
 		}
 
-		ctv.app.MessagesTextView.ScrollToEnd()
+		ct.app.MessagesTextView.ScrollToEnd()
 	}()
-}
-
-func (ctv *ChannelsTreeView) drawMessage(m *astatine.Message) {
-	_, err := ctv.app.MessagesTextView.Write(buildMessage(ctv.app, m))
-	if err != nil {
-		return
-	}
 }
