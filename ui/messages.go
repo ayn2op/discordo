@@ -35,13 +35,15 @@ func NewMessagesTextView(app *App) *MessagesTextView {
 	mtv.SetDynamicColors(true)
 	mtv.SetRegions(true)
 	mtv.SetWordWrap(true)
+	mtv.SetInputCapture(mtv.onInputCapture)
 	mtv.SetChangedFunc(func() {
 		mtv.app.Draw()
 	})
+
 	mtv.SetTitleAlign(tview.AlignLeft)
 	mtv.SetBorder(true)
 	mtv.SetBorderPadding(0, 0, 1, 1)
-	mtv.SetInputCapture(mtv.onInputCapture)
+
 	return mtv
 }
 
@@ -50,19 +52,27 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		return nil
 	}
 
-	ms, err := mtv.app.State.Messages(mtv.app.SelectedChannel.ID, mtv.app.Config.MessagesLimit)
+	// Messages should return messages ordered from latest to earliest.
+	ms, err := mtv.app.State.Cabinet.Messages(mtv.app.SelectedChannel.ID)
 	if err != nil || len(ms) == 0 {
 		return nil
 	}
 
+	// - 0
+	// -- 1
+	// --- 2
+
 	switch e.Name() {
 	case mtv.app.Config.Keys.SelectPreviousMessage:
+		// If there are no highlighted regions, select the latest (last) message in the messages TextView.
 		if len(mtv.app.MessagesTextView.GetHighlights()) == 0 {
-			mtv.app.SelectedMessage = len(ms) - 1
+			mtv.app.SelectedMessage = 0
 		} else {
-			mtv.app.SelectedMessage--
-			if mtv.app.SelectedMessage < 0 {
+			// If the selected message is the oldest (first) message, select the latest (last) message in the messages TextView.
+			if mtv.app.SelectedMessage == len(ms)-1 {
 				mtv.app.SelectedMessage = 0
+			} else {
+				mtv.app.SelectedMessage++
 			}
 		}
 
@@ -71,12 +81,15 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			ScrollToHighlight()
 		return nil
 	case mtv.app.Config.Keys.SelectNextMessage:
+		// If there are no highlighted regions, select the latest (last) message in the messages TextView.
 		if len(mtv.app.MessagesTextView.GetHighlights()) == 0 {
-			mtv.app.SelectedMessage = len(ms) - 1
+			mtv.app.SelectedMessage = 0
 		} else {
-			mtv.app.SelectedMessage++
-			if mtv.app.SelectedMessage >= len(ms) {
+			// If the selected message is the latest (last) message, select the oldest (first) message in the messages TextView.
+			if mtv.app.SelectedMessage == 0 {
 				mtv.app.SelectedMessage = len(ms) - 1
+			} else {
+				mtv.app.SelectedMessage--
 			}
 		}
 
@@ -85,13 +98,13 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			ScrollToHighlight()
 		return nil
 	case mtv.app.Config.Keys.SelectFirstMessage:
-		mtv.app.SelectedMessage = 0
+		mtv.app.SelectedMessage = len(ms) - 1
 		mtv.app.MessagesTextView.
 			Highlight(ms[mtv.app.SelectedMessage].ID.String()).
 			ScrollToHighlight()
 		return nil
 	case mtv.app.Config.Keys.SelectLastMessage:
-		mtv.app.SelectedMessage = len(ms) - 1
+		mtv.app.SelectedMessage = 0
 		mtv.app.MessagesTextView.
 			Highlight(ms[mtv.app.SelectedMessage].ID.String()).
 			ScrollToHighlight()

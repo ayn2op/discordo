@@ -36,7 +36,6 @@ func NewGuildsTree(app *App) *GuildsTree {
 func (gt *GuildsTree) onSelected(node *tview.TreeNode) {
 	gt.app.SelectedChannel = nil
 	gt.app.SelectedMessage = -1
-
 	rootNode := gt.app.ChannelsTree.GetRoot()
 	rootNode.ClearChildren()
 	gt.app.MessagesTextView.

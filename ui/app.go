@@ -22,17 +22,16 @@ type App struct {
 	MessagesTextView  *MessagesTextView
 	MessageInputField *MessageInputField
 	Config            *config.Config
-	SelectedMessage   int
 
 	State           *state.State
 	SelectedChannel *discord.Channel
+	SelectedMessage int
 }
 
 func NewApp(token string, c *config.Config) *App {
 	app := &App{
-		MainFlex:        tview.NewFlex(),
-		Config:          c,
-		SelectedMessage: -1,
+		MainFlex: tview.NewFlex(),
+		Config:   c,
 
 		State: state.NewWithIdentifier(gateway.NewIdentifier(gateway.IdentifyCommand{
 			Token:   token,
@@ -44,6 +43,7 @@ func NewApp(token string, c *config.Config) *App {
 			// The official client sets the compress field as false.
 			Compress: false,
 		})),
+		SelectedMessage: -1,
 	}
 
 	app.GuildsTree = NewGuildsTree(app)
