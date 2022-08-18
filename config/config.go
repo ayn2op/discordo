@@ -40,6 +40,7 @@ type Config struct {
 	Mouse                  bool           `toml:"mouse"`
 	Timestamps             bool           `toml:"timestamps"`
 	MessagesLimit          int            `toml:"messages_limit"`
+	Timezone               string         `toml:"timezone"`
 	AttachmentDownloadsDir string         `toml:"attachment_downloads_dir"`
 	Identify               IdentifyConfig `toml:"identify"`
 	Theme                  ThemeConfig    `toml:"theme"`
@@ -51,6 +52,7 @@ func New() *Config {
 		Mouse:                  true,
 		Timestamps:             false,
 		MessagesLimit:          50,
+		Timezone:               "Local",
 		AttachmentDownloadsDir: UserDownloadsDir(),
 		Identify: IdentifyConfig{
 			UserAgent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.67 Safari/537.36",
