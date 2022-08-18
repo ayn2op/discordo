@@ -16,10 +16,10 @@ type IdentifyConfig struct {
 }
 
 type KeysConfig struct {
-	ToggleGuildsList        string `toml:"toggle_guilds_list"`
-	ToggleChannelsTreeView  string `toml:"toggle_channels_tree_view"`
-	ToggleMessagesTextView  string `toml:"toggle_messages_text_view"`
-	ToggleMessageInputField string `toml:"toggle_message_input_field"`
+	ToggleGuildsTree       string `toml:"toggle_guilds_tree"`
+	ToggleChannelsTree     string `toml:"toggle_channels_tree"`
+	ToggleMessagesTextView string `toml:"toggle_messages_text_view"`
+	ToggleMessageInput     string `toml:"toggle_message_input"`
 
 	OpenMessageActionsList string `toml:"open_message_actions_list"`
 	OpenExternalEditor     string `toml:"open_external_editor"`
@@ -39,7 +39,7 @@ type ThemeConfig struct {
 type Config struct {
 	Mouse                  bool           `toml:"mouse"`
 	Timestamps             bool           `toml:"timestamps"`
-	MessagesLimit          int            `toml:"messages_limit"`
+	MessagesLimit          uint           `toml:"messages_limit"`
 	Timezone               string         `toml:"timezone"`
 	AttachmentDownloadsDir string         `toml:"attachment_downloads_dir"`
 	Identify               IdentifyConfig `toml:"identify"`
@@ -65,10 +65,10 @@ func New() *Config {
 			Title:      "white",
 		},
 		Keys: KeysConfig{
-			ToggleGuildsList:        "Rune[g]",
-			ToggleChannelsTreeView:  "Rune[c]",
-			ToggleMessagesTextView:  "Rune[m]",
-			ToggleMessageInputField: "Rune[i]",
+			ToggleGuildsTree:       "Rune[g]",
+			ToggleChannelsTree:     "Rune[c]",
+			ToggleMessagesTextView: "Rune[m]",
+			ToggleMessageInput:     "Rune[i]",
 
 			OpenMessageActionsList: "Rune[a]",
 			OpenExternalEditor:     "Ctrl+E",

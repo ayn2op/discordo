@@ -5,23 +5,22 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ayntgl/astatine"
-	"github.com/ayntgl/discordo/discord"
+	"github.com/diamondburned/arikawa/v3/discord"
 )
 
-func buildMessage(app *App, m *astatine.Message) []byte {
+func buildMessage(app *App, m discord.Message) []byte {
 	var b strings.Builder
 
 	switch m.Type {
-	case astatine.MessageTypeDefault, astatine.MessageTypeReply:
+	case discord.DefaultMessage, discord.InlinedReplyMessage:
 		// Define a new region and assign message ID as the region ID.
 		// Learn more:
 		// https://pkg.go.dev/github.com/rivo/tview#hdr-Regions_and_Highlights
 		b.WriteString("[\"")
-		b.WriteString(m.ID)
+		b.WriteString(m.ID.String())
 		b.WriteString("\"]")
 		// Build the message associated with crosspost, channel follow add, pin, or a reply.
-		buildReferencedMessage(&b, m.ReferencedMessage, app.Session.State.User.ID)
+		buildReferencedMessage(&b, m.ReferencedMessage, app.State.Ready().User.ID)
 
 		if app.Config.Timestamps {
 			loc, err := time.LoadLocation(app.Config.Timezone)
@@ -30,18 +29,18 @@ func buildMessage(app *App, m *astatine.Message) []byte {
 			}
 
 			b.WriteString("[::d]")
-			b.WriteString(m.Timestamp.In(loc).Format(time.Stamp))
+			b.WriteString(m.Timestamp.Time().In(loc).Format(time.Stamp))
 			b.WriteString("[::-]")
 			b.WriteByte(' ')
 		}
 
 		// Build the author of this message.
-		buildAuthor(&b, m.Author, app.Session.State.User.ID)
+		buildAuthor(&b, m.Author, app.State.Ready().User.ID)
 
 		// Build the contents of the message.
-		buildContent(&b, m, app.Session.State.User.ID)
+		buildContent(&b, m, app.State.Ready().User.ID)
 
-		if m.EditedTimestamp != nil {
+		if m.EditedTimestamp.IsValid() {
 			b.WriteString(" [::d](edited)[::-]")
 		}
 
@@ -56,19 +55,19 @@ func buildMessage(app *App, m *astatine.Message) []byte {
 		b.WriteString("[\"\"]")
 
 		b.WriteByte('\n')
-	case astatine.MessageTypeGuildMemberJoin:
+	case discord.GuildMemberJoinMessage:
 		b.WriteString("[#5865F2]")
 		b.WriteString(m.Author.Username)
 		b.WriteString("[-] joined the server.")
 
 		b.WriteByte('\n')
-	case astatine.MessageTypeCall:
+	case discord.CallMessage:
 		b.WriteString("[#5865F2]")
 		b.WriteString(m.Author.Username)
 		b.WriteString("[-] started a call.")
 
 		b.WriteByte('\n')
-	case astatine.MessageTypeChannelPinnedMessage:
+	case discord.ChannelPinnedMessage:
 		b.WriteString("[#5865F2]")
 		b.WriteString(m.Author.Username)
 		b.WriteString("[-] pinned a message.")
@@ -86,7 +85,7 @@ func buildMessage(app *App, m *astatine.Message) []byte {
 	return nil
 }
 
-func buildReferencedMessage(b *strings.Builder, rm *astatine.Message, clientID string) {
+func buildReferencedMessage(b *strings.Builder, rm *discord.Message, clientID discord.UserID) {
 	if rm != nil {
 		b.WriteString(" ╭ ")
 		b.WriteString("[::d]")
@@ -94,7 +93,7 @@ func buildReferencedMessage(b *strings.Builder, rm *astatine.Message, clientID s
 
 		if rm.Content != "" {
 			rm.Content = buildMentions(rm.Content, rm.Mentions, clientID)
-			b.WriteString(discord.ParseMarkdown(rm.Content))
+			b.WriteString(parseMarkdown(rm.Content))
 		}
 
 		b.WriteString("[::-]")
@@ -102,16 +101,16 @@ func buildReferencedMessage(b *strings.Builder, rm *astatine.Message, clientID s
 	}
 }
 
-func buildContent(b *strings.Builder, m *astatine.Message, clientID string) {
+func buildContent(b *strings.Builder, m discord.Message, clientID discord.UserID) {
 	if m.Content != "" {
 		m.Content = buildMentions(m.Content, m.Mentions, clientID)
-		b.WriteString(discord.ParseMarkdown(m.Content))
+		b.WriteString(parseMarkdown(m.Content))
 	}
 }
 
-func buildEmbeds(b *strings.Builder, es []*astatine.MessageEmbed) {
+func buildEmbeds(b *strings.Builder, es []discord.Embed) {
 	for _, e := range es {
-		if e.Type != astatine.EmbedTypeRich {
+		if e.Type != discord.NormalEmbed {
 			continue
 		}
 
@@ -148,7 +147,7 @@ func buildEmbeds(b *strings.Builder, es []*astatine.MessageEmbed) {
 				embedBuilder.WriteByte('\n')
 			}
 
-			embedBuilder.WriteString(discord.ParseMarkdown(e.Description))
+			embedBuilder.WriteString(parseMarkdown(e.Description))
 		}
 
 		if len(e.Fields) != 0 {
@@ -162,7 +161,7 @@ func buildEmbeds(b *strings.Builder, es []*astatine.MessageEmbed) {
 				embedBuilder.WriteString(ef.Name)
 				embedBuilder.WriteString("[::-]")
 				embedBuilder.WriteByte('\n')
-				embedBuilder.WriteString(discord.ParseMarkdown(ef.Value))
+				embedBuilder.WriteString(parseMarkdown(ef.Value))
 
 				if i != len(e.Fields)-1 {
 					embedBuilder.WriteString("\n\n")
@@ -182,7 +181,7 @@ func buildEmbeds(b *strings.Builder, es []*astatine.MessageEmbed) {
 	}
 }
 
-func buildAttachments(b *strings.Builder, as []*astatine.MessageAttachment) {
+func buildAttachments(b *strings.Builder, as []discord.Attachment) {
 	for _, a := range as {
 		b.WriteByte('\n')
 		b.WriteByte('[')
@@ -192,7 +191,7 @@ func buildAttachments(b *strings.Builder, as []*astatine.MessageAttachment) {
 	}
 }
 
-func buildMentions(content string, mentions []*astatine.User, clientID string) string {
+func buildMentions(content string, mentions []discord.GuildUser, clientID discord.UserID) string {
 	for _, mUser := range mentions {
 		var color string
 		if mUser.ID == clientID {
@@ -203,10 +202,10 @@ func buildMentions(content string, mentions []*astatine.User, clientID string) s
 
 		content = strings.NewReplacer(
 			// <@USER_ID>
-			"<@"+mUser.ID+">",
+			"<@"+mUser.ID.String()+">",
 			color+"@"+mUser.Username+"[-:-]",
 			// <@!USER_ID>
-			"<@!"+mUser.ID+">",
+			"<@!"+mUser.ID.String()+">",
 			color+"@"+mUser.Username+"[-:-]",
 		).Replace(content)
 	}
@@ -214,7 +213,7 @@ func buildMentions(content string, mentions []*astatine.User, clientID string) s
 	return content
 }
 
-func buildAuthor(b *strings.Builder, u *astatine.User, clientID string) {
+func buildAuthor(b *strings.Builder, u discord.User, clientID discord.UserID) {
 	if u.ID == clientID {
 		b.WriteString("[#57F287]")
 	} else {
