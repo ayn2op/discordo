@@ -58,10 +58,6 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		return nil
 	}
 
-	// - 0
-	// -- 1
-	// --- 2
-
 	switch e.Name() {
 	case mtv.app.Config.Keys.SelectPreviousMessage:
 		// If there are no highlighted regions, select the latest (last) message in the messages TextView.
@@ -307,13 +303,13 @@ func (mtv *MessagesTextView) deleteMessage(m dsc.Message) {
 	}
 }
 
-type MessageInputField struct {
+type MessageInput struct {
 	*tview.InputField
 	app *App
 }
 
-func NewMessageInputField(app *App) *MessageInputField {
-	mi := &MessageInputField{
+func NewMessageInput(app *App) *MessageInput {
+	mi := &MessageInput{
 		InputField: tview.NewInputField(),
 		app:        app,
 	}
@@ -328,7 +324,7 @@ func NewMessageInputField(app *App) *MessageInputField {
 	return mi
 }
 
-func (mi *MessageInputField) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
+func (mi *MessageInput) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	switch e.Name() {
 	case "Enter":
 		if mi.app.SelectedChannel == nil {

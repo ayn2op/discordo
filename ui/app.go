@@ -20,9 +20,9 @@ type App struct {
 	GuildsTree        *GuildsTree
 	ChannelsTree      *ChannelsTree
 	MessagesTextView  *MessagesTextView
-	MessageInputField *MessageInputField
-	Config            *config.Config
+	MessageInputField *MessageInput
 
+	Config          *config.Config
 	State           *state.State
 	SelectedChannel *discord.Channel
 	SelectedMessage int
@@ -49,7 +49,7 @@ func NewApp(token string, c *config.Config) *App {
 	app.GuildsTree = NewGuildsTree(app)
 	app.ChannelsTree = NewChannelsTree(app)
 	app.MessagesTextView = NewMessagesTextView(app)
-	app.MessageInputField = NewMessageInputField(app)
+	app.MessageInputField = NewMessageInput(app)
 
 	app.Application = tview.NewApplication()
 	app.EnableMouse(app.Config.Mouse)
@@ -67,8 +67,8 @@ func (app *App) Connect() error {
 	}
 
 	app.State.AddHandler(app.onStateGuildCreate)
-	// app.Session.AddHandler(app.onStateGuildDelete)
-	// app.Session.AddHandler(app.onStateMessageCreate)
+	app.State.AddHandler(app.onStateGuildDelete)
+	app.State.AddHandler(app.onStateMessageCreate)
 	return app.State.Open(context.Background())
 }
 
@@ -79,16 +79,16 @@ func (app *App) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 
 	if app.MainFlex.GetItemCount() != 0 {
 		switch e.Name() {
-		case app.Config.Keys.ToggleGuildsList:
+		case app.Config.Keys.ToggleGuildsTree:
 			app.SetFocus(app.GuildsTree)
 			return nil
-		case app.Config.Keys.ToggleChannelsTreeView:
+		case app.Config.Keys.ToggleChannelsTree:
 			app.SetFocus(app.ChannelsTree)
 			return nil
 		case app.Config.Keys.ToggleMessagesTextView:
 			app.SetFocus(app.MessagesTextView)
 			return nil
-		case app.Config.Keys.ToggleMessageInputField:
+		case app.Config.Keys.ToggleMessageInput:
 			app.SetFocus(app.MessageInputField)
 			return nil
 		}
@@ -149,25 +149,34 @@ func (app *App) onStateGuildCreate(g *gateway.GuildCreateEvent) {
 	app.Draw()
 }
 
-// func (app *App) onStateGuildDelete(g *gateway.GuildDeleteEvent) {
-// 	items := app.GuildsTree.FindItems(g.Name, "", false, false)
-// 	if len(items) != 0 {
-// 		app.GuildsTree.RemoveItem(items[0])
-// 	}
+func (app *App) onStateGuildDelete(g *gateway.GuildDeleteEvent) {
+	rootNode := app.GuildsTree.GetRoot()
+	var parentNode *tview.TreeNode
+	rootNode.Walk(func(node, _ *tview.TreeNode) bool {
+		if node.GetReference() == g.ID {
+			parentNode = node
+			return false
+		}
 
-// 	app.Draw()
-// }
+		return true
+	})
 
-// func (app *App) onStateMessageCreate(m *gateway.MessageCreateEvent) {
-// 	if app.SelectedChannel != nil && app.SelectedChannel.ID == m.ChannelID {
-// 		app.SelectedChannel.Messages = append(app.SelectedChannel.Messages, m.Message)
-// 		_, err := app.MessagesTextView.Write(buildMessage(app, m.Message))
-// 		if err != nil {
-// 			return
-// 		}
+	if parentNode != nil {
+		rootNode.RemoveChild(parentNode)
+	}
 
-// 		if len(app.MessagesTextView.GetHighlights()) == 0 {
-// 			app.MessagesTextView.ScrollToEnd()
-// 		}
-// 	}
-// }
+	app.Draw()
+}
+
+func (app *App) onStateMessageCreate(m *gateway.MessageCreateEvent) {
+	if app.SelectedChannel != nil && app.SelectedChannel.ID == m.ChannelID {
+		_, err := app.MessagesTextView.Write(buildMessage(app, m.Message))
+		if err != nil {
+			return
+		}
+
+		if len(app.MessagesTextView.GetHighlights()) == 0 {
+			app.MessagesTextView.ScrollToEnd()
+		}
+	}
+}
