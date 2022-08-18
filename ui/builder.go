@@ -5,15 +5,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ayntgl/discordo/discord"
-	dsc "github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/discord"
 )
 
-func buildMessage(app *App, m dsc.Message) []byte {
+func buildMessage(app *App, m discord.Message) []byte {
 	var b strings.Builder
 
 	switch m.Type {
-	case dsc.DefaultMessage, dsc.InlinedReplyMessage:
+	case discord.DefaultMessage, discord.InlinedReplyMessage:
 		// Define a new region and assign message ID as the region ID.
 		// Learn more:
 		// https://pkg.go.dev/github.com/rivo/tview#hdr-Regions_and_Highlights
@@ -56,19 +55,19 @@ func buildMessage(app *App, m dsc.Message) []byte {
 		b.WriteString("[\"\"]")
 
 		b.WriteByte('\n')
-	case dsc.GuildMemberJoinMessage:
+	case discord.GuildMemberJoinMessage:
 		b.WriteString("[#5865F2]")
 		b.WriteString(m.Author.Username)
 		b.WriteString("[-] joined the server.")
 
 		b.WriteByte('\n')
-	case dsc.CallMessage:
+	case discord.CallMessage:
 		b.WriteString("[#5865F2]")
 		b.WriteString(m.Author.Username)
 		b.WriteString("[-] started a call.")
 
 		b.WriteByte('\n')
-	case dsc.ChannelPinnedMessage:
+	case discord.ChannelPinnedMessage:
 		b.WriteString("[#5865F2]")
 		b.WriteString(m.Author.Username)
 		b.WriteString("[-] pinned a message.")
@@ -86,7 +85,7 @@ func buildMessage(app *App, m dsc.Message) []byte {
 	return nil
 }
 
-func buildReferencedMessage(b *strings.Builder, rm *dsc.Message, clientID dsc.UserID) {
+func buildReferencedMessage(b *strings.Builder, rm *discord.Message, clientID discord.UserID) {
 	if rm != nil {
 		b.WriteString(" ╭ ")
 		b.WriteString("[::d]")
@@ -94,7 +93,7 @@ func buildReferencedMessage(b *strings.Builder, rm *dsc.Message, clientID dsc.Us
 
 		if rm.Content != "" {
 			rm.Content = buildMentions(rm.Content, rm.Mentions, clientID)
-			b.WriteString(discord.ParseMarkdown(rm.Content))
+			b.WriteString(parseMarkdown(rm.Content))
 		}
 
 		b.WriteString("[::-]")
@@ -102,16 +101,16 @@ func buildReferencedMessage(b *strings.Builder, rm *dsc.Message, clientID dsc.Us
 	}
 }
 
-func buildContent(b *strings.Builder, m dsc.Message, clientID dsc.UserID) {
+func buildContent(b *strings.Builder, m discord.Message, clientID discord.UserID) {
 	if m.Content != "" {
 		m.Content = buildMentions(m.Content, m.Mentions, clientID)
-		b.WriteString(discord.ParseMarkdown(m.Content))
+		b.WriteString(parseMarkdown(m.Content))
 	}
 }
 
-func buildEmbeds(b *strings.Builder, es []dsc.Embed) {
+func buildEmbeds(b *strings.Builder, es []discord.Embed) {
 	for _, e := range es {
-		if e.Type != dsc.NormalEmbed {
+		if e.Type != discord.NormalEmbed {
 			continue
 		}
 
@@ -148,7 +147,7 @@ func buildEmbeds(b *strings.Builder, es []dsc.Embed) {
 				embedBuilder.WriteByte('\n')
 			}
 
-			embedBuilder.WriteString(discord.ParseMarkdown(e.Description))
+			embedBuilder.WriteString(parseMarkdown(e.Description))
 		}
 
 		if len(e.Fields) != 0 {
@@ -162,7 +161,7 @@ func buildEmbeds(b *strings.Builder, es []dsc.Embed) {
 				embedBuilder.WriteString(ef.Name)
 				embedBuilder.WriteString("[::-]")
 				embedBuilder.WriteByte('\n')
-				embedBuilder.WriteString(discord.ParseMarkdown(ef.Value))
+				embedBuilder.WriteString(parseMarkdown(ef.Value))
 
 				if i != len(e.Fields)-1 {
 					embedBuilder.WriteString("\n\n")
@@ -182,7 +181,7 @@ func buildEmbeds(b *strings.Builder, es []dsc.Embed) {
 	}
 }
 
-func buildAttachments(b *strings.Builder, as []dsc.Attachment) {
+func buildAttachments(b *strings.Builder, as []discord.Attachment) {
 	for _, a := range as {
 		b.WriteByte('\n')
 		b.WriteByte('[')
@@ -192,7 +191,7 @@ func buildAttachments(b *strings.Builder, as []dsc.Attachment) {
 	}
 }
 
-func buildMentions(content string, mentions []dsc.GuildUser, clientID dsc.UserID) string {
+func buildMentions(content string, mentions []discord.GuildUser, clientID discord.UserID) string {
 	for _, mUser := range mentions {
 		var color string
 		if mUser.ID == clientID {
@@ -214,7 +213,7 @@ func buildMentions(content string, mentions []dsc.GuildUser, clientID dsc.UserID
 	return content
 }
 
-func buildAuthor(b *strings.Builder, u dsc.User, clientID dsc.UserID) {
+func buildAuthor(b *strings.Builder, u discord.User, clientID discord.UserID) {
 	if u.ID == clientID {
 		b.WriteString("[#57F287]")
 	} else {

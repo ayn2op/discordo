@@ -1,4 +1,4 @@
-package discord
+package ui
 
 import "regexp"
 
@@ -9,7 +9,7 @@ var (
 	strikeThroughRegex = regexp.MustCompile(`(?ms)~~(.*?)~~`)
 )
 
-func ParseMarkdown(md string) string {
+func parseMarkdown(md string) string {
 	var res string
 	res = boldRegex.ReplaceAllString(md, "[::b]$1[::-]")
 	res = italicRegex.ReplaceAllString(res, "[::i]$1[::-]")

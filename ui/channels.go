@@ -1,8 +1,7 @@
 package ui
 
 import (
-	"github.com/ayntgl/discordo/discord"
-	dsc "github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/rivo/tview"
 )
 
@@ -39,13 +38,13 @@ func (ct *ChannelsTree) onSelected(node *tview.TreeNode) {
 	ct.app.MessageInputField.SetText("")
 
 	ref := node.GetReference()
-	c, err := ct.app.State.Cabinet.Channel(ref.(dsc.ChannelID))
+	c, err := ct.app.State.Cabinet.Channel(ref.(discord.ChannelID))
 	if err != nil {
 		return
 	}
 
 	// If the channel is a category channel, expend the selected node if it is not expanded already.
-	if c.Type == dsc.GuildCategory {
+	if c.Type == discord.GuildCategory {
 		node.SetExpanded(!node.IsExpanded())
 		return
 	}
@@ -55,7 +54,7 @@ func (ct *ChannelsTree) onSelected(node *tview.TreeNode) {
 
 	title := channelToString(*c)
 	if c.Topic != "" {
-		title += " - " + discord.ParseMarkdown(c.Topic)
+		title += " - " + parseMarkdown(c.Topic)
 	}
 	ct.app.MessagesTextView.SetTitle(title)
 
