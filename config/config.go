@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"time"
 
 	"github.com/BurntSushi/toml"
 )
@@ -41,6 +42,7 @@ type Config struct {
 	Timestamps             bool           `toml:"timestamps"`
 	MessagesLimit          uint           `toml:"messages_limit"`
 	Timezone               string         `toml:"timezone"`
+	TimeFormat             string         `toml:"time_format"`
 	AttachmentDownloadsDir string         `toml:"attachment_downloads_dir"`
 	Identify               IdentifyConfig `toml:"identify"`
 	Theme                  ThemeConfig    `toml:"theme"`
@@ -53,6 +55,7 @@ func New() *Config {
 		Timestamps:             false,
 		MessagesLimit:          50,
 		Timezone:               "Local",
+		TimeFormat:             time.Stamp,
 		AttachmentDownloadsDir: UserDownloadsDir(),
 		Identify: IdentifyConfig{
 			UserAgent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.67 Safari/537.36",
