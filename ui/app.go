@@ -164,11 +164,12 @@ func (app *App) onStateReady(r *gateway.ReadyEvent) {
 }
 
 func (app *App) onStateGuildCreate(g *gateway.GuildCreateEvent) {
-	rootNode := app.GuildsTree.GetRoot()
 	guildNode := tview.NewTreeNode(g.Name)
 	guildNode.SetReference(g.ID)
 
+	rootNode := app.GuildsTree.GetRoot()
 	rootNode.AddChild(guildNode)
+
 	app.Draw()
 }
 

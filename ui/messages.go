@@ -174,6 +174,9 @@ func NewMessageActionsList(app *App, m *discord.Message) *MessageActionsList {
 			for _, l := range links {
 				go open.Run(l)
 			}
+
+			app.SetRoot(app.MainFlex, true)
+			app.SetFocus(app.MessagesTextView)
 		})
 	}
 
