@@ -29,7 +29,7 @@ func buildMessage(app *App, m discord.Message) []byte {
 			}
 
 			b.WriteString("[::d]")
-			b.WriteString(m.Timestamp.Time().In(loc).Format(time.Stamp))
+			b.WriteString(m.Timestamp.Time().In(loc).Format(app.Config.TimeFormat))
 			b.WriteString("[::-]")
 			b.WriteByte(' ')
 		}
