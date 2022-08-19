@@ -38,7 +38,7 @@ func (gt *GuildsTree) onSelected(node *tview.TreeNode) {
 	gt.app.SelectedMessage = -1
 	rootNode := gt.app.ChannelsTree.GetRoot()
 	rootNode.ClearChildren()
-	gt.app.MessagesTextView.
+	gt.app.MessagesPanel.
 		Highlight().
 		Clear().
 		SetTitle("")

@@ -17,10 +17,10 @@ type IdentifyConfig struct {
 }
 
 type KeysConfig struct {
-	ToggleGuildsTree       string `toml:"toggle_guilds_tree"`
-	ToggleChannelsTree     string `toml:"toggle_channels_tree"`
-	ToggleMessagesTextView string `toml:"toggle_messages_text_view"`
-	ToggleMessageInput     string `toml:"toggle_message_input"`
+	ToggleGuildsTree    string `toml:"toggle_guilds_tree"`
+	ToggleChannelsTree  string `toml:"toggle_channels_tree"`
+	ToggleMessagesPanel string `toml:"toggle_messages_panel"`
+	ToggleMessageInput  string `toml:"toggle_message_input"`
 
 	OpenMessageActionsList string `toml:"open_message_actions_list"`
 	OpenExternalEditor     string `toml:"open_external_editor"`
@@ -68,10 +68,10 @@ func New() *Config {
 			Title:      "white",
 		},
 		Keys: KeysConfig{
-			ToggleGuildsTree:       "Rune[g]",
-			ToggleChannelsTree:     "Rune[c]",
-			ToggleMessagesTextView: "Rune[m]",
-			ToggleMessageInput:     "Rune[i]",
+			ToggleGuildsTree:    "Rune[g]",
+			ToggleChannelsTree:  "Rune[c]",
+			ToggleMessagesPanel: "Rune[m]",
+			ToggleMessageInput:  "Rune[i]",
 
 			OpenMessageActionsList: "Rune[a]",
 			OpenExternalEditor:     "Ctrl+E",

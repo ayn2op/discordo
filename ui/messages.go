@@ -20,13 +20,13 @@ import (
 
 var linkRegex = regexp.MustCompile("https?://.+")
 
-type MessagesTextView struct {
+type MessagesPanel struct {
 	*tview.TextView
 	app *App
 }
 
-func NewMessagesTextView(app *App) *MessagesTextView {
-	mtv := &MessagesTextView{
+func NewMessagesPanel(app *App) *MessagesPanel {
+	mtv := &MessagesPanel{
 		TextView: tview.NewTextView(),
 		app:      app,
 	}
@@ -46,66 +46,66 @@ func NewMessagesTextView(app *App) *MessagesTextView {
 	return mtv
 }
 
-func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
-	if mtv.app.SelectedChannel == nil {
+func (mp *MessagesPanel) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
+	if mp.app.SelectedChannel == nil {
 		return nil
 	}
 
 	// Messages should return messages ordered from latest to earliest.
-	ms, err := mtv.app.State.Cabinet.Messages(mtv.app.SelectedChannel.ID)
+	ms, err := mp.app.State.Cabinet.Messages(mp.app.SelectedChannel.ID)
 	if err != nil || len(ms) == 0 {
 		return nil
 	}
 
 	switch e.Name() {
-	case mtv.app.Config.Keys.SelectPreviousMessage:
-		// If there are no highlighted regions, select the latest (last) message in the messages TextView.
-		if len(mtv.app.MessagesTextView.GetHighlights()) == 0 {
-			mtv.app.SelectedMessage = 0
+	case mp.app.Config.Keys.SelectPreviousMessage:
+		// If there are no highlighted regions, select the latest (last) message in the messages panel.
+		if len(mp.app.MessagesPanel.GetHighlights()) == 0 {
+			mp.app.SelectedMessage = 0
 		} else {
-			// If the selected message is the oldest (first) message, select the latest (last) message in the messages TextView.
-			if mtv.app.SelectedMessage == len(ms)-1 {
-				mtv.app.SelectedMessage = 0
+			// If the selected message is the oldest (first) message, select the latest (last) message in the messages panel.
+			if mp.app.SelectedMessage == len(ms)-1 {
+				mp.app.SelectedMessage = 0
 			} else {
-				mtv.app.SelectedMessage++
+				mp.app.SelectedMessage++
 			}
 		}
 
-		mtv.app.MessagesTextView.
-			Highlight(ms[mtv.app.SelectedMessage].ID.String()).
+		mp.app.MessagesPanel.
+			Highlight(ms[mp.app.SelectedMessage].ID.String()).
 			ScrollToHighlight()
 		return nil
-	case mtv.app.Config.Keys.SelectNextMessage:
-		// If there are no highlighted regions, select the latest (last) message in the messages TextView.
-		if len(mtv.app.MessagesTextView.GetHighlights()) == 0 {
-			mtv.app.SelectedMessage = 0
+	case mp.app.Config.Keys.SelectNextMessage:
+		// If there are no highlighted regions, select the latest (last) message in the messages panel.
+		if len(mp.app.MessagesPanel.GetHighlights()) == 0 {
+			mp.app.SelectedMessage = 0
 		} else {
-			// If the selected message is the latest (last) message, select the oldest (first) message in the messages TextView.
-			if mtv.app.SelectedMessage == 0 {
-				mtv.app.SelectedMessage = len(ms) - 1
+			// If the selected message is the latest (last) message, select the oldest (first) message in the messages panel.
+			if mp.app.SelectedMessage == 0 {
+				mp.app.SelectedMessage = len(ms) - 1
 			} else {
-				mtv.app.SelectedMessage--
+				mp.app.SelectedMessage--
 			}
 		}
 
-		mtv.app.MessagesTextView.
-			Highlight(ms[mtv.app.SelectedMessage].ID.String()).
+		mp.app.MessagesPanel.
+			Highlight(ms[mp.app.SelectedMessage].ID.String()).
 			ScrollToHighlight()
 		return nil
-	case mtv.app.Config.Keys.SelectFirstMessage:
-		mtv.app.SelectedMessage = len(ms) - 1
-		mtv.app.MessagesTextView.
-			Highlight(ms[mtv.app.SelectedMessage].ID.String()).
+	case mp.app.Config.Keys.SelectFirstMessage:
+		mp.app.SelectedMessage = len(ms) - 1
+		mp.app.MessagesPanel.
+			Highlight(ms[mp.app.SelectedMessage].ID.String()).
 			ScrollToHighlight()
 		return nil
-	case mtv.app.Config.Keys.SelectLastMessage:
-		mtv.app.SelectedMessage = 0
-		mtv.app.MessagesTextView.
-			Highlight(ms[mtv.app.SelectedMessage].ID.String()).
+	case mp.app.Config.Keys.SelectLastMessage:
+		mp.app.SelectedMessage = 0
+		mp.app.MessagesPanel.
+			Highlight(ms[mp.app.SelectedMessage].ID.String()).
 			ScrollToHighlight()
 		return nil
-	case mtv.app.Config.Keys.OpenMessageActionsList:
-		hs := mtv.app.MessagesTextView.GetHighlights()
+	case mp.app.Config.Keys.OpenMessageActionsList:
+		hs := mp.app.MessagesPanel.GetHighlights()
 		if len(hs) == 0 {
 			return nil
 		}
@@ -120,13 +120,13 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
-		actionsList := NewMessageActionsList(mtv.app, m)
-		mtv.app.SetRoot(actionsList, true)
+		actionsList := NewMessageActionsList(mp.app, m)
+		mp.app.SetRoot(actionsList, true)
 		return nil
 	case "Esc":
-		mtv.app.SelectedMessage = -1
-		mtv.app.SetFocus(mtv.app.MainFlex)
-		mtv.app.MessagesTextView.
+		mp.app.SelectedMessage = -1
+		mp.app.SetFocus(mp.app.MainFlex)
+		mp.app.MessagesPanel.
 			Clear().
 			Highlight().
 			SetTitle("")
@@ -153,7 +153,7 @@ func NewMessageActionsList(app *App, m *discord.Message) *MessageActionsList {
 	mal.SetDoneFunc(func() {
 		app.
 			SetRoot(app.MainFlex, true).
-			SetFocus(app.MessagesTextView)
+			SetFocus(app.MessagesPanel)
 	})
 
 	// If the client user has the `SEND_MESSAGES` permission, add "Reply" and "Mention Reply" actions.
@@ -176,7 +176,7 @@ func NewMessageActionsList(app *App, m *discord.Message) *MessageActionsList {
 			}
 
 			app.SetRoot(app.MainFlex, true)
-			app.SetFocus(app.MessagesTextView)
+			app.SetFocus(app.MessagesPanel)
 		})
 	}
 
@@ -225,13 +225,13 @@ func (mal *MessageActionsList) selectReplyAction() {
 	}
 
 	mal.app.SelectedMessage, _ = findMessageByID(ms, mal.message.ReferencedMessage.ID)
-	mal.app.MessagesTextView.
+	mal.app.MessagesPanel.
 		Highlight(mal.message.ReferencedMessage.ID.String()).
 		ScrollToHighlight()
 
 	mal.app.
 		SetRoot(mal.app.MainFlex, true).
-		SetFocus(mal.app.MessagesTextView)
+		SetFocus(mal.app.MessagesPanel)
 }
 
 func (mal *MessageActionsList) openAttachmentAction() {
@@ -259,7 +259,7 @@ func (mal *MessageActionsList) openAttachmentAction() {
 
 	mal.app.
 		SetRoot(mal.app.MainFlex, true).
-		SetFocus(mal.app.MessagesTextView)
+		SetFocus(mal.app.MessagesPanel)
 }
 
 func (mal *MessageActionsList) downloadAttachmentAction() {
@@ -285,11 +285,11 @@ func (mal *MessageActionsList) downloadAttachmentAction() {
 
 	mal.app.
 		SetRoot(mal.app.MainFlex, true).
-		SetFocus(mal.app.MessagesTextView)
+		SetFocus(mal.app.MessagesPanel)
 }
 
 func (mal *MessageActionsList) deleteAction() {
-	mal.app.MessagesTextView.Clear()
+	mal.app.MessagesPanel.Clear()
 
 	err := mal.app.State.MessageRemove(mal.message.ChannelID, mal.message.ID)
 	if err != nil {
@@ -308,7 +308,7 @@ func (mal *MessageActionsList) deleteAction() {
 	}
 
 	for i := len(ms) - 1; i >= 0; i-- {
-		_, err = mal.app.MessagesTextView.Write(buildMessage(mal.app, ms[i]))
+		_, err = mal.app.MessagesPanel.Write(buildMessage(mal.app, ms[i]))
 		if err != nil {
 			return
 		}
@@ -316,7 +316,7 @@ func (mal *MessageActionsList) deleteAction() {
 
 	mal.app.
 		SetRoot(mal.app.MainFlex, true).
-		SetFocus(mal.app.MessagesTextView)
+		SetFocus(mal.app.MessagesPanel)
 }
 
 func (mal *MessageActionsList) copyContentAction() {
@@ -326,7 +326,7 @@ func (mal *MessageActionsList) copyContentAction() {
 	}
 
 	mal.app.SetRoot(mal.app.MainFlex, true)
-	mal.app.SetFocus(mal.app.MessagesTextView)
+	mal.app.SetFocus(mal.app.MessagesPanel)
 }
 
 func (mal *MessageActionsList) copyIDAction() {
@@ -336,7 +336,7 @@ func (mal *MessageActionsList) copyIDAction() {
 	}
 
 	mal.app.SetRoot(mal.app.MainFlex, true)
-	mal.app.SetFocus(mal.app.MessagesTextView)
+	mal.app.SetFocus(mal.app.MessagesPanel)
 }
 
 type MessageInput struct {
@@ -379,8 +379,8 @@ func (mi *MessageInput) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
-		if len(mi.app.MessagesTextView.GetHighlights()) != 0 {
-			mID, err := discord.ParseSnowflake(mi.app.MessagesTextView.GetHighlights()[0])
+		if len(mi.app.MessagesPanel.GetHighlights()) != 0 {
+			mID, err := discord.ParseSnowflake(mi.app.MessagesPanel.GetHighlights()[0])
 			if err != nil {
 				return nil
 			}
@@ -400,7 +400,7 @@ func (mi *MessageInput) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			go mi.app.State.SendMessageComplex(m.ChannelID, d)
 
 			mi.app.SelectedMessage = -1
-			mi.app.MessagesTextView.Highlight()
+			mi.app.MessagesPanel.Highlight()
 
 			mi.app.MessageInputField.SetTitle("")
 		} else {
@@ -423,7 +423,7 @@ func (mi *MessageInput) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		mi.app.SetFocus(mi.app.MainFlex)
 
 		mi.app.SelectedMessage = -1
-		mi.app.MessagesTextView.Highlight()
+		mi.app.MessagesPanel.Highlight()
 
 		return nil
 	case mi.app.Config.Keys.OpenExternalEditor:

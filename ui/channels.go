@@ -31,7 +31,7 @@ func NewChannelsTree(app *App) *ChannelsTree {
 func (ct *ChannelsTree) onSelected(node *tview.TreeNode) {
 	ct.app.SelectedChannel = nil
 	ct.app.SelectedMessage = -1
-	ct.app.MessagesTextView.
+	ct.app.MessagesPanel.
 		Highlight().
 		Clear().
 		SetTitle("")
@@ -56,7 +56,7 @@ func (ct *ChannelsTree) onSelected(node *tview.TreeNode) {
 	if c.Topic != "" {
 		title += " - " + parseMarkdown(c.Topic)
 	}
-	ct.app.MessagesTextView.SetTitle(title)
+	ct.app.MessagesPanel.SetTitle(title)
 
 	go func() {
 		// The returned slice will be sorted from latest to oldest.
@@ -66,12 +66,12 @@ func (ct *ChannelsTree) onSelected(node *tview.TreeNode) {
 		}
 
 		for i := len(ms) - 1; i >= 0; i-- {
-			_, err = ct.app.MessagesTextView.Write(buildMessage(ct.app, ms[i]))
+			_, err = ct.app.MessagesPanel.Write(buildMessage(ct.app, ms[i]))
 			if err != nil {
 				return
 			}
 		}
 
-		ct.app.MessagesTextView.ScrollToEnd()
+		ct.app.MessagesPanel.ScrollToEnd()
 	}()
 }

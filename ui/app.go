@@ -18,7 +18,7 @@ type App struct {
 	MainFlex          *tview.Flex
 	GuildsTree        *GuildsTree
 	ChannelsTree      *ChannelsTree
-	MessagesTextView  *MessagesTextView
+	MessagesPanel     *MessagesPanel
 	MessageInputField *MessageInput
 
 	Config          *config.Config
@@ -48,7 +48,7 @@ func NewApp(token string, c *config.Config) *App {
 
 	app.GuildsTree = NewGuildsTree(app)
 	app.ChannelsTree = NewChannelsTree(app)
-	app.MessagesTextView = NewMessagesTextView(app)
+	app.MessagesPanel = NewMessagesPanel(app)
 	app.MessageInputField = NewMessageInput(app)
 	app.EnableMouse(app.Config.Mouse)
 	app.MainFlex.SetInputCapture(app.onInputCapture)
@@ -83,8 +83,8 @@ func (app *App) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		case app.Config.Keys.ToggleChannelsTree:
 			app.SetFocus(app.ChannelsTree)
 			return nil
-		case app.Config.Keys.ToggleMessagesTextView:
-			app.SetFocus(app.MessagesTextView)
+		case app.Config.Keys.ToggleMessagesPanel:
+			app.SetFocus(app.MessagesPanel)
 			return nil
 		case app.Config.Keys.ToggleMessageInput:
 			app.SetFocus(app.MessageInputField)
@@ -102,7 +102,7 @@ func (app *App) DrawMainFlex() {
 		AddItem(app.ChannelsTree, 0, 1, false)
 	rightFlex := tview.NewFlex().
 		SetDirection(tview.FlexRow).
-		AddItem(app.MessagesTextView, 0, 1, false).
+		AddItem(app.MessagesPanel, 0, 1, false).
 		AddItem(app.MessageInputField, 3, 1, false)
 	app.MainFlex.
 		AddItem(leftFlex, 0, 1, false).
@@ -194,13 +194,13 @@ func (app *App) onStateGuildDelete(g *gateway.GuildDeleteEvent) {
 
 func (app *App) onStateMessageCreate(m *gateway.MessageCreateEvent) {
 	if app.SelectedChannel != nil && app.SelectedChannel.ID == m.ChannelID {
-		_, err := app.MessagesTextView.Write(buildMessage(app, m.Message))
+		_, err := app.MessagesPanel.Write(buildMessage(app, m.Message))
 		if err != nil {
 			return
 		}
 
-		if len(app.MessagesTextView.GetHighlights()) == 0 {
-			app.MessagesTextView.ScrollToEnd()
+		if len(app.MessagesPanel.GetHighlights()) == 0 {
+			app.MessagesPanel.ScrollToEnd()
 		}
 	}
 }
