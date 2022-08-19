@@ -43,7 +43,7 @@ func (ct *ChannelsTree) onSelected(node *tview.TreeNode) {
 		return
 	}
 
-	// If the channel is a category channel, expend the selected node if it is not expanded already.
+	// If the channel is a category channel, expand the selected node if it is collapsed, otherwise collapse.
 	if c.Type == discord.GuildCategory {
 		node.SetExpanded(!node.IsExpanded())
 		return

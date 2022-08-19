@@ -44,6 +44,12 @@ func (gt *GuildsTree) onSelected(node *tview.TreeNode) {
 		SetTitle("")
 	gt.app.MessageInputField.SetText("")
 
+	// If the selected node has children (guild folder), expand the selected node if it is collapsed, otherwise collapse.
+	if len(node.GetChildren()) != 0 {
+		node.SetExpanded(!node.IsExpanded())
+		return
+	}
+
 	ref := node.GetReference()
 	// If the reference of the selected node is nil, it must be the direct messages node.
 	if ref == nil {

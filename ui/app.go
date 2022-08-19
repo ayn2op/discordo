@@ -2,7 +2,6 @@ package ui
 
 import (
 	"context"
-	"sort"
 	"strings"
 
 	"github.com/ayntgl/discordo/config"
@@ -111,26 +110,53 @@ func (app *App) DrawMainFlex() {
 }
 
 func (app *App) onStateReady(r *gateway.ReadyEvent) {
-	sort.Slice(r.Guilds, func(a, b int) bool {
-		found := false
-		for _, guildID := range r.UserSettings.GuildPositions {
-			if found && guildID == r.Guilds[b].ID {
-				return true
+	rootNode := app.GuildsTree.GetRoot()
+	for _, gf := range r.UserSettings.GuildFolders {
+		if gf.ID == 0 {
+			for _, gID := range gf.GuildIDs {
+				g, err := app.State.Cabinet.Guild(gID)
+				if err != nil {
+					return
+				}
+
+				guildNode := tview.NewTreeNode(g.Name)
+				guildNode.SetReference(g.ID)
+				rootNode.AddChild(guildNode)
 			}
-			if !found && guildID == r.Guilds[a].ID {
-				found = true
+		} else {
+			var b strings.Builder
+
+			if gf.Color != discord.NullColor {
+				b.WriteByte('[')
+				b.WriteString(gf.Color.String())
+				b.WriteByte(']')
+			} else {
+				b.WriteString("[#ED4245]")
+			}
+
+			if gf.Name != "" {
+				b.WriteString(gf.Name)
+			} else {
+				b.WriteString("Folder")
+			}
+
+			b.WriteString("[-]")
+
+			folderNode := tview.NewTreeNode(b.String())
+			rootNode.AddChild(folderNode)
+
+			for _, gID := range gf.GuildIDs {
+				g, err := app.State.Cabinet.Guild(gID)
+				if err != nil {
+					return
+				}
+
+				guildNode := tview.NewTreeNode(g.Name)
+				guildNode.SetReference(g.ID)
+				folderNode.AddChild(guildNode)
 			}
 		}
 
-		return false
-	})
-
-	rootNode := app.GuildsTree.GetRoot()
-	for _, g := range r.Guilds {
-		guildNode := tview.NewTreeNode(g.Name)
-		guildNode.SetReference(g.ID)
-
-		rootNode.AddChild(guildNode)
 	}
 
 	app.GuildsTree.SetCurrentNode(rootNode)
