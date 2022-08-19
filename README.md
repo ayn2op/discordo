@@ -62,13 +62,13 @@ sudo mv ./discordo /usr/local/bin
 
 ## Usage
 
-- Run the `discordo` executable with no arguments.
+1. Run the `discordo` executable with no arguments to login using email and password. If you are using token to login, set the `token` flag to the token that you want to login with.
 
-- Log in using the account email and password (first-time login) and click on the "Login" button to continue.
+- Note: If you are logging in with a bot account, prefix the token with `Bot ` (eg: `--token "Bot OTI2MDU5NTQxNDE2Nzc5ODA2.Yc2KKA.2iZ-5JxgxG-9Ub8GHzBSn-NJjNg"`).
 
-  - If you are using a bot account to login, set the `token` command-line flag to the token of the bot and prefix it with `Bot ` (eg: `-token "Bot OTI2MDU5NTQxNDE2Nzc5ODA2.Yc2KKA.2iZ-5JxgxG-9Ub8GHzBSn-NJjNg"`).
+2. If you are logging in with email and password, enter your email and password (first-time login) and click on the "Login" button to continue.
 
-  - By default, Discordo utilizes OS-specific keyring to store the authentication token. However, if you prefer not to use a keyring (not recommended), you may set the `token` command-line flag to the authentication token and Discordo will prioritize the usage of the provided token to login instead of keyring.
+- Note: Your email and password are not stored locally. Most of the Discord third-party clients store the token in a configuration file unencrypted. Discordo securely stores the token in the default OS-specific keyring. 
 
 ### Configuration
 
