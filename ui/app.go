@@ -109,8 +109,6 @@ func (app *App) DrawMainFlex() {
 	app.MainFlex.
 		AddItem(leftFlex, 0, 1, false).
 		AddItem(rightFlex, 0, 4, false)
-
-	app.SetRoot(app.MainFlex, true)
 }
 
 func (app *App) onStateReady(r *gateway.ReadyEvent) {
