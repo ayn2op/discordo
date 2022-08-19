@@ -30,8 +30,9 @@ type App struct {
 
 func NewApp(token string, c *config.Config) *App {
 	app := &App{
-		MainFlex: tview.NewFlex(),
-		Config:   c,
+		Application: tview.NewApplication(),
+		MainFlex:    tview.NewFlex(),
+		Config:      c,
 
 		State: state.NewWithIdentifier(gateway.NewIdentifier(gateway.IdentifyCommand{
 			Token:   token,
@@ -50,10 +51,8 @@ func NewApp(token string, c *config.Config) *App {
 	app.ChannelsTree = NewChannelsTree(app)
 	app.MessagesTextView = NewMessagesTextView(app)
 	app.MessageInputField = NewMessageInput(app)
-
-	app.Application = tview.NewApplication()
 	app.EnableMouse(app.Config.Mouse)
-	app.SetInputCapture(app.onInputCapture)
+	app.MainFlex.SetInputCapture(app.onInputCapture)
 
 	return app
 }

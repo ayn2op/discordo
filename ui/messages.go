@@ -120,97 +120,7 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
-		actionsList := tview.NewList()
-		actionsList.ShowSecondaryText(false)
-		actionsList.SetDoneFunc(func() {
-			mtv.app.
-				SetRoot(mtv.app.MainFlex, true).
-				SetFocus(mtv.app.MessagesTextView)
-		})
-		actionsList.SetTitle("Press the Escape key to close")
-		actionsList.SetTitleAlign(tview.AlignLeft)
-		actionsList.SetBorder(true)
-		actionsList.SetBorderPadding(0, 0, 1, 1)
-
-		// If the client user has `SEND_MESSAGES` permission, add a new action to reply to the message.
-		if hasPermission(mtv.app.State, mtv.app.SelectedChannel.ID, discord.PermissionSendMessages) {
-			actionsList.AddItem("Reply", "", 'r', func() {
-				mtv.app.MessageInputField.SetTitle("Replying to " + m.Author.Tag())
-				mtv.app.
-					SetRoot(mtv.app.MainFlex, true).
-					SetFocus(mtv.app.MessageInputField)
-			})
-
-			actionsList.AddItem("Mention Reply", "", 'R', func() {
-				mtv.app.MessageInputField.SetTitle("[@] Replying to " + m.Author.Tag())
-				mtv.app.
-					SetRoot(mtv.app.MainFlex, true).
-					SetFocus(mtv.app.MessageInputField)
-			})
-		}
-
-		// If the client user has the `MANAGE_MESSAGES` permission, add a new action to delete the message.
-		if hasPermission(mtv.app.State, mtv.app.SelectedChannel.ID, discord.PermissionManageMessages) {
-			actionsList.AddItem("Delete", "", 'd', func() {
-				go mtv.deleteMessage(*m)
-				mtv.app.
-					SetRoot(mtv.app.MainFlex, true).
-					SetFocus(mtv.app.MessagesTextView)
-			})
-		}
-
-		// If the referenced message exists, add a new action to select the reply.
-		if m.ReferencedMessage != nil {
-			actionsList.AddItem("Select Reply", "", 'm', func() {
-				mtv.app.SelectedMessage, _ = findMessageByID(ms, m.ReferencedMessage.ID)
-				mtv.app.MessagesTextView.
-					Highlight(m.ReferencedMessage.ID.String()).
-					ScrollToHighlight()
-				mtv.app.
-					SetRoot(mtv.app.MainFlex, true).
-					SetFocus(mtv.app.MessagesTextView)
-			})
-		}
-
-		// If the content of the message contains link(s), add the appropriate actions to the list.
-		links := linkRegex.FindAllString(m.Content, -1)
-		if len(links) != 0 {
-			actionsList.AddItem("Open Link", "", 'l', func() {
-				for _, l := range links {
-					go open.Run(l)
-				}
-			})
-		}
-
-		// If the message contains attachments, add the appropriate actions to the actions list.
-		if len(m.Attachments) != 0 {
-			actionsList.AddItem("Download Attachment", "", 'd', func() {
-				go mtv.downloadAttachment(m.Attachments)
-				mtv.app.SetRoot(mtv.app.MainFlex, true)
-			})
-			actionsList.AddItem("Open Attachment", "", 'o', func() {
-				go mtv.openAttachment(m.Attachments)
-				mtv.app.SetRoot(mtv.app.MainFlex, true)
-			})
-		}
-
-		actionsList.AddItem("Copy Content", "", 'c', func() {
-			if err := clipboard.WriteAll(m.Content); err != nil {
-				return
-			}
-
-			mtv.app.SetRoot(mtv.app.MainFlex, true)
-			mtv.app.SetFocus(mtv.app.MessagesTextView)
-		})
-		actionsList.AddItem("Copy ID", "", 'i', func() {
-			if err := clipboard.WriteAll(m.ID.String()); err != nil {
-				return
-			}
-
-			mtv.app.SetRoot(mtv.app.MainFlex, true)
-			mtv.app.SetFocus(mtv.app.MessagesTextView)
-		})
-
+		actionsList := NewMessageActionsList(mtv.app, m)
 		mtv.app.SetRoot(actionsList, true)
 		return nil
 	case "Esc":
@@ -218,88 +128,212 @@ func (mtv *MessagesTextView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		mtv.app.SetFocus(mtv.app.MainFlex)
 		mtv.app.MessagesTextView.
 			Clear().
-			Highlight()
+			Highlight().
+			SetTitle("")
 		return nil
 	}
 
 	return e
 }
 
-func (mtv *MessagesTextView) downloadAttachment(as []discord.Attachment) error {
-	for _, a := range as {
-		f, err := os.Create(filepath.Join(mtv.app.Config.AttachmentDownloadsDir, a.Filename))
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-
-		resp, err := http.Get(a.URL)
-		if err != nil {
-			return err
-		}
-
-		d, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return err
-		}
-
-		f.Write(d)
-	}
-
-	return nil
+type MessageActionsList struct {
+	*tview.List
+	app     *App
+	message *discord.Message
 }
 
-func (mtv *MessagesTextView) openAttachment(as []discord.Attachment) error {
-	for _, a := range as {
+func NewMessageActionsList(app *App, m *discord.Message) *MessageActionsList {
+	mal := &MessageActionsList{
+		List:    tview.NewList(),
+		app:     app,
+		message: m,
+	}
+
+	mal.ShowSecondaryText(false)
+	mal.SetDoneFunc(func() {
+		app.
+			SetRoot(app.MainFlex, true).
+			SetFocus(app.MessagesTextView)
+	})
+
+	// If the client user has the `SEND_MESSAGES` permission, add "Reply" and "Mention Reply" actions.
+	if hasPermission(app.State, app.SelectedChannel.ID, discord.PermissionSendMessages) {
+		mal.AddItem("Reply", "", 'r', mal.replyAction)
+		mal.AddItem("Mention Reply", "", 'R', mal.mentionReplyAction)
+	}
+
+	// If the referenced message exists, add a new action to select the reply.
+	if m.ReferencedMessage != nil {
+		mal.AddItem("Select Reply", "", 'm', mal.selectReplyAction)
+	}
+
+	// If the content of the message contains link(s), add the appropriate actions to the list.
+	links := linkRegex.FindAllString(m.Content, -1)
+	if len(links) != 0 {
+		mal.AddItem("Open Link", "", 'l', func() {
+			for _, l := range links {
+				go open.Run(l)
+			}
+		})
+	}
+
+	// If the message contains attachments, add the appropriate actions to the actions list.
+	if len(m.Attachments) != 0 {
+		mal.AddItem("Open Attachment", "", 'o', mal.openAttachmentAction)
+		mal.AddItem("Download Attachment", "", 'd', mal.downloadAttachmentAction)
+	}
+
+	// If the client user has the `MANAGE_MESSAGES` permission, add a new action to delete the message.
+	if hasPermission(app.State, app.SelectedChannel.ID, discord.PermissionManageMessages) {
+		mal.AddItem("Delete", "", 'd', mal.deleteAction)
+	}
+
+	mal.AddItem("Copy Content", "", 'c', mal.copyContentAction)
+	mal.AddItem("Copy ID", "", 'i', mal.copyIDAction)
+
+	mal.SetTitle("Press the Escape key to close")
+	mal.SetTitleAlign(tview.AlignLeft)
+	mal.SetBorder(true)
+	mal.SetBorderPadding(0, 0, 1, 1)
+
+	return mal
+}
+
+func (mal *MessageActionsList) replyAction() {
+	mal.app.MessageInputField.SetTitle("Replying to " + mal.message.Author.Tag())
+
+	mal.app.
+		SetRoot(mal.app.MainFlex, true).
+		SetFocus(mal.app.MessageInputField)
+}
+
+func (mal *MessageActionsList) mentionReplyAction() {
+	mal.app.MessageInputField.SetTitle("[@] Replying to " + mal.message.Author.Tag())
+
+	mal.app.
+		SetRoot(mal.app.MainFlex, true).
+		SetFocus(mal.app.MessageInputField)
+}
+
+func (mal *MessageActionsList) selectReplyAction() {
+	ms, err := mal.app.State.Cabinet.Messages(mal.message.ChannelID)
+	if err != nil {
+		return
+	}
+
+	mal.app.SelectedMessage, _ = findMessageByID(ms, mal.message.ReferencedMessage.ID)
+	mal.app.MessagesTextView.
+		Highlight(mal.message.ReferencedMessage.ID.String()).
+		ScrollToHighlight()
+
+	mal.app.
+		SetRoot(mal.app.MainFlex, true).
+		SetFocus(mal.app.MessagesTextView)
+}
+
+func (mal *MessageActionsList) openAttachmentAction() {
+	for _, a := range mal.message.Attachments {
 		cacheDirPath, _ := os.UserCacheDir()
 		f, err := os.Create(filepath.Join(cacheDirPath, a.Filename))
 		if err != nil {
-			return err
+			return
 		}
 		defer f.Close()
 
 		resp, err := http.Get(a.URL)
 		if err != nil {
-			return err
+			return
 		}
 
 		d, err := io.ReadAll(resp.Body)
 		if err != nil {
-			return err
+			return
 		}
 
 		f.Write(d)
 		go open.Run(f.Name())
 	}
 
-	return nil
+	mal.app.
+		SetRoot(mal.app.MainFlex, true).
+		SetFocus(mal.app.MessagesTextView)
 }
 
-func (mtv *MessagesTextView) deleteMessage(m discord.Message) {
-	mtv.Clear()
+func (mal *MessageActionsList) downloadAttachmentAction() {
+	for _, a := range mal.message.Attachments {
+		f, err := os.Create(filepath.Join(mal.app.Config.AttachmentDownloadsDir, a.Filename))
+		if err != nil {
+			return
+		}
+		defer f.Close()
 
-	err := mtv.app.State.MessageRemove(m.ChannelID, m.ID)
+		resp, err := http.Get(a.URL)
+		if err != nil {
+			return
+		}
+
+		d, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return
+		}
+
+		f.Write(d)
+	}
+
+	mal.app.
+		SetRoot(mal.app.MainFlex, true).
+		SetFocus(mal.app.MessagesTextView)
+}
+
+func (mal *MessageActionsList) deleteAction() {
+	mal.app.MessagesTextView.Clear()
+
+	err := mal.app.State.MessageRemove(mal.message.ChannelID, mal.message.ID)
 	if err != nil {
 		return
 	}
 
-	err = mtv.app.State.DeleteMessage(m.ChannelID, m.ID, "Unknown")
+	err = mal.app.State.DeleteMessage(mal.message.ChannelID, mal.message.ID, "Unknown")
 	if err != nil {
 		return
 	}
 
 	// The returned slice will be sorted from latest to oldest.
-	ms, err := mtv.app.State.Messages(m.ChannelID, mtv.app.Config.MessagesLimit)
+	ms, err := mal.app.State.Cabinet.Messages(mal.message.ChannelID)
 	if err != nil {
 		return
 	}
 
 	for i := len(ms) - 1; i >= 0; i-- {
-		_, err = mtv.app.MessagesTextView.Write(buildMessage(mtv.app, ms[i]))
+		_, err = mal.app.MessagesTextView.Write(buildMessage(mal.app, ms[i]))
 		if err != nil {
 			return
 		}
 	}
+
+	mal.app.
+		SetRoot(mal.app.MainFlex, true).
+		SetFocus(mal.app.MessagesTextView)
+}
+
+func (mal *MessageActionsList) copyContentAction() {
+	err := clipboard.WriteAll(mal.message.Content)
+	if err != nil {
+		return
+	}
+
+	mal.app.SetRoot(mal.app.MainFlex, true)
+	mal.app.SetFocus(mal.app.MessagesTextView)
+}
+
+func (mal *MessageActionsList) copyIDAction() {
+	err := clipboard.WriteAll(mal.message.ID.String())
+	if err != nil {
+		return
+	}
+
+	mal.app.SetRoot(mal.app.MainFlex, true)
+	mal.app.SetFocus(mal.app.MessagesTextView)
 }
 
 type MessageInput struct {
@@ -316,10 +350,12 @@ func NewMessageInput(app *App) *MessageInput {
 	mi.SetFieldBackgroundColor(tview.Styles.PrimitiveBackgroundColor)
 	mi.SetPlaceholder("Message...")
 	mi.SetPlaceholderStyle(tcell.StyleDefault.Background(tview.Styles.PrimitiveBackgroundColor))
+
 	mi.SetTitleAlign(tview.AlignLeft)
 	mi.SetBorder(true)
 	mi.SetBorderPadding(0, 0, 1, 1)
 	mi.SetInputCapture(mi.onInputCapture)
+
 	return mi
 }
 
