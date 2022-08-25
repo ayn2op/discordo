@@ -35,8 +35,10 @@ func NewApp(token string, c *config.Config) *App {
 			Token:   token,
 			Intents: nil,
 			Properties: gateway.IdentifyProperties{
-				OS:      c.Identify.Os,
-				Browser: c.Identify.Browser,
+				Browser:          c.Identify.Browser,
+				BrowserUserAgent: c.Identify.UserAgent,
+				BrowserVersion:   c.Identify.BrowserVersion,
+				OS:               c.Identify.Os,
 			},
 			// The official client sets the compress field as false.
 			Compress: false,

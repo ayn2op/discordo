@@ -11,9 +11,10 @@ import (
 )
 
 type IdentifyConfig struct {
-	UserAgent string `toml:"user_agent"`
-	Os        string `toml:"os"`
-	Browser   string `toml:"browser"`
+	UserAgent      string `toml:"user_agent"`
+	Browser        string `toml:"browser"`
+	BrowserVersion string `toml:"browser_version"`
+	Os             string `toml:"os"`
 }
 
 type KeysConfig struct {
@@ -58,9 +59,10 @@ func New() *Config {
 		TimeFormat:             time.Stamp,
 		AttachmentDownloadsDir: UserDownloadsDir(),
 		Identify: IdentifyConfig{
-			UserAgent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.67 Safari/537.36",
-			Os:        "Linux",
-			Browser:   "Chrome",
+			UserAgent:      "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.102 Safari/537.36",
+			Browser:        "Chrome",
+			BrowserVersion: "104.0.5112.102",
+			Os:             "Linux",
 		},
 		Theme: ThemeConfig{
 			Background: "black",
