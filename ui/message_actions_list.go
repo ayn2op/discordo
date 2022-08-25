@@ -187,10 +187,7 @@ func (mal *MessageActionsList) deleteAction() {
 	}
 
 	for i := len(ms) - 1; i >= 0; i-- {
-		_, err = mal.app.MessagesPanel.Write(buildMessage(mal.app, ms[i]))
-		if err != nil {
-			return
-		}
+		buildMessage(mal.app, ms[i])
 	}
 
 	mal.app.

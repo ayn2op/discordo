@@ -70,10 +70,7 @@ func (ct *ChannelsTree) onSelected(node *tview.TreeNode) {
 		}
 
 		for i := len(ms) - 1; i >= 0; i-- {
-			_, err = ct.app.MessagesPanel.Write(buildMessage(ct.app, ms[i]))
-			if err != nil {
-				return
-			}
+			buildMessage(ct.app, ms[i])
 		}
 
 		ct.app.MessagesPanel.ScrollToEnd()

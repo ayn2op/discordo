@@ -1,10 +1,13 @@
 package config
 
 import (
+	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
 	"runtime"
+	"text/template"
 	"time"
 
 	"github.com/BurntSushi/toml"
@@ -48,6 +51,8 @@ type Config struct {
 	Identify               IdentifyConfig `toml:"identify"`
 	Theme                  ThemeConfig    `toml:"theme"`
 	Keys                   KeysConfig     `toml:"keys"`
+
+	Template *template.Template `toml:"-"`
 }
 
 func New() *Config {
@@ -88,13 +93,27 @@ func New() *Config {
 
 func (c *Config) Load(path string) error {
 	// Create directories that do not exist and are mentioned in the path recursively.
-	err := os.MkdirAll(filepath.Dir(path), os.ModePerm)
+	err := os.MkdirAll(path, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	// If the configuration file does not exist already, create a new file; otherwise, open the existing file with read-write flag.
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, os.ModePerm)
+	err = c.loadConfigFile(path)
+	if err != nil {
+		return err
+	}
+
+	err = c.loadTemplateFile(path)
+	if err != nil {
+		return err
+	}
+
+	return err
+}
+
+func (c *Config) loadConfigFile(path string) error {
+	// If the configuration file does not exist already, create a new configuration file; otherwise, open the existing file with read-write flag.
+	f, err := os.OpenFile(filepath.Join(path, "config.toml"), os.O_RDWR|os.O_CREATE, os.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -111,7 +130,46 @@ func (c *Config) Load(path string) error {
 	}
 
 	_, err = toml.NewDecoder(f).Decode(&c)
-	return err
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Config) loadTemplateFile(path string) error {
+	// If the template file does not exist already, create a new template file; otherwise, open the existing file with read-write flag.
+	f, err := os.OpenFile(filepath.Join(path, "message.tmpl"), os.O_RDWR|os.O_CREATE, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	fi, err := f.Stat()
+	if err != nil {
+		return err
+	}
+
+	// If the file is empty (the size of the file is zero), write the default template to the file.
+	if fi.Size() == 0 {
+		_, err = f.WriteString(defaultTemplate)
+		if err != nil {
+			return err
+		}
+
+		c.Template = template.Must(template.New("message").Parse(defaultTemplate))
+	} else {
+		b, err := io.ReadAll(f)
+		if err != nil {
+			return nil
+		}
+
+		fmt.Println(string(b))
+
+		c.Template = template.Must(template.New("message").Parse(string(b)))
+	}
+
+	return nil
 }
 
 func DefaultPath() string {
@@ -120,8 +178,7 @@ func DefaultPath() string {
 		log.Fatal(err)
 	}
 
-	path += "/discordo/config.toml"
-	return path
+	return filepath.Join(path, "discordo")
 }
 
 func UserDownloadsDir() string {

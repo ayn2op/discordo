@@ -29,8 +29,8 @@ func NewApp(token string, c *config.Config) *App {
 	app := &App{
 		Application: tview.NewApplication(),
 		MainFlex:    tview.NewFlex(),
-		Config:      c,
 
+		Config: c,
 		State: state.NewWithIdentifier(gateway.NewIdentifier(gateway.IdentifyCommand{
 			Token:   token,
 			Intents: nil,
@@ -193,10 +193,7 @@ func (app *App) onStateGuildDelete(g *gateway.GuildDeleteEvent) {
 
 func (app *App) onStateMessageCreate(m *gateway.MessageCreateEvent) {
 	if app.ChannelsTree.SelectedChannel != nil && app.ChannelsTree.SelectedChannel.ID == m.ChannelID {
-		_, err := app.MessagesPanel.Write(buildMessage(app, m.Message))
-		if err != nil {
-			return
-		}
+		buildMessage(app, m.Message)
 
 		if len(app.MessagesPanel.GetHighlights()) == 0 {
 			app.MessagesPanel.ScrollToEnd()

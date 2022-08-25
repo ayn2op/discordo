@@ -2,113 +2,47 @@ package ui
 
 import (
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 )
 
-func buildMessage(app *App, m discord.Message) []byte {
-	var b strings.Builder
-
+func buildMessage(app *App, m discord.Message) {
 	switch m.Type {
 	case discord.DefaultMessage, discord.InlinedReplyMessage:
-		// Define a new region and assign message ID as the region ID.
-		// Learn more:
-		// https://pkg.go.dev/github.com/rivo/tview#hdr-Regions_and_Highlights
-		b.WriteString("[\"")
-		b.WriteString(m.ID.String())
-		b.WriteString("\"]")
-		// Build the message associated with crosspost, channel follow add, pin, or a reply.
-		buildReferencedMessage(&b, m.ReferencedMessage, app.State.Ready().User.ID)
-
-		if app.Config.Timestamps {
-			loc, err := time.LoadLocation(app.Config.Timezone)
-			if err != nil {
-				return nil
-			}
-
-			b.WriteString("[::d]")
-			b.WriteString(m.Timestamp.Time().In(loc).Format(app.Config.TimeFormat))
-			b.WriteString("[::-]")
-			b.WriteByte(' ')
+		loc, err := time.LoadLocation(app.Config.Timezone)
+		if err != nil {
+			return
 		}
 
-		// Build the author of this message.
-		buildAuthor(&b, m.Author, app.State.Ready().User.ID)
-
-		// Build the contents of the message.
-		buildContent(&b, m, app.State.Ready().User.ID)
-
-		if m.EditedTimestamp.IsValid() {
-			b.WriteString(" [::d](edited)[::-]")
-		}
+		app.Config.Template.Execute(app.MessagesPanel, struct {
+			Timestamp string
+			Content   string
+			UserID    discord.UserID
+			Message   discord.Message
+		}{
+			Timestamp: m.Timestamp.Time().In(loc).Format(app.Config.TimeFormat),
+			Content:   parseMarkdown(buildMentions(m.Content, m.Mentions, app.State.Ready().User.ID)),
+			UserID:    app.State.Ready().User.ID,
+			Message:   m,
+		})
 
 		// Build the embeds associated with the message.
-		buildEmbeds(&b, m.Embeds)
-
+		buildEmbeds(app.MessagesPanel, m.Embeds)
 		// Build the message attachments (attached files to the message).
-		buildAttachments(&b, m.Attachments)
-
-		// Tags with no region ID ([""]) do not start new regions. They can
-		// therefore be used to mark the end of a region.
-		b.WriteString("[\"\"]")
-
-		b.WriteByte('\n')
+		buildAttachments(app.MessagesPanel, m.Attachments)
 	case discord.GuildMemberJoinMessage:
-		b.WriteString("[#5865F2]")
-		b.WriteString(m.Author.Username)
-		b.WriteString("[-] joined the server.")
-
-		b.WriteByte('\n')
+		fmt.Fprintf(app.MessagesPanel, "[#5865F2]%s[-] joined the server.\n\n", m.Author.Username)
 	case discord.CallMessage:
-		b.WriteString("[#5865F2]")
-		b.WriteString(m.Author.Username)
-		b.WriteString("[-] started a call.")
-
-		b.WriteByte('\n')
+		fmt.Fprintf(app.MessagesPanel, "[#5865F2]%s[-] started a call.\n\n", m.Author.Username)
 	case discord.ChannelPinnedMessage:
-		b.WriteString("[#5865F2]")
-		b.WriteString(m.Author.Username)
-		b.WriteString("[-] pinned a message.")
-
-		b.WriteByte('\n')
-	}
-
-	if str := b.String(); str != "" {
-		b := make([]byte, len(str)+1)
-		copy(b, str)
-
-		return b
-	}
-
-	return nil
-}
-
-func buildReferencedMessage(b *strings.Builder, rm *discord.Message, clientID discord.UserID) {
-	if rm != nil {
-		b.WriteString(" ╭ ")
-		b.WriteString("[::d]")
-		buildAuthor(b, rm.Author, clientID)
-
-		if rm.Content != "" {
-			rm.Content = buildMentions(rm.Content, rm.Mentions, clientID)
-			b.WriteString(parseMarkdown(rm.Content))
-		}
-
-		b.WriteString("[::-]")
-		b.WriteByte('\n')
+		fmt.Fprintf(app.MessagesPanel, "[#5865F2]%s[-] pinned a message.\n\n", m.Author.Username)
 	}
 }
 
-func buildContent(b *strings.Builder, m discord.Message, clientID discord.UserID) {
-	if m.Content != "" {
-		m.Content = buildMentions(m.Content, m.Mentions, clientID)
-		b.WriteString(parseMarkdown(m.Content))
-	}
-}
-
-func buildEmbeds(b *strings.Builder, es []discord.Embed) {
+func buildEmbeds(w io.Writer, es []discord.Embed) {
 	for _, e := range es {
 		if e.Type != discord.NormalEmbed {
 			continue
@@ -120,7 +54,7 @@ func buildEmbeds(b *strings.Builder, es []discord.Embed) {
 		)
 		prefix := fmt.Sprintf("[#%06X]▐[-] ", e.Color)
 
-		b.WriteByte('\n')
+		fmt.Fprintln(w)
 		embedBuilder.WriteString(prefix)
 
 		if e.Author != nil {
@@ -177,17 +111,13 @@ func buildEmbeds(b *strings.Builder, es []discord.Embed) {
 			embedBuilder.WriteString(e.Footer.Text)
 		}
 
-		b.WriteString(strings.ReplaceAll(embedBuilder.String(), "\n", "\n"+prefix))
+		fmt.Fprint(w, strings.ReplaceAll(embedBuilder.String(), "\n", "\n"+prefix))
 	}
 }
 
-func buildAttachments(b *strings.Builder, as []discord.Attachment) {
+func buildAttachments(w io.Writer, as []discord.Attachment) {
 	for _, a := range as {
-		b.WriteByte('\n')
-		b.WriteByte('[')
-		b.WriteString(a.Filename)
-		b.WriteString("]: ")
-		b.WriteString(a.URL)
+		fmt.Fprintf(w, "\n[%s]: %s\n\n", a.Filename, a.URL)
 	}
 }
 
@@ -211,20 +141,4 @@ func buildMentions(content string, mentions []discord.GuildUser, clientID discor
 	}
 
 	return content
-}
-
-func buildAuthor(b *strings.Builder, u discord.User, clientID discord.UserID) {
-	if u.ID == clientID {
-		b.WriteString("[#57F287]")
-	} else {
-		b.WriteString("[#ED4245]")
-	}
-
-	b.WriteString(u.Username)
-	b.WriteString("[-] ")
-	// If the message author is a bot account, render the message with bot label
-	// for distinction.
-	if u.Bot {
-		b.WriteString("[#EB459E]BOT[-] ")
-	}
 }
