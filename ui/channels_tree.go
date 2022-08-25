@@ -8,6 +8,8 @@ import (
 type ChannelsTree struct {
 	*tview.TreeView
 	app *App
+
+	SelectedChannel *discord.Channel
 }
 
 func NewChannelsTree(app *App) *ChannelsTree {
@@ -29,8 +31,8 @@ func NewChannelsTree(app *App) *ChannelsTree {
 }
 
 func (ct *ChannelsTree) onSelected(node *tview.TreeNode) {
-	ct.app.SelectedChannel = nil
-	ct.app.SelectedMessage = -1
+	ct.SelectedChannel = nil
+	ct.app.MessagesPanel.SelectedMessage = -1
 	ct.app.MessagesPanel.
 		Highlight().
 		Clear().
@@ -49,7 +51,7 @@ func (ct *ChannelsTree) onSelected(node *tview.TreeNode) {
 		return
 	}
 
-	ct.app.SelectedChannel = c
+	ct.SelectedChannel = c
 	ct.app.SetFocus(ct.app.MessageInputField)
 
 	title := channelToString(*c)
@@ -74,4 +76,55 @@ func (ct *ChannelsTree) onSelected(node *tview.TreeNode) {
 
 		ct.app.MessagesPanel.ScrollToEnd()
 	}()
+}
+
+func (ct *ChannelsTree) createChannelNode(c discord.Channel) *tview.TreeNode {
+	channelNode := tview.NewTreeNode(channelToString(c))
+	channelNode.SetReference(c.ID)
+
+	return channelNode
+}
+
+func (ct *ChannelsTree) createOrphanChannelNodes(rootNode *tview.TreeNode, cs []discord.Channel) {
+	for _, c := range cs {
+		if (c.Type == discord.GuildText || c.Type == discord.GuildNews) && (!c.ParentID.IsValid()) {
+			rootNode.AddChild(ct.createChannelNode(c))
+		}
+	}
+}
+
+func (ct *ChannelsTree) createCategoryChannelNodes(rootNode *tview.TreeNode, cs []discord.Channel) {
+CATEGORY:
+	for _, c := range cs {
+		if c.Type == discord.GuildCategory {
+			for _, nestedChannel := range cs {
+				if nestedChannel.ParentID == c.ID {
+					rootNode.AddChild(ct.createChannelNode(c))
+					continue CATEGORY
+				}
+			}
+
+			rootNode.AddChild(ct.createChannelNode(c))
+		}
+	}
+}
+
+func (ct *ChannelsTree) createChildrenChannelNodes(rootNode *tview.TreeNode, cs []discord.Channel) {
+	for _, c := range cs {
+		if (c.Type == discord.GuildText || c.Type == discord.GuildNews) && (c.ParentID.IsValid()) {
+			var parentNode *tview.TreeNode
+			rootNode.Walk(func(node, _ *tview.TreeNode) bool {
+				if node.GetReference() == c.ParentID {
+					parentNode = node
+					return false
+				}
+
+				return true
+			})
+
+			if parentNode != nil {
+				parentNode.AddChild(ct.createChannelNode(c))
+			}
+		}
+	}
 }

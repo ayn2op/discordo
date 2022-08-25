@@ -3,7 +3,7 @@ package ui
 import (
 	"sort"
 
-	dsc "github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/rivo/tview"
 )
 
@@ -34,8 +34,8 @@ func NewGuildsTree(app *App) *GuildsTree {
 }
 
 func (gt *GuildsTree) onSelected(node *tview.TreeNode) {
-	gt.app.SelectedChannel = nil
-	gt.app.SelectedMessage = -1
+	gt.app.ChannelsTree.SelectedChannel = nil
+	gt.app.MessagesPanel.SelectedMessage = -1
 	rootNode := gt.app.ChannelsTree.GetRoot()
 	rootNode.ClearChildren()
 	gt.app.MessagesPanel.
@@ -63,12 +63,10 @@ func (gt *GuildsTree) onSelected(node *tview.TreeNode) {
 		})
 
 		for _, c := range cs {
-			channelNode := tview.NewTreeNode(c.Name)
-			channelNode.SetReference(c.ID)
-			rootNode.AddChild(channelNode)
+			rootNode.AddChild(gt.app.ChannelsTree.createChannelNode(c))
 		}
 	} else { // Guild
-		cs, err := gt.app.State.Cabinet.Channels(ref.(dsc.GuildID))
+		cs, err := gt.app.State.Cabinet.Channels(ref.(discord.GuildID))
 		if err != nil {
 			return
 		}
@@ -77,51 +75,9 @@ func (gt *GuildsTree) onSelected(node *tview.TreeNode) {
 			return cs[i].Position < cs[j].Position
 		})
 
-		for _, c := range cs {
-			if (c.Type == dsc.GuildText || c.Type == dsc.GuildNews) && (!c.ParentID.IsValid()) {
-				channelNode := tview.NewTreeNode(channelToString(c))
-				channelNode.SetReference(c.ID)
-				rootNode.AddChild(channelNode)
-			}
-		}
-
-	CATEGORY:
-		for _, c := range cs {
-			if c.Type == dsc.GuildCategory {
-				for _, nestedChannel := range cs {
-					if nestedChannel.ParentID == c.ID {
-						channelNode := tview.NewTreeNode(c.Name)
-						channelNode.SetReference(c.ID)
-						rootNode.AddChild(channelNode)
-						continue CATEGORY
-					}
-				}
-
-				channelNode := tview.NewTreeNode(channelToString(c))
-				channelNode.SetReference(c.ID)
-				rootNode.AddChild(channelNode)
-			}
-		}
-
-		for _, c := range cs {
-			if (c.Type == dsc.GuildText || c.Type == dsc.GuildNews) && (c.ParentID.IsValid()) {
-				var parentNode *tview.TreeNode
-				rootNode.Walk(func(node, _ *tview.TreeNode) bool {
-					if node.GetReference() == c.ParentID {
-						parentNode = node
-						return false
-					}
-
-					return true
-				})
-
-				if parentNode != nil {
-					channelNode := tview.NewTreeNode(channelToString(c))
-					channelNode.SetReference(c.ID)
-					parentNode.AddChild(channelNode)
-				}
-			}
-		}
+		gt.app.ChannelsTree.createOrphanChannelNodes(rootNode, cs)
+		gt.app.ChannelsTree.createCategoryChannelNodes(rootNode, cs)
+		gt.app.ChannelsTree.createChildrenChannelNodes(rootNode, cs)
 	}
 
 	gt.app.ChannelsTree.SetCurrentNode(rootNode)
