@@ -50,74 +50,19 @@ func (mp *MessagesPanel) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 
 	switch e.Name() {
 	case mp.app.Config.Keys.SelectPreviousMessage:
-		// If there are no highlighted regions, select the latest (last) message in the messages panel.
-		if len(mp.app.MessagesPanel.GetHighlights()) == 0 {
-			mp.SelectedMessage = 0
-		} else {
-			// If the selected message is the oldest (first) message, select the latest (last) message in the messages panel.
-			if mp.SelectedMessage == len(ms)-1 {
-				mp.SelectedMessage = 0
-			} else {
-				mp.SelectedMessage++
-			}
-		}
-
-		mp.app.MessagesPanel.
-			Highlight(ms[mp.SelectedMessage].ID.String()).
-			ScrollToHighlight()
-		return nil
+		return mp.selectPreviousMessage(ms)
 	case mp.app.Config.Keys.SelectNextMessage:
-		// If there are no highlighted regions, select the latest (last) message in the messages panel.
-		if len(mp.app.MessagesPanel.GetHighlights()) == 0 {
-			mp.SelectedMessage = 0
-		} else {
-			// If the selected message is the latest (last) message, select the oldest (first) message in the messages panel.
-			if mp.SelectedMessage == 0 {
-				mp.SelectedMessage = len(ms) - 1
-			} else {
-				mp.SelectedMessage--
-			}
-		}
-
-		mp.app.MessagesPanel.
-			Highlight(ms[mp.SelectedMessage].ID.String()).
-			ScrollToHighlight()
-		return nil
+		return mp.selectNextMessage(ms)
 	case mp.app.Config.Keys.SelectFirstMessage:
-		mp.SelectedMessage = len(ms) - 1
-		mp.app.MessagesPanel.
-			Highlight(ms[mp.SelectedMessage].ID.String()).
-			ScrollToHighlight()
-		return nil
+		return mp.selectFirstMessage(ms)
 	case mp.app.Config.Keys.SelectLastMessage:
-		mp.SelectedMessage = 0
-		mp.app.MessagesPanel.
-			Highlight(ms[mp.SelectedMessage].ID.String()).
-			ScrollToHighlight()
-		return nil
+		return mp.selectLastMessage(ms)
 	case mp.app.Config.Keys.OpenMessageActionsList:
-		hs := mp.app.MessagesPanel.GetHighlights()
-		if len(hs) == 0 {
-			return nil
-		}
-
-		mID, err := discord.ParseSnowflake(hs[0])
-		if err != nil {
-			return nil
-		}
-
-		_, m := findMessageByID(ms, discord.MessageID(mID))
-		if m == nil {
-			return nil
-		}
-
-		actionsList := NewMessageActionsList(mp.app, m)
-		mp.app.SetRoot(actionsList, true)
-		return nil
+		return mp.openMessageActionsList(ms)
 	case "Esc":
 		mp.SelectedMessage = -1
 		mp.app.SetFocus(mp.app.MainFlex)
-		mp.app.MessagesPanel.
+		mp.
 			Clear().
 			Highlight().
 			SetTitle("")
@@ -125,4 +70,79 @@ func (mp *MessagesPanel) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	}
 
 	return e
+}
+
+func (mp *MessagesPanel) selectPreviousMessage(ms []discord.Message) *tcell.EventKey {
+	// If there are no highlighted regions, select the latest (last) message in the messages panel.
+	if len(mp.GetHighlights()) == 0 {
+		mp.SelectedMessage = 0
+	} else {
+		// If the selected message is the oldest (first) message, select the latest (last) message in the messages panel.
+		if mp.SelectedMessage == len(ms)-1 {
+			mp.SelectedMessage = 0
+		} else {
+			mp.SelectedMessage++
+		}
+	}
+
+	mp.
+		Highlight(ms[mp.SelectedMessage].ID.String()).
+		ScrollToHighlight()
+	return nil
+}
+
+func (mp *MessagesPanel) selectNextMessage(ms []discord.Message) *tcell.EventKey {
+	// If there are no highlighted regions, select the latest (last) message in the messages panel.
+	if len(mp.GetHighlights()) == 0 {
+		mp.SelectedMessage = 0
+	} else {
+		// If the selected message is the latest (last) message, select the oldest (first) message in the messages panel.
+		if mp.SelectedMessage == 0 {
+			mp.SelectedMessage = len(ms) - 1
+		} else {
+			mp.SelectedMessage--
+		}
+	}
+
+	mp.
+		Highlight(ms[mp.SelectedMessage].ID.String()).
+		ScrollToHighlight()
+	return nil
+}
+
+func (mp *MessagesPanel) selectFirstMessage(ms []discord.Message) *tcell.EventKey {
+	mp.SelectedMessage = len(ms) - 1
+	mp.
+		Highlight(ms[mp.SelectedMessage].ID.String()).
+		ScrollToHighlight()
+	return nil
+}
+
+func (mp *MessagesPanel) selectLastMessage(ms []discord.Message) *tcell.EventKey {
+	mp.SelectedMessage = 0
+	mp.
+		Highlight(ms[mp.SelectedMessage].ID.String()).
+		ScrollToHighlight()
+	return nil
+}
+
+func (mp *MessagesPanel) openMessageActionsList(ms []discord.Message) *tcell.EventKey {
+	hs := mp.GetHighlights()
+	if len(hs) == 0 {
+		return nil
+	}
+
+	mID, err := discord.ParseSnowflake(hs[0])
+	if err != nil {
+		return nil
+	}
+
+	_, m := findMessageByID(ms, discord.MessageID(mID))
+	if m == nil {
+		return nil
+	}
+
+	actionsList := NewMessageActionsList(mp.app, m)
+	mp.app.SetRoot(actionsList, true)
+	return nil
 }

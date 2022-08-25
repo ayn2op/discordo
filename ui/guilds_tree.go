@@ -1,8 +1,6 @@
 package ui
 
 import (
-	"sort"
-
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/rivo/tview"
 )
@@ -42,7 +40,7 @@ func (gt *GuildsTree) onSelected(node *tview.TreeNode) {
 		Highlight().
 		Clear().
 		SetTitle("")
-	gt.app.MessageInputField.SetText("")
+	gt.app.MessageInput.SetText("")
 
 	// If the selected node has children (guild folder), expand the selected node if it is collapsed, otherwise collapse.
 	if len(node.GetChildren()) != 0 {
@@ -53,31 +51,9 @@ func (gt *GuildsTree) onSelected(node *tview.TreeNode) {
 	ref := node.GetReference()
 	// If the reference of the selected node is nil, it must be the direct messages node.
 	if ref == nil {
-		cs, err := gt.app.State.Cabinet.PrivateChannels()
-		if err != nil {
-			return
-		}
-
-		sort.Slice(cs, func(i, j int) bool {
-			return cs[i].LastMessageID > cs[j].LastMessageID
-		})
-
-		for _, c := range cs {
-			rootNode.AddChild(gt.app.ChannelsTree.createChannelNode(c))
-		}
+		gt.app.ChannelsTree.createPrivateChannelNodes(rootNode)
 	} else { // Guild
-		cs, err := gt.app.State.Cabinet.Channels(ref.(discord.GuildID))
-		if err != nil {
-			return
-		}
-
-		sort.Slice(cs, func(i, j int) bool {
-			return cs[i].Position < cs[j].Position
-		})
-
-		gt.app.ChannelsTree.createOrphanChannelNodes(rootNode, cs)
-		gt.app.ChannelsTree.createCategoryChannelNodes(rootNode, cs)
-		gt.app.ChannelsTree.createChildrenChannelNodes(rootNode, cs)
+		gt.app.ChannelsTree.createGuildChannelNodes(rootNode, ref.(discord.GuildID))
 	}
 
 	gt.app.ChannelsTree.SetCurrentNode(rootNode)

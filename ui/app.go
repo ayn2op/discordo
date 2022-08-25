@@ -15,11 +15,11 @@ import (
 
 type App struct {
 	*tview.Application
-	MainFlex          *tview.Flex
-	GuildsTree        *GuildsTree
-	ChannelsTree      *ChannelsTree
-	MessagesPanel     *MessagesPanel
-	MessageInputField *MessageInput
+	MainFlex      *tview.Flex
+	GuildsTree    *GuildsTree
+	ChannelsTree  *ChannelsTree
+	MessagesPanel *MessagesPanel
+	MessageInput  *MessageInput
 
 	Config *config.Config
 	State  *state.State
@@ -46,7 +46,7 @@ func NewApp(token string, c *config.Config) *App {
 	app.GuildsTree = NewGuildsTree(app)
 	app.ChannelsTree = NewChannelsTree(app)
 	app.MessagesPanel = NewMessagesPanel(app)
-	app.MessageInputField = NewMessageInput(app)
+	app.MessageInput = NewMessageInput(app)
 	app.EnableMouse(app.Config.Mouse)
 	app.MainFlex.SetInputCapture(app.onInputCapture)
 
@@ -68,7 +68,7 @@ func (app *App) Connect() error {
 }
 
 func (app *App) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
-	if app.MessageInputField.HasFocus() {
+	if app.MessageInput.HasFocus() {
 		return e
 	}
 
@@ -84,7 +84,7 @@ func (app *App) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 			app.SetFocus(app.MessagesPanel)
 			return nil
 		case app.Config.Keys.ToggleMessageInput:
-			app.SetFocus(app.MessageInputField)
+			app.SetFocus(app.MessageInput)
 			return nil
 		}
 	}
@@ -100,7 +100,7 @@ func (app *App) DrawMainFlex() {
 	rightFlex := tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(app.MessagesPanel, 0, 1, false).
-		AddItem(app.MessageInputField, 3, 1, false)
+		AddItem(app.MessageInput, 3, 1, false)
 	app.MainFlex.
 		AddItem(leftFlex, 0, 1, false).
 		AddItem(rightFlex, 0, 4, false)
