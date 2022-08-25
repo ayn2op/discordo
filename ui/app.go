@@ -21,10 +21,8 @@ type App struct {
 	MessagesPanel     *MessagesPanel
 	MessageInputField *MessageInput
 
-	Config          *config.Config
-	State           *state.State
-	SelectedChannel *discord.Channel
-	SelectedMessage int
+	Config *config.Config
+	State  *state.State
 }
 
 func NewApp(token string, c *config.Config) *App {
@@ -43,7 +41,6 @@ func NewApp(token string, c *config.Config) *App {
 			// The official client sets the compress field as false.
 			Compress: false,
 		})),
-		SelectedMessage: -1,
 	}
 
 	app.GuildsTree = NewGuildsTree(app)
@@ -193,7 +190,7 @@ func (app *App) onStateGuildDelete(g *gateway.GuildDeleteEvent) {
 }
 
 func (app *App) onStateMessageCreate(m *gateway.MessageCreateEvent) {
-	if app.SelectedChannel != nil && app.SelectedChannel.ID == m.ChannelID {
+	if app.ChannelsTree.SelectedChannel != nil && app.ChannelsTree.SelectedChannel.ID == m.ChannelID {
 		_, err := app.MessagesPanel.Write(buildMessage(app, m.Message))
 		if err != nil {
 			return

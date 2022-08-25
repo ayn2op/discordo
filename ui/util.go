@@ -1,26 +1,48 @@
 package ui
 
 import (
+	"regexp"
 	"strings"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/state"
 )
 
+var (
+	boldRegex          = regexp.MustCompile(`(?ms)\*\*(.*?)\*\*`)
+	italicRegex        = regexp.MustCompile(`(?ms)\*(.*?)\*`)
+	underlineRegex     = regexp.MustCompile(`(?ms)__(.*?)__`)
+	strikeThroughRegex = regexp.MustCompile(`(?ms)~~(.*?)~~`)
+)
+
+func parseMarkdown(md string) string {
+	var res string
+	res = boldRegex.ReplaceAllString(md, "[::b]$1[::-]")
+	res = italicRegex.ReplaceAllString(res, "[::i]$1[::-]")
+	res = underlineRegex.ReplaceAllString(res, "[::u]$1[::-]")
+	res = strikeThroughRegex.ReplaceAllString(res, "[::s]$1[::-]")
+
+	return res
+}
+
 func channelToString(c discord.Channel) string {
 	var repr string
-	if c.Name != "" {
+
+	switch c.Type {
+	case discord.GuildText:
 		repr = "#" + c.Name
-	} else if len(c.DMRecipients) == 1 {
+	case discord.DirectMessage:
 		rp := c.DMRecipients[0]
 		repr = rp.Username + "#" + rp.Discriminator
-	} else {
+	case discord.GroupDM:
 		rps := make([]string, len(c.DMRecipients))
 		for i, r := range c.DMRecipients {
 			rps[i] = r.Username + "#" + r.Discriminator
 		}
 
 		repr = strings.Join(rps, ", ")
+	default:
+		repr = c.Name
 	}
 
 	return repr
