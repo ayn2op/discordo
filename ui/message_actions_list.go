@@ -82,19 +82,19 @@ func NewMessageActionsList(app *App, m *discord.Message) *MessageActionsList {
 }
 
 func (mal *MessageActionsList) replyAction() {
-	mal.app.MessageInputField.SetTitle("Replying to " + mal.message.Author.Tag())
+	mal.app.MessageInput.SetTitle("Replying to " + mal.message.Author.Tag())
 
 	mal.app.
 		SetRoot(mal.app.MainFlex, true).
-		SetFocus(mal.app.MessageInputField)
+		SetFocus(mal.app.MessageInput)
 }
 
 func (mal *MessageActionsList) mentionReplyAction() {
-	mal.app.MessageInputField.SetTitle("[@] Replying to " + mal.message.Author.Tag())
+	mal.app.MessageInput.SetTitle("[@] Replying to " + mal.message.Author.Tag())
 
 	mal.app.
 		SetRoot(mal.app.MainFlex, true).
-		SetFocus(mal.app.MessageInputField)
+		SetFocus(mal.app.MessageInput)
 }
 
 func (mal *MessageActionsList) selectReplyAction() {

@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"sort"
+
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/rivo/tview"
 )
@@ -37,7 +39,7 @@ func (ct *ChannelsTree) onSelected(node *tview.TreeNode) {
 		Highlight().
 		Clear().
 		SetTitle("")
-	ct.app.MessageInputField.SetText("")
+	ct.app.MessageInput.SetText("")
 
 	ref := node.GetReference()
 	c, err := ct.app.State.Cabinet.Channel(ref.(discord.ChannelID))
@@ -52,7 +54,7 @@ func (ct *ChannelsTree) onSelected(node *tview.TreeNode) {
 	}
 
 	ct.SelectedChannel = c
-	ct.app.SetFocus(ct.app.MessageInputField)
+	ct.app.SetFocus(ct.app.MessageInput)
 
 	title := channelToString(*c)
 	if c.Topic != "" {
@@ -83,6 +85,36 @@ func (ct *ChannelsTree) createChannelNode(c discord.Channel) *tview.TreeNode {
 	channelNode.SetReference(c.ID)
 
 	return channelNode
+}
+
+func (ct *ChannelsTree) createPrivateChannelNodes(rootNode *tview.TreeNode) {
+	cs, err := ct.app.State.Cabinet.PrivateChannels()
+	if err != nil {
+		return
+	}
+
+	sort.Slice(cs, func(i, j int) bool {
+		return cs[i].LastMessageID > cs[j].LastMessageID
+	})
+
+	for _, c := range cs {
+		rootNode.AddChild(ct.createChannelNode(c))
+	}
+}
+
+func (ct *ChannelsTree) createGuildChannelNodes(rootNode *tview.TreeNode, gID discord.GuildID) {
+	cs, err := ct.app.State.Cabinet.Channels(gID)
+	if err != nil {
+		return
+	}
+
+	sort.Slice(cs, func(i, j int) bool {
+		return cs[i].Position < cs[j].Position
+	})
+
+	ct.createOrphanChannelNodes(rootNode, cs)
+	ct.createCategoryChannelNodes(rootNode, cs)
+	ct.createChildrenChannelNodes(rootNode, cs)
 }
 
 func (ct *ChannelsTree) createOrphanChannelNodes(rootNode *tview.TreeNode, cs []discord.Channel) {
