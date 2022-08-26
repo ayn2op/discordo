@@ -87,14 +87,14 @@ func New() *Config {
 }
 
 func (c *Config) Load(path string) error {
-	// Create directories that do not exist and are mentioned in the path recursively.
-	err := os.MkdirAll(filepath.Dir(path), os.ModePerm)
+	// Create the configuration directory if it does not exist already, recursively.
+	err := os.MkdirAll(path, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	// If the configuration file does not exist already, create a new file; otherwise, open the existing file with read-write flag.
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, os.ModePerm)
+	// Create a new configuration file if it does not exist already; otherwise, open the existing file with read-write flag.
+	f, err := os.OpenFile(filepath.Join(path, "config.js"), os.O_RDWR|os.O_CREATE, os.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -105,7 +105,7 @@ func (c *Config) Load(path string) error {
 		return err
 	}
 
-	// If the file is empty (the size of the file is zero), write the default configuration to the file.
+	// If the configuration file is empty, that is, its size is zero, write the default configuration to the file.
 	if fi.Size() == 0 {
 		return toml.NewEncoder(f).Encode(c)
 	}
@@ -120,8 +120,7 @@ func DefaultPath() string {
 		log.Fatal(err)
 	}
 
-	path += "/discordo/config.toml"
-	return path
+	return filepath.Join(path, "discordo")
 }
 
 func UserDownloadsDir() string {
