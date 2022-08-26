@@ -6,8 +6,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"time"
-
-	"github.com/BurntSushi/toml"
 )
 
 type IdentifyConfig struct {
@@ -107,10 +105,8 @@ func (c *Config) Load(path string) error {
 
 	// If the configuration file is empty, that is, its size is zero, write the default configuration to the file.
 	if fi.Size() == 0 {
-		return toml.NewEncoder(f).Encode(c)
 	}
 
-	_, err = toml.NewDecoder(f).Decode(&c)
 	return err
 }
 
