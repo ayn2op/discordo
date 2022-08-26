@@ -63,8 +63,9 @@ func (ct *ChannelsTree) onSelected(node *tview.TreeNode) {
 	ct.app.MessagesPanel.SetTitle(title)
 
 	go func() {
+		messagesLimit := ct.app.Config.Int("messagesLimit", nil)
 		// The returned slice will be sorted from latest to oldest.
-		ms, err := ct.app.State.Messages(c.ID, ct.app.Config.MessagesLimit)
+		ms, err := ct.app.State.Messages(c.ID, uint(messagesLimit))
 		if err != nil {
 			return
 		}

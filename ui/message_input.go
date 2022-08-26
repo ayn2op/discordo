@@ -38,6 +38,9 @@ func NewMessageInput(app *App) *MessageInput {
 }
 
 func (mi *MessageInput) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
+	keys := mi.app.Config.Object("keys", nil)
+	messageInput := mi.app.Config.Object("messageInput", keys)
+
 	switch e.Name() {
 	case "Enter":
 		return mi.sendMessage()
@@ -52,7 +55,7 @@ func (mi *MessageInput) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		mi.app.MessagesPanel.SelectedMessage = -1
 		mi.app.MessagesPanel.Highlight()
 		return nil
-	case mi.app.Config.Keys.OpenExternalEditor:
+	case mi.app.Config.String("openExternalEditor", messageInput):
 		return mi.openExternalEditor()
 	}
 
@@ -69,7 +72,8 @@ func (mi *MessageInput) sendMessage() *tcell.EventKey {
 		return nil
 	}
 
-	ms, err := mi.app.State.Messages(mi.app.ChannelsTree.SelectedChannel.ID, mi.app.Config.MessagesLimit)
+	messagesLimit := mi.app.Config.Int("messagesLimit", nil)
+	ms, err := mi.app.State.Messages(mi.app.ChannelsTree.SelectedChannel.ID, uint(messagesLimit))
 	if err != nil {
 		return nil
 	}

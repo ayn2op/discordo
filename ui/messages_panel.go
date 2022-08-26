@@ -48,16 +48,19 @@ func (mp *MessagesPanel) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		return nil
 	}
 
+	keys := mp.app.Config.Object("keys", nil)
+	messagesPanel := mp.app.Config.Object("messagesPanel", keys)
+
 	switch e.Name() {
-	case mp.app.Config.Keys.SelectPreviousMessage:
+	case mp.app.Config.String("selectPreviousMessage", messagesPanel):
 		return mp.selectPreviousMessage(ms)
-	case mp.app.Config.Keys.SelectNextMessage:
+	case mp.app.Config.String("selectNextMessage", messagesPanel):
 		return mp.selectNextMessage(ms)
-	case mp.app.Config.Keys.SelectFirstMessage:
+	case mp.app.Config.String("selectFirstMessage", messagesPanel):
 		return mp.selectFirstMessage(ms)
-	case mp.app.Config.Keys.SelectLastMessage:
+	case mp.app.Config.String("selectLastMessage", messagesPanel):
 		return mp.selectLastMessage(ms)
-	case mp.app.Config.Keys.OpenMessageActionsList:
+	case mp.app.Config.String("openMessageActionsList", messagesPanel):
 		return mp.openMessageActionsList(ms)
 	case "Esc":
 		mp.SelectedMessage = -1

@@ -30,39 +30,46 @@ func NewApp(token string, c *config.Config) *App {
 		Application: tview.NewApplication(),
 		MainFlex:    tview.NewFlex(),
 		Config:      c,
-
-		State: state.NewWithIdentifier(gateway.NewIdentifier(gateway.IdentifyCommand{
-			Token:   token,
-			Intents: nil,
-			Properties: gateway.IdentifyProperties{
-				Browser:          c.Identify.Browser,
-				BrowserUserAgent: c.Identify.UserAgent,
-				BrowserVersion:   c.Identify.BrowserVersion,
-				OS:               c.Identify.Os,
-			},
-			// The official client sets the compress field as false.
-			Compress: false,
-		})),
 	}
 
+	app.EnableMouse(app.Config.Bool("mouse", nil))
+
+	app.MainFlex.SetInputCapture(app.onInputCapture)
 	app.GuildsTree = NewGuildsTree(app)
 	app.ChannelsTree = NewChannelsTree(app)
 	app.MessagesPanel = NewMessagesPanel(app)
 	app.MessageInput = NewMessageInput(app)
-	app.EnableMouse(app.Config.Mouse)
-	app.MainFlex.SetInputCapture(app.onInputCapture)
+
+	identifyProps := app.Config.Object("identifyProperties", nil)
+	userAgent := app.Config.String("userAgent", identifyProps)
+	browser := app.Config.String("browser", identifyProps)
+	browserVersion := app.Config.String("browserVersion", identifyProps)
+	os := app.Config.String("os", identifyProps)
+
+	app.State = state.NewWithIdentifier(gateway.NewIdentifier(gateway.IdentifyCommand{
+		Token:   token,
+		Intents: nil,
+		Properties: gateway.IdentifyProperties{
+			Browser:          browser,
+			BrowserUserAgent: userAgent,
+			BrowserVersion:   browserVersion,
+			OS:               os,
+		},
+		// The official client sets the compress field as false.
+		Compress: false,
+	}))
+
+	// For user accounts, all of the guilds, the user is in, are dispatched in the READY gateway event.
+	// Whereas, for bot accounts, the guilds are dispatched discretely in the GUILD_CREATE gateway events.
+	if !strings.HasPrefix(app.State.Token, "Bot") {
+		api.UserAgent = userAgent
+		app.State.AddHandler(app.onStateReady)
+	}
 
 	return app
 }
 
-func (app *App) Connect() error {
-	// For user accounts, all of the guilds, the user is in, are dispatched in the READY gateway event.
-	// Whereas, for bot accounts, the guilds are dispatched discretely in the GUILD_CREATE gateway events.
-	if !strings.HasPrefix(app.State.Token, "Bot") {
-		api.UserAgent = app.Config.Identify.UserAgent
-		app.State.AddHandler(app.onStateReady)
-	}
-
+func (app *App) Start() error {
 	app.State.AddHandler(app.onStateGuildCreate)
 	app.State.AddHandler(app.onStateGuildDelete)
 	app.State.AddHandler(app.onStateMessageCreate)
@@ -74,18 +81,21 @@ func (app *App) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		return e
 	}
 
+	keys := app.Config.Object("keys", nil)
+	application := app.Config.Object("application", keys)
+
 	if app.MainFlex.GetItemCount() != 0 {
 		switch e.Name() {
-		case app.Config.Keys.ToggleGuildsTree:
+		case app.Config.String("focusGuildsTree", application):
 			app.SetFocus(app.GuildsTree)
 			return nil
-		case app.Config.Keys.ToggleChannelsTree:
+		case app.Config.String("focusChannelsTree", application):
 			app.SetFocus(app.ChannelsTree)
 			return nil
-		case app.Config.Keys.ToggleMessagesPanel:
+		case app.Config.String("focusMessagesPanel", application):
 			app.SetFocus(app.MessagesPanel)
 			return nil
-		case app.Config.Keys.ToggleMessageInput:
+		case app.Config.String("focusMessageInput", application):
 			app.SetFocus(app.MessageInput)
 			return nil
 		}

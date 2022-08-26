@@ -22,14 +22,18 @@ func buildMessage(app *App, m discord.Message) []byte {
 		// Build the message associated with crosspost, channel follow add, pin, or a reply.
 		buildReferencedMessage(&b, m.ReferencedMessage, app.State.Ready().User.ID)
 
-		if app.Config.Timestamps {
-			loc, err := time.LoadLocation(app.Config.Timezone)
+		timestamps := app.Config.Bool("timestamps", nil)
+		if timestamps {
+			timezone := app.Config.String("timezone", nil)
+			loc, err := time.LoadLocation(timezone)
 			if err != nil {
 				return nil
 			}
 
+			timeFormat := app.Config.String("timeFormat", nil)
+
 			b.WriteString("[::d]")
-			b.WriteString(m.Timestamp.Time().In(loc).Format(app.Config.TimeFormat))
+			b.WriteString(m.Timestamp.Time().In(loc).Format(timeFormat))
 			b.WriteString("[::-]")
 			b.WriteByte(' ')
 		}

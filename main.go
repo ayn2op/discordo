@@ -31,7 +31,7 @@ func main() {
 
 	// Defaults
 	if cli.Config == "" {
-		cli.Config = config.DefaultPath()
+		cli.Config = config.DefaultDirPath()
 	}
 
 	if cli.Token == "" {
@@ -46,7 +46,7 @@ func main() {
 
 	app := ui.NewApp(cli.Token, c)
 	if cli.Token != "" {
-		err := app.Connect()
+		err := app.Start()
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -72,7 +72,7 @@ func main() {
 
 			if lr.Token != "" && !lr.MFA {
 				app.State.Token = lr.Token
-				err = app.Connect()
+				err = app.Start()
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -96,7 +96,7 @@ func main() {
 					}
 
 					app.State.Token = lr.Token
-					err = app.Connect()
+					err = app.Start()
 					if err != nil {
 						log.Fatal(err)
 					}
@@ -128,9 +128,11 @@ func main() {
 	tview.Borders.Horizontal = 0
 	tview.Borders.Vertical = 0
 
-	tview.Styles.PrimitiveBackgroundColor = tcell.GetColor(app.Config.Theme.Background)
-	tview.Styles.BorderColor = tcell.GetColor(app.Config.Theme.Border)
-	tview.Styles.TitleColor = tcell.GetColor(app.Config.Theme.Title)
+	theme := app.Config.Object("theme", nil)
+
+	tview.Styles.PrimitiveBackgroundColor = tcell.GetColor(app.Config.String("background", theme))
+	tview.Styles.BorderColor = tcell.GetColor(app.Config.String("border", theme))
+	tview.Styles.TitleColor = tcell.GetColor(app.Config.String("title", theme))
 
 	err = app.Run()
 	if err != nil {

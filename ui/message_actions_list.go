@@ -143,7 +143,13 @@ func (mal *MessageActionsList) openAttachmentAction() {
 
 func (mal *MessageActionsList) downloadAttachmentAction() {
 	for _, a := range mal.message.Attachments {
-		f, err := os.Create(filepath.Join(mal.app.Config.AttachmentDownloadsDir, a.Filename))
+		path, err := os.UserHomeDir()
+		if err != nil {
+			path = os.TempDir()
+		}
+
+		path = filepath.Join(path, "Downloads", a.Filename)
+		f, err := os.Create(path)
 		if err != nil {
 			return
 		}
