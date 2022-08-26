@@ -8,8 +8,8 @@ require (
 	github.com/diamondburned/arikawa/v3 v3.0.0
 	github.com/gdamore/tcell/v2 v2.5.3
 	github.com/rivo/tview v0.0.0-20220812085834-0e6b21a48e96
-	github.com/robertkrimen/otto v0.0.0-20211024170158-b87d35c0b86f
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
+	github.com/yuin/gopher-lua v0.0.0-20220504180219-658193537a64
 	github.com/zalando/go-keyring v0.2.1
 )
 
@@ -24,10 +24,8 @@ require (
 	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rivo/uniseg v0.3.4 // indirect
-	github.com/yuin/gopher-lua v0.0.0-20220504180219-658193537a64 // indirect
 	golang.org/x/sys v0.0.0-20220825204002-c680a09ffe64 // indirect
 	golang.org/x/term v0.0.0-20220722155259-a9ba230a4035 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20220722155302-e5dcc9cfc0b9 // indirect
-	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 )
