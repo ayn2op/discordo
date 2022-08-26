@@ -6,46 +6,50 @@ import (
 	"path/filepath"
 	"runtime"
 	"time"
+
+	"github.com/robertkrimen/otto"
 )
 
 type IdentifyConfig struct {
-	UserAgent      string `toml:"user_agent"`
-	Browser        string `toml:"browser"`
-	BrowserVersion string `toml:"browser_version"`
-	Os             string `toml:"os"`
+	UserAgent      string
+	Browser        string
+	BrowserVersion string
+	Os             string
 }
 
 type KeysConfig struct {
-	ToggleGuildsTree    string `toml:"toggle_guilds_tree"`
-	ToggleChannelsTree  string `toml:"toggle_channels_tree"`
-	ToggleMessagesPanel string `toml:"toggle_messages_panel"`
-	ToggleMessageInput  string `toml:"toggle_message_input"`
+	ToggleGuildsTree    string
+	ToggleChannelsTree  string
+	ToggleMessagesPanel string
+	ToggleMessageInput  string
 
-	OpenMessageActionsList string `toml:"open_message_actions_list"`
-	OpenExternalEditor     string `toml:"open_external_editor"`
+	OpenMessageActionsList string
+	OpenExternalEditor     string
 
-	SelectPreviousMessage string `toml:"select_previous_message"`
-	SelectNextMessage     string `toml:"select_next_message"`
-	SelectFirstMessage    string `toml:"select_first_message"`
-	SelectLastMessage     string `toml:"select_last_message"`
+	SelectPreviousMessage string
+	SelectNextMessage     string
+	SelectFirstMessage    string
+	SelectLastMessage     string
 }
 
 type ThemeConfig struct {
-	Background string `toml:"background"`
-	Border     string `toml:"border"`
-	Title      string `toml:"title"`
+	Background string
+	Border     string
+	Title      string
 }
 
 type Config struct {
-	Mouse                  bool           `toml:"mouse"`
-	Timestamps             bool           `toml:"timestamps"`
-	MessagesLimit          uint           `toml:"messages_limit"`
-	Timezone               string         `toml:"timezone"`
-	TimeFormat             string         `toml:"time_format"`
-	AttachmentDownloadsDir string         `toml:"attachment_downloads_dir"`
-	Identify               IdentifyConfig `toml:"identify"`
-	Theme                  ThemeConfig    `toml:"theme"`
-	Keys                   KeysConfig     `toml:"keys"`
+	Mouse                  bool
+	Timestamps             bool
+	MessagesLimit          uint
+	Timezone               string
+	TimeFormat             string
+	AttachmentDownloadsDir string
+	Identify               IdentifyConfig
+	Theme                  ThemeConfig
+	Keys                   KeysConfig
+
+	VM *otto.Otto
 }
 
 func New() *Config {
@@ -81,6 +85,8 @@ func New() *Config {
 			SelectFirstMessage:    "Home",
 			SelectLastMessage:     "End",
 		},
+
+		VM: otto.New(),
 	}
 }
 
