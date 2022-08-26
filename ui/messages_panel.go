@@ -4,21 +4,23 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	lua "github.com/yuin/gopher-lua"
 )
 
 type MessagesPanel struct {
 	*tview.TextView
-	app *App
-	// The index of the currently selected message.
+	// The index of the currently selected message. A negative index indicates that there is no currently selected message.
 	SelectedMessage int
+
+	core *Core
 }
 
-func NewMessagesPanel(app *App) *MessagesPanel {
+func NewMessagesPanel(c *Core) *MessagesPanel {
 	mp := &MessagesPanel{
-		TextView: tview.NewTextView(),
-		app:      app,
-		// Negative index indicates that there is no currently selected message.
+		TextView:        tview.NewTextView(),
 		SelectedMessage: -1,
+
+		core: c,
 	}
 
 	mp.SetDynamicColors(true)
@@ -26,7 +28,7 @@ func NewMessagesPanel(app *App) *MessagesPanel {
 	mp.SetWordWrap(true)
 	mp.SetInputCapture(mp.onInputCapture)
 	mp.SetChangedFunc(func() {
-		mp.app.Draw()
+		mp.core.Application.Draw()
 	})
 
 	mp.SetTitle("Messages")
@@ -38,33 +40,33 @@ func NewMessagesPanel(app *App) *MessagesPanel {
 }
 
 func (mp *MessagesPanel) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
-	if mp.app.ChannelsTree.SelectedChannel == nil {
+	if mp.core.ChannelsTree.SelectedChannel == nil {
 		return nil
 	}
 
 	// Messages should return messages ordered from latest to earliest.
-	ms, err := mp.app.State.Cabinet.Messages(mp.app.ChannelsTree.SelectedChannel.ID)
+	ms, err := mp.core.State.Cabinet.Messages(mp.core.ChannelsTree.SelectedChannel.ID)
 	if err != nil || len(ms) == 0 {
 		return nil
 	}
 
-	keys := mp.app.Config.Object("keys", nil)
-	messagesPanel := mp.app.Config.Object("messagesPanel", keys)
+	keysTable := mp.core.Config.State.GetGlobal("keys").(*lua.LTable)
+	messagesPanel := keysTable.RawGetString("messagesPanel").(*lua.LTable)
 
 	switch e.Name() {
-	case mp.app.Config.String("selectPreviousMessage", messagesPanel):
+	case mp.core.Config.String(messagesPanel.RawGetString("selectPreviousMessage")):
 		return mp.selectPreviousMessage(ms)
-	case mp.app.Config.String("selectNextMessage", messagesPanel):
+	case mp.core.Config.String(messagesPanel.RawGetString("selectNextMessage")):
 		return mp.selectNextMessage(ms)
-	case mp.app.Config.String("selectFirstMessage", messagesPanel):
+	case mp.core.Config.String(messagesPanel.RawGetString("selectFirstMessage")):
 		return mp.selectFirstMessage(ms)
-	case mp.app.Config.String("selectLastMessage", messagesPanel):
+	case mp.core.Config.String(messagesPanel.RawGetString("selectLastMessage")):
 		return mp.selectLastMessage(ms)
-	case mp.app.Config.String("openMessageActionsList", messagesPanel):
+	case mp.core.Config.String(messagesPanel.RawGetString("openMessageActionsList")):
 		return mp.openMessageActionsList(ms)
 	case "Esc":
 		mp.SelectedMessage = -1
-		mp.app.SetFocus(mp.app.MainFlex)
+		mp.core.Application.SetFocus(mp.core.MainFlex)
 		mp.
 			Clear().
 			Highlight().
@@ -145,7 +147,7 @@ func (mp *MessagesPanel) openMessageActionsList(ms []discord.Message) *tcell.Eve
 		return nil
 	}
 
-	actionsList := NewMessageActionsList(mp.app, m)
-	mp.app.SetRoot(actionsList, true)
+	actionsList := NewMessageActionsList(mp.core, m)
+	mp.core.Application.SetRoot(actionsList, true)
 	return nil
 }

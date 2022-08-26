@@ -9,15 +9,15 @@ import (
 
 type ChannelsTree struct {
 	*tview.TreeView
-	app *App
-
 	SelectedChannel *discord.Channel
+
+	core *Core
 }
 
-func NewChannelsTree(app *App) *ChannelsTree {
+func NewChannelsTree(c *Core) *ChannelsTree {
 	ct := &ChannelsTree{
 		TreeView: tview.NewTreeView(),
-		app:      app,
+		core:     c,
 	}
 
 	ct.SetRoot(tview.NewTreeNode(""))
@@ -34,15 +34,15 @@ func NewChannelsTree(app *App) *ChannelsTree {
 
 func (ct *ChannelsTree) onSelected(node *tview.TreeNode) {
 	ct.SelectedChannel = nil
-	ct.app.MessagesPanel.SelectedMessage = -1
-	ct.app.MessagesPanel.
+	ct.core.MessagesPanel.SelectedMessage = -1
+	ct.core.MessagesPanel.
 		Highlight().
 		Clear().
 		SetTitle("")
-	ct.app.MessageInput.SetText("")
+	ct.core.MessageInput.SetText("")
 
 	ref := node.GetReference()
-	c, err := ct.app.State.Cabinet.Channel(ref.(discord.ChannelID))
+	c, err := ct.core.State.Cabinet.Channel(ref.(discord.ChannelID))
 	if err != nil {
 		return
 	}
@@ -54,30 +54,30 @@ func (ct *ChannelsTree) onSelected(node *tview.TreeNode) {
 	}
 
 	ct.SelectedChannel = c
-	ct.app.SetFocus(ct.app.MessageInput)
+	ct.core.Application.SetFocus(ct.core.MessageInput)
 
 	title := channelToString(*c)
 	if c.Topic != "" {
 		title += " - " + parseMarkdown(c.Topic)
 	}
-	ct.app.MessagesPanel.SetTitle(title)
+	ct.core.MessagesPanel.SetTitle(title)
 
 	go func() {
-		messagesLimit := ct.app.Config.Int("messagesLimit", nil)
+		messagesLimit := ct.core.Config.Number(ct.core.Config.State.GetGlobal("messagesLimit"))
 		// The returned slice will be sorted from latest to oldest.
-		ms, err := ct.app.State.Messages(c.ID, uint(messagesLimit))
+		ms, err := ct.core.State.Messages(c.ID, uint(messagesLimit))
 		if err != nil {
 			return
 		}
 
 		for i := len(ms) - 1; i >= 0; i-- {
-			_, err = ct.app.MessagesPanel.Write(buildMessage(ct.app, ms[i]))
+			_, err = ct.core.MessagesPanel.Write(buildMessage(ct.core, ms[i]))
 			if err != nil {
 				return
 			}
 		}
 
-		ct.app.MessagesPanel.ScrollToEnd()
+		ct.core.MessagesPanel.ScrollToEnd()
 	}()
 }
 
@@ -89,7 +89,7 @@ func (ct *ChannelsTree) createChannelNode(c discord.Channel) *tview.TreeNode {
 }
 
 func (ct *ChannelsTree) createPrivateChannelNodes(rootNode *tview.TreeNode) {
-	cs, err := ct.app.State.Cabinet.PrivateChannels()
+	cs, err := ct.core.State.Cabinet.PrivateChannels()
 	if err != nil {
 		return
 	}
@@ -104,7 +104,7 @@ func (ct *ChannelsTree) createPrivateChannelNodes(rootNode *tview.TreeNode) {
 }
 
 func (ct *ChannelsTree) createGuildChannelNodes(rootNode *tview.TreeNode, gID discord.GuildID) {
-	cs, err := ct.app.State.Cabinet.Channels(gID)
+	cs, err := ct.core.State.Cabinet.Channels(gID)
 	if err != nil {
 		return
 	}

@@ -12,17 +12,18 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	lua "github.com/yuin/gopher-lua"
 )
 
 type MessageInput struct {
 	*tview.InputField
-	app *App
+	core *Core
 }
 
-func NewMessageInput(app *App) *MessageInput {
+func NewMessageInput(c *Core) *MessageInput {
 	mi := &MessageInput{
 		InputField: tview.NewInputField(),
-		app:        app,
+		core:       c,
 	}
 
 	mi.SetFieldBackgroundColor(tview.Styles.PrimitiveBackgroundColor)
@@ -38,8 +39,8 @@ func NewMessageInput(app *App) *MessageInput {
 }
 
 func (mi *MessageInput) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
-	keys := mi.app.Config.Object("keys", nil)
-	messageInput := mi.app.Config.Object("messageInput", keys)
+	keysTable := mi.core.Config.State.GetGlobal("keys").(*lua.LTable)
+	messageInput := keysTable.RawGetString("messageInput")
 
 	switch e.Name() {
 	case "Enter":
@@ -50,12 +51,12 @@ func (mi *MessageInput) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		mi.
 			SetText("").
 			SetTitle("")
-		mi.app.SetFocus(mi.app.MainFlex)
+		mi.core.Application.SetFocus(mi.core.MainFlex)
 
-		mi.app.MessagesPanel.SelectedMessage = -1
-		mi.app.MessagesPanel.Highlight()
+		mi.core.MessagesPanel.SelectedMessage = -1
+		mi.core.MessagesPanel.Highlight()
 		return nil
-	case mi.app.Config.String("openExternalEditor", messageInput):
+	case mi.core.Config.String(messageInput):
 		return mi.openExternalEditor()
 	}
 
@@ -63,7 +64,7 @@ func (mi *MessageInput) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 }
 
 func (mi *MessageInput) sendMessage() *tcell.EventKey {
-	if mi.app.ChannelsTree.SelectedChannel == nil {
+	if mi.core.ChannelsTree.SelectedChannel == nil {
 		return nil
 	}
 
@@ -72,14 +73,14 @@ func (mi *MessageInput) sendMessage() *tcell.EventKey {
 		return nil
 	}
 
-	messagesLimit := mi.app.Config.Int("messagesLimit", nil)
-	ms, err := mi.app.State.Messages(mi.app.ChannelsTree.SelectedChannel.ID, uint(messagesLimit))
+	messagesLimit := mi.core.Config.Number(mi.core.Config.State.GetGlobal("messagesLimit"))
+	ms, err := mi.core.State.Messages(mi.core.ChannelsTree.SelectedChannel.ID, uint(messagesLimit))
 	if err != nil {
 		return nil
 	}
 
-	if len(mi.app.MessagesPanel.GetHighlights()) != 0 {
-		mID, err := discord.ParseSnowflake(mi.app.MessagesPanel.GetHighlights()[0])
+	if len(mi.core.MessagesPanel.GetHighlights()) != 0 {
+		mID, err := discord.ParseSnowflake(mi.core.MessagesPanel.GetHighlights()[0])
 		if err != nil {
 			return nil
 		}
@@ -96,14 +97,14 @@ func (mi *MessageInput) sendMessage() *tcell.EventKey {
 			d.AllowedMentions.RepliedUser = option.True
 		}
 
-		go mi.app.State.SendMessageComplex(m.ChannelID, d)
+		go mi.core.State.SendMessageComplex(m.ChannelID, d)
 
-		mi.app.MessagesPanel.SelectedMessage = -1
-		mi.app.MessagesPanel.Highlight()
+		mi.core.MessagesPanel.SelectedMessage = -1
+		mi.core.MessagesPanel.Highlight()
 
 		mi.SetTitle("")
 	} else {
-		go mi.app.State.SendMessage(mi.app.ChannelsTree.SelectedChannel.ID, t)
+		go mi.core.State.SendMessage(mi.core.ChannelsTree.SelectedChannel.ID, t)
 	}
 
 	mi.SetText("")
@@ -133,7 +134,7 @@ func (mi *MessageInput) openExternalEditor() *tcell.EventKey {
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 
-	mi.app.Suspend(func() {
+	mi.core.Application.Suspend(func() {
 		err = cmd.Run()
 		if err != nil {
 			return

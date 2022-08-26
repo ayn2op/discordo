@@ -17,26 +17,25 @@ var linkRegex = regexp.MustCompile("https?://.+")
 
 type MessageActionsList struct {
 	*tview.List
-	app     *App
+	core    *Core
 	message *discord.Message
 }
 
-func NewMessageActionsList(app *App, m *discord.Message) *MessageActionsList {
+func NewMessageActionsList(c *Core, m *discord.Message) *MessageActionsList {
 	mal := &MessageActionsList{
 		List:    tview.NewList(),
-		app:     app,
+		core:    c,
 		message: m,
 	}
 
 	mal.ShowSecondaryText(false)
 	mal.SetDoneFunc(func() {
-		app.
-			SetRoot(app.MainFlex, true).
-			SetFocus(app.MessagesPanel)
+		c.Application.SetRoot(c.MainFlex, true)
+		c.Application.SetFocus(c.MessagesPanel)
 	})
 
 	// If the client user has the `SEND_MESSAGES` permission, add "Reply" and "Mention Reply" actions.
-	if hasPermission(app.State, app.ChannelsTree.SelectedChannel.ID, discord.PermissionSendMessages) {
+	if hasPermission(c.State, c.ChannelsTree.SelectedChannel.ID, discord.PermissionSendMessages) {
 		mal.AddItem("Reply", "", 'r', mal.replyAction)
 		mal.AddItem("Mention Reply", "", 'R', mal.mentionReplyAction)
 	}
@@ -54,8 +53,8 @@ func NewMessageActionsList(app *App, m *discord.Message) *MessageActionsList {
 				go open.Run(l)
 			}
 
-			app.SetRoot(app.MainFlex, true)
-			app.SetFocus(app.MessagesPanel)
+			c.Application.SetRoot(c.MainFlex, true)
+			c.Application.SetFocus(c.MessagesPanel)
 		})
 	}
 
@@ -66,7 +65,7 @@ func NewMessageActionsList(app *App, m *discord.Message) *MessageActionsList {
 	}
 
 	// If the client user has the `MANAGE_MESSAGES` permission, add a new action to delete the message.
-	if hasPermission(app.State, app.ChannelsTree.SelectedChannel.ID, discord.PermissionManageMessages) {
+	if hasPermission(c.State, c.ChannelsTree.SelectedChannel.ID, discord.PermissionManageMessages) {
 		mal.AddItem("Delete", "", 'd', mal.deleteAction)
 	}
 
@@ -82,35 +81,32 @@ func NewMessageActionsList(app *App, m *discord.Message) *MessageActionsList {
 }
 
 func (mal *MessageActionsList) replyAction() {
-	mal.app.MessageInput.SetTitle("Replying to " + mal.message.Author.Tag())
+	mal.core.MessageInput.SetTitle("Replying to " + mal.message.Author.Tag())
 
-	mal.app.
-		SetRoot(mal.app.MainFlex, true).
-		SetFocus(mal.app.MessageInput)
+	mal.core.Application.SetRoot(mal.core.MainFlex, true)
+	mal.core.Application.SetFocus(mal.core.MessageInput)
 }
 
 func (mal *MessageActionsList) mentionReplyAction() {
-	mal.app.MessageInput.SetTitle("[@] Replying to " + mal.message.Author.Tag())
+	mal.core.MessageInput.SetTitle("[@] Replying to " + mal.message.Author.Tag())
 
-	mal.app.
-		SetRoot(mal.app.MainFlex, true).
-		SetFocus(mal.app.MessageInput)
+	mal.core.Application.SetRoot(mal.core.MainFlex, true)
+	mal.core.Application.SetFocus(mal.core.MessageInput)
 }
 
 func (mal *MessageActionsList) selectReplyAction() {
-	ms, err := mal.app.State.Cabinet.Messages(mal.message.ChannelID)
+	ms, err := mal.core.State.Cabinet.Messages(mal.message.ChannelID)
 	if err != nil {
 		return
 	}
 
-	mal.app.MessagesPanel.SelectedMessage, _ = findMessageByID(ms, mal.message.ReferencedMessage.ID)
-	mal.app.MessagesPanel.
+	mal.core.MessagesPanel.SelectedMessage, _ = findMessageByID(ms, mal.message.ReferencedMessage.ID)
+	mal.core.MessagesPanel.
 		Highlight(mal.message.ReferencedMessage.ID.String()).
 		ScrollToHighlight()
 
-	mal.app.
-		SetRoot(mal.app.MainFlex, true).
-		SetFocus(mal.app.MessagesPanel)
+	mal.core.Application.SetRoot(mal.core.MainFlex, true)
+	mal.core.Application.SetFocus(mal.core.MessagesPanel)
 }
 
 func (mal *MessageActionsList) openAttachmentAction() {
@@ -136,9 +132,8 @@ func (mal *MessageActionsList) openAttachmentAction() {
 		go open.Run(f.Name())
 	}
 
-	mal.app.
-		SetRoot(mal.app.MainFlex, true).
-		SetFocus(mal.app.MessagesPanel)
+	mal.core.Application.SetRoot(mal.core.MainFlex, true)
+	mal.core.Application.SetFocus(mal.core.MessagesPanel)
 }
 
 func (mal *MessageActionsList) downloadAttachmentAction() {
@@ -168,40 +163,38 @@ func (mal *MessageActionsList) downloadAttachmentAction() {
 		f.Write(d)
 	}
 
-	mal.app.
-		SetRoot(mal.app.MainFlex, true).
-		SetFocus(mal.app.MessagesPanel)
+	mal.core.Application.SetRoot(mal.core.MainFlex, true)
+	mal.core.Application.SetFocus(mal.core.MessagesPanel)
 }
 
 func (mal *MessageActionsList) deleteAction() {
-	mal.app.MessagesPanel.Clear()
+	mal.core.MessagesPanel.Clear()
 
-	err := mal.app.State.MessageRemove(mal.message.ChannelID, mal.message.ID)
+	err := mal.core.State.MessageRemove(mal.message.ChannelID, mal.message.ID)
 	if err != nil {
 		return
 	}
 
-	err = mal.app.State.DeleteMessage(mal.message.ChannelID, mal.message.ID, "Unknown")
+	err = mal.core.State.DeleteMessage(mal.message.ChannelID, mal.message.ID, "Unknown")
 	if err != nil {
 		return
 	}
 
 	// The returned slice will be sorted from latest to oldest.
-	ms, err := mal.app.State.Cabinet.Messages(mal.message.ChannelID)
+	ms, err := mal.core.State.Cabinet.Messages(mal.message.ChannelID)
 	if err != nil {
 		return
 	}
 
 	for i := len(ms) - 1; i >= 0; i-- {
-		_, err = mal.app.MessagesPanel.Write(buildMessage(mal.app, ms[i]))
+		_, err = mal.core.MessagesPanel.Write(buildMessage(mal.core, ms[i]))
 		if err != nil {
 			return
 		}
 	}
 
-	mal.app.
-		SetRoot(mal.app.MainFlex, true).
-		SetFocus(mal.app.MessagesPanel)
+	mal.core.Application.SetRoot(mal.core.MainFlex, true)
+	mal.core.Application.SetFocus(mal.core.MessagesPanel)
 }
 
 func (mal *MessageActionsList) copyContentAction() {
@@ -210,8 +203,8 @@ func (mal *MessageActionsList) copyContentAction() {
 		return
 	}
 
-	mal.app.SetRoot(mal.app.MainFlex, true)
-	mal.app.SetFocus(mal.app.MessagesPanel)
+	mal.core.Application.SetRoot(mal.core.MainFlex, true)
+	mal.core.Application.SetFocus(mal.core.MessagesPanel)
 }
 
 func (mal *MessageActionsList) copyIDAction() {
@@ -220,6 +213,6 @@ func (mal *MessageActionsList) copyIDAction() {
 		return
 	}
 
-	mal.app.SetRoot(mal.app.MainFlex, true)
-	mal.app.SetFocus(mal.app.MessagesPanel)
+	mal.core.Application.SetRoot(mal.core.MainFlex, true)
+	mal.core.Application.SetFocus(mal.core.MessagesPanel)
 }
