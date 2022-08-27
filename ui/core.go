@@ -15,8 +15,6 @@ import (
 	luar "layeh.com/gopher-luar"
 )
 
-var cfg []byte
-
 // Core initializes the application, UI elements, configuration, session, and state. It also manages the application, session, and state.
 type Core struct {
 	Application   *tview.Application
