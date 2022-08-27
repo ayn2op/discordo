@@ -1,8 +1,6 @@
 package ui
 
 import (
-	"fmt"
-
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -53,7 +51,7 @@ func (mp *MessagesPanel) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		return nil
 	}
 
-	keysTable, ok := mp.core.LState.GetGlobal("keys").(*lua.LTable)
+	keysTable, ok := mp.core.Config.State.GetGlobal("keys").(*lua.LTable)
 	if !ok {
 		return e
 	}
@@ -66,27 +64,25 @@ func (mp *MessagesPanel) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	var fn lua.LValue
 	messagesPanel.ForEach(func(k, v lua.LValue) {
 		keyTable := v.(*lua.LTable)
-		fmt.Println(lua.LVAsString(keyTable.RawGetString("name")))
-
 		if e.Name() == lua.LVAsString(keyTable.RawGetString("name")) {
 			fn = keyTable.RawGetString("action")
 		}
 	})
 
 	if fn != nil {
-		mp.core.LState.CallByParam(lua.P{
+		mp.core.Config.State.CallByParam(lua.P{
 			Fn:      fn,
 			NRet:    1,
 			Protect: true,
-		}, luar.New(mp.core.LState, mp.core), luar.New(mp.core.LState, e))
+		}, luar.New(mp.core.Config.State, mp.core), luar.New(mp.core.Config.State, e))
 		// Returned value
-		ret, ok := mp.core.LState.Get(-1).(*lua.LUserData)
+		ret, ok := mp.core.Config.State.Get(-1).(*lua.LUserData)
 		if !ok {
 			return e
 		}
 
 		// Remove returned value
-		mp.core.LState.Pop(1)
+		mp.core.Config.State.Pop(1)
 
 		ev, ok := ret.Value.(*tcell.EventKey)
 		if ok {

@@ -40,7 +40,7 @@ func NewMessageInput(c *Core) *MessageInput {
 }
 
 func (mi *MessageInput) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
-	keysTable, ok := mi.core.LState.GetGlobal("keys").(*lua.LTable)
+	keysTable, ok := mi.core.Config.State.GetGlobal("keys").(*lua.LTable)
 	if !ok {
 		return e
 	}
@@ -59,19 +59,19 @@ func (mi *MessageInput) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	})
 
 	if fn != nil {
-		mi.core.LState.CallByParam(lua.P{
+		mi.core.Config.State.CallByParam(lua.P{
 			Fn:      fn,
 			NRet:    1,
 			Protect: true,
-		}, luar.New(mi.core.LState, mi.core), luar.New(mi.core.LState, e))
+		}, luar.New(mi.core.Config.State, mi.core), luar.New(mi.core.Config.State, e))
 		// Returned value
-		ret, ok := mi.core.LState.Get(-1).(*lua.LUserData)
+		ret, ok := mi.core.Config.State.Get(-1).(*lua.LUserData)
 		if !ok {
 			return e
 		}
 
 		// Remove returned value
-		mi.core.LState.Pop(1)
+		mi.core.Config.State.Pop(1)
 
 		ev, ok := ret.Value.(*tcell.EventKey)
 		if ok {
@@ -107,7 +107,7 @@ func (mi *MessageInput) sendMessage() *tcell.EventKey {
 		return nil
 	}
 
-	messagesLimit := mi.core.LState.GetGlobal("messagesLimit")
+	messagesLimit := mi.core.Config.State.GetGlobal("messagesLimit")
 	ms, err := mi.core.State.Messages(mi.core.ChannelsTree.SelectedChannel.ID, uint(lua.LVAsNumber(messagesLimit)))
 	if err != nil {
 		return nil

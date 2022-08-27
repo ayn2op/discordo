@@ -23,16 +23,16 @@ func buildMessage(c *Core, m discord.Message) []byte {
 		// Build the message associated with crosspost, channel follow add, pin, or a reply.
 		buildReferencedMessage(&b, m.ReferencedMessage, c.State.Ready().User.ID)
 
-		timestamps := c.LState.GetGlobal("timestamps")
+		timestamps := c.Config.State.GetGlobal("timestamps")
 
 		if lua.LVAsBool(timestamps) {
-			timezone := c.LState.GetGlobal("timezone")
+			timezone := c.Config.State.GetGlobal("timezone")
 			loc, err := time.LoadLocation(lua.LVAsString(timezone))
 			if err != nil {
 				return nil
 			}
 
-			timeFormat := c.LState.GetGlobal("timeFormat")
+			timeFormat := c.Config.State.GetGlobal("timeFormat")
 
 			b.WriteString("[::d]")
 			b.WriteString(m.Timestamp.Time().In(loc).Format(lua.LVAsString(timeFormat)))

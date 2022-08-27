@@ -45,9 +45,9 @@ func main() {
 		cli.Token, _ = keyring.Get(name, "token")
 	}
 
-	c := ui.NewCore(cli.Token, cli.Config)
+	c := ui.NewCore(cli.Config)
 	if cli.Token != "" {
-		err := c.Run()
+		err := c.Run(cli.Token)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -71,8 +71,7 @@ func main() {
 			}
 
 			if lr.Token != "" && !lr.MFA {
-				c.State.Token = lr.Token
-				err = c.Run()
+				err = c.Run(lr.Token)
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -96,8 +95,7 @@ func main() {
 						log.Fatal(err)
 					}
 
-					c.State.Token = lr.Token
-					err = c.Run()
+					err = c.Run(lr.Token)
 					if err != nil {
 						log.Fatal(err)
 					}
@@ -129,7 +127,7 @@ func main() {
 	tview.Borders.Horizontal = 0
 	tview.Borders.Vertical = 0
 
-	themeTable, ok := c.LState.GetGlobal("theme").(*lua.LTable)
+	themeTable, ok := c.Config.State.GetGlobal("theme").(*lua.LTable)
 	if !ok {
 		return
 	}

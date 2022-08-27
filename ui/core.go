@@ -2,10 +2,9 @@ package ui
 
 import (
 	"context"
-	_ "embed"
-	"os"
 	"strings"
 
+	"github.com/ayntgl/discordo/config"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
@@ -16,7 +15,6 @@ import (
 	luar "layeh.com/gopher-luar"
 )
 
-//go:embed config.lua
 var cfg []byte
 
 // Core initializes the application, UI elements, configuration, session, and state. It also manages the application, session, and state.
@@ -28,21 +26,16 @@ type Core struct {
 	MessagesPanel *MessagesPanel
 	MessageInput  *MessageInput
 
+	Config *config.Config
 	State  *state.State
-	LState *lua.LState
-
-	token string
-	cfg   string
 }
 
-func NewCore(token string, cfg string) *Core {
+func NewCore(path string) *Core {
 	c := &Core{
 		Application: tview.NewApplication(),
 		MainFlex:    tview.NewFlex(),
-		LState:      lua.NewState(),
 
-		token: token,
-		cfg:   cfg,
+		Config: config.NewConfig(path),
 	}
 
 	c.MainFlex.SetInputCapture(c.onInputCapture)
@@ -53,29 +46,29 @@ func NewCore(token string, cfg string) *Core {
 	return c
 }
 
-func (c *Core) Run() error {
-	err := c.loadConfig(c.cfg)
+func (c *Core) Run(token string) error {
+	err := c.Config.Load()
 	if err != nil {
 		return err
 	}
 
 	c.register()
-	err = c.LState.DoFile(c.cfg)
+	err = c.Config.State.DoString(string(config.LuaConfig))
 	if err != nil {
 		return err
 	}
 
-	c.Application.EnableMouse(lua.LVAsBool(c.LState.GetGlobal("mouse")))
+	c.Application.EnableMouse(lua.LVAsBool(c.Config.State.GetGlobal("mouse")))
 
-	identifyProperties, ok := c.LState.GetGlobal("identifyProperties").(*lua.LTable)
+	identifyProperties, ok := c.Config.State.GetGlobal("identifyProperties").(*lua.LTable)
 	if !ok {
-		identifyProperties = c.LState.NewTable()
+		identifyProperties = c.Config.State.NewTable()
 	}
 
 	userAgent := lua.LVAsString(identifyProperties.RawGetString("userAgent"))
 
 	c.State = state.NewWithIdentifier(gateway.NewIdentifier(gateway.IdentifyCommand{
-		Token:   c.token,
+		Token:   token,
 		Intents: nil,
 		Properties: gateway.IdentifyProperties{
 			Browser:          lua.LVAsString(identifyProperties.RawGetString("browser")),
@@ -100,6 +93,19 @@ func (c *Core) Run() error {
 	return c.State.Open(context.Background())
 }
 
+func (c *Core) register() {
+	c.Config.State.SetGlobal("key", c.Config.State.NewFunction(c.Config.KeyLua))
+	// Messages panel
+	c.Config.State.SetGlobal("openMessageActionsList", c.Config.State.NewFunction(c.MessagesPanel.openMessageActionsListLua))
+	c.Config.State.SetGlobal("selectPreviousMessage", c.Config.State.NewFunction(c.MessagesPanel.selectPreviousMessageLua))
+	c.Config.State.SetGlobal("selectNextMessage", c.Config.State.NewFunction(c.MessagesPanel.selectNextMessageLua))
+	c.Config.State.SetGlobal("selectFirstMessage", c.Config.State.NewFunction(c.MessagesPanel.selectFirstMessageLua))
+	c.Config.State.SetGlobal("selectLastMessage", c.Config.State.NewFunction(c.MessagesPanel.selectLastMessageLua))
+	// Message input
+	c.Config.State.SetGlobal("openExternalEditor", c.Config.State.NewFunction(c.MessageInput.openExternalEditorLua))
+	c.Config.State.SetGlobal("pasteClipboardContent", c.Config.State.NewFunction(c.MessageInput.pasteClipboardContentLua))
+}
+
 func (c *Core) DrawMainFlex() {
 	leftFlex := tview.NewFlex().
 		SetDirection(tview.FlexRow).
@@ -114,19 +120,6 @@ func (c *Core) DrawMainFlex() {
 		AddItem(rightFlex, 0, 4, false)
 }
 
-func (c *Core) register() {
-	c.LState.SetGlobal("key", c.LState.NewFunction(c.keyLua))
-	// Messages panel
-	c.LState.SetGlobal("openMessageActionsList", c.LState.NewFunction(c.MessagesPanel.openMessageActionsListLua))
-	c.LState.SetGlobal("selectPreviousMessage", c.LState.NewFunction(c.MessagesPanel.selectPreviousMessageLua))
-	c.LState.SetGlobal("selectNextMessage", c.LState.NewFunction(c.MessagesPanel.selectNextMessageLua))
-	c.LState.SetGlobal("selectFirstMessage", c.LState.NewFunction(c.MessagesPanel.selectFirstMessageLua))
-	c.LState.SetGlobal("selectLastMessage", c.LState.NewFunction(c.MessagesPanel.selectLastMessageLua))
-	// Message input
-	c.LState.SetGlobal("openExternalEditor", c.LState.NewFunction(c.MessageInput.openExternalEditorLua))
-	c.LState.SetGlobal("pasteClipboardContent", c.LState.NewFunction(c.MessageInput.pasteClipboardContentLua))
-}
-
 func (c *Core) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	if c.MessageInput.HasFocus() {
 		return e
@@ -136,7 +129,7 @@ func (c *Core) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		return e
 	}
 
-	keysTable, ok := c.LState.GetGlobal("keys").(*lua.LTable)
+	keysTable, ok := c.Config.State.GetGlobal("keys").(*lua.LTable)
 	if !ok {
 		return e
 	}
@@ -154,19 +147,19 @@ func (c *Core) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		}
 	})
 
-	c.LState.CallByParam(lua.P{
+	c.Config.State.CallByParam(lua.P{
 		Fn:      fn,
 		NRet:    1,
 		Protect: true,
-	}, luar.New(c.LState, c), luar.New(c.LState, e))
+	}, luar.New(c.Config.State, c), luar.New(c.Config.State, e))
 	// Returned value
-	ret, ok := c.LState.Get(-1).(*lua.LUserData)
+	ret, ok := c.Config.State.Get(-1).(*lua.LUserData)
 	if !ok {
 		return e
 	}
 
 	// Remove returned value
-	c.LState.Pop(1)
+	c.Config.State.Pop(1)
 	return ret.Value.(*tcell.EventKey)
 }
 
@@ -264,36 +257,4 @@ func (c *Core) onStateMessageCreate(m *gateway.MessageCreateEvent) {
 			c.MessagesPanel.ScrollToEnd()
 		}
 	}
-}
-
-func (c *Core) loadConfig(path string) error {
-	// Create a new configuration file if it does not exist already; otherwise, open the existing file with read-write flag.
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, os.ModePerm)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	fi, err := f.Stat()
-	if err != nil {
-		return err
-	}
-
-	// If the configuration file is empty, that is, its size is zero, write the default configuration to the file.
-	if fi.Size() == 0 {
-		f.Write(cfg)
-		f.Sync()
-	}
-
-	return nil
-}
-
-func (c *Core) keyLua(s *lua.LState) int {
-	keyTable := s.NewTable()
-	keyTable.RawSetString("name", s.Get(1))
-	keyTable.RawSetString("description", s.Get(2))
-	keyTable.RawSetString("action", s.Get(3))
-
-	s.Push(keyTable) // Push the result
-	return 1         // Number of results
 }
