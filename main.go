@@ -20,7 +20,7 @@ const (
 
 var cli struct {
 	Token  string `help:"The authentication token."`
-	Config string `help:"The path to the configuration file." type:"path"`
+	Config string `help:"The path to the configuration directory." type:"path"`
 }
 
 func main() {
@@ -38,7 +38,7 @@ func main() {
 			log.Fatal(err)
 		}
 
-		cli.Config = filepath.Join(path, "discordo.lua")
+		cli.Config = filepath.Join(path, name)
 	}
 
 	if cli.Token == "" {

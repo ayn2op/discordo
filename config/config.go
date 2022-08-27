@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"io"
 	"os"
+	"path/filepath"
 
 	lua "github.com/yuin/gopher-lua"
 )
@@ -12,6 +13,7 @@ import (
 var LuaConfig []byte
 
 type Config struct {
+	// Path is the path of the configuration file. Its value is the configuration directory until Load() is called.
 	Path  string
 	State *lua.LState
 }
@@ -24,6 +26,13 @@ func NewConfig(path string) *Config {
 }
 
 func (c *Config) Load() error {
+	// Create directories that do not exist and are mentioned in the path recursively.
+	err := os.MkdirAll(c.Path, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	c.Path = filepath.Join(c.Path, "config.lua")
 	// Open the existing configuration file with read-only flag.
 	f, err := os.Open(c.Path)
 	// If the configuration file does not exist, create a new configuration file with the read-write flag.
