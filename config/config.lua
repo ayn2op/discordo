@@ -122,4 +122,4 @@ keys = {
     }
 }
 
-theme = {background = "black", border = "white", title = "white"}
+theme = {background = "#1F2430", border = "white", title = "white"}
