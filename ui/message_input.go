@@ -13,6 +13,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	lua "github.com/yuin/gopher-lua"
+	luar "layeh.com/gopher-luar"
 )
 
 type MessageInput struct {
@@ -39,14 +40,49 @@ func NewMessageInput(c *Core) *MessageInput {
 }
 
 func (mi *MessageInput) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
-	keysTable := mi.core.Config.State.GetGlobal("keys").(*lua.LTable)
-	messageInput := keysTable.RawGetString("messageInput")
+	keysTable, ok := mi.core.LState.GetGlobal("keys").(*lua.LTable)
+	if !ok {
+		return e
+	}
 
+	messageInputTable, ok := keysTable.RawGetString("messageInput").(*lua.LTable)
+	if !ok {
+		return e
+	}
+
+	var fn lua.LValue
+	messageInputTable.ForEach(func(k, v lua.LValue) {
+		keyTable := v.(*lua.LTable)
+		if e.Name() == lua.LVAsString(keyTable.RawGetString("name")) {
+			fn = keyTable.RawGetString("action")
+		}
+	})
+
+	if fn != nil {
+		mi.core.LState.CallByParam(lua.P{
+			Fn:      fn,
+			NRet:    1,
+			Protect: true,
+		}, luar.New(mi.core.LState, mi.core), luar.New(mi.core.LState, e))
+		// Returned value
+		ret, ok := mi.core.LState.Get(-1).(*lua.LUserData)
+		if !ok {
+			return e
+		}
+
+		// Remove returned value
+		mi.core.LState.Pop(1)
+
+		ev, ok := ret.Value.(*tcell.EventKey)
+		if ok {
+			return ev
+		}
+	}
+
+	// Defaults
 	switch e.Name() {
 	case "Enter":
 		return mi.sendMessage()
-	case "Ctrl+V":
-		return mi.pasteFromClipboard()
 	case "Esc":
 		mi.
 			SetText("").
@@ -56,8 +92,6 @@ func (mi *MessageInput) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		mi.core.MessagesPanel.SelectedMessage = -1
 		mi.core.MessagesPanel.Highlight()
 		return nil
-	case mi.core.Config.String(messageInput):
-		return mi.openExternalEditor()
 	}
 
 	return e
@@ -73,8 +107,8 @@ func (mi *MessageInput) sendMessage() *tcell.EventKey {
 		return nil
 	}
 
-	messagesLimit := mi.core.Config.Number(mi.core.Config.State.GetGlobal("messagesLimit"))
-	ms, err := mi.core.State.Messages(mi.core.ChannelsTree.SelectedChannel.ID, uint(messagesLimit))
+	messagesLimit := mi.core.LState.GetGlobal("messagesLimit")
+	ms, err := mi.core.State.Messages(mi.core.ChannelsTree.SelectedChannel.ID, uint(lua.LVAsNumber(messagesLimit)))
 	if err != nil {
 		return nil
 	}
@@ -111,22 +145,22 @@ func (mi *MessageInput) sendMessage() *tcell.EventKey {
 	return nil
 }
 
-func (mi *MessageInput) pasteFromClipboard() *tcell.EventKey {
+func (mi *MessageInput) pasteClipboardContentLua(s *lua.LState) int {
 	text, _ := clipboard.ReadAll()
 	text = mi.GetText() + text
 	mi.SetText(text)
-	return nil
+	return returnNilLua(s)
 }
 
-func (mi *MessageInput) openExternalEditor() *tcell.EventKey {
+func (mi *MessageInput) openExternalEditorLua(s *lua.LState) int {
 	e := os.Getenv("EDITOR")
 	if e == "" {
-		return nil
+		return returnNilLua(s)
 	}
 
 	f, err := os.CreateTemp(os.TempDir(), "discordo-*.md")
 	if err != nil {
-		return nil
+		return returnNilLua(s)
 	}
 	defer os.Remove(f.Name())
 
@@ -143,9 +177,9 @@ func (mi *MessageInput) openExternalEditor() *tcell.EventKey {
 
 	b, err := io.ReadAll(f)
 	if err != nil {
-		return nil
+		return returnNilLua(s)
 	}
 
 	mi.SetText(string(b))
-	return nil
+	return returnNilLua(s)
 }

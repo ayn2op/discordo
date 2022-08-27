@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 
 	"github.com/alecthomas/kong"
-	"github.com/ayntgl/discordo/config"
 	"github.com/ayntgl/discordo/ui"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -46,21 +45,14 @@ func main() {
 		cli.Token, _ = keyring.Get(name, "token")
 	}
 
-	cfg := config.New()
-	err := cfg.Load(cli.Config)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	c := ui.NewCore(cli.Token, cfg)
+	c := ui.NewCore(cli.Token, cli.Config)
 	if cli.Token != "" {
-		err := c.Start()
+		err := c.Run()
 		if err != nil {
 			log.Fatal(err)
 		}
 
 		c.DrawMainFlex()
-
 		c.Application.SetRoot(c.MainFlex, true)
 		c.Application.SetFocus(c.GuildsTree)
 	} else {
@@ -80,7 +72,7 @@ func main() {
 
 			if lr.Token != "" && !lr.MFA {
 				c.State.Token = lr.Token
-				err = c.Start()
+				err = c.Run()
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -88,6 +80,7 @@ func main() {
 				c.DrawMainFlex()
 				c.Application.SetRoot(c.MainFlex, true)
 				c.Application.SetFocus(c.GuildsTree)
+
 				go keyring.Set(name, "token", lr.Token)
 			} else {
 				// The account has MFA enabled, reattempt login with MFA code and ticket.
@@ -104,7 +97,7 @@ func main() {
 					}
 
 					c.State.Token = lr.Token
-					err = c.Start()
+					err = c.Run()
 					if err != nil {
 						log.Fatal(err)
 					}
@@ -136,17 +129,20 @@ func main() {
 	tview.Borders.Horizontal = 0
 	tview.Borders.Vertical = 0
 
-	themeTable := c.Config.State.GetGlobal("theme").(*lua.LTable)
+	themeTable, ok := c.LState.GetGlobal("theme").(*lua.LTable)
+	if !ok {
+		return
+	}
 
-	background := c.Config.String(themeTable.RawGetString("background"))
-	border := c.Config.String(themeTable.RawGetString("border"))
-	title := c.Config.String(themeTable.RawGetString("title"))
+	background := themeTable.RawGetString("background")
+	border := themeTable.RawGetString("border")
+	title := themeTable.RawGetString("title")
 
-	tview.Styles.PrimitiveBackgroundColor = tcell.GetColor(background)
-	tview.Styles.BorderColor = tcell.GetColor(border)
-	tview.Styles.TitleColor = tcell.GetColor(title)
+	tview.Styles.PrimitiveBackgroundColor = tcell.GetColor(lua.LVAsString(background))
+	tview.Styles.BorderColor = tcell.GetColor(lua.LVAsString(border))
+	tview.Styles.TitleColor = tcell.GetColor(lua.LVAsString(title))
 
-	err = c.Application.Run()
+	err := c.Application.Run()
 	if err != nil {
 		log.Fatal(err)
 	}
