@@ -15,7 +15,10 @@ import (
 	luar "layeh.com/gopher-luar"
 )
 
-// Core initializes the application, UI elements, configuration, session, and state. It also manages the application, session, and state.
+// Core is responsible for the following:
+// - Initialization of the application, UI elements, configuration, and state.
+// - Configuration of the application and state when Run is called.
+// - Management of the application and state.
 type Core struct {
 	Application   *tview.Application
 	MainFlex      *tview.Flex

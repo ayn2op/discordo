@@ -12,6 +12,7 @@ import (
 //go:embed config.lua
 var LuaConfig []byte
 
+// Config initializes a new Lua state, loads a configuration file, and defines essential micellaneous fields.
 type Config struct {
 	// Path is the path of the configuration file. Its value is the configuration directory until Load() is called.
 	Path  string
