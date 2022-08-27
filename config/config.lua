@@ -36,6 +36,7 @@ identifyProperties = {
     os = oss
 }
 
+-- Keybindings
 keys = {
     application = {
         key(
@@ -122,4 +123,5 @@ keys = {
     }
 }
 
+-- Theme
 theme = {background = "#1F2430", border = "white", title = "white"}
