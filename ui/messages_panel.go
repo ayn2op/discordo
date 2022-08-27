@@ -4,21 +4,24 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	lua "github.com/yuin/gopher-lua"
+	luar "layeh.com/gopher-luar"
 )
 
 type MessagesPanel struct {
 	*tview.TextView
-	app *App
-	// The index of the currently selected message.
+	// The index of the currently selected message. A negative index indicates that there is no currently selected message.
 	SelectedMessage int
+
+	core *Core
 }
 
-func NewMessagesPanel(app *App) *MessagesPanel {
+func NewMessagesPanel(c *Core) *MessagesPanel {
 	mp := &MessagesPanel{
-		TextView: tview.NewTextView(),
-		app:      app,
-		// Negative index indicates that there is no currently selected message.
+		TextView:        tview.NewTextView(),
 		SelectedMessage: -1,
+
+		core: c,
 	}
 
 	mp.SetDynamicColors(true)
@@ -26,7 +29,7 @@ func NewMessagesPanel(app *App) *MessagesPanel {
 	mp.SetWordWrap(true)
 	mp.SetInputCapture(mp.onInputCapture)
 	mp.SetChangedFunc(func() {
-		mp.app.Draw()
+		mp.core.Application.Draw()
 	})
 
 	mp.SetTitle("Messages")
@@ -38,30 +41,60 @@ func NewMessagesPanel(app *App) *MessagesPanel {
 }
 
 func (mp *MessagesPanel) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
-	if mp.app.ChannelsTree.SelectedChannel == nil {
+	if mp.core.ChannelsTree.SelectedChannel == nil {
 		return nil
 	}
 
 	// Messages should return messages ordered from latest to earliest.
-	ms, err := mp.app.State.Cabinet.Messages(mp.app.ChannelsTree.SelectedChannel.ID)
+	ms, err := mp.core.State.Cabinet.Messages(mp.core.ChannelsTree.SelectedChannel.ID)
 	if err != nil || len(ms) == 0 {
 		return nil
 	}
 
+	keysTable, ok := mp.core.Config.State.GetGlobal("keys").(*lua.LTable)
+	if !ok {
+		return e
+	}
+
+	messagesPanel, ok := keysTable.RawGetString("messagesPanel").(*lua.LTable)
+	if !ok {
+		return e
+	}
+
+	var fn lua.LValue
+	messagesPanel.ForEach(func(k, v lua.LValue) {
+		keyTable := v.(*lua.LTable)
+		if e.Name() == lua.LVAsString(keyTable.RawGetString("name")) {
+			fn = keyTable.RawGetString("action")
+		}
+	})
+
+	if fn != nil {
+		mp.core.Config.State.CallByParam(lua.P{
+			Fn:      fn,
+			NRet:    1,
+			Protect: true,
+		}, luar.New(mp.core.Config.State, mp.core), luar.New(mp.core.Config.State, e))
+		// Returned value
+		ret, ok := mp.core.Config.State.Get(-1).(*lua.LUserData)
+		if !ok {
+			return e
+		}
+
+		// Remove returned value
+		mp.core.Config.State.Pop(1)
+
+		ev, ok := ret.Value.(*tcell.EventKey)
+		if ok {
+			return ev
+		}
+	}
+
+	// Defaults
 	switch e.Name() {
-	case mp.app.Config.Keys.SelectPreviousMessage:
-		return mp.selectPreviousMessage(ms)
-	case mp.app.Config.Keys.SelectNextMessage:
-		return mp.selectNextMessage(ms)
-	case mp.app.Config.Keys.SelectFirstMessage:
-		return mp.selectFirstMessage(ms)
-	case mp.app.Config.Keys.SelectLastMessage:
-		return mp.selectLastMessage(ms)
-	case mp.app.Config.Keys.OpenMessageActionsList:
-		return mp.openMessageActionsList(ms)
 	case "Esc":
 		mp.SelectedMessage = -1
-		mp.app.SetFocus(mp.app.MainFlex)
+		mp.core.Application.SetFocus(mp.core.MainFlex)
 		mp.
 			Clear().
 			Highlight().
@@ -72,7 +105,13 @@ func (mp *MessagesPanel) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	return e
 }
 
-func (mp *MessagesPanel) selectPreviousMessage(ms []discord.Message) *tcell.EventKey {
+func (mp *MessagesPanel) selectPreviousMessageLua(s *lua.LState) int {
+	// Messages should return messages ordered from latest to earliest.
+	ms, err := mp.core.State.Cabinet.Messages(mp.core.ChannelsTree.SelectedChannel.ID)
+	if err != nil || len(ms) == 0 {
+		return returnNilLua(s)
+	}
+
 	// If there are no highlighted regions, select the latest (last) message in the messages panel.
 	if len(mp.GetHighlights()) == 0 {
 		mp.SelectedMessage = 0
@@ -85,13 +124,18 @@ func (mp *MessagesPanel) selectPreviousMessage(ms []discord.Message) *tcell.Even
 		}
 	}
 
-	mp.
-		Highlight(ms[mp.SelectedMessage].ID.String()).
-		ScrollToHighlight()
-	return nil
+	mp.Highlight(ms[mp.SelectedMessage].ID.String())
+	mp.ScrollToHighlight()
+	return returnNilLua(s)
 }
 
-func (mp *MessagesPanel) selectNextMessage(ms []discord.Message) *tcell.EventKey {
+func (mp *MessagesPanel) selectNextMessageLua(s *lua.LState) int {
+	// Messages should return messages ordered from latest to earliest.
+	ms, err := mp.core.State.Cabinet.Messages(mp.core.ChannelsTree.SelectedChannel.ID)
+	if err != nil || len(ms) == 0 {
+		return returnNilLua(s)
+	}
+
 	// If there are no highlighted regions, select the latest (last) message in the messages panel.
 	if len(mp.GetHighlights()) == 0 {
 		mp.SelectedMessage = 0
@@ -107,42 +151,60 @@ func (mp *MessagesPanel) selectNextMessage(ms []discord.Message) *tcell.EventKey
 	mp.
 		Highlight(ms[mp.SelectedMessage].ID.String()).
 		ScrollToHighlight()
-	return nil
+	return returnNilLua(s)
 }
 
-func (mp *MessagesPanel) selectFirstMessage(ms []discord.Message) *tcell.EventKey {
+func (mp *MessagesPanel) selectFirstMessageLua(s *lua.LState) int {
+	// Messages should return messages ordered from latest to earliest.
+	ms, err := mp.core.State.Cabinet.Messages(mp.core.ChannelsTree.SelectedChannel.ID)
+	if err != nil || len(ms) == 0 {
+		return returnNilLua(s)
+	}
+
 	mp.SelectedMessage = len(ms) - 1
 	mp.
 		Highlight(ms[mp.SelectedMessage].ID.String()).
 		ScrollToHighlight()
-	return nil
+	return returnNilLua(s)
 }
 
-func (mp *MessagesPanel) selectLastMessage(ms []discord.Message) *tcell.EventKey {
+func (mp *MessagesPanel) selectLastMessageLua(s *lua.LState) int {
+	// Messages should return messages ordered from latest to earliest.
+	ms, err := mp.core.State.Cabinet.Messages(mp.core.ChannelsTree.SelectedChannel.ID)
+	if err != nil || len(ms) == 0 {
+		return returnNilLua(s)
+	}
+
 	mp.SelectedMessage = 0
 	mp.
 		Highlight(ms[mp.SelectedMessage].ID.String()).
 		ScrollToHighlight()
-	return nil
+	return returnNilLua(s)
 }
 
-func (mp *MessagesPanel) openMessageActionsList(ms []discord.Message) *tcell.EventKey {
+func (mp *MessagesPanel) openMessageActionsListLua(s *lua.LState) int {
+	// Messages should return messages ordered from latest to earliest.
+	ms, err := mp.core.State.Cabinet.Messages(mp.core.ChannelsTree.SelectedChannel.ID)
+	if err != nil || len(ms) == 0 {
+		return returnNilLua(s)
+	}
+
 	hs := mp.GetHighlights()
 	if len(hs) == 0 {
-		return nil
+		return returnNilLua(s)
 	}
 
 	mID, err := discord.ParseSnowflake(hs[0])
 	if err != nil {
-		return nil
+		return returnNilLua(s)
 	}
 
 	_, m := findMessageByID(ms, discord.MessageID(mID))
 	if m == nil {
-		return nil
+		return returnNilLua(s)
 	}
 
-	actionsList := NewMessageActionsList(mp.app, m)
-	mp.app.SetRoot(actionsList, true)
-	return nil
+	actionsList := NewMessageActionsList(mp.core, m)
+	mp.core.Application.SetRoot(actionsList, true)
+	return returnNilLua(s)
 }

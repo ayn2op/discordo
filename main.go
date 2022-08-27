@@ -2,12 +2,14 @@ package main
 
 import (
 	"log"
+	"os"
+	"path/filepath"
 
 	"github.com/alecthomas/kong"
-	"github.com/ayntgl/discordo/config"
 	"github.com/ayntgl/discordo/ui"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	lua "github.com/yuin/gopher-lua"
 	"github.com/zalando/go-keyring"
 )
 
@@ -18,7 +20,7 @@ const (
 
 var cli struct {
 	Token  string `help:"The authentication token."`
-	Config string `help:"The path of the configuration file." type:"path"`
+	Config string `help:"The path to the configuration directory." type:"path"`
 }
 
 func main() {
@@ -31,30 +33,28 @@ func main() {
 
 	// Defaults
 	if cli.Config == "" {
-		cli.Config = config.DefaultPath()
+		path, err := os.UserConfigDir()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		cli.Config = filepath.Join(path, name)
 	}
 
 	if cli.Token == "" {
 		cli.Token, _ = keyring.Get(name, "token")
 	}
 
-	c := config.New()
-	err := c.Load(cli.Config)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	app := ui.NewApp(cli.Token, c)
+	c := ui.NewCore(cli.Config)
 	if cli.Token != "" {
-		err := app.Connect()
+		err := c.Run(cli.Token)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		app.DrawMainFlex()
-
-		app.SetRoot(app.MainFlex, true)
-		app.SetFocus(app.GuildsTree)
+		c.DrawMainFlex()
+		c.Application.SetRoot(c.MainFlex, true)
+		c.Application.SetFocus(c.GuildsTree)
 	} else {
 		loginForm := ui.NewLoginForm(false)
 		loginForm.AddButton("Login", func() {
@@ -65,21 +65,21 @@ func main() {
 			}
 
 			// Login using the email and password only
-			lr, err := app.State.Login(email, password)
+			lr, err := c.State.Login(email, password)
 			if err != nil {
 				log.Fatal(err)
 			}
 
 			if lr.Token != "" && !lr.MFA {
-				app.State.Token = lr.Token
-				err = app.Connect()
+				err = c.Run(lr.Token)
 				if err != nil {
 					log.Fatal(err)
 				}
 
-				app.DrawMainFlex()
-				app.SetRoot(app.MainFlex, true)
-				app.SetFocus(app.GuildsTree)
+				c.DrawMainFlex()
+				c.Application.SetRoot(c.MainFlex, true)
+				c.Application.SetFocus(c.GuildsTree)
+
 				go keyring.Set(name, "token", lr.Token)
 			} else {
 				// The account has MFA enabled, reattempt login with MFA code and ticket.
@@ -90,29 +90,28 @@ func main() {
 						return
 					}
 
-					lr, err = app.State.TOTP(code, lr.Ticket)
+					lr, err = c.State.TOTP(code, lr.Ticket)
 					if err != nil {
 						log.Fatal(err)
 					}
 
-					app.State.Token = lr.Token
-					err = app.Connect()
+					err = c.Run(lr.Token)
 					if err != nil {
 						log.Fatal(err)
 					}
 
-					app.DrawMainFlex()
-					app.SetRoot(app.MainFlex, true)
-					app.SetFocus(app.GuildsTree)
+					c.DrawMainFlex()
+					c.Application.SetRoot(c.MainFlex, true)
+					c.Application.SetFocus(c.GuildsTree)
 
 					go keyring.Set(name, "token", lr.Token)
 				})
 
-				app.SetRoot(mfaLoginForm, true)
+				c.Application.SetRoot(mfaLoginForm, true)
 			}
 		})
 
-		app.SetRoot(loginForm, true)
+		c.Application.SetRoot(loginForm, true)
 	}
 
 	tview.Borders.TopLeftFocus = tview.Borders.TopLeft
@@ -128,11 +127,20 @@ func main() {
 	tview.Borders.Horizontal = 0
 	tview.Borders.Vertical = 0
 
-	tview.Styles.PrimitiveBackgroundColor = tcell.GetColor(app.Config.Theme.Background)
-	tview.Styles.BorderColor = tcell.GetColor(app.Config.Theme.Border)
-	tview.Styles.TitleColor = tcell.GetColor(app.Config.Theme.Title)
+	themeTable, ok := c.Config.State.GetGlobal("theme").(*lua.LTable)
+	if !ok {
+		return
+	}
 
-	err = app.Run()
+	background := themeTable.RawGetString("background")
+	border := themeTable.RawGetString("border")
+	title := themeTable.RawGetString("title")
+
+	tview.Styles.PrimitiveBackgroundColor = tcell.GetColor(lua.LVAsString(background))
+	tview.Styles.BorderColor = tcell.GetColor(lua.LVAsString(border))
+	tview.Styles.TitleColor = tcell.GetColor(lua.LVAsString(title))
+
+	err := c.Application.Run()
 	if err != nil {
 		log.Fatal(err)
 	}

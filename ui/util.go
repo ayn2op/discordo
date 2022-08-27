@@ -6,6 +6,7 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/state"
+	lua "github.com/yuin/gopher-lua"
 )
 
 var (
@@ -65,4 +66,9 @@ func hasPermission(s *state.State, cID discord.ChannelID, p discord.Permissions)
 	}
 
 	return perm&p == p
+}
+
+func returnNilLua(s *lua.LState) int {
+	s.Push(lua.LNil) // Push the result
+	return 1         // Number of results
 }

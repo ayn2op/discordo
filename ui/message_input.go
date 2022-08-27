@@ -12,17 +12,19 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	lua "github.com/yuin/gopher-lua"
+	luar "layeh.com/gopher-luar"
 )
 
 type MessageInput struct {
 	*tview.InputField
-	app *App
+	core *Core
 }
 
-func NewMessageInput(app *App) *MessageInput {
+func NewMessageInput(c *Core) *MessageInput {
 	mi := &MessageInput{
 		InputField: tview.NewInputField(),
-		app:        app,
+		core:       c,
 	}
 
 	mi.SetFieldBackgroundColor(tview.Styles.PrimitiveBackgroundColor)
@@ -38,29 +40,65 @@ func NewMessageInput(app *App) *MessageInput {
 }
 
 func (mi *MessageInput) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
+	keysTable, ok := mi.core.Config.State.GetGlobal("keys").(*lua.LTable)
+	if !ok {
+		return e
+	}
+
+	messageInputTable, ok := keysTable.RawGetString("messageInput").(*lua.LTable)
+	if !ok {
+		return e
+	}
+
+	var fn lua.LValue
+	messageInputTable.ForEach(func(k, v lua.LValue) {
+		keyTable := v.(*lua.LTable)
+		if e.Name() == lua.LVAsString(keyTable.RawGetString("name")) {
+			fn = keyTable.RawGetString("action")
+		}
+	})
+
+	if fn != nil {
+		mi.core.Config.State.CallByParam(lua.P{
+			Fn:      fn,
+			NRet:    1,
+			Protect: true,
+		}, luar.New(mi.core.Config.State, mi.core), luar.New(mi.core.Config.State, e))
+		// Returned value
+		ret, ok := mi.core.Config.State.Get(-1).(*lua.LUserData)
+		if !ok {
+			return e
+		}
+
+		// Remove returned value
+		mi.core.Config.State.Pop(1)
+
+		ev, ok := ret.Value.(*tcell.EventKey)
+		if ok {
+			return ev
+		}
+	}
+
+	// Defaults
 	switch e.Name() {
 	case "Enter":
 		return mi.sendMessage()
-	case "Ctrl+V":
-		return mi.pasteFromClipboard()
 	case "Esc":
 		mi.
 			SetText("").
 			SetTitle("")
-		mi.app.SetFocus(mi.app.MainFlex)
+		mi.core.Application.SetFocus(mi.core.MainFlex)
 
-		mi.app.MessagesPanel.SelectedMessage = -1
-		mi.app.MessagesPanel.Highlight()
+		mi.core.MessagesPanel.SelectedMessage = -1
+		mi.core.MessagesPanel.Highlight()
 		return nil
-	case mi.app.Config.Keys.OpenExternalEditor:
-		return mi.openExternalEditor()
 	}
 
 	return e
 }
 
 func (mi *MessageInput) sendMessage() *tcell.EventKey {
-	if mi.app.ChannelsTree.SelectedChannel == nil {
+	if mi.core.ChannelsTree.SelectedChannel == nil {
 		return nil
 	}
 
@@ -69,13 +107,14 @@ func (mi *MessageInput) sendMessage() *tcell.EventKey {
 		return nil
 	}
 
-	ms, err := mi.app.State.Messages(mi.app.ChannelsTree.SelectedChannel.ID, mi.app.Config.MessagesLimit)
+	messagesLimit := mi.core.Config.State.GetGlobal("messagesLimit")
+	ms, err := mi.core.State.Messages(mi.core.ChannelsTree.SelectedChannel.ID, uint(lua.LVAsNumber(messagesLimit)))
 	if err != nil {
 		return nil
 	}
 
-	if len(mi.app.MessagesPanel.GetHighlights()) != 0 {
-		mID, err := discord.ParseSnowflake(mi.app.MessagesPanel.GetHighlights()[0])
+	if len(mi.core.MessagesPanel.GetHighlights()) != 0 {
+		mID, err := discord.ParseSnowflake(mi.core.MessagesPanel.GetHighlights()[0])
 		if err != nil {
 			return nil
 		}
@@ -92,36 +131,36 @@ func (mi *MessageInput) sendMessage() *tcell.EventKey {
 			d.AllowedMentions.RepliedUser = option.True
 		}
 
-		go mi.app.State.SendMessageComplex(m.ChannelID, d)
+		go mi.core.State.SendMessageComplex(m.ChannelID, d)
 
-		mi.app.MessagesPanel.SelectedMessage = -1
-		mi.app.MessagesPanel.Highlight()
+		mi.core.MessagesPanel.SelectedMessage = -1
+		mi.core.MessagesPanel.Highlight()
 
 		mi.SetTitle("")
 	} else {
-		go mi.app.State.SendMessage(mi.app.ChannelsTree.SelectedChannel.ID, t)
+		go mi.core.State.SendMessage(mi.core.ChannelsTree.SelectedChannel.ID, t)
 	}
 
 	mi.SetText("")
 	return nil
 }
 
-func (mi *MessageInput) pasteFromClipboard() *tcell.EventKey {
+func (mi *MessageInput) pasteClipboardContentLua(s *lua.LState) int {
 	text, _ := clipboard.ReadAll()
 	text = mi.GetText() + text
 	mi.SetText(text)
-	return nil
+	return returnNilLua(s)
 }
 
-func (mi *MessageInput) openExternalEditor() *tcell.EventKey {
+func (mi *MessageInput) openExternalEditorLua(s *lua.LState) int {
 	e := os.Getenv("EDITOR")
 	if e == "" {
-		return nil
+		return returnNilLua(s)
 	}
 
 	f, err := os.CreateTemp(os.TempDir(), "discordo-*.md")
 	if err != nil {
-		return nil
+		return returnNilLua(s)
 	}
 	defer os.Remove(f.Name())
 
@@ -129,7 +168,7 @@ func (mi *MessageInput) openExternalEditor() *tcell.EventKey {
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 
-	mi.app.Suspend(func() {
+	mi.core.Application.Suspend(func() {
 		err = cmd.Run()
 		if err != nil {
 			return
@@ -138,9 +177,9 @@ func (mi *MessageInput) openExternalEditor() *tcell.EventKey {
 
 	b, err := io.ReadAll(f)
 	if err != nil {
-		return nil
+		return returnNilLua(s)
 	}
 
 	mi.SetText(string(b))
-	return nil
+	return returnNilLua(s)
 }

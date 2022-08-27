@@ -1,141 +1,77 @@
 package config
 
 import (
-	"log"
+	_ "embed"
+	"io"
 	"os"
 	"path/filepath"
-	"runtime"
-	"time"
 
-	"github.com/BurntSushi/toml"
+	lua "github.com/yuin/gopher-lua"
 )
 
-type IdentifyConfig struct {
-	UserAgent      string `toml:"user_agent"`
-	Browser        string `toml:"browser"`
-	BrowserVersion string `toml:"browser_version"`
-	Os             string `toml:"os"`
-}
+//go:embed config.lua
+var LuaConfig []byte
 
-type KeysConfig struct {
-	ToggleGuildsTree    string `toml:"toggle_guilds_tree"`
-	ToggleChannelsTree  string `toml:"toggle_channels_tree"`
-	ToggleMessagesPanel string `toml:"toggle_messages_panel"`
-	ToggleMessageInput  string `toml:"toggle_message_input"`
-
-	OpenMessageActionsList string `toml:"open_message_actions_list"`
-	OpenExternalEditor     string `toml:"open_external_editor"`
-
-	SelectPreviousMessage string `toml:"select_previous_message"`
-	SelectNextMessage     string `toml:"select_next_message"`
-	SelectFirstMessage    string `toml:"select_first_message"`
-	SelectLastMessage     string `toml:"select_last_message"`
-}
-
-type ThemeConfig struct {
-	Background string `toml:"background"`
-	Border     string `toml:"border"`
-	Title      string `toml:"title"`
-}
-
+// Config initializes a new Lua state, loads a configuration file, and defines essential micellaneous fields.
 type Config struct {
-	Mouse                  bool           `toml:"mouse"`
-	Timestamps             bool           `toml:"timestamps"`
-	MessagesLimit          uint           `toml:"messages_limit"`
-	Timezone               string         `toml:"timezone"`
-	TimeFormat             string         `toml:"time_format"`
-	AttachmentDownloadsDir string         `toml:"attachment_downloads_dir"`
-	Identify               IdentifyConfig `toml:"identify"`
-	Theme                  ThemeConfig    `toml:"theme"`
-	Keys                   KeysConfig     `toml:"keys"`
+	// Path is the path of the configuration file. Its value is the configuration directory until Load() is called.
+	Path  string
+	State *lua.LState
 }
 
-func New() *Config {
+func NewConfig(path string) *Config {
 	return &Config{
-		Mouse:                  true,
-		Timestamps:             false,
-		MessagesLimit:          50,
-		Timezone:               "Local",
-		TimeFormat:             time.Stamp,
-		AttachmentDownloadsDir: UserDownloadsDir(),
-		Identify: IdentifyConfig{
-			UserAgent:      "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.102 Safari/537.36",
-			Browser:        "Chrome",
-			BrowserVersion: "104.0.5112.102",
-			Os:             "Linux",
-		},
-		Theme: ThemeConfig{
-			Background: "black",
-			Border:     "white",
-			Title:      "white",
-		},
-		Keys: KeysConfig{
-			ToggleGuildsTree:    "Rune[g]",
-			ToggleChannelsTree:  "Rune[c]",
-			ToggleMessagesPanel: "Rune[m]",
-			ToggleMessageInput:  "Rune[i]",
-
-			OpenMessageActionsList: "Rune[a]",
-			OpenExternalEditor:     "Ctrl+E",
-
-			SelectPreviousMessage: "Up",
-			SelectNextMessage:     "Down",
-			SelectFirstMessage:    "Home",
-			SelectLastMessage:     "End",
-		},
+		Path:  path,
+		State: lua.NewState(),
 	}
 }
 
-func (c *Config) Load(path string) error {
+func (c *Config) Load() error {
 	// Create directories that do not exist and are mentioned in the path recursively.
-	err := os.MkdirAll(filepath.Dir(path), os.ModePerm)
+	err := os.MkdirAll(c.Path, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	// If the configuration file does not exist already, create a new file; otherwise, open the existing file with read-write flag.
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, os.ModePerm)
+	c.Path = filepath.Join(c.Path, "config.lua")
+	// Open the existing configuration file with read-only flag.
+	f, err := os.Open(c.Path)
+	// If the configuration file does not exist, create a new configuration file with the read-write flag.
+	if os.IsNotExist(err) {
+		f, err = os.Create(c.Path)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+
+		_, err = f.Write(LuaConfig)
+		if err != nil {
+			return err
+		}
+
+		return f.Sync()
+	}
+
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	fi, err := f.Stat()
+	b, err := io.ReadAll(f)
 	if err != nil {
 		return err
 	}
 
-	// If the file is empty (the size of the file is zero), write the default configuration to the file.
-	if fi.Size() == 0 {
-		return toml.NewEncoder(f).Encode(c)
-	}
-
-	_, err = toml.NewDecoder(f).Decode(&c)
-	return err
+	LuaConfig = b
+	return nil
 }
 
-func DefaultPath() string {
-	path, err := os.UserConfigDir()
-	if err != nil {
-		log.Fatal(err)
-	}
+func (c *Config) KeyLua(s *lua.LState) int {
+	keyTable := s.NewTable()
+	keyTable.RawSetString("name", s.Get(1))
+	keyTable.RawSetString("description", s.Get(2))
+	keyTable.RawSetString("action", s.Get(3))
 
-	path += "/discordo/config.toml"
-	return path
-}
-
-func UserDownloadsDir() string {
-	// We try to set the download folder location to the default Downloads folder
-	var dlloc string
-	if runtime.GOOS == "windows" {
-		h, _ := os.UserHomeDir()
-		dlloc = h + "\\Downloads"
-	} else if runtime.GOOS == "linux" || runtime.GOOS == "darwin" {
-		h, _ := os.UserHomeDir()
-		dlloc = h + "/Downloads"
-	} else {
-		dlloc = os.TempDir() // Very lame fallback, I know
-	}
-
-	return dlloc
+	s.Push(keyTable) // Push the result
+	return 1         // Number of results
 }

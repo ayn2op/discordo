@@ -7,13 +7,13 @@ import (
 
 type GuildsTree struct {
 	*tview.TreeView
-	app *App
+	core *Core
 }
 
-func NewGuildsTree(app *App) *GuildsTree {
+func NewGuildsTree(c *Core) *GuildsTree {
 	gt := &GuildsTree{
 		TreeView: tview.NewTreeView(),
-		app:      app,
+		core:     c,
 	}
 
 	rootNode := tview.NewTreeNode("")
@@ -32,15 +32,15 @@ func NewGuildsTree(app *App) *GuildsTree {
 }
 
 func (gt *GuildsTree) onSelected(node *tview.TreeNode) {
-	gt.app.ChannelsTree.SelectedChannel = nil
-	gt.app.MessagesPanel.SelectedMessage = -1
-	rootNode := gt.app.ChannelsTree.GetRoot()
+	gt.core.ChannelsTree.SelectedChannel = nil
+	gt.core.MessagesPanel.SelectedMessage = -1
+	rootNode := gt.core.ChannelsTree.GetRoot()
 	rootNode.ClearChildren()
-	gt.app.MessagesPanel.
+	gt.core.MessagesPanel.
 		Highlight().
 		Clear().
 		SetTitle("")
-	gt.app.MessageInput.SetText("")
+	gt.core.MessageInput.SetText("")
 
 	// If the selected node has children (guild folder), expand the selected node if it is collapsed, otherwise collapse.
 	if len(node.GetChildren()) != 0 {
@@ -51,11 +51,11 @@ func (gt *GuildsTree) onSelected(node *tview.TreeNode) {
 	ref := node.GetReference()
 	// If the reference of the selected node is nil, it must be the direct messages node.
 	if ref == nil {
-		gt.app.ChannelsTree.createPrivateChannelNodes(rootNode)
+		gt.core.ChannelsTree.createPrivateChannelNodes(rootNode)
 	} else { // Guild
-		gt.app.ChannelsTree.createGuildChannelNodes(rootNode, ref.(discord.GuildID))
+		gt.core.ChannelsTree.createGuildChannelNodes(rootNode, ref.(discord.GuildID))
 	}
 
-	gt.app.ChannelsTree.SetCurrentNode(rootNode)
-	gt.app.SetFocus(gt.app.ChannelsTree)
+	gt.core.ChannelsTree.SetCurrentNode(rootNode)
+	gt.core.Application.SetFocus(gt.core.ChannelsTree)
 }
