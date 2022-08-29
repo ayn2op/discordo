@@ -15,6 +15,15 @@ import (
 	luar "layeh.com/gopher-luar"
 )
 
+type focused int
+
+const (
+	guildsTree focused = iota
+	channelsTree
+	messagesPanel
+	messageInput
+)
+
 // Core is responsible for the following:
 // - Initialization of the application, UI elements, configuration, and state.
 // - Configuration of the application and state when Run is called.
@@ -29,6 +38,8 @@ type Core struct {
 
 	Config *config.Config
 	State  *state.State
+
+	focused focused
 }
 
 func NewCore(path string) *Core {
@@ -122,9 +133,6 @@ func (c *Core) DrawMainFlex() {
 }
 
 func (c *Core) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
-	if c.MessageInput.HasFocus() {
-		return e
-	}
 	// If the main flex is nil, that is, it is not initialized yet, then the login form is currently focused.
 	if c.MainFlex == nil {
 		return e
@@ -148,20 +156,67 @@ func (c *Core) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		}
 	})
 
-	c.Config.State.CallByParam(lua.P{
-		Fn:      fn,
-		NRet:    1,
-		Protect: true,
-	}, luar.New(c.Config.State, c), luar.New(c.Config.State, e))
-	// Returned value
-	ret, ok := c.Config.State.Get(-1).(*lua.LUserData)
-	if !ok {
-		return e
+	if fn != nil {
+		c.Config.State.CallByParam(lua.P{
+			Fn:      fn,
+			NRet:    1,
+			Protect: true,
+		}, luar.New(c.Config.State, c), luar.New(c.Config.State, e))
+		// Returned value
+		ret, ok := c.Config.State.Get(-1).(*lua.LUserData)
+		if !ok {
+			return e
+		}
+
+		// Remove returned value
+		c.Config.State.Pop(1)
+		ev, ok := ret.Value.(*tcell.EventKey)
+		if ok {
+			return ev
+		}
 	}
 
-	// Remove returned value
-	c.Config.State.Pop(1)
-	return ret.Value.(*tcell.EventKey)
+	// Default
+	switch e.Key() {
+	case tcell.KeyEsc:
+		c.focused = 0
+	case tcell.KeyBacktab:
+		// If the currently focused widget is the guilds tree widget (first), then focus the message input widget (last)
+		if c.focused == 0 {
+			c.focused = messageInput
+		} else {
+			c.focused--
+		}
+
+		c.setFocus()
+	case tcell.KeyTab:
+		// If the currently focused widget is the message input widget (last), then focus the guilds tree widget (first)
+		if c.focused == messageInput {
+			c.focused = guildsTree
+		} else {
+			c.focused++
+		}
+
+		c.setFocus()
+	}
+
+	return e
+}
+
+func (c *Core) setFocus() {
+	var p tview.Primitive
+	switch c.focused {
+	case guildsTree:
+		p = c.GuildsTree
+	case channelsTree:
+		p = c.ChannelsTree
+	case messagesPanel:
+		p = c.MessagesPanel
+	case messageInput:
+		p = c.MessageInput
+	}
+
+	c.Application.SetFocus(p)
 }
 
 func (c *Core) onStateReady(r *gateway.ReadyEvent) {

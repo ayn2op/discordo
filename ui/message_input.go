@@ -87,8 +87,6 @@ func (mi *MessageInput) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		mi.
 			SetText("").
 			SetTitle("")
-		mi.core.Application.SetFocus(mi.core.MainFlex)
-
 		mi.core.MessagesPanel.SelectedMessage = -1
 		mi.core.MessagesPanel.Highlight()
 		return nil
