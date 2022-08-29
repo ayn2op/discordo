@@ -38,36 +38,16 @@ identifyProperties = {
 
 -- Keybindings
 keys = {
-    application = {
-        key(
-            "Rune[g]",
-            "Focus the guilds tree widget.",
-            function(core, event)
-                core.Application:SetFocus(core.GuildsTree)
-            end
-        ),
-        key(
-            "Rune[c]",
-            "Focus the channels tree widget.",
-            function(core, event)
-                core.Application:SetFocus(core.ChannelsTree)
-            end
-        ),
-        key(
-            "Rune[m]",
-            "Focus the messages panel widget.",
-            function(core, event)
-                core.Application:SetFocus(core.MessagesPanel)
-            end
-        ),
-        key(
-            "Rune[i]",
-            "Focus the message input widget.",
-            function(core, event)
-                core.Application:SetFocus(core.MessageInput)
-            end
-        )
-    },
+    -- application = {
+    --     key(
+    --         "Ctrl+R",
+    --         "Refresh the screen.",
+    --         function(core, event)
+    --             core.Application:Sync()
+    --             return nil
+    --         end
+    --     )
+    -- },
     messagesPanel = {
         key(
             "Rune[a]",
