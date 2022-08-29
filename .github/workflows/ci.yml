@@ -18,9 +18,6 @@ jobs:
       - name: Format
         run: make fmt
 
-      - name: Test
-        run: make test
-
       - name: Build
         run: make build
   
