@@ -1,11 +1,11 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"os"
 	"path/filepath"
 
-	"github.com/alecthomas/kong"
 	"github.com/ayntgl/discordo/ui"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -14,40 +14,39 @@ import (
 )
 
 const (
-	name  = "discordo"
-	usage = "A lightweight, secure, and feature-rich Discord terminal client"
+	name = "discordo"
 )
 
-var cli struct {
-	Token  string `help:"The authentication token."`
-	Config string `help:"The path to the configuration directory." type:"path"`
+var (
+	token      string
+	configPath string
+)
+
+func init() {
+	flag.StringVar(&token, "token", "", "The client authentication token.")
+	// If the token is provided via a command-line flag, store it in the default keyring.
+	if token != "" {
+		go keyring.Set(name, "token", token)
+	}
+
+	if token == "" {
+		token, _ = keyring.Get(name, "token")
+	}
+
+	configDirPath, err := os.UserConfigDir()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	flag.StringVar(&configPath, "config", filepath.Join(configDirPath, name), "The path to the configuration directory.")
 }
 
 func main() {
-	kong.Parse(&cli, kong.Name(name), kong.Description(usage), kong.UsageOnError())
+	flag.Parse()
 
-	// If the authentication token is provided via a flag, store it in the default keyring.
-	if cli.Token != "" {
-		go keyring.Set(name, "token", cli.Token)
-	}
-
-	// Defaults
-	if cli.Config == "" {
-		path, err := os.UserConfigDir()
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		cli.Config = filepath.Join(path, name)
-	}
-
-	if cli.Token == "" {
-		cli.Token, _ = keyring.Get(name, "token")
-	}
-
-	c := ui.NewCore(cli.Config)
-	if cli.Token != "" {
-		err := c.Run(cli.Token)
+	c := ui.NewCore(configPath)
+	if token != "" {
+		err := c.Run(token)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -127,9 +126,14 @@ func main() {
 	tview.Borders.Horizontal = 0
 	tview.Borders.Vertical = 0
 
+	err := c.Config.Load()
+	if err != nil {
+		return
+	}
+
 	themeTable, ok := c.Config.State.GetGlobal("theme").(*lua.LTable)
 	if !ok {
-		return
+		themeTable = c.Config.State.NewTable()
 	}
 
 	background := themeTable.RawGetString("background")
@@ -140,7 +144,7 @@ func main() {
 	tview.Styles.BorderColor = tcell.GetColor(lua.LVAsString(border))
 	tview.Styles.TitleColor = tcell.GetColor(lua.LVAsString(title))
 
-	err := c.Application.Run()
+	err = c.Application.Run()
 	if err != nil {
 		log.Fatal(err)
 	}
