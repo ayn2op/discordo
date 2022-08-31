@@ -47,7 +47,7 @@ func NewCore(path string) *Core {
 		Application: tview.NewApplication(),
 		MainFlex:    tview.NewFlex(),
 
-		Config: config.NewConfig(path),
+		Config: config.New(path),
 	}
 
 	c.MainFlex.SetInputCapture(c.onInputCapture)
