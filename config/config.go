@@ -19,7 +19,7 @@ type Config struct {
 	State *lua.LState
 }
 
-func NewConfig(path string) *Config {
+func New(path string) *Config {
 	return &Config{
 		Path:  path,
 		State: lua.NewState(),
