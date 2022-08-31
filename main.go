@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/ayntgl/discordo/config"
 	"github.com/ayntgl/discordo/ui"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -44,9 +45,15 @@ func init() {
 func main() {
 	flag.Parse()
 
-	c := ui.NewCore(configPath)
+	cfg := config.New(configPath)
+	err := cfg.Load()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	c := ui.NewCore(cfg)
 	if token != "" {
-		err := c.Run(token)
+		err = c.Run(token)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -55,59 +62,29 @@ func main() {
 		c.Application.SetRoot(c.MainFlex, true)
 		c.Application.SetFocus(c.GuildsTree)
 	} else {
-		loginForm := ui.NewLoginForm(false)
+		loginForm := tview.NewForm()
+		loginForm.AddPasswordField("Token", "", 0, 0, nil)
+		loginForm.SetButtonsAlign(tview.AlignCenter)
+
+		loginForm.SetTitle("Login")
+		loginForm.SetTitleAlign(tview.AlignLeft)
+		loginForm.SetBorder(true)
+		loginForm.SetBorderPadding(0, 0, 1, 1)
+
 		loginForm.AddButton("Login", func() {
-			email := loginForm.GetFormItem(0).(*tview.InputField).GetText()
-			password := loginForm.GetFormItem(1).(*tview.InputField).GetText()
-			if email == "" || password == "" {
+			tkn := loginForm.GetFormItem(0).(*tview.InputField).GetText()
+			if tkn == "" {
 				return
 			}
 
-			// Login using the email and password only
-			lr, err := c.State.Login(email, password)
+			err = c.Run(tkn)
 			if err != nil {
 				log.Fatal(err)
 			}
 
-			if lr.Token != "" && !lr.MFA {
-				err = c.Run(lr.Token)
-				if err != nil {
-					log.Fatal(err)
-				}
-
-				c.DrawMainFlex()
-				c.Application.SetRoot(c.MainFlex, true)
-				c.Application.SetFocus(c.GuildsTree)
-
-				go keyring.Set(name, "token", lr.Token)
-			} else {
-				// The account has MFA enabled, reattempt login with MFA code and ticket.
-				mfaLoginForm := ui.NewLoginForm(true)
-				mfaLoginForm.AddButton("Login", func() {
-					code := mfaLoginForm.GetFormItem(0).(*tview.InputField).GetText()
-					if code == "" {
-						return
-					}
-
-					lr, err = c.State.TOTP(code, lr.Ticket)
-					if err != nil {
-						log.Fatal(err)
-					}
-
-					err = c.Run(lr.Token)
-					if err != nil {
-						log.Fatal(err)
-					}
-
-					c.DrawMainFlex()
-					c.Application.SetRoot(c.MainFlex, true)
-					c.Application.SetFocus(c.GuildsTree)
-
-					go keyring.Set(name, "token", lr.Token)
-				})
-
-				c.Application.SetRoot(mfaLoginForm, true)
-			}
+			c.DrawMainFlex()
+			c.Application.SetRoot(c.MainFlex, true)
+			c.Application.SetFocus(c.GuildsTree)
 		})
 
 		c.Application.SetRoot(loginForm, true)
@@ -125,11 +102,6 @@ func main() {
 	tview.Borders.BottomRight = 0
 	tview.Borders.Horizontal = 0
 	tview.Borders.Vertical = 0
-
-	err := c.Config.Load()
-	if err != nil {
-		return
-	}
 
 	themeTable, ok := c.Config.State.GetGlobal("theme").(*lua.LTable)
 	if !ok {

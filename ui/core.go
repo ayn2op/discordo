@@ -42,12 +42,12 @@ type Core struct {
 	focused focused
 }
 
-func NewCore(path string) *Core {
+func NewCore(cfg *config.Config) *Core {
 	c := &Core{
 		Application: tview.NewApplication(),
 		MainFlex:    tview.NewFlex(),
 
-		Config: config.NewConfig(path),
+		Config: cfg,
 	}
 
 	c.MainFlex.SetInputCapture(c.onInputCapture)
@@ -59,13 +59,8 @@ func NewCore(path string) *Core {
 }
 
 func (c *Core) Run(token string) error {
-	err := c.Config.Load()
-	if err != nil {
-		return err
-	}
-
 	c.register()
-	err = c.Config.State.DoString(string(config.LuaConfig))
+	err := c.Config.State.DoString(string(config.LuaConfig))
 	if err != nil {
 		return err
 	}
