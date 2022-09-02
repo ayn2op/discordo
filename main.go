@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/ayntgl/discordo/config"
 	"github.com/ayntgl/discordo/ui"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -44,9 +45,15 @@ func init() {
 func main() {
 	flag.Parse()
 
-	c := ui.NewCore(configPath)
+	cfg := config.New(configPath)
+	err := cfg.Load()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	c := ui.NewCore(cfg)
 	if token != "" {
-		err := c.Run(token)
+		err = c.Run(token)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -109,7 +116,7 @@ func main() {
 	tview.Styles.BorderColor = tcell.GetColor(lua.LVAsString(border))
 	tview.Styles.TitleColor = tcell.GetColor(lua.LVAsString(title))
 
-	err := c.Application.Run()
+	err = c.Application.Run()
 	if err != nil {
 		log.Fatal(err)
 	}
