@@ -50,9 +50,7 @@ func NewCore(cfg *config.Config) *Core {
 		Config: cfg,
 	}
 
-	c.MainFlex.SetInputCapture(c.onInputCapture)
-	// c.Application.SetBeforeDrawFunc(c.beforeDraw)
-
+	c.Application.SetInputCapture(c.onInputCapture)
 	c.GuildsTree = NewGuildsTree(c)
 	c.ChannelsTree = NewChannelsTree(c)
 	c.MessagesPanel = NewMessagesPanel(c)
