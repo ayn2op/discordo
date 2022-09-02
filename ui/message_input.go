@@ -42,12 +42,12 @@ func NewMessageInput(c *Core) *MessageInput {
 func (mi *MessageInput) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	keysTable, ok := mi.core.Config.State.GetGlobal("keys").(*lua.LTable)
 	if !ok {
-		return e
+		keysTable = mi.core.Config.State.NewTable()
 	}
 
 	messageInputTable, ok := keysTable.RawGetString("messageInput").(*lua.LTable)
 	if !ok {
-		return e
+		messageInputTable = mi.core.Config.State.NewTable()
 	}
 
 	var fn lua.LValue

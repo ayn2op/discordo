@@ -53,12 +53,12 @@ func (mp *MessagesPanel) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 
 	keysTable, ok := mp.core.Config.State.GetGlobal("keys").(*lua.LTable)
 	if !ok {
-		return e
+		keysTable = mp.core.Config.State.NewTable()
 	}
 
 	messagesPanel, ok := keysTable.RawGetString("messagesPanel").(*lua.LTable)
 	if !ok {
-		return e
+		messagesPanel = mp.core.Config.State.NewTable()
 	}
 
 	var fn lua.LValue

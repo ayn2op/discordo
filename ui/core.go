@@ -51,6 +51,8 @@ func NewCore(cfg *config.Config) *Core {
 	}
 
 	c.MainFlex.SetInputCapture(c.onInputCapture)
+	// c.Application.SetBeforeDrawFunc(c.beforeDraw)
+
 	c.GuildsTree = NewGuildsTree(c)
 	c.ChannelsTree = NewChannelsTree(c)
 	c.MessagesPanel = NewMessagesPanel(c)
@@ -136,12 +138,12 @@ func (c *Core) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 
 	keysTable, ok := c.Config.State.GetGlobal("keys").(*lua.LTable)
 	if !ok {
-		return e
+		keysTable = c.Config.State.NewTable()
 	}
 
 	applicationTable, ok := keysTable.RawGetString("application").(*lua.LTable)
 	if !ok {
-		return e
+		applicationTable = c.Config.State.NewTable()
 	}
 
 	var fn lua.LValue
@@ -276,6 +278,8 @@ func (c *Core) onStateGuildCreate(g *gateway.GuildCreateEvent) {
 	rootNode := c.GuildsTree.GetRoot()
 	rootNode.AddChild(guildNode)
 
+	c.GuildsTree.SetCurrentNode(rootNode)
+	c.Application.SetFocus(c.GuildsTree)
 	c.Application.Draw()
 }
 
