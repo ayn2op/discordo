@@ -42,12 +42,12 @@ type Core struct {
 	focused focused
 }
 
-func NewCore(path string) *Core {
+func NewCore(cfg *config.Config) *Core {
 	c := &Core{
 		Application: tview.NewApplication(),
 		MainFlex:    tview.NewFlex(),
 
-		Config: config.New(path),
+		Config: cfg,
 	}
 
 	c.MainFlex.SetInputCapture(c.onInputCapture)
@@ -59,13 +59,8 @@ func NewCore(path string) *Core {
 }
 
 func (c *Core) Run(token string) error {
-	err := c.Config.Load()
-	if err != nil {
-		return err
-	}
-
 	c.register()
-	err = c.Config.State.DoString(string(config.LuaConfig))
+	err := c.Config.State.DoString(string(config.LuaConfig))
 	if err != nil {
 		return err
 	}
@@ -92,11 +87,12 @@ func (c *Core) Run(token string) error {
 		Compress: false,
 	}))
 
-	// For user accounts, all of the guilds, the user is in, are dispatched in the READY gateway event.
-	// Whereas, for bot accounts, the guilds are dispatched discretely in the GUILD_CREATE gateway events.
+	// For user accounts, all of the guilds, the user is in, are dispatched in the READY gateway event. Whereas, the guilds are dispatched discretely in the GUILD_CREATE gateway events for bot accounts.
 	if !strings.HasPrefix(c.State.Token, "Bot") {
 		api.UserAgent = userAgent
 		c.State.AddHandler(c.onStateReady)
+	} else {
+		c.State.AddIntents(gateway.IntentGuilds | gateway.IntentGuildMessages)
 	}
 
 	c.State.AddHandler(c.onStateGuildCreate)
