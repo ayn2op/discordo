@@ -8,9 +8,7 @@ import (
 
 	"github.com/ayntgl/discordo/config"
 	"github.com/ayntgl/discordo/ui"
-	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
-	lua "github.com/yuin/gopher-lua"
 	"github.com/zalando/go-keyring"
 )
 
@@ -102,19 +100,6 @@ func main() {
 	tview.Borders.BottomRight = 0
 	tview.Borders.Horizontal = 0
 	tview.Borders.Vertical = 0
-
-	themeTable, ok := c.Config.State.GetGlobal("theme").(*lua.LTable)
-	if !ok {
-		themeTable = c.Config.State.NewTable()
-	}
-
-	background := themeTable.RawGetString("background")
-	border := themeTable.RawGetString("border")
-	title := themeTable.RawGetString("title")
-
-	tview.Styles.PrimitiveBackgroundColor = tcell.GetColor(lua.LVAsString(background))
-	tview.Styles.BorderColor = tcell.GetColor(lua.LVAsString(border))
-	tview.Styles.TitleColor = tcell.GetColor(lua.LVAsString(title))
 
 	err = c.Application.Run()
 	if err != nil {

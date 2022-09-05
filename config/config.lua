@@ -104,4 +104,4 @@ keys = {
 }
 
 -- Theme
-theme = {background = "#1F2430", border = "white", title = "white"}
+theme = {background = "default", border = "white", title = "white"}
