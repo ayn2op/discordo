@@ -65,6 +65,40 @@ func (c *Core) Run(token string) error {
 		return err
 	}
 
+	themeTable, ok := c.Config.State.GetGlobal("theme").(*lua.LTable)
+	if !ok {
+		themeTable = c.Config.State.NewTable()
+	}
+
+	backgroundColor := tcell.GetColor(lua.LVAsString(themeTable.RawGetString("background")))
+	borderColor := tcell.GetColor(lua.LVAsString(themeTable.RawGetString("border")))
+	titleColor := tcell.GetColor(lua.LVAsString(themeTable.RawGetString("title")))
+
+	c.GuildsTree.SetBackgroundColor(backgroundColor)
+	c.GuildsTree.SetBorderColor(borderColor)
+	c.GuildsTree.SetTitleColor(titleColor)
+
+	c.ChannelsTree.SetBackgroundColor(backgroundColor)
+	c.ChannelsTree.SetBorderColor(borderColor)
+	c.ChannelsTree.SetTitleColor(titleColor)
+
+	c.MessagesPanel.SetBackgroundColor(backgroundColor)
+	c.MessagesPanel.SetBorderColor(borderColor)
+	c.MessagesPanel.SetTitleColor(titleColor)
+
+	c.MessageInput.SetBackgroundColor(backgroundColor)
+	c.MessageInput.SetBorderColor(borderColor)
+	c.MessageInput.SetTitleColor(titleColor)
+	c.MessageInput.SetPlaceholderStyle(tcell.StyleDefault.Background(backgroundColor))
+
+	c.Application.SetBeforeDrawFunc(func(s tcell.Screen) bool {
+		if backgroundColor == 0 {
+			s.Clear()
+		}
+
+		return false
+	})
+
 	c.Application.EnableMouse(lua.LVAsBool(c.Config.State.GetGlobal("mouse")))
 
 	identifyProperties, ok := c.Config.State.GetGlobal("identifyProperties").(*lua.LTable)
