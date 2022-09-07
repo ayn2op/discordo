@@ -80,6 +80,8 @@ func main() {
 				log.Fatal(err)
 			}
 
+			go keyring.Set(name, "token", tkn)
+
 			c.DrawMainFlex()
 			c.Application.SetRoot(c.MainFlex, true)
 			c.Application.SetFocus(c.GuildsTree)
