@@ -6,7 +6,7 @@ require (
 	github.com/atotto/clipboard v0.1.4
 	github.com/diamondburned/arikawa/v3 v3.1.0
 	github.com/gdamore/tcell/v2 v2.5.3
-	github.com/rivo/tview v0.0.0-20220812085834-0e6b21a48e96
+	github.com/rivo/tview v0.0.0-20220906194528-4664d8bf22d9
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/yuin/gopher-lua v0.0.0-20220504180219-658193537a64
 	github.com/zalando/go-keyring v0.2.1
@@ -26,7 +26,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rivo/uniseg v0.3.4 // indirect
 	github.com/stretchr/testify v1.7.2 // indirect
-	golang.org/x/sys v0.0.0-20220829200755-d48e67d00261 // indirect
+	golang.org/x/sys v0.0.0-20220907062415-87db552b00fd // indirect
 	golang.org/x/term v0.0.0-20220722155259-a9ba230a4035 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20220722155302-e5dcc9cfc0b9 // indirect
