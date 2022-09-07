@@ -17,3 +17,7 @@ fmt:
 .PHONY: clean
 clean:
 	go clean
+
+.PHONY: install
+install:
+	sudo cp discordo /usr/local/bin

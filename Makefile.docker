@@ -1,0 +1,28 @@
+SHELL := /bin/bash
+DOCKER=docker
+SOURCE_PATH := $(shell pwd)
+WORKING_PATH=/usr/src/myapp
+
+# Docker config
+DOCKER_RUN=$(DOCKER) run --rm -v $(SOURCE_PATH):$(WORKING_PATH) -w $(WORKING_PATH)
+
+# golang config
+GO_CONTAINER=golang:1.19
+GO=$(DOCKER_RUN) $(GO_CONTAINER) go
+GOFMT=$(DOCKER_RUN) $(GO_CONTAINER) gofmt
+
+.PHONY: build
+build:
+	$(GO) build -trimpath -buildmode=pie -ldflags "-s -w"
+
+.PHONY: test
+test:
+	$(GO) test 
+
+.PHONY: fmt
+fmt:
+	$(GOFMT) -d -e -s .
+
+.PHONY: clean
+clean:
+	$(GO) clean

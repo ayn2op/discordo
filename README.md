@@ -45,9 +45,14 @@ git clone https://github.com/ayntgl/discordo
 cd discordo
 make build
 
+# Build using Docker, no need to install go
+make -f Makefile.docker build
+
 # optional
-sudo mv ./discordo /usr/local/bin
+make install
 ```
+
+
 
 ### Linux clipboard support
 
