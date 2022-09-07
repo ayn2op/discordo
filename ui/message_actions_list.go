@@ -71,6 +71,7 @@ func NewMessageActionsList(c *Core, m *discord.Message) *MessageActionsList {
 
 	mal.AddItem("Copy Content", "", 'c', mal.copyContentAction)
 	mal.AddItem("Copy ID", "", 'i', mal.copyIDAction)
+	mal.AddItem("Copy Link", "", 'k', mal.copyLinkAction)
 
 	mal.SetTitle("Press the Escape key to close")
 	mal.SetTitleAlign(tview.AlignLeft)
@@ -209,6 +210,16 @@ func (mal *MessageActionsList) copyContentAction() {
 
 func (mal *MessageActionsList) copyIDAction() {
 	err := clipboard.WriteAll(mal.message.ID.String())
+	if err != nil {
+		return
+	}
+
+	mal.core.Application.SetRoot(mal.core.MainFlex, true)
+	mal.core.Application.SetFocus(mal.core.MessagesPanel)
+}
+
+func (mal *MessageActionsList) copyLinkAction() {
+	err := clipboard.WriteAll(mal.message.URL())
 	if err != nil {
 		return
 	}
