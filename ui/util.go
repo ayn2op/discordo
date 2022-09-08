@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/diamondburned/arikawa/v3/discord"
-	"github.com/diamondburned/arikawa/v3/state"
 	lua "github.com/yuin/gopher-lua"
 )
 
@@ -59,7 +58,7 @@ func findMessageByID(ms []discord.Message, mID discord.MessageID) (int, *discord
 	return -1, nil
 }
 
-func hasPermission(s *state.State, cID discord.ChannelID, p discord.Permissions) bool {
+func hasPermission(s *State, cID discord.ChannelID, p discord.Permissions) bool {
 	perm, err := s.Permissions(cID, s.Ready().User.ID)
 	if err != nil {
 		return false

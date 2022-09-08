@@ -9,6 +9,8 @@ import (
 	lua "github.com/yuin/gopher-lua"
 )
 
+const Name = "discordo"
+
 //go:embed config.lua
 var LuaConfig []byte
 

@@ -1,14 +1,11 @@
 package ui
 
 import (
-	"context"
 	"strings"
 
 	"github.com/ayntgl/discordo/config"
-	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
-	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	lua "github.com/yuin/gopher-lua"
@@ -37,7 +34,7 @@ type Core struct {
 	MessageInput  *MessageInput
 
 	Config *config.Config
-	State  *state.State
+	State  *State
 
 	focused focused
 }
@@ -101,38 +98,8 @@ func (c *Core) Run(token string) error {
 
 	c.Application.EnableMouse(lua.LVAsBool(c.Config.State.GetGlobal("mouse")))
 
-	identifyProperties, ok := c.Config.State.GetGlobal("identifyProperties").(*lua.LTable)
-	if !ok {
-		identifyProperties = c.Config.State.NewTable()
-	}
-
-	userAgent := lua.LVAsString(identifyProperties.RawGetString("userAgent"))
-
-	c.State = state.NewWithIdentifier(gateway.NewIdentifier(gateway.IdentifyCommand{
-		Token:   token,
-		Intents: nil,
-		Properties: gateway.IdentifyProperties{
-			Browser:          lua.LVAsString(identifyProperties.RawGetString("browser")),
-			BrowserVersion:   lua.LVAsString(identifyProperties.RawGetString("browserVersion")),
-			BrowserUserAgent: userAgent,
-			OS:               lua.LVAsString(identifyProperties.RawGetString("os")),
-		},
-		// The official client sets the compress field as false.
-		Compress: false,
-	}))
-
-	// For user accounts, all of the guilds, the user is in, are dispatched in the READY gateway event. Whereas, the guilds are dispatched discretely in the GUILD_CREATE gateway events for bot accounts.
-	if !strings.HasPrefix(c.State.Token, "Bot") {
-		api.UserAgent = userAgent
-		c.State.AddHandler(c.onStateReady)
-	} else {
-		c.State.AddIntents(gateway.IntentGuilds | gateway.IntentGuildMessages)
-	}
-
-	c.State.AddHandler(c.onStateGuildCreate)
-	c.State.AddHandler(c.onStateGuildDelete)
-	c.State.AddHandler(c.onStateMessageCreate)
-	return c.State.Open(context.Background())
+	c.State = NewState(token, c)
+	return c.State.Run()
 }
 
 func (c *Core) register() {
