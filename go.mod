@@ -8,9 +8,8 @@ require (
 	github.com/gdamore/tcell/v2 v2.5.3
 	github.com/rivo/tview v0.0.0-20220906194528-4664d8bf22d9
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
-	github.com/yuin/gopher-lua v0.0.0-20220504180219-658193537a64
 	github.com/zalando/go-keyring v0.2.1
-	layeh.com/gopher-luar v1.0.10
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (

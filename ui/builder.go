@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
-	lua "github.com/yuin/gopher-lua"
 )
 
 func buildMessage(c *Core, m discord.Message) []byte {
@@ -23,19 +22,14 @@ func buildMessage(c *Core, m discord.Message) []byte {
 		// Build the message associated with crosspost, channel follow add, pin, or a reply.
 		buildReferencedMessage(&b, m.ReferencedMessage, c.State.Ready().User.ID)
 
-		timestamps := c.Config.State.GetGlobal("timestamps")
-
-		if lua.LVAsBool(timestamps) {
-			timezone := c.Config.State.GetGlobal("timezone")
-			loc, err := time.LoadLocation(lua.LVAsString(timezone))
+		if c.Config.Timestamps {
+			loc, err := time.LoadLocation(c.Config.Timezone)
 			if err != nil {
 				return nil
 			}
 
-			timeFormat := c.Config.State.GetGlobal("timeFormat")
-
 			b.WriteString("[::d]")
-			b.WriteString(m.Timestamp.Time().In(loc).Format(lua.LVAsString(timeFormat)))
+			b.WriteString(m.Timestamp.Time().In(loc).Format(c.Config.TimeFormat))
 			b.WriteString("[::-]")
 			b.WriteByte(' ')
 		}

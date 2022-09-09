@@ -3,8 +3,6 @@ package main
 import (
 	"flag"
 	"log"
-	"os"
-	"path/filepath"
 
 	"github.com/ayntgl/discordo/config"
 	"github.com/ayntgl/discordo/ui"
@@ -12,38 +10,24 @@ import (
 	"github.com/zalando/go-keyring"
 )
 
-const (
-	name = "discordo"
-)
-
-var (
-	token      string
-	configPath string
-)
+var token string
 
 func init() {
 	flag.StringVar(&token, "token", "", "The client authentication token.")
 	// If the token is provided via a command-line flag, store it in the default keyring.
 	if token != "" {
-		go keyring.Set(name, "token", token)
+		go keyring.Set(config.Name, "token", token)
 	}
 
 	if token == "" {
-		token, _ = keyring.Get(name, "token")
+		token, _ = keyring.Get(config.Name, "token")
 	}
-
-	configDirPath, err := os.UserConfigDir()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	flag.StringVar(&configPath, "config", filepath.Join(configDirPath, name), "The path to the configuration directory.")
 }
 
 func main() {
 	flag.Parse()
 
-	cfg := config.New(configPath)
+	cfg := config.New()
 	err := cfg.Load()
 	if err != nil {
 		log.Fatal(err)
@@ -80,7 +64,7 @@ func main() {
 				log.Fatal(err)
 			}
 
-			go keyring.Set(name, "token", tkn)
+			go keyring.Set(config.Name, "token", tkn)
 
 			c.DrawMainFlex()
 			c.Application.SetRoot(c.MainFlex, true)

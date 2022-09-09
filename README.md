@@ -73,7 +73,7 @@ sudo mv ./discordo /usr/local/bin
 
 ### Configuration
 
-A default configuration file is created on first start-up at `$HOME/.config/discordo/config.lua` on Unix, `$HOME/Library/Application Support/discordo/config.lua` on Darwin, and `%AppData%/discordo/config.lua` on Windows. You can configure the default configuration directory path using the `config` command-line flag (eg: `discordo --config $HOME/my-custom-dir).
+A default configuration file is created on first start-up at `$HOME/.config/discordo/config.yml` on Unix, `$HOME/Library/Application Support/discordo/config.yml` on Darwin, and `%AppData%/discordo/config.yml` on Windows. You can configure the default configuration directory path using the `config` command-line flag (eg: `discordo --config $HOME/my-custom-dir).
 
 ## Disclaimer
 
