@@ -8,8 +8,6 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
-	lua "github.com/yuin/gopher-lua"
-	luar "layeh.com/gopher-luar"
 )
 
 type focused int
@@ -47,7 +45,14 @@ func NewCore(cfg *config.Config) *Core {
 		Config: cfg,
 	}
 
+	tview.Styles.PrimitiveBackgroundColor = tcell.GetColor(cfg.Theme.Background)
+	tview.Styles.BorderColor = tcell.GetColor(cfg.Theme.Border)
+	tview.Styles.TitleColor = tcell.GetColor(cfg.Theme.Title)
+
+	c.Application.EnableMouse(c.Config.Mouse)
 	c.Application.SetInputCapture(c.onInputCapture)
+	c.Application.SetBeforeDrawFunc(c.beforeDraw)
+
 	c.GuildsTree = NewGuildsTree(c)
 	c.ChannelsTree = NewChannelsTree(c)
 	c.MessagesPanel = NewMessagesPanel(c)
@@ -56,63 +61,8 @@ func NewCore(cfg *config.Config) *Core {
 }
 
 func (c *Core) Run(token string) error {
-	c.register()
-	err := c.Config.State.DoString(string(config.LuaConfig))
-	if err != nil {
-		return err
-	}
-
-	themeTable, ok := c.Config.State.GetGlobal("theme").(*lua.LTable)
-	if !ok {
-		themeTable = c.Config.State.NewTable()
-	}
-
-	backgroundColor := tcell.GetColor(lua.LVAsString(themeTable.RawGetString("background")))
-	borderColor := tcell.GetColor(lua.LVAsString(themeTable.RawGetString("border")))
-	titleColor := tcell.GetColor(lua.LVAsString(themeTable.RawGetString("title")))
-
-	c.GuildsTree.SetBackgroundColor(backgroundColor)
-	c.GuildsTree.SetBorderColor(borderColor)
-	c.GuildsTree.SetTitleColor(titleColor)
-
-	c.ChannelsTree.SetBackgroundColor(backgroundColor)
-	c.ChannelsTree.SetBorderColor(borderColor)
-	c.ChannelsTree.SetTitleColor(titleColor)
-
-	c.MessagesPanel.SetBackgroundColor(backgroundColor)
-	c.MessagesPanel.SetBorderColor(borderColor)
-	c.MessagesPanel.SetTitleColor(titleColor)
-
-	c.MessageInput.SetBackgroundColor(backgroundColor)
-	c.MessageInput.SetBorderColor(borderColor)
-	c.MessageInput.SetTitleColor(titleColor)
-	c.MessageInput.SetPlaceholderStyle(tcell.StyleDefault.Background(backgroundColor))
-
-	c.Application.SetBeforeDrawFunc(func(s tcell.Screen) bool {
-		if backgroundColor == 0 {
-			s.Clear()
-		}
-
-		return false
-	})
-
-	c.Application.EnableMouse(lua.LVAsBool(c.Config.State.GetGlobal("mouse")))
-
 	c.State = NewState(token, c)
 	return c.State.Run()
-}
-
-func (c *Core) register() {
-	c.Config.State.SetGlobal("key", c.Config.State.NewFunction(c.Config.KeyLua))
-	// Messages panel
-	c.Config.State.SetGlobal("openMessageActionsList", c.Config.State.NewFunction(c.MessagesPanel.openMessageActionsListLua))
-	c.Config.State.SetGlobal("selectPreviousMessage", c.Config.State.NewFunction(c.MessagesPanel.selectPreviousMessageLua))
-	c.Config.State.SetGlobal("selectNextMessage", c.Config.State.NewFunction(c.MessagesPanel.selectNextMessageLua))
-	c.Config.State.SetGlobal("selectFirstMessage", c.Config.State.NewFunction(c.MessagesPanel.selectFirstMessageLua))
-	c.Config.State.SetGlobal("selectLastMessage", c.Config.State.NewFunction(c.MessagesPanel.selectLastMessageLua))
-	// Message input
-	c.Config.State.SetGlobal("openExternalEditor", c.Config.State.NewFunction(c.MessageInput.openExternalEditorLua))
-	c.Config.State.SetGlobal("pasteClipboardContent", c.Config.State.NewFunction(c.MessageInput.pasteClipboardContentLua))
 }
 
 func (c *Core) DrawMainFlex() {
@@ -129,52 +79,21 @@ func (c *Core) DrawMainFlex() {
 		AddItem(rightFlex, 0, 4, false)
 }
 
-func (c *Core) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
+func (c *Core) beforeDraw(screen tcell.Screen) bool {
+	if c.Config.Theme.Background == "default" {
+		screen.Clear()
+	}
+
+	return false
+}
+
+func (c *Core) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	// If the main flex is nil, that is, it is not initialized yet, then the login form is currently focused.
 	if c.MainFlex == nil {
-		return e
+		return event
 	}
 
-	keysTable, ok := c.Config.State.GetGlobal("keys").(*lua.LTable)
-	if !ok {
-		keysTable = c.Config.State.NewTable()
-	}
-
-	applicationTable, ok := keysTable.RawGetString("application").(*lua.LTable)
-	if !ok {
-		applicationTable = c.Config.State.NewTable()
-	}
-
-	var fn lua.LValue
-	applicationTable.ForEach(func(k, v lua.LValue) {
-		keyTable := v.(*lua.LTable)
-		if e.Name() == lua.LVAsString(keyTable.RawGetString("name")) {
-			fn = keyTable.RawGetString("action")
-		}
-	})
-
-	if fn != nil {
-		c.Config.State.CallByParam(lua.P{
-			Fn:      fn,
-			NRet:    1,
-			Protect: true,
-		}, luar.New(c.Config.State, c), luar.New(c.Config.State, e))
-		// Returned value
-		ret, ok := c.Config.State.Get(-1).(*lua.LUserData)
-		if !ok {
-			return e
-		}
-
-		// Remove returned value
-		c.Config.State.Pop(1)
-		ev, ok := ret.Value.(*tcell.EventKey)
-		if ok {
-			return ev
-		}
-	}
-
-	// Default
-	switch e.Key() {
+	switch event.Key() {
 	case tcell.KeyEsc:
 		c.focused = 0
 	case tcell.KeyBacktab:
@@ -197,7 +116,7 @@ func (c *Core) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		c.setFocus()
 	}
 
-	return e
+	return event
 }
 
 func (c *Core) setFocus() {

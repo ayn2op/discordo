@@ -2,78 +2,114 @@ package config
 
 import (
 	_ "embed"
-	"io"
 	"os"
 	"path/filepath"
+	"time"
 
-	lua "github.com/yuin/gopher-lua"
+	"gopkg.in/yaml.v3"
 )
 
 const Name = "discordo"
 
-//go:embed config.lua
-var LuaConfig []byte
+type MessagesPanelKeysConfig struct {
+	OpenActionsList string `yaml:"open_actions_list"`
 
-// Config initializes a new Lua state, loads a configuration file, and defines essential micellaneous fields.
-type Config struct {
-	// Path is the path of the configuration file. Its value is the configuration directory until Load() is called.
-	Path  string
-	State *lua.LState
+	SelectPreviousMessage string `yaml:"select_previous_message"`
+	SelectNextMessage     string `yaml:"select_next_message"`
+	SelectFirstMessage    string `yaml:"select_first_message"`
+	SelectLastMessage     string `yaml:"select_last_message"`
 }
 
-func New(path string) *Config {
+type MessageInputKeysConfig struct {
+	OpenExternalEditor string `yaml:"open_external_editor"`
+	PasteClipboard     string `yaml:"paste_clipboard"`
+}
+
+type KeysConfig struct {
+	MessagesPanel MessagesPanelKeysConfig `yaml:"messages_panel"`
+	MessageInput  MessageInputKeysConfig  `yaml:"message_input"`
+}
+
+type ThemeConfig struct {
+	Background string `yaml:"background"`
+	Border     string `yaml:"border"`
+	Title      string `yaml:"title"`
+}
+
+type Config struct {
+	// Whether the mouse is usable or not.
+	Mouse bool `yaml:"mouse"`
+	// The maximum number of messages to fetch and display on the messages panel. Its value must not be lesser than 1 and greater than 100.
+	MessagesLimit uint `yaml:"messages_limit"`
+	// Whether to display the timestamps of the messages beside the displayed message or not.
+	Timestamps bool `yaml:"timestamps"`
+	// The timezone of the timestamps. Learn more: https://pkg.go.dev/time#LoadLocation
+	Timezone string `yaml:"timezone"`
+	// A textual representation of the time value formatted according to the layout defined by its value. Learn more: https://pkg.go.dev/time#Layout
+	TimeFormat string `yaml:"time_format"`
+	// Keybindings
+	Keys KeysConfig `yaml:"keys"`
+	// Theme
+	Theme ThemeConfig `yaml:"theme"`
+}
+
+func New() *Config {
 	return &Config{
-		Path:  path,
-		State: lua.NewState(),
+		Mouse:         true,
+		MessagesLimit: 50,
+
+		Timestamps: false,
+		Timezone:   "Local",
+		TimeFormat: time.Kitchen,
+
+		Keys: KeysConfig{
+			MessagesPanel: MessagesPanelKeysConfig{
+				OpenActionsList: "Rune[a]",
+
+				SelectPreviousMessage: "Up",
+				SelectNextMessage:     "Down",
+				SelectFirstMessage:    "Home",
+				SelectLastMessage:     "End",
+			},
+		},
+		Theme: ThemeConfig{
+			Background: "default",
+			Border:     "white",
+			Title:      "white",
+		},
 	}
 }
 
 func (c *Config) Load() error {
-	// Create directories that do not exist and are mentioned in the path recursively.
-	err := os.MkdirAll(c.Path, os.ModePerm)
+	configPath, err := os.UserConfigDir()
 	if err != nil {
 		return err
 	}
 
-	c.Path = filepath.Join(c.Path, "config.lua")
-	// Open the existing configuration file with read-only flag.
-	f, err := os.Open(c.Path)
-	// If the configuration file does not exist, create a new configuration file with the read-write flag.
-	if os.IsNotExist(err) {
-		f, err = os.Create(c.Path)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-
-		_, err = f.Write(LuaConfig)
-		if err != nil {
-			return err
-		}
-
-		return f.Sync()
+	configPath = filepath.Join(configPath, Name)
+	// Create directories that do not exist and are mentioned in the path recursively.
+	err = os.MkdirAll(configPath, os.ModePerm)
+	if err != nil {
+		return err
 	}
 
+	configPath = filepath.Join(configPath, "config.yml")
+	// Open the existing configuration file with read-only flag.
+	f, err := os.OpenFile(configPath, os.O_CREATE|os.O_RDWR, os.ModePerm)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	b, err := io.ReadAll(f)
+	fi, err := f.Stat()
 	if err != nil {
 		return err
 	}
 
-	LuaConfig = b
-	return nil
-}
+	// If the configuration file is empty (the size of the file is zero; a new configuration file was created), write the default configuration to the file.
+	if fi.Size() == 0 {
+		return yaml.NewEncoder(f).Encode(c)
+	}
 
-func (c *Config) KeyLua(s *lua.LState) int {
-	keyTable := s.NewTable()
-	keyTable.RawSetString("name", s.Get(1))
-	keyTable.RawSetString("description", s.Get(2))
-	keyTable.RawSetString("action", s.Get(3))
-
-	s.Push(keyTable) // Push the result
-	return 1         // Number of results
+	return yaml.NewDecoder(f).Decode(&c)
 }
