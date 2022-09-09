@@ -1,11 +1,7 @@
 package ui
 
 import (
-	"strings"
-
 	"github.com/ayntgl/discordo/config"
-	"github.com/diamondburned/arikawa/v3/discord"
-	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -133,102 +129,4 @@ func (c *Core) setFocus() {
 	}
 
 	c.Application.SetFocus(p)
-}
-
-func (c *Core) onStateReady(r *gateway.ReadyEvent) {
-	rootNode := c.GuildsTree.GetRoot()
-	for _, gf := range r.UserSettings.GuildFolders {
-		if gf.ID == 0 {
-			for _, gID := range gf.GuildIDs {
-				g, err := c.State.Cabinet.Guild(gID)
-				if err != nil {
-					return
-				}
-
-				guildNode := tview.NewTreeNode(g.Name)
-				guildNode.SetReference(g.ID)
-				rootNode.AddChild(guildNode)
-			}
-		} else {
-			var b strings.Builder
-
-			if gf.Color != discord.NullColor {
-				b.WriteByte('[')
-				b.WriteString(gf.Color.String())
-				b.WriteByte(']')
-			} else {
-				b.WriteString("[#ED4245]")
-			}
-
-			if gf.Name != "" {
-				b.WriteString(gf.Name)
-			} else {
-				b.WriteString("Folder")
-			}
-
-			b.WriteString("[-]")
-
-			folderNode := tview.NewTreeNode(b.String())
-			rootNode.AddChild(folderNode)
-
-			for _, gID := range gf.GuildIDs {
-				g, err := c.State.Cabinet.Guild(gID)
-				if err != nil {
-					return
-				}
-
-				guildNode := tview.NewTreeNode(g.Name)
-				guildNode.SetReference(g.ID)
-				folderNode.AddChild(guildNode)
-			}
-		}
-
-	}
-
-	c.GuildsTree.SetCurrentNode(rootNode)
-	c.Application.SetFocus(c.GuildsTree)
-}
-
-func (c *Core) onStateGuildCreate(g *gateway.GuildCreateEvent) {
-	guildNode := tview.NewTreeNode(g.Name)
-	guildNode.SetReference(g.ID)
-
-	rootNode := c.GuildsTree.GetRoot()
-	rootNode.AddChild(guildNode)
-
-	c.GuildsTree.SetCurrentNode(rootNode)
-	c.Application.SetFocus(c.GuildsTree)
-	c.Application.Draw()
-}
-
-func (c *Core) onStateGuildDelete(g *gateway.GuildDeleteEvent) {
-	rootNode := c.GuildsTree.GetRoot()
-	var parentNode *tview.TreeNode
-	rootNode.Walk(func(node, _ *tview.TreeNode) bool {
-		if node.GetReference() == g.ID {
-			parentNode = node
-			return false
-		}
-
-		return true
-	})
-
-	if parentNode != nil {
-		rootNode.RemoveChild(parentNode)
-	}
-
-	c.Application.Draw()
-}
-
-func (c *Core) onStateMessageCreate(m *gateway.MessageCreateEvent) {
-	if c.ChannelsTree.SelectedChannel != nil && c.ChannelsTree.SelectedChannel.ID == m.ChannelID {
-		_, err := c.MessagesPanel.Write(buildMessage(c, m.Message))
-		if err != nil {
-			return
-		}
-
-		if len(c.MessagesPanel.GetHighlights()) == 0 {
-			c.MessagesPanel.ScrollToEnd()
-		}
-	}
 }
