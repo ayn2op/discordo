@@ -11,8 +11,8 @@ import (
 
 const Name = "discordo"
 
-type MessagesPanelKeysConfig struct {
-	OpenActionsList string `yaml:"open_actions_list"`
+type MessagesViewKeysConfig struct {
+	OpenActionsView string `yaml:"open_actions_view"`
 
 	SelectPreviousMessage string `yaml:"select_previous_message"`
 	SelectNextMessage     string `yaml:"select_next_message"`
@@ -20,14 +20,14 @@ type MessagesPanelKeysConfig struct {
 	SelectLastMessage     string `yaml:"select_last_message"`
 }
 
-type MessageInputKeysConfig struct {
+type InputViewKeysConfig struct {
 	OpenExternalEditor string `yaml:"open_external_editor"`
 	PasteClipboard     string `yaml:"paste_clipboard"`
 }
 
 type KeysConfig struct {
-	MessagesPanel MessagesPanelKeysConfig `yaml:"messages_panel"`
-	MessageInput  MessageInputKeysConfig  `yaml:"message_input"`
+	MessagesView MessagesViewKeysConfig `yaml:"messages_view"`
+	InputView    InputViewKeysConfig    `yaml:"input_view"`
 }
 
 type ThemeConfig struct {
@@ -39,7 +39,7 @@ type ThemeConfig struct {
 type Config struct {
 	// Whether the mouse is usable or not.
 	Mouse bool `yaml:"mouse"`
-	// The maximum number of messages to fetch and display on the messages panel. Its value must not be lesser than 1 and greater than 100.
+	// The maximum number of messages to fetch and display. Its value must not be lesser than 1 and greater than 100.
 	MessagesLimit uint `yaml:"messages_limit"`
 	// Whether to display the timestamps of the messages beside the displayed message or not.
 	Timestamps bool `yaml:"timestamps"`
@@ -63,8 +63,8 @@ func New() *Config {
 		TimeFormat: time.Kitchen,
 
 		Keys: KeysConfig{
-			MessagesPanel: MessagesPanelKeysConfig{
-				OpenActionsList: "Rune[a]",
+			MessagesView: MessagesViewKeysConfig{
+				OpenActionsView: "Rune[a]",
 
 				SelectPreviousMessage: "Up",
 				SelectNextMessage:     "Down",
