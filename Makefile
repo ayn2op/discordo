@@ -1,19 +1,16 @@
-.PHONY: build
-build:
-	go build \
-		-trimpath \
-		-buildmode=pie \
-		-ldflags "-s -w" \
-		.
+FLAGS=-ldflags "-s -w"
 
-.PHONY: test
-test:
-	go test -v ./...
+.PHONY: all
+all: clean fmt build
+
+.PHONY: clean
+clean:
+	go clean
 
 .PHONY: fmt
 fmt:
 	gofmt -d -e -s .
 
-.PHONY: clean
-clean:
-	go clean
+.PHONY: build
+build:
+	go build $(FLAGS)
