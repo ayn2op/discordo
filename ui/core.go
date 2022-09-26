@@ -15,10 +15,10 @@ import (
 type FocusedID int
 
 const (
-	guildsTree FocusedID = iota
-	channelsTree
-	messagesPanel
-	messageInput
+	guildsView FocusedID = iota
+	channelsView
+	messagesView
+	inputView
 )
 
 // Core is responsible for the following:
@@ -26,12 +26,12 @@ const (
 // - Configuration of the application and state when Run is called.
 // - Management of the application and state.
 type Core struct {
-	App           *tview.Application
-	View          *tview.Flex
-	GuildsTree    *GuildsTree
-	ChannelsTree  *ChannelsTree
-	MessagesPanel *MessagesPanel
-	MessageInput  *MessageInput
+	App          *tview.Application
+	View         *tview.Flex
+	GuildsView   *GuildsView
+	ChannelsView *ChannelsView
+	MessagesView *MessagesView
+	InputView    *InputView
 
 	Config *config.Config
 	State  *state.State
@@ -55,10 +55,10 @@ func NewCore(cfg *config.Config) *Core {
 	c.View = tview.NewFlex()
 	c.View.SetInputCapture(c.onViewInputCapture)
 
-	c.GuildsTree = NewGuildsTree(c)
-	c.ChannelsTree = NewChannelsTree(c)
-	c.MessagesPanel = NewMessagesPanel(c)
-	c.MessageInput = NewMessageInput(c)
+	c.GuildsView = newGuildsView(c)
+	c.ChannelsView = newChannelsView(c)
+	c.MessagesView = newMessagesView(c)
+	c.InputView = newInputView(c)
 
 	return c
 }
@@ -75,18 +75,18 @@ func (c *Core) Run(token string) error {
 func (c *Core) Draw() {
 	left := tview.NewFlex().
 		SetDirection(tview.FlexRow).
-		AddItem(c.GuildsTree, 10, 1, false).
-		AddItem(c.ChannelsTree, 0, 1, false)
+		AddItem(c.GuildsView, 10, 1, false).
+		AddItem(c.ChannelsView, 0, 1, false)
 	right := tview.NewFlex().
 		SetDirection(tview.FlexRow).
-		AddItem(c.MessagesPanel, 0, 1, false).
-		AddItem(c.MessageInput, 3, 1, false)
+		AddItem(c.MessagesView, 0, 1, false).
+		AddItem(c.InputView, 3, 1, false)
 
 	c.View.AddItem(left, 0, 1, false)
 	c.View.AddItem(right, 0, 4, false)
 
 	c.App.SetRoot(c.View, true)
-	c.App.SetFocus(c.GuildsTree)
+	c.App.SetFocus(c.GuildsView)
 }
 
 func (c *Core) onAppBeforeDraw(screen tcell.Screen) bool {
@@ -102,18 +102,18 @@ func (c *Core) onViewInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	case tcell.KeyEsc:
 		c.focusedID = 0
 	case tcell.KeyBacktab:
-		// If the currently focused widget is the guilds tree widget (first), then focus the message input widget (last)
+		// If the currently focused view is the guilds view (first), then focus the input view (last)
 		if c.focusedID == 0 {
-			c.focusedID = messageInput
+			c.focusedID = inputView
 		} else {
 			c.focusedID--
 		}
 
 		c.setFocus()
 	case tcell.KeyTab:
-		// If the currently focused widget is the message input widget (last), then focus the guilds tree widget (first)
-		if c.focusedID == messageInput {
-			c.focusedID = guildsTree
+		// If the currently focused view is the input view (last), then focus the guilds view (first)
+		if c.focusedID == inputView {
+			c.focusedID = guildsView
 		} else {
 			c.focusedID++
 		}
@@ -127,21 +127,21 @@ func (c *Core) onViewInputCapture(event *tcell.EventKey) *tcell.EventKey {
 func (c *Core) setFocus() {
 	var p tview.Primitive
 	switch c.focusedID {
-	case guildsTree:
-		p = c.GuildsTree
-	case channelsTree:
-		p = c.ChannelsTree
-	case messagesPanel:
-		p = c.MessagesPanel
-	case messageInput:
-		p = c.MessageInput
+	case guildsView:
+		p = c.GuildsView
+	case channelsView:
+		p = c.ChannelsView
+	case messagesView:
+		p = c.MessagesView
+	case inputView:
+		p = c.InputView
 	}
 
 	c.App.SetFocus(p)
 }
 
 func (c *Core) onReady(r *gateway.ReadyEvent) {
-	rootNode := c.GuildsTree.GetRoot()
+	root := c.GuildsView.GetRoot()
 	for _, gf := range r.UserSettings.GuildFolders {
 		if gf.ID == 0 {
 			for _, gID := range gf.GuildIDs {
@@ -152,7 +152,7 @@ func (c *Core) onReady(r *gateway.ReadyEvent) {
 
 				guildNode := tview.NewTreeNode(g.Name)
 				guildNode.SetReference(g.ID)
-				rootNode.AddChild(guildNode)
+				root.AddChild(guildNode)
 			}
 		} else {
 			var b strings.Builder
@@ -174,7 +174,7 @@ func (c *Core) onReady(r *gateway.ReadyEvent) {
 			b.WriteString("[-]")
 
 			folderNode := tview.NewTreeNode(b.String())
-			rootNode.AddChild(folderNode)
+			root.AddChild(folderNode)
 
 			for _, gID := range gf.GuildIDs {
 				g, err := c.State.Cabinet.Guild(gID)
@@ -190,24 +190,24 @@ func (c *Core) onReady(r *gateway.ReadyEvent) {
 
 	}
 
-	c.GuildsTree.SetCurrentNode(rootNode)
-	c.App.SetFocus(c.GuildsTree)
+	c.GuildsView.SetCurrentNode(root)
+	c.App.SetFocus(c.GuildsView)
 }
 
 func (c *Core) onGuildCreate(g *gateway.GuildCreateEvent) {
 	guildNode := tview.NewTreeNode(g.Name)
 	guildNode.SetReference(g.ID)
 
-	rootNode := c.GuildsTree.GetRoot()
+	rootNode := c.GuildsView.GetRoot()
 	rootNode.AddChild(guildNode)
 
-	c.GuildsTree.SetCurrentNode(rootNode)
-	c.App.SetFocus(c.GuildsTree)
+	c.GuildsView.SetCurrentNode(rootNode)
+	c.App.SetFocus(c.GuildsView)
 	c.App.Draw()
 }
 
 func (c *Core) onGuildDelete(g *gateway.GuildDeleteEvent) {
-	rootNode := c.GuildsTree.GetRoot()
+	rootNode := c.GuildsView.GetRoot()
 	var parentNode *tview.TreeNode
 	rootNode.Walk(func(node, _ *tview.TreeNode) bool {
 		if node.GetReference() == g.ID {
@@ -226,14 +226,14 @@ func (c *Core) onGuildDelete(g *gateway.GuildDeleteEvent) {
 }
 
 func (c *Core) onMessageCreate(m *gateway.MessageCreateEvent) {
-	if c.ChannelsTree.SelectedChannel != nil && c.ChannelsTree.SelectedChannel.ID == m.ChannelID {
-		_, err := c.MessagesPanel.Write(buildMessage(c, m.Message))
+	if c.ChannelsView.selectedChannel != nil && c.ChannelsView.selectedChannel.ID == m.ChannelID {
+		_, err := c.MessagesView.Write(buildMessage(c, m.Message))
 		if err != nil {
 			return
 		}
 
-		if len(c.MessagesPanel.GetHighlights()) == 0 {
-			c.MessagesPanel.ScrollToEnd()
+		if len(c.MessagesView.GetHighlights()) == 0 {
+			c.MessagesView.ScrollToEnd()
 		}
 	}
 }
