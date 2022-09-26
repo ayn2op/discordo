@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"log"
 	"sort"
 
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -65,12 +66,14 @@ func (v *ChannelsView) onSelected(node *tview.TreeNode) {
 		// The returned slice will be sorted from latest to oldest.
 		ms, err := v.core.State.Messages(c.ID, v.core.Config.MessagesLimit)
 		if err != nil {
+			log.Println(err)
 			return
 		}
 
 		for i := len(ms) - 1; i >= 0; i-- {
 			_, err = v.core.MessagesView.Write(buildMessage(v.core, ms[i]))
 			if err != nil {
+				log.Println(err)
 				return
 			}
 		}
@@ -89,6 +92,7 @@ func (v *ChannelsView) createChannelNode(c discord.Channel) *tview.TreeNode {
 func (v *ChannelsView) createPrivateChannelNodes(root *tview.TreeNode) {
 	cs, err := v.core.State.Cabinet.PrivateChannels()
 	if err != nil {
+		log.Println(err)
 		return
 	}
 
@@ -104,6 +108,7 @@ func (v *ChannelsView) createPrivateChannelNodes(root *tview.TreeNode) {
 func (v *ChannelsView) createGuildChannelNodes(root *tview.TreeNode, gID discord.GuildID) {
 	cs, err := v.core.State.Cabinet.Channels(gID)
 	if err != nil {
+		log.Println(err)
 		return
 	}
 

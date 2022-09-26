@@ -2,6 +2,7 @@ package ui
 
 import (
 	"context"
+	"log"
 	"strings"
 
 	"github.com/ayntgl/discordo/config"
@@ -147,6 +148,7 @@ func (c *Core) onReady(r *gateway.ReadyEvent) {
 			for _, gID := range gf.GuildIDs {
 				g, err := c.State.Cabinet.Guild(gID)
 				if err != nil {
+					log.Println(err)
 					return
 				}
 
@@ -179,6 +181,7 @@ func (c *Core) onReady(r *gateway.ReadyEvent) {
 			for _, gID := range gf.GuildIDs {
 				g, err := c.State.Cabinet.Guild(gID)
 				if err != nil {
+					log.Println(err)
 					return
 				}
 

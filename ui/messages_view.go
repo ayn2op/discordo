@@ -47,7 +47,6 @@ func (v *MessagesView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		return nil
 	}
 
-	// Defaults
 	switch e.Name() {
 	case v.core.Config.Keys.MessagesView.OpenActionsView:
 		return v.openActionsView(ms)
