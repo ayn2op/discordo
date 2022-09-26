@@ -25,8 +25,10 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer f.Close()
 
 	log.SetOutput(f)
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	tview.Borders.TopLeftFocus = tview.Borders.TopLeft
 	tview.Borders.TopRightFocus = tview.Borders.TopRight
@@ -59,7 +61,6 @@ func main() {
 	token, err := keyring.Get(config.Name, "token")
 	if err != nil {
 		log.Println(err)
-		return
 	}
 
 	c := ui.NewCore(cfg)

@@ -74,7 +74,7 @@ func (v *ChannelsView) onSelected(node *tview.TreeNode) {
 			_, err = v.core.MessagesView.Write(buildMessage(v.core, ms[i]))
 			if err != nil {
 				log.Println(err)
-				return
+				continue
 			}
 		}
 

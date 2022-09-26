@@ -149,7 +149,7 @@ func (c *Core) onReady(r *gateway.ReadyEvent) {
 				g, err := c.State.Cabinet.Guild(gID)
 				if err != nil {
 					log.Println(err)
-					return
+					continue
 				}
 
 				guildNode := tview.NewTreeNode(g.Name)
@@ -182,7 +182,7 @@ func (c *Core) onReady(r *gateway.ReadyEvent) {
 				g, err := c.State.Cabinet.Guild(gID)
 				if err != nil {
 					log.Println(err)
-					return
+					continue
 				}
 
 				guildNode := tview.NewTreeNode(g.Name)
