@@ -61,6 +61,7 @@ func newEmailView(c *Core) *EmailView {
 
 	v.AddInputField("Email", "", 0, nil, nil)
 	v.AddPasswordField("Password", "", 0, 0, nil)
+	v.AddPasswordField("Code (optional)", "", 0, 0, nil)
 	v.AddButton("Login", v.onLoginButtonSelected)
 
 	return v
@@ -82,17 +83,27 @@ func (v *EmailView) onLoginButtonSelected() {
 		log.Fatal(err)
 	}
 
-	if l.Token != "" && !l.MFA {
-		err = v.core.Run(l.Token)
+	// If the token is not dispatched in the response and the "mfa" field is set as true, login using MFA instead.
+	if l.Token == "" && l.MFA {
+		code := v.GetFormItem(2).(*tview.InputField).GetText()
+		if code == "" {
+			return
+		}
+
+		// Retry logging in with a 2FA token
+		l, err = client.TOTP(code, l.Ticket)
 		if err != nil {
 			log.Fatal(err)
 		}
-
-		v.core.Draw()
-		go keyring.Set(config.Name, "token", l.Token)
 	}
 
-	// TODO: MFA login
+	err = v.core.Run(l.Token)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	v.core.Draw()
+	go keyring.Set(config.Name, "token", l.Token)
 }
 
 type TokenView struct {
