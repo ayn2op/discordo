@@ -80,22 +80,9 @@ func New() *Config {
 	}
 }
 
-func (c *Config) Load() error {
-	configPath, err := os.UserConfigDir()
-	if err != nil {
-		return err
-	}
-
-	configPath = filepath.Join(configPath, Name)
-	// Create directories that do not exist and are mentioned in the path recursively.
-	err = os.MkdirAll(configPath, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	configPath = filepath.Join(configPath, "config.yml")
+func (cfg *Config) Load() error {
 	// Open the existing configuration file with read-only flag.
-	f, err := os.OpenFile(configPath, os.O_CREATE|os.O_RDWR, os.ModePerm)
+	f, err := os.OpenFile(cfg.configPath(), os.O_CREATE|os.O_RDWR, os.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -108,8 +95,15 @@ func (c *Config) Load() error {
 
 	// If the configuration file is empty (the size of the file is zero; a new configuration file was created), write the default configuration to the file.
 	if fi.Size() == 0 {
-		return yaml.NewEncoder(f).Encode(c)
+		return yaml.NewEncoder(f).Encode(cfg)
 	}
 
-	return yaml.NewDecoder(f).Decode(&c)
+	return yaml.NewDecoder(f).Decode(&cfg)
+}
+
+func (cfg *Config) configPath() string {
+	path, _ := os.UserConfigDir()
+	// Create the configuration directory if it does not exist already.
+	_ = os.MkdirAll(filepath.Join(path, Name), os.ModePerm)
+	return filepath.Join(path, "config.yml")
 }

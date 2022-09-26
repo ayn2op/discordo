@@ -127,7 +127,7 @@ func (mi *MessageInput) openExternalEditor() *tcell.EventKey {
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 
-	mi.core.Application.Suspend(func() {
+	mi.core.App.Suspend(func() {
 		err = cmd.Run()
 		if err != nil {
 			return

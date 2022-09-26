@@ -65,15 +65,17 @@ sudo mv ./discordo /usr/local/bin
 
 1. Run the `discordo` executable with no arguments.
 
-2. Enter your client authentication token (first-time login) and click on the "Login" button to continue.
+2. A login view will be displayed on first start-up. You can choose to login using either your email and password or token; the views can be switched using `Ctrl+Space` keybinding.
 
-- If you are logging in with a bot account, prefix the token with `Bot ` (eg: `discordo --token "Bot OTI2MDU5NTQxNDE2Nzc5ODA2.Yc2KKA.2iZ-5JxgxG-9Ub8GHzBSn-NJjNg"`). Furthermore, it is strongly recommended to change the user agent for HTTP requests from the configuration file if you are using a bot account to log in since the default user agent is that of a browser.
+3. Enter your credentials and click on the "Login" button to continue.
+
+- If you are logging in with a bot account, prefix the token with `Bot ` (eg: `Bot OTI2MDU5NTQxNDE2Nzc5ODA2.Yc2KKA.2iZ-5JxgxG-9Ub8GHzBSn-NJjNg`).
 
 - Most of the Discord third-party clients store the token in a configuration file unencrypted. Discordo securely stores the token in the default OS-specific keyring. 
 
 ### Configuration
 
-A default configuration file is created on first start-up at `$HOME/.config/discordo/config.yml` on Unix, `$HOME/Library/Application Support/discordo/config.yml` on Darwin, and `%AppData%/discordo/config.yml` on Windows. You can configure the default configuration directory path using the `config` command-line flag (eg: `discordo --config $HOME/my-custom-dir).
+A default configuration file is created on first start-up at `$HOME/.config/discordo/config.yml` on Unix, `$HOME/Library/Application Support/discordo/config.yml` on Darwin, and `%AppData%/discordo/config.yml` on Windows.
 
 ## Disclaimer
 

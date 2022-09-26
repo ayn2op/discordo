@@ -54,7 +54,7 @@ func (ct *ChannelsTree) onSelected(node *tview.TreeNode) {
 	}
 
 	ct.SelectedChannel = c
-	ct.core.Application.SetFocus(ct.core.MessageInput)
+	ct.core.App.SetFocus(ct.core.MessageInput)
 
 	title := channelToString(*c)
 	if c.Topic != "" {

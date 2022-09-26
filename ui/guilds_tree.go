@@ -57,5 +57,5 @@ func (gt *GuildsTree) onSelected(node *tview.TreeNode) {
 	}
 
 	gt.core.ChannelsTree.SetCurrentNode(rootNode)
-	gt.core.Application.SetFocus(gt.core.ChannelsTree)
+	gt.core.App.SetFocus(gt.core.ChannelsTree)
 }
