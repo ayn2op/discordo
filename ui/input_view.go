@@ -2,6 +2,7 @@ package ui
 
 import (
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -69,12 +70,14 @@ func (v *InputView) sendMessage() *tcell.EventKey {
 
 	ms, err := v.core.State.Messages(v.core.ChannelsView.selectedChannel.ID, v.core.Config.MessagesLimit)
 	if err != nil {
+		log.Println(err)
 		return nil
 	}
 
 	if len(v.core.MessagesView.GetHighlights()) != 0 {
 		mID, err := discord.ParseSnowflake(v.core.MessagesView.GetHighlights()[0])
 		if err != nil {
+			log.Println(err)
 			return nil
 		}
 
@@ -105,7 +108,12 @@ func (v *InputView) sendMessage() *tcell.EventKey {
 }
 
 func (v *InputView) pasteClipboard() *tcell.EventKey {
-	text, _ := clipboard.ReadAll()
+	text, err := clipboard.ReadAll()
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+
 	text = v.GetText() + text
 	v.SetText(text)
 	return nil
@@ -114,11 +122,13 @@ func (v *InputView) pasteClipboard() *tcell.EventKey {
 func (v *InputView) openExternalEditor() *tcell.EventKey {
 	e := os.Getenv("EDITOR")
 	if e == "" {
+		log.Println("environment variable EDITOR is empty")
 		return nil
 	}
 
 	f, err := os.CreateTemp(os.TempDir(), "discordo-*.md")
 	if err != nil {
+		log.Println(err)
 		return nil
 	}
 	defer os.Remove(f.Name())
@@ -130,12 +140,14 @@ func (v *InputView) openExternalEditor() *tcell.EventKey {
 	v.core.App.Suspend(func() {
 		err = cmd.Run()
 		if err != nil {
+			log.Println(err)
 			return
 		}
 	})
 
 	b, err := io.ReadAll(f)
 	if err != nil {
+		log.Println(err)
 		return nil
 	}
 

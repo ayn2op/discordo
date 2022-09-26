@@ -21,7 +21,7 @@ func NewLoginView(c *Core) *tview.Pages {
 
 	v.AddPage(emailViewPageName, newEmailView(c), true, true)
 	v.AddPage(tokenViewPageName, newTokenView(c), true, true)
-	// The email view is displayed on the screen first since it is the recommended method to login.
+	// Since the recommended method to login is using the email and password, it is displayed on the screen first.
 	v.SwitchToPage(emailViewPageName)
 
 	v.SetTitle("Login")
@@ -40,6 +40,7 @@ func NewLoginView(c *Core) *tview.Pages {
 			}
 
 			v.SwitchToPage(name)
+			return nil
 		}
 
 		return event
@@ -76,7 +77,6 @@ func (v *EmailView) onLoginButtonSelected() {
 
 	// Make a scratch HTTP client without a token
 	client := api.NewClient("").WithContext(context.Background())
-
 	// Try to login without TOTP
 	l, err := client.Login(email, password)
 	if err != nil {

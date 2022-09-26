@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 	"runtime"
 
 	"github.com/ayntgl/discordo/config"
@@ -14,6 +16,20 @@ import (
 )
 
 func init() {
+	cacheDir, err := os.UserCacheDir()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	f, err := os.Open(filepath.Join(cacheDir, config.Name, "out.log"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+
+	log.SetOutput(f)
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
 	tview.Borders.TopLeftFocus = tview.Borders.TopLeft
 	tview.Borders.TopRightFocus = tview.Borders.TopRight
 	tview.Borders.BottomLeftFocus = tview.Borders.BottomLeft
@@ -42,8 +58,12 @@ func main() {
 		log.Fatal(err)
 	}
 
+	token, err := keyring.Get(config.Name, "token")
+	if err != nil {
+		log.Println(err)
+	}
+
 	c := ui.NewCore(cfg)
-	token, _ := keyring.Get(config.Name, "token")
 	if token != "" {
 		err = c.Run(token)
 		if err != nil {
