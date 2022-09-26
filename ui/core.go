@@ -1,15 +1,21 @@
 package ui
 
 import (
+	"context"
+	"strings"
+
 	"github.com/ayntgl/discordo/config"
+	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
-type focused int
+type FocusedID int
 
 const (
-	guildsTree focused = iota
+	guildsTree FocusedID = iota
 	channelsTree
 	messagesPanel
 	messageInput
@@ -20,24 +26,21 @@ const (
 // - Configuration of the application and state when Run is called.
 // - Management of the application and state.
 type Core struct {
-	Application   *tview.Application
-	MainFlex      *tview.Flex
+	App           *tview.Application
+	View          *tview.Flex
 	GuildsTree    *GuildsTree
 	ChannelsTree  *ChannelsTree
 	MessagesPanel *MessagesPanel
 	MessageInput  *MessageInput
 
 	Config *config.Config
-	State  *State
+	State  *state.State
 
-	focused focused
+	focusedID FocusedID
 }
 
 func NewCore(cfg *config.Config) *Core {
 	c := &Core{
-		Application: tview.NewApplication(),
-		MainFlex:    tview.NewFlex(),
-
 		Config: cfg,
 	}
 
@@ -45,37 +48,48 @@ func NewCore(cfg *config.Config) *Core {
 	tview.Styles.BorderColor = tcell.GetColor(cfg.Theme.Border)
 	tview.Styles.TitleColor = tcell.GetColor(cfg.Theme.Title)
 
-	c.Application.EnableMouse(c.Config.Mouse)
-	c.Application.SetInputCapture(c.onInputCapture)
-	c.Application.SetBeforeDrawFunc(c.beforeDraw)
+	c.App = tview.NewApplication()
+	c.App.EnableMouse(c.Config.Mouse)
+	c.App.SetBeforeDrawFunc(c.onAppBeforeDraw)
+
+	c.View = tview.NewFlex()
+	c.View.SetInputCapture(c.onViewInputCapture)
 
 	c.GuildsTree = NewGuildsTree(c)
 	c.ChannelsTree = NewChannelsTree(c)
 	c.MessagesPanel = NewMessagesPanel(c)
 	c.MessageInput = NewMessageInput(c)
+
 	return c
 }
 
 func (c *Core) Run(token string) error {
-	c.State = NewState(token, c)
-	return c.State.Run()
+	c.State = state.New(token)
+	c.State.AddHandler(c.onReady)
+	c.State.AddHandler(c.onGuildCreate)
+	c.State.AddHandler(c.onGuildDelete)
+	c.State.AddHandler(c.onMessageCreate)
+	return c.State.Open(context.Background())
 }
 
-func (c *Core) DrawMainFlex() {
-	leftFlex := tview.NewFlex().
+func (c *Core) Draw() {
+	left := tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(c.GuildsTree, 10, 1, false).
 		AddItem(c.ChannelsTree, 0, 1, false)
-	rightFlex := tview.NewFlex().
+	right := tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(c.MessagesPanel, 0, 1, false).
 		AddItem(c.MessageInput, 3, 1, false)
-	c.MainFlex.
-		AddItem(leftFlex, 0, 1, false).
-		AddItem(rightFlex, 0, 4, false)
+
+	c.View.AddItem(left, 0, 1, false)
+	c.View.AddItem(right, 0, 4, false)
+
+	c.App.SetRoot(c.View, true)
+	c.App.SetFocus(c.GuildsTree)
 }
 
-func (c *Core) beforeDraw(screen tcell.Screen) bool {
+func (c *Core) onAppBeforeDraw(screen tcell.Screen) bool {
 	if c.Config.Theme.Background == "default" {
 		screen.Clear()
 	}
@@ -83,30 +97,25 @@ func (c *Core) beforeDraw(screen tcell.Screen) bool {
 	return false
 }
 
-func (c *Core) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
-	// If the main flex is nil, that is, it is not initialized yet, then the login form is currently focused.
-	if c.MainFlex == nil {
-		return event
-	}
-
+func (c *Core) onViewInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Key() {
 	case tcell.KeyEsc:
-		c.focused = 0
+		c.focusedID = 0
 	case tcell.KeyBacktab:
 		// If the currently focused widget is the guilds tree widget (first), then focus the message input widget (last)
-		if c.focused == 0 {
-			c.focused = messageInput
+		if c.focusedID == 0 {
+			c.focusedID = messageInput
 		} else {
-			c.focused--
+			c.focusedID--
 		}
 
 		c.setFocus()
 	case tcell.KeyTab:
 		// If the currently focused widget is the message input widget (last), then focus the guilds tree widget (first)
-		if c.focused == messageInput {
-			c.focused = guildsTree
+		if c.focusedID == messageInput {
+			c.focusedID = guildsTree
 		} else {
-			c.focused++
+			c.focusedID++
 		}
 
 		c.setFocus()
@@ -117,7 +126,7 @@ func (c *Core) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 
 func (c *Core) setFocus() {
 	var p tview.Primitive
-	switch c.focused {
+	switch c.focusedID {
 	case guildsTree:
 		p = c.GuildsTree
 	case channelsTree:
@@ -128,5 +137,103 @@ func (c *Core) setFocus() {
 		p = c.MessageInput
 	}
 
-	c.Application.SetFocus(p)
+	c.App.SetFocus(p)
+}
+
+func (c *Core) onReady(r *gateway.ReadyEvent) {
+	rootNode := c.GuildsTree.GetRoot()
+	for _, gf := range r.UserSettings.GuildFolders {
+		if gf.ID == 0 {
+			for _, gID := range gf.GuildIDs {
+				g, err := c.State.Cabinet.Guild(gID)
+				if err != nil {
+					return
+				}
+
+				guildNode := tview.NewTreeNode(g.Name)
+				guildNode.SetReference(g.ID)
+				rootNode.AddChild(guildNode)
+			}
+		} else {
+			var b strings.Builder
+
+			if gf.Color != discord.NullColor {
+				b.WriteByte('[')
+				b.WriteString(gf.Color.String())
+				b.WriteByte(']')
+			} else {
+				b.WriteString("[#ED4245]")
+			}
+
+			if gf.Name != "" {
+				b.WriteString(gf.Name)
+			} else {
+				b.WriteString("Folder")
+			}
+
+			b.WriteString("[-]")
+
+			folderNode := tview.NewTreeNode(b.String())
+			rootNode.AddChild(folderNode)
+
+			for _, gID := range gf.GuildIDs {
+				g, err := c.State.Cabinet.Guild(gID)
+				if err != nil {
+					return
+				}
+
+				guildNode := tview.NewTreeNode(g.Name)
+				guildNode.SetReference(g.ID)
+				folderNode.AddChild(guildNode)
+			}
+		}
+
+	}
+
+	c.GuildsTree.SetCurrentNode(rootNode)
+	c.App.SetFocus(c.GuildsTree)
+}
+
+func (c *Core) onGuildCreate(g *gateway.GuildCreateEvent) {
+	guildNode := tview.NewTreeNode(g.Name)
+	guildNode.SetReference(g.ID)
+
+	rootNode := c.GuildsTree.GetRoot()
+	rootNode.AddChild(guildNode)
+
+	c.GuildsTree.SetCurrentNode(rootNode)
+	c.App.SetFocus(c.GuildsTree)
+	c.App.Draw()
+}
+
+func (c *Core) onGuildDelete(g *gateway.GuildDeleteEvent) {
+	rootNode := c.GuildsTree.GetRoot()
+	var parentNode *tview.TreeNode
+	rootNode.Walk(func(node, _ *tview.TreeNode) bool {
+		if node.GetReference() == g.ID {
+			parentNode = node
+			return false
+		}
+
+		return true
+	})
+
+	if parentNode != nil {
+		rootNode.RemoveChild(parentNode)
+	}
+
+	c.App.Draw()
+}
+
+func (c *Core) onMessageCreate(m *gateway.MessageCreateEvent) {
+	if c.ChannelsTree.SelectedChannel != nil && c.ChannelsTree.SelectedChannel.ID == m.ChannelID {
+		_, err := c.MessagesPanel.Write(buildMessage(c, m.Message))
+		if err != nil {
+			return
+		}
+
+		if len(c.MessagesPanel.GetHighlights()) == 0 {
+			c.MessagesPanel.ScrollToEnd()
+		}
+	}
 }

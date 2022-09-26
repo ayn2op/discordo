@@ -27,7 +27,7 @@ func NewMessagesPanel(c *Core) *MessagesPanel {
 	mp.SetWordWrap(true)
 	mp.SetInputCapture(mp.onInputCapture)
 	mp.SetChangedFunc(func() {
-		mp.core.Application.Draw()
+		mp.core.App.Draw()
 	})
 
 	mp.SetTitle("Messages")
@@ -64,7 +64,7 @@ func (mp *MessagesPanel) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		return mp.selectLastMessage(ms)
 	case "Esc":
 		mp.SelectedMessage = -1
-		mp.core.Application.SetFocus(mp.core.MainFlex)
+		mp.core.App.SetFocus(mp.core.View)
 		mp.
 			Clear().
 			Highlight().
@@ -145,6 +145,6 @@ func (mp *MessagesPanel) openMessageActionsList(ms []discord.Message) *tcell.Eve
 	}
 
 	actionsList := NewMessageActionsList(mp.core, m)
-	mp.core.Application.SetRoot(actionsList, true)
+	mp.core.App.SetRoot(actionsList, true)
 	return nil
 }

@@ -30,8 +30,8 @@ func NewMessageActionsList(c *Core, m *discord.Message) *MessageActionsList {
 
 	mal.ShowSecondaryText(false)
 	mal.SetDoneFunc(func() {
-		c.Application.SetRoot(c.MainFlex, true)
-		c.Application.SetFocus(c.MessagesPanel)
+		c.App.SetRoot(c.View, true)
+		c.App.SetFocus(c.MessagesPanel)
 	})
 
 	// If the client user has the `SEND_MESSAGES` permission, add "Reply" and "Mention Reply" actions.
@@ -53,8 +53,8 @@ func NewMessageActionsList(c *Core, m *discord.Message) *MessageActionsList {
 				go open.Run(l)
 			}
 
-			c.Application.SetRoot(c.MainFlex, true)
-			c.Application.SetFocus(c.MessagesPanel)
+			c.App.SetRoot(c.View, true)
+			c.App.SetFocus(c.MessagesPanel)
 		})
 	}
 
@@ -84,15 +84,15 @@ func NewMessageActionsList(c *Core, m *discord.Message) *MessageActionsList {
 func (mal *MessageActionsList) replyAction() {
 	mal.core.MessageInput.SetTitle("Replying to " + mal.message.Author.Tag())
 
-	mal.core.Application.SetRoot(mal.core.MainFlex, true)
-	mal.core.Application.SetFocus(mal.core.MessageInput)
+	mal.core.App.SetRoot(mal.core.View, true)
+	mal.core.App.SetFocus(mal.core.MessageInput)
 }
 
 func (mal *MessageActionsList) mentionReplyAction() {
 	mal.core.MessageInput.SetTitle("[@] Replying to " + mal.message.Author.Tag())
 
-	mal.core.Application.SetRoot(mal.core.MainFlex, true)
-	mal.core.Application.SetFocus(mal.core.MessageInput)
+	mal.core.App.SetRoot(mal.core.View, true)
+	mal.core.App.SetFocus(mal.core.MessageInput)
 }
 
 func (mal *MessageActionsList) selectReplyAction() {
@@ -106,8 +106,8 @@ func (mal *MessageActionsList) selectReplyAction() {
 		Highlight(mal.message.ReferencedMessage.ID.String()).
 		ScrollToHighlight()
 
-	mal.core.Application.SetRoot(mal.core.MainFlex, true)
-	mal.core.Application.SetFocus(mal.core.MessagesPanel)
+	mal.core.App.SetRoot(mal.core.View, true)
+	mal.core.App.SetFocus(mal.core.MessagesPanel)
 }
 
 func (mal *MessageActionsList) openAttachmentAction() {
@@ -133,8 +133,8 @@ func (mal *MessageActionsList) openAttachmentAction() {
 		go open.Run(f.Name())
 	}
 
-	mal.core.Application.SetRoot(mal.core.MainFlex, true)
-	mal.core.Application.SetFocus(mal.core.MessagesPanel)
+	mal.core.App.SetRoot(mal.core.View, true)
+	mal.core.App.SetFocus(mal.core.MessagesPanel)
 }
 
 func (mal *MessageActionsList) downloadAttachmentAction() {
@@ -164,8 +164,8 @@ func (mal *MessageActionsList) downloadAttachmentAction() {
 		f.Write(d)
 	}
 
-	mal.core.Application.SetRoot(mal.core.MainFlex, true)
-	mal.core.Application.SetFocus(mal.core.MessagesPanel)
+	mal.core.App.SetRoot(mal.core.View, true)
+	mal.core.App.SetFocus(mal.core.MessagesPanel)
 }
 
 func (mal *MessageActionsList) deleteAction() {
@@ -194,8 +194,8 @@ func (mal *MessageActionsList) deleteAction() {
 		}
 	}
 
-	mal.core.Application.SetRoot(mal.core.MainFlex, true)
-	mal.core.Application.SetFocus(mal.core.MessagesPanel)
+	mal.core.App.SetRoot(mal.core.View, true)
+	mal.core.App.SetFocus(mal.core.MessagesPanel)
 }
 
 func (mal *MessageActionsList) copyContentAction() {
@@ -204,8 +204,8 @@ func (mal *MessageActionsList) copyContentAction() {
 		return
 	}
 
-	mal.core.Application.SetRoot(mal.core.MainFlex, true)
-	mal.core.Application.SetFocus(mal.core.MessagesPanel)
+	mal.core.App.SetRoot(mal.core.View, true)
+	mal.core.App.SetFocus(mal.core.MessagesPanel)
 }
 
 func (mal *MessageActionsList) copyIDAction() {
@@ -214,8 +214,8 @@ func (mal *MessageActionsList) copyIDAction() {
 		return
 	}
 
-	mal.core.Application.SetRoot(mal.core.MainFlex, true)
-	mal.core.Application.SetFocus(mal.core.MessagesPanel)
+	mal.core.App.SetRoot(mal.core.View, true)
+	mal.core.App.SetFocus(mal.core.MessagesPanel)
 }
 
 func (mal *MessageActionsList) copyLinkAction() {
@@ -224,6 +224,6 @@ func (mal *MessageActionsList) copyLinkAction() {
 		return
 	}
 
-	mal.core.Application.SetRoot(mal.core.MainFlex, true)
-	mal.core.Application.SetFocus(mal.core.MessagesPanel)
+	mal.core.App.SetRoot(mal.core.View, true)
+	mal.core.App.SetFocus(mal.core.MessagesPanel)
 }
