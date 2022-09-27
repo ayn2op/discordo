@@ -103,7 +103,8 @@ func (cfg *Config) Load() error {
 
 func (cfg *Config) configPath() string {
 	path, _ := os.UserConfigDir()
+	path = filepath.Join(path, Name)
 	// Create the configuration directory if it does not exist already.
-	_ = os.MkdirAll(filepath.Join(path, Name), os.ModePerm)
+	_ = os.MkdirAll(path, os.ModePerm)
 	return filepath.Join(path, "config.yml")
 }
