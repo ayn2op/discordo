@@ -16,16 +16,22 @@ import (
 )
 
 func init() {
-	cacheDir, err := os.UserCacheDir()
+	path, err := os.UserCacheDir()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	f, err := os.Open(filepath.Join(cacheDir, config.Name, "out.log"))
+	path = filepath.Join(path, config.Name)
+	err = os.MkdirAll(path, os.ModePerm)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer f.Close()
+
+	path = filepath.Join(path, "out.log")
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, os.ModePerm)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	log.SetOutput(f)
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
