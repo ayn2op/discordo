@@ -84,7 +84,9 @@ func (v *InputView) sendMessage() *tcell.EventKey {
 		_, m := findMessageByID(ms, discord.MessageID(mID))
 		d := api.SendMessageData{
 			Content:         t,
-			Reference:       m.Reference,
+			Reference:       &discord.MessageReference{
+				MessageID: discord.MessageID(mID),
+			},
 			AllowedMentions: &api.AllowedMentions{RepliedUser: option.False},
 		}
 

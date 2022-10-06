@@ -42,7 +42,7 @@ func channelToString(c discord.Channel) string {
 			for i, r := range c.DMRecipients {
 				rps[i] = r.Username + "#" + r.Discriminator
 			}
-	
+
 			repr = strings.Join(rps, ", ")
 		}
 	default:
@@ -60,6 +60,10 @@ func findMessageByID(ms []discord.Message, mID discord.MessageID) (int, *discord
 	}
 
 	return -1, nil
+}
+
+func channelIsInDMCategory(c *discord.Channel) bool {
+	return c.Type == discord.DirectMessage || c.Type == discord.GroupDM
 }
 
 func hasPermission(s *state.State, cID discord.ChannelID, p discord.Permissions) bool {
