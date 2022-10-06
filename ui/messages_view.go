@@ -28,6 +28,16 @@ func newMessagesView(c *Core) *MessagesView {
 		v.core.App.Draw()
 	})
 
+	v.SetHighlightedFunc(func(added, _, _ []string) {
+		if len(added) == 0 {
+			v.selectedMessage = -1
+			return
+		}
+		mID, _ := discord.ParseSnowflake(added[0])
+		ms, _ := c.State.Cabinet.Messages(v.core.ChannelsView.selectedChannel.ID)
+		v.selectedMessage, _ = findMessageByID(ms, discord.MessageID(mID))
+	})
+
 	v.SetTitle("Messages")
 	v.SetTitleAlign(tview.AlignLeft)
 	v.SetBorder(true)
