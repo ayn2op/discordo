@@ -34,8 +34,10 @@ func newActionsView(c *Core, m *discord.Message) *ActionsView {
 		c.App.SetFocus(c.MessagesView)
 	})
 
+	isDM := channelIsInDMCategory(c.ChannelsView.selectedChannel)
+
 	// If the client user has the `SEND_MESSAGES` permission, add "Reply" and "Mention Reply" actions.
-	if channelIsInDMCategory(c.ChannelsView.selectedChannel) || hasPermission(c.State, c.ChannelsView.selectedChannel.ID, discord.PermissionSendMessages) {
+	if isDM || !isDM && hasPermission(c.State, c.ChannelsView.selectedChannel.ID, discord.PermissionSendMessages) {
 		v.AddItem("Reply", "", 'r', v.replyAction)
 		v.AddItem("Mention Reply", "", 'R', v.mentionReplyAction)
 	}
@@ -64,8 +66,10 @@ func newActionsView(c *Core, m *discord.Message) *ActionsView {
 		v.AddItem("Download Attachment", "", 'd', v.downloadAttachmentAction)
 	}
 
+	me, _ := c.State.MeStore.Me()
+
 	// If the client user has the `MANAGE_MESSAGES` permission, add a new action to delete the message.
-	if channelIsInDMCategory(c.ChannelsView.selectedChannel) || hasPermission(c.State, c.ChannelsView.selectedChannel.ID, discord.PermissionManageMessages) {
+	if (isDM && m.Author.ID == me.ID) || (!isDM && hasPermission(c.State, c.ChannelsView.selectedChannel.ID, discord.PermissionManageMessages)) {
 		v.AddItem("Delete", "", 'd', v.deleteAction)
 	}
 
