@@ -8,15 +8,12 @@ import (
 
 type MessagesView struct {
 	*tview.TextView
-	// The index of the currently selected message. A negative index indicates that there is no currently selected message.
-	selectedMessage int
 	core            *Core
 }
 
 func newMessagesView(c *Core) *MessagesView {
 	v := &MessagesView{
 		TextView:        tview.NewTextView(),
-		selectedMessage: -1,
 		core:            c,
 	}
 
@@ -50,7 +47,6 @@ func (v *MessagesView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	switch e.Name() {
 	case v.core.Config.Keys.MessagesView.OpenActionsView:
 		return v.openActionsView(ms)
-
 	case v.core.Config.Keys.MessagesView.SelectPreviousMessage:
 		return v.selectPreviousMessage(ms)
 	case v.core.Config.Keys.MessagesView.SelectNextMessage:
@@ -60,7 +56,6 @@ func (v *MessagesView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	case v.core.Config.Keys.MessagesView.SelectLastMessage:
 		return v.selectLastMessage(ms)
 	case "Esc":
-		v.selectedMessage = -1
 		v.core.App.SetFocus(v.core.View)
 		v.
 			Clear().
@@ -73,54 +68,62 @@ func (v *MessagesView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 }
 
 func (v *MessagesView) selectPreviousMessage(ms []discord.Message) *tcell.EventKey {
+	selInd := 0
+	cSel := v.GetHighlights()
 	// If there are no highlighted regions, select the latest (last) message.
-	if len(v.GetHighlights()) == 0 {
-		v.selectedMessage = 0
+	if len(cSel) == 0 {
+		selInd = 0
 	} else {
+		cID, _ := discord.ParseSnowflake(cSel[0])
+		selInd, _ = findMessageByID(ms, discord.MessageID(cID))
 		// If the selected message is the oldest (first) message, select the latest (last) message.
-		if v.selectedMessage == len(ms)-1 {
-			v.selectedMessage = 0
+		if selInd == len(ms)-1 {
+			selInd = 0
 		} else {
-			v.selectedMessage++
+			selInd++
 		}
 	}
 
-	v.Highlight(ms[v.selectedMessage].ID.String())
+	v.Highlight(ms[selInd].ID.String())
 	v.ScrollToHighlight()
 	return nil
 }
 
 func (v *MessagesView) selectNextMessage(ms []discord.Message) *tcell.EventKey {
+	selInd := 0
+	cSel := v.GetHighlights()
 	// If there are no highlighted regions, select the latest (last) message.
-	if len(v.GetHighlights()) == 0 {
-		v.selectedMessage = 0
+	if len(cSel) == 0 {
+		selInd = 0
 	} else {
-		// If the selected message is the latest (last) message, select the oldest (first) message.
-		if v.selectedMessage == 0 {
-			v.selectedMessage = len(ms) - 1
+		cID, _ := discord.ParseSnowflake(cSel[0])
+		selInd, _ = findMessageByID(ms, discord.MessageID(cID))
+		// If the selected message is the oldest (first) message, select the latest (last) message.
+		if selInd == 0 {
+			selInd = len(ms)-1
 		} else {
-			v.selectedMessage--
+			selInd--
 		}
 	}
 
 	v.
-		Highlight(ms[v.selectedMessage].ID.String()).
+		Highlight(ms[selInd].ID.String()).
 		ScrollToHighlight()
 	return nil
 }
 
 func (v *MessagesView) selectFirstMessage(ms []discord.Message) *tcell.EventKey {
-	v.selectedMessage = len(ms) - 1
+	selID := len(ms) - 1
 	v.
-		Highlight(ms[v.selectedMessage].ID.String()).
+		Highlight(ms[selID].ID.String()).
 		ScrollToHighlight()
 	return nil
 }
 
 func (v *MessagesView) selectLastMessage(ms []discord.Message) *tcell.EventKey {
-	v.selectedMessage = 0
+	selID := 0
 	v.
-		Highlight(ms[v.selectedMessage].ID.String()).
+		Highlight(ms[selID].ID.String()).
 		ScrollToHighlight()
 	return nil
 }

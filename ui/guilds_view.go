@@ -33,7 +33,6 @@ func newGuildsView(c *Core) *GuildsView {
 
 func (v *GuildsView) onSelected(node *tview.TreeNode) {
 	v.core.ChannelsView.selectedChannel = nil
-	v.core.MessagesView.selectedMessage = -1
 	rootNode := v.core.ChannelsView.GetRoot()
 	rootNode.ClearChildren()
 	v.core.MessagesView.

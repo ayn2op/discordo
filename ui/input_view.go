@@ -50,7 +50,6 @@ func (v *InputView) inputCapture(event *tcell.EventKey) *tcell.EventKey {
 		v.
 			SetText("").
 			SetTitle("")
-		v.core.MessagesView.selectedMessage = -1
 		v.core.MessagesView.Highlight()
 		return nil
 	}
@@ -95,7 +94,6 @@ func (v *InputView) sendMessage() *tcell.EventKey {
 
 		go v.core.State.SendMessageComplex(m.ChannelID, d)
 
-		v.core.MessagesView.selectedMessage = -1
 		v.core.MessagesView.Highlight()
 
 		v.SetTitle("")

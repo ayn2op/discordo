@@ -96,12 +96,6 @@ func (v *ActionsView) mentionReplyAction() {
 }
 
 func (v *ActionsView) selectReplyAction() {
-	ms, err := v.core.State.Cabinet.Messages(v.message.ChannelID)
-	if err != nil {
-		return
-	}
-
-	v.core.MessagesView.selectedMessage, _ = findMessageByID(ms, v.message.ReferencedMessage.ID)
 	v.core.MessagesView.
 		Highlight(v.message.ReferencedMessage.ID.String()).
 		ScrollToHighlight()
