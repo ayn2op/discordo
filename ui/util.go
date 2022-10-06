@@ -35,12 +35,16 @@ func channelToString(c discord.Channel) string {
 		rp := c.DMRecipients[0]
 		repr = rp.Username + "#" + rp.Discriminator
 	case discord.GroupDM:
-		rps := make([]string, len(c.DMRecipients))
-		for i, r := range c.DMRecipients {
-			rps[i] = r.Username + "#" + r.Discriminator
+		repr = c.Name
+		// if the name wasn't loaded, use it as a backup
+		if repr == "" {
+			rps := make([]string, len(c.DMRecipients))
+			for i, r := range c.DMRecipients {
+				rps[i] = r.Username + "#" + r.Discriminator
+			}
+	
+			repr = strings.Join(rps, ", ")
 		}
-
-		repr = strings.Join(rps, ", ")
 	default:
 		repr = c.Name
 	}
