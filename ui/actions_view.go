@@ -35,7 +35,7 @@ func newActionsView(c *Core, m *discord.Message) *ActionsView {
 	})
 
 	// If the client user has the `SEND_MESSAGES` permission, add "Reply" and "Mention Reply" actions.
-	if hasPermission(c.State, c.ChannelsView.selectedChannel.ID, discord.PermissionSendMessages) {
+	if channelIsInDMCategory(c.ChannelsView.selectedChannel) || hasPermission(c.State, c.ChannelsView.selectedChannel.ID, discord.PermissionSendMessages) {
 		v.AddItem("Reply", "", 'r', v.replyAction)
 		v.AddItem("Mention Reply", "", 'R', v.mentionReplyAction)
 	}
@@ -65,7 +65,7 @@ func newActionsView(c *Core, m *discord.Message) *ActionsView {
 	}
 
 	// If the client user has the `MANAGE_MESSAGES` permission, add a new action to delete the message.
-	if hasPermission(c.State, c.ChannelsView.selectedChannel.ID, discord.PermissionManageMessages) {
+	if channelIsInDMCategory(c.ChannelsView.selectedChannel) || hasPermission(c.State, c.ChannelsView.selectedChannel.ID, discord.PermissionManageMessages) {
 		v.AddItem("Delete", "", 'd', v.deleteAction)
 	}
 
