@@ -97,7 +97,15 @@ func (v *ChannelsView) createPrivateChannelNodes(root *tview.TreeNode) {
 	}
 
 	sort.Slice(cs, func(i, j int) bool {
-		return cs[i].LastMessageID > cs[j].LastMessageID
+		idUsed := discord.MessageID(cs[i].ID)
+		idUsed2 := discord.MessageID(cs[j].ID)
+		if cs[i].LastMessageID.IsValid() {
+			idUsed = cs[i].LastMessageID
+		}
+		if cs[j].LastMessageID.IsValid() {
+			idUsed2 = cs[j].LastMessageID
+		}
+		return idUsed > idUsed2
 	})
 
 	for _, c := range cs {
