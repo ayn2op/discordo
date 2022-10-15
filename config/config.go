@@ -80,9 +80,9 @@ func New() *Config {
 	}
 }
 
-func (cfg *Config) Load() error {
+func (cfg *Config) Load(path string) error {
 	// Open the existing configuration file with read-only flag.
-	f, err := os.OpenFile(cfg.configPath(), os.O_CREATE|os.O_RDWR, os.ModePerm)
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, os.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -101,10 +101,14 @@ func (cfg *Config) Load() error {
 	return yaml.NewDecoder(f).Decode(&cfg)
 }
 
-func (cfg *Config) configPath() string {
+// DefaultConfigPath returns the default configuration file path.
+func DefaultConfigPath() string {
 	path, _ := os.UserConfigDir()
-	path = filepath.Join(path, Name)
-	// Create the configuration directory if it does not exist already.
-	_ = os.MkdirAll(path, os.ModePerm)
-	return filepath.Join(path, "config.yml")
+	return filepath.Join(path, Name+".yml")
+}
+
+// DefaultLogPath returns the default log file path.
+func DefaultLogPath() string {
+	path, _ := os.UserCacheDir()
+	return filepath.Join(path, Name+".log")
 }
