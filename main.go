@@ -1,10 +1,10 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 	"runtime"
 
 	"github.com/ayntgl/discordo/config"
@@ -15,27 +15,13 @@ import (
 	"github.com/zalando/go-keyring"
 )
 
+var (
+	flagToken  string
+	flagConfig string
+	flagLog    string
+)
+
 func init() {
-	path, err := os.UserCacheDir()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	path = filepath.Join(path, config.Name)
-	err = os.MkdirAll(path, os.ModePerm)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	path = filepath.Join(path, "out.log")
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, os.ModePerm)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.SetOutput(f)
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
-
 	tview.Borders.TopLeftFocus = tview.Borders.TopLeft
 	tview.Borders.TopRightFocus = tview.Borders.TopRight
 	tview.Borders.BottomLeftFocus = tview.Borders.BottomLeft
@@ -55,18 +41,41 @@ func init() {
 		Browser: config.Name,
 		Device:  "",
 	}
+
+	flag.StringVar(&flagToken, "token", "", "The authentication token.")
+	flag.StringVar(&flagConfig, "config", config.DefaultConfigPath(), "The path to the configuration file.")
+	flag.StringVar(&flagLog, "log", config.DefaultLogPath(), "The path to the log file.")
 }
 
 func main() {
+	flag.Parse()
+
+	if flagLog != "" {
+		// Set the standard logger output to the provided log file.
+		f, err := os.OpenFile(flagLog, os.O_CREATE|os.O_WRONLY, 0666)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		log.SetOutput(f)
+		log.SetFlags(log.LstdFlags | log.Lshortfile)
+	}
+
 	cfg := config.New()
-	err := cfg.Load()
+	err := cfg.Load(flagConfig)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	token, err := keyring.Get(config.Name, "token")
-	if err != nil {
-		log.Println(err)
+	var token string
+	if flagToken != "" {
+		token = flagToken
+		go keyring.Set(config.Name, "token", token)
+	} else {
+		token, err = keyring.Get(config.Name, "token")
+		if err != nil {
+			log.Println(err)
+		}
 	}
 
 	c := ui.NewCore(cfg)
