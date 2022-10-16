@@ -10,14 +10,16 @@ import (
 
 type ChannelsView struct {
 	*tview.TreeView
-	selectedChannel *discord.Channel
-	app             *Application
+
+	app      *Application
+	selected *discord.Channel
 }
 
 func newChannelsView(app *Application) *ChannelsView {
 	v := &ChannelsView{
 		TreeView: tview.NewTreeView(),
-		app:      app,
+
+		app: app,
 	}
 
 	v.SetRoot(tview.NewTreeNode(""))
@@ -33,7 +35,7 @@ func newChannelsView(app *Application) *ChannelsView {
 }
 
 func (v *ChannelsView) onSelected(node *tview.TreeNode) {
-	v.selectedChannel = nil
+	v.selected = nil
 	v.app.view.MessagesView.selectedMessage = -1
 	v.app.view.MessagesView.
 		Highlight().
@@ -42,44 +44,31 @@ func (v *ChannelsView) onSelected(node *tview.TreeNode) {
 	v.app.view.InputView.SetText("")
 
 	ref := node.GetReference()
+	if ref == nil {
+		log.Println("selected channel reference is nil")
+		return
+	}
+
 	c, err := v.app.state.Cabinet.Channel(ref.(discord.ChannelID))
 	if err != nil {
+		log.Println("selected channel not found")
 		return
 	}
 
+	switch c.Type {
 	// If the channel is a category channel, expand the selected node if it is collapsed, otherwise collapse.
-	if c.Type == discord.GuildCategory {
+	case discord.GuildCategory:
 		node.SetExpanded(!node.IsExpanded())
 		return
+
+	default:
+		v.selected = c
+
+		v.app.view.MessagesView.setTitle(c)
+		v.app.SetFocus(v.app.view.InputView)
+
+		go v.app.view.MessagesView.loadMessages(c)
 	}
-
-	v.selectedChannel = c
-	v.app.SetFocus(v.app.view.InputView)
-
-	title := channelToString(*c)
-	if c.Topic != "" {
-		title += " - " + parseMarkdown(c.Topic)
-	}
-	v.app.view.MessagesView.SetTitle(title)
-
-	go func() {
-		// The returned slice will be sorted from latest to oldest.
-		ms, err := v.app.state.Messages(c.ID, v.app.config.MessagesLimit)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
-		for i := len(ms) - 1; i >= 0; i-- {
-			_, err = v.app.view.MessagesView.Write(buildMessage(v.app, ms[i]))
-			if err != nil {
-				log.Println(err)
-				continue
-			}
-		}
-
-		v.app.view.MessagesView.ScrollToEnd()
-	}()
 }
 
 func (v *ChannelsView) createChannelNode(c discord.Channel) *tview.TreeNode {

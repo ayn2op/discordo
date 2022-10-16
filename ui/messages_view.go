@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"log"
+
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -36,13 +38,41 @@ func newMessagesView(app *Application) *MessagesView {
 	return v
 }
 
+func (v *MessagesView) setTitle(c *discord.Channel) {
+	title := channelToString(*c)
+	if c.Topic != "" {
+		title += " - " + parseMarkdown(c.Topic)
+	}
+
+	v.SetTitle(title)
+}
+
+func (v *MessagesView) loadMessages(c *discord.Channel) {
+	// The returned slice will be sorted from latest to oldest.
+	ms, err := v.app.state.Messages(c.ID, v.app.config.MessagesLimit)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	for i := len(ms) - 1; i >= 0; i-- {
+		_, err = v.app.view.MessagesView.Write(buildMessage(v.app, ms[i]))
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+	}
+
+	v.ScrollToEnd()
+}
+
 func (v *MessagesView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
-	if v.app.view.ChannelsView.selectedChannel == nil {
+	if v.app.view.ChannelsView.selected == nil {
 		return nil
 	}
 
 	// Messages should return messages ordered from latest to earliest.
-	ms, err := v.app.state.Cabinet.Messages(v.app.view.ChannelsView.selectedChannel.ID)
+	ms, err := v.app.state.Cabinet.Messages(v.app.view.ChannelsView.selected.ID)
 	if err != nil || len(ms) == 0 {
 		return nil
 	}

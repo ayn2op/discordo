@@ -189,7 +189,7 @@ func (c *Application) onGuildDelete(g *gateway.GuildDeleteEvent) {
 }
 
 func (c *Application) onMessageCreate(m *gateway.MessageCreateEvent) {
-	if c.view.ChannelsView.selectedChannel != nil && c.view.ChannelsView.selectedChannel.ID == m.ChannelID {
+	if c.view.ChannelsView.selected != nil && c.view.ChannelsView.selected.ID == m.ChannelID {
 		_, err := c.view.MessagesView.Write(buildMessage(c, m.Message))
 		if err != nil {
 			return

@@ -59,7 +59,7 @@ func (v *InputView) inputCapture(event *tcell.EventKey) *tcell.EventKey {
 }
 
 func (v *InputView) sendMessage() *tcell.EventKey {
-	if v.app.view.ChannelsView.selectedChannel == nil {
+	if v.app.view.ChannelsView.selected == nil {
 		return nil
 	}
 
@@ -68,7 +68,7 @@ func (v *InputView) sendMessage() *tcell.EventKey {
 		return nil
 	}
 
-	ms, err := v.app.state.Messages(v.app.view.ChannelsView.selectedChannel.ID, v.app.config.MessagesLimit)
+	ms, err := v.app.state.Messages(v.app.view.ChannelsView.selected.ID, v.app.config.MessagesLimit)
 	if err != nil {
 		log.Println(err)
 		return nil
@@ -102,7 +102,7 @@ func (v *InputView) sendMessage() *tcell.EventKey {
 
 		v.SetTitle("")
 	} else {
-		go v.app.state.SendMessage(v.app.view.ChannelsView.selectedChannel.ID, t)
+		go v.app.state.SendMessage(v.app.view.ChannelsView.selected.ID, t)
 	}
 
 	v.SetText("")
