@@ -12,13 +12,13 @@ import (
 
 type LoginView struct {
 	*tview.Form
-	core *Core
+	app *Application
 }
 
-func NewLoginView(c *Core) *LoginView {
+func newLoginView(app *Application) *LoginView {
 	v := &LoginView{
 		Form: tview.NewForm(),
-		core: c,
+		app:  app,
 	}
 
 	v.AddInputField("Email", "", 0, nil, nil)
@@ -63,11 +63,13 @@ func (v *LoginView) onLoginButtonSelected() {
 		}
 	}
 
-	err = v.core.Run(l.Token)
+	err = v.app.Connect(l.Token)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	v.core.Draw()
+	v.app.SetRoot(v.app.view, true)
+	v.app.SetFocus(v.app.view.GuildsView)
+
 	go keyring.Set(config.Name, "token", l.Token)
 }

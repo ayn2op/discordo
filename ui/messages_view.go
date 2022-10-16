@@ -10,14 +10,14 @@ type MessagesView struct {
 	*tview.TextView
 	// The index of the currently selected message. A negative index indicates that there is no currently selected message.
 	selectedMessage int
-	core            *Core
+	app             *Application
 }
 
-func newMessagesView(c *Core) *MessagesView {
+func newMessagesView(app *Application) *MessagesView {
 	v := &MessagesView{
 		TextView:        tview.NewTextView(),
 		selectedMessage: -1,
-		core:            c,
+		app:             app,
 	}
 
 	v.SetDynamicColors(true)
@@ -25,7 +25,7 @@ func newMessagesView(c *Core) *MessagesView {
 	v.SetWordWrap(true)
 	v.SetInputCapture(v.onInputCapture)
 	v.SetChangedFunc(func() {
-		v.core.App.Draw()
+		v.app.Draw()
 	})
 
 	v.SetTitle("Messages")
@@ -37,31 +37,31 @@ func newMessagesView(c *Core) *MessagesView {
 }
 
 func (v *MessagesView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
-	if v.core.ChannelsView.selectedChannel == nil {
+	if v.app.view.ChannelsView.selectedChannel == nil {
 		return nil
 	}
 
 	// Messages should return messages ordered from latest to earliest.
-	ms, err := v.core.State.Cabinet.Messages(v.core.ChannelsView.selectedChannel.ID)
+	ms, err := v.app.state.Cabinet.Messages(v.app.view.ChannelsView.selectedChannel.ID)
 	if err != nil || len(ms) == 0 {
 		return nil
 	}
 
 	switch e.Name() {
-	case v.core.Config.Keys.MessagesView.OpenActionsView:
+	case v.app.config.Keys.MessagesView.OpenActionsView:
 		return v.openActionsView(ms)
 
-	case v.core.Config.Keys.MessagesView.SelectPreviousMessage:
+	case v.app.config.Keys.MessagesView.SelectPreviousMessage:
 		return v.selectPreviousMessage(ms)
-	case v.core.Config.Keys.MessagesView.SelectNextMessage:
+	case v.app.config.Keys.MessagesView.SelectNextMessage:
 		return v.selectNextMessage(ms)
-	case v.core.Config.Keys.MessagesView.SelectFirstMessage:
+	case v.app.config.Keys.MessagesView.SelectFirstMessage:
 		return v.selectFirstMessage(ms)
-	case v.core.Config.Keys.MessagesView.SelectLastMessage:
+	case v.app.config.Keys.MessagesView.SelectLastMessage:
 		return v.selectLastMessage(ms)
 	case "Esc":
 		v.selectedMessage = -1
-		v.core.App.SetFocus(v.core.View)
+		v.app.SetFocus(v.app.view)
 		v.
 			Clear().
 			Highlight().
@@ -141,7 +141,7 @@ func (v *MessagesView) openActionsView(ms []discord.Message) *tcell.EventKey {
 		return nil
 	}
 
-	actionsView := newActionsView(v.core, m)
-	v.core.App.SetRoot(actionsView, true)
+	actionsView := newActionsView(v.app, m)
+	v.app.SetRoot(actionsView, true)
 	return nil
 }

@@ -8,7 +8,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 )
 
-func buildMessage(c *Core, m discord.Message) []byte {
+func buildMessage(c *Application, m discord.Message) []byte {
 	var b strings.Builder
 
 	switch m.Type {
@@ -20,25 +20,25 @@ func buildMessage(c *Core, m discord.Message) []byte {
 		b.WriteString(m.ID.String())
 		b.WriteString("\"]")
 		// Build the message associated with crosspost, channel follow add, pin, or a reply.
-		buildReferencedMessage(&b, m.ReferencedMessage, c.State.Ready().User.ID)
+		buildReferencedMessage(&b, m.ReferencedMessage, c.state.Ready().User.ID)
 
-		if c.Config.Timestamps {
-			loc, err := time.LoadLocation(c.Config.Timezone)
+		if c.config.Timestamps {
+			loc, err := time.LoadLocation(c.config.Timezone)
 			if err != nil {
 				return nil
 			}
 
 			b.WriteString("[::d]")
-			b.WriteString(m.Timestamp.Time().In(loc).Format(c.Config.TimeFormat))
+			b.WriteString(m.Timestamp.Time().In(loc).Format(c.config.TimeFormat))
 			b.WriteString("[::-]")
 			b.WriteByte(' ')
 		}
 
 		// Build the author of this message.
-		buildAuthor(&b, m.Author, c.State.Ready().User.ID)
+		buildAuthor(&b, m.Author, c.state.Ready().User.ID)
 
 		// Build the contents of the message.
-		buildContent(&b, m, c.State.Ready().User.ID)
+		buildContent(&b, m, c.state.Ready().User.ID)
 
 		if m.EditedTimestamp.IsValid() {
 			b.WriteString(" [::d](edited)[::-]")
