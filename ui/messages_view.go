@@ -10,16 +10,18 @@ import (
 
 type MessagesView struct {
 	*tview.TextView
+
 	// The index of the currently selected message. A negative index indicates that there is no currently selected message.
-	selectedMessage int
-	app             *Application
+	selected int
+	app      *Application
 }
 
 func newMessagesView(app *Application) *MessagesView {
 	v := &MessagesView{
-		TextView:        tview.NewTextView(),
-		selectedMessage: -1,
-		app:             app,
+		TextView: tview.NewTextView(),
+
+		selected: -1,
+		app:      app,
 	}
 
 	v.SetDynamicColors(true)
@@ -90,7 +92,7 @@ func (v *MessagesView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	case v.app.config.Keys.MessagesView.SelectLastMessage:
 		return v.selectLastMessage(ms)
 	case "Esc":
-		v.selectedMessage = -1
+		v.selected = -1
 		v.app.SetFocus(v.app.view)
 		v.
 			Clear().
@@ -105,17 +107,17 @@ func (v *MessagesView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 func (v *MessagesView) selectPreviousMessage(ms []discord.Message) *tcell.EventKey {
 	// If there are no highlighted regions, select the latest (last) message.
 	if len(v.GetHighlights()) == 0 {
-		v.selectedMessage = 0
+		v.selected = 0
 	} else {
 		// If the selected message is the oldest (first) message, select the latest (last) message.
-		if v.selectedMessage == len(ms)-1 {
-			v.selectedMessage = 0
+		if v.selected == len(ms)-1 {
+			v.selected = 0
 		} else {
-			v.selectedMessage++
+			v.selected++
 		}
 	}
 
-	v.Highlight(ms[v.selectedMessage].ID.String())
+	v.Highlight(ms[v.selected].ID.String())
 	v.ScrollToHighlight()
 	return nil
 }
@@ -123,34 +125,34 @@ func (v *MessagesView) selectPreviousMessage(ms []discord.Message) *tcell.EventK
 func (v *MessagesView) selectNextMessage(ms []discord.Message) *tcell.EventKey {
 	// If there are no highlighted regions, select the latest (last) message.
 	if len(v.GetHighlights()) == 0 {
-		v.selectedMessage = 0
+		v.selected = 0
 	} else {
 		// If the selected message is the latest (last) message, select the oldest (first) message.
-		if v.selectedMessage == 0 {
-			v.selectedMessage = len(ms) - 1
+		if v.selected == 0 {
+			v.selected = len(ms) - 1
 		} else {
-			v.selectedMessage--
+			v.selected--
 		}
 	}
 
 	v.
-		Highlight(ms[v.selectedMessage].ID.String()).
+		Highlight(ms[v.selected].ID.String()).
 		ScrollToHighlight()
 	return nil
 }
 
 func (v *MessagesView) selectFirstMessage(ms []discord.Message) *tcell.EventKey {
-	v.selectedMessage = len(ms) - 1
+	v.selected = len(ms) - 1
 	v.
-		Highlight(ms[v.selectedMessage].ID.String()).
+		Highlight(ms[v.selected].ID.String()).
 		ScrollToHighlight()
 	return nil
 }
 
 func (v *MessagesView) selectLastMessage(ms []discord.Message) *tcell.EventKey {
-	v.selectedMessage = 0
+	v.selected = 0
 	v.
-		Highlight(ms[v.selectedMessage].ID.String()).
+		Highlight(ms[v.selected].ID.String()).
 		ScrollToHighlight()
 	return nil
 }

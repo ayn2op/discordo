@@ -36,7 +36,7 @@ func newChannelsView(app *Application) *ChannelsView {
 
 func (v *ChannelsView) onSelected(node *tview.TreeNode) {
 	v.selected = nil
-	v.app.view.MessagesView.selectedMessage = -1
+	v.app.view.MessagesView.selected = -1
 	v.app.view.MessagesView.
 		Highlight().
 		Clear().

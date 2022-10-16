@@ -105,7 +105,7 @@ func (v *ActionsView) selectReplyAction() {
 		return
 	}
 
-	v.app.view.MessagesView.selectedMessage, _ = findMessageByID(ms, v.message.ReferencedMessage.ID)
+	v.app.view.MessagesView.selected, _ = findMessageByID(ms, v.message.ReferencedMessage.ID)
 	v.app.view.MessagesView.
 		Highlight(v.message.ReferencedMessage.ID.String()).
 		ScrollToHighlight()

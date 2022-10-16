@@ -7,13 +7,15 @@ import (
 
 type GuildsView struct {
 	*tview.TreeView
+
 	app *Application
 }
 
 func newGuildsView(app *Application) *GuildsView {
 	v := &GuildsView{
 		TreeView: tview.NewTreeView(),
-		app:      app,
+
+		app: app,
 	}
 
 	root := tview.NewTreeNode("")
@@ -33,7 +35,7 @@ func newGuildsView(app *Application) *GuildsView {
 
 func (v *GuildsView) onSelected(node *tview.TreeNode) {
 	v.app.view.ChannelsView.selected = nil
-	v.app.view.MessagesView.selectedMessage = -1
+	v.app.view.MessagesView.selected = -1
 	rootNode := v.app.view.ChannelsView.GetRoot()
 	rootNode.ClearChildren()
 	v.app.view.MessagesView.

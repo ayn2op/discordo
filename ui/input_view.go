@@ -17,13 +17,15 @@ import (
 
 type InputView struct {
 	*tview.InputField
+
 	app *Application
 }
 
 func newInputView(app *Application) *InputView {
 	v := &InputView{
 		InputField: tview.NewInputField(),
-		app:        app,
+
+		app: app,
 	}
 
 	v.SetFieldBackgroundColor(tview.Styles.PrimitiveBackgroundColor)
@@ -50,7 +52,7 @@ func (v *InputView) inputCapture(event *tcell.EventKey) *tcell.EventKey {
 		v.
 			SetText("").
 			SetTitle("")
-		v.app.view.MessagesView.selectedMessage = -1
+		v.app.view.MessagesView.selected = -1
 		v.app.view.MessagesView.Highlight()
 		return nil
 	}
@@ -97,7 +99,7 @@ func (v *InputView) sendMessage() *tcell.EventKey {
 
 		go v.app.state.SendMessageComplex(m.ChannelID, d)
 
-		v.app.view.MessagesView.selectedMessage = -1
+		v.app.view.MessagesView.selected = -1
 		v.app.view.MessagesView.Highlight()
 
 		v.SetTitle("")
