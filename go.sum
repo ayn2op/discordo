@@ -1,3 +1,7 @@
+github.com/alecthomas/kong v0.6.1 h1:1kNhcFepkR+HmasQpbiKDLylIL8yh5B5y1zPp5bJimA=
+github.com/alecthomas/kong v0.6.1/go.mod h1:JfHWDzLmbh/puW6I3V7uWenoh56YNVONW+w8eKeUr9I=
+github.com/alecthomas/repr v0.0.0-20210801044451-80ca428c5142 h1:8Uy0oSf5co/NZXje7U1z8Mpep++QJOldL2hs/sBQf48=
+github.com/alecthomas/repr v0.0.0-20210801044451-80ca428c5142/go.mod h1:2kn6fqh/zIyPLmm3ugklbEi5hg5wS435eygvNfaDQL8=
 github.com/alessio/shellescape v1.4.1 h1:V7yhSDDn8LP4lc4jS8pFkt0zCnzVJlG5JXy9BVKJUX0=
 github.com/alessio/shellescape v1.4.1/go.mod h1:PZAiSCk0LJaZkiCSkPv8qIobYglO3FPpyFjDCtHLS30=
 github.com/atotto/clipboard v0.1.4 h1:EH0zSVneZPSuFR11BlR9YppQTVDbh5+16AmcJi4g1z4=

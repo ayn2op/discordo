@@ -3,6 +3,7 @@ module github.com/ayntgl/discordo
 go 1.19
 
 require (
+	github.com/alecthomas/kong v0.6.1
 	github.com/atotto/clipboard v0.1.4
 	github.com/diamondburned/arikawa/v3 v3.1.0
 	github.com/gdamore/tcell/v2 v2.5.3
@@ -15,7 +16,6 @@ require (
 require (
 	github.com/alessio/shellescape v1.4.1 // indirect
 	github.com/danieljoos/wincred v1.1.2 // indirect
-	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gdamore/encoding v1.0.0 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/gorilla/schema v1.2.0 // indirect
@@ -24,7 +24,6 @@ require (
 	github.com/mattn/go-runewidth v0.0.14 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rivo/uniseg v0.4.2 // indirect
-	github.com/stretchr/testify v1.7.2 // indirect
 	golang.org/x/sys v0.1.0 // indirect
 	golang.org/x/term v0.0.0-20221017184919-83659145692c // indirect
 	golang.org/x/text v0.4.0 // indirect

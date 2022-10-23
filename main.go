@@ -1,33 +1,30 @@
 package main
 
 import (
-	"flag"
 	"log"
 	"os"
 
+	"github.com/alecthomas/kong"
 	"github.com/ayntgl/discordo/config"
 	"github.com/ayntgl/discordo/ui"
 	"github.com/zalando/go-keyring"
 )
 
-var (
-	flagToken  string
-	flagConfig string
-	flagLog    string
-)
-
-func init() {
-	flag.StringVar(&flagToken, "token", "", "The authentication token.")
-	flag.StringVar(&flagConfig, "config", config.DefaultConfigPath(), "The path to the configuration file.")
-	flag.StringVar(&flagLog, "log", config.DefaultLogPath(), "The path to the log file.")
+var cli struct {
+	Token      string `name:"token" short:"t" help:"The authentication token."`
+	ConfigPath string `name:"config" short:"c" help:"The path to the configuration file" type:"path" default:"${configPath}"`
+	LogPath    string `name:"log" short:"l" help:"The path to the log file" type:"path" default:"${logPath}"`
 }
 
 func main() {
-	flag.Parse()
+	kong.Parse(&cli, kong.Vars{
+		"configPath": config.DefaultConfigPath(),
+		"logPath":    config.DefaultLogPath(),
+	})
 
-	if flagLog != "" {
+	if cli.LogPath != "" {
 		// Set the standard logger output to the provided log file.
-		f, err := os.OpenFile(flagLog, os.O_CREATE|os.O_WRONLY, 0666)
+		f, err := os.OpenFile(cli.LogPath, os.O_CREATE|os.O_WRONLY, 0666)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -37,25 +34,20 @@ func main() {
 	}
 
 	cfg := config.New()
-	if err := cfg.Load(flagConfig); err != nil {
+	if err := cfg.Load(cli.ConfigPath); err != nil {
 		log.Fatal(err)
 	}
 
-	var (
-		token string
-		err   error
-	)
-
-	if flagToken != "" {
-		token = flagToken
-		go keyring.Set(config.Name, "token", token)
+	if cli.Token != "" {
+		go keyring.Set(config.Name, "token", cli.Token)
 	} else {
-		token, err = keyring.Get(config.Name, "token")
+		var err error
+		cli.Token, err = keyring.Get(config.Name, "token")
 		if err != nil {
 			log.Println(err)
 		}
 	}
 
 	app := ui.NewApplication(cfg)
-	app.Run(token)
+	app.Run(cli.Token)
 }
