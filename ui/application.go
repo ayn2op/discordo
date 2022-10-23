@@ -56,11 +56,12 @@ func NewApplication(cfg *config.Config) *Application {
 	app.EnableMouse(app.config.Mouse)
 	app.SetBeforeDrawFunc(app.onBeforeDraw)
 
-	app.view = newView(app)
-
+	// The styles must be assigned before initializing a new view.
 	tview.Styles.PrimitiveBackgroundColor = tcell.GetColor(cfg.Theme.Background)
 	tview.Styles.BorderColor = tcell.GetColor(cfg.Theme.Border)
 	tview.Styles.TitleColor = tcell.GetColor(cfg.Theme.Title)
+
+	app.view = newView(app)
 
 	return app
 }
