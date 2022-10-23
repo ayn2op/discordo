@@ -17,13 +17,15 @@ import (
 
 type InputView struct {
 	*tview.InputField
-	core *Core
+
+	app *Application
 }
 
-func newInputView(c *Core) *InputView {
+func newInputView(app *Application) *InputView {
 	v := &InputView{
 		InputField: tview.NewInputField(),
-		core:       c,
+
+		app: app,
 	}
 
 	v.SetFieldBackgroundColor(tview.Styles.PrimitiveBackgroundColor)
@@ -42,16 +44,16 @@ func (v *InputView) inputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case "Enter":
 		return v.sendMessage()
-	case v.core.Config.Keys.InputView.OpenExternalEditor:
+	case v.app.config.Keys.InputView.OpenExternalEditor:
 		return v.openExternalEditor()
-	case v.core.Config.Keys.InputView.PasteClipboard:
+	case v.app.config.Keys.InputView.PasteClipboard:
 		return v.pasteClipboard()
 	case "Esc":
 		v.
 			SetText("").
 			SetTitle("")
-		v.core.MessagesView.selectedMessage = -1
-		v.core.MessagesView.Highlight()
+		v.app.view.MessagesView.selected = -1
+		v.app.view.MessagesView.Highlight()
 		return nil
 	}
 
@@ -59,7 +61,7 @@ func (v *InputView) inputCapture(event *tcell.EventKey) *tcell.EventKey {
 }
 
 func (v *InputView) sendMessage() *tcell.EventKey {
-	if v.core.ChannelsView.selectedChannel == nil {
+	if v.app.view.ChannelsView.selected == nil {
 		return nil
 	}
 
@@ -68,14 +70,14 @@ func (v *InputView) sendMessage() *tcell.EventKey {
 		return nil
 	}
 
-	ms, err := v.core.State.Messages(v.core.ChannelsView.selectedChannel.ID, v.core.Config.MessagesLimit)
+	ms, err := v.app.state.Messages(v.app.view.ChannelsView.selected.ID, v.app.config.MessagesLimit)
 	if err != nil {
 		log.Println(err)
 		return nil
 	}
 
-	if len(v.core.MessagesView.GetHighlights()) != 0 {
-		mID, err := discord.ParseSnowflake(v.core.MessagesView.GetHighlights()[0])
+	if len(v.app.view.MessagesView.GetHighlights()) != 0 {
+		mID, err := discord.ParseSnowflake(v.app.view.MessagesView.GetHighlights()[0])
 		if err != nil {
 			log.Println(err)
 			return nil
@@ -83,8 +85,8 @@ func (v *InputView) sendMessage() *tcell.EventKey {
 
 		_, m := findMessageByID(ms, discord.MessageID(mID))
 		d := api.SendMessageData{
-			Content:         t,
-			Reference:       &discord.MessageReference{
+			Content: t,
+			Reference: &discord.MessageReference{
 				MessageID: m.ID,
 			},
 			AllowedMentions: &api.AllowedMentions{RepliedUser: option.False},
@@ -95,14 +97,14 @@ func (v *InputView) sendMessage() *tcell.EventKey {
 			d.AllowedMentions.RepliedUser = option.True
 		}
 
-		go v.core.State.SendMessageComplex(m.ChannelID, d)
+		go v.app.state.SendMessageComplex(m.ChannelID, d)
 
-		v.core.MessagesView.selectedMessage = -1
-		v.core.MessagesView.Highlight()
+		v.app.view.MessagesView.selected = -1
+		v.app.view.MessagesView.Highlight()
 
 		v.SetTitle("")
 	} else {
-		go v.core.State.SendMessage(v.core.ChannelsView.selectedChannel.ID, t)
+		go v.app.state.SendMessage(v.app.view.ChannelsView.selected.ID, t)
 	}
 
 	v.SetText("")
@@ -139,7 +141,7 @@ func (v *InputView) openExternalEditor() *tcell.EventKey {
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 
-	v.core.App.Suspend(func() {
+	v.app.Suspend(func() {
 		err = cmd.Run()
 		if err != nil {
 			log.Println(err)

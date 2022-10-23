@@ -1,4 +1,4 @@
-# Discordo &middot; [![ci](https://github.com/ayntgl/discordo/actions/workflows/ci.yml/badge.svg)](https://github.com/ayntgl/discordo/actions/workflows/ci.yml) [![Go Report Card](https://goreportcard.com/badge/github.com/ayntgl/discordo)](https://goreportcard.com/report/github.com/ayntgl/discordo) [![license](https://img.shields.io/github/license/ayntgl/discordo?logo=github)](https://github.com/ayntgl/discordo/blob/master/LICENSE) [![discord](https://img.shields.io/discord/1017058310689652828?color=%235865F2&logo=discord&logoColor=white)](https://discord.gg/5gecpwkFQ9)
+# Discordo &middot; [![ci](https://github.com/ayntgl/discordo/actions/workflows/ci.yml/badge.svg)](https://github.com/ayntgl/discordo/actions/workflows/ci.yml) [![Go Report Card](https://goreportcard.com/badge/github.com/ayntgl/discordo)](https://goreportcard.com/report/github.com/ayntgl/discordo) [![license](https://img.shields.io/github/license/ayntgl/discordo?logo=github)](https://github.com/ayntgl/discordo/blob/master/LICENSE)
 
 Discordo is a lightweight, secure, and feature-rich Discord terminal client. Heavily work-in-progress, expect breaking changes.
 
@@ -65,17 +65,17 @@ sudo mv ./discordo /usr/local/bin
 
 1. Run the `discordo` executable with no arguments.
 
-2. A login view will be displayed on first start-up. You can choose to login using either your email and password or token; the views can be switched using `Ctrl+Space` keybinding.
+- If you are logging in using an authentication token, provide the `token` command-line flag to the executable (eg: `--token "OTI2MDU5NTQxNDE2Nzc5ODA2.Yc2KKA.2iZ-5JxgxG-9Ub8GHzBSn-NJjNg"`). The token is stored securely in the default OS-specific keyring.
 
-3. Enter your credentials and click on the "Login" button to continue.
+2. Enter your email and password and click on the "Login" button to continue.
 
-- If you are logging in with a bot account, prefix the token with `Bot ` (eg: `Bot OTI2MDU5NTQxNDE2Nzc5ODA2.Yc2KKA.2iZ-5JxgxG-9Ub8GHzBSn-NJjNg`).
-
-- Most of the Discord third-party clients store the token in a configuration file unencrypted. Discordo securely stores the token in the default OS-specific keyring. 
+- Most of the Discord third-party clients store the token in a configuration file unencrypted. Discordo securely stores the token in the default OS-specific keyring.
 
 ### Configuration
 
-A default configuration file is created on first start-up at `$HOME/.config/discordo/config.yml` on Unix, `$HOME/Library/Application Support/discordo/config.yml` on Darwin, and `%AppData%/discordo/config.yml` on Windows.
+A default configuration file is created on first start-up at `$HOME/.config/discordo.yml` on Unix, `$HOME/Library/Application Support/discordo.yml` on Darwin, and `%AppData%/discordo.yml` on Windows. The configuration file path can be customized using the `config` command-line flag (eg: `--config ~/myconfigs/discordo.yml`).
+
+Similarly, a log file is created on first start-up at `$HOME/.cache/discordo.log` on Unix, `$HOME/Library/Caches/discordo.log` on Darwin, and `%LocalAppData%/discordo.yml` on Windows. The log file path can be customized using the `log` command-line flag.
 
 ## Disclaimer
 

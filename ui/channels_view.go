@@ -10,14 +10,16 @@ import (
 
 type ChannelsView struct {
 	*tview.TreeView
-	selectedChannel *discord.Channel
-	core            *Core
+
+	app      *Application
+	selected *discord.Channel
 }
 
-func newChannelsView(c *Core) *ChannelsView {
+func newChannelsView(app *Application) *ChannelsView {
 	v := &ChannelsView{
 		TreeView: tview.NewTreeView(),
-		core:     c,
+
+		app: app,
 	}
 
 	v.SetRoot(tview.NewTreeNode(""))
@@ -33,53 +35,40 @@ func newChannelsView(c *Core) *ChannelsView {
 }
 
 func (v *ChannelsView) onSelected(node *tview.TreeNode) {
-	v.selectedChannel = nil
-	v.core.MessagesView.selectedMessage = -1
-	v.core.MessagesView.
+	v.selected = nil
+	v.app.view.MessagesView.selected = -1
+	v.app.view.MessagesView.
 		Highlight().
 		Clear().
 		SetTitle("")
-	v.core.InputView.SetText("")
+	v.app.view.InputView.SetText("")
 
 	ref := node.GetReference()
-	c, err := v.core.State.Cabinet.Channel(ref.(discord.ChannelID))
-	if err != nil {
+	if ref == nil {
+		log.Println("selected channel reference is nil")
 		return
 	}
 
+	c, err := v.app.state.Cabinet.Channel(ref.(discord.ChannelID))
+	if err != nil {
+		log.Println("selected channel not found")
+		return
+	}
+
+	switch c.Type {
 	// If the channel is a category channel, expand the selected node if it is collapsed, otherwise collapse.
-	if c.Type == discord.GuildCategory {
+	case discord.GuildCategory:
 		node.SetExpanded(!node.IsExpanded())
 		return
+
+	default:
+		v.selected = c
+
+		v.app.view.MessagesView.setTitle(c)
+		v.app.SetFocus(v.app.view.InputView)
+
+		go v.app.view.MessagesView.loadMessages(c)
 	}
-
-	v.selectedChannel = c
-	v.core.App.SetFocus(v.core.InputView)
-
-	title := channelToString(*c)
-	if c.Topic != "" {
-		title += " - " + parseMarkdown(c.Topic)
-	}
-	v.core.MessagesView.SetTitle(title)
-
-	go func() {
-		// The returned slice will be sorted from latest to oldest.
-		ms, err := v.core.State.Messages(c.ID, v.core.Config.MessagesLimit)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
-		for i := len(ms) - 1; i >= 0; i-- {
-			_, err = v.core.MessagesView.Write(buildMessage(v.core, ms[i]))
-			if err != nil {
-				log.Println(err)
-				continue
-			}
-		}
-
-		v.core.MessagesView.ScrollToEnd()
-	}()
 }
 
 func (v *ChannelsView) createChannelNode(c discord.Channel) *tview.TreeNode {
@@ -90,7 +79,7 @@ func (v *ChannelsView) createChannelNode(c discord.Channel) *tview.TreeNode {
 }
 
 func (v *ChannelsView) createPrivateChannelNodes(root *tview.TreeNode) {
-	cs, err := v.core.State.Cabinet.PrivateChannels()
+	cs, err := v.app.state.Cabinet.PrivateChannels()
 	if err != nil {
 		log.Println(err)
 		return
@@ -114,7 +103,7 @@ func (v *ChannelsView) createPrivateChannelNodes(root *tview.TreeNode) {
 }
 
 func (v *ChannelsView) createGuildChannelNodes(root *tview.TreeNode, gID discord.GuildID) {
-	cs, err := v.core.State.Cabinet.Channels(gID)
+	cs, err := v.app.state.Cabinet.Channels(gID)
 	if err != nil {
 		log.Println(err)
 		return

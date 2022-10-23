@@ -17,27 +17,27 @@ var linkRegex = regexp.MustCompile("https?://.+")
 
 type ActionsView struct {
 	*tview.List
-	core    *Core
+	app     *Application
 	message *discord.Message
 }
 
-func newActionsView(c *Core, m *discord.Message) *ActionsView {
+func newActionsView(app *Application, m *discord.Message) *ActionsView {
 	v := &ActionsView{
 		List:    tview.NewList(),
-		core:    c,
+		app:     app,
 		message: m,
 	}
 
 	v.ShowSecondaryText(false)
 	v.SetDoneFunc(func() {
-		c.App.SetRoot(c.View, true)
-		c.App.SetFocus(c.MessagesView)
+		app.SetRoot(app.view, true)
+		app.SetFocus(app.view.MessagesView)
 	})
 
-	isDM := channelIsInDMCategory(c.ChannelsView.selectedChannel)
+	isDM := channelIsInDMCategory(app.view.ChannelsView.selected)
 
 	// If the client user has the `SEND_MESSAGES` permission, add "Reply" and "Mention Reply" actions.
-	if isDM || !isDM && hasPermission(c.State, c.ChannelsView.selectedChannel.ID, discord.PermissionSendMessages) {
+	if isDM || !isDM && hasPermission(app.state, app.view.ChannelsView.selected.ID, discord.PermissionSendMessages) {
 		v.AddItem("Reply", "", 'r', v.replyAction)
 		v.AddItem("Mention Reply", "", 'R', v.mentionReplyAction)
 	}
@@ -55,8 +55,8 @@ func newActionsView(c *Core, m *discord.Message) *ActionsView {
 				go open.Run(l)
 			}
 
-			c.App.SetRoot(c.View, true)
-			c.App.SetFocus(c.MessagesView)
+			app.SetRoot(app.view, true)
+			app.SetFocus(app.view.MessagesView)
 		})
 	}
 
@@ -66,10 +66,10 @@ func newActionsView(c *Core, m *discord.Message) *ActionsView {
 		v.AddItem("Download Attachment", "", 'd', v.downloadAttachmentAction)
 	}
 
-	me, _ := c.State.MeStore.Me()
+	me, _ := app.state.MeStore.Me()
 
 	// If the client user has the `MANAGE_MESSAGES` permission, add a new action to delete the message.
-	if (isDM && m.Author.ID == me.ID) || (!isDM && hasPermission(c.State, c.ChannelsView.selectedChannel.ID, discord.PermissionManageMessages)) {
+	if (isDM && m.Author.ID == me.ID) || (!isDM && hasPermission(app.state, app.view.ChannelsView.selected.ID, discord.PermissionManageMessages)) {
 		v.AddItem("Delete", "", 'd', v.deleteAction)
 	}
 
@@ -86,32 +86,32 @@ func newActionsView(c *Core, m *discord.Message) *ActionsView {
 }
 
 func (v *ActionsView) replyAction() {
-	v.core.InputView.SetTitle("Replying to " + v.message.Author.Tag())
+	v.app.view.InputView.SetTitle("Replying to " + v.message.Author.Tag())
 
-	v.core.App.SetRoot(v.core.View, true)
-	v.core.App.SetFocus(v.core.InputView)
+	v.app.SetRoot(v.app.view, true)
+	v.app.SetFocus(v.app.view.InputView)
 }
 
 func (v *ActionsView) mentionReplyAction() {
-	v.core.InputView.SetTitle("[@] Replying to " + v.message.Author.Tag())
+	v.app.view.InputView.SetTitle("[@] Replying to " + v.message.Author.Tag())
 
-	v.core.App.SetRoot(v.core.View, true)
-	v.core.App.SetFocus(v.core.InputView)
+	v.app.SetRoot(v.app.view, true)
+	v.app.SetFocus(v.app.view.InputView)
 }
 
 func (v *ActionsView) selectReplyAction() {
-	ms, err := v.core.State.Cabinet.Messages(v.message.ChannelID)
+	ms, err := v.app.state.Cabinet.Messages(v.message.ChannelID)
 	if err != nil {
 		return
 	}
 
-	v.core.MessagesView.selectedMessage, _ = findMessageByID(ms, v.message.ReferencedMessage.ID)
-	v.core.MessagesView.
+	v.app.view.MessagesView.selected, _ = findMessageByID(ms, v.message.ReferencedMessage.ID)
+	v.app.view.MessagesView.
 		Highlight(v.message.ReferencedMessage.ID.String()).
 		ScrollToHighlight()
 
-	v.core.App.SetRoot(v.core.View, true)
-	v.core.App.SetFocus(v.core.MessagesView)
+	v.app.SetRoot(v.app.view, true)
+	v.app.SetFocus(v.app.view.MessagesView)
 }
 
 func (v *ActionsView) openAttachmentAction() {
@@ -137,8 +137,8 @@ func (v *ActionsView) openAttachmentAction() {
 		go open.Run(f.Name())
 	}
 
-	v.core.App.SetRoot(v.core.View, true)
-	v.core.App.SetFocus(v.core.MessagesView)
+	v.app.SetRoot(v.app.view, true)
+	v.app.SetFocus(v.app.view.MessagesView)
 }
 
 func (v *ActionsView) downloadAttachmentAction() {
@@ -168,38 +168,38 @@ func (v *ActionsView) downloadAttachmentAction() {
 		f.Write(d)
 	}
 
-	v.core.App.SetRoot(v.core.View, true)
-	v.core.App.SetFocus(v.core.MessagesView)
+	v.app.SetRoot(v.app.view, true)
+	v.app.SetFocus(v.app.view.MessagesView)
 }
 
 func (v *ActionsView) deleteAction() {
-	v.core.MessagesView.Clear()
+	v.app.view.MessagesView.Clear()
 
-	err := v.core.State.MessageRemove(v.message.ChannelID, v.message.ID)
+	err := v.app.state.MessageRemove(v.message.ChannelID, v.message.ID)
 	if err != nil {
 		return
 	}
 
-	err = v.core.State.DeleteMessage(v.message.ChannelID, v.message.ID, "Unknown")
+	err = v.app.state.DeleteMessage(v.message.ChannelID, v.message.ID, "Unknown")
 	if err != nil {
 		return
 	}
 
 	// The returned slice will be sorted from latest to oldest.
-	ms, err := v.core.State.Cabinet.Messages(v.message.ChannelID)
+	ms, err := v.app.state.Cabinet.Messages(v.message.ChannelID)
 	if err != nil {
 		return
 	}
 
 	for i := len(ms) - 1; i >= 0; i-- {
-		_, err = v.core.MessagesView.Write(buildMessage(v.core, ms[i]))
+		_, err = v.app.view.MessagesView.Write(buildMessage(v.app, ms[i]))
 		if err != nil {
 			return
 		}
 	}
 
-	v.core.App.SetRoot(v.core.View, true)
-	v.core.App.SetFocus(v.core.MessagesView)
+	v.app.SetRoot(v.app.view, true)
+	v.app.SetFocus(v.app.view.MessagesView)
 }
 
 func (v *ActionsView) copyContentAction() {
@@ -208,8 +208,8 @@ func (v *ActionsView) copyContentAction() {
 		return
 	}
 
-	v.core.App.SetRoot(v.core.View, true)
-	v.core.App.SetFocus(v.core.MessagesView)
+	v.app.SetRoot(v.app.view, true)
+	v.app.SetFocus(v.app.view.MessagesView)
 }
 
 func (v *ActionsView) copyIDAction() {
@@ -218,8 +218,8 @@ func (v *ActionsView) copyIDAction() {
 		return
 	}
 
-	v.core.App.SetRoot(v.core.View, true)
-	v.core.App.SetFocus(v.core.MessagesView)
+	v.app.SetRoot(v.app.view, true)
+	v.app.SetFocus(v.app.view.MessagesView)
 }
 
 func (v *ActionsView) copyLinkAction() {
@@ -228,6 +228,6 @@ func (v *ActionsView) copyLinkAction() {
 		return
 	}
 
-	v.core.App.SetRoot(v.core.View, true)
-	v.core.App.SetFocus(v.core.MessagesView)
+	v.app.SetRoot(v.app.view, true)
+	v.app.SetFocus(v.app.view.MessagesView)
 }
