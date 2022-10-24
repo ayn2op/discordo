@@ -3,6 +3,7 @@ package ui
 import (
 	"log"
 
+	"github.com/ayntgl/discordo/discordmd"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -43,7 +44,7 @@ func newMessagesView(app *Application) *MessagesView {
 func (v *MessagesView) setTitle(c *discord.Channel) {
 	title := channelToString(*c)
 	if c.Topic != "" {
-		title += " - " + parseMarkdown(c.Topic)
+		title += " - " + discordmd.Parse(c.Topic)
 	}
 
 	v.SetTitle(title)

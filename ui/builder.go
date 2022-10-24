@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ayntgl/discordo/discordmd"
 	"github.com/diamondburned/arikawa/v3/discord"
 )
 
@@ -93,7 +94,7 @@ func buildReferencedMessage(b *strings.Builder, rm *discord.Message, clientID di
 
 		if rm.Content != "" {
 			rm.Content = buildMentions(rm.Content, rm.Mentions, clientID)
-			b.WriteString(parseMarkdown(rm.Content))
+			b.WriteString(discordmd.Parse(rm.Content))
 		}
 
 		b.WriteString("[::-]")
@@ -104,7 +105,7 @@ func buildReferencedMessage(b *strings.Builder, rm *discord.Message, clientID di
 func buildContent(b *strings.Builder, m discord.Message, clientID discord.UserID) {
 	if m.Content != "" {
 		m.Content = buildMentions(m.Content, m.Mentions, clientID)
-		b.WriteString(parseMarkdown(m.Content))
+		b.WriteString(discordmd.Parse(m.Content))
 	}
 }
 
@@ -147,7 +148,7 @@ func buildEmbeds(b *strings.Builder, es []discord.Embed) {
 				embedBuilder.WriteByte('\n')
 			}
 
-			embedBuilder.WriteString(parseMarkdown(e.Description))
+			embedBuilder.WriteString(discordmd.Parse(e.Description))
 		}
 
 		if len(e.Fields) != 0 {
@@ -161,7 +162,7 @@ func buildEmbeds(b *strings.Builder, es []discord.Embed) {
 				embedBuilder.WriteString(ef.Name)
 				embedBuilder.WriteString("[::-]")
 				embedBuilder.WriteByte('\n')
-				embedBuilder.WriteString(parseMarkdown(ef.Value))
+				embedBuilder.WriteString(discordmd.Parse(ef.Value))
 
 				if i != len(e.Fields)-1 {
 					embedBuilder.WriteString("\n\n")
