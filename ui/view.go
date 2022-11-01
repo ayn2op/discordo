@@ -5,13 +5,13 @@ import (
 	"github.com/rivo/tview"
 )
 
-type FocusedID int
+type focusedId int
 
 const (
-	guildsView FocusedID = iota
-	channelsView
-	messagesView
-	inputView
+	focusedIdGuildsView focusedId = iota
+	focusedIdChannelsView
+	focusedIdMessagesView
+	focusedIdInputView
 )
 
 type View struct {
@@ -23,7 +23,7 @@ type View struct {
 	InputView    *InputView
 
 	app     *Application
-	focused FocusedID
+	focused focusedId
 }
 
 func newView(app *Application) *View {
@@ -61,7 +61,7 @@ func (v *View) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	case tcell.KeyBacktab:
 		// If the currently focused view is the guilds view (first), then focus the input view (last)
 		if v.focused == 0 {
-			v.focused = inputView
+			v.focused = focusedIdInputView
 		} else {
 			v.focused--
 		}
@@ -69,8 +69,8 @@ func (v *View) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		v.setFocus()
 	case tcell.KeyTab:
 		// If the currently focused view is the input view (last), then focus the guilds view (first)
-		if v.focused == inputView {
-			v.focused = guildsView
+		if v.focused == focusedIdInputView {
+			v.focused = focusedIdGuildsView
 		} else {
 			v.focused++
 		}
@@ -84,13 +84,13 @@ func (v *View) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 func (v *View) setFocus() {
 	var p tview.Primitive
 	switch v.focused {
-	case guildsView:
+	case focusedIdGuildsView:
 		p = v.GuildsView
-	case channelsView:
+	case focusedIdChannelsView:
 		p = v.ChannelsView
-	case messagesView:
+	case focusedIdMessagesView:
 		p = v.MessagesView
-	case inputView:
+	case focusedIdInputView:
 		p = v.InputView
 	}
 
