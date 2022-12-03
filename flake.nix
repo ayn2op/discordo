@@ -1,28 +1,39 @@
-{
+{ 
   description = "A lightweight, secure, and feature-rich Discord terminal client.";
 
   inputs.nixpkgs.url = "nixpkgs/nixos-unstable";
 
   outputs = { self, nixpkgs, ... }: let 
-    system = "x86-64-linux"; 
-    pname = "discordio";
+    version = builtins.substring 0 8 self.lastModifiedDate;
+
+    supportedSystems = [ "x86_64-linux" ];
+
+    forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
+    nixpkgsFor = forAllSystems (system: import nixpkgs { inherit system; });
+
   in {
 
-    packages = { 
-      $(system).$(pname) = nixpkgs.buildGoModule {
-        inherit pname;
-        version = "1.0.0";
-        src ./.;
-        vendorSha256 = pkgs.lib.fakeSha256;
-      };
-    };
+    packages = forAllSystems (system:
+      let pkgs = nixpkgsFor.${system};
+      in rec {
+        default = discordio;
 
-    defaultPackage = self.packages.$(system).$(pname);
+        discordio = pkgs.buildGoModule {
+          pname = "discordio";
+          inherit version;
+          src = ./.;
+          vendorSha256 = "sha256-J6J7Tm/GN7Ftxlt10DG9+9LhB8VnLMgEbr4bq5LeEjY=";
+        };
+      });
 
-    defaultApp = {
-      type "app";
-      program = "${self.packages.$(system).$(pname)}/bin/discordio";
-    };
+    defaultPackage = forAllSystems (system: self.packages.${system}.discordio);
+
+
+    #defaultApp = forAllSystems (system: {
+    #  type = "app";
+    #  program = "${self.packages.${system}.discordio}/bin/discordio";
+    #});
+
   };
 }
   
