@@ -191,20 +191,22 @@ func (c *Application) onGuildDelete(g *gateway.GuildDeleteEvent) {
 }
 
 func (c *Application) onMessageCreate(m *gateway.MessageCreateEvent) {
-	if (c.view.ChannelsView.selected == nil || c.view.ChannelsView.selected.ID != m.ChannelID) && c.config.Notifications {
-		g, err := c.state.Cabinet.Guild(m.GuildID)
-		if err != nil {
-			log.Println(err)
-			return
-		}
+	if c.view.ChannelsView.selected == nil {
+		if c.config.Notifications {
+			g, err := c.state.Cabinet.Guild(m.GuildID)
+			if err != nil {
+				log.Println(err)
+				return
+			}
 
-		c, err := c.state.Cabinet.Channel(m.ChannelID)
-		if err != nil {
-			log.Println(err)
-			return
-		}
+			c, err := c.state.Cabinet.Channel(m.ChannelID)
+			if err != nil {
+				log.Println(err)
+				return
+			}
 
-		go beeep.Notify(fmt.Sprintf("%s %s", g.Name, c.Name), m.Content, "")
+			go beeep.Notify(fmt.Sprintf("%s %s", g.Name, c.Name), m.Content, "")
+		}
 	} else {
 		_, err := c.view.MessagesView.Write(buildMessage(c, m.Message))
 		if err != nil {
