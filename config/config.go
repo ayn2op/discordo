@@ -37,8 +37,6 @@ type ThemeConfig struct {
 }
 
 type Config struct {
-	// Whether to send desktop notification when a new message is sent or not.
-	Notifications bool `yaml:"notifications"`
 	// Whether the mouse is usable or not.
 	Mouse bool `yaml:"mouse"`
 	// The maximum number of messages to fetch and display. Its value must not be lesser than 1 and greater than 100.
@@ -57,7 +55,6 @@ type Config struct {
 
 func New() *Config {
 	return &Config{
-		Notifications: true,
 		Mouse:         true,
 		MessagesLimit: 50,
 
