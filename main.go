@@ -17,7 +17,13 @@ func init() {
 	flag.StringVar(&tokenFlag, "token", "", "The authentication token.")
 
 	path, _ := os.UserCacheDir()
-	path = filepath.Join(path, config.Name+".log")
+	path = filepath.Join(path, config.Name)
+	err := os.MkdirAll(path, os.ModePerm)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	path = filepath.Join(path, "logs.txt")
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, os.ModePerm)
 	if err != nil {
 		log.Fatal(err)

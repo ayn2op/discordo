@@ -82,8 +82,15 @@ func New() *Config {
 
 func (cfg *Config) Load() error {
 	path, _ := os.UserConfigDir()
-	path = filepath.Join(path, Name+".yml")
-	// Open the existing configuration file with read-only flag.
+	// Create the configuration directory if it does not exist already.
+	path = filepath.Join(path, Name)
+	err := os.MkdirAll(path, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	path = filepath.Join(path, "config.yml")
+	// Open the configuration file with create and read-write flag.
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, os.ModePerm)
 	if err != nil {
 		return err
