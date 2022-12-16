@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ayntgl/discordo/discordmd"
+	"github.com/ayn2op/discordo/discordmd"
 	"github.com/diamondburned/arikawa/v3/discord"
 )
 

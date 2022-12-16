@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/ayntgl/discordo/config"
+	"github.com/ayn2op/discordo/config"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"

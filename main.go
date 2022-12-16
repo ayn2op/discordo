@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ayntgl/discordo/config"
-	"github.com/ayntgl/discordo/ui"
+	"github.com/ayn2op/discordo/config"
+	"github.com/ayn2op/discordo/ui"
 	"github.com/zalando/go-keyring"
 )
 

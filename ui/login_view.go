@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/ayntgl/discordo/config"
+	"github.com/ayn2op/discordo/config"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/rivo/tview"
 	"github.com/zalando/go-keyring"

@@ -1,4 +1,4 @@
-module github.com/ayntgl/discordo
+module github.com/ayn2op/discordo
 
 go 1.19
 

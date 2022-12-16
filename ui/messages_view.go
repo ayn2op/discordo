@@ -3,7 +3,7 @@ package ui
 import (
 	"log"
 
-	"github.com/ayntgl/discordo/discordmd"
+	"github.com/ayn2op/discordo/discordmd"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
