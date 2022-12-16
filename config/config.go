@@ -80,7 +80,9 @@ func New() *Config {
 	}
 }
 
-func (cfg *Config) Load(path string) error {
+func (cfg *Config) Load() error {
+	path, _ := os.UserConfigDir()
+	path = filepath.Join(path, Name+".yml")
 	// Open the existing configuration file with read-only flag.
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, os.ModePerm)
 	if err != nil {
@@ -99,16 +101,4 @@ func (cfg *Config) Load(path string) error {
 	}
 
 	return yaml.NewDecoder(f).Decode(&cfg)
-}
-
-// DefaultConfigPath returns the default configuration file path.
-func DefaultConfigPath() string {
-	path, _ := os.UserConfigDir()
-	return filepath.Join(path, Name+".yml")
-}
-
-// DefaultLogPath returns the default log file path.
-func DefaultLogPath() string {
-	path, _ := os.UserCacheDir()
-	return filepath.Join(path, Name+".log")
 }
