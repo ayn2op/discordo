@@ -21,6 +21,7 @@ type MessagesViewKeysConfig struct {
 }
 
 type InputViewKeysConfig struct {
+	SendMessage        string `yaml:"send_message"`
 	OpenExternalEditor string `yaml:"open_external_editor"`
 	PasteClipboard     string `yaml:"paste_clipboard"`
 }
@@ -72,6 +73,7 @@ func New() *Config {
 				SelectLastMessage:     "End",
 			},
 			InputView: InputViewKeysConfig{
+				SendMessage:        "Enter",
 				OpenExternalEditor: "Ctrl+E",
 				PasteClipboard:     "Ctrl+V",
 			},

@@ -42,7 +42,7 @@ func newInputView(app *Application) *InputView {
 
 func (v *InputView) inputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
-	case "Enter":
+	case v.app.config.Keys.InputView.SendMessage:
 		return v.sendMessage()
 	case v.app.config.Keys.InputView.OpenExternalEditor:
 		return v.openExternalEditor()
