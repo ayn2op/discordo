@@ -71,6 +71,10 @@ func New() *Config {
 				SelectFirstMessage:    "Home",
 				SelectLastMessage:     "End",
 			},
+			InputView: InputViewKeysConfig{
+				OpenExternalEditor: "Ctrl+E",
+				PasteClipboard:     "Ctrl+V",
+			},
 		},
 		Theme: ThemeConfig{
 			Background: "default",
