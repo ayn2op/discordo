@@ -72,9 +72,9 @@ sudo mv ./discordo /usr/local/bin
 
 ### Configuration
 
-A default configuration file is created on first start-up at `$HOME/.config/discordo.yml` on Unix, `$HOME/Library/Application Support/discordo.yml` on Darwin, and `%AppData%/discordo.yml` on Windows. The configuration file path can be customized using the `config` command-line flag (eg: `--config ~/myconfigs/discordo.yml`).
+A default configuration file is created on first start-up at `$HOME/.config/discordo/config.yml` on Unix, `$HOME/Library/Application Support/discordo/config.yml` on Darwin, and `%AppData%/discordo/config.yml` on Windows.
 
-Similarly, a log file is created on first start-up at `$HOME/.cache/discordo.log` on Unix, `$HOME/Library/Caches/discordo.log` on Darwin, and `%LocalAppData%/discordo.yml` on Windows. The log file path can be customized using the `log` command-line flag.
+Similarly, a log file is created on first start-up at `$HOME/.cache/discordo/log.txt` on Unix, `$HOME/Library/Caches/discordo/log.txt` on Darwin, and `%LocalAppData%/discordo/log.txt` on Windows.
 
 ## Disclaimer
 
