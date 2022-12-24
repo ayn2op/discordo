@@ -9,6 +9,7 @@ var (
 	italicRegex        = regexp.MustCompile(`(?ms)\*(.*?)\*`)
 	underlineRegex     = regexp.MustCompile(`(?ms)__(.*?)__`)
 	strikeThroughRegex = regexp.MustCompile(`(?ms)~~(.*?)~~`)
+	spoilerRegex       = regexp.MustCompile(`(?ms)\|\|(.*?)\|\|`)
 )
 
 // Parse parses Discord-flavored markdown to tview's [Color Tags].
@@ -20,5 +21,20 @@ func Parse(md string) string {
 	md = underlineRegex.ReplaceAllString(md, "[::u]$1[::-]")
 	md = strikeThroughRegex.ReplaceAllString(md, "[::s]$1[::-]")
 
+	md = spoilerRegex.ReplaceAllStringFunc(md, replaceWithNothing)
+
 	return md
 }
+
+func replaceWithNothing(s string) string {
+
+	runes := []rune(s)
+
+	for i := range runes {
+		runes[i] = ' '
+	}
+
+	return "[#383838:#FFFFFF:]" + string(runes) + "[-:-:]"
+}
+
+	
