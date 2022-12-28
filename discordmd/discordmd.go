@@ -16,12 +16,26 @@ var (
 //
 // [Color Tags]: https://pkg.go.dev/github.com/rivo/tview#hdr-Colors
 func Parse(md string) string {
+	return ParseWithSpoilers(md, false)
+}
+
+// ParseWithSpoilers parses Discord-flavored markdown to tview’s [Color Tags]
+//
+// This modular version lets the caller choose to display spoilers as shown or hidden depending on the value of showSpoilers
+func ParseWithSpoilers(md string, showSpoilers bool) string {
+
 	md = boldRegex.ReplaceAllString(md, "[::b]$1[::-]")
 	md = italicRegex.ReplaceAllString(md, "[::i]$1[::-]")
 	md = underlineRegex.ReplaceAllString(md, "[::u]$1[::-]")
 	md = strikeThroughRegex.ReplaceAllString(md, "[::s]$1[::-]")
 
-	md = spoilerRegex.ReplaceAllStringFunc(md, replaceWithNothing)
+	// parse spoilers
+
+	if showSpoilers {
+		md = spoilerRegex.ReplaceAllString(md, "[#E0E0E0:#383838:]$1[-:-:]")
+	} else {
+		md = spoilerRegex.ReplaceAllStringFunc(md, replaceWithNothing)
+	}
 
 	return md
 }

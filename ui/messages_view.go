@@ -13,16 +13,22 @@ type MessagesView struct {
 	*tview.TextView
 
 	// The index of the currently selected message. A negative index indicates that there is no currently selected message.
-	selected int
-	app      *Application
+	selected        int
+	app             *Application
+	messagesOptions map[discord.MessageID]MessageOptions
+}
+
+type MessageOptions struct {
+	spoilers bool
 }
 
 func newMessagesView(app *Application) *MessagesView {
 	v := &MessagesView{
 		TextView: tview.NewTextView(),
 
-		selected: -1,
-		app:      app,
+		selected:        -1,
+		app:             app,
+		messagesOptions: make(map[discord.MessageID]MessageOptions),
 	}
 
 	v.SetDynamicColors(true)

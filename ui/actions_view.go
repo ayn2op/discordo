@@ -76,6 +76,7 @@ func newActionsView(app *Application, m *discord.Message) *ActionsView {
 	v.AddItem("Copy Content", "", 'c', v.copyContentAction)
 	v.AddItem("Copy ID", "", 'i', v.copyIDAction)
 	v.AddItem("Copy Link", "", 'k', v.copyLinkAction)
+	v.AddItem("Show/Hide Spoilers", "", 's', v.toggleSpoilersAction)
 
 	v.SetTitle("Press the Escape key to close")
 	v.SetTitleAlign(tview.AlignLeft)
@@ -226,6 +227,39 @@ func (v *ActionsView) copyLinkAction() {
 	err := clipboard.WriteAll(v.message.URL())
 	if err != nil {
 		return
+	}
+
+	v.app.SetRoot(v.app.view, true)
+	v.app.SetFocus(v.app.view.MessagesView)
+}
+
+func (v *ActionsView) toggleSpoilersAction() {
+	mID := v.message.ID
+	options, ok := v.app.view.MessagesView.messagesOptions[mID]
+
+	if ok {
+		options.spoilers = !options.spoilers
+	} else {
+		options.spoilers = true
+	}
+
+	v.app.view.MessagesView.messagesOptions[mID] = options
+
+	// todo : improve this
+
+	// The returned slice will be sorted from latest to oldest.
+	ms, err := v.app.state.Cabinet.Messages(v.message.ChannelID)
+	if err != nil {
+		return
+	}
+
+	v.app.view.MessagesView.Clear()
+
+	for i := len(ms) - 1; i >= 0; i-- {
+		_, err = v.app.view.MessagesView.Write(buildMessage(v.app, ms[i]))
+		if err != nil {
+			return
+		}
 	}
 
 	v.app.SetRoot(v.app.view, true)

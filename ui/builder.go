@@ -39,7 +39,12 @@ func buildMessage(c *Application, m discord.Message) []byte {
 		buildAuthor(&b, m.Author, c.state.Ready().User.ID)
 
 		// Build the contents of the message.
-		buildContent(&b, m, c.state.Ready().User.ID)
+		options, ok := c.view.MessagesView.messagesOptions[m.ID]
+		if ok {
+			buildContentWithOptions(&b, m, c.state.Ready().User.ID, &options)
+		} else {
+			buildContent(&b, m, c.state.Ready().User.ID)
+		}
 
 		if m.EditedTimestamp.IsValid() {
 			b.WriteString(" [::d](edited)[::-]")
@@ -103,9 +108,18 @@ func buildReferencedMessage(b *strings.Builder, rm *discord.Message, clientID di
 }
 
 func buildContent(b *strings.Builder, m discord.Message, clientID discord.UserID) {
+	buildContentWithOptions(b, m, clientID, nil)
+}
+
+func buildContentWithOptions(b *strings.Builder, m discord.Message, clientID discord.UserID, options *MessageOptions) {
 	if m.Content != "" {
 		m.Content = buildMentions(m.Content, m.Mentions, clientID)
-		b.WriteString(discordmd.Parse(m.Content))
+
+		if options != nil {
+			b.WriteString(discordmd.ParseWithSpoilers(m.Content, options.spoilers))
+		} else {
+			b.WriteString(discordmd.ParseWithSpoilers(m.Content, false))
+		}
 	}
 }
 
