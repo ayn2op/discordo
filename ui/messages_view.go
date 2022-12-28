@@ -100,6 +100,8 @@ func (v *MessagesView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 		return v.selectLastMessage(ms)
 	case "Esc":
 		v.selected = -1
+		v.app.view.ChannelsView.selected = nil
+
 		v.app.SetFocus(v.app.view)
 		v.
 			Clear().
