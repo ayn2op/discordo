@@ -234,6 +234,7 @@ func (v *ActionsView) copyLinkAction() {
 }
 
 func (v *ActionsView) toggleSpoilersAction() {
+	// toggle spoiler tag on message
 	mID := v.message.ID
 	options, ok := v.app.view.MessagesView.messagesOptions[mID]
 
@@ -245,7 +246,7 @@ func (v *ActionsView) toggleSpoilersAction() {
 
 	v.app.view.MessagesView.messagesOptions[mID] = options
 
-	// todo : improve this
+	// Is there a way to do this without reloading the entire message list ?
 
 	// The returned slice will be sorted from latest to oldest.
 	ms, err := v.app.state.Cabinet.Messages(v.message.ChannelID)

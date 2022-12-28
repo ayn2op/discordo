@@ -29,8 +29,7 @@ func ParseWithSpoilers(md string, showSpoilers bool) string {
 	md = underlineRegex.ReplaceAllString(md, "[::u]$1[::-]")
 	md = strikeThroughRegex.ReplaceAllString(md, "[::s]$1[::-]")
 
-	// parse spoilers
-
+	// parse spoiler tag
 	if showSpoilers {
 		md = spoilerRegex.ReplaceAllString(md, "[#E0E0E0:#383838:]$1[-:-:]")
 	} else {
