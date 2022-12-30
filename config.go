@@ -13,13 +13,9 @@ type ThemeConfig struct {
 }
 
 type Config struct {
-	Mouse bool
-	Theme ThemeConfig
-}
-
-func (c *Config) BorderPadding() (int, int, int, int) {
-	pad := c.Theme.BorderPadding
-	return pad[0], pad[1], pad[2], pad[3]
+	Mouse         bool
+	MessagesLimit uint
+	Theme         ThemeConfig
 }
 
 func newConfig() (*Config, error) {
@@ -34,7 +30,9 @@ func newConfig() (*Config, error) {
 	}
 
 	c := Config{
-		Mouse: true,
+		Mouse:         true,
+		MessagesLimit: 50,
+
 		Theme: ThemeConfig{
 			BorderPadding: [...]int{1, 1, 1, 1},
 		},
@@ -65,4 +63,9 @@ func newConfig() (*Config, error) {
 	}
 
 	return &c, nil
+}
+
+func (c *Config) BorderPadding() (int, int, int, int) {
+	pad := c.Theme.BorderPadding
+	return pad[0], pad[1], pad[2], pad[3]
 }

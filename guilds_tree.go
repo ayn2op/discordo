@@ -1,31 +1,37 @@
 package main
 
 import (
+	"log"
+
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/rivo/tview"
 )
 
 type GuildsTree struct {
 	*tview.TreeView
+
+	root *tview.TreeNode
 }
 
 func newGuildsTree() *GuildsTree {
 	gt := &GuildsTree{
 		TreeView: tview.NewTreeView(),
+
+		root: tview.NewTreeNode(""),
 	}
 
-	root := tview.NewTreeNode("")
-	gt.SetRoot(root)
+	gt.SetRoot(gt.root)
 	gt.SetTopLevel(1)
 	gt.SetSelectedFunc(gt.onSelected)
 
+	gt.SetTitle("Guilds")
 	gt.SetBorder(true)
 	gt.SetBorderPadding(cfg.BorderPadding())
 
 	return gt
 }
 
-func (gt *GuildsTree) newGuild(n *tview.TreeNode, gid discord.GuildID) error {
+func (gt *GuildsTree) newGuildFromID(n *tview.TreeNode, gid discord.GuildID) error {
 	g, err := discordState.Cabinet.Guild(gid)
 	if err != nil {
 		return err
@@ -37,9 +43,100 @@ func (gt *GuildsTree) newGuild(n *tview.TreeNode, gid discord.GuildID) error {
 	return nil
 }
 
-func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
-	ref := n.GetReference()
-	if ref == nil {
+func (gt *GuildsTree) newChannel(n *tview.TreeNode, c discord.Channel) {
+	cn := tview.NewTreeNode(gt.channelToString(c))
+	cn.SetReference(c.ID)
+	n.AddChild(cn)
+}
 
+func (gt *GuildsTree) channelToString(c discord.Channel) string {
+	switch c.Type {
+	case discord.GuildText:
+		return "#" + c.Name
+	case discord.GuildVoice:
+		return "v-" + c.Name
+	case discord.GuildNews:
+		return "n-" + c.Name
+	case discord.GuildStore:
+		return "s-" + c.Name
+	default:
+		return c.Name
+	}
+}
+
+func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
+	if len(n.GetChildren()) != 0 {
+		n.SetExpanded(!n.IsExpanded())
+	}
+
+	switch ref := n.GetReference().(type) {
+	case discord.GuildID:
+		cs, err := discordState.Cabinet.Channels(ref)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		// Orphan (top-level) channels
+		for _, c := range cs {
+			if c.Type != discord.GuildCategory && !c.ParentID.IsValid() {
+				gt.newChannel(n, c)
+			}
+		}
+
+		// Category channels
+	CATEGORY:
+		for _, c := range cs {
+			if c.Type == discord.GuildCategory {
+				for _, nestedChannel := range cs {
+					if nestedChannel.ParentID == c.ID {
+						gt.newChannel(n, c)
+						continue CATEGORY
+					}
+				}
+
+				gt.newChannel(n, c)
+			}
+		}
+
+		// Children (category-bound) channels
+		for _, c := range cs {
+			if c.ParentID.IsValid() {
+				var parent *tview.TreeNode
+				n.Walk(func(node, _ *tview.TreeNode) bool {
+					if node.GetReference() == c.ParentID {
+						parent = node
+						return false
+					}
+
+					return true
+				})
+
+				if parent != nil {
+					gt.newChannel(parent, c)
+				}
+			}
+		}
+	case discord.ChannelID:
+		messagesText.Clear()
+
+		c, err := discordState.Cabinet.Channel(ref)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		ms, err := discordState.Messages(ref, cfg.MessagesLimit)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		for _, m := range ms {
+			messagesText.newMessage(&m)
+		}
+
+		messagesText.SetTitle(gt.channelToString(*c))
+		app.SetFocus(messagesText)
 	}
 }

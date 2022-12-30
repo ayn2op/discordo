@@ -23,24 +23,22 @@ func newState(token string) *State {
 }
 
 func (s *State) onReady(r *gateway.ReadyEvent) {
-	root := guildsTree.GetRoot()
-
 	dmNode := tview.NewTreeNode("Direct Messages")
-	root.AddChild(dmNode)
+	guildsTree.root.AddChild(dmNode)
 
 	for _, gf := range r.UserSettings.GuildFolders {
 		/// If the ID of the guild folder is zero, the guild folder only contains single guild.
 		if gf.ID == 0 {
-			if err := guildsTree.newGuild(root, gf.GuildIDs[0]); err != nil {
+			if err := guildsTree.newGuildFromID(guildsTree.root, gf.GuildIDs[0]); err != nil {
 				log.Println(err)
 				continue
 			}
 		} else {
 			gfNode := tview.NewTreeNode("Folder")
-			root.AddChild(gfNode)
+			guildsTree.root.AddChild(gfNode)
 
 			for _, gid := range gf.GuildIDs {
-				if err := guildsTree.newGuild(gfNode, gid); err != nil {
+				if err := guildsTree.newGuildFromID(gfNode, gid); err != nil {
 					log.Println(err)
 					continue
 				}
@@ -48,6 +46,6 @@ func (s *State) onReady(r *gateway.ReadyEvent) {
 		}
 	}
 
-	guildsTree.SetCurrentNode(root)
+	guildsTree.SetCurrentNode(guildsTree.root)
 	app.SetFocus(guildsTree)
 }
