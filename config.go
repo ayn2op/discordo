@@ -10,6 +10,7 @@ const name = "discordo"
 
 type ThemeConfig struct {
 	BorderPadding [4]int
+	MessageFormat string
 }
 
 type Config struct {
@@ -35,6 +36,9 @@ func newConfig() (*Config, error) {
 
 		Theme: ThemeConfig{
 			BorderPadding: [...]int{1, 1, 1, 1},
+			MessageFormat: `{{.Author.Username}}
+				{{.Content}}
+			`,
 		},
 	}
 	path = filepath.Join(path, "config.json")

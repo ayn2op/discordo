@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -133,7 +134,10 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 		}
 
 		for _, m := range ms {
-			messagesText.newMessage(&m)
+			if messagesText.newMessage(&m); err != nil {
+				fmt.Println(err)
+				continue
+			}
 		}
 
 		messagesText.SetTitle(gt.channelToString(*c))
