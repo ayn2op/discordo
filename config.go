@@ -53,7 +53,7 @@ func newConfig() (*Config, error) {
 
 	common := CommonThemeConfig{
 		Border:        true,
-		BorderPadding: [...]int{1, 1, 1, 1},
+		BorderPadding: [...]int{0, 0, 1, 1},
 	}
 
 	c := Config{
@@ -73,7 +73,7 @@ func newConfig() (*Config, error) {
 			},
 		},
 	}
-	path = filepath.Join(path, "config.yaml")
+	path = filepath.Join(path, "config.yml")
 	if _, err = os.Stat(path); os.IsNotExist(err) {
 		f, err := os.Create(path)
 		if err != nil {
