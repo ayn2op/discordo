@@ -13,6 +13,8 @@ func newMessageInput() *MessageInput {
 		InputField: tview.NewInputField(),
 	}
 
+	mi.SetFieldBackgroundColor(tview.Styles.PrimitiveBackgroundColor)
+
 	mi.SetBorder(cfg.Theme.MessageInput.Border)
 
 	padding := cfg.Theme.MessageInput.BorderPadding

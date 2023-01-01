@@ -37,7 +37,7 @@ func (mt *MessagesText) newMessage(m *discord.Message) error {
 		fmt.Fprintf(mt, `["%s"]`, m.ID)
 
 		if m.ReferencedMessage != nil {
-			fmt.Fprint(mt, "> [::d]")
+			fmt.Fprint(mt, " ╭ [::d]")
 
 			// Author
 			mt.newAuthor(m.ReferencedMessage)
