@@ -49,8 +49,8 @@ func main() {
 	right.SetDirection(tview.FlexRow)
 	right.AddItem(messagesText, 0, 1, false)
 	right.AddItem(messageInput, 3, 1, false)
-
-	flex.AddItem(guildsTree, 0, 1, false)
+	// The guilds tree is always focused first at start-up.
+	flex.AddItem(guildsTree, 0, 1, true)
 	flex.AddItem(right, 0, 4, false)
 
 	app.EnableMouse(cfg.Mouse)
