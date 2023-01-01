@@ -48,19 +48,18 @@ func (mt *MessagesText) newMessage(m *discord.Message) error {
 			fmt.Fprintln(mt)
 		}
 
-		// Author
-		mt.newAuthor(m)
 		// Timestamps
 		mt.newTimestamp(m)
+		// Author
+		mt.newAuthor(m)
 		// Content
-		fmt.Fprintln(mt)
 		mt.newContent(m)
 
 		// Tags with no region ID ([""]) don't start new regions. They can therefore be used to mark the end of a region.
 		fmt.Fprint(mt, `[""]`)
 	}
 
-	fmt.Fprint(mt, "\n\n")
+	fmt.Fprintln(mt)
 	return nil
 }
 
@@ -69,7 +68,7 @@ func (mt *MessagesText) newAuthor(m *discord.Message) {
 }
 
 func (mt *MessagesText) newTimestamp(m *discord.Message) {
-	fmt.Fprintf(mt, "[::d]%s[::-]", m.Timestamp.Format(time.Kitchen))
+	fmt.Fprintf(mt, "[::d]%s[::-] ", m.Timestamp.Format(time.Kitchen))
 }
 
 func (mt *MessagesText) newContent(m *discord.Message) {
