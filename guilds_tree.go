@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"sort"
+	"strings"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/rivo/tview"
@@ -54,18 +55,35 @@ func (gt *GuildsTree) newChannel(n *tview.TreeNode, c discord.Channel) {
 }
 
 func (gt *GuildsTree) channelToString(c discord.Channel) string {
+	var s string
 	switch c.Type {
 	case discord.GuildText:
-		return "#" + c.Name
+		s = "#" + c.Name
+	case discord.DirectMessage:
+		r := c.DMRecipients[0]
+		s = r.Tag()
 	case discord.GuildVoice:
-		return "v-" + c.Name
+		s = "v-" + c.Name
+	case discord.GroupDM:
+		s = c.Name
+		// If the name of the channel is empty, use the recipients tags
+		if s == "" {
+			rs := make([]string, len(c.DMRecipients))
+			for _, r := range c.DMRecipients {
+				rs = append(rs, r.Tag())
+			}
+
+			s = strings.Join(rs, ", ")
+		}
 	case discord.GuildNews:
-		return "n-" + c.Name
+		s = "n-" + c.Name
 	case discord.GuildStore:
-		return "s-" + c.Name
+		s = "s-" + c.Name
 	default:
-		return c.Name
+		s = c.Name
 	}
+
+	return s
 }
 
 func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
@@ -152,5 +170,19 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 		}
 
 		app.SetFocus(messagesText)
+	case nil: // Direct messages
+		cs, err := discordState.Cabinet.PrivateChannels()
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		sort.Slice(cs, func(i, j int) bool {
+			return cs[i].LastMessageID < cs[j].LastMessageID
+		})
+
+		for _, c := range cs {
+			gt.newChannel(n, c)
+		}
 	}
 }
