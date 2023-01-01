@@ -83,5 +83,5 @@ func (mt *MessagesText) newTimestamp(m *discord.Message) {
 }
 
 func (mt *MessagesText) newContent(m *discord.Message) {
-	mt.buffer.WriteString(m.Content)
+	mt.buffer.WriteString(tview.Escape(m.Content))
 }
