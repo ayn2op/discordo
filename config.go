@@ -8,20 +8,33 @@ import (
 
 const name = "discordo"
 
-type ThemeConfig struct {
-	BorderPadding [4]int
+type GuildsTreeThemeConfig struct {
+	Border   bool
+	Graphics bool
 }
 
-type GuildsTreeKeysConfig struct {
-	Graphics bool
+type MessagesTextThemeConfig struct {
+	Border bool
+}
+
+type MessageInputThemeConfig struct {
+	Border bool
+}
+
+type ThemeConfig struct {
+	BorderPadding [4]int
+
+	GuildsTree   GuildsTreeThemeConfig
+	MessagesText MessagesTextThemeConfig
+	MessageInput MessageInputThemeConfig
 }
 
 type MessagesTextKeysConfig struct {
 	SelectPreviousMessage string
+	SelectNextMessage     string
 }
 
 type KeysConfig struct {
-	GuildsTree   GuildsTreeKeysConfig
 	MessagesText MessagesTextKeysConfig
 }
 
@@ -50,10 +63,23 @@ func newConfig() (*Config, error) {
 
 		Theme: ThemeConfig{
 			BorderPadding: [...]int{1, 1, 1, 1},
+
+			GuildsTree: GuildsTreeThemeConfig{
+				Border:   true,
+				Graphics: true,
+			},
+			MessagesText: MessagesTextThemeConfig{
+				Border: true,
+			},
+			MessageInput: MessageInputThemeConfig{
+				Border: true,
+			},
 		},
 		Keys: KeysConfig{
-			GuildsTree:   GuildsTreeKeysConfig{Graphics: true},
-			MessagesText: MessagesTextKeysConfig{SelectPreviousMessage: "Up"},
+			MessagesText: MessagesTextKeysConfig{
+				SelectPreviousMessage: "Up",
+				SelectNextMessage:     "Down",
+			},
 		},
 	}
 	path = filepath.Join(path, "config.json")

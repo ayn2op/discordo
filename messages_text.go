@@ -23,8 +23,7 @@ func newMessagesText() *MessagesText {
 	mt.SetRegions(true)
 	mt.SetWordWrap(true)
 
-	mt.SetTitle("Messages")
-	mt.SetBorder(true)
+	mt.SetBorder(cfg.Theme.MessagesText.Border)
 	mt.SetBorderPadding(cfg.BorderPadding())
 
 	return mt

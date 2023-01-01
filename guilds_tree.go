@@ -22,13 +22,12 @@ func newGuildsTree() *GuildsTree {
 		root: tview.NewTreeNode(""),
 	}
 
-	gt.SetGraphics(cfg.Keys.GuildsTree.Graphics)
+	gt.SetGraphics(cfg.Theme.GuildsTree.Graphics)
 	gt.SetRoot(gt.root)
 	gt.SetTopLevel(1)
 	gt.SetSelectedFunc(gt.onSelected)
 
-	gt.SetTitle("Guilds")
-	gt.SetBorder(true)
+	gt.SetBorder(cfg.Theme.GuildsTree.Border)
 	gt.SetBorderPadding(cfg.BorderPadding())
 
 	return gt

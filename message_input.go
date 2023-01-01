@@ -13,7 +13,7 @@ func newMessageInput() *MessageInput {
 		InputField: tview.NewInputField(),
 	}
 
-	mi.SetBorder(true)
+	mi.SetBorder(cfg.Theme.MessageInput.Border)
 	mi.SetBorderPadding(cfg.BorderPadding())
 
 	return mi
