@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bytes"
+	"fmt"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -10,8 +10,6 @@ import (
 
 type MessagesText struct {
 	*tview.TextView
-
-	buffer bytes.Buffer
 }
 
 func newMessagesText() *MessagesText {
@@ -36,20 +34,18 @@ func (mt *MessagesText) newMessage(m *discord.Message) error {
 	case discord.DefaultMessage, discord.InlinedReplyMessage:
 		// Region tags are square brackets that contain a region ID in double quotes
 		// https://pkg.go.dev/github.com/rivo/tview#hdr-Regions_and_Highlights
-		mt.buffer.WriteString(`["`)
-		mt.buffer.WriteString(m.ID.String())
-		mt.buffer.WriteString(`"]`)
+		fmt.Fprintf(mt, `["%s"]`, m.ID)
 
 		if m.ReferencedMessage != nil {
-			mt.buffer.WriteString("> [::d]")
+			fmt.Fprint(mt, "> [::d]")
 
 			// Author
 			mt.newAuthor(m.ReferencedMessage)
 			// Content
 			mt.newContent(m.ReferencedMessage)
 
-			mt.buffer.WriteString("[::-]")
-			mt.buffer.WriteByte('\n')
+			fmt.Fprint(mt, "[::-]")
+			fmt.Fprintln(mt)
 		}
 
 		// Author
@@ -57,31 +53,25 @@ func (mt *MessagesText) newMessage(m *discord.Message) error {
 		// Timestamps
 		mt.newTimestamp(m)
 		// Content
-		mt.buffer.WriteByte('\n')
+		fmt.Fprintln(mt)
 		mt.newContent(m)
 
 		// Tags with no region ID ([""]) don't start new regions. They can therefore be used to mark the end of a region.
-		mt.buffer.WriteString(`[""]`)
+		fmt.Fprint(mt, `[""]`)
 	}
 
-	mt.buffer.WriteString("\n\n")
-
-	_, err := mt.buffer.WriteTo(mt)
-	return err
+	fmt.Fprint(mt, "\n\n")
+	return nil
 }
 
 func (mt *MessagesText) newAuthor(m *discord.Message) {
-	mt.buffer.WriteString("[blue]")
-	mt.buffer.WriteString(m.Author.Username)
-	mt.buffer.WriteString("[-] ")
+	fmt.Fprintf(mt, "[blue]%s[-] ", m.Author.Username)
 }
 
 func (mt *MessagesText) newTimestamp(m *discord.Message) {
-	mt.buffer.WriteString("[::d]")
-	mt.buffer.WriteString(m.Timestamp.Format(time.Kitchen))
-	mt.buffer.WriteString("[-:-:-] ")
+	fmt.Fprintf(mt, "[::d]%s[::-]", m.Timestamp.Format(time.Kitchen))
 }
 
 func (mt *MessagesText) newContent(m *discord.Message) {
-	mt.buffer.WriteString(tview.Escape(m.Content))
+	fmt.Fprint(mt, tview.Escape(m.Content))
 }

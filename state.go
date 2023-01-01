@@ -18,6 +18,7 @@ func newState(token string) *State {
 	}
 
 	s.AddHandler(s.onReady)
+	s.AddHandler(s.onMessageCreate)
 
 	return s
 }
@@ -48,4 +49,13 @@ func (s *State) onReady(r *gateway.ReadyEvent) {
 
 	guildsTree.SetCurrentNode(guildsTree.root)
 	app.SetFocus(guildsTree)
+}
+
+func (s *State) onMessageCreate(m *gateway.MessageCreateEvent) {
+	if guildsTree.selectedChannel != nil {
+		if err := messagesText.newMessage(&m.Message); err != nil {
+			log.Println(err)
+			return
+		}
+	}
 }

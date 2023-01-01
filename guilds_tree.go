@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"sort"
 
@@ -12,7 +11,8 @@ import (
 type GuildsTree struct {
 	*tview.TreeView
 
-	root *tview.TreeNode
+	root            *tview.TreeNode
+	selectedChannel *discord.Channel
 }
 
 func newGuildsTree() *GuildsTree {
@@ -135,6 +135,9 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 			return
 		}
 
+		gt.selectedChannel = c
+		messagesText.SetTitle(gt.channelToString(*c))
+
 		ms, err := discordState.Messages(ref, cfg.MessagesLimit)
 		if err != nil {
 			log.Println(err)
@@ -143,12 +146,11 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 
 		for i := len(ms) - 1; i >= 0; i-- {
 			if messagesText.newMessage(&ms[i]); err != nil {
-				fmt.Println(err)
+				log.Println(err)
 				continue
 			}
 		}
 
-		messagesText.SetTitle(gt.channelToString(*c))
 		app.SetFocus(messagesText)
 	}
 }
