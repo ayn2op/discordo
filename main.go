@@ -14,8 +14,9 @@ var (
 	cfg          *Config
 	discordState *State
 
-	app          *tview.Application
-	flex         *tview.Flex
+	app  = tview.NewApplication()
+	flex = tview.NewFlex()
+
 	guildsTree   *GuildsTree
 	messagesText *MessagesText
 	messageInput *MessageInput
@@ -35,8 +36,6 @@ func main() {
 	}
 
 	// Initialize UI
-	app = tview.NewApplication()
-
 	guildsTree = newGuildsTree()
 	messagesText = newMessagesText()
 	messageInput = newMessageInput()
@@ -51,7 +50,6 @@ func main() {
 	right.AddItem(messagesText, 0, 1, false)
 	right.AddItem(messageInput, 3, 1, false)
 
-	flex = tview.NewFlex()
 	flex.AddItem(guildsTree, 0, 1, false)
 	flex.AddItem(right, 0, 4, false)
 
