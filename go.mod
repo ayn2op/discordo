@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/diamondburned/arikawa/v3 v3.1.0
-	github.com/rivo/tview v0.0.0-20221229180733-b86a50a5126c
+	github.com/rivo/tview v0.0.0-20230101141202-1dc4a83affeb
 	gopkg.in/yaml.v3 v3.0.1
 )
 
