@@ -1,22 +1,17 @@
 package main
 
 import (
-	"fmt"
-	"sync"
-	"text/template"
+	"bytes"
+	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/rivo/tview"
 )
 
-var p = sync.Pool{
-	New: func() any {
-		return new(template.Template)
-	},
-}
-
 type MessagesText struct {
 	*tview.TextView
+
+	buffer bytes.Buffer
 }
 
 func newMessagesText() *MessagesText {
@@ -26,7 +21,9 @@ func newMessagesText() *MessagesText {
 
 	mt.SetDynamicColors(true)
 	mt.SetRegions(true)
+	mt.SetWordWrap(true)
 
+	mt.SetTitle("Messages")
 	mt.SetBorder(true)
 	mt.SetBorderPadding(cfg.BorderPadding())
 
@@ -35,24 +32,55 @@ func newMessagesText() *MessagesText {
 
 func (mt *MessagesText) newMessage(m *discord.Message) error {
 	switch m.Type {
-	case discord.DefaultMessage:
+	case discord.DefaultMessage, discord.InlinedReplyMessage:
 		// Region tags are square brackets that contain a region ID in double quotes
 		// https://pkg.go.dev/github.com/rivo/tview#hdr-Regions_and_Highlights
-		fmt.Fprintf(mt, `["%s"]`, m.ID)
+		mt.buffer.WriteString(`["`)
+		mt.buffer.WriteString(m.ID.String())
+		mt.buffer.WriteString(`"]`)
 
 		if m.ReferencedMessage != nil {
-			fmt.Fprintf(mt, "[blue::bd]%s[-:-:-] [::-]", m.ReferencedMessage.Author.Username)
-			fmt.Fprint(mt, m.ReferencedMessage.Content)
-			fmt.Fprintln(mt)
+			mt.buffer.WriteString("> [::d]")
+
+			// Author
+			mt.newAuthor(m.ReferencedMessage)
+			// Content
+			mt.newContent(m.ReferencedMessage)
+
+			mt.buffer.WriteString("[::-]")
+			mt.buffer.WriteByte('\n')
 		}
 
-		fmt.Fprintf(mt, "[blue::b]%s[-:-:-] ", m.Author.Username)
-		fmt.Fprint(mt, m.Content)
-		// Tags with no region ID ([""]) don't start new regions. They can therefore be used to mark the end of a region.
-		fmt.Fprint(mt, `[""]`)
+		// Author
+		mt.newAuthor(m)
+		// Timestamps
+		mt.newTimestamp(m)
+		// Content
+		mt.buffer.WriteByte('\n')
+		mt.newContent(m)
 
-		fmt.Fprintln(mt)
+		// Tags with no region ID ([""]) don't start new regions. They can therefore be used to mark the end of a region.
+		mt.buffer.WriteString(`[""]`)
 	}
 
-	return nil
+	mt.buffer.WriteString("\n\n")
+
+	_, err := mt.buffer.WriteTo(mt)
+	return err
+}
+
+func (mt *MessagesText) newAuthor(m *discord.Message) {
+	mt.buffer.WriteString("[blue]")
+	mt.buffer.WriteString(m.Author.Username)
+	mt.buffer.WriteString("[-] ")
+}
+
+func (mt *MessagesText) newTimestamp(m *discord.Message) {
+	mt.buffer.WriteString("[::d]")
+	mt.buffer.WriteString(m.Timestamp.Format(time.Kitchen))
+	mt.buffer.WriteString("[-:-:-] ")
+}
+
+func (mt *MessagesText) newContent(m *discord.Message) {
+	mt.buffer.WriteString(m.Content)
 }

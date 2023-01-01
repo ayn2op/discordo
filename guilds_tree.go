@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"sort"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/rivo/tview"
@@ -21,6 +22,7 @@ func newGuildsTree() *GuildsTree {
 		root: tview.NewTreeNode(""),
 	}
 
+	gt.SetGraphics(cfg.Keys.GuildsTree.Graphics)
 	gt.SetRoot(gt.root)
 	gt.SetTopLevel(1)
 	gt.SetSelectedFunc(gt.onSelected)
@@ -68,6 +70,7 @@ func (gt *GuildsTree) channelToString(c discord.Channel) string {
 func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 	if len(n.GetChildren()) != 0 {
 		n.SetExpanded(!n.IsExpanded())
+		return
 	}
 
 	switch ref := n.GetReference().(type) {
@@ -77,6 +80,10 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 			log.Println(err)
 			return
 		}
+
+		sort.Slice(cs, func(i, j int) bool {
+			return cs[i].Position < cs[j].Position
+		})
 
 		// Orphan (top-level) channels
 		for _, c := range cs {
@@ -102,7 +109,7 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 
 		// Children (category-bound) channels
 		for _, c := range cs {
-			if c.ParentID.IsValid() {
+			if c.Type != discord.GuildCategory && c.ParentID.IsValid() {
 				var parent *tview.TreeNode
 				n.Walk(func(node, _ *tview.TreeNode) bool {
 					if node.GetReference() == c.ParentID {
@@ -133,8 +140,8 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 			return
 		}
 
-		for _, m := range ms {
-			if messagesText.newMessage(&m); err != nil {
+		for i := len(ms) - 1; i >= 0; i-- {
+			if messagesText.newMessage(&ms[i]); err != nil {
 				fmt.Println(err)
 				continue
 			}

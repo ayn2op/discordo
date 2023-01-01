@@ -10,13 +10,27 @@ const name = "discordo"
 
 type ThemeConfig struct {
 	BorderPadding [4]int
-	MessageFormat string
+}
+
+type GuildsTreeKeysConfig struct {
+	Graphics bool
+}
+
+type MessagesTextKeysConfig struct {
+	SelectPreviousMessage string
+}
+
+type KeysConfig struct {
+	GuildsTree   GuildsTreeKeysConfig
+	MessagesText MessagesTextKeysConfig
 }
 
 type Config struct {
 	Mouse         bool
 	MessagesLimit uint
-	Theme         ThemeConfig
+
+	Theme ThemeConfig
+	Keys  KeysConfig
 }
 
 func newConfig() (*Config, error) {
@@ -36,9 +50,10 @@ func newConfig() (*Config, error) {
 
 		Theme: ThemeConfig{
 			BorderPadding: [...]int{1, 1, 1, 1},
-			MessageFormat: `{{.Author.Username}}
-				{{.Content}}
-			`,
+		},
+		Keys: KeysConfig{
+			GuildsTree:   GuildsTreeKeysConfig{Graphics: true},
+			MessagesText: MessagesTextKeysConfig{SelectPreviousMessage: "Up"},
 		},
 	}
 	path = filepath.Join(path, "config.json")
