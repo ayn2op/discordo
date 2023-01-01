@@ -24,7 +24,9 @@ func newMessagesText() *MessagesText {
 	mt.SetWordWrap(true)
 
 	mt.SetBorder(cfg.Theme.MessagesText.Border)
-	mt.SetBorderPadding(cfg.BorderPadding())
+
+	padding := cfg.Theme.MessagesText.BorderPadding
+	mt.SetBorderPadding(padding[0], padding[1], padding[2], padding[3])
 
 	return mt
 }

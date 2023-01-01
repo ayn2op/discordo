@@ -14,7 +14,9 @@ func newMessageInput() *MessageInput {
 	}
 
 	mi.SetBorder(cfg.Theme.MessageInput.Border)
-	mi.SetBorderPadding(cfg.BorderPadding())
+
+	padding := cfg.Theme.MessageInput.BorderPadding
+	mi.SetBorderPadding(padding[0], padding[1], padding[2], padding[3])
 
 	return mi
 }

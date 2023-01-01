@@ -1,49 +1,43 @@
 package main
 
 import (
-	"encoding/json"
 	"os"
 	"path/filepath"
+
+	"gopkg.in/yaml.v3"
 )
 
 const name = "discordo"
 
+type CommonThemeConfig struct {
+	Border        bool   `yaml:"border"`
+	BorderPadding [4]int `yaml:"border_padding"`
+}
+
 type GuildsTreeThemeConfig struct {
-	Border   bool
-	Graphics bool
+	CommonThemeConfig `yaml:",inline"`
+	Graphics          bool `yaml:"graphics"`
 }
 
 type MessagesTextThemeConfig struct {
-	Border bool
+	CommonThemeConfig `yaml:",inline"`
 }
 
 type MessageInputThemeConfig struct {
-	Border bool
+	CommonThemeConfig `yaml:",inline"`
 }
 
 type ThemeConfig struct {
-	BorderPadding [4]int
-
-	GuildsTree   GuildsTreeThemeConfig
-	MessagesText MessagesTextThemeConfig
-	MessageInput MessageInputThemeConfig
-}
-
-type MessagesTextKeysConfig struct {
-	SelectPreviousMessage string
-	SelectNextMessage     string
-}
-
-type KeysConfig struct {
-	MessagesText MessagesTextKeysConfig
+	GuildsTree   GuildsTreeThemeConfig   `yaml:"guilds_tree"`
+	MessagesText MessagesTextThemeConfig `yaml:"messages_text"`
+	MessageInput MessageInputThemeConfig `yaml:"message_input"`
 }
 
 type Config struct {
-	Mouse         bool
-	MessagesLimit uint
+	Mouse         bool `yaml:"mouse"`
+	MessagesLimit uint `yaml:"messages_limit"`
 
-	Theme ThemeConfig
-	Keys  KeysConfig
+	Theme ThemeConfig `yaml:"theme"`
 }
 
 func newConfig() (*Config, error) {
@@ -57,32 +51,29 @@ func newConfig() (*Config, error) {
 		return nil, err
 	}
 
+	common := CommonThemeConfig{
+		Border:        true,
+		BorderPadding: [...]int{1, 1, 1, 1},
+	}
+
 	c := Config{
 		Mouse:         true,
 		MessagesLimit: 50,
 
 		Theme: ThemeConfig{
-			BorderPadding: [...]int{1, 1, 1, 1},
-
 			GuildsTree: GuildsTreeThemeConfig{
-				Border:   true,
-				Graphics: true,
+				CommonThemeConfig: common,
+				Graphics:          true,
 			},
 			MessagesText: MessagesTextThemeConfig{
-				Border: true,
+				CommonThemeConfig: common,
 			},
 			MessageInput: MessageInputThemeConfig{
-				Border: true,
-			},
-		},
-		Keys: KeysConfig{
-			MessagesText: MessagesTextKeysConfig{
-				SelectPreviousMessage: "Up",
-				SelectNextMessage:     "Down",
+				CommonThemeConfig: common,
 			},
 		},
 	}
-	path = filepath.Join(path, "config.json")
+	path = filepath.Join(path, "config.yaml")
 	if _, err = os.Stat(path); os.IsNotExist(err) {
 		f, err := os.Create(path)
 		if err != nil {
@@ -90,8 +81,7 @@ func newConfig() (*Config, error) {
 		}
 		defer f.Close()
 
-		e := json.NewEncoder(f)
-		e.SetIndent("", "\t")
+		e := yaml.NewEncoder(f)
 		if err = e.Encode(c); err != nil {
 			return nil, err
 		}
@@ -102,15 +92,10 @@ func newConfig() (*Config, error) {
 		}
 		defer f.Close()
 
-		if err = json.NewDecoder(f).Decode(&c); err != nil {
+		if err = yaml.NewDecoder(f).Decode(&c); err != nil {
 			return nil, err
 		}
 	}
 
 	return &c, nil
-}
-
-func (c *Config) BorderPadding() (int, int, int, int) {
-	pad := c.Theme.BorderPadding
-	return pad[0], pad[1], pad[2], pad[3]
 }
