@@ -11,7 +11,7 @@ const name = "discordo"
 
 type CommonThemeConfig struct {
 	Border        bool   `yaml:"border"`
-	BorderPadding [4]int `yaml:"border_padding"`
+	BorderPadding [4]int `yaml:"border_padding,flow"`
 }
 
 type GuildsTreeThemeConfig struct {
