@@ -39,12 +39,6 @@ func (s *State) onReady(r *gateway.ReadyEvent) {
 	dmNode := tview.NewTreeNode("Direct Messages")
 	guildsTree.root.AddChild(dmNode)
 
-	for _, g := range r.Guilds {
-		log.Println(g.Name)
-	}
-
-	log.Printf("%#v\n", r.UserSettings.GuildFolders)
-
 	for _, gf := range r.UserSettings.GuildFolders {
 		/// If the ID of the guild folder is zero, the guild folder only contains single guild.
 		if gf.ID == 0 {
