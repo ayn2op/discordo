@@ -36,6 +36,7 @@ type ThemeConfig struct {
 type Config struct {
 	Mouse         bool `yaml:"mouse"`
 	MessagesLimit uint `yaml:"messages_limit"`
+	Timestamps    bool `yaml:"timestamps"`
 
 	Theme ThemeConfig `yaml:"theme"`
 }

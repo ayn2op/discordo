@@ -20,6 +20,7 @@ func newMessagesText() *MessagesText {
 	mt.SetDynamicColors(true)
 	mt.SetRegions(true)
 	mt.SetWordWrap(true)
+	mt.ScrollToEnd()
 
 	mt.SetBorder(cfg.Theme.MessagesText.Border)
 
@@ -41,6 +42,7 @@ func (mt *MessagesText) newMessage(m *discord.Message) error {
 
 			// Author
 			mt.newAuthor(m.ReferencedMessage)
+
 			// Content
 			mt.newContent(m.ReferencedMessage)
 
@@ -48,10 +50,14 @@ func (mt *MessagesText) newMessage(m *discord.Message) error {
 			fmt.Fprintln(mt)
 		}
 
-		// Timestamps
-		mt.newTimestamp(m)
+		if cfg.Timestamps {
+			// Timestamps
+			mt.newTimestamp(m)
+		}
+
 		// Author
 		mt.newAuthor(m)
+
 		// Content
 		mt.newContent(m)
 
