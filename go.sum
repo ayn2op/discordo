@@ -1,5 +1,5 @@
-github.com/diamondburned/arikawa/v3 v3.1.0 h1:M7ZyjoCM4o1+rzai2NMXjOSukSrPdP6OxV68WKvKZ6E=
-github.com/diamondburned/arikawa/v3 v3.1.0/go.mod h1:5jBSNnp82Z/EhsKa6Wk9FsOqSxfVkNZDTDBPOj47LpY=
+github.com/diamondburned/arikawa/v3 v3.2.0 h1:aBUhg94pxblT6ks4EV7qxEk44tnl0ico67ydqjVnv9g=
+github.com/diamondburned/arikawa/v3 v3.2.0/go.mod h1:5jBSNnp82Z/EhsKa6Wk9FsOqSxfVkNZDTDBPOj47LpY=
 github.com/gdamore/encoding v1.0.0 h1:+7OoQ1Bc6eTm5niUzBa0Ctsh6JbMW6Ra+YNuAtDBdko=
 github.com/gdamore/encoding v1.0.0/go.mod h1:alR0ol34c49FCSBLjhosxzcPHQbf2trDkoo5dl+VrEg=
 github.com/gdamore/tcell/v2 v2.5.4 h1:TGU4tSjD3sCL788vFNeJnTdzpNKIw1H5dgLnJRQVv/k=

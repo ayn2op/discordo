@@ -3,7 +3,7 @@ module github.com/ayn2op/discordo
 go 1.19
 
 require (
-	github.com/diamondburned/arikawa/v3 v3.1.0
+	github.com/diamondburned/arikawa/v3 v3.2.0
 	github.com/gdamore/tcell/v2 v2.5.4
 	github.com/rivo/tview v0.0.0-20230101141202-1dc4a83affeb
 	gopkg.in/yaml.v3 v3.0.1
