@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -10,6 +11,8 @@ import (
 
 type MessagesText struct {
 	*tview.TextView
+
+	selectedMessage *discord.Message
 }
 
 func newMessagesText() *MessagesText {
@@ -21,6 +24,7 @@ func newMessagesText() *MessagesText {
 	mt.SetRegions(true)
 	mt.SetWordWrap(true)
 	mt.ScrollToEnd()
+	mt.SetHighlightedFunc(mt.onHighlighted)
 
 	mt.SetBorder(cfg.Theme.MessagesText.Border)
 
@@ -79,4 +83,24 @@ func (mt *MessagesText) newTimestamp(m *discord.Message) {
 
 func (mt *MessagesText) newContent(m *discord.Message) {
 	fmt.Fprint(mt, tview.Escape(m.Content))
+}
+
+func (mt *MessagesText) onHighlighted(added, removed, remaining []string) {
+	if len(added) == 0 {
+		return
+	}
+
+	sf, err := discord.ParseSnowflake(added[0])
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	m, err := discordState.Cabinet.Message(guildsTree.selectedChannel.ID, discord.MessageID(sf))
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	mt.selectedMessage = m
 }

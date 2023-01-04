@@ -35,15 +35,15 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Initialize UI
-	guildsTree = newGuildsTree()
-	messagesText = newMessagesText()
-	messageInput = newMessageInput()
-
 	discordState = newState(token)
 	if err = discordState.Open(context.Background()); err != nil {
 		log.Fatal(err)
 	}
+
+	// Initialize UI
+	guildsTree = newGuildsTree()
+	messagesText = newMessagesText()
+	messageInput = newMessageInput()
 
 	right := tview.NewFlex()
 	right.SetDirection(tview.FlexRow)
