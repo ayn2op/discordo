@@ -20,8 +20,14 @@ type (
 		ReplyMention     string `yaml:"reply_mention"`
 	}
 
+	MessageInputKeysConfig struct {
+		CommonKeysConfig `yaml:",inline"`
+		Send             string `yaml:"send"`
+	}
+
 	KeysConfig struct {
 		MessagesText MessagesTextKeysConfig `yaml:"messages_text"`
+		MessageInput MessageInputKeysConfig `yaml:"message_input"`
 	}
 )
 
@@ -90,6 +96,10 @@ func newConfig() (*Config, error) {
 				CommonKeysConfig: commonKeys,
 				Reply:            "Rune[r]",
 				ReplyMention:     "Rune[R]",
+			},
+			MessageInput: MessageInputKeysConfig{
+				CommonKeysConfig: commonKeys,
+				Send:             "Enter",
 			},
 		},
 

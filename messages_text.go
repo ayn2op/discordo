@@ -29,10 +29,11 @@ func newMessagesText() *MessagesText {
 	mt.SetHighlightedFunc(mt.onHighlighted)
 	mt.SetInputCapture(mt.onInputCapture)
 
+	mt.SetTitle("Messages")
 	mt.SetTitleAlign(tview.AlignLeft)
-	mt.SetBorder(cfg.Theme.MessagesText.Border)
 
 	padding := cfg.Theme.MessagesText.BorderPadding
+	mt.SetBorder(cfg.Theme.MessagesText.Border)
 	mt.SetBorderPadding(padding[0], padding[1], padding[2], padding[3])
 
 	return mt
