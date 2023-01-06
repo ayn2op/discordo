@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
@@ -22,10 +23,13 @@ func newMessagesText() *MessagesText {
 
 	mt.SetDynamicColors(true)
 	mt.SetRegions(true)
+	mt.SetToggleHighlights(true)
 	mt.SetWordWrap(true)
 	mt.ScrollToEnd()
 	mt.SetHighlightedFunc(mt.onHighlighted)
+	mt.SetInputCapture(mt.onInputCapture)
 
+	mt.SetTitleAlign(tview.AlignLeft)
 	mt.SetBorder(cfg.Theme.MessagesText.Border)
 
 	padding := cfg.Theme.MessagesText.BorderPadding
@@ -103,4 +107,38 @@ func (mt *MessagesText) onHighlighted(added, removed, remaining []string) {
 	}
 
 	mt.selectedMessage = m
+}
+
+func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
+	switch event.Name() {
+	case cfg.Keys.MessagesText.Reply:
+		mt.replyAction(false)
+		return nil
+	case cfg.Keys.MessagesText.ReplyMention:
+		mt.replyAction(true)
+		return nil
+	case cfg.Keys.MessagesText.Cancel:
+		// TODO
+		return nil
+	}
+
+	return event
+}
+
+func (mt *MessagesText) replyAction(mention bool) {
+	if mt.selectedMessage == nil {
+		return
+	}
+
+	var title string
+	if mention {
+		title += "[@] Replying to "
+	} else {
+		title += "Replying to "
+	}
+
+	title += mt.selectedMessage.Author.Tag()
+	messageInput.SetTitle(title)
+
+	app.SetFocus(messageInput)
 }

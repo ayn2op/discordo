@@ -9,35 +9,54 @@ import (
 
 const name = "discordo"
 
-type CommonThemeConfig struct {
-	Border        bool   `yaml:"border"`
-	BorderPadding [4]int `yaml:"border_padding,flow"`
-}
+type (
+	CommonKeysConfig struct {
+		Cancel string `yaml:"cancel"`
+	}
 
-type GuildsTreeThemeConfig struct {
-	CommonThemeConfig `yaml:",inline"`
-	Graphics          bool `yaml:"graphics"`
-}
+	MessagesTextKeysConfig struct {
+		CommonKeysConfig `yaml:",inline"`
+		Reply            string `yaml:"reply"`
+		ReplyMention     string `yaml:"reply_mention"`
+	}
 
-type MessagesTextThemeConfig struct {
-	CommonThemeConfig `yaml:",inline"`
-}
+	KeysConfig struct {
+		MessagesText MessagesTextKeysConfig `yaml:"messages_text"`
+	}
+)
 
-type MessageInputThemeConfig struct {
-	CommonThemeConfig `yaml:",inline"`
-}
+type (
+	CommonThemeConfig struct {
+		Border        bool   `yaml:"border"`
+		BorderPadding [4]int `yaml:"border_padding,flow"`
+	}
 
-type ThemeConfig struct {
-	GuildsTree   GuildsTreeThemeConfig   `yaml:"guilds_tree"`
-	MessagesText MessagesTextThemeConfig `yaml:"messages_text"`
-	MessageInput MessageInputThemeConfig `yaml:"message_input"`
-}
+	GuildsTreeThemeConfig struct {
+		CommonThemeConfig `yaml:",inline"`
+		Graphics          bool `yaml:"graphics"`
+	}
+
+	MessagesTextThemeConfig struct {
+		CommonThemeConfig `yaml:",inline"`
+	}
+
+	MessageInputThemeConfig struct {
+		CommonThemeConfig `yaml:",inline"`
+	}
+
+	ThemeConfig struct {
+		GuildsTree   GuildsTreeThemeConfig   `yaml:"guilds_tree"`
+		MessagesText MessagesTextThemeConfig `yaml:"messages_text"`
+		MessageInput MessageInputThemeConfig `yaml:"message_input"`
+	}
+)
 
 type Config struct {
 	Mouse         bool `yaml:"mouse"`
 	MessagesLimit uint `yaml:"messages_limit"`
 	Timestamps    bool `yaml:"timestamps"`
 
+	Keys  KeysConfig  `yaml:"keys"`
 	Theme ThemeConfig `yaml:"theme"`
 }
 
@@ -52,25 +71,38 @@ func newConfig() (*Config, error) {
 		return nil, err
 	}
 
-	common := CommonThemeConfig{
+	commonTheme := CommonThemeConfig{
 		Border:        true,
 		BorderPadding: [...]int{0, 0, 1, 1},
 	}
 
+	commonKeys := CommonKeysConfig{
+		Cancel: "Esc",
+	}
+
 	c := Config{
 		Mouse:         true,
+		Timestamps:    false,
 		MessagesLimit: 50,
+
+		Keys: KeysConfig{
+			MessagesText: MessagesTextKeysConfig{
+				CommonKeysConfig: commonKeys,
+				Reply:            "Rune[r]",
+				ReplyMention:     "Rune[R]",
+			},
+		},
 
 		Theme: ThemeConfig{
 			GuildsTree: GuildsTreeThemeConfig{
-				CommonThemeConfig: common,
+				CommonThemeConfig: commonTheme,
 				Graphics:          true,
 			},
 			MessagesText: MessagesTextThemeConfig{
-				CommonThemeConfig: common,
+				CommonThemeConfig: commonTheme,
 			},
 			MessageInput: MessageInputThemeConfig{
-				CommonThemeConfig: common,
+				CommonThemeConfig: commonTheme,
 			},
 		},
 	}
