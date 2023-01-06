@@ -2,7 +2,11 @@ package main
 
 import (
 	"log"
+	"strings"
 
+	"github.com/diamondburned/arikawa/v3/api"
+	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -39,13 +43,44 @@ func (mi *MessageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 }
 
 func (mi *MessageInput) sendAction() {
-	text := mi.GetText()
-	_, err := discordState.SendMessage(guildsTree.selectedChannel.ID, text)
+	if guildsTree.selectedChannel == nil {
+		return
+	}
+
+	text := strings.TrimSpace(mi.GetText())
+	if text == "" {
+		return
+	}
+
+	var err error
+
+	if messagesText.selectedMessage != nil {
+		title := mi.GetTitle()
+		if title == "" {
+			return
+		}
+
+		data := api.SendMessageData{
+			Content:         text,
+			Reference:       &discord.MessageReference{MessageID: messagesText.selectedMessage.ID},
+			AllowedMentions: &api.AllowedMentions{RepliedUser: option.False},
+		}
+
+		if strings.HasPrefix(title, "[@]") {
+			data.AllowedMentions.RepliedUser = option.True
+		}
+
+		_, err = discordState.SendMessageComplex(guildsTree.selectedChannel.ID, data)
+	} else {
+		_, err = discordState.SendMessage(guildsTree.selectedChannel.ID, text)
+	}
+
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
 	// Reset the message input.
+	mi.SetTitle("")
 	mi.SetText("")
 }
