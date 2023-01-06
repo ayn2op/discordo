@@ -23,7 +23,6 @@ func newMessagesText() *MessagesText {
 
 	mt.SetDynamicColors(true)
 	mt.SetRegions(true)
-	mt.SetToggleHighlights(true)
 	mt.SetWordWrap(true)
 	mt.ScrollToEnd()
 	mt.SetHighlightedFunc(mt.onHighlighted)
