@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/ayn2op/discordo/discordmd"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -92,7 +93,7 @@ func (mt *MessagesText) newTimestamp(m *discord.Message) {
 }
 
 func (mt *MessagesText) newContent(m *discord.Message) {
-	fmt.Fprint(mt, tview.Escape(m.Content))
+	fmt.Fprint(mt, discordmd.Parse(tview.Escape(m.Content)))
 }
 
 func (mt *MessagesText) newAttachments(m *discord.Message) {

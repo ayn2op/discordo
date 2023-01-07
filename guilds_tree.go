@@ -42,7 +42,7 @@ func newGuildsTree() *GuildsTree {
 	return gt
 }
 
-func (gt *GuildsTree) newGuildFromID(n *tview.TreeNode, gid discord.GuildID) error {
+func (gt *GuildsTree) createGuildNodeFromID(n *tview.TreeNode, gid discord.GuildID) error {
 	g, err := discordState.Cabinet.Guild(gid)
 	if err != nil {
 		return err
@@ -54,7 +54,7 @@ func (gt *GuildsTree) newGuildFromID(n *tview.TreeNode, gid discord.GuildID) err
 	return nil
 }
 
-func (gt *GuildsTree) newChannel(n *tview.TreeNode, c discord.Channel) {
+func (gt *GuildsTree) createChannelNode(n *tview.TreeNode, c discord.Channel) {
 	cn := tview.NewTreeNode(gt.channelToString(c))
 	cn.SetReference(c.ID)
 	n.AddChild(cn)
@@ -121,7 +121,7 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 		// Orphan (top-level) channels
 		for _, c := range cs {
 			if c.Type != discord.GuildCategory && !c.ParentID.IsValid() {
-				gt.newChannel(n, c)
+				gt.createChannelNode(n, c)
 			}
 		}
 
@@ -131,12 +131,12 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 			if c.Type == discord.GuildCategory {
 				for _, nestedChannel := range cs {
 					if nestedChannel.ParentID == c.ID {
-						gt.newChannel(n, c)
+						gt.createChannelNode(n, c)
 						continue CATEGORY
 					}
 				}
 
-				gt.newChannel(n, c)
+				gt.createChannelNode(n, c)
 			}
 		}
 
@@ -154,7 +154,7 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 				})
 
 				if parent != nil {
-					gt.newChannel(parent, c)
+					gt.createChannelNode(parent, c)
 				}
 			}
 		}
@@ -196,7 +196,7 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 		})
 
 		for _, c := range cs {
-			gt.newChannel(n, c)
+			gt.createChannelNode(n, c)
 		}
 	}
 }

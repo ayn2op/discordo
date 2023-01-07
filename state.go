@@ -42,7 +42,7 @@ func (s *State) onReady(r *gateway.ReadyEvent) {
 	for _, gf := range r.UserSettings.GuildFolders {
 		/// If the ID of the guild folder is zero, the guild folder only contains single guild.
 		if gf.ID == 0 {
-			if err := guildsTree.newGuildFromID(guildsTree.root, gf.GuildIDs[0]); err != nil {
+			if err := guildsTree.createGuildNodeFromID(guildsTree.root, gf.GuildIDs[0]); err != nil {
 				log.Println(err)
 				continue
 			}
@@ -51,7 +51,7 @@ func (s *State) onReady(r *gateway.ReadyEvent) {
 			guildsTree.root.AddChild(gfNode)
 
 			for _, gid := range gf.GuildIDs {
-				if err := guildsTree.newGuildFromID(gfNode, gid); err != nil {
+				if err := guildsTree.createGuildNodeFromID(gfNode, gid); err != nil {
 					log.Println(err)
 					continue
 				}
