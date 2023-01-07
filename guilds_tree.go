@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
@@ -29,6 +30,7 @@ func newGuildsTree() *GuildsTree {
 	gt.SetSelectedFunc(gt.onSelected)
 
 	gt.SetTitle("Guilds")
+	gt.SetTitleColor(tcell.GetColor(cfg.Theme.MessagesText.TitleColor))
 	gt.SetTitleAlign(tview.AlignLeft)
 
 	padding := cfg.Theme.GuildsTree.BorderPadding

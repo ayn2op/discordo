@@ -29,6 +29,7 @@ func newMessagesText() *MessagesText {
 	mt.SetInputCapture(mt.onInputCapture)
 
 	mt.SetTitle("Messages")
+	mt.SetTitleColor(tcell.GetColor(cfg.Theme.MessagesText.TitleColor))
 	mt.SetTitleAlign(tview.AlignLeft)
 
 	padding := cfg.Theme.MessagesText.BorderPadding
