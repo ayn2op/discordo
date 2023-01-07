@@ -6,7 +6,6 @@ import (
 	"log"
 
 	"github.com/rivo/tview"
-	"github.com/zalando/go-keyring"
 )
 
 var (
@@ -29,10 +28,6 @@ func init() {
 
 func main() {
 	flag.Parse()
-
-	if token != "" {
-		go keyring.Set(name, "token", token)
-	}
 
 	var err error
 	cfg, err = newConfig()
