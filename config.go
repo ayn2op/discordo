@@ -83,7 +83,7 @@ func newConfig() (*Config, error) {
 		Border:        true,
 		BorderPadding: [...]int{0, 0, 1, 1},
 
-		TitleColor: "gold",
+		TitleColor: "default",
 	}
 
 	commonKeys := CommonKeysConfig{
