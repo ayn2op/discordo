@@ -92,6 +92,50 @@ func (gt *GuildsTree) channelToString(c discord.Channel) string {
 	return s
 }
 
+func (gt *GuildsTree) createOrphanChannelNodes(n *tview.TreeNode, cs []discord.Channel) {
+	for _, c := range cs {
+		if c.Type != discord.GuildCategory && !c.ParentID.IsValid() {
+			gt.createChannelNode(n, c)
+		}
+	}
+}
+
+func (gt *GuildsTree) createParentChannelNodes(n *tview.TreeNode, cs []discord.Channel) {
+CATEGORY:
+	for _, c := range cs {
+		if c.Type == discord.GuildCategory {
+			for _, nestedChannel := range cs {
+				if nestedChannel.ParentID == c.ID {
+					gt.createChannelNode(n, c)
+					continue CATEGORY
+				}
+			}
+
+			gt.createChannelNode(n, c)
+		}
+	}
+}
+
+func (gt *GuildsTree) createChildrenChannelNodes(n *tview.TreeNode, cs []discord.Channel) {
+	for _, c := range cs {
+		if c.Type != discord.GuildCategory && c.ParentID.IsValid() {
+			var parent *tview.TreeNode
+			n.Walk(func(node, _ *tview.TreeNode) bool {
+				if node.GetReference() == c.ParentID {
+					parent = node
+					return false
+				}
+
+				return true
+			})
+
+			if parent != nil {
+				gt.createChannelNode(parent, c)
+			}
+		}
+	}
+}
+
 func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 	gt.selectedChannel = nil
 
@@ -118,46 +162,9 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 			return cs[i].Position < cs[j].Position
 		})
 
-		// Orphan (top-level) channels
-		for _, c := range cs {
-			if c.Type != discord.GuildCategory && !c.ParentID.IsValid() {
-				gt.createChannelNode(n, c)
-			}
-		}
-
-		// Category channels
-	CATEGORY:
-		for _, c := range cs {
-			if c.Type == discord.GuildCategory {
-				for _, nestedChannel := range cs {
-					if nestedChannel.ParentID == c.ID {
-						gt.createChannelNode(n, c)
-						continue CATEGORY
-					}
-				}
-
-				gt.createChannelNode(n, c)
-			}
-		}
-
-		// Children (category-bound) channels
-		for _, c := range cs {
-			if c.Type != discord.GuildCategory && c.ParentID.IsValid() {
-				var parent *tview.TreeNode
-				n.Walk(func(node, _ *tview.TreeNode) bool {
-					if node.GetReference() == c.ParentID {
-						parent = node
-						return false
-					}
-
-					return true
-				})
-
-				if parent != nil {
-					gt.createChannelNode(parent, c)
-				}
-			}
-		}
+		gt.createOrphanChannelNodes(n, cs)
+		gt.createParentChannelNodes(n, cs)
+		gt.createChildrenChannelNodes(n, cs)
 	case discord.ChannelID:
 		messagesText.Clear()
 
