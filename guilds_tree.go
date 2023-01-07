@@ -140,6 +140,8 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 	gt.selectedChannel = nil
 
 	messagesText.selectedMessage = nil
+	messagesText.Clear()
+	messagesText.SetTitle("")
 	messagesText.Highlight()
 
 	messageInput.SetTitle("")
@@ -166,8 +168,6 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 		gt.createParentChannelNodes(n, cs)
 		gt.createChildrenChannelNodes(n, cs)
 	case discord.ChannelID:
-		messagesText.Clear()
-
 		c, err := discordState.Cabinet.Channel(ref)
 		if err != nil {
 			log.Println(err)
