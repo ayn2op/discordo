@@ -36,7 +36,8 @@ type (
 		Border        bool   `yaml:"border"`
 		BorderPadding [4]int `yaml:"border_padding,flow"`
 
-		TitleColor string `yaml:"title_color"`
+		TitleColor      string `yaml:"title_color"`
+		BackgroundColor string `yaml:"background_color"`
 	}
 
 	GuildsTreeThemeConfig struct {
@@ -83,7 +84,8 @@ func newConfig() (*Config, error) {
 		Border:        true,
 		BorderPadding: [...]int{0, 0, 1, 1},
 
-		TitleColor: "default",
+		TitleColor:      "default",
+		BackgroundColor: "default",
 	}
 
 	commonKeys := CommonKeysConfig{

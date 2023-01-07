@@ -28,6 +28,8 @@ func newMessagesText() *MessagesText {
 	mt.SetHighlightedFunc(mt.onHighlighted)
 	mt.SetInputCapture(mt.onInputCapture)
 
+	mt.SetBackgroundColor(tcell.GetColor(cfg.Theme.MessagesText.BackgroundColor))
+
 	mt.SetTitle("Messages")
 	mt.SetTitleColor(tcell.GetColor(cfg.Theme.MessagesText.TitleColor))
 	mt.SetTitleAlign(tview.AlignLeft)

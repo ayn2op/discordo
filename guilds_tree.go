@@ -29,8 +29,10 @@ func newGuildsTree() *GuildsTree {
 	gt.SetTopLevel(1)
 	gt.SetSelectedFunc(gt.onSelected)
 
+	gt.SetBackgroundColor(tcell.GetColor(cfg.Theme.GuildsTree.BackgroundColor))
+
 	gt.SetTitle("Guilds")
-	gt.SetTitleColor(tcell.GetColor(cfg.Theme.MessagesText.TitleColor))
+	gt.SetTitleColor(tcell.GetColor(cfg.Theme.GuildsTree.TitleColor))
 	gt.SetTitleAlign(tview.AlignLeft)
 
 	padding := cfg.Theme.GuildsTree.BorderPadding
