@@ -20,9 +20,8 @@ func newMessageInput() *MessageInput {
 		InputField: tview.NewInputField(),
 	}
 
-	mi.SetFieldBackgroundColor(tview.Styles.PrimitiveBackgroundColor)
 	mi.SetInputCapture(mi.onInputCapture)
-
+	mi.SetFieldBackgroundColor(tcell.GetColor(cfg.Theme.MessageInput.BackgroundColor))
 	mi.SetBackgroundColor(tcell.GetColor(cfg.Theme.MessageInput.BackgroundColor))
 
 	mi.SetTitleColor(tcell.GetColor(cfg.Theme.MessageInput.TitleColor))
