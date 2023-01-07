@@ -190,7 +190,7 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 			}
 		}
 
-		app.SetFocus(messagesText)
+		app.SetFocus(messageInput)
 	case nil: // Direct messages
 		cs, err := discordState.Cabinet.PrivateChannels()
 		if err != nil {
