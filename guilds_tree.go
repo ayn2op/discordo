@@ -89,6 +89,14 @@ func (gt *GuildsTree) channelToString(c discord.Channel) string {
 }
 
 func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
+	gt.selectedChannel = nil
+
+	messagesText.selectedMessage = nil
+	messagesText.Highlight()
+
+	messageInput.SetTitle("")
+	messageInput.SetText("")
+
 	if len(n.GetChildren()) != 0 {
 		n.SetExpanded(!n.IsExpanded())
 		return

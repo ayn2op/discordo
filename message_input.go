@@ -22,7 +22,6 @@ func newMessageInput() *MessageInput {
 
 	mi.SetFieldBackgroundColor(tview.Styles.PrimitiveBackgroundColor)
 	mi.SetInputCapture(mi.onInputCapture)
-
 	mi.SetTitleAlign(tview.AlignLeft)
 
 	padding := cfg.Theme.MessageInput.BorderPadding

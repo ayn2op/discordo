@@ -69,6 +69,9 @@ func (mt *MessagesText) newMessage(m *discord.Message) error {
 		// Content
 		mt.newContent(m)
 
+		// Attachments
+		mt.newAttachments(m)
+
 		// Tags with no region ID ([""]) don't start new regions. They can therefore be used to mark the end of a region.
 		fmt.Fprint(mt, `[""]`)
 	}
@@ -87,6 +90,12 @@ func (mt *MessagesText) newTimestamp(m *discord.Message) {
 
 func (mt *MessagesText) newContent(m *discord.Message) {
 	fmt.Fprint(mt, tview.Escape(m.Content))
+}
+
+func (mt *MessagesText) newAttachments(m *discord.Message) {
+	for _, a := range m.Attachments {
+		fmt.Fprintf(mt, "\n[%s]: %s", a.Filename, a.URL)
+	}
 }
 
 func (mt *MessagesText) onHighlighted(added, removed, remaining []string) {
