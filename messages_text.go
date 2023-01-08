@@ -1,8 +1,9 @@
 package main
 
 import (
-	"bytes"
+	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/ayn2op/discordo/discordmd"
@@ -16,7 +17,7 @@ const replyIndicator = '╭'
 type MessagesText struct {
 	*tview.TextView
 
-	buffer          bytes.Buffer
+	builder         strings.Builder
 	selectedMessage *discord.Message
 }
 
@@ -54,20 +55,20 @@ func (mt *MessagesText) reset() {
 }
 
 func (mt *MessagesText) newMessage(m *discord.Message) error {
-	mt.buffer.Reset()
+	mt.builder.Reset()
 
 	switch m.Type {
 	case discord.DefaultMessage, discord.InlinedReplyMessage:
 		// Region tags are square brackets that contain a region ID in double quotes
 		// https://pkg.go.dev/github.com/rivo/tview#hdr-Regions_and_Highlights
-		mt.buffer.WriteString(`["`)
-		mt.buffer.WriteString(m.ID.String())
-		mt.buffer.WriteString(`"]`)
+		mt.builder.WriteString(`["`)
+		mt.builder.WriteString(m.ID.String())
+		mt.builder.WriteString(`"]`)
 
 		if m.ReferencedMessage != nil {
-			mt.buffer.WriteString("[::d] ")
-			mt.buffer.WriteRune(replyIndicator)
-			mt.buffer.WriteByte(' ')
+			mt.builder.WriteString("[::d] ")
+			mt.builder.WriteRune(replyIndicator)
+			mt.builder.WriteByte(' ')
 
 			// Author
 			mt.newAuthor(m.ReferencedMessage)
@@ -75,7 +76,7 @@ func (mt *MessagesText) newMessage(m *discord.Message) error {
 			// Content
 			mt.newContent(m.ReferencedMessage)
 
-			mt.buffer.WriteString("[::-]\n")
+			mt.builder.WriteString("[::-]\n")
 		}
 
 		if cfg.Timestamps {
@@ -93,40 +94,40 @@ func (mt *MessagesText) newMessage(m *discord.Message) error {
 		mt.newAttachments(m)
 
 		// Tags with no region ID ([""]) don't start new regions. They can therefore be used to mark the end of a region.
-		mt.buffer.WriteString(`[""]`)
-		mt.buffer.WriteByte('\n')
+		mt.builder.WriteString(`[""]`)
+		mt.builder.WriteByte('\n')
 	}
 
-	_, err := mt.buffer.WriteTo(mt)
+	_, err := fmt.Fprint(mt, mt.builder.String())
 	return err
 }
 
 func (mt *MessagesText) newAuthor(m *discord.Message) {
-	mt.buffer.WriteByte('[')
-	mt.buffer.WriteString(cfg.Theme.MessagesText.AuthorColor)
-	mt.buffer.WriteByte(']')
-	mt.buffer.WriteString(m.Author.Username)
-	mt.buffer.WriteString("[-] ")
+	mt.builder.WriteByte('[')
+	mt.builder.WriteString(cfg.Theme.MessagesText.AuthorColor)
+	mt.builder.WriteByte(']')
+	mt.builder.WriteString(m.Author.Username)
+	mt.builder.WriteString("[-] ")
 }
 
 func (mt *MessagesText) newTimestamp(m *discord.Message) {
-	mt.buffer.WriteString("[::d]")
-	mt.buffer.WriteString(m.Timestamp.Format(time.Kitchen))
-	mt.buffer.WriteString("[::-] ")
+	mt.builder.WriteString("[::d]")
+	mt.builder.WriteString(m.Timestamp.Format(time.Kitchen))
+	mt.builder.WriteString("[::-] ")
 }
 
 func (mt *MessagesText) newContent(m *discord.Message) {
-	mt.buffer.WriteString(discordmd.Parse(tview.Escape(m.Content)))
+	mt.builder.WriteString(discordmd.Parse(tview.Escape(m.Content)))
 }
 
 func (mt *MessagesText) newAttachments(m *discord.Message) {
 	for _, a := range m.Attachments {
-		mt.buffer.WriteByte('\n')
+		mt.builder.WriteByte('\n')
 
-		mt.buffer.WriteByte('[')
-		mt.buffer.WriteString(a.Filename)
-		mt.buffer.WriteString("]: ")
-		mt.buffer.WriteString(a.URL)
+		mt.builder.WriteByte('[')
+		mt.builder.WriteString(a.Filename)
+		mt.builder.WriteString("]: ")
+		mt.builder.WriteString(a.URL)
 	}
 }
 
