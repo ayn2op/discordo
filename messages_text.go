@@ -1,9 +1,8 @@
 package main
 
 import (
-	"fmt"
+	"bytes"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/ayn2op/discordo/discordmd"
@@ -17,8 +16,8 @@ const replyIndicator = '╭'
 type MessagesText struct {
 	*tview.TextView
 
-	builder         strings.Builder
 	selectedMessage *discord.Message
+	buf             bytes.Buffer
 }
 
 func newMessagesText() *MessagesText {
@@ -29,9 +28,12 @@ func newMessagesText() *MessagesText {
 	mt.SetDynamicColors(true)
 	mt.SetRegions(true)
 	mt.SetWordWrap(true)
-	mt.ScrollToEnd()
 	mt.SetHighlightedFunc(mt.onHighlighted)
 	mt.SetInputCapture(mt.onInputCapture)
+	mt.ScrollToEnd()
+	mt.SetChangedFunc(func() {
+		app.Draw()
+	})
 
 	mt.SetBackgroundColor(tcell.GetColor(cfg.Theme.MessagesText.BackgroundColor))
 
@@ -54,80 +56,69 @@ func (mt *MessagesText) reset() {
 	mt.Highlight()
 }
 
-func (mt *MessagesText) newMessage(m *discord.Message) error {
-	mt.builder.Reset()
-
+func (mt *MessagesText) createMessage(m *discord.Message) error {
 	switch m.Type {
 	case discord.DefaultMessage, discord.InlinedReplyMessage:
 		// Region tags are square brackets that contain a region ID in double quotes
 		// https://pkg.go.dev/github.com/rivo/tview#hdr-Regions_and_Highlights
-		mt.builder.WriteString(`["`)
-		mt.builder.WriteString(m.ID.String())
-		mt.builder.WriteString(`"]`)
+		mt.buf.WriteString(`["`)
+		mt.buf.WriteString(m.ID.String())
+		mt.buf.WriteString(`"]`)
 
 		if m.ReferencedMessage != nil {
-			mt.builder.WriteString("[::d] ")
-			mt.builder.WriteRune(replyIndicator)
-			mt.builder.WriteByte(' ')
+			mt.buf.WriteString("[::d] ")
+			mt.buf.WriteRune(replyIndicator)
+			mt.buf.WriteByte(' ')
 
-			// Author
-			mt.newAuthor(m.ReferencedMessage)
+			mt.buf.WriteByte('[')
+			mt.buf.WriteString(cfg.Theme.MessagesText.AuthorColor)
+			mt.buf.WriteByte(']')
+			mt.buf.WriteString(m.Author.Username)
+			mt.buf.WriteString("[-] ")
 
-			// Content
-			mt.newContent(m.ReferencedMessage)
-
-			mt.builder.WriteString("[::-]\n")
+			mt.buf.WriteString(discordmd.Parse(tview.Escape(m.Content)))
+			mt.buf.WriteString("[::-]\n")
 		}
 
-		if cfg.Timestamps {
-			// Timestamps
-			mt.newTimestamp(m)
-		}
-
-		// Author
-		mt.newAuthor(m)
-
-		// Content
-		mt.newContent(m)
-
-		// Attachments
-		mt.newAttachments(m)
+		mt.createHeader(m)
+		mt.createBody(m)
+		mt.createFooter(m)
 
 		// Tags with no region ID ([""]) don't start new regions. They can therefore be used to mark the end of a region.
-		mt.builder.WriteString(`[""]`)
-		mt.builder.WriteByte('\n')
+		mt.buf.WriteString(`[""]`)
+		mt.buf.WriteByte('\n')
 	}
 
-	_, err := fmt.Fprint(mt, mt.builder.String())
+	_, err := mt.buf.WriteTo(mt)
 	return err
 }
 
-func (mt *MessagesText) newAuthor(m *discord.Message) {
-	mt.builder.WriteByte('[')
-	mt.builder.WriteString(cfg.Theme.MessagesText.AuthorColor)
-	mt.builder.WriteByte(']')
-	mt.builder.WriteString(m.Author.Username)
-	mt.builder.WriteString("[-] ")
+func (mt *MessagesText) createHeader(m *discord.Message) {
+	mt.buf.WriteByte('[')
+	mt.buf.WriteString(cfg.Theme.MessagesText.AuthorColor)
+	mt.buf.WriteByte(']')
+	mt.buf.WriteString(m.Author.Username)
+	mt.buf.WriteString("[-] ")
+
+	if cfg.Timestamps {
+		mt.buf.WriteString("[::d]")
+		mt.buf.WriteString(m.Timestamp.Format(time.Kitchen))
+		mt.buf.WriteString("[::-] ")
+	}
 }
 
-func (mt *MessagesText) newTimestamp(m *discord.Message) {
-	mt.builder.WriteString("[::d]")
-	mt.builder.WriteString(m.Timestamp.Format(time.Kitchen))
-	mt.builder.WriteString("[::-] ")
+func (mt *MessagesText) createBody(m *discord.Message) {
+	mt.buf.WriteString(discordmd.Parse(tview.Escape(m.Content)))
 }
 
-func (mt *MessagesText) newContent(m *discord.Message) {
-	mt.builder.WriteString(discordmd.Parse(tview.Escape(m.Content)))
-}
-
-func (mt *MessagesText) newAttachments(m *discord.Message) {
+func (mt *MessagesText) createFooter(m *discord.Message) {
 	for _, a := range m.Attachments {
-		mt.builder.WriteByte('\n')
+		mt.buf.WriteByte('\n')
 
-		mt.builder.WriteByte('[')
-		mt.builder.WriteString(a.Filename)
-		mt.builder.WriteString("]: ")
-		mt.builder.WriteString(a.URL)
+		mt.buf.WriteByte('[')
+		mt.buf.WriteString(a.Filename)
+		mt.buf.WriteString("]: ")
+		mt.buf.WriteString(a.URL)
 	}
 }
 
