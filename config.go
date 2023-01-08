@@ -23,6 +23,7 @@ type (
 	MessageInputKeysConfig struct {
 		CommonKeysConfig `yaml:",inline"`
 		Send             string `yaml:"send"`
+		LaunchEditor     string `yaml:"launch_editor"`
 	}
 
 	KeysConfig struct {
@@ -62,9 +63,10 @@ type (
 )
 
 type Config struct {
-	Mouse         bool `yaml:"mouse"`
-	MessagesLimit uint `yaml:"messages_limit"`
-	Timestamps    bool `yaml:"timestamps"`
+	Mouse         bool   `yaml:"mouse"`
+	MessagesLimit uint   `yaml:"messages_limit"`
+	Timestamps    bool   `yaml:"timestamps"`
+	Editor        string `yaml:"editor"`
 
 	Keys  KeysConfig  `yaml:"keys"`
 	Theme ThemeConfig `yaml:"theme"`
@@ -98,6 +100,7 @@ func newConfig() (*Config, error) {
 		Mouse:         true,
 		Timestamps:    false,
 		MessagesLimit: 50,
+		Editor:        "default",
 
 		Keys: KeysConfig{
 			MessagesText: MessagesTextKeysConfig{
@@ -108,6 +111,7 @@ func newConfig() (*Config, error) {
 			MessageInput: MessageInputKeysConfig{
 				CommonKeysConfig: commonKeys,
 				Send:             "Enter",
+				LaunchEditor:     "Ctrl+E",
 			},
 		},
 

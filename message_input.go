@@ -2,6 +2,8 @@ package main
 
 import (
 	"log"
+	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -43,6 +45,26 @@ func (mi *MessageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case cfg.Keys.MessageInput.Send:
 		mi.sendAction()
+		return nil
+	case cfg.Keys.MessageInput.LaunchEditor:
+		e := cfg.Editor
+		if e == "default" {
+			e = os.Getenv("EDITOR")
+		}
+
+		cmd := exec.Command(e)
+		var b strings.Builder
+		cmd.Stdout = &b
+
+		app.Suspend(func() {
+			err := cmd.Run()
+			if err != nil {
+				log.Println(err)
+				return
+			}
+		})
+
+		mi.SetText(b.String())
 		return nil
 	case cfg.Keys.MessageInput.Cancel:
 		mi.reset()
