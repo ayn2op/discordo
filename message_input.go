@@ -47,24 +47,7 @@ func (mi *MessageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		mi.sendAction()
 		return nil
 	case cfg.Keys.MessageInput.LaunchEditor:
-		e := cfg.Editor
-		if e == "default" {
-			e = os.Getenv("EDITOR")
-		}
-
-		cmd := exec.Command(e)
-		var b strings.Builder
-		cmd.Stdout = &b
-
-		app.Suspend(func() {
-			err := cmd.Run()
-			if err != nil {
-				log.Println(err)
-				return
-			}
-		})
-
-		mi.SetText(b.String())
+		messageInput.launchEditorAction()
 		return nil
 	case cfg.Keys.MessageInput.Cancel:
 		mi.reset()
@@ -113,4 +96,25 @@ func (mi *MessageInput) sendAction() {
 	}
 
 	messageInput.reset()
+}
+
+func (mi *MessageInput) launchEditorAction() {
+	e := cfg.Editor
+	if e == "default" {
+		e = os.Getenv("EDITOR")
+	}
+
+	cmd := exec.Command(e)
+	var b strings.Builder
+	cmd.Stdout = &b
+
+	app.Suspend(func() {
+		err := cmd.Run()
+		if err != nil {
+			log.Println(err)
+			return
+		}
+	})
+
+	mi.SetText(b.String())
 }
