@@ -139,13 +139,8 @@ func (gt *GuildsTree) createChildrenChannelNodes(n *tview.TreeNode, cs []discord
 func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 	gt.selectedChannel = nil
 
-	messagesText.selectedMessage = nil
-	messagesText.Clear()
-	messagesText.SetTitle("")
-	messagesText.Highlight()
-
-	messageInput.SetTitle("")
-	messageInput.SetText("")
+	messagesText.reset()
+	messageInput.reset()
 
 	if len(n.GetChildren()) != 0 {
 		n.SetExpanded(!n.IsExpanded())

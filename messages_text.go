@@ -45,6 +45,14 @@ func newMessagesText() *MessagesText {
 	return mt
 }
 
+func (mt *MessagesText) reset() {
+	messagesText.selectedMessage = nil
+
+	mt.SetTitle("")
+	mt.Clear()
+	mt.Highlight()
+}
+
 func (mt *MessagesText) newMessage(m *discord.Message) error {
 	mt.buffer.Reset()
 
@@ -154,13 +162,8 @@ func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		// TODO
 		guildsTree.selectedChannel = nil
 
-		mt.selectedMessage = nil
-		mt.Clear()
-		mt.SetTitle("")
-		mt.Highlight()
-
-		messageInput.SetText("")
-		messageInput.SetTitle("")
+		messagesText.reset()
+		messageInput.reset()
 		return nil
 	}
 

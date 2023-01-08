@@ -34,10 +34,18 @@ func newMessageInput() *MessageInput {
 	return mi
 }
 
+func (mi *MessageInput) reset() {
+	mi.SetTitle("")
+	mi.SetText("")
+}
+
 func (mi *MessageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case cfg.Keys.MessageInput.Send:
 		mi.sendAction()
+		return nil
+	case cfg.Keys.MessageInput.Cancel:
+		mi.reset()
 		return nil
 	}
 
@@ -82,7 +90,5 @@ func (mi *MessageInput) sendAction() {
 		return
 	}
 
-	// Reset the message input.
-	mi.SetTitle("")
-	mi.SetText("")
+	messageInput.reset()
 }
