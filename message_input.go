@@ -23,14 +23,14 @@ func newMessageInput() *MessageInput {
 	}
 
 	mi.SetInputCapture(mi.onInputCapture)
-	mi.SetFieldBackgroundColor(tcell.GetColor(cfg.Theme.MessageInput.BackgroundColor))
-	mi.SetBackgroundColor(tcell.GetColor(cfg.Theme.MessageInput.BackgroundColor))
+	mi.SetFieldBackgroundColor(tcell.GetColor(config.Theme.MessageInput.BackgroundColor))
+	mi.SetBackgroundColor(tcell.GetColor(config.Theme.MessageInput.BackgroundColor))
 
-	mi.SetTitleColor(tcell.GetColor(cfg.Theme.MessageInput.TitleColor))
+	mi.SetTitleColor(tcell.GetColor(config.Theme.MessageInput.TitleColor))
 	mi.SetTitleAlign(tview.AlignLeft)
 
-	padding := cfg.Theme.MessageInput.BorderPadding
-	mi.SetBorder(cfg.Theme.MessageInput.Border)
+	padding := config.Theme.MessageInput.BorderPadding
+	mi.SetBorder(config.Theme.MessageInput.Border)
 	mi.SetBorderPadding(padding[0], padding[1], padding[2], padding[3])
 
 	return mi
@@ -43,13 +43,13 @@ func (mi *MessageInput) reset() {
 
 func (mi *MessageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
-	case cfg.Keys.MessageInput.Send:
+	case config.Keys.MessageInput.Send:
 		mi.sendAction()
 		return nil
-	case cfg.Keys.MessageInput.LaunchEditor:
+	case config.Keys.MessageInput.LaunchEditor:
 		messageInput.launchEditorAction()
 		return nil
-	case cfg.Keys.MessageInput.Cancel:
+	case config.Keys.MessageInput.Cancel:
 		mi.reset()
 		return nil
 	}
@@ -93,7 +93,7 @@ func (mi *MessageInput) sendAction() {
 }
 
 func (mi *MessageInput) launchEditorAction() {
-	e := cfg.Editor
+	e := config.Editor
 	if e == "default" {
 		e = os.Getenv("EDITOR")
 	}

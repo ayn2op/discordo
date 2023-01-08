@@ -12,9 +12,9 @@ import (
 var (
 	token string
 
-	plugins      []*Plugin
-	cfg          *Config
+	config       *Config
 	discordState *State
+	plugins      = make(map[string]*Plugin)
 
 	app  = tview.NewApplication()
 	flex = tview.NewFlex()
@@ -41,7 +41,7 @@ func main() {
 		fmt.Println(p.Name())
 	}
 
-	cfg, err = newConfig()
+	config, err = newConfig()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -65,7 +65,7 @@ func main() {
 	flex.AddItem(guildsTree, 0, 1, true)
 	flex.AddItem(right, 0, 4, false)
 
-	app.EnableMouse(cfg.Mouse)
+	app.EnableMouse(config.Mouse)
 	app.SetRoot(flex, true)
 
 	err = app.Run()

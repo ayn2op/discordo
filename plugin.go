@@ -53,7 +53,7 @@ func loadPlugins() error {
 				return err
 			}
 
-			plugins = append(plugins, p)
+			plugins[p.Name()] = p
 		}
 	}
 
