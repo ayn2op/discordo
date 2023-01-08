@@ -13,7 +13,6 @@ var (
 
 	config       *Config
 	discordState *State
-	plugins      = make(map[string]*Plugin)
 
 	app  = tview.NewApplication()
 	flex = tview.NewFlex()
@@ -31,11 +30,6 @@ func main() {
 	flag.Parse()
 
 	var err error
-	err = loadPlugins()
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	config, err = newConfig()
 	if err != nil {
 		log.Fatal(err)
