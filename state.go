@@ -42,7 +42,8 @@ func (s *State) onReady(r *gateway.ReadyEvent) {
 	for _, gf := range r.UserSettings.GuildFolders {
 		/// If the ID of the guild folder is zero, the guild folder only contains single guild.
 		if gf.ID == 0 {
-			if err := guildsTree.createGuildNodeFromID(guildsTree.root, gf.GuildIDs[0]); err != nil {
+			err := guildsTree.createGuildNodeFromID(guildsTree.root, gf.GuildIDs[0])
+			if err != nil {
 				log.Println(err)
 				continue
 			}
@@ -51,7 +52,8 @@ func (s *State) onReady(r *gateway.ReadyEvent) {
 			guildsTree.root.AddChild(gfNode)
 
 			for _, gid := range gf.GuildIDs {
-				if err := guildsTree.createGuildNodeFromID(gfNode, gid); err != nil {
+				err := guildsTree.createGuildNodeFromID(gfNode, gid)
+				if err != nil {
 					log.Println(err)
 					continue
 				}
@@ -65,7 +67,8 @@ func (s *State) onReady(r *gateway.ReadyEvent) {
 
 func (s *State) onMessageCreate(m *gateway.MessageCreateEvent) {
 	if guildsTree.selectedChannel != nil && guildsTree.selectedChannel.ID == m.ChannelID {
-		if err := messagesText.newMessage(&m.Message); err != nil {
+		err := messagesText.newMessage(&m.Message)
+		if err != nil {
 			log.Println(err)
 			return
 		}

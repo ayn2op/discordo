@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"bytes"
 	"log"
 	"time"
 
@@ -11,9 +11,12 @@ import (
 	"github.com/rivo/tview"
 )
 
+const replyIndicator = '╭'
+
 type MessagesText struct {
 	*tview.TextView
 
+	buffer          bytes.Buffer
 	selectedMessage *discord.Message
 }
 
@@ -43,14 +46,20 @@ func newMessagesText() *MessagesText {
 }
 
 func (mt *MessagesText) newMessage(m *discord.Message) error {
+	mt.buffer.Reset()
+
 	switch m.Type {
 	case discord.DefaultMessage, discord.InlinedReplyMessage:
 		// Region tags are square brackets that contain a region ID in double quotes
 		// https://pkg.go.dev/github.com/rivo/tview#hdr-Regions_and_Highlights
-		fmt.Fprintf(mt, `["%s"]`, m.ID)
+		mt.buffer.WriteString(`["`)
+		mt.buffer.WriteString(m.ID.String())
+		mt.buffer.WriteString(`"]`)
 
 		if m.ReferencedMessage != nil {
-			fmt.Fprint(mt, "[::d] ╭ ")
+			mt.buffer.WriteString("[::d] ")
+			mt.buffer.WriteRune(replyIndicator)
+			mt.buffer.WriteByte(' ')
 
 			// Author
 			mt.newAuthor(m.ReferencedMessage)
@@ -58,8 +67,7 @@ func (mt *MessagesText) newMessage(m *discord.Message) error {
 			// Content
 			mt.newContent(m.ReferencedMessage)
 
-			fmt.Fprint(mt, "[::-]")
-			fmt.Fprintln(mt)
+			mt.buffer.WriteString("[::-]\n")
 		}
 
 		if cfg.Timestamps {
@@ -77,28 +85,40 @@ func (mt *MessagesText) newMessage(m *discord.Message) error {
 		mt.newAttachments(m)
 
 		// Tags with no region ID ([""]) don't start new regions. They can therefore be used to mark the end of a region.
-		fmt.Fprint(mt, `[""]`)
+		mt.buffer.WriteString(`[""]`)
+		mt.buffer.WriteByte('\n')
 	}
 
-	fmt.Fprintln(mt)
-	return nil
+	_, err := mt.buffer.WriteTo(mt)
+	return err
 }
 
 func (mt *MessagesText) newAuthor(m *discord.Message) {
-	fmt.Fprintf(mt, "[blue]%s[-] ", m.Author.Username)
+	mt.buffer.WriteByte('[')
+	mt.buffer.WriteString(cfg.Theme.MessagesText.AuthorColor)
+	mt.buffer.WriteByte(']')
+	mt.buffer.WriteString(m.Author.Username)
+	mt.buffer.WriteString("[-] ")
 }
 
 func (mt *MessagesText) newTimestamp(m *discord.Message) {
-	fmt.Fprintf(mt, "[::d]%s[::-] ", m.Timestamp.Format(time.Kitchen))
+	mt.buffer.WriteString("[::d]")
+	mt.buffer.WriteString(m.Timestamp.Format(time.Kitchen))
+	mt.buffer.WriteString("[::-] ")
 }
 
 func (mt *MessagesText) newContent(m *discord.Message) {
-	fmt.Fprint(mt, discordmd.Parse(tview.Escape(m.Content)))
+	mt.buffer.WriteString(discordmd.Parse(tview.Escape(m.Content)))
 }
 
 func (mt *MessagesText) newAttachments(m *discord.Message) {
 	for _, a := range m.Attachments {
-		fmt.Fprintf(mt, "\n[%s]: %s", a.Filename, a.URL)
+		mt.buffer.WriteByte('\n')
+
+		mt.buffer.WriteByte('[')
+		mt.buffer.WriteString(a.Filename)
+		mt.buffer.WriteString("]: ")
+		mt.buffer.WriteString(a.URL)
 	}
 }
 

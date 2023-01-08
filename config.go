@@ -47,6 +47,7 @@ type (
 
 	MessagesTextThemeConfig struct {
 		CommonThemeConfig `yaml:",inline"`
+		AuthorColor       string `yaml:"author_color"`
 	}
 
 	MessageInputThemeConfig struct {
@@ -76,7 +77,8 @@ func newConfig() (*Config, error) {
 	}
 
 	path = filepath.Join(path, name)
-	if err = os.MkdirAll(path, os.ModePerm); err != nil {
+	err = os.MkdirAll(path, os.ModePerm)
+	if err != nil {
 		return nil, err
 	}
 
@@ -116,6 +118,7 @@ func newConfig() (*Config, error) {
 			},
 			MessagesText: MessagesTextThemeConfig{
 				CommonThemeConfig: commonTheme,
+				AuthorColor:       "aqua",
 			},
 			MessageInput: MessageInputThemeConfig{
 				CommonThemeConfig: commonTheme,
@@ -123,15 +126,16 @@ func newConfig() (*Config, error) {
 		},
 	}
 	path = filepath.Join(path, "config.yml")
-	if _, err = os.Stat(path); os.IsNotExist(err) {
+	_, err = os.Stat(path)
+	if os.IsNotExist(err) {
 		f, err := os.Create(path)
 		if err != nil {
 			return nil, err
 		}
 		defer f.Close()
 
-		e := yaml.NewEncoder(f)
-		if err = e.Encode(c); err != nil {
+		err = yaml.NewEncoder(f).Encode(c)
+		if err != nil {
 			return nil, err
 		}
 	} else {
@@ -141,7 +145,8 @@ func newConfig() (*Config, error) {
 		}
 		defer f.Close()
 
-		if err = yaml.NewDecoder(f).Decode(&c); err != nil {
+		err = yaml.NewDecoder(f).Decode(&c)
+		if err != nil {
 			return nil, err
 		}
 	}

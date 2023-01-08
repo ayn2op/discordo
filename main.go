@@ -41,7 +41,8 @@ func main() {
 	messageInput = newMessageInput()
 
 	discordState = newState(token)
-	if err = discordState.Open(context.Background()); err != nil {
+	err = discordState.Open(context.Background())
+	if err != nil {
 		log.Fatal(err)
 	}
 
@@ -55,7 +56,9 @@ func main() {
 
 	app.EnableMouse(cfg.Mouse)
 	app.SetRoot(flex, true)
-	if err = app.Run(); err != nil {
+
+	err = app.Run()
+	if err != nil {
 		log.Fatal(err)
 	}
 }

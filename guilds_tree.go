@@ -184,12 +184,14 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 		}
 
 		for i := len(ms) - 1; i >= 0; i-- {
-			if messagesText.newMessage(&ms[i]); err != nil {
+			err = messagesText.newMessage(&ms[i])
+			if err != nil {
 				log.Println(err)
 				continue
 			}
 		}
 
+		messagesText.ScrollToEnd()
 		app.SetFocus(messageInput)
 	case nil: // Direct messages
 		cs, err := discordState.Cabinet.PrivateChannels()
