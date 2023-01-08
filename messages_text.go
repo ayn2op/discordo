@@ -132,6 +132,15 @@ func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		return nil
 	case cfg.Keys.MessagesText.Cancel:
 		// TODO
+		guildsTree.selectedChannel = nil
+
+		mt.selectedMessage = nil
+		mt.Clear()
+		mt.SetTitle("")
+		mt.Highlight()
+
+		messageInput.SetText("")
+		messageInput.SetTitle("")
 		return nil
 	}
 
