@@ -72,7 +72,7 @@ func (gt *GuildsTree) channelToString(c discord.Channel) string {
 		s = "v-" + c.Name
 	case discord.GroupDM:
 		s = c.Name
-		// If the name of the channel is empty, use the recipients tags
+		// If the name of the channel is empty, use the recipients' tags
 		if s == "" {
 			rs := make([]string, len(c.DMRecipients))
 			for _, r := range c.DMRecipients {
@@ -92,33 +92,12 @@ func (gt *GuildsTree) channelToString(c discord.Channel) string {
 	return s
 }
 
-func (gt *GuildsTree) createOrphanChannelNodes(n *tview.TreeNode, cs []discord.Channel) {
+func (gt *GuildsTree) createChannelNodes(n *tview.TreeNode, cs []discord.Channel) {
 	for _, c := range cs {
-		if c.Type != discord.GuildCategory && !c.ParentID.IsValid() {
+		// If the type of the channel is guild category or if the channel is an orphan channel.
+		if c.Type == discord.GuildCategory || !c.ParentID.IsValid() {
 			gt.createChannelNode(n, c)
-		}
-	}
-}
-
-func (gt *GuildsTree) createParentChannelNodes(n *tview.TreeNode, cs []discord.Channel) {
-CATEGORY:
-	for _, c := range cs {
-		if c.Type == discord.GuildCategory {
-			for _, nestedChannel := range cs {
-				if nestedChannel.ParentID == c.ID {
-					gt.createChannelNode(n, c)
-					continue CATEGORY
-				}
-			}
-
-			gt.createChannelNode(n, c)
-		}
-	}
-}
-
-func (gt *GuildsTree) createChildrenChannelNodes(n *tview.TreeNode, cs []discord.Channel) {
-	for _, c := range cs {
-		if c.Type != discord.GuildCategory && c.ParentID.IsValid() {
+		} else {
 			var parent *tview.TreeNode
 			n.Walk(func(node, _ *tview.TreeNode) bool {
 				if node.GetReference() == c.ParentID {
@@ -159,9 +138,7 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 			return cs[i].Position < cs[j].Position
 		})
 
-		gt.createOrphanChannelNodes(n, cs)
-		gt.createParentChannelNodes(n, cs)
-		gt.createChildrenChannelNodes(n, cs)
+		gt.createChannelNodes(n, cs)
 	case discord.ChannelID:
 		c, err := discordState.Cabinet.Channel(ref)
 		if err != nil {
