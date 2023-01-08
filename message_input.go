@@ -68,26 +68,20 @@ func (mi *MessageInput) sendAction() {
 	}
 
 	var err error
-
 	if messagesText.selectedMessage != nil {
-		title := mi.GetTitle()
-		if title == "" {
-			return
-		}
-
 		data := api.SendMessageData{
 			Content:         text,
 			Reference:       &discord.MessageReference{MessageID: messagesText.selectedMessage.ID},
 			AllowedMentions: &api.AllowedMentions{RepliedUser: option.False},
 		}
 
-		if strings.HasPrefix(title, "[@]") {
+		if strings.HasPrefix(mi.GetTitle(), "[@]") {
 			data.AllowedMentions.RepliedUser = option.True
 		}
 
-		_, err = discordState.SendMessageComplex(guildsTree.selectedChannel.ID, data)
+		go discordState.SendMessageComplex(guildsTree.selectedChannel.ID, data)
 	} else {
-		_, err = discordState.SendMessage(guildsTree.selectedChannel.ID, text)
+		go discordState.SendMessage(guildsTree.selectedChannel.ID, text)
 	}
 
 	if err != nil {
