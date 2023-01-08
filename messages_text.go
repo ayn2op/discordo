@@ -150,8 +150,13 @@ func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	case cfg.Keys.MessagesText.ReplyMention:
 		mt.replyAction(true)
 		return nil
+	case cfg.Keys.MessagesText.SelectPrevious:
+		mt.selectPreviousAction()
+		return nil
+	case cfg.Keys.MessagesText.SelectNext:
+		mt.selectNextAction()
+		return nil
 	case cfg.Keys.MessagesText.Cancel:
-		// TODO
 		guildsTree.selectedChannel = nil
 
 		messagesText.reset()
@@ -179,3 +184,7 @@ func (mt *MessagesText) replyAction(mention bool) {
 
 	app.SetFocus(messageInput)
 }
+
+func (mt *MessagesText) selectPreviousAction() {}
+
+func (mt *MessagesText) selectNextAction() {}
