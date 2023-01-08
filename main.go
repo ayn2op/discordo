@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"log"
 
 	"github.com/rivo/tview"
@@ -35,10 +34,6 @@ func main() {
 	err = loadPlugins()
 	if err != nil {
 		log.Fatal(err)
-	}
-
-	for _, p := range plugins {
-		fmt.Println(p.Name())
 	}
 
 	config, err = newConfig()
