@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
 
 	"github.com/rivo/tview"
@@ -11,6 +12,7 @@ import (
 var (
 	token string
 
+	plugins      []*Plugin
 	cfg          *Config
 	discordState *State
 
@@ -30,6 +32,15 @@ func main() {
 	flag.Parse()
 
 	var err error
+	err = loadPlugins()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, p := range plugins {
+		fmt.Println(p.Name())
+	}
+
 	cfg, err = newConfig()
 	if err != nil {
 		log.Fatal(err)
