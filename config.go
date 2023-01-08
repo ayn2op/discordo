@@ -18,6 +18,8 @@ type (
 		CommonKeysConfig `yaml:",inline"`
 		Reply            string `yaml:"reply"`
 		ReplyMention     string `yaml:"reply_mention"`
+		SelectPrevious   string `yaml:"select_previous"`
+		SelectNext       string `yaml:"select_next"`
 	}
 
 	MessageInputKeysConfig struct {
@@ -107,6 +109,9 @@ func newConfig() (*Config, error) {
 				CommonKeysConfig: commonKeys,
 				Reply:            "Rune[r]",
 				ReplyMention:     "Rune[R]",
+
+				SelectPrevious: "Up",
+				SelectNext:     "Down",
 			},
 			MessageInput: MessageInputKeysConfig{
 				CommonKeysConfig: commonKeys,
