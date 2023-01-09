@@ -43,7 +43,7 @@ You can download and install a [prebuilt binary here](https://nightly.link/ayn2o
 ```bash
 git clone https://github.com/ayn2op/discordo
 cd discordo
-make build
+go build .
 
 # optional
 sudo mv ./discordo /usr/local/bin
