@@ -7,17 +7,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ayn2op/discordo/config"
-	"github.com/zalando/go-keyring"
-)
-
-var tokenFlag string
-
-func init() {
-	flag.StringVar(&tokenFlag, "token", "", "The authentication token.")
-
-	path := config.LogDirPath()
-	err := os.MkdirAll(path, os.ModePerm)
 	"github.com/rivo/tview"
 	"github.com/zalando/go-keyring"
 )
