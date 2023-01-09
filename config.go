@@ -16,16 +16,21 @@ type (
 
 	MessagesTextKeysConfig struct {
 		CommonKeysConfig `yaml:",inline"`
-		Reply            string `yaml:"reply"`
-		ReplyMention     string `yaml:"reply_mention"`
-		SelectPrevious   string `yaml:"select_previous"`
-		SelectNext       string `yaml:"select_next"`
+
+		Reply        string `yaml:"reply"`
+		ReplyMention string `yaml:"reply_mention"`
+
+		SelectPrevious string `yaml:"select_previous"`
+		SelectNext     string `yaml:"select_next"`
+		SelectFirst    string `yaml:"select_first"`
+		SelectLast     string `yaml:"select_last"`
 	}
 
 	MessageInputKeysConfig struct {
 		CommonKeysConfig `yaml:",inline"`
-		Send             string `yaml:"send"`
-		LaunchEditor     string `yaml:"launch_editor"`
+
+		Send         string `yaml:"send"`
+		LaunchEditor string `yaml:"launch_editor"`
 	}
 
 	KeysConfig struct {
@@ -45,12 +50,14 @@ type (
 
 	GuildsTreeThemeConfig struct {
 		CommonThemeConfig `yaml:",inline"`
-		Graphics          bool `yaml:"graphics"`
+
+		Graphics bool `yaml:"graphics"`
 	}
 
 	MessagesTextThemeConfig struct {
 		CommonThemeConfig `yaml:",inline"`
-		AuthorColor       string `yaml:"author_color"`
+
+		AuthorColor string `yaml:"author_color"`
 	}
 
 	MessageInputThemeConfig struct {
@@ -112,6 +119,8 @@ func newConfig() (*Config, error) {
 
 				SelectPrevious: "Up",
 				SelectNext:     "Down",
+				SelectFirst:    "Home",
+				SelectLast:     "End",
 			},
 			MessageInput: MessageInputKeysConfig{
 				CommonKeysConfig: commonKeys,

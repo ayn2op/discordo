@@ -16,19 +16,20 @@ const replyIndicator = '╭'
 type MessagesText struct {
 	*tview.TextView
 
-	selectedMessage *discord.Message
+	selectedMessage int
 	buf             bytes.Buffer
 }
 
 func newMessagesText() *MessagesText {
 	mt := &MessagesText{
 		TextView: tview.NewTextView(),
+
+		selectedMessage: -1,
 	}
 
 	mt.SetDynamicColors(true)
 	mt.SetRegions(true)
 	mt.SetWordWrap(true)
-	mt.SetHighlightedFunc(mt.onHighlighted)
 	mt.SetInputCapture(mt.onInputCapture)
 	mt.ScrollToEnd()
 	mt.SetChangedFunc(func() {
@@ -49,7 +50,7 @@ func newMessagesText() *MessagesText {
 }
 
 func (mt *MessagesText) reset() {
-	messagesText.selectedMessage = nil
+	messagesText.selectedMessage = -1
 
 	mt.SetTitle("")
 	mt.Clear()
@@ -122,26 +123,6 @@ func (mt *MessagesText) createFooter(m *discord.Message) {
 	}
 }
 
-func (mt *MessagesText) onHighlighted(added, removed, remaining []string) {
-	if len(added) == 0 {
-		return
-	}
-
-	sf, err := discord.ParseSnowflake(added[0])
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	m, err := discordState.Cabinet.Message(guildsTree.selectedChannel.ID, discord.MessageID(sf))
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	mt.selectedMessage = m
-}
-
 func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case config.Keys.MessagesText.Reply:
@@ -156,6 +137,12 @@ func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	case config.Keys.MessagesText.SelectNext:
 		mt.selectNextAction()
 		return nil
+	case config.Keys.MessagesText.SelectFirst:
+		mt.selectFirstAction()
+		return nil
+	case config.Keys.MessagesText.SelectLast:
+		mt.selectLastAction()
+		return nil
 	case config.Keys.MessagesText.Cancel:
 		guildsTree.selectedChannel = nil
 
@@ -168,7 +155,7 @@ func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 }
 
 func (mt *MessagesText) replyAction(mention bool) {
-	if mt.selectedMessage == nil {
+	if mt.selectedMessage == -1 {
 		return
 	}
 
@@ -179,12 +166,78 @@ func (mt *MessagesText) replyAction(mention bool) {
 		title += "Replying to "
 	}
 
-	title += mt.selectedMessage.Author.Tag()
+	ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannel.ID)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	title += ms[mt.selectedMessage].Author.Tag()
 	messageInput.SetTitle(title)
 
 	app.SetFocus(messageInput)
 }
 
-func (mt *MessagesText) selectPreviousAction() {}
+func (mt *MessagesText) selectPreviousAction() {
+	ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannel.ID)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
-func (mt *MessagesText) selectNextAction() {}
+	// If no message is currently selected, select the latest message.
+	if len(mt.GetHighlights()) == 0 {
+		mt.selectedMessage = 0
+	} else {
+		if mt.selectedMessage < len(ms)-1 {
+			mt.selectedMessage++
+		}
+	}
+
+	mt.Highlight(ms[mt.selectedMessage].ID.String())
+	mt.ScrollToHighlight()
+}
+
+func (mt *MessagesText) selectNextAction() {
+	ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannel.ID)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	// If no message is currently selected, select the latest message.
+	if len(mt.GetHighlights()) == 0 {
+		mt.selectedMessage = 0
+	} else {
+		if mt.selectedMessage > 0 {
+			mt.selectedMessage--
+		}
+	}
+
+	mt.Highlight(ms[mt.selectedMessage].ID.String())
+	mt.ScrollToHighlight()
+}
+
+func (mt *MessagesText) selectFirstAction() {
+	ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannel.ID)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	mt.selectedMessage = len(ms) - 1
+	mt.Highlight(ms[mt.selectedMessage].ID.String())
+	mt.ScrollToHighlight()
+}
+
+func (mt *MessagesText) selectLastAction() {
+	ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannel.ID)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	mt.selectedMessage = 0
+	mt.Highlight(ms[mt.selectedMessage].ID.String())
+	mt.ScrollToHighlight()
+}

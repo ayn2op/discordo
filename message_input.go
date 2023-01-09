@@ -68,10 +68,16 @@ func (mi *MessageInput) sendAction() {
 	}
 
 	var err error
-	if messagesText.selectedMessage != nil {
+	if messagesText.selectedMessage != -1 {
+		ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannel.ID)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
 		data := api.SendMessageData{
 			Content:         text,
-			Reference:       &discord.MessageReference{MessageID: messagesText.selectedMessage.ID},
+			Reference:       &discord.MessageReference{MessageID: ms[messagesText.selectedMessage].ID},
 			AllowedMentions: &api.AllowedMentions{RepliedUser: option.False},
 		}
 
@@ -89,7 +95,9 @@ func (mi *MessageInput) sendAction() {
 		return
 	}
 
-	messageInput.reset()
+	messagesText.selectedMessage = -1
+	messagesText.Highlight()
+	mi.reset()
 }
 
 func (mi *MessageInput) launchEditorAction() {
