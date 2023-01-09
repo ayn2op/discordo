@@ -5,36 +5,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/gdamore/tcell/v2"
 	lua "github.com/yuin/gopher-lua"
 	luar "layeh.com/gopher-luar"
 )
 
 var Plugins []*Plugin
-
-type Plugin struct {
-	state *lua.LState
-}
-
-func loadPlugin(path string) (*Plugin, error) {
-	p := &Plugin{
-		state: lua.NewState(),
-	}
-
-	err := p.state.DoFile(path)
-	if err != nil {
-		return nil, err
-	}
-
-	return p, nil
-}
-
-func (p *Plugin) OnInputCapture(widget string, event *tcell.EventKey) {
-	_ = p.state.CallByParam(lua.P{
-		Fn:      p.state.GetGlobal("onInputCapture"),
-		Protect: true,
-	}, luar.New(p.state, widget), luar.New(p.state, event))
-}
 
 // LoadPlugins reads the plugins directory and loads all of the plugins inside it. It creates the plugins directory if it does not exist already.
 func LoadPlugins() error {
@@ -68,4 +43,36 @@ func LoadPlugins() error {
 	}
 
 	return err
+}
+
+// CallPlugins calls a function present within the global scope for all loaded plugins.
+func CallPlugins(name string, args ...any) {
+	for _, p := range Plugins {
+		vargs := make([]lua.LValue, len(args))
+		for i, arg := range args {
+			vargs[i] = luar.New(p.state, arg)
+		}
+
+		_ = p.state.CallByParam(lua.P{
+			Fn:      p.state.GetGlobal(name),
+			Protect: true,
+		}, vargs...)
+	}
+}
+
+type Plugin struct {
+	state *lua.LState
+}
+
+func loadPlugin(path string) (*Plugin, error) {
+	p := &Plugin{
+		state: lua.NewState(),
+	}
+
+	err := p.state.DoFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	return p, nil
 }

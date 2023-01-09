@@ -127,9 +127,7 @@ func (mt *MessagesText) createFooter(m *discord.Message) {
 }
 
 func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
-	for _, p := range config.Plugins {
-		p.OnInputCapture("messagesText", event)
-	}
+	config.CallPlugins("onInputCapture", "messages", event)
 
 	switch event.Name() {
 	case cfg.Keys.MessagesText.CopyContent:

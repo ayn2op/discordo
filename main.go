@@ -69,15 +69,14 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// UI must be initialized after the configuration has been loaded and before the plugins are loaded.
-	guildsTree = newGuildsTree()
-	messagesText = newMessagesText()
-	messageInput = newMessageInput()
-
 	err = config.LoadPlugins()
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	guildsTree = newGuildsTree()
+	messagesText = newMessagesText()
+	messageInput = newMessageInput()
 
 	// mission failed, we'll get 'em next time
 	if token == "" {
@@ -99,6 +98,8 @@ func main() {
 
 		app.SetRoot(flex, true)
 	}
+
+	config.CallPlugins("init")
 
 	app.EnableMouse(cfg.Mouse)
 	err = app.Run()
