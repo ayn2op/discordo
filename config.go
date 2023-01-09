@@ -1,4 +1,4 @@
-package config
+package main
 
 import (
 	"os"
@@ -7,7 +7,61 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const Name = "discordo"
+const name = "discordo"
+
+type (
+	MessagesTextKeysConfig struct {
+		CopyContent string `yaml:"copy_content"`
+
+		Reply        string `yaml:"reply"`
+		ReplyMention string `yaml:"reply_mention"`
+		SelectReply  string `yaml:"select_reply"`
+
+		SelectPrevious string `yaml:"select_previous"`
+		SelectNext     string `yaml:"select_next"`
+		SelectFirst    string `yaml:"select_first"`
+		SelectLast     string `yaml:"select_last"`
+	}
+
+	MessageInputKeysConfig struct {
+		Send  string `yaml:"send"`
+		Paste string `yaml:"paste"`
+
+		LaunchEditor string `yaml:"launch_editor"`
+	}
+
+	KeysConfig struct {
+		Cancel string `yaml:"cancel"`
+
+		MessagesText MessagesTextKeysConfig `yaml:"messages_text"`
+		MessageInput MessageInputKeysConfig `yaml:"message_input"`
+	}
+)
+
+type (
+	GuildsTreeThemeConfig struct {
+		Graphics bool `yaml:"graphics"`
+	}
+
+	MessagesTextThemeConfig struct {
+		AuthorColor string `yaml:"author_color"`
+	}
+
+	MessageInputThemeConfig struct{}
+
+	ThemeConfig struct {
+		Border        bool   `yaml:"border"`
+		BorderColor   string `yaml:"border_color"`
+		BorderPadding [4]int `yaml:"border_padding,flow"`
+
+		TitleColor      string `yaml:"title_color"`
+		BackgroundColor string `yaml:"background_color"`
+
+		GuildsTree   GuildsTreeThemeConfig   `yaml:"guilds_tree"`
+		MessagesText MessagesTextThemeConfig `yaml:"messages_text"`
+		MessageInput MessageInputThemeConfig `yaml:"message_input"`
+	}
+)
 
 type Config struct {
 	Mouse         bool   `yaml:"mouse"`
@@ -19,13 +73,13 @@ type Config struct {
 	Theme ThemeConfig `yaml:"theme"`
 }
 
-func New() (*Config, error) {
+func newConfig() (*Config, error) {
 	path, err := os.UserConfigDir()
 	if err != nil {
 		return nil, err
 	}
 
-	path = filepath.Join(path, Name)
+	path = filepath.Join(path, name)
 	err = os.MkdirAll(path, os.ModePerm)
 	if err != nil {
 		return nil, err

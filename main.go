@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ayn2op/discordo/config"
 	"github.com/rivo/tview"
 	"github.com/zalando/go-keyring"
 )
@@ -15,7 +14,7 @@ import (
 var (
 	token string
 
-	cfg          *config.Config
+	cfg          *Config
 	discordState *State
 
 	app  = tview.NewApplication()
@@ -34,7 +33,7 @@ func init() {
 		log.Fatal(err)
 	}
 
-	path = filepath.Join(path, config.Name)
+	path = filepath.Join(path, name)
 	err = os.MkdirAll(path, os.ModePerm)
 	if err != nil {
 		log.Fatal(err)
@@ -56,16 +55,16 @@ func main() {
 	var err error
 	// If the token is passed via the flag, set it in the keyring.
 	if token != "" {
-		go keyring.Set(config.Name, "token", token)
+		go keyring.Set(name, "token", token)
 	} else {
-		token, err = keyring.Get(config.Name, "token")
+		token, err = keyring.Get(name, "token")
 		if err != nil {
 			log.Println(err)
 			return
 		}
 	}
 
-	cfg, err = config.New()
+	cfg, err = newConfig()
 	if err != nil {
 		log.Fatal(err)
 	}

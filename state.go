@@ -5,7 +5,6 @@ import (
 	"log"
 	"runtime"
 
-	"github.com/ayn2op/discordo/config"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
@@ -13,10 +12,10 @@ import (
 )
 
 func init() {
-	api.UserAgent = fmt.Sprintf("%s/%s %s/%s", config.Name, "0.1", "arikawa", "v3")
+	api.UserAgent = fmt.Sprintf("%s/%s %s/%s", name, "0.1", "arikawa", "v3")
 	gateway.DefaultIdentity = gateway.IdentifyProperties{
 		OS:      runtime.GOOS,
-		Browser: config.Name,
+		Browser: name,
 		Device:  "",
 	}
 }
