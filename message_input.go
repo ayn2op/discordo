@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/atotto/clipboard"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
@@ -45,6 +46,9 @@ func (mi *MessageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case config.Keys.MessageInput.Send:
 		mi.sendAction()
+		return nil
+	case config.Keys.MessageInput.Paste:
+		mi.pasteAction()
 		return nil
 	case config.Keys.MessageInput.LaunchEditor:
 		messageInput.launchEditorAction()
@@ -98,6 +102,16 @@ func (mi *MessageInput) sendAction() {
 	messagesText.selectedMessage = -1
 	messagesText.Highlight()
 	mi.reset()
+}
+
+func (mi *MessageInput) pasteAction() {
+	text, err := clipboard.ReadAll()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Append the text to the message input.
+	mi.SetText(mi.GetText() + text)
 }
 
 func (mi *MessageInput) launchEditorAction() {

@@ -24,7 +24,9 @@ type (
 	}
 
 	MessageInputKeysConfig struct {
-		Send         string `yaml:"send"`
+		Send  string `yaml:"send"`
+		Paste string `yaml:"paste"`
+
 		LaunchEditor string `yaml:"launch_editor"`
 	}
 
@@ -104,7 +106,9 @@ func newConfig() (*Config, error) {
 				SelectLast:     "End",
 			},
 			MessageInput: MessageInputKeysConfig{
-				Send:         "Enter",
+				Send: "Enter",
+
+				Paste:        "Ctrl+V",
 				LaunchEditor: "Ctrl+E",
 			},
 		},
