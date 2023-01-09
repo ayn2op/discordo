@@ -45,6 +45,7 @@ func newMessagesText() *MessagesText {
 
 	p := config.Theme.BorderPadding
 	mt.SetBorder(config.Theme.Border)
+	mt.SetBorderColor(tcell.GetColor(config.Theme.BorderColor))
 	mt.SetBorderPadding(p[0], p[1], p[2], p[3])
 
 	return mt

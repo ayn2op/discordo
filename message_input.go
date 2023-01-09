@@ -32,6 +32,7 @@ func newMessageInput() *MessageInput {
 
 	p := config.Theme.BorderPadding
 	mi.SetBorder(config.Theme.Border)
+	mi.SetBorderColor(tcell.GetColor(config.Theme.BorderColor))
 	mi.SetBorderPadding(p[0], p[1], p[2], p[3])
 
 	return mi

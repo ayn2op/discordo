@@ -51,6 +51,7 @@ type (
 
 	ThemeConfig struct {
 		Border        bool   `yaml:"border"`
+		BorderColor   string `yaml:"border_color"`
 		BorderPadding [4]int `yaml:"border_padding,flow"`
 
 		TitleColor      string `yaml:"title_color"`
@@ -115,6 +116,7 @@ func newConfig() (*Config, error) {
 
 		Theme: ThemeConfig{
 			Border:        true,
+			BorderColor:   "default",
 			BorderPadding: [...]int{0, 0, 1, 1},
 
 			TitleColor:      "default",

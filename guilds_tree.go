@@ -37,6 +37,7 @@ func newGuildsTree() *GuildsTree {
 
 	p := config.Theme.BorderPadding
 	gt.SetBorder(config.Theme.Border)
+	gt.SetBorderColor(tcell.GetColor(config.Theme.BorderColor))
 	gt.SetBorderPadding(p[0], p[1], p[2], p[3])
 
 	return gt
