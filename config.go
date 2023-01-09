@@ -10,15 +10,10 @@ import (
 const name = "discordo"
 
 type (
-	CommonKeysConfig struct {
-		Cancel string `yaml:"cancel"`
-	}
-
 	MessagesTextKeysConfig struct {
-		CommonKeysConfig `yaml:",inline"`
-
 		Reply        string `yaml:"reply"`
 		ReplyMention string `yaml:"reply_mention"`
+		SelectReply  string `yaml:"select_reply"`
 
 		SelectPrevious string `yaml:"select_previous"`
 		SelectNext     string `yaml:"select_next"`
@@ -27,44 +22,36 @@ type (
 	}
 
 	MessageInputKeysConfig struct {
-		CommonKeysConfig `yaml:",inline"`
-
 		Send         string `yaml:"send"`
 		LaunchEditor string `yaml:"launch_editor"`
 	}
 
 	KeysConfig struct {
+		Cancel string `yaml:"cancel"`
+
 		MessagesText MessagesTextKeysConfig `yaml:"messages_text"`
 		MessageInput MessageInputKeysConfig `yaml:"message_input"`
 	}
 )
 
 type (
-	CommonThemeConfig struct {
+	GuildsTreeThemeConfig struct {
+		Graphics bool `yaml:"graphics"`
+	}
+
+	MessagesTextThemeConfig struct {
+		AuthorColor string `yaml:"author_color"`
+	}
+
+	MessageInputThemeConfig struct{}
+
+	ThemeConfig struct {
 		Border        bool   `yaml:"border"`
 		BorderPadding [4]int `yaml:"border_padding,flow"`
 
 		TitleColor      string `yaml:"title_color"`
 		BackgroundColor string `yaml:"background_color"`
-	}
 
-	GuildsTreeThemeConfig struct {
-		CommonThemeConfig `yaml:",inline"`
-
-		Graphics bool `yaml:"graphics"`
-	}
-
-	MessagesTextThemeConfig struct {
-		CommonThemeConfig `yaml:",inline"`
-
-		AuthorColor string `yaml:"author_color"`
-	}
-
-	MessageInputThemeConfig struct {
-		CommonThemeConfig `yaml:",inline"`
-	}
-
-	ThemeConfig struct {
 		GuildsTree   GuildsTreeThemeConfig   `yaml:"guilds_tree"`
 		MessagesText MessagesTextThemeConfig `yaml:"messages_text"`
 		MessageInput MessageInputThemeConfig `yaml:"message_input"`
@@ -93,18 +80,6 @@ func newConfig() (*Config, error) {
 		return nil, err
 	}
 
-	commonTheme := CommonThemeConfig{
-		Border:        true,
-		BorderPadding: [...]int{0, 0, 1, 1},
-
-		TitleColor:      "default",
-		BackgroundColor: "default",
-	}
-
-	commonKeys := CommonKeysConfig{
-		Cancel: "Esc",
-	}
-
 	c := Config{
 		Mouse:         true,
 		Timestamps:    false,
@@ -112,10 +87,12 @@ func newConfig() (*Config, error) {
 		Editor:        "default",
 
 		Keys: KeysConfig{
+			Cancel: "Esc",
+
 			MessagesText: MessagesTextKeysConfig{
-				CommonKeysConfig: commonKeys,
-				Reply:            "Rune[r]",
-				ReplyMention:     "Rune[R]",
+				Reply:        "Rune[r]",
+				ReplyMention: "Rune[R]",
+				SelectReply:  "Rune[s]",
 
 				SelectPrevious: "Up",
 				SelectNext:     "Down",
@@ -123,24 +100,25 @@ func newConfig() (*Config, error) {
 				SelectLast:     "End",
 			},
 			MessageInput: MessageInputKeysConfig{
-				CommonKeysConfig: commonKeys,
-				Send:             "Enter",
-				LaunchEditor:     "Ctrl+E",
+				Send:         "Enter",
+				LaunchEditor: "Ctrl+E",
 			},
 		},
 
 		Theme: ThemeConfig{
+			Border:        true,
+			BorderPadding: [...]int{0, 0, 1, 1},
+
+			TitleColor:      "default",
+			BackgroundColor: "default",
+
 			GuildsTree: GuildsTreeThemeConfig{
-				CommonThemeConfig: commonTheme,
-				Graphics:          true,
+				Graphics: true,
 			},
 			MessagesText: MessagesTextThemeConfig{
-				CommonThemeConfig: commonTheme,
-				AuthorColor:       "aqua",
+				AuthorColor: "aqua",
 			},
-			MessageInput: MessageInputThemeConfig{
-				CommonThemeConfig: commonTheme,
-			},
+			MessageInput: MessageInputThemeConfig{},
 		},
 	}
 	path = filepath.Join(path, "config.yml")

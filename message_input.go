@@ -23,15 +23,15 @@ func newMessageInput() *MessageInput {
 	}
 
 	mi.SetInputCapture(mi.onInputCapture)
-	mi.SetFieldBackgroundColor(tcell.GetColor(config.Theme.MessageInput.BackgroundColor))
-	mi.SetBackgroundColor(tcell.GetColor(config.Theme.MessageInput.BackgroundColor))
+	mi.SetBackgroundColor(tcell.GetColor(config.Theme.BackgroundColor))
+	mi.SetFieldBackgroundColor(tcell.GetColor(config.Theme.BackgroundColor))
 
-	mi.SetTitleColor(tcell.GetColor(config.Theme.MessageInput.TitleColor))
+	mi.SetTitleColor(tcell.GetColor(config.Theme.TitleColor))
 	mi.SetTitleAlign(tview.AlignLeft)
 
-	padding := config.Theme.MessageInput.BorderPadding
-	mi.SetBorder(config.Theme.MessageInput.Border)
-	mi.SetBorderPadding(padding[0], padding[1], padding[2], padding[3])
+	p := config.Theme.BorderPadding
+	mi.SetBorder(config.Theme.Border)
+	mi.SetBorderPadding(p[0], p[1], p[2], p[3])
 
 	return mi
 }
@@ -49,7 +49,7 @@ func (mi *MessageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	case config.Keys.MessageInput.LaunchEditor:
 		messageInput.launchEditorAction()
 		return nil
-	case config.Keys.MessageInput.Cancel:
+	case config.Keys.Cancel:
 		mi.reset()
 		return nil
 	}

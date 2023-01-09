@@ -36,15 +36,15 @@ func newMessagesText() *MessagesText {
 		app.Draw()
 	})
 
-	mt.SetBackgroundColor(tcell.GetColor(config.Theme.MessagesText.BackgroundColor))
+	mt.SetBackgroundColor(tcell.GetColor(config.Theme.BackgroundColor))
 
 	mt.SetTitle("Messages")
-	mt.SetTitleColor(tcell.GetColor(config.Theme.MessagesText.TitleColor))
+	mt.SetTitleColor(tcell.GetColor(config.Theme.TitleColor))
 	mt.SetTitleAlign(tview.AlignLeft)
 
-	padding := config.Theme.MessagesText.BorderPadding
-	mt.SetBorder(config.Theme.MessagesText.Border)
-	mt.SetBorderPadding(padding[0], padding[1], padding[2], padding[3])
+	p := config.Theme.BorderPadding
+	mt.SetBorder(config.Theme.Border)
+	mt.SetBorderPadding(p[0], p[1], p[2], p[3])
 
 	return mt
 }
@@ -74,10 +74,10 @@ func (mt *MessagesText) createMessage(m *discord.Message) error {
 			mt.buf.WriteByte('[')
 			mt.buf.WriteString(config.Theme.MessagesText.AuthorColor)
 			mt.buf.WriteByte(']')
-			mt.buf.WriteString(m.Author.Username)
+			mt.buf.WriteString(m.ReferencedMessage.Author.Username)
 			mt.buf.WriteString("[-] ")
 
-			mt.buf.WriteString(discordmd.Parse(tview.Escape(m.Content)))
+			mt.buf.WriteString(discordmd.Parse(tview.Escape(m.ReferencedMessage.Content)))
 			mt.buf.WriteString("[::-]\n")
 		}
 
@@ -143,7 +143,10 @@ func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	case config.Keys.MessagesText.SelectLast:
 		mt.selectLastAction()
 		return nil
-	case config.Keys.MessagesText.Cancel:
+	case config.Keys.MessagesText.SelectReply:
+		mt.selectReplyAction()
+		return nil
+	case config.Keys.Cancel:
 		guildsTree.selectedChannel = nil
 
 		messagesText.reset()
@@ -240,4 +243,28 @@ func (mt *MessagesText) selectLastAction() {
 	mt.selectedMessage = 0
 	mt.Highlight(ms[mt.selectedMessage].ID.String())
 	mt.ScrollToHighlight()
+}
+
+func (mt *MessagesText) selectReplyAction() {
+	if mt.selectedMessage == -1 {
+		return
+	}
+
+	ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannel.ID)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	ref := ms[mt.selectedMessage].ReferencedMessage
+	if ref != nil {
+		for i, m := range ms {
+			if ref.ID == m.ID {
+				mt.selectedMessage = i
+			}
+		}
+
+		mt.Highlight(ms[mt.selectedMessage].ID.String())
+		mt.ScrollToHighlight()
+	}
 }

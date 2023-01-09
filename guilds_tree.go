@@ -29,15 +29,15 @@ func newGuildsTree() *GuildsTree {
 	gt.SetTopLevel(1)
 	gt.SetSelectedFunc(gt.onSelected)
 
-	gt.SetBackgroundColor(tcell.GetColor(config.Theme.GuildsTree.BackgroundColor))
+	gt.SetBackgroundColor(tcell.GetColor(config.Theme.BackgroundColor))
 
 	gt.SetTitle("Guilds")
-	gt.SetTitleColor(tcell.GetColor(config.Theme.GuildsTree.TitleColor))
+	gt.SetTitleColor(tcell.GetColor(config.Theme.TitleColor))
 	gt.SetTitleAlign(tview.AlignLeft)
 
-	padding := config.Theme.GuildsTree.BorderPadding
-	gt.SetBorder(config.Theme.GuildsTree.Border)
-	gt.SetBorderPadding(padding[0], padding[1], padding[2], padding[3])
+	p := config.Theme.BorderPadding
+	gt.SetBorder(config.Theme.Border)
+	gt.SetBorderPadding(p[0], p[1], p[2], p[3])
 
 	return gt
 }
