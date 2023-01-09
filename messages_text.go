@@ -37,15 +37,15 @@ func newMessagesText() *MessagesText {
 		app.Draw()
 	})
 
-	mt.SetBackgroundColor(tcell.GetColor(cfg.Theme.BackgroundColor))
+	mt.SetBackgroundColor(tcell.GetColor(config.Theme.BackgroundColor))
 
 	mt.SetTitle("Messages")
-	mt.SetTitleColor(tcell.GetColor(cfg.Theme.TitleColor))
+	mt.SetTitleColor(tcell.GetColor(config.Theme.TitleColor))
 	mt.SetTitleAlign(tview.AlignLeft)
 
-	p := cfg.Theme.BorderPadding
-	mt.SetBorder(cfg.Theme.Border)
-	mt.SetBorderColor(tcell.GetColor(cfg.Theme.BorderColor))
+	p := config.Theme.BorderPadding
+	mt.SetBorder(config.Theme.Border)
+	mt.SetBorderColor(tcell.GetColor(config.Theme.BorderColor))
 	mt.SetBorderPadding(p[0], p[1], p[2], p[3])
 
 	return mt
@@ -74,7 +74,7 @@ func (mt *MessagesText) createMessage(m *discord.Message) error {
 			mt.buf.WriteByte(' ')
 
 			mt.buf.WriteByte('[')
-			mt.buf.WriteString(cfg.Theme.MessagesText.AuthorColor)
+			mt.buf.WriteString(config.Theme.MessagesText.AuthorColor)
 			mt.buf.WriteByte(']')
 			mt.buf.WriteString(m.ReferencedMessage.Author.Username)
 			mt.buf.WriteString("[-] ")
@@ -98,12 +98,12 @@ func (mt *MessagesText) createMessage(m *discord.Message) error {
 
 func (mt *MessagesText) createHeader(m *discord.Message) {
 	mt.buf.WriteByte('[')
-	mt.buf.WriteString(cfg.Theme.MessagesText.AuthorColor)
+	mt.buf.WriteString(config.Theme.MessagesText.AuthorColor)
 	mt.buf.WriteByte(']')
 	mt.buf.WriteString(m.Author.Username)
 	mt.buf.WriteString("[-] ")
 
-	if cfg.Timestamps {
+	if config.Timestamps {
 		mt.buf.WriteString("[::d]")
 		mt.buf.WriteString(m.Timestamp.Format(time.Kitchen))
 		mt.buf.WriteString("[::-] ")
@@ -127,31 +127,31 @@ func (mt *MessagesText) createFooter(m *discord.Message) {
 
 func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
-	case cfg.Keys.MessagesText.CopyContent:
+	case config.Keys.MessagesText.CopyContent:
 		mt.copyContentAction()
 		return nil
-	case cfg.Keys.MessagesText.Reply:
+	case config.Keys.MessagesText.Reply:
 		mt.replyAction(false)
 		return nil
-	case cfg.Keys.MessagesText.ReplyMention:
+	case config.Keys.MessagesText.ReplyMention:
 		mt.replyAction(true)
 		return nil
-	case cfg.Keys.MessagesText.SelectPrevious:
+	case config.Keys.MessagesText.SelectPrevious:
 		mt.selectPreviousAction()
 		return nil
-	case cfg.Keys.MessagesText.SelectNext:
+	case config.Keys.MessagesText.SelectNext:
 		mt.selectNextAction()
 		return nil
-	case cfg.Keys.MessagesText.SelectFirst:
+	case config.Keys.MessagesText.SelectFirst:
 		mt.selectFirstAction()
 		return nil
-	case cfg.Keys.MessagesText.SelectLast:
+	case config.Keys.MessagesText.SelectLast:
 		mt.selectLastAction()
 		return nil
-	case cfg.Keys.MessagesText.SelectReply:
+	case config.Keys.MessagesText.SelectReply:
 		mt.selectReplyAction()
 		return nil
-	case cfg.Keys.Cancel:
+	case config.Keys.Cancel:
 		guildsTree.selectedChannel = nil
 
 		messagesText.reset()

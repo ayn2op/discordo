@@ -14,12 +14,11 @@ import (
 var (
 	token string
 
-	cfg          *Config
+	config       *Config
 	discordState *State
 
-	app  = tview.NewApplication()
-	flex = tview.NewFlex()
-
+	app          = tview.NewApplication()
+	flex         = tview.NewFlex()
 	guildsTree   *GuildsTree
 	messagesText *MessagesText
 	messageInput *MessageInput
@@ -64,12 +63,12 @@ func main() {
 		}
 	}
 
-	cfg, err = newConfig()
+	config, err = newConfig()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Initialize UI
+	// UI must be initialized after the configuration has been loaded and before the plugins are loaded.
 	guildsTree = newGuildsTree()
 	messagesText = newMessagesText()
 	messageInput = newMessageInput()
@@ -95,7 +94,7 @@ func main() {
 		app.SetRoot(flex, true)
 	}
 
-	app.EnableMouse(cfg.Mouse)
+	app.EnableMouse(config.Mouse)
 	err = app.Run()
 	if err != nil {
 		log.Fatal(err)
