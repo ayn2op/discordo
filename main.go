@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/rivo/tview"
+	"github.com/zalando/go-keyring"
 )
 
 var (
@@ -52,6 +53,17 @@ func main() {
 	flag.Parse()
 
 	var err error
+	// If the token is passed via the flag, set it in the keyring.
+	if token != "" {
+		go keyring.Set(name, "token", token)
+	} else {
+		token, err = keyring.Get(name, "token")
+		if err != nil {
+			log.Println(err)
+			return
+		}
+	}
+
 	config, err = newConfig()
 	if err != nil {
 		log.Fatal(err)
@@ -62,23 +74,28 @@ func main() {
 	messagesText = newMessagesText()
 	messageInput = newMessageInput()
 
-	discordState = newState(token)
-	err = discordState.Open(context.Background())
-	if err != nil {
-		log.Fatal(err)
+	// mission failed, we'll get 'em next time
+	if token == "" {
+		app.SetRoot(newLoginForm(), true)
+	} else {
+		discordState = newState(token)
+		err = discordState.Open(context.Background())
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		right := tview.NewFlex()
+		right.SetDirection(tview.FlexRow)
+		right.AddItem(messagesText, 0, 1, false)
+		right.AddItem(messageInput, 3, 1, false)
+		// The guilds tree is always focused first at start-up.
+		flex.AddItem(guildsTree, 0, 1, true)
+		flex.AddItem(right, 0, 4, false)
+
+		app.SetRoot(flex, true)
 	}
 
-	right := tview.NewFlex()
-	right.SetDirection(tview.FlexRow)
-	right.AddItem(messagesText, 0, 1, false)
-	right.AddItem(messageInput, 3, 1, false)
-	// The guilds tree is always focused first at start-up.
-	flex.AddItem(guildsTree, 0, 1, true)
-	flex.AddItem(right, 0, 4, false)
-
 	app.EnableMouse(config.Mouse)
-	app.SetRoot(flex, true)
-
 	err = app.Run()
 	if err != nil {
 		log.Fatal(err)
