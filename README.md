@@ -43,7 +43,7 @@ You can download and install a [prebuilt binary here](https://nightly.link/ayn2o
 ```bash
 git clone https://github.com/ayn2op/discordo
 cd discordo
-make build
+go build .
 
 # optional
 sudo mv ./discordo /usr/local/bin
@@ -51,14 +51,8 @@ sudo mv ./discordo /usr/local/bin
 
 ### Linux clipboard support
 
-- `xclip` or `xsel` for X11.
-  - Ubuntu: `apt install xclip`
-  - Arch Linux: `pacman -S xclip`
-  - Fedora: `dnf install xclip`
-- `wl-clipboard` for Wayland.
-  - Ubuntu: `apt install wl-clipboard`
-  - Arch Linux: `pacman -S wl-clipboard`
-  - Fedora: `dnf install wl-clipboard`
+- `xclip` or `xsel` for X11 (`apt install xclip`)
+- `wl-clipboard` for Wayland (`apt install wl-clipboard`)
 
 ## Usage
 
