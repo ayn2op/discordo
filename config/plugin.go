@@ -16,7 +16,7 @@ type Plugin struct {
 	state *lua.LState
 }
 
-func openPlugin(path string) (*Plugin, error) {
+func loadPlugin(path string) (*Plugin, error) {
 	p := &Plugin{
 		state: lua.NewState(),
 	}
@@ -36,7 +36,7 @@ func (p *Plugin) OnInputCapture(widget string, event *tcell.EventKey) {
 	}, luar.New(p.state, widget), luar.New(p.state, event))
 }
 
-// LoadPlugins reads the plugins directory and opens the plugins inside it. It creates the plugins directory if it does not exist already.
+// LoadPlugins reads the plugins directory and loads all of the plugins inside it. It creates the plugins directory if it does not exist already.
 func LoadPlugins() error {
 	path, err := os.UserConfigDir()
 	if err != nil {
@@ -56,7 +56,7 @@ func LoadPlugins() error {
 
 	for _, entry := range entries {
 		if filepath.Ext(entry.Name()) == ".lua" {
-			p, err := openPlugin(filepath.Join(path, entry.Name()))
+			p, err := loadPlugin(filepath.Join(path, entry.Name()))
 			if err != nil {
 				// TODO: multiple errors
 				log.Println(err)
