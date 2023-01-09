@@ -73,9 +73,9 @@ func (app *Application) Run(token string) {
 		}
 
 		app.SetRoot(app.view, true)
-		app.SetFocus(app.view.GuildsView)
+		app.SetFocus(app.view.GuildsTree)
 	} else {
-		loginView := newLoginView(app)
+		loginView := newLoginForm(app)
 		app.SetRoot(loginView, true)
 	}
 
@@ -103,7 +103,7 @@ func (app *Application) onBeforeDraw(screen tcell.Screen) bool {
 }
 
 func (c *Application) onReady(r *gateway.ReadyEvent) {
-	root := c.view.GuildsView.GetRoot()
+	root := c.view.GuildsTree.GetRoot()
 	for _, gf := range r.UserSettings.GuildFolders {
 		if gf.ID == 0 {
 			for _, gID := range gf.GuildIDs {
@@ -154,24 +154,24 @@ func (c *Application) onReady(r *gateway.ReadyEvent) {
 
 	}
 
-	c.view.GuildsView.SetCurrentNode(root)
-	c.SetFocus(c.view.GuildsView)
+	c.view.GuildsTree.SetCurrentNode(root)
+	c.SetFocus(c.view.GuildsTree)
 }
 
 func (c *Application) onGuildCreate(g *gateway.GuildCreateEvent) {
 	guildNode := tview.NewTreeNode(g.Name)
 	guildNode.SetReference(g.ID)
 
-	rootNode := c.view.GuildsView.GetRoot()
+	rootNode := c.view.GuildsTree.GetRoot()
 	rootNode.AddChild(guildNode)
 
-	c.view.GuildsView.SetCurrentNode(rootNode)
-	c.SetFocus(c.view.GuildsView)
+	c.view.GuildsTree.SetCurrentNode(rootNode)
+	c.SetFocus(c.view.GuildsTree)
 	c.Draw()
 }
 
 func (c *Application) onGuildDelete(g *gateway.GuildDeleteEvent) {
-	rootNode := c.view.GuildsView.GetRoot()
+	rootNode := c.view.GuildsTree.GetRoot()
 	var parentNode *tview.TreeNode
 	rootNode.Walk(func(node, _ *tview.TreeNode) bool {
 		if node.GetReference() == g.ID {
@@ -190,14 +190,14 @@ func (c *Application) onGuildDelete(g *gateway.GuildDeleteEvent) {
 }
 
 func (c *Application) onMessageCreate(m *gateway.MessageCreateEvent) {
-	if c.view.ChannelsView.selected != nil && m.ChannelID == c.view.ChannelsView.selected.ID {
-		_, err := c.view.MessagesView.Write(buildMessage(c, m.Message))
+	if c.view.ChannelsTree.selected != nil && m.ChannelID == c.view.ChannelsTree.selected.ID {
+		_, err := c.view.MessagesText.Write(buildMessage(c, m.Message))
 		if err != nil {
 			return
 		}
 
-		if len(c.view.MessagesView.GetHighlights()) == 0 {
-			c.view.MessagesView.ScrollToEnd()
+		if len(c.view.MessagesText.GetHighlights()) == 0 {
+			c.view.MessagesText.ScrollToEnd()
 		}
 	}
 }

@@ -15,53 +15,53 @@ import (
 	"github.com/rivo/tview"
 )
 
-type InputView struct {
+type MessageInput struct {
 	*tview.InputField
 
 	app *Application
 }
 
-func newInputView(app *Application) *InputView {
-	v := &InputView{
+func newMessageInput(app *Application) *MessageInput {
+	mi := &MessageInput{
 		InputField: tview.NewInputField(),
 
 		app: app,
 	}
 
-	v.SetFieldBackgroundColor(tview.Styles.PrimitiveBackgroundColor)
-	v.SetPlaceholder("Message...")
-	v.SetPlaceholderStyle(tcell.StyleDefault.Background(tview.Styles.PrimitiveBackgroundColor))
-	v.SetInputCapture(v.inputCapture)
+	mi.SetFieldBackgroundColor(tview.Styles.PrimitiveBackgroundColor)
+	mi.SetPlaceholder("Message...")
+	mi.SetPlaceholderStyle(tcell.StyleDefault.Background(tview.Styles.PrimitiveBackgroundColor))
+	mi.SetInputCapture(mi.inputCapture)
 
-	v.SetTitleAlign(tview.AlignLeft)
-	v.SetBorder(true)
-	v.SetBorderPadding(0, 0, 1, 1)
+	mi.SetTitleAlign(tview.AlignLeft)
+	mi.SetBorder(true)
+	mi.SetBorderPadding(0, 0, 1, 1)
 
-	return v
+	return mi
 }
 
-func (v *InputView) inputCapture(event *tcell.EventKey) *tcell.EventKey {
+func (v *MessageInput) inputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
-	case v.app.config.Keys.InputView.SendMessage:
+	case v.app.config.Keys.MessageInput.Send:
 		return v.sendMessage()
-	case v.app.config.Keys.InputView.OpenExternalEditor:
+	case v.app.config.Keys.MessageInput.LaunchEditor:
 		return v.openExternalEditor()
-	case v.app.config.Keys.InputView.PasteClipboard:
+	case v.app.config.Keys.MessageInput.Paste:
 		return v.pasteClipboard()
 	case "Esc":
 		v.
 			SetText("").
 			SetTitle("")
-		v.app.view.MessagesView.selected = -1
-		v.app.view.MessagesView.Highlight()
+		v.app.view.MessagesText.selected = -1
+		v.app.view.MessagesText.Highlight()
 		return nil
 	}
 
 	return event
 }
 
-func (v *InputView) sendMessage() *tcell.EventKey {
-	if v.app.view.ChannelsView.selected == nil {
+func (v *MessageInput) sendMessage() *tcell.EventKey {
+	if v.app.view.ChannelsTree.selected == nil {
 		return nil
 	}
 
@@ -70,14 +70,14 @@ func (v *InputView) sendMessage() *tcell.EventKey {
 		return nil
 	}
 
-	ms, err := v.app.state.Messages(v.app.view.ChannelsView.selected.ID, v.app.config.MessagesLimit)
+	ms, err := v.app.state.Messages(v.app.view.ChannelsTree.selected.ID, v.app.config.MessagesLimit)
 	if err != nil {
 		log.Println(err)
 		return nil
 	}
 
-	if len(v.app.view.MessagesView.GetHighlights()) != 0 {
-		mID, err := discord.ParseSnowflake(v.app.view.MessagesView.GetHighlights()[0])
+	if len(v.app.view.MessagesText.GetHighlights()) != 0 {
+		mID, err := discord.ParseSnowflake(v.app.view.MessagesText.GetHighlights()[0])
 		if err != nil {
 			log.Println(err)
 			return nil
@@ -99,19 +99,19 @@ func (v *InputView) sendMessage() *tcell.EventKey {
 
 		go v.app.state.SendMessageComplex(m.ChannelID, d)
 
-		v.app.view.MessagesView.selected = -1
-		v.app.view.MessagesView.Highlight()
+		v.app.view.MessagesText.selected = -1
+		v.app.view.MessagesText.Highlight()
 
 		v.SetTitle("")
 	} else {
-		go v.app.state.SendMessage(v.app.view.ChannelsView.selected.ID, t)
+		go v.app.state.SendMessage(v.app.view.ChannelsTree.selected.ID, t)
 	}
 
 	v.SetText("")
 	return nil
 }
 
-func (v *InputView) pasteClipboard() *tcell.EventKey {
+func (v *MessageInput) pasteClipboard() *tcell.EventKey {
 	text, err := clipboard.ReadAll()
 	if err != nil {
 		log.Println(err)
@@ -123,7 +123,7 @@ func (v *InputView) pasteClipboard() *tcell.EventKey {
 	return nil
 }
 
-func (v *InputView) openExternalEditor() *tcell.EventKey {
+func (v *MessageInput) openExternalEditor() *tcell.EventKey {
 	e := os.Getenv("EDITOR")
 	if e == "" {
 		log.Println("environment variable EDITOR is empty")

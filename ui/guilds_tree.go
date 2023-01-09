@@ -5,14 +5,14 @@ import (
 	"github.com/rivo/tview"
 )
 
-type GuildsView struct {
+type GuildsTree struct {
 	*tview.TreeView
 
 	app *Application
 }
 
-func newGuildsView(app *Application) *GuildsView {
-	v := &GuildsView{
+func newGuildsTree(app *Application) *GuildsTree {
+	v := &GuildsTree{
 		TreeView: tview.NewTreeView(),
 
 		app: app,
@@ -33,16 +33,16 @@ func newGuildsView(app *Application) *GuildsView {
 	return v
 }
 
-func (v *GuildsView) onSelected(node *tview.TreeNode) {
-	v.app.view.ChannelsView.selected = nil
-	v.app.view.MessagesView.selected = -1
-	rootNode := v.app.view.ChannelsView.GetRoot()
+func (v *GuildsTree) onSelected(node *tview.TreeNode) {
+	v.app.view.ChannelsTree.selected = nil
+	v.app.view.MessagesText.selected = -1
+	rootNode := v.app.view.ChannelsTree.GetRoot()
 	rootNode.ClearChildren()
-	v.app.view.MessagesView.
+	v.app.view.MessagesText.
 		Highlight().
 		Clear().
 		SetTitle("")
-	v.app.view.InputView.SetText("")
+	v.app.view.MessageInput.SetText("")
 
 	// If the selected node has children (guild folder), expand the selected node if it is collapsed, otherwise collapse.
 	if len(node.GetChildren()) != 0 {
@@ -53,11 +53,11 @@ func (v *GuildsView) onSelected(node *tview.TreeNode) {
 	ref := node.GetReference()
 	// If the reference of the selected node is nil, it must be the direct messages node.
 	if ref == nil {
-		v.app.view.ChannelsView.createPrivateChannelNodes(rootNode)
+		v.app.view.ChannelsTree.createPrivateChannelNodes(rootNode)
 	} else { // Guild
-		v.app.view.ChannelsView.createGuildChannelNodes(rootNode, ref.(discord.GuildID))
+		v.app.view.ChannelsTree.createGuildChannelNodes(rootNode, ref.(discord.GuildID))
 	}
 
-	v.app.view.ChannelsView.SetCurrentNode(rootNode)
-	v.app.SetFocus(v.app.view.ChannelsView)
+	v.app.view.ChannelsTree.SetCurrentNode(rootNode)
+	v.app.SetFocus(v.app.view.ChannelsTree)
 }

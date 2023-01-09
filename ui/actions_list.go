@@ -15,14 +15,14 @@ import (
 
 var linkRegex = regexp.MustCompile("https?://.+")
 
-type ActionsView struct {
+type ActionsList struct {
 	*tview.List
 	app     *Application
 	message *discord.Message
 }
 
-func newActionsView(app *Application, m *discord.Message) *ActionsView {
-	v := &ActionsView{
+func newActionsList(app *Application, m *discord.Message) *ActionsList {
+	v := &ActionsList{
 		List:    tview.NewList(),
 		app:     app,
 		message: m,
@@ -31,13 +31,13 @@ func newActionsView(app *Application, m *discord.Message) *ActionsView {
 	v.ShowSecondaryText(false)
 	v.SetDoneFunc(func() {
 		app.SetRoot(app.view, true)
-		app.SetFocus(app.view.MessagesView)
+		app.SetFocus(app.view.MessagesText)
 	})
 
-	isDM := channelIsInDMCategory(app.view.ChannelsView.selected)
+	isDM := channelIsInDMCategory(app.view.ChannelsTree.selected)
 
 	// If the client user has the `SEND_MESSAGES` permission, add "Reply" and "Mention Reply" actions.
-	if isDM || !isDM && hasPermission(app.state, app.view.ChannelsView.selected.ID, discord.PermissionSendMessages) {
+	if isDM || !isDM && hasPermission(app.state, app.view.ChannelsTree.selected.ID, discord.PermissionSendMessages) {
 		v.AddItem("Reply", "", 'r', v.replyAction)
 		v.AddItem("Mention Reply", "", 'R', v.mentionReplyAction)
 	}
@@ -56,7 +56,7 @@ func newActionsView(app *Application, m *discord.Message) *ActionsView {
 			}
 
 			app.SetRoot(app.view, true)
-			app.SetFocus(app.view.MessagesView)
+			app.SetFocus(app.view.MessagesText)
 		})
 	}
 
@@ -69,7 +69,7 @@ func newActionsView(app *Application, m *discord.Message) *ActionsView {
 	me, _ := app.state.MeStore.Me()
 
 	// If the client user has the `MANAGE_MESSAGES` permission, add a new action to delete the message.
-	if (isDM && m.Author.ID == me.ID) || (!isDM && hasPermission(app.state, app.view.ChannelsView.selected.ID, discord.PermissionManageMessages)) {
+	if (isDM && m.Author.ID == me.ID) || (!isDM && hasPermission(app.state, app.view.ChannelsTree.selected.ID, discord.PermissionManageMessages)) {
 		v.AddItem("Delete", "", 'd', v.deleteAction)
 	}
 
@@ -85,37 +85,37 @@ func newActionsView(app *Application, m *discord.Message) *ActionsView {
 	return v
 }
 
-func (v *ActionsView) replyAction() {
-	v.app.view.InputView.SetTitle("Replying to " + v.message.Author.Tag())
+func (al *ActionsList) replyAction() {
+	al.app.view.MessageInput.SetTitle("Replying to " + al.message.Author.Tag())
 
-	v.app.SetRoot(v.app.view, true)
-	v.app.SetFocus(v.app.view.InputView)
+	al.app.SetRoot(al.app.view, true)
+	al.app.SetFocus(al.app.view.MessageInput)
 }
 
-func (v *ActionsView) mentionReplyAction() {
-	v.app.view.InputView.SetTitle("[@] Replying to " + v.message.Author.Tag())
+func (al *ActionsList) mentionReplyAction() {
+	al.app.view.MessageInput.SetTitle("[@] Replying to " + al.message.Author.Tag())
 
-	v.app.SetRoot(v.app.view, true)
-	v.app.SetFocus(v.app.view.InputView)
+	al.app.SetRoot(al.app.view, true)
+	al.app.SetFocus(al.app.view.MessageInput)
 }
 
-func (v *ActionsView) selectReplyAction() {
-	ms, err := v.app.state.Cabinet.Messages(v.message.ChannelID)
+func (al *ActionsList) selectReplyAction() {
+	ms, err := al.app.state.Cabinet.Messages(al.message.ChannelID)
 	if err != nil {
 		return
 	}
 
-	v.app.view.MessagesView.selected, _ = findMessageByID(ms, v.message.ReferencedMessage.ID)
-	v.app.view.MessagesView.
-		Highlight(v.message.ReferencedMessage.ID.String()).
+	al.app.view.MessagesText.selected, _ = findMessageByID(ms, al.message.ReferencedMessage.ID)
+	al.app.view.MessagesText.
+		Highlight(al.message.ReferencedMessage.ID.String()).
 		ScrollToHighlight()
 
-	v.app.SetRoot(v.app.view, true)
-	v.app.SetFocus(v.app.view.MessagesView)
+	al.app.SetRoot(al.app.view, true)
+	al.app.SetFocus(al.app.view.MessagesText)
 }
 
-func (v *ActionsView) openAttachmentAction() {
-	for _, a := range v.message.Attachments {
+func (al *ActionsList) openAttachmentAction() {
+	for _, a := range al.message.Attachments {
 		cacheDirPath, _ := os.UserCacheDir()
 		f, err := os.Create(filepath.Join(cacheDirPath, a.Filename))
 		if err != nil {
@@ -137,12 +137,12 @@ func (v *ActionsView) openAttachmentAction() {
 		go open.Run(f.Name())
 	}
 
-	v.app.SetRoot(v.app.view, true)
-	v.app.SetFocus(v.app.view.MessagesView)
+	al.app.SetRoot(al.app.view, true)
+	al.app.SetFocus(al.app.view.MessagesText)
 }
 
-func (v *ActionsView) downloadAttachmentAction() {
-	for _, a := range v.message.Attachments {
+func (al *ActionsList) downloadAttachmentAction() {
+	for _, a := range al.message.Attachments {
 		path, err := os.UserHomeDir()
 		if err != nil {
 			path = os.TempDir()
@@ -168,66 +168,66 @@ func (v *ActionsView) downloadAttachmentAction() {
 		f.Write(d)
 	}
 
-	v.app.SetRoot(v.app.view, true)
-	v.app.SetFocus(v.app.view.MessagesView)
+	al.app.SetRoot(al.app.view, true)
+	al.app.SetFocus(al.app.view.MessagesText)
 }
 
-func (v *ActionsView) deleteAction() {
-	v.app.view.MessagesView.Clear()
+func (al *ActionsList) deleteAction() {
+	al.app.view.MessagesText.Clear()
 
-	err := v.app.state.MessageRemove(v.message.ChannelID, v.message.ID)
+	err := al.app.state.MessageRemove(al.message.ChannelID, al.message.ID)
 	if err != nil {
 		return
 	}
 
-	err = v.app.state.DeleteMessage(v.message.ChannelID, v.message.ID, "Unknown")
+	err = al.app.state.DeleteMessage(al.message.ChannelID, al.message.ID, "Unknown")
 	if err != nil {
 		return
 	}
 
 	// The returned slice will be sorted from latest to oldest.
-	ms, err := v.app.state.Cabinet.Messages(v.message.ChannelID)
+	ms, err := al.app.state.Cabinet.Messages(al.message.ChannelID)
 	if err != nil {
 		return
 	}
 
 	for i := len(ms) - 1; i >= 0; i-- {
-		_, err = v.app.view.MessagesView.Write(buildMessage(v.app, ms[i]))
+		_, err = al.app.view.MessagesText.Write(buildMessage(al.app, ms[i]))
 		if err != nil {
 			return
 		}
 	}
 
-	v.app.SetRoot(v.app.view, true)
-	v.app.SetFocus(v.app.view.MessagesView)
+	al.app.SetRoot(al.app.view, true)
+	al.app.SetFocus(al.app.view.MessagesText)
 }
 
-func (v *ActionsView) copyContentAction() {
-	err := clipboard.WriteAll(v.message.Content)
+func (al *ActionsList) copyContentAction() {
+	err := clipboard.WriteAll(al.message.Content)
 	if err != nil {
 		return
 	}
 
-	v.app.SetRoot(v.app.view, true)
-	v.app.SetFocus(v.app.view.MessagesView)
+	al.app.SetRoot(al.app.view, true)
+	al.app.SetFocus(al.app.view.MessagesText)
 }
 
-func (v *ActionsView) copyIDAction() {
-	err := clipboard.WriteAll(v.message.ID.String())
+func (al *ActionsList) copyIDAction() {
+	err := clipboard.WriteAll(al.message.ID.String())
 	if err != nil {
 		return
 	}
 
-	v.app.SetRoot(v.app.view, true)
-	v.app.SetFocus(v.app.view.MessagesView)
+	al.app.SetRoot(al.app.view, true)
+	al.app.SetFocus(al.app.view.MessagesText)
 }
 
-func (v *ActionsView) copyLinkAction() {
-	err := clipboard.WriteAll(v.message.URL())
+func (al *ActionsList) copyLinkAction() {
+	err := clipboard.WriteAll(al.message.URL())
 	if err != nil {
 		return
 	}
 
-	v.app.SetRoot(v.app.view, true)
-	v.app.SetFocus(v.app.view.MessagesView)
+	al.app.SetRoot(al.app.view, true)
+	al.app.SetFocus(al.app.view.MessagesText)
 }

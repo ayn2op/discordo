@@ -38,8 +38,8 @@ func init() {
 func main() {
 	flag.Parse()
 
-	cfg := config.New()
-	if err := cfg.Load(); err != nil {
+	cfg, err := config.New()
+	if err != nil {
 		log.Fatal(err)
 	}
 

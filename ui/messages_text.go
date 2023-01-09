@@ -9,7 +9,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-type MessagesView struct {
+type MessagesText struct {
 	*tview.TextView
 
 	// The index of the currently selected message. A negative index indicates that there is no currently selected message.
@@ -17,31 +17,31 @@ type MessagesView struct {
 	app      *Application
 }
 
-func newMessagesView(app *Application) *MessagesView {
-	v := &MessagesView{
+func newMessagesText(app *Application) *MessagesText {
+	mt := &MessagesText{
 		TextView: tview.NewTextView(),
 
 		selected: -1,
 		app:      app,
 	}
 
-	v.SetDynamicColors(true)
-	v.SetRegions(true)
-	v.SetWordWrap(true)
-	v.SetInputCapture(v.onInputCapture)
-	v.SetChangedFunc(func() {
-		v.app.Draw()
+	mt.SetDynamicColors(true)
+	mt.SetRegions(true)
+	mt.SetWordWrap(true)
+	mt.SetInputCapture(mt.onInputCapture)
+	mt.SetChangedFunc(func() {
+		mt.app.Draw()
 	})
 
-	v.SetTitle("Messages")
-	v.SetTitleAlign(tview.AlignLeft)
-	v.SetBorder(true)
-	v.SetBorderPadding(0, 0, 1, 1)
+	mt.SetTitle("Messages")
+	mt.SetTitleAlign(tview.AlignLeft)
+	mt.SetBorder(true)
+	mt.SetBorderPadding(0, 0, 1, 1)
 
-	return v
+	return mt
 }
 
-func (v *MessagesView) setTitle(c *discord.Channel) {
+func (v *MessagesText) setTitle(c *discord.Channel) {
 	title := channelToString(*c)
 	if c.Topic != "" {
 		title += " - " + discordmd.Parse(c.Topic)
@@ -50,7 +50,7 @@ func (v *MessagesView) setTitle(c *discord.Channel) {
 	v.SetTitle(title)
 }
 
-func (v *MessagesView) loadMessages(c *discord.Channel) {
+func (v *MessagesText) loadMessages(c *discord.Channel) {
 	// The returned slice will be sorted from latest to oldest.
 	ms, err := v.app.state.Messages(c.ID, v.app.config.MessagesLimit)
 	if err != nil {
@@ -59,7 +59,7 @@ func (v *MessagesView) loadMessages(c *discord.Channel) {
 	}
 
 	for i := len(ms) - 1; i >= 0; i-- {
-		_, err = v.app.view.MessagesView.Write(buildMessage(v.app, ms[i]))
+		_, err = v.app.view.MessagesText.Write(buildMessage(v.app, ms[i]))
 		if err != nil {
 			log.Println(err)
 			continue
@@ -69,32 +69,32 @@ func (v *MessagesView) loadMessages(c *discord.Channel) {
 	v.ScrollToEnd()
 }
 
-func (v *MessagesView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
-	if v.app.view.ChannelsView.selected == nil {
+func (v *MessagesText) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
+	if v.app.view.ChannelsTree.selected == nil {
 		return nil
 	}
 
 	// Messages should return messages ordered from latest to earliest.
-	ms, err := v.app.state.Cabinet.Messages(v.app.view.ChannelsView.selected.ID)
+	ms, err := v.app.state.Cabinet.Messages(v.app.view.ChannelsTree.selected.ID)
 	if err != nil || len(ms) == 0 {
 		return nil
 	}
 
 	switch e.Name() {
-	case v.app.config.Keys.MessagesView.OpenActionsView:
+	case v.app.config.Keys.MessagesText.LaunchActions:
 		return v.openActionsView(ms)
 
-	case v.app.config.Keys.MessagesView.SelectPreviousMessage:
+	case v.app.config.Keys.MessagesText.SelectPrevious:
 		return v.selectPreviousMessage(ms)
-	case v.app.config.Keys.MessagesView.SelectNextMessage:
+	case v.app.config.Keys.MessagesText.SelectNext:
 		return v.selectNextMessage(ms)
-	case v.app.config.Keys.MessagesView.SelectFirstMessage:
+	case v.app.config.Keys.MessagesText.SelectFirst:
 		return v.selectFirstMessage(ms)
-	case v.app.config.Keys.MessagesView.SelectLastMessage:
+	case v.app.config.Keys.MessagesText.SelectLast:
 		return v.selectLastMessage(ms)
 	case "Esc":
 		v.selected = -1
-		v.app.view.ChannelsView.selected = nil
+		v.app.view.ChannelsTree.selected = nil
 
 		v.app.SetFocus(v.app.view)
 		v.
@@ -107,7 +107,7 @@ func (v *MessagesView) onInputCapture(e *tcell.EventKey) *tcell.EventKey {
 	return e
 }
 
-func (v *MessagesView) selectPreviousMessage(ms []discord.Message) *tcell.EventKey {
+func (v *MessagesText) selectPreviousMessage(ms []discord.Message) *tcell.EventKey {
 	// If there are no highlighted regions, select the latest (last) message.
 	if len(v.GetHighlights()) == 0 {
 		v.selected = 0
@@ -125,7 +125,7 @@ func (v *MessagesView) selectPreviousMessage(ms []discord.Message) *tcell.EventK
 	return nil
 }
 
-func (v *MessagesView) selectNextMessage(ms []discord.Message) *tcell.EventKey {
+func (v *MessagesText) selectNextMessage(ms []discord.Message) *tcell.EventKey {
 	// If there are no highlighted regions, select the latest (last) message.
 	if len(v.GetHighlights()) == 0 {
 		v.selected = 0
@@ -144,7 +144,7 @@ func (v *MessagesView) selectNextMessage(ms []discord.Message) *tcell.EventKey {
 	return nil
 }
 
-func (v *MessagesView) selectFirstMessage(ms []discord.Message) *tcell.EventKey {
+func (v *MessagesText) selectFirstMessage(ms []discord.Message) *tcell.EventKey {
 	v.selected = len(ms) - 1
 	v.
 		Highlight(ms[v.selected].ID.String()).
@@ -152,7 +152,7 @@ func (v *MessagesView) selectFirstMessage(ms []discord.Message) *tcell.EventKey 
 	return nil
 }
 
-func (v *MessagesView) selectLastMessage(ms []discord.Message) *tcell.EventKey {
+func (v *MessagesText) selectLastMessage(ms []discord.Message) *tcell.EventKey {
 	v.selected = 0
 	v.
 		Highlight(ms[v.selected].ID.String()).
@@ -160,7 +160,7 @@ func (v *MessagesView) selectLastMessage(ms []discord.Message) *tcell.EventKey {
 	return nil
 }
 
-func (v *MessagesView) openActionsView(ms []discord.Message) *tcell.EventKey {
+func (v *MessagesText) openActionsView(ms []discord.Message) *tcell.EventKey {
 	hs := v.GetHighlights()
 	if len(hs) == 0 {
 		return nil
@@ -176,7 +176,7 @@ func (v *MessagesView) openActionsView(ms []discord.Message) *tcell.EventKey {
 		return nil
 	}
 
-	actionsView := newActionsView(v.app, m)
+	actionsView := newActionsList(v.app, m)
 	v.app.SetRoot(actionsView, true)
 	return nil
 }

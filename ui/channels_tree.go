@@ -8,15 +8,15 @@ import (
 	"github.com/rivo/tview"
 )
 
-type ChannelsView struct {
+type ChannelsTree struct {
 	*tview.TreeView
 
 	app      *Application
 	selected *discord.Channel
 }
 
-func newChannelsView(app *Application) *ChannelsView {
-	v := &ChannelsView{
+func newChannelsTree(app *Application) *ChannelsTree {
+	v := &ChannelsTree{
 		TreeView: tview.NewTreeView(),
 
 		app: app,
@@ -34,14 +34,14 @@ func newChannelsView(app *Application) *ChannelsView {
 	return v
 }
 
-func (v *ChannelsView) onSelected(node *tview.TreeNode) {
+func (v *ChannelsTree) onSelected(node *tview.TreeNode) {
 	v.selected = nil
-	v.app.view.MessagesView.selected = -1
-	v.app.view.MessagesView.
+	v.app.view.MessagesText.selected = -1
+	v.app.view.MessagesText.
 		Highlight().
 		Clear().
 		SetTitle("")
-	v.app.view.InputView.SetText("")
+	v.app.view.MessageInput.SetText("")
 
 	ref := node.GetReference()
 	if ref == nil {
@@ -64,21 +64,21 @@ func (v *ChannelsView) onSelected(node *tview.TreeNode) {
 	default:
 		v.selected = c
 
-		v.app.view.MessagesView.setTitle(c)
-		v.app.SetFocus(v.app.view.InputView)
+		v.app.view.MessagesText.setTitle(c)
+		v.app.SetFocus(v.app.view.MessageInput)
 
-		go v.app.view.MessagesView.loadMessages(c)
+		go v.app.view.MessagesText.loadMessages(c)
 	}
 }
 
-func (v *ChannelsView) createChannelNode(c discord.Channel) *tview.TreeNode {
+func (v *ChannelsTree) createChannelNode(c discord.Channel) *tview.TreeNode {
 	channelNode := tview.NewTreeNode(channelToString(c))
 	channelNode.SetReference(c.ID)
 
 	return channelNode
 }
 
-func (v *ChannelsView) createPrivateChannelNodes(root *tview.TreeNode) {
+func (v *ChannelsTree) createPrivateChannelNodes(root *tview.TreeNode) {
 	cs, err := v.app.state.Cabinet.PrivateChannels()
 	if err != nil {
 		log.Println(err)
@@ -102,7 +102,7 @@ func (v *ChannelsView) createPrivateChannelNodes(root *tview.TreeNode) {
 	}
 }
 
-func (v *ChannelsView) createGuildChannelNodes(root *tview.TreeNode, gID discord.GuildID) {
+func (v *ChannelsTree) createGuildChannelNodes(root *tview.TreeNode, gID discord.GuildID) {
 	cs, err := v.app.state.Cabinet.Channels(gID)
 	if err != nil {
 		log.Println(err)
@@ -118,7 +118,7 @@ func (v *ChannelsView) createGuildChannelNodes(root *tview.TreeNode, gID discord
 	v.createChildrenChannelNodes(root, cs)
 }
 
-func (v *ChannelsView) createOrphanChannelNodes(root *tview.TreeNode, cs []discord.Channel) {
+func (v *ChannelsTree) createOrphanChannelNodes(root *tview.TreeNode, cs []discord.Channel) {
 	for _, c := range cs {
 		if (c.Type == discord.GuildText || c.Type == discord.GuildNews) && (!c.ParentID.IsValid()) {
 			root.AddChild(v.createChannelNode(c))
@@ -126,7 +126,7 @@ func (v *ChannelsView) createOrphanChannelNodes(root *tview.TreeNode, cs []disco
 	}
 }
 
-func (v *ChannelsView) createCategoryChannelNodes(root *tview.TreeNode, cs []discord.Channel) {
+func (v *ChannelsTree) createCategoryChannelNodes(root *tview.TreeNode, cs []discord.Channel) {
 CATEGORY:
 	for _, c := range cs {
 		if c.Type == discord.GuildCategory {
@@ -142,7 +142,7 @@ CATEGORY:
 	}
 }
 
-func (v *ChannelsView) createChildrenChannelNodes(root *tview.TreeNode, cs []discord.Channel) {
+func (v *ChannelsTree) createChildrenChannelNodes(root *tview.TreeNode, cs []discord.Channel) {
 	for _, c := range cs {
 		if (c.Type == discord.GuildText || c.Type == discord.GuildNews) && (c.ParentID.IsValid()) {
 			var parentNode *tview.TreeNode

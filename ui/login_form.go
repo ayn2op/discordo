@@ -10,31 +10,31 @@ import (
 	"github.com/zalando/go-keyring"
 )
 
-type LoginView struct {
+type LoginForm struct {
 	*tview.Form
 	app *Application
 }
 
-func newLoginView(app *Application) *LoginView {
-	v := &LoginView{
+func newLoginForm(app *Application) *LoginForm {
+	lf := &LoginForm{
 		Form: tview.NewForm(),
 		app:  app,
 	}
 
-	v.AddInputField("Email", "", 0, nil, nil)
-	v.AddPasswordField("Password", "", 0, 0, nil)
-	v.AddPasswordField("Code (optional)", "", 0, 0, nil)
-	v.AddButton("Login", v.onLoginButtonSelected)
+	lf.AddInputField("Email", "", 0, nil, nil)
+	lf.AddPasswordField("Password", "", 0, 0, nil)
+	lf.AddPasswordField("Code (optional)", "", 0, 0, nil)
+	lf.AddButton("Login", lf.onLoginButtonSelected)
 
-	v.SetTitle("Login")
-	v.SetTitleAlign(tview.AlignLeft)
-	v.SetBorder(true)
-	v.SetBorderPadding(1, 1, 1, 1)
+	lf.SetTitle("Login")
+	lf.SetTitleAlign(tview.AlignLeft)
+	lf.SetBorder(true)
+	lf.SetBorderPadding(1, 1, 1, 1)
 
-	return v
+	return lf
 }
 
-func (v *LoginView) onLoginButtonSelected() {
+func (v *LoginForm) onLoginButtonSelected() {
 	email := v.GetFormItem(0).(*tview.InputField).GetText()
 	password := v.GetFormItem(1).(*tview.InputField).GetText()
 	if email == "" || password == "" {
@@ -69,7 +69,7 @@ func (v *LoginView) onLoginButtonSelected() {
 	}
 
 	v.app.SetRoot(v.app.view, true)
-	v.app.SetFocus(v.app.view.GuildsView)
+	v.app.SetFocus(v.app.view.GuildsTree)
 
 	go keyring.Set(config.Name, "token", l.Token)
 }
