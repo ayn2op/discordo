@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/atotto/clipboard"
 	"github.com/ayn2op/discordo/discordmd"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/gdamore/tcell/v2"
@@ -125,6 +126,9 @@ func (mt *MessagesText) createFooter(m *discord.Message) {
 
 func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
+	case config.Keys.MessagesText.CopyContent:
+		mt.copyContentAction()
+		return nil
 	case config.Keys.MessagesText.Reply:
 		mt.replyAction(false)
 		return nil
@@ -266,5 +270,19 @@ func (mt *MessagesText) selectReplyAction() {
 
 		mt.Highlight(ms[mt.selectedMessage].ID.String())
 		mt.ScrollToHighlight()
+	}
+}
+
+func (mt *MessagesText) copyContentAction() {
+	ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannel.ID)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	err = clipboard.WriteAll(ms[mt.selectedMessage].Content)
+	if err != nil {
+		log.Println(err)
+		return
 	}
 }

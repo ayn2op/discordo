@@ -4,6 +4,8 @@ import (
 	"context"
 	"flag"
 	"log"
+	"os"
+	"path/filepath"
 
 	"github.com/rivo/tview"
 )
@@ -24,6 +26,26 @@ var (
 
 func init() {
 	flag.StringVar(&token, "token", "", "The authentication token.")
+
+	path, err := os.UserCacheDir()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	path = filepath.Join(path, name)
+	err = os.MkdirAll(path, os.ModePerm)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	path = filepath.Join(path, "logs.txt")
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND, os.ModePerm)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.SetOutput(f)
+	log.SetFlags(log.LstdFlags | log.Llongfile)
 }
 
 func main() {

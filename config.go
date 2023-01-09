@@ -11,6 +11,8 @@ const name = "discordo"
 
 type (
 	MessagesTextKeysConfig struct {
+		CopyContent string `yaml:"copy_content"`
+
 		Reply        string `yaml:"reply"`
 		ReplyMention string `yaml:"reply_mention"`
 		SelectReply  string `yaml:"select_reply"`
@@ -90,6 +92,8 @@ func newConfig() (*Config, error) {
 			Cancel: "Esc",
 
 			MessagesText: MessagesTextKeysConfig{
+				CopyContent: "Rune[c]",
+
 				Reply:        "Rune[r]",
 				ReplyMention: "Rune[R]",
 				SelectReply:  "Rune[s]",
