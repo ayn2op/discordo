@@ -5,20 +5,18 @@ import (
 )
 
 var (
-	boldRegex          = regexp.MustCompile(`(?ms)\*\*(.*?)\*\*`)
-	italicRegex        = regexp.MustCompile(`(?ms)\*(.*?)\*`)
-	underlineRegex     = regexp.MustCompile(`(?ms)__(.*?)__`)
-	strikeThroughRegex = regexp.MustCompile(`(?ms)~~(.*?)~~`)
+	boldRegex            = regexp.MustCompile(`(?ms)\*\*(.*?)\*\*`)
+	italicRegex          = regexp.MustCompile(`(?ms)\*(.*?)\*`)
+	underlineRegex       = regexp.MustCompile(`(?ms)__(.*?)__`)
+	strikeThroughRegex   = regexp.MustCompile(`(?ms)~~(.*?)~~`)
+	inlineCodeBlockRegex = regexp.MustCompile("(?ms)`" + `([^` + "`" + `\n]+)` + "`")
 )
 
-// Parse parses Discord-flavored markdown to tview's [Color Tags].
-//
-// [Color Tags]: https://pkg.go.dev/github.com/rivo/tview#hdr-Colors
-func Parse(md string) string {
-	md = boldRegex.ReplaceAllString(md, "[::b]$1[::-]")
-	md = italicRegex.ReplaceAllString(md, "[::i]$1[::-]")
-	md = underlineRegex.ReplaceAllString(md, "[::u]$1[::-]")
-	md = strikeThroughRegex.ReplaceAllString(md, "[::s]$1[::-]")
-
-	return md
+func Parse(input string) string {
+	input = boldRegex.ReplaceAllString(input, "[::b]$1[::-]")
+	input = italicRegex.ReplaceAllString(input, "[::i]$1[::-]")
+	input = underlineRegex.ReplaceAllString(input, "[::u]$1[::-]")
+	input = strikeThroughRegex.ReplaceAllString(input, "[::s]$1[::-]")
+	input = inlineCodeBlockRegex.ReplaceAllString(input, "[::r]$1[::-]")
+	return input
 }
