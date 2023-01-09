@@ -39,7 +39,7 @@ func init() {
 	}
 
 	path = filepath.Join(path, "logs.txt")
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND, os.ModePerm)
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, os.ModePerm)
 	if err != nil {
 		log.Fatal(err)
 	}
