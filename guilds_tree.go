@@ -24,20 +24,20 @@ func newGuildsTree() *GuildsTree {
 		root: tview.NewTreeNode(""),
 	}
 
-	gt.SetGraphics(config.Theme.GuildsTree.Graphics)
+	gt.SetGraphics(cfg.Theme.GuildsTree.Graphics)
 	gt.SetRoot(gt.root)
 	gt.SetTopLevel(1)
 	gt.SetSelectedFunc(gt.onSelected)
 
-	gt.SetBackgroundColor(tcell.GetColor(config.Theme.BackgroundColor))
+	gt.SetBackgroundColor(tcell.GetColor(cfg.Theme.BackgroundColor))
 
 	gt.SetTitle("Guilds")
-	gt.SetTitleColor(tcell.GetColor(config.Theme.TitleColor))
+	gt.SetTitleColor(tcell.GetColor(cfg.Theme.TitleColor))
 	gt.SetTitleAlign(tview.AlignLeft)
 
-	p := config.Theme.BorderPadding
-	gt.SetBorder(config.Theme.Border)
-	gt.SetBorderColor(tcell.GetColor(config.Theme.BorderColor))
+	p := cfg.Theme.BorderPadding
+	gt.SetBorder(cfg.Theme.Border)
+	gt.SetBorderColor(tcell.GetColor(cfg.Theme.BorderColor))
 	gt.SetBorderPadding(p[0], p[1], p[2], p[3])
 
 	return gt
@@ -150,7 +150,7 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 		gt.selectedChannel = c
 		messagesText.SetTitle(gt.channelToString(*c))
 
-		ms, err := discordState.Messages(ref, config.MessagesLimit)
+		ms, err := discordState.Messages(ref, cfg.MessagesLimit)
 		if err != nil {
 			log.Println(err)
 			return

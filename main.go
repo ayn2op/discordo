@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/ayn2op/discordo/config"
 	"github.com/rivo/tview"
 	"github.com/zalando/go-keyring"
 )
@@ -14,7 +15,7 @@ import (
 var (
 	token string
 
-	config       *Config
+	cfg          *Config
 	discordState *State
 
 	app          = tview.NewApplication()
@@ -63,7 +64,7 @@ func main() {
 		}
 	}
 
-	config, err = newConfig()
+	cfg, err = newConfig()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -72,6 +73,11 @@ func main() {
 	guildsTree = newGuildsTree()
 	messagesText = newMessagesText()
 	messageInput = newMessageInput()
+
+	err = config.LoadPlugins()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// mission failed, we'll get 'em next time
 	if token == "" {
@@ -94,7 +100,7 @@ func main() {
 		app.SetRoot(flex, true)
 	}
 
-	app.EnableMouse(config.Mouse)
+	app.EnableMouse(cfg.Mouse)
 	err = app.Run()
 	if err != nil {
 		log.Fatal(err)

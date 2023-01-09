@@ -8,6 +8,7 @@ require (
 	github.com/diamondburned/arikawa/v3 v3.2.0
 	github.com/gdamore/tcell/v2 v2.5.4
 	github.com/rivo/tview v0.0.0-20230104153304-892d1a2eb0da
+	github.com/yuin/gopher-lua v1.0.0
 	github.com/zalando/go-keyring v0.2.2
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -29,4 +30,5 @@ require (
 	golang.org/x/text v0.6.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
+	layeh.com/gopher-luar v1.0.10 // indirect
 )
