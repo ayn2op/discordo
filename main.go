@@ -99,8 +99,6 @@ func main() {
 		app.SetRoot(flex, true)
 	}
 
-	config.CallPlugins("init")
-
 	app.EnableMouse(cfg.Mouse)
 	err = app.Run()
 	if err != nil {
