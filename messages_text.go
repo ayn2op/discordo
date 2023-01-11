@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/atotto/clipboard"
-	"github.com/ayn2op/discordo/config"
 	"github.com/ayn2op/discordo/discordmd"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/gdamore/tcell/v2"
@@ -127,8 +126,6 @@ func (mt *MessagesText) createFooter(m *discord.Message) {
 }
 
 func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
-	config.CallPlugins("onInputCapture", "messages", event)
-
 	switch event.Name() {
 	case cfg.Keys.MessagesText.CopyContent:
 		mt.copyContentAction()
