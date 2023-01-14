@@ -73,19 +73,8 @@ type Config struct {
 	Theme ThemeConfig `yaml:"theme"`
 }
 
-func Load() (*Config, error) {
-	path, err := os.UserConfigDir()
-	if err != nil {
-		return nil, err
-	}
-
-	path = filepath.Join(path, Name)
-	err = os.MkdirAll(path, os.ModePerm)
-	if err != nil {
-		return nil, err
-	}
-
-	c := Config{
+func new() Config {
+	return Config{
 		Mouse:         true,
 		Timestamps:    false,
 		MessagesLimit: 50,
@@ -131,6 +120,21 @@ func Load() (*Config, error) {
 			MessageInput: MessageInputThemeConfig{},
 		},
 	}
+}
+
+func Load() (*Config, error) {
+	path, err := os.UserConfigDir()
+	if err != nil {
+		return nil, err
+	}
+
+	path = filepath.Join(path, Name)
+	err = os.MkdirAll(path, os.ModePerm)
+	if err != nil {
+		return nil, err
+	}
+
+	c := new()
 	path = filepath.Join(path, "config.yml")
 	_, err = os.Stat(path)
 	if os.IsNotExist(err) {
