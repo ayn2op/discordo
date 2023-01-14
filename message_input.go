@@ -24,15 +24,15 @@ func newMessageInput() *MessageInput {
 	}
 
 	mi.SetInputCapture(mi.onInputCapture)
-	mi.SetBackgroundColor(tcell.GetColor(config.Theme.BackgroundColor))
-	mi.SetFieldBackgroundColor(tcell.GetColor(config.Theme.BackgroundColor))
+	mi.SetBackgroundColor(tcell.GetColor(cfg.Theme.BackgroundColor))
+	mi.SetFieldBackgroundColor(tcell.GetColor(cfg.Theme.BackgroundColor))
 
-	mi.SetTitleColor(tcell.GetColor(config.Theme.TitleColor))
+	mi.SetTitleColor(tcell.GetColor(cfg.Theme.TitleColor))
 	mi.SetTitleAlign(tview.AlignLeft)
 
-	p := config.Theme.BorderPadding
-	mi.SetBorder(config.Theme.Border)
-	mi.SetBorderColor(tcell.GetColor(config.Theme.BorderColor))
+	p := cfg.Theme.BorderPadding
+	mi.SetBorder(cfg.Theme.Border)
+	mi.SetBorderColor(tcell.GetColor(cfg.Theme.BorderColor))
 	mi.SetBorderPadding(p[0], p[1], p[2], p[3])
 
 	return mi
@@ -45,16 +45,16 @@ func (mi *MessageInput) reset() {
 
 func (mi *MessageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
-	case config.Keys.MessageInput.Send:
+	case cfg.Keys.MessageInput.Send:
 		mi.sendAction()
 		return nil
-	case config.Keys.MessageInput.Paste:
+	case cfg.Keys.MessageInput.Paste:
 		mi.pasteAction()
 		return nil
-	case config.Keys.MessageInput.LaunchEditor:
+	case cfg.Keys.MessageInput.LaunchEditor:
 		messageInput.launchEditorAction()
 		return nil
-	case config.Keys.Cancel:
+	case cfg.Keys.Cancel:
 		mi.reset()
 		return nil
 	}
@@ -116,7 +116,7 @@ func (mi *MessageInput) pasteAction() {
 }
 
 func (mi *MessageInput) launchEditorAction() {
-	e := config.Editor
+	e := cfg.Editor
 	if e == "default" {
 		e = os.Getenv("EDITOR")
 	}

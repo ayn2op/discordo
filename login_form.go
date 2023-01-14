@@ -24,11 +24,11 @@ func newLoginForm() *LoginForm {
 	lf.AddButton("Login", lf.onLoginButtonSelected)
 
 	lf.SetTitle("Login")
-	lf.SetTitleColor(tcell.GetColor(config.Theme.TitleColor))
+	lf.SetTitleColor(tcell.GetColor(cfg.Theme.TitleColor))
 
-	p := config.Theme.BorderPadding
-	lf.SetBorder(config.Theme.Border)
-	lf.SetBorderColor(tcell.GetColor(config.Theme.BorderColor))
+	p := cfg.Theme.BorderPadding
+	lf.SetBorder(cfg.Theme.Border)
+	lf.SetBorderColor(tcell.GetColor(cfg.Theme.BorderColor))
 	lf.SetBorderPadding(p[0], p[1], p[2], p[3])
 
 	return lf
