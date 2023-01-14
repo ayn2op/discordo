@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"os"
@@ -7,7 +7,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const name = "discordo"
+const Name = "discordo"
 
 type (
 	MessagesTextKeysConfig struct {
@@ -73,13 +73,13 @@ type Config struct {
 	Theme ThemeConfig `yaml:"theme"`
 }
 
-func newConfig() (*Config, error) {
+func Load() (*Config, error) {
 	path, err := os.UserConfigDir()
 	if err != nil {
 		return nil, err
 	}
 
-	path = filepath.Join(path, name)
+	path = filepath.Join(path, Name)
 	err = os.MkdirAll(path, os.ModePerm)
 	if err != nil {
 		return nil, err
