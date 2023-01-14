@@ -10,10 +10,14 @@ import (
 const Name = "discordo"
 
 type Config struct {
-	Mouse         bool   `yaml:"mouse"`
-	MessagesLimit uint   `yaml:"messages_limit"`
-	Timestamps    bool   `yaml:"timestamps"`
-	Editor        string `yaml:"editor"`
+	// Mouse indicates whether the mouse is usable or not.
+	Mouse bool `yaml:"mouse"`
+	// MessagesLimit is the number of messages to be retrieved when a text-based channel is selected.
+	MessagesLimit uint `yaml:"messages_limit"`
+	// Timestamps indicates whether the message is to be prefixed with the timestamp or not.
+	Timestamps bool `yaml:"timestamps"`
+	// Editor is the editor program to open when the `LaunchEditor` key is pressed. If the value of the field is "default", the `$EDITOR` environment variable is used instead.
+	Editor string `yaml:"editor"`
 
 	Keys  Keys  `yaml:"keys"`
 	Theme Theme `yaml:"theme"`
@@ -31,6 +35,7 @@ func new() Config {
 	}
 }
 
+// Load reads the configuration file and decodes the configuration file or creates a new one if it does not exist already and writes the default configuration to the newly-created configuration file.
 func Load() (*Config, error) {
 	path, err := os.UserConfigDir()
 	if err != nil {
