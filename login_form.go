@@ -69,13 +69,6 @@ func (lf *LoginForm) onLoginButtonSelected() {
 		log.Fatal(err)
 	}
 
-	right := tview.NewFlex()
-	right.SetDirection(tview.FlexRow)
-	right.AddItem(messagesText, 0, 1, false)
-	right.AddItem(messageInput, 3, 1, false)
-	// The guilds tree is always focused first at start-up.
-	flex.AddItem(guildsTree, 0, 1, true)
-	flex.AddItem(right, 0, 4, false)
-
-	app.SetRoot(flex, true)
+	mainFlex = newMainFlex()
+	app.SetRoot(mainFlex, true)
 }

@@ -19,7 +19,7 @@ var (
 	discordState *State
 
 	app          = tview.NewApplication()
-	flex         = tview.NewFlex()
+	mainFlex     *MainFlex
 	guildsTree   *GuildsTree
 	messagesText *MessagesText
 	messageInput *MessageInput
@@ -69,11 +69,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// UI must be initialized after the configuration has been loaded and before the plugins are loaded.
-	guildsTree = newGuildsTree()
-	messagesText = newMessagesText()
-	messageInput = newMessageInput()
-
 	// mission failed, we'll get 'em next time
 	if token == "" {
 		app.SetRoot(newLoginForm(), true)
@@ -84,15 +79,8 @@ func main() {
 			log.Fatal(err)
 		}
 
-		right := tview.NewFlex()
-		right.SetDirection(tview.FlexRow)
-		right.AddItem(messagesText, 0, 1, false)
-		right.AddItem(messageInput, 3, 1, false)
-		// The guilds tree is always focused first at start-up.
-		flex.AddItem(guildsTree, 0, 1, true)
-		flex.AddItem(right, 0, 4, false)
-
-		app.SetRoot(flex, true)
+		mainFlex = newMainFlex()
+		app.SetRoot(mainFlex, true)
 	}
 
 	app.EnableMouse(cfg.Mouse)
