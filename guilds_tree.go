@@ -1,11 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"sort"
 	"strings"
 
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -41,6 +43,25 @@ func newGuildsTree() *GuildsTree {
 	gt.SetBorderPadding(p[0], p[1], p[2], p[3])
 
 	return gt
+}
+
+func (gt *GuildsTree) createGuildFolderNode(parent *tview.TreeNode, gf gateway.GuildFolder) {
+	var name string
+	if gf.Name != "" {
+		name = fmt.Sprintf("[%s]%s[-]", gf.Color.String(), gf.Name)
+	} else {
+		name = "Folder"
+	}
+
+	n := tview.NewTreeNode(name)
+	parent.AddChild(n)
+
+	for _, gid := range gf.GuildIDs {
+		if err := guildsTree.createGuildNodeFromID(n, gid); err != nil {
+			log.Println(err)
+			continue
+		}
+	}
 }
 
 func (gt *GuildsTree) createGuildNodeFromID(n *tview.TreeNode, gid discord.GuildID) error {

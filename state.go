@@ -49,21 +49,7 @@ func (s *State) onReady(r *gateway.ReadyEvent) {
 				continue
 			}
 		} else {
-			name := gf.Name
-			if name == "" {
-				name = "Folder"
-			}
-
-			gfNode := tview.NewTreeNode(name)
-			guildsTree.root.AddChild(gfNode)
-
-			for _, gid := range gf.GuildIDs {
-				err := guildsTree.createGuildNodeFromID(gfNode, gid)
-				if err != nil {
-					log.Println(err)
-					continue
-				}
-			}
+			guildsTree.createGuildFolderNode(guildsTree.root, gf)
 		}
 	}
 
