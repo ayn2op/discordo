@@ -178,11 +178,7 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 		}
 
 		for i := len(ms) - 1; i >= 0; i-- {
-			err = messagesText.createMessage(&ms[i])
-			if err != nil {
-				log.Println(err)
-				continue
-			}
+			messagesText.createMessage(&ms[i])
 		}
 
 		app.SetFocus(messageInput)

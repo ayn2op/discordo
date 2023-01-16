@@ -1,7 +1,8 @@
 package main
 
 import (
-	"bytes"
+	"fmt"
+	"io"
 	"log"
 	"time"
 
@@ -18,7 +19,6 @@ type MessagesText struct {
 	*tview.TextView
 
 	selectedMessage int
-	buf             bytes.Buffer
 }
 
 func newMessagesText() *MessagesText {
@@ -59,69 +59,48 @@ func (mt *MessagesText) reset() {
 	mt.Highlight()
 }
 
-func (mt *MessagesText) createMessage(m *discord.Message) error {
+func (mt *MessagesText) createMessage(m *discord.Message) {
 	switch m.Type {
 	case discord.DefaultMessage, discord.InlinedReplyMessage:
 		// Region tags are square brackets that contain a region ID in double quotes
 		// https://pkg.go.dev/github.com/rivo/tview#hdr-Regions_and_Highlights
-		mt.buf.WriteString(`["`)
-		mt.buf.WriteString(m.ID.String())
-		mt.buf.WriteString(`"]`)
+		fmt.Fprintf(mt, `["%s"]`, m.ID)
 
 		if m.ReferencedMessage != nil {
-			mt.buf.WriteString("[::d] ")
-			mt.buf.WriteRune(replyIndicator)
-			mt.buf.WriteByte(' ')
+			fmt.Fprintf(mt, "[::d]%c ", replyIndicator)
 
-			mt.buf.WriteByte('[')
-			mt.buf.WriteString(cfg.Theme.MessagesText.AuthorColor)
-			mt.buf.WriteByte(']')
-			mt.buf.WriteString(m.ReferencedMessage.Author.Username)
-			mt.buf.WriteString("[-] ")
+			mt.createHeader(mt, m.ReferencedMessage)
+			mt.createBody(mt, m.ReferencedMessage)
 
-			mt.buf.WriteString(discordmd.Parse(tview.Escape(m.ReferencedMessage.Content)))
-			mt.buf.WriteString("[::-]\n")
+			fmt.Fprint(mt, "[::-]\n")
 		}
 
-		mt.createHeader(m)
-		mt.createBody(m)
-		mt.createFooter(m)
+		mt.createHeader(mt, m)
+		mt.createBody(mt, m)
+		mt.createFooter(mt, m)
 
 		// Tags with no region ID ([""]) don't start new regions. They can therefore be used to mark the end of a region.
-		mt.buf.WriteString(`[""]`)
-		mt.buf.WriteByte('\n')
+		fmt.Fprint(mt, `[""]`)
+		fmt.Fprintln(mt)
 	}
-
-	_, err := mt.buf.WriteTo(mt)
-	return err
 }
 
-func (mt *MessagesText) createHeader(m *discord.Message) {
-	mt.buf.WriteByte('[')
-	mt.buf.WriteString(cfg.Theme.MessagesText.AuthorColor)
-	mt.buf.WriteByte(']')
-	mt.buf.WriteString(m.Author.Username)
-	mt.buf.WriteString("[-] ")
+func (mt *MessagesText) createHeader(w io.Writer, m *discord.Message) {
+	fmt.Fprintf(w, "[%s]%s[-] ", cfg.Theme.MessagesText.AuthorColor, m.Author.Username)
 
 	if cfg.Timestamps {
-		mt.buf.WriteString("[::d]")
-		mt.buf.WriteString(m.Timestamp.Format(time.Kitchen))
-		mt.buf.WriteString("[::-] ")
+		fmt.Fprintf(w, "[::d]%s[::-] ", m.Timestamp.Format(time.Kitchen))
 	}
 }
 
-func (mt *MessagesText) createBody(m *discord.Message) {
-	mt.buf.WriteString(discordmd.Parse(tview.Escape(m.Content)))
+func (mt *MessagesText) createBody(w io.Writer, m *discord.Message) {
+	fmt.Fprint(w, discordmd.Parse(tview.Escape(m.Content)))
 }
 
-func (mt *MessagesText) createFooter(m *discord.Message) {
+func (mt *MessagesText) createFooter(w io.Writer, m *discord.Message) {
 	for _, a := range m.Attachments {
-		mt.buf.WriteByte('\n')
-
-		mt.buf.WriteByte('[')
-		mt.buf.WriteString(a.Filename)
-		mt.buf.WriteString("]: ")
-		mt.buf.WriteString(a.URL)
+		fmt.Fprintln(w)
+		fmt.Fprintf(w, "[%s]: %s", a.Filename, a.URL)
 	}
 }
 
