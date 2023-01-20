@@ -69,12 +69,6 @@ func (lf *LoginForm) onLoginButtonSelected() {
 		log.Fatal(err)
 	}
 
-	discordState = newState(token)
-	err = discordState.Open(context.Background())
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	right := tview.NewFlex()
 	right.SetDirection(tview.FlexRow)
 	right.AddItem(messagesText, 0, 1, false)

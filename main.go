@@ -60,7 +60,6 @@ func main() {
 		token, err = keyring.Get(config.Name, "token")
 		if err != nil {
 			log.Println(err)
-			return
 		}
 	}
 
