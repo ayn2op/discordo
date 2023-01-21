@@ -130,6 +130,9 @@ func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	case cfg.Keys.MessagesText.SelectReply:
 		mt.selectReplyAction()
 		return nil
+	case cfg.Keys.MessagesText.ShowImage:
+		mt.showImageAction()
+		return nil
 	case cfg.Keys.Cancel:
 		guildsTree.selectedChannel = nil
 
@@ -254,6 +257,10 @@ func (mt *MessagesText) selectReplyAction() {
 }
 
 func (mt *MessagesText) copyContentAction() {
+	if mt.selectedMessage == -1 {
+		return
+	}
+
 	ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannel.ID)
 	if err != nil {
 		log.Println(err)
@@ -265,4 +272,29 @@ func (mt *MessagesText) copyContentAction() {
 		log.Println(err)
 		return
 	}
+}
+
+func (mt *MessagesText) showImageAction() {
+	if mt.selectedMessage == -1 {
+		return
+	}
+
+	ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannel.ID)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	as := ms[mt.selectedMessage].Attachments
+	if len(as) == 0 {
+		return
+	}
+
+	ai, err := newAttachmentImage(as[0])
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	app.SetRoot(ai, true)
 }

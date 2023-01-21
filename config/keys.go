@@ -8,6 +8,7 @@ type (
 	MessagesTextKeys struct {
 		Focus string `yaml:"focus"`
 
+		ShowImage   string `yaml:"show_image"`
 		CopyContent string `yaml:"copy_content"`
 
 		Reply        string `yaml:"reply"`
@@ -49,6 +50,7 @@ func newKeys() Keys {
 		MessagesText: MessagesTextKeys{
 			Focus: "Alt+Rune[m]",
 
+			ShowImage:   "Rune[i]",
 			CopyContent: "Rune[c]",
 
 			Reply:        "Rune[r]",
