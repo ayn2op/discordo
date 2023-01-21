@@ -8,6 +8,7 @@ type (
 	MessagesTextKeys struct {
 		Focus string `yaml:"focus"`
 
+		ShowImage   string `yaml:"show_image"`
 		CopyContent string `yaml:"copy_content"`
 
 		Reply        string `yaml:"reply"`
@@ -18,8 +19,6 @@ type (
 		SelectNext     string `yaml:"select_next"`
 		SelectFirst    string `yaml:"select_first"`
 		SelectLast     string `yaml:"select_last"`
-
-		ShowImage string `yaml:"show_image"`
 	}
 
 	MessageInputKeys struct {

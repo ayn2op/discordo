@@ -20,10 +20,8 @@ func newAttachmentImage(a discord.Attachment) (*AttachmentImage, error) {
 		Image: tview.NewImage(),
 	}
 
-	ai.SetBackgroundColor(tcell.GetColor(cfg.Theme.BackgroundColor))
 	ai.SetInputCapture(ai.onInputCapture)
-
-	ai.SetTitle("Preview")
+	ai.SetBackgroundColor(tcell.GetColor(cfg.Theme.BackgroundColor))
 	ai.SetTitleColor(tcell.GetColor(cfg.Theme.TitleColor))
 	ai.SetTitleAlign(tview.AlignLeft)
 
@@ -43,6 +41,7 @@ func newAttachmentImage(a discord.Attachment) (*AttachmentImage, error) {
 		return nil, err
 	}
 
+	ai.SetTitle(a.Filename)
 	ai.SetImage(i)
 	return ai, nil
 }
