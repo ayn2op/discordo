@@ -57,23 +57,20 @@ func (gt *GuildsTree) createGuildFolderNode(parent *tview.TreeNode, gf gateway.G
 	parent.AddChild(n)
 
 	for _, gid := range gf.GuildIDs {
-		if err := guildsTree.createGuildNodeFromID(n, gid); err != nil {
+		g, err := discordState.Cabinet.Guild(gid)
+		if err != nil {
 			log.Println(err)
 			continue
 		}
+
+		gt.createGuildNode(n, *g)
 	}
 }
 
-func (gt *GuildsTree) createGuildNodeFromID(n *tview.TreeNode, gid discord.GuildID) error {
-	g, err := discordState.Cabinet.Guild(gid)
-	if err != nil {
-		return err
-	}
-
+func (gt *GuildsTree) createGuildNode(n *tview.TreeNode, g discord.Guild) {
 	gn := tview.NewTreeNode(g.Name)
 	gn.SetReference(g.ID)
 	n.AddChild(gn)
-	return nil
 }
 
 func (gt *GuildsTree) createChannelNode(n *tview.TreeNode, c discord.Channel) {
