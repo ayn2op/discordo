@@ -63,8 +63,7 @@ func (lf *LoginForm) onLoginButtonSelected() {
 	}
 
 	// We got the token, return with a new Session.
-	discordState = newState(l.Token)
-	err = discordState.Open(context.Background())
+	discordState, err = openState(l.Token)
 	if err != nil {
 		log.Fatal(err)
 	}

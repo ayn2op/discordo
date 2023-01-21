@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"runtime"
@@ -26,18 +27,22 @@ type State struct {
 	*state.State
 }
 
-func newState(token string) *State {
+func openState(token string) (*State, error) {
 	s := &State{
 		State: state.New(token),
 	}
 
+	// Handlers
 	s.AddHandler(s.onReady)
 	s.AddHandler(s.onMessageCreate)
-
 	s.StateLog = s.onLog
 	s.OnRequest = append(s.Client.OnRequest, s.onRequest)
 
-	return s
+	if err := s.Open(context.TODO()); err != nil {
+		return nil, err
+	}
+
+	return s, nil
 }
 
 func (s *State) onLog(err error) {

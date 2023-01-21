@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"log"
 	"os"
@@ -77,8 +76,7 @@ func main() {
 	if token == "" {
 		app.SetRoot(newLoginForm(), true)
 	} else {
-		discordState = newState(token)
-		err = discordState.Open(context.Background())
+		discordState, err = openState(token)
 		if err != nil {
 			log.Fatal(err)
 		}
