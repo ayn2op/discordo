@@ -23,18 +23,6 @@ type Config struct {
 	Theme Theme `yaml:"theme"`
 }
 
-func new() Config {
-	return Config{
-		Mouse:         true,
-		Timestamps:    false,
-		MessagesLimit: 50,
-		Editor:        "default",
-
-		Keys:  newKeys(),
-		Theme: newTheme(),
-	}
-}
-
 // Load reads the configuration file and decodes the configuration file or creates a new one if it does not exist already and writes the default configuration to the newly-created configuration file.
 func Load() (*Config, error) {
 	path, err := os.UserConfigDir()
@@ -48,7 +36,15 @@ func Load() (*Config, error) {
 		return nil, err
 	}
 
-	c := new()
+	c := Config{
+		Mouse:         true,
+		Timestamps:    false,
+		MessagesLimit: 50,
+		Editor:        "default",
+
+		Keys:  newKeys(),
+		Theme: newTheme(),
+	}
 	path = filepath.Join(path, "config.yml")
 	_, err = os.Stat(path)
 	if os.IsNotExist(err) {

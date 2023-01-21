@@ -18,6 +18,8 @@ type (
 		SelectNext     string `yaml:"select_next"`
 		SelectFirst    string `yaml:"select_first"`
 		SelectLast     string `yaml:"select_last"`
+
+		ShowImage string `yaml:"show_image"`
 	}
 
 	MessageInputKeys struct {
@@ -49,6 +51,7 @@ func newKeys() Keys {
 		MessagesText: MessagesTextKeys{
 			Focus: "Alt+Rune[m]",
 
+			ShowImage:   "Rune[i]",
 			CopyContent: "Rune[c]",
 
 			Reply:        "Rune[r]",
