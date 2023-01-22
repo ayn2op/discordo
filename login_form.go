@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/diamondburned/arikawa/api"
+	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )

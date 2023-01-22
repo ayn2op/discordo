@@ -4,7 +4,6 @@ go 1.19
 
 require (
 	github.com/atotto/clipboard v0.1.4
-	github.com/diamondburned/arikawa v1.3.14
 	github.com/diamondburned/arikawa/v3 v3.2.0
 	github.com/gdamore/tcell/v2 v2.5.4
 	github.com/rivo/tview v0.0.0-20230104153304-892d1a2eb0da
