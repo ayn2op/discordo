@@ -104,6 +104,8 @@ func (gt *GuildsTree) channelToString(c discord.Channel) string {
 		s = "n-" + c.Name
 	case discord.GuildStore:
 		s = "s-" + c.Name
+	case discord.GuildForum:
+		s = "f-" + c.Name
 	default:
 		s = c.Name
 	}
