@@ -63,7 +63,7 @@ func (mi *MessageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 }
 
 func (mi *MessageInput) sendAction() {
-	if guildsTree.selectedChannel == nil {
+	if !guildsTree.selectedChannelID.IsValid() {
 		return
 	}
 
@@ -74,7 +74,7 @@ func (mi *MessageInput) sendAction() {
 
 	var err error
 	if messagesText.selectedMessage != -1 {
-		ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannel.ID)
+		ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannelID)
 		if err != nil {
 			log.Println(err)
 			return
@@ -90,9 +90,9 @@ func (mi *MessageInput) sendAction() {
 			data.AllowedMentions.RepliedUser = option.True
 		}
 
-		go discordState.SendMessageComplex(guildsTree.selectedChannel.ID, data)
+		go discordState.SendMessageComplex(guildsTree.selectedChannelID, data)
 	} else {
-		go discordState.SendMessage(guildsTree.selectedChannel.ID, text)
+		go discordState.SendMessage(guildsTree.selectedChannelID, text)
 	}
 
 	if err != nil {

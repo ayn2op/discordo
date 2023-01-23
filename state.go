@@ -82,7 +82,7 @@ func (s *State) onReady(r *gateway.ReadyEvent) {
 }
 
 func (s *State) onMessageCreate(m *gateway.MessageCreateEvent) {
-	if guildsTree.selectedChannel != nil && guildsTree.selectedChannel.ID == m.ChannelID {
+	if guildsTree.selectedChannelID.IsValid() && guildsTree.selectedChannelID == m.ChannelID {
 		messagesText.createMessage(&m.Message)
 	}
 }

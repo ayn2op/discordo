@@ -134,7 +134,7 @@ func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		mt.showImageAction()
 		return nil
 	case cfg.Keys.Cancel:
-		guildsTree.selectedChannel = nil
+		guildsTree.selectedChannelID = 0
 
 		messagesText.reset()
 		messageInput.reset()
@@ -156,7 +156,7 @@ func (mt *MessagesText) replyAction(mention bool) {
 		title += "Replying to "
 	}
 
-	ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannel.ID)
+	ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannelID)
 	if err != nil {
 		log.Println(err)
 		return
@@ -169,7 +169,7 @@ func (mt *MessagesText) replyAction(mention bool) {
 }
 
 func (mt *MessagesText) selectPreviousAction() {
-	ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannel.ID)
+	ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannelID)
 	if err != nil {
 		log.Println(err)
 		return
@@ -189,7 +189,7 @@ func (mt *MessagesText) selectPreviousAction() {
 }
 
 func (mt *MessagesText) selectNextAction() {
-	ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannel.ID)
+	ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannelID)
 	if err != nil {
 		log.Println(err)
 		return
@@ -209,7 +209,7 @@ func (mt *MessagesText) selectNextAction() {
 }
 
 func (mt *MessagesText) selectFirstAction() {
-	ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannel.ID)
+	ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannelID)
 	if err != nil {
 		log.Println(err)
 		return
@@ -221,7 +221,7 @@ func (mt *MessagesText) selectFirstAction() {
 }
 
 func (mt *MessagesText) selectLastAction() {
-	ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannel.ID)
+	ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannelID)
 	if err != nil {
 		log.Println(err)
 		return
@@ -237,7 +237,7 @@ func (mt *MessagesText) selectReplyAction() {
 		return
 	}
 
-	ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannel.ID)
+	ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannelID)
 	if err != nil {
 		log.Println(err)
 		return
@@ -261,7 +261,7 @@ func (mt *MessagesText) copyContentAction() {
 		return
 	}
 
-	ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannel.ID)
+	ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannelID)
 	if err != nil {
 		log.Println(err)
 		return
@@ -279,7 +279,7 @@ func (mt *MessagesText) showImageAction() {
 		return
 	}
 
-	ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannel.ID)
+	ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannelID)
 	if err != nil {
 		log.Println(err)
 		return

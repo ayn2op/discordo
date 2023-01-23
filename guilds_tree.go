@@ -15,8 +15,8 @@ import (
 type GuildsTree struct {
 	*tview.TreeView
 
-	root            *tview.TreeNode
-	selectedChannel *discord.Channel
+	root              *tview.TreeNode
+	selectedChannelID discord.ChannelID
 }
 
 func newGuildsTree() *GuildsTree {
@@ -137,7 +137,7 @@ func (gt *GuildsTree) createChannelNodes(n *tview.TreeNode, cs []discord.Channel
 }
 
 func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
-	gt.selectedChannel = nil
+	gt.selectedChannelID = 0
 
 	messagesText.reset()
 	messageInput.reset()
@@ -161,14 +161,6 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 
 		gt.createChannelNodes(n, cs)
 	case discord.ChannelID:
-		c, err := discordState.Cabinet.Channel(ref)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
-		gt.selectedChannel = c
-		messagesText.SetTitle(gt.channelToString(*c))
 
 		ms, err := discordState.Messages(ref, cfg.MessagesLimit)
 		if err != nil {
@@ -180,6 +172,15 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 			messagesText.createMessage(&ms[i])
 		}
 
+		c, err := discordState.Cabinet.Channel(ref)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		messagesText.SetTitle(gt.channelToString(*c))
+
+		gt.selectedChannelID = ref
 		app.SetFocus(messageInput)
 	case nil: // Direct messages
 		cs, err := discordState.Cabinet.PrivateChannels()
