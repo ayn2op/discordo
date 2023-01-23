@@ -25,7 +25,7 @@ type Theme struct {
 	MessageInput MessageInputTheme `yaml:"message_input"`
 }
 
-func newTheme() Theme {
+func defTheme() Theme {
 	return Theme{
 		Border:        true,
 		BorderColor:   "default",

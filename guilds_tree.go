@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/ayn2op/discordo/internal/config"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/gdamore/tcell/v2"
@@ -26,20 +27,20 @@ func newGuildsTree() *GuildsTree {
 		root: tview.NewTreeNode(""),
 	}
 
-	gt.SetGraphics(cfg.Theme.GuildsTree.Graphics)
+	gt.SetGraphics(config.Current.Theme.GuildsTree.Graphics)
 	gt.SetRoot(gt.root)
 	gt.SetTopLevel(1)
 	gt.SetSelectedFunc(gt.onSelected)
 
-	gt.SetBackgroundColor(tcell.GetColor(cfg.Theme.BackgroundColor))
+	gt.SetBackgroundColor(tcell.GetColor(config.Current.Theme.BackgroundColor))
 
 	gt.SetTitle("Guilds")
-	gt.SetTitleColor(tcell.GetColor(cfg.Theme.TitleColor))
+	gt.SetTitleColor(tcell.GetColor(config.Current.Theme.TitleColor))
 	gt.SetTitleAlign(tview.AlignLeft)
 
-	p := cfg.Theme.BorderPadding
-	gt.SetBorder(cfg.Theme.Border)
-	gt.SetBorderColor(tcell.GetColor(cfg.Theme.BorderColor))
+	p := config.Current.Theme.BorderPadding
+	gt.SetBorder(config.Current.Theme.Border)
+	gt.SetBorderColor(tcell.GetColor(config.Current.Theme.BorderColor))
 	gt.SetBorderPadding(p[0], p[1], p[2], p[3])
 
 	return gt
@@ -162,7 +163,7 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 		gt.createChannelNodes(n, cs)
 	case discord.ChannelID:
 
-		ms, err := discordState.Messages(ref, cfg.MessagesLimit)
+		ms, err := discordState.Messages(ref, config.Current.MessagesLimit)
 		if err != nil {
 			log.Println(err)
 			return

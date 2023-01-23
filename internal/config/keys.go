@@ -39,7 +39,7 @@ type Keys struct {
 	MessageInput MessageInputKeys `yaml:"message_input"`
 }
 
-func newKeys() Keys {
+func defKeys() Keys {
 	return Keys{
 		Cancel: "Esc",
 

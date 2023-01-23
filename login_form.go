@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 
+	"github.com/ayn2op/discordo/internal/config"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -24,11 +25,11 @@ func newLoginForm() *LoginForm {
 	lf.AddButton("Login", lf.onLoginButtonSelected)
 
 	lf.SetTitle("Login")
-	lf.SetTitleColor(tcell.GetColor(cfg.Theme.TitleColor))
+	lf.SetTitleColor(tcell.GetColor(config.Current.Theme.TitleColor))
 
-	p := cfg.Theme.BorderPadding
-	lf.SetBorder(cfg.Theme.Border)
-	lf.SetBorderColor(tcell.GetColor(cfg.Theme.BorderColor))
+	p := config.Current.Theme.BorderPadding
+	lf.SetBorder(config.Current.Theme.Border)
+	lf.SetBorderColor(tcell.GetColor(config.Current.Theme.BorderColor))
 	lf.SetBorderPadding(p[0], p[1], p[2], p[3])
 
 	return lf

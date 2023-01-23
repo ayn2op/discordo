@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/atotto/clipboard"
+	"github.com/ayn2op/discordo/internal/config"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
@@ -24,15 +25,15 @@ func newMessageInput() *MessageInput {
 	}
 
 	mi.SetInputCapture(mi.onInputCapture)
-	mi.SetBackgroundColor(tcell.GetColor(cfg.Theme.BackgroundColor))
-	mi.SetFieldBackgroundColor(tcell.GetColor(cfg.Theme.BackgroundColor))
+	mi.SetBackgroundColor(tcell.GetColor(config.Current.Theme.BackgroundColor))
+	mi.SetFieldBackgroundColor(tcell.GetColor(config.Current.Theme.BackgroundColor))
 
-	mi.SetTitleColor(tcell.GetColor(cfg.Theme.TitleColor))
+	mi.SetTitleColor(tcell.GetColor(config.Current.Theme.TitleColor))
 	mi.SetTitleAlign(tview.AlignLeft)
 
-	p := cfg.Theme.BorderPadding
-	mi.SetBorder(cfg.Theme.Border)
-	mi.SetBorderColor(tcell.GetColor(cfg.Theme.BorderColor))
+	p := config.Current.Theme.BorderPadding
+	mi.SetBorder(config.Current.Theme.Border)
+	mi.SetBorderColor(tcell.GetColor(config.Current.Theme.BorderColor))
 	mi.SetBorderPadding(p[0], p[1], p[2], p[3])
 
 	return mi
@@ -45,16 +46,16 @@ func (mi *MessageInput) reset() {
 
 func (mi *MessageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
-	case cfg.Keys.MessageInput.Send:
+	case config.Current.Keys.MessageInput.Send:
 		mi.sendAction()
 		return nil
-	case cfg.Keys.MessageInput.Paste:
+	case config.Current.Keys.MessageInput.Paste:
 		mi.pasteAction()
 		return nil
-	case cfg.Keys.MessageInput.LaunchEditor:
+	case config.Current.Keys.MessageInput.LaunchEditor:
 		messageInput.launchEditorAction()
 		return nil
-	case cfg.Keys.Cancel:
+	case config.Current.Keys.Cancel:
 		mi.reset()
 		return nil
 	}
@@ -116,7 +117,7 @@ func (mi *MessageInput) pasteAction() {
 }
 
 func (mi *MessageInput) launchEditorAction() {
-	e := cfg.Editor
+	e := config.Current.Editor
 	if e == "default" {
 		e = os.Getenv("EDITOR")
 	}

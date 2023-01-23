@@ -9,6 +9,8 @@ import (
 
 const Name = "discordo"
 
+var Current = defConfig()
+
 type Config struct {
 	// Mouse indicates whether the mouse is usable or not.
 	Mouse bool `yaml:"mouse"`
@@ -23,53 +25,56 @@ type Config struct {
 	Theme Theme `yaml:"theme"`
 }
 
-// Load reads the configuration file and decodes the configuration file or creates a new one if it does not exist already and writes the default configuration to the newly-created configuration file.
-func Load() (*Config, error) {
-	path, err := os.UserConfigDir()
-	if err != nil {
-		return nil, err
-	}
-
-	path = filepath.Join(path, Name)
-	err = os.MkdirAll(path, os.ModePerm)
-	if err != nil {
-		return nil, err
-	}
-
-	c := Config{
+func defConfig() Config {
+	return Config{
 		Mouse:         true,
 		Timestamps:    false,
 		MessagesLimit: 50,
 		Editor:        "default",
 
-		Keys:  newKeys(),
-		Theme: newTheme(),
+		Keys:  defKeys(),
+		Theme: defTheme(),
 	}
+}
+
+func Load() error {
+	path, err := os.UserConfigDir()
+	if err != nil {
+		return err
+	}
+
+	// Create the configuration directory if it does not exist already.
+	path = filepath.Join(path, Name)
+	err = os.MkdirAll(path, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
 	path = filepath.Join(path, "config.yml")
 	_, err = os.Stat(path)
 	if os.IsNotExist(err) {
 		f, err := os.Create(path)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		defer f.Close()
 
-		err = yaml.NewEncoder(f).Encode(c)
+		err = yaml.NewEncoder(f).Encode(Current)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	} else {
 		f, err := os.Open(path)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		defer f.Close()
 
-		err = yaml.NewDecoder(f).Decode(&c)
+		err = yaml.NewDecoder(f).Decode(&Current)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
-	return &c, nil
+	return err
 }

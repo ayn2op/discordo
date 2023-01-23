@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ayn2op/discordo/config"
+	"github.com/ayn2op/discordo/internal/config"
 	"github.com/rivo/tview"
 	"github.com/zalando/go-keyring"
 )
@@ -14,7 +14,6 @@ import (
 var (
 	token string
 
-	cfg          *config.Config
 	discordState *State
 
 	app          = tview.NewApplication()
@@ -62,8 +61,7 @@ func main() {
 		}
 	}
 
-	cfg, err = config.Load()
-	if err != nil {
+	if err = config.Load(); err != nil {
 		log.Fatal(err)
 	}
 
@@ -94,7 +92,7 @@ func main() {
 		app.SetRoot(mainFlex, true)
 	}
 
-	app.EnableMouse(cfg.Mouse)
+	app.EnableMouse(config.Current.Mouse)
 	err = app.Run()
 	if err != nil {
 		log.Fatal(err)
