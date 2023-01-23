@@ -109,7 +109,8 @@ func (mi *MessageInput) sendAction() {
 func (mi *MessageInput) pasteAction() {
 	text, err := clipboard.ReadAll()
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return
 	}
 
 	// Append the text to the message input.
