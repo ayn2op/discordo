@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/atotto/clipboard"
-	"github.com/ayn2op/discordo/discordmd"
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/pkg/markdown"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -95,7 +95,7 @@ func (mt *MessagesText) createHeader(w io.Writer, m discord.Message) {
 }
 
 func (mt *MessagesText) createBody(w io.Writer, m discord.Message) {
-	fmt.Fprint(w, discordmd.Parse(tview.Escape(m.Content)))
+	fmt.Fprint(w, markdown.Parse(tview.Escape(m.Content)))
 }
 
 func (mt *MessagesText) createFooter(w io.Writer, m discord.Message) {

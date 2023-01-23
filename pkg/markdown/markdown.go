@@ -1,4 +1,4 @@
-package discordmd
+package markdown
 
 import (
 	"regexp"
