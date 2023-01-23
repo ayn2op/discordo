@@ -5,10 +5,7 @@ type (
 		Graphics bool `yaml:"graphics"`
 	}
 
-	MessagesTextTheme struct {
-		AuthorColor string `yaml:"author_color"`
-	}
-
+	MessagesTextTheme struct{}
 	MessageInputTheme struct{}
 )
 
@@ -37,9 +34,7 @@ func newTheme() Theme {
 		GuildsTree: GuildsTreeTheme{
 			Graphics: true,
 		},
-		MessagesText: MessagesTextTheme{
-			AuthorColor: "aqua",
-		},
+		MessagesText: MessagesTextTheme{},
 		MessageInput: MessageInputTheme{},
 	}
 }

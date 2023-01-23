@@ -86,7 +86,15 @@ func (mt *MessagesText) createMessage(m *discord.Message) {
 }
 
 func (mt *MessagesText) createHeader(w io.Writer, m *discord.Message) {
-	fmt.Fprintf(w, "[%s]%s[-] ", cfg.Theme.MessagesText.AuthorColor, m.Author.Username)
+	var color string
+	c, ok := discordState.MemberColor(m.GuildID, m.Author.ID)
+	if ok {
+		color = c.String()
+	} else {
+		color = "#ffffff"
+	}
+
+	fmt.Fprintf(w, "[%s]%s[-] ", color, m.Author.Username)
 
 	if cfg.Timestamps {
 		fmt.Fprintf(w, "[::d]%s[::-] ", m.Timestamp.Format(time.Kitchen))
