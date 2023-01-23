@@ -27,12 +27,11 @@ func newGuildsTree() *GuildsTree {
 		root: tview.NewTreeNode(""),
 	}
 
-	gt.SetGraphics(config.Current.Theme.GuildsTree.Graphics)
-	gt.SetRoot(gt.root)
 	gt.SetTopLevel(1)
-	gt.SetSelectedFunc(gt.onSelected)
-
+	gt.SetRoot(gt.root)
+	gt.SetGraphics(config.Current.Theme.GuildsTree.Graphics)
 	gt.SetBackgroundColor(tcell.GetColor(config.Current.Theme.BackgroundColor))
+	gt.SetSelectedFunc(gt.onSelected)
 
 	gt.SetTitle("Guilds")
 	gt.SetTitleColor(tcell.GetColor(config.Current.Theme.TitleColor))
