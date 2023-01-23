@@ -169,7 +169,7 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 		}
 
 		for i := len(ms) - 1; i >= 0; i-- {
-			messagesText.createMessage(&ms[i])
+			messagesText.createMessage(ms[i])
 		}
 
 		c, err := discordState.Cabinet.Channel(ref)

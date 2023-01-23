@@ -59,7 +59,7 @@ func (mt *MessagesText) reset() {
 	mt.Highlight()
 }
 
-func (mt *MessagesText) createMessage(m *discord.Message) {
+func (mt *MessagesText) createMessage(m discord.Message) {
 	switch m.Type {
 	case discord.DefaultMessage, discord.InlinedReplyMessage:
 		// Region tags are square brackets that contain a region ID in double quotes
@@ -69,8 +69,8 @@ func (mt *MessagesText) createMessage(m *discord.Message) {
 		if m.ReferencedMessage != nil {
 			fmt.Fprintf(mt, "[::d]%c ", replyIndicator)
 
-			mt.createHeader(mt, m.ReferencedMessage)
-			mt.createBody(mt, m.ReferencedMessage)
+			mt.createHeader(mt, *m.ReferencedMessage)
+			mt.createBody(mt, *m.ReferencedMessage)
 
 			fmt.Fprint(mt, "[::-]\n")
 		}
@@ -85,7 +85,7 @@ func (mt *MessagesText) createMessage(m *discord.Message) {
 	}
 }
 
-func (mt *MessagesText) createHeader(w io.Writer, m *discord.Message) {
+func (mt *MessagesText) createHeader(w io.Writer, m discord.Message) {
 	fmt.Fprintf(w, "[%s]%s[-] ", cfg.Theme.MessagesText.AuthorColor, m.Author.Username)
 
 	if cfg.Timestamps {
@@ -93,11 +93,11 @@ func (mt *MessagesText) createHeader(w io.Writer, m *discord.Message) {
 	}
 }
 
-func (mt *MessagesText) createBody(w io.Writer, m *discord.Message) {
+func (mt *MessagesText) createBody(w io.Writer, m discord.Message) {
 	fmt.Fprint(w, discordmd.Parse(tview.Escape(m.Content)))
 }
 
-func (mt *MessagesText) createFooter(w io.Writer, m *discord.Message) {
+func (mt *MessagesText) createFooter(w io.Writer, m discord.Message) {
 	for _, a := range m.Attachments {
 		fmt.Fprintln(w)
 		fmt.Fprintf(w, "[%s]: %s", a.Filename, a.URL)
