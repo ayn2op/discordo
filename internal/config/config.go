@@ -76,5 +76,5 @@ func Load() error {
 		}
 	}
 
-	return err
+	return nil
 }
