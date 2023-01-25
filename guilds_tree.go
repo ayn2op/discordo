@@ -73,12 +73,6 @@ func (gt *GuildsTree) createGuildNode(n *tview.TreeNode, g discord.Guild) {
 	n.AddChild(gn)
 }
 
-func (gt *GuildsTree) createChannelNode(n *tview.TreeNode, c discord.Channel) {
-	cn := tview.NewTreeNode(gt.channelToString(c))
-	cn.SetReference(c.ID)
-	n.AddChild(cn)
-}
-
 func (gt *GuildsTree) channelToString(c discord.Channel) string {
 	var s string
 	switch c.Type {
@@ -113,12 +107,42 @@ func (gt *GuildsTree) channelToString(c discord.Channel) string {
 	return s
 }
 
+func (gt *GuildsTree) createChannelNode(n *tview.TreeNode, c discord.Channel) {
+	ps, err := discordState.Permissions(c.ID, discordState.Ready().User.ID)
+	if err != nil {
+		return
+	}
+
+	if !ps.Has(discord.PermissionViewChannel) {
+		return
+	}
+
+	cn := tview.NewTreeNode(gt.channelToString(c))
+	cn.SetReference(c.ID)
+	n.AddChild(cn)
+}
+
 func (gt *GuildsTree) createChannelNodes(n *tview.TreeNode, cs []discord.Channel) {
 	for _, c := range cs {
-		// If the type of the channel is guild category or if the channel is an orphan channel.
-		if c.Type == discord.GuildCategory || !c.ParentID.IsValid() {
+		if c.Type != discord.GuildCategory && !c.ParentID.IsValid() {
 			gt.createChannelNode(n, c)
-		} else {
+		}
+	}
+
+PARENT_CHANNELS:
+	for _, c := range cs {
+		if c.Type == discord.GuildCategory {
+			for _, nested := range cs {
+				if nested.ParentID == c.ID {
+					gt.createChannelNode(n, c)
+					continue PARENT_CHANNELS
+				}
+			}
+		}
+	}
+
+	for _, c := range cs {
+		if c.ParentID.IsValid() {
 			var parent *tview.TreeNode
 			n.Walk(func(node, _ *tview.TreeNode) bool {
 				if node.GetReference() == c.ParentID {
