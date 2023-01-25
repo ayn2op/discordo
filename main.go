@@ -51,7 +51,6 @@ func main() {
 	flag.Parse()
 
 	var err error
-	// If the token is passed via the flag, set it in the keyring.
 	if token != "" {
 		go keyring.Set(config.Name, "token", token)
 	} else {
