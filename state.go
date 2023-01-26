@@ -60,7 +60,7 @@ func (s *State) onRequest(r httpdriver.Request) error {
 
 func (s *State) onReady(r *gateway.ReadyEvent) {
 	dmNode := tview.NewTreeNode("Direct Messages")
-	guildsTree.root.AddChild(dmNode)
+	mainFlex.guildsTree.root.AddChild(dmNode)
 
 	for _, gf := range r.UserSettings.GuildFolders {
 		/// If the ID of the guild folder is zero, the guild folder only contains single guild.
@@ -71,18 +71,18 @@ func (s *State) onReady(r *gateway.ReadyEvent) {
 				continue
 			}
 
-			guildsTree.createGuildNode(guildsTree.root, *g)
+			mainFlex.guildsTree.createGuildNode(mainFlex.guildsTree.root, *g)
 		} else {
-			guildsTree.createGuildFolderNode(guildsTree.root, gf)
+			mainFlex.guildsTree.createGuildFolderNode(mainFlex.guildsTree.root, gf)
 		}
 	}
 
-	guildsTree.SetCurrentNode(guildsTree.root)
-	app.SetFocus(guildsTree)
+	mainFlex.guildsTree.SetCurrentNode(mainFlex.guildsTree.root)
+	app.SetFocus(mainFlex.guildsTree)
 }
 
 func (s *State) onMessageCreate(m *gateway.MessageCreateEvent) {
-	if guildsTree.selectedChannelID.IsValid() && guildsTree.selectedChannelID == m.ChannelID {
-		messagesText.createMessage(m.Message)
+	if mainFlex.guildsTree.selectedChannelID.IsValid() && mainFlex.guildsTree.selectedChannelID == m.ChannelID {
+		mainFlex.messagesText.createMessage(m.Message)
 	}
 }

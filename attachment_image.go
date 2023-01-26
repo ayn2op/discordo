@@ -50,7 +50,7 @@ func newAttachmentImage(a discord.Attachment) (*AttachmentImage, error) {
 func (ai *AttachmentImage) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	if event.Name() == config.Current.Keys.Cancel {
 		app.SetRoot(mainFlex, true)
-		app.SetFocus(messagesText)
+		app.SetFocus(mainFlex.messagesText)
 		return nil
 	}
 

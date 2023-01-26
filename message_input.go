@@ -53,7 +53,7 @@ func (mi *MessageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		mi.pasteAction()
 		return nil
 	case config.Current.Keys.MessageInput.LaunchEditor:
-		messageInput.launchEditorAction()
+		mainFlex.messageInput.launchEditorAction()
 		return nil
 	case config.Current.Keys.Cancel:
 		mi.reset()
@@ -64,7 +64,7 @@ func (mi *MessageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 }
 
 func (mi *MessageInput) sendAction() {
-	if !guildsTree.selectedChannelID.IsValid() {
+	if !mainFlex.guildsTree.selectedChannelID.IsValid() {
 		return
 	}
 
@@ -74,8 +74,8 @@ func (mi *MessageInput) sendAction() {
 	}
 
 	var err error
-	if messagesText.selectedMessage != -1 {
-		ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannelID)
+	if mainFlex.messagesText.selectedMessage != -1 {
+		ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
 		if err != nil {
 			log.Println(err)
 			return
@@ -83,7 +83,7 @@ func (mi *MessageInput) sendAction() {
 
 		data := api.SendMessageData{
 			Content:         text,
-			Reference:       &discord.MessageReference{MessageID: ms[messagesText.selectedMessage].ID},
+			Reference:       &discord.MessageReference{MessageID: ms[mainFlex.messagesText.selectedMessage].ID},
 			AllowedMentions: &api.AllowedMentions{RepliedUser: option.False},
 		}
 
@@ -91,9 +91,9 @@ func (mi *MessageInput) sendAction() {
 			data.AllowedMentions.RepliedUser = option.True
 		}
 
-		go discordState.SendMessageComplex(guildsTree.selectedChannelID, data)
+		go discordState.SendMessageComplex(mainFlex.guildsTree.selectedChannelID, data)
 	} else {
-		go discordState.SendMessage(guildsTree.selectedChannelID, text)
+		go discordState.SendMessage(mainFlex.guildsTree.selectedChannelID, text)
 	}
 
 	if err != nil {
@@ -101,8 +101,8 @@ func (mi *MessageInput) sendAction() {
 		return
 	}
 
-	messagesText.selectedMessage = -1
-	messagesText.Highlight()
+	mainFlex.messagesText.selectedMessage = -1
+	mainFlex.messagesText.Highlight()
 	mi.reset()
 }
 

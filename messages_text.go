@@ -53,7 +53,7 @@ func newMessagesText() *MessagesText {
 }
 
 func (mt *MessagesText) reset() {
-	messagesText.selectedMessage = -1
+	mainFlex.messagesText.selectedMessage = -1
 
 	mt.SetTitle("")
 	mt.Clear()
@@ -135,10 +135,10 @@ func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		mt.showImageAction()
 		return nil
 	case config.Current.Keys.Cancel:
-		guildsTree.selectedChannelID = 0
+		mainFlex.guildsTree.selectedChannelID = 0
 
-		messagesText.reset()
-		messageInput.reset()
+		mainFlex.messagesText.reset()
+		mainFlex.messageInput.reset()
 		return nil
 	}
 
@@ -157,20 +157,20 @@ func (mt *MessagesText) replyAction(mention bool) {
 		title += "Replying to "
 	}
 
-	ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannelID)
+	ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
 	title += ms[mt.selectedMessage].Author.Tag()
-	messageInput.SetTitle(title)
+	mainFlex.messageInput.SetTitle(title)
 
-	app.SetFocus(messageInput)
+	app.SetFocus(mainFlex.messageInput)
 }
 
 func (mt *MessagesText) selectPreviousAction() {
-	ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannelID)
+	ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
 	if err != nil {
 		log.Println(err)
 		return
@@ -190,7 +190,7 @@ func (mt *MessagesText) selectPreviousAction() {
 }
 
 func (mt *MessagesText) selectNextAction() {
-	ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannelID)
+	ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
 	if err != nil {
 		log.Println(err)
 		return
@@ -210,7 +210,7 @@ func (mt *MessagesText) selectNextAction() {
 }
 
 func (mt *MessagesText) selectFirstAction() {
-	ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannelID)
+	ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
 	if err != nil {
 		log.Println(err)
 		return
@@ -222,7 +222,7 @@ func (mt *MessagesText) selectFirstAction() {
 }
 
 func (mt *MessagesText) selectLastAction() {
-	ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannelID)
+	ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
 	if err != nil {
 		log.Println(err)
 		return
@@ -238,7 +238,7 @@ func (mt *MessagesText) selectReplyAction() {
 		return
 	}
 
-	ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannelID)
+	ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
 	if err != nil {
 		log.Println(err)
 		return
@@ -262,7 +262,7 @@ func (mt *MessagesText) copyContentAction() {
 		return
 	}
 
-	ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannelID)
+	ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
 	if err != nil {
 		log.Println(err)
 		return
@@ -280,7 +280,7 @@ func (mt *MessagesText) showImageAction() {
 		return
 	}
 
-	ms, err := discordState.Cabinet.Messages(guildsTree.selectedChannelID)
+	ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
 	if err != nil {
 		log.Println(err)
 		return

@@ -163,8 +163,8 @@ PARENT_CHANNELS:
 func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 	gt.selectedChannelID = 0
 
-	messagesText.reset()
-	messageInput.reset()
+	mainFlex.messagesText.reset()
+	mainFlex.messageInput.reset()
 
 	if len(n.GetChildren()) != 0 {
 		n.SetExpanded(!n.IsExpanded())
@@ -193,7 +193,7 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 		}
 
 		for i := len(ms) - 1; i >= 0; i-- {
-			messagesText.createMessage(ms[i])
+			mainFlex.messagesText.createMessage(ms[i])
 		}
 
 		c, err := discordState.Cabinet.Channel(ref)
@@ -202,10 +202,10 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 			return
 		}
 
-		messagesText.SetTitle(gt.channelToString(*c))
+		mainFlex.messagesText.SetTitle(gt.channelToString(*c))
 
 		gt.selectedChannelID = ref
-		app.SetFocus(messageInput)
+		app.SetFocus(mainFlex.messageInput)
 	case nil: // Direct messages
 		cs, err := discordState.Cabinet.PrivateChannels()
 		if err != nil {

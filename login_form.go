@@ -63,21 +63,13 @@ func (lf *LoginForm) onLoginButtonSelected() {
 		}
 	}
 
+	mainFlex = newMainFlex()
+
 	// We got the token, return with a new Session.
 	discordState, err = openState(l.Token)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	right := tview.NewFlex()
-	right.SetDirection(tview.FlexRow)
-	right.AddItem(messagesText, 0, 1, false)
-	right.AddItem(messageInput, 3, 1, false)
-
-	// The guilds tree is always focused first at start-up.
-	mainFlex.AddItem(guildsTree, 0, 1, true)
-	mainFlex.AddItem(right, 0, 4, false)
-
-	mainFlex.SetInputCapture(onInputCapture)
 	app.SetRoot(mainFlex, true)
 }
