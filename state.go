@@ -65,7 +65,7 @@ func (s *State) onReady(r *gateway.ReadyEvent) {
 	for _, gf := range r.UserSettings.GuildFolders {
 		/// If the ID of the guild folder is zero, the guild folder only contains single guild.
 		if gf.ID == 0 {
-			g, err := discordState.Cabinet.Guild(gf.GuildIDs[0])
+			g, err := s.Cabinet.Guild(gf.GuildIDs[0])
 			if err != nil {
 				log.Println(err)
 				continue
