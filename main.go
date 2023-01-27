@@ -67,8 +67,7 @@ func main() {
 	} else {
 		mainFlex = newMainFlex()
 
-		discordState, err = openState(token)
-		if err != nil {
+		if err = openState(token); err != nil {
 			log.Fatal(err)
 		}
 

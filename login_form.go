@@ -66,8 +66,7 @@ func (lf *LoginForm) onLoginButtonSelected() {
 	mainFlex = newMainFlex()
 
 	// We got the token, return with a new Session.
-	discordState, err = openState(l.Token)
-	if err != nil {
+	if err = openState(l.Token); err != nil {
 		log.Fatal(err)
 	}
 

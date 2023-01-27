@@ -27,22 +27,18 @@ type State struct {
 	*state.State
 }
 
-func openState(token string) (*State, error) {
-	s := &State{
+func openState(token string) error {
+	discordState = &State{
 		State: state.New(token),
 	}
 
 	// Handlers
-	s.AddHandler(s.onReady)
-	s.AddHandler(s.onMessageCreate)
-	s.StateLog = s.onLog
-	s.OnRequest = append(s.Client.OnRequest, s.onRequest)
+	discordState.AddHandler(discordState.onReady)
+	discordState.AddHandler(discordState.onMessageCreate)
+	discordState.StateLog = discordState.onLog
+	discordState.OnRequest = append(discordState.Client.OnRequest, discordState.onRequest)
 
-	if err := s.Open(context.TODO()); err != nil {
-		return nil, err
-	}
-
-	return s, nil
+	return discordState.Open(context.TODO())
 }
 
 func (s *State) onLog(err error) {
