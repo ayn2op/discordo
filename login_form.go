@@ -8,6 +8,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	"github.com/zalando/go-keyring"
 )
 
 type LoginForm struct {
@@ -22,6 +23,7 @@ func newLoginForm() *LoginForm {
 	lf.AddInputField("Email", "", 0, nil, nil)
 	lf.AddPasswordField("Password", "", 0, 0, nil)
 	lf.AddPasswordField("Code (optional)", "", 0, 0, nil)
+	lf.AddCheckbox("Remember Me", true, nil)
 	lf.AddButton("Login", lf.onLoginButtonSelected)
 
 	lf.SetTitle("Login")
@@ -64,11 +66,14 @@ func (lf *LoginForm) onLoginButtonSelected() {
 	}
 
 	mainFlex = newMainFlex()
-
-	// We got the token, return with a new Session.
 	if err = openState(l.Token); err != nil {
 		log.Fatal(err)
 	}
 
 	app.SetRoot(mainFlex, true)
+
+	rememberMe := lf.GetFormItem(4).(*tview.Checkbox).IsChecked()
+	if rememberMe {
+		go keyring.Set(config.Name, "token", l.Token)
+	}
 }

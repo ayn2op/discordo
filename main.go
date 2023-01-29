@@ -21,7 +21,8 @@ var (
 )
 
 func init() {
-	flag.StringVar(&token, "token", "", "The authentication token.")
+	t, _ := keyring.Get(config.Name, "token")
+	flag.StringVar(&token, "token", t, "The authentication token.")
 
 	path, err := os.UserCacheDir()
 	if err != nil {
@@ -47,17 +48,7 @@ func init() {
 func main() {
 	flag.Parse()
 
-	var err error
-	if token != "" {
-		go keyring.Set(config.Name, "token", token)
-	} else {
-		token, err = keyring.Get(config.Name, "token")
-		if err != nil {
-			log.Println(err)
-		}
-	}
-
-	if err = config.Load(); err != nil {
+	if err := config.Load(); err != nil {
 		log.Fatal(err)
 	}
 
@@ -66,8 +57,7 @@ func main() {
 		app.SetRoot(newLoginForm(), true)
 	} else {
 		mainFlex = newMainFlex()
-
-		if err = openState(token); err != nil {
+		if err := openState(token); err != nil {
 			log.Fatal(err)
 		}
 
@@ -75,8 +65,7 @@ func main() {
 	}
 
 	app.EnableMouse(config.Current.Mouse)
-	err = app.Run()
-	if err != nil {
+	if err := app.Run(); err != nil {
 		log.Fatal(err)
 	}
 }
