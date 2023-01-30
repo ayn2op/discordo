@@ -13,6 +13,7 @@ Discordo is a lightweight, secure, and feature-rich Discord terminal client. Hea
   - [Building from source](#building-from-source)
 - [Usage](#usage)
   - [Configuration](#configuration)
+  - [Controls](#controls)
 - [Disclaimer](#disclaimer)
 
 ## Features
@@ -69,6 +70,29 @@ sudo mv ./discordo /usr/local/bin
 A default configuration file is created on first start-up at `$HOME/.config/discordo/config.yml` on Unix, `$HOME/Library/Application Support/discordo/config.yml` on Darwin, and `%AppData%/discordo/config.yml` on Windows.
 
 Similarly, a log file is created on first start-up at `$HOME/.cache/discordo/logs.txt` on Unix, `$HOME/Library/Caches/discordo/logs.txt` on Darwin, and `%LocalAppData%/discordo/logs.txt` on Windows.
+
+### Controls
+##### Focusing
+* `Alt-g` - Focus into server list
+* `Alt-m` - Focus into channel messages list
+* `Alt-i` - Focus into message box
+##### Navigating & Selecting
+* `J/K` + (Channel Messages Focused) - Scroll down and up channel messages
+* `J/K` + (Server List Focused) - Navigate Server List
+* `Up arrow` + (Channel Messages Focused) - Select Prev Message
+* `Down arrow` + (Channel Messages Focused) - Select Next Message
+* `Up arrow` + (Channel Messages Focused) - Select Prev Message
+* `Home` + (Channel Messages Focused) - Select First Message
+* `End` + (Channel Messages Focused) - Select Last Message
+##### Actions
+* `i` + (Message Selected) - View image (In terminal resolution)
+* `Esc` + (Image View Selected) - Escape image view
+* `r` + (Message Selected) - Reply (No ping)
+* `R` + (Message Selected) - Reply (Ping)
+* `s` + (Message Selected) - Jump to the message in which that message replied to
+* `c` + (Message Selected) - Copy Message
+* `Ctrl-Shift-v` + (Message Box Selected) - Paste Into Message Box
+* `Ctrl-Shift-e` + (Message Box Selected) - Open external editor (Needs [Configuration](#configuration))
 
 ## Disclaimer
 
