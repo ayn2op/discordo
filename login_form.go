@@ -72,7 +72,7 @@ func (lf *LoginForm) onLoginButtonSelected() {
 
 	app.SetRoot(mainFlex, true)
 
-	rememberMe := lf.GetFormItem(4).(*tview.Checkbox).IsChecked()
+	rememberMe := lf.GetFormItem(3).(*tview.Checkbox).IsChecked()
 	if rememberMe {
 		go keyring.Set(config.Name, "token", l.Token)
 	}
