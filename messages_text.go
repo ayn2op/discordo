@@ -95,7 +95,12 @@ func (mt *MessagesText) createHeader(w io.Writer, m discord.Message) {
 }
 
 func (mt *MessagesText) createBody(w io.Writer, m discord.Message) {
-	fmt.Fprint(w, markdown.Parse(tview.Escape(m.Content)))
+	parsed, err := markdown.Parse(tview.Escape(m.Content))
+	if err != nil {
+		return
+	}
+
+	fmt.Fprint(w, parsed)
 }
 
 func (mt *MessagesText) createFooter(w io.Writer, m discord.Message) {

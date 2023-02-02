@@ -1,22 +1,22 @@
 package markdown
 
 import (
-	"regexp"
+	"bytes"
+
+	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/extension"
 )
 
-var (
-	boldRe          = regexp.MustCompile(`(?ms)\*\*(.*?)\*\*`)
-	italicRe        = regexp.MustCompile(`(?ms)\*(.*?)\*`)
-	underlineRe     = regexp.MustCompile(`(?ms)__(.*?)__`)
-	strikethroughRe = regexp.MustCompile(`(?ms)~~(.*?)~~`)
-	codeblockRe     = regexp.MustCompile("(?ms)`" + `([^` + "`" + `\n]+)` + "`")
-)
+func Parse(input string) (string, error) {
+	md := goldmark.New(
+		goldmark.WithExtensions(extension.Strikethrough),
+		goldmark.WithRenderer(&discordRenderer{}),
+	)
 
-func Parse(input string) string {
-	input = boldRe.ReplaceAllString(input, "[::b]$1[::-]")
-	input = italicRe.ReplaceAllString(input, "[::i]$1[::-]")
-	input = underlineRe.ReplaceAllString(input, "[::u]$1[::-]")
-	input = strikethroughRe.ReplaceAllString(input, "[::s]$1[::-]")
-	input = codeblockRe.ReplaceAllString(input, "[::r]$1[::-]")
-	return input
+	var buf bytes.Buffer
+	if err := md.Convert([]byte(input), &buf); err != nil {
+		return "", err
+	}
+
+	return buf.String(), nil
 }
