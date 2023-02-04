@@ -188,7 +188,6 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 
 		gt.createChannelNodes(n, cs)
 	case discord.ChannelID:
-
 		ms, err := discordState.Messages(ref, config.Current.MessagesLimit)
 		if err != nil {
 			log.Println(err)
@@ -217,7 +216,7 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 		}
 
 		sort.Slice(cs, func(i, j int) bool {
-			return cs[i].LastMessageID < cs[j].LastMessageID
+			return cs[i].LastMessageID > cs[j].LastMessageID
 		})
 
 		for _, c := range cs {
