@@ -108,13 +108,16 @@ func (gt *GuildsTree) channelToString(c discord.Channel) string {
 }
 
 func (gt *GuildsTree) createChannelNode(n *tview.TreeNode, c discord.Channel) {
-	ps, err := discordState.Permissions(c.ID, discordState.Ready().User.ID)
-	if err != nil {
-		return
-	}
+	if c.Type != discord.DirectMessage && c.Type != discord.GroupDM {
+		ps, err := discordState.Permissions(c.ID, discordState.Ready().User.ID)
+		if err != nil {
+			log.Println(err)
+			return
+		}
 
-	if !ps.Has(discord.PermissionViewChannel) {
-		return
+		if !ps.Has(discord.PermissionViewChannel) {
+			return
+		}
 	}
 
 	cn := tview.NewTreeNode(gt.channelToString(c))
