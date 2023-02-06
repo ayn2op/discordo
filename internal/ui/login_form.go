@@ -1,7 +1,6 @@
-package main
+package ui
 
 import (
-	"context"
 	"log"
 
 	"github.com/ayn2op/discordo/internal/config"
@@ -13,11 +12,13 @@ import (
 
 type LoginForm struct {
 	*tview.Form
+	Token chan string
 }
 
-func newLoginForm() *LoginForm {
+func NewLoginForm() *LoginForm {
 	lf := &LoginForm{
-		Form: tview.NewForm(),
+		Form:  tview.NewForm(),
+		Token: make(chan string, 1),
 	}
 
 	lf.AddInputField("Email", "", 0, nil, nil)
@@ -28,6 +29,7 @@ func newLoginForm() *LoginForm {
 
 	lf.SetTitle("Login")
 	lf.SetTitleColor(tcell.GetColor(config.Current.Theme.TitleColor))
+	lf.SetTitleAlign(tview.AlignLeft)
 
 	p := config.Current.Theme.BorderPadding
 	lf.SetBorder(config.Current.Theme.Border)
@@ -44,36 +46,35 @@ func (lf *LoginForm) onLoginButtonSelected() {
 		return
 	}
 
-	// Make a scratch HTTP client without a token
-	client := api.NewClient("").WithContext(context.Background())
-	// Try to login without TOTP
-	l, err := client.Login(email, password)
+	// Create a new API client without an authentication token.
+	apiClient := api.NewClient("")
+	// Log in using the provided email and password.
+	lr, err := apiClient.Login(email, password)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Retry logging in with a 2FA token
-	if l.Token == "" && l.MFA {
+	// If the account has MFA-enabled, attempt to log in using the provided code.
+	if lr.MFA && lr.Token == "" {
 		code := lf.GetFormItem(2).(*tview.InputField).GetText()
 		if code == "" {
 			return
 		}
 
-		l, err = client.TOTP(code, l.Ticket)
+		lr, err = apiClient.TOTP(code, lr.Ticket)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
 
-	mainFlex = newMainFlex()
-	if err = openState(l.Token); err != nil {
-		log.Fatal(err)
-	}
+	if lr.Token == "" {
+		log.Fatal("missing token")
+	} else {
+		rememberMe := lf.GetFormItem(3).(*tview.Checkbox).IsChecked()
+		if rememberMe {
+			go keyring.Set(config.Name, "token", lr.Token)
+		}
 
-	app.SetRoot(mainFlex, true)
-
-	rememberMe := lf.GetFormItem(3).(*tview.Checkbox).IsChecked()
-	if rememberMe {
-		go keyring.Set(config.Name, "token", l.Token)
+		lf.Token <- lr.Token
 	}
 }
