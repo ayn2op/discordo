@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/rivo/tview"
 	"github.com/zalando/go-keyring"
 )
@@ -52,9 +53,21 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// mission failed, we'll get 'em next time
 	if token == "" {
-		app.SetRoot(newLoginForm(), true)
+		lf := ui.NewLoginForm()
+
+		go func() {
+			mainFlex = newMainFlex()
+			if err := openState(<-lf.Token); err != nil {
+				log.Fatal(err)
+			}
+
+			app.QueueUpdateDraw(func() {
+				app.SetRoot(mainFlex, true)
+			})
+		}()
+
+		app.SetRoot(lf, true)
 	} else {
 		mainFlex = newMainFlex()
 		if err := openState(token); err != nil {

@@ -108,13 +108,16 @@ func (gt *GuildsTree) channelToString(c discord.Channel) string {
 }
 
 func (gt *GuildsTree) createChannelNode(n *tview.TreeNode, c discord.Channel) {
-	ps, err := discordState.Permissions(c.ID, discordState.Ready().User.ID)
-	if err != nil {
-		return
-	}
+	if c.Type != discord.DirectMessage && c.Type != discord.GroupDM {
+		ps, err := discordState.Permissions(c.ID, discordState.Ready().User.ID)
+		if err != nil {
+			log.Println(err)
+			return
+		}
 
-	if !ps.Has(discord.PermissionViewChannel) {
-		return
+		if !ps.Has(discord.PermissionViewChannel) {
+			return
+		}
 	}
 
 	cn := tview.NewTreeNode(gt.channelToString(c))
@@ -185,7 +188,6 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 
 		gt.createChannelNodes(n, cs)
 	case discord.ChannelID:
-
 		ms, err := discordState.Messages(ref, config.Current.MessagesLimit)
 		if err != nil {
 			log.Println(err)
@@ -214,7 +216,7 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 		}
 
 		sort.Slice(cs, func(i, j int) bool {
-			return cs[i].LastMessageID < cs[j].LastMessageID
+			return cs[i].LastMessageID > cs[j].LastMessageID
 		})
 
 		for _, c := range cs {

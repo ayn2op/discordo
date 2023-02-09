@@ -1,12 +1,12 @@
 module github.com/ayn2op/discordo
 
-go 1.19
+go 1.20
 
 require (
 	github.com/atotto/clipboard v0.1.4
 	github.com/diamondburned/arikawa/v3 v3.2.0
 	github.com/gdamore/tcell/v2 v2.5.4
-	github.com/rivo/tview v0.0.0-20230104153304-892d1a2eb0da
+	github.com/rivo/tview v0.0.0-20230203122838-f0550c7918da
 	github.com/zalando/go-keyring v0.2.2
 	gopkg.in/yaml.v3 v3.0.1
 )
