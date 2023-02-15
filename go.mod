@@ -6,7 +6,7 @@ require (
 	github.com/atotto/clipboard v0.1.4
 	github.com/diamondburned/arikawa/v3 v3.2.0
 	github.com/gdamore/tcell/v2 v2.5.4
-	github.com/rivo/tview v0.0.0-20230203122838-f0550c7918da
+	github.com/rivo/tview v0.0.0-20230208211350-7dfff1ce7854
 	github.com/zalando/go-keyring v0.2.2
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -22,8 +22,8 @@ require (
 	github.com/mattn/go-runewidth v0.0.14 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rivo/uniseg v0.4.3 // indirect
-	golang.org/x/sys v0.4.0 // indirect
-	golang.org/x/term v0.4.0 // indirect
-	golang.org/x/text v0.6.0 // indirect
+	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/term v0.5.0 // indirect
+	golang.org/x/text v0.7.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 )
