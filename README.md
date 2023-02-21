@@ -1,4 +1,4 @@
-# Discordo &middot; [![ci](https://github.com/ayntgl/discordo/actions/workflows/ci.yml/badge.svg)](https://github.com/ayntgl/discordo/actions/workflows/ci.yml) [![Go Report Card](https://goreportcard.com/badge/github.com/ayntgl/discordo)](https://goreportcard.com/report/github.com/ayntgl/discordo) [![license](https://img.shields.io/github/license/ayntgl/discordo?logo=github)](https://github.com/ayntgl/discordo/blob/master/LICENSE)
+# Discordo &middot; [![ci](https://github.com/ayn2op/discordo/actions/workflows/ci.yml/badge.svg)](https://github.com/ayn2op/discordo/actions/workflows/ci.yml) [![Go Report Card](https://goreportcard.com/badge/github.com/ayn2op/discordo)](https://goreportcard.com/report/github.com/ayn2op/discordo) [![license](https://img.shields.io/github/license/ayn2op/discordo?logo=github)](https://github.com/ayn2op/discordo/blob/master/LICENSE)
 
 Discordo is a lightweight, secure, and feature-rich Discord terminal client. Heavily work-in-progress, expect breaking changes.
 
@@ -25,14 +25,13 @@ Discordo is a lightweight, secure, and feature-rich Discord terminal client. Hea
 - Feature-rich
   - Mouse & clipboard support
   - 2-Factor authentication
-  - Desktop notifications
   - Partial [Discord-flavored markdown](https://support.discord.com/hc/en-us/articles/210298617-Markdown-Text-101-Chat-Formatting-Bold-Italic-Underline-)
 
 ## Installation
 
 ### Prebuilt binaries
 
-You can download and install a [prebuilt binary here](https://nightly.link/ayntgl/discordo/workflows/ci/main) for Windows, macOS, or Linux.
+You can download and install a [prebuilt binary here](https://nightly.link/ayn2op/discordo/workflows/ci/main) for Windows, macOS, or Linux.
 
 ### Package managers
 
@@ -42,9 +41,9 @@ You can download and install a [prebuilt binary here](https://nightly.link/ayntg
 ### Building from source
 
 ```bash
-git clone https://github.com/ayntgl/discordo
+git clone https://github.com/ayn2op/discordo
 cd discordo
-make build
+go build .
 
 # optional
 sudo mv ./discordo /usr/local/bin
@@ -52,14 +51,8 @@ sudo mv ./discordo /usr/local/bin
 
 ### Linux clipboard support
 
-- `xclip` or `xsel` for X11.
-  - Ubuntu: `apt install xclip`
-  - Arch Linux: `pacman -S xclip`
-  - Fedora: `dnf install xclip`
-- `wl-clipboard` for Wayland.
-  - Ubuntu: `apt install wl-clipboard`
-  - Arch Linux: `pacman -S wl-clipboard`
-  - Fedora: `dnf install wl-clipboard`
+- `xclip` or `xsel` for X11 (`apt install xclip`)
+- `wl-clipboard` for Wayland (`apt install wl-clipboard`)
 
 ## Usage
 
@@ -73,9 +66,9 @@ sudo mv ./discordo /usr/local/bin
 
 ### Configuration
 
-A default configuration file is created on first start-up at `$HOME/.config/discordo.yml` on Unix, `$HOME/Library/Application Support/discordo.yml` on Darwin, and `%AppData%/discordo.yml` on Windows. The configuration file path can be customized using the `config` command-line flag (eg: `--config ~/myconfigs/discordo.yml`).
+A default configuration file is created on first start-up at `$HOME/.config/discordo/config.yml` on Unix, `$HOME/Library/Application Support/discordo/config.yml` on Darwin, and `%AppData%/discordo/config.yml` on Windows.
 
-Similarly, a log file is created on first start-up at `$HOME/.cache/discordo.log` on Unix, `$HOME/Library/Caches/discordo.log` on Darwin, and `%LocalAppData%/discordo.yml` on Windows. The log file path can be customized using the `log` command-line flag.
+Similarly, a log file is created on first start-up at `$HOME/.cache/discordo/logs.txt` on Unix, `$HOME/Library/Caches/discordo/logs.txt` on Darwin, and `%LocalAppData%/discordo/logs.txt` on Windows.
 
 ## Disclaimer
 

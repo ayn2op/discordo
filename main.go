@@ -1,53 +1,84 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"os"
+	"path/filepath"
 
-	"github.com/alecthomas/kong"
-	"github.com/ayntgl/discordo/config"
-	"github.com/ayntgl/discordo/ui"
+	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/ui"
+	"github.com/rivo/tview"
 	"github.com/zalando/go-keyring"
 )
 
-var cli struct {
-	Token      string `name:"token" short:"t" help:"The authentication token."`
-	ConfigPath string `name:"config" short:"c" help:"The path to the configuration file" type:"path" default:"${configPath}"`
-	LogPath    string `name:"log" short:"l" help:"The path to the log file" type:"path" default:"${logPath}"`
-}
+var (
+	token string
 
-func main() {
-	kong.Parse(&cli, kong.Vars{
-		"configPath": config.DefaultConfigPath(),
-		"logPath":    config.DefaultLogPath(),
-	})
+	discordState *State
 
-	if cli.LogPath != "" {
-		// Set the standard logger output to the provided log file.
-		f, err := os.OpenFile(cli.LogPath, os.O_CREATE|os.O_WRONLY, 0666)
-		if err != nil {
-			log.Fatal(err)
-		}
+	app      = tview.NewApplication()
+	mainFlex *MainFlex
+)
 
-		log.SetOutput(f)
-		log.SetFlags(log.LstdFlags | log.Lshortfile)
-	}
+func init() {
+	t, _ := keyring.Get(config.Name, "token")
+	flag.StringVar(&token, "token", t, "The authentication token.")
 
-	cfg := config.New()
-	if err := cfg.Load(cli.ConfigPath); err != nil {
+	path, err := os.UserCacheDir()
+	if err != nil {
 		log.Fatal(err)
 	}
 
-	if cli.Token != "" {
-		go keyring.Set(config.Name, "token", cli.Token)
-	} else {
-		var err error
-		cli.Token, err = keyring.Get(config.Name, "token")
-		if err != nil {
-			log.Println(err)
-		}
+	path = filepath.Join(path, config.Name)
+	err = os.MkdirAll(path, os.ModePerm)
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	app := ui.NewApplication(cfg)
-	app.Run(cli.Token)
+	path = filepath.Join(path, "logs.txt")
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, os.ModePerm)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.SetOutput(f)
+	log.SetFlags(log.LstdFlags | log.Llongfile)
+}
+
+func main() {
+	flag.Parse()
+
+	if err := config.Load(); err != nil {
+		log.Fatal(err)
+	}
+
+	if token == "" {
+		lf := ui.NewLoginForm()
+
+		go func() {
+			mainFlex = newMainFlex()
+			if err := openState(<-lf.Token); err != nil {
+				log.Fatal(err)
+			}
+
+			app.QueueUpdateDraw(func() {
+				app.SetRoot(mainFlex, true)
+			})
+		}()
+
+		app.SetRoot(lf, true)
+	} else {
+		mainFlex = newMainFlex()
+		if err := openState(token); err != nil {
+			log.Fatal(err)
+		}
+
+		app.SetRoot(mainFlex, true)
+	}
+
+	app.EnableMouse(config.Current.Mouse)
+	if err := app.Run(); err != nil {
+		log.Fatal(err)
+	}
 }
