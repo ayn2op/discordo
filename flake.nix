@@ -22,7 +22,7 @@
           pname = "discordio";
           inherit version;
           src = ./.;
-          vendorSha256 = "sha256-J6J7Tm/GN7Ftxlt10DG9+9LhB8VnLMgEbr4bq5LeEjY=";
+          vendorSha256 = "sha256-zsbR8qshQVlFjSs1ywXkdUaXUJ9bnNp75rfL1Vi5rAU=";
         };
       });
 
