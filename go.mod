@@ -6,7 +6,7 @@ require (
 	github.com/atotto/clipboard v0.1.4
 	github.com/diamondburned/arikawa/v3 v3.2.0
 	github.com/gdamore/tcell/v2 v2.6.0
-	github.com/rivo/tview v0.0.0-20230208211350-7dfff1ce7854
+	github.com/rivo/tview v0.0.0-20230225110121-c8e57d57c67f
 	github.com/zalando/go-keyring v0.2.2
 	gopkg.in/yaml.v3 v3.0.1
 )
