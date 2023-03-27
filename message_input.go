@@ -73,7 +73,6 @@ func (mi *MessageInput) sendAction() {
 		return
 	}
 
-	var err error
 	if mainFlex.messagesText.selectedMessage != -1 {
 		ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
 		if err != nil {
@@ -94,11 +93,6 @@ func (mi *MessageInput) sendAction() {
 		go discordState.SendMessageComplex(mainFlex.guildsTree.selectedChannelID, data)
 	} else {
 		go discordState.SendMessage(mainFlex.guildsTree.selectedChannelID, text)
-	}
-
-	if err != nil {
-		log.Println(err)
-		return
 	}
 
 	mainFlex.messagesText.selectedMessage = -1
