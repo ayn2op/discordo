@@ -24,13 +24,13 @@ USAGE
 
 The default keybindings in the app are as follow  
 
-### Guild tree
+### Guilds Tree
 
 | Action | Keybinding |
 | ------ | ---------- |
 | Focus  | Alt + g    |
 
-### Message text
+### Messages Text
 
 | Action                | Keybinding |
 | --------------------- | ---------- |
@@ -45,7 +45,7 @@ The default keybindings in the app are as follow
 | Select first          | Home       |
 | Select last           | End        |
 
-### Message input
+### Message Input
 
 | Action               | Keybinding |
 | -------------------- | ---------- |
