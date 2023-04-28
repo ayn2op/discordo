@@ -40,7 +40,7 @@ func defConfig() Config {
 
 func getPath(optionalPath string) (string, error) {
 	// Trigger an error if config flag used but is empty.
-	if len(optionalPath) == 0 {
+	if optionalPath == "" {
 		return "", errors.New("Optional path cannot be empty.")
 	}
 
