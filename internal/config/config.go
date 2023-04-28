@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 
@@ -38,6 +39,11 @@ func defConfig() Config {
 }
 
 func getPath(optionalPath string) (string, error) {
+	// Trigger an error if config flag used but is empty.
+	if len(optionalPath) == 0 {
+		return "", errors.New("Optional path cannot be empty.")
+	}
+
 	// Use the path provided by flags.
 	if optionalPath != "none" {
 		return optionalPath, nil
