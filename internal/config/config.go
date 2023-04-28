@@ -37,20 +37,47 @@ func defConfig() Config {
 	}
 }
 
-func Load() error {
-	path, err := os.UserConfigDir()
-	if err != nil {
-		return err
+func getPath(optionalPath string) (string, error) {
+	// Use the path provided by flags.
+	if optionalPath != "none" {
+		return optionalPath, nil
 	}
 
-	// Create the configuration directory if it does not exist already.
-	path = filepath.Join(path, Name)
-	err = os.MkdirAll(path, os.ModePerm)
+	// Use the default for the OS.
+	path, err := os.UserConfigDir()
 	if err != nil {
-		return err
+		return "", err
+	}
+
+	path = filepath.Join(path, Name)
+	if err != nil {
+		return "", err
 	}
 
 	path = filepath.Join(path, "config.yml")
+	if err != nil {
+		return "", err
+	}
+
+	return path, nil
+}
+
+func Load(optionalPath string) error {
+	path, err := getPath(optionalPath)
+	if err != nil {
+		return err
+	}
+
+	// Split the directory from the configuration file.
+	dir, file := filepath.Split(path)
+
+	// Create the configuration directory if it does not exist already.
+	err = os.MkdirAll(dir, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	path = filepath.Join(dir, file)
 	_, err = os.Stat(path)
 	if os.IsNotExist(err) {
 		f, err := os.Create(path)
