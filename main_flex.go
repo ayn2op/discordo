@@ -6,8 +6,6 @@ import (
 	"github.com/rivo/tview"
 )
 
-var guildsVisible bool = true
-
 type MainFlex struct {
 	*tview.Flex
 
@@ -40,23 +38,21 @@ func newMainFlex() *MainFlex {
 
 func (mf *MainFlex) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
-	case config.Current.Keys.GuildsTree.Focus:
-		if (guildsVisible) {
+	case config.Current.Keys.GuildsTree.Toggle:
+		if (mf.GetItemCount() > 1) {
 			app.SetFocus(mf.guildsTree)
 		}
 		return nil
-	case config.Current.Keys.GuildsTree.Toggle:
-		// toggle guild tree visibility
-		if (guildsVisible) {
-			mainFlex.RemoveItem(mf.guildsTree)
-			app.SetFocus(mf.messageInput)
-		} else {
+	case config.Current.Keys.GuildsTree.Focus:
+		if (mf.GetItemCount() < 2) {
 			mainFlex.RemoveItem(mf.right)
 			mainFlex.AddItem(mf.guildsTree, 0, 1, true)
 			mainFlex.AddItem(mf.right, 0, 4, false)
+		} else {
+			mainFlex.RemoveItem(mf.guildsTree)
+			app.SetFocus(mf.messageInput)
 		}
-		guildsVisible = !guildsVisible
-		app.SetFocus(mf.guildsTree)
+		return nil
 			
 	case config.Current.Keys.MessagesText.Focus:
 		app.SetFocus(mf.messagesText)
