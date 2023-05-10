@@ -53,7 +53,8 @@ Keybindings are configurable in the [configuration file](#configuration).
 
 ## Configuration
 
-The configuration file is stored in the following location:
+The configuration file allows you to edit keybindings or change the theme.
+By default, it is stored in the following location:
 
 | Operating System | Configuration File Location                             |
 | ---------------- | ------------------------------------------------------- |
@@ -61,7 +62,12 @@ The configuration file is stored in the following location:
 | Darwin           | `$HOME/Library/Application Support/discordo/config.yml` |
 | Windows          | `%AppData%/discordo/config.yml`                         |
 
-From there, you can edit keybindings or change the theme.
+You can also use the **`--config`** flag to specify a different location for the configuration file:
+
+```
+discordo --config "/foo/bar/config.yml"
+```
+
 
 ## Log files
 
