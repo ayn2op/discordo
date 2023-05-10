@@ -9,7 +9,7 @@ NAME
 SYNOPSIS
 --------
 
-`discordo` [`--token "TOKEN"`]
+`discordo` [`--token "TOKEN"`] [`--config "OPTIONAL/PATH/HERE.yml"`]
 
 DESCRIPTION
 -----------

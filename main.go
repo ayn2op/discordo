@@ -13,7 +13,8 @@ import (
 )
 
 var (
-	token string
+	token      string
+	configPath string
 
 	discordState *State
 
@@ -24,6 +25,7 @@ var (
 func init() {
 	t, _ := keyring.Get(config.Name, "token")
 	flag.StringVar(&token, "token", t, "The authentication token.")
+	flag.StringVar(&configPath, "config", "none", "Optional alternative configuration file.")
 
 	path, err := os.UserCacheDir()
 	if err != nil {
@@ -49,7 +51,7 @@ func init() {
 func main() {
 	flag.Parse()
 
-	if err := config.Load(); err != nil {
+	if err := config.Load(configPath); err != nil {
 		log.Fatal(err)
 	}
 
