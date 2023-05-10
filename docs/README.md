@@ -18,7 +18,7 @@ There are two ways to login:
 
 **Token login**
 
-Use the **`--token`** flag:
+Use the `--token` flag:
 
 ```
 discordo --token "OTI2MDU5NTQxNDE2Nzc5ODA2.Yc2KKA.2iZ-5JxgxG-9Ub8GHzBSn-NJjNg"
@@ -62,7 +62,7 @@ By default, it is stored in the following location:
 | Darwin           | `$HOME/Library/Application Support/discordo/config.yml` |
 | Windows          | `%AppData%/discordo/config.yml`                         |
 
-You can also use the **`--config`** flag to specify a different location for the configuration file:
+You can also use the `--config` flag to specify a different location for the configuration file:
 
 ```
 discordo --config "/foo/bar/config.yml"
