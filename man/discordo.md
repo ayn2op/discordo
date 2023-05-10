@@ -29,6 +29,7 @@ The default keybindings in the app are as follow
 | Action | Keybinding |
 | ------ | ---------- |
 | Focus  | Alt + g    |
+| Toggle | Alt + b    |
 
 ### Messages Text
 
