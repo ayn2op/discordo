@@ -18,7 +18,8 @@ There are two ways to login:
 
 **Token login**
 
-Use the **`--token`** flag:  
+Use the **`--token`** flag:
+
 ```
 discordo --token "OTI2MDU5NTQxNDE2Nzc5ODA2.Yc2KKA.2iZ-5JxgxG-9Ub8GHzBSn-NJjNg"
 ```
