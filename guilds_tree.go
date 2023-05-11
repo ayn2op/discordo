@@ -94,8 +94,8 @@ func (gt *GuildsTree) channelToString(c discord.Channel) string {
 
 			s = strings.Join(rs, ", ")
 		}
-	case discord.GuildNews:
-		s = "n-" + c.Name
+	case discord.GuildAnnouncement:
+		s = "a-" + c.Name
 	case discord.GuildStore:
 		s = "s-" + c.Name
 	case discord.GuildForum:
