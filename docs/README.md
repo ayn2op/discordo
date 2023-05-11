@@ -1,6 +1,6 @@
 # Discordo
 
-**Discordo** is a lightweight, secure, and feature-rich Discord terminal client.  
+Discordo is a lightweight, secure, and feature-rich Discord terminal client.  
 
 ## Warning
 
