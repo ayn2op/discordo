@@ -13,7 +13,7 @@ require (
 
 require (
 	github.com/alessio/shellescape v1.4.1 // indirect
-	github.com/danieljoos/wincred v1.1.2 // indirect
+	github.com/danieljoos/wincred v1.2.0 // indirect
 	github.com/gdamore/encoding v1.0.0 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/gorilla/schema v1.2.0 // indirect
