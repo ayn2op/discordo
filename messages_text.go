@@ -14,8 +14,6 @@ import (
 	"github.com/rivo/tview"
 )
 
-const replyIndicator = '╭'
-
 type MessagesText struct {
 	*tview.TextView
 
@@ -68,15 +66,14 @@ func (mt *MessagesText) createMessage(m discord.Message) {
 		fmt.Fprintf(mt, `["%s"]`, m.ID)
 
 		if m.ReferencedMessage != nil {
-			fmt.Fprintf(mt, "[::d]%c ", replyIndicator)
-
-			mt.createHeader(mt, *m.ReferencedMessage)
+			// ReplyIndicator should be a part of the "createHeader" function
+			mt.createHeader(mt, *m.ReferencedMessage, true)
 			mt.createBody(mt, *m.ReferencedMessage)
 
 			fmt.Fprint(mt, "[::-]\n")
 		}
 
-		mt.createHeader(mt, m)
+		mt.createHeader(mt, m, false)
 		mt.createBody(mt, m)
 		mt.createFooter(mt, m)
 
@@ -86,10 +83,20 @@ func (mt *MessagesText) createMessage(m discord.Message) {
 	}
 }
 
-func (mt *MessagesText) createHeader(w io.Writer, m discord.Message) {
-	fmt.Fprintf(w, "[%s]%s[-] ", config.Current.Theme.MessagesText.AuthorColor, m.Author.Username)
+func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, isreply bool) {
+	if config.Current.TimestampsBeforeAuthor && config.Current.Timestamps {
+		fmt.Fprintf(w, "[::d]%7s[::-] ", m.Timestamp.Format(time.Kitchen))
+	}
 
-	if config.Current.Timestamps {
+	if isreply {
+		fmt.Fprintf(mt, "[::d]%s", config.Current.Theme.MessagesText.ReplyIndicator)
+	}
+
+	// A "[-]" will only reset colors, and will not reset background nor attributes (e.g. bold, dim, etc..). Use "[-:-:-]" instead.
+	// Yes, some people want a magenta background with a dim green forground for the author name color.
+	fmt.Fprintf(w, "[%s]%s[-:-:-] ", config.Current.Theme.MessagesText.AuthorColor, m.Author.Username)
+
+	if config.Current.Timestamps && !config.Current.TimestampsBeforeAuthor {
 		fmt.Fprintf(w, "[::d]%s[::-] ", m.Timestamp.Format(time.Kitchen))
 	}
 }
