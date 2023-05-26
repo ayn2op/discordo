@@ -82,8 +82,8 @@ func (mt *MessagesText) createMessage(m discord.Message) {
 	}
 }
 
-func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, isreply bool) {
-	if isreply {
+func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, isReply bool) {
+	if isReply {
 		fmt.Fprintf(mt, "[::d]%s", config.Current.Theme.MessagesText.ReplyIndicator)
 	}
 
