@@ -16,6 +16,8 @@ type Config struct {
 	Mouse bool `yaml:"mouse"`
 	// MessagesLimit is the number of messages to fetch when a text-based channel is selected.
 	MessagesLimit uint `yaml:"messages_limit"`
+	// TimestampsBeforeAuthor indicates whether to draw the timestamp before or after the author.
+	TimestampsBeforeAuthor bool `yaml:"timestamps_before_author"`
 	// Timestamps indicates whether to draw the timestamp in front of the message or not.
 	Timestamps bool `yaml:"timestamps"`
 	// Editor is the program to open when the `LaunchEditor` key is pressed. If the value of the field is "default", the `$EDITOR` environment variable is used instead.
@@ -27,10 +29,11 @@ type Config struct {
 
 func defConfig() Config {
 	return Config{
-		Mouse:         true,
-		Timestamps:    false,
-		MessagesLimit: 50,
-		Editor:        "default",
+		Mouse:                  true,
+		TimestampsBeforeAuthor: false,
+		Timestamps:             false,
+		MessagesLimit:          50,
+		Editor:                 "default",
 
 		Keys:  defKeys(),
 		Theme: defTheme(),

@@ -83,13 +83,17 @@ func (mt *MessagesText) createMessage(m discord.Message) {
 }
 
 func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, isReply bool) {
+	if config.Current.Timestamps && config.Current.TimestampsBeforeAuthor {
+		fmt.Fprintf(w, "[::d]%7s[::-] ", m.Timestamp.Format(time.Kitchen))
+	}
+
 	if isReply {
 		fmt.Fprintf(mt, "[::d]%s", config.Current.Theme.MessagesText.ReplyIndicator)
 	}
 
-	fmt.Fprintf(w, "[%s]%s[-] ", config.Current.Theme.MessagesText.AuthorColor, m.Author.Username)
+	fmt.Fprintf(w, "[%s]%s[-:-:-] ", config.Current.Theme.MessagesText.AuthorColor, m.Author.Username)
 
-	if config.Current.Timestamps {
+	if config.Current.Timestamps && !config.Current.TimestampsBeforeAuthor {
 		fmt.Fprintf(w, "[::d]%s[::-] ", m.Timestamp.Format(time.Kitchen))
 	}
 }
