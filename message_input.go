@@ -122,7 +122,7 @@ func (mi *MessageInput) launchEditorAction() {
 	// Stdout to a variable actually causes editors to not
 	// work for some reason, so we're going with the more
 	// reliable method.
-	msg_file := os.TempDir() + "/discord_msg.txt"
+	msg_file := filepath.Join(os.TempDir(), "discord_msg-" + os.Getpid() + ".txt")
 	f, err := os.Create(msg_file)
 	if err != nil {
 		log.Println(err)
@@ -141,6 +141,7 @@ func (mi *MessageInput) launchEditorAction() {
 		err := cmd.Run()
 		if err != nil {
 			log.Println(err)
+			os.Remove(msg_file)
 			return
 		}
 	})
@@ -152,6 +153,7 @@ func (mi *MessageInput) launchEditorAction() {
 	os.Remove(msg_file)
 	if read_err != nil {
 		log.Println(read_err)
+		return
 	}
 
 	mi.SetText(string(msg))
