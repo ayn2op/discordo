@@ -116,10 +116,26 @@ func (mi *MessageInput) launchEditorAction() {
 	if e == "default" {
 		e = os.Getenv("EDITOR")
 	}
+	
+	// Create a file called discord_msg.txt that we'll
+	// open in the editor. The reason is because capturing
+	// Stdout to a variable actually causes editors to not
+	// work for some reason, so we're going with the more
+	// reliable method.
+	msg_file := os.TempDir() + "/discord_msg.txt"
+	f, err := os.Create(msg_file)
+	if err != nil {
+		log.Println(err)
+	}
+	f.Close()
+	
+	cmd := exec.Command(e, msg_file)
 
-	cmd := exec.Command(e)
-	var b strings.Builder
-	cmd.Stdout = &b
+	// For some reason, editors won't open without setting
+	// these to their os counterparts.
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 
 	app.Suspend(func() {
 		err := cmd.Run()
@@ -128,6 +144,15 @@ func (mi *MessageInput) launchEditorAction() {
 			return
 		}
 	})
+	
+	// One may ask "Why don't we remove the file earlier?". Well,
+	// the file won't contain any message up until this point, and the file
+	// is created in /tmp anyway so it'll be cleared on a reboot.
+	var msg, read_err = os.ReadFile(msg_file)
+	os.Remove(msg_file)
+	if read_err != nil {
+		log.Println(read_err)
+	}
 
-	mi.SetText(b.String())
+	mi.SetText(string(msg))
 }
