@@ -130,8 +130,11 @@ func (mi *MessageInput) launchEditorAction() {
 	}
 	f.Close()
 	
+	// Defer this so the file is deleted when the
+	// function returns, regardless of failiure or not
+	defer os.Remove(msg_file)
+	
 	cmd := exec.Command(e, msg_file)
-
 	// For some reason, editors won't open without setting
 	// these to their os counterparts.
 	cmd.Stdin = os.Stdin
@@ -142,7 +145,6 @@ func (mi *MessageInput) launchEditorAction() {
 		err := cmd.Run()
 		if err != nil {
 			log.Println(err)
-			os.Remove(msg_file)
 			return
 		}
 	})
@@ -151,7 +153,6 @@ func (mi *MessageInput) launchEditorAction() {
 	// the file won't contain any message up until this point, and the file
 	// is created in /tmp anyway so it'll be cleared on a reboot.
 	var msg, read_err = os.ReadFile(msg_file)
-	os.Remove(msg_file)
 	if read_err != nil {
 		log.Println(read_err)
 		return
