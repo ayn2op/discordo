@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"path/filepath"
 
 	"github.com/atotto/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
@@ -122,7 +123,7 @@ func (mi *MessageInput) launchEditorAction() {
 	// Stdout to a variable actually causes editors to not
 	// work for some reason, so we're going with the more
 	// reliable method.
-	msg_file := filepath.Join(os.TempDir(), "discord_msg-" + os.Getpid() + ".txt")
+	msg_file := filepath.Join(os.TempDir(), "discord_msg-" + string(os.Getpid()) + ".txt")
 	f, err := os.Create(msg_file)
 	if err != nil {
 		log.Println(err)
