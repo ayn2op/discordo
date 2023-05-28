@@ -77,12 +77,14 @@ func (gt *GuildsTree) channelToString(c discord.Channel) string {
 	var s string
 	tag := "[::d]"
 	read_states := discordState.Ready().ReadyEventExtras.ReadStates
-
+	
+	// Go over each of the read states, then if:
+	// - The channel IDs match
+	// - The last message IDs don't match
+	// Set the tag to bold and italics
 	for i := range read_states {
-		if read_states[i].ChannelID == c.ID {
-			if read_states[i].LastMessageID != c.LastMessageID {
-				tag = "[::bi]"
-			}
+		if read_states[i].ChannelID == c.ID && read_states[i].LastMessageID != c.LastMessageID {
+			tag = "[::bi]"
 		}
 	}
 
