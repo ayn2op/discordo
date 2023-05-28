@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"path/filepath"
 
 	"github.com/atotto/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
@@ -118,13 +117,12 @@ func (mi *MessageInput) launchEditorAction() {
 		e = os.Getenv("EDITOR")
 	}
 	
-	// Create a file called discord_msg.txt that we'll
-	// open in the editor. The reason is because capturing
-	// Stdout to a variable actually causes editors to not
-	// work for some reason, so we're going with the more
+	// Create a temporary (with discord_msg inn the name) file 
+	// that we'll open in the editor. The reason is because 
+	// capturing Stdout to a variable actually causes editors 
+	// to not work for some reason, so we're going with the more
 	// reliable method.
-	msg_file := filepath.Join(os.TempDir(), "discord_msg-" + string(os.Getpid()) + ".txt")
-	f, err := os.Create(msg_file)
+	f, err := os.CreateTemp("", "discord_msg")
 	if err != nil {
 		log.Println(err)
 	}
@@ -132,9 +130,9 @@ func (mi *MessageInput) launchEditorAction() {
 	
 	// Defer this so the file is deleted when the
 	// function returns, regardless of failiure or not
-	defer os.Remove(msg_file)
+	defer os.Remove(f.Name())
 	
-	cmd := exec.Command(e, msg_file)
+	cmd := exec.Command(e, f.Name())
 	// For some reason, editors won't open without setting
 	// these to their os counterparts.
 	cmd.Stdin = os.Stdin
@@ -152,7 +150,7 @@ func (mi *MessageInput) launchEditorAction() {
 	// One may ask "Why don't we remove the file earlier?". Well,
 	// the file won't contain any message up until this point, and the file
 	// is created in /tmp anyway so it'll be cleared on a reboot.
-	var msg, read_err = os.ReadFile(msg_file)
+	var msg, read_err = os.ReadFile(f.Name())
 	if read_err != nil {
 		log.Println(read_err)
 		return
