@@ -76,15 +76,34 @@ func (gt *GuildsTree) createGuildNode(n *tview.TreeNode, g discord.Guild) {
 func (gt *GuildsTree) channelToString(c discord.Channel) string {
 	var s string
 	tag := "[::d]"
-	read_states := discordState.Ready().ReadyEventExtras.ReadStates
+	ready_extras := discordState.Ready().ReadyEventExtras
+	var channel_settings gateway.UserChannelOverride
+	var guild_settings gateway.UserGuildSetting
 	
-	// Go over each of the read states, then if:
+	// Get the settings of the channel channel
+	// to check if the user has muted it or not,
+	// since we should respect the user's decisions
+	for ig := range ready_extras.UserGuildSettings {
+		if ready_extras.UserGuildSettings[ig].GuildID == c.GuildID {
+			guild_settings = ready_extras.UserGuildSettings[ig]
+			for ico := range guild_settings.ChannelOverrides {
+				if guild_settings.ChannelOverrides[ico].ChannelID == c.ID {
+					channel_settings = guild_settings.ChannelOverrides[ico]
+				}
+			}
+		}
+	}
+	
+	// Check if the user has muted the channel, then if
+	// not, go over each of the read states, then if:
 	// - The channel IDs match
 	// - The last message IDs don't match
-	// Set the tag to bold and italics
-	for i := range read_states {
-		if read_states[i].ChannelID == c.ID && read_states[i].LastMessageID != c.LastMessageID {
-			tag = "[::bi]"
+	// then set the tag to bold and italics
+	if !channel_settings.Muted && !guild_settings.Muted {
+		for ic := range ready_extras.ReadStates {
+			if ready_extras.ReadStates[ic].ChannelID == c.ID && ready_extras.ReadStates[ic].LastMessageID != c.LastMessageID {
+				tag = "[::bi]"
+			}
 		}
 	}
 
