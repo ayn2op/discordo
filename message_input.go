@@ -122,7 +122,7 @@ func (mi *MessageInput) launchEditorAction() {
 	// capturing Stdout to a variable actually causes editors 
 	// to not work for some reason, so we're going with the more
 	// reliable method.
-	f, err := os.CreateTemp("", "discord_msg")
+	f, err := os.CreateTemp("", config.Name + "-*.md")
 	if err != nil {
 		log.Println(err)
 	}
