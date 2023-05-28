@@ -83,8 +83,10 @@ func (mt *MessagesText) createMessage(m discord.Message) {
 }
 
 func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, isReply bool) {
+	time := m.Timestamp.Format(time.Kitchen)
+
 	if config.Current.Timestamps && config.Current.TimestampsBeforeAuthor {
-		fmt.Fprintf(w, "[::d]%7s[::-] ", m.Timestamp.Format(time.Kitchen))
+		fmt.Fprintf(w, "[::d]%7s[::-] ", time)
 	}
 
 	if isReply {
@@ -94,7 +96,7 @@ func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, isReply boo
 	fmt.Fprintf(w, "[%s]%s[-:-:-] ", config.Current.Theme.MessagesText.AuthorColor, m.Author.Username)
 
 	if config.Current.Timestamps && !config.Current.TimestampsBeforeAuthor {
-		fmt.Fprintf(w, "[::d]%s[::-] ", m.Timestamp.Format(time.Kitchen))
+		fmt.Fprintf(w, "[::d]%s[::-] ", time)
 	}
 }
 
