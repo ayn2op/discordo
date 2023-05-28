@@ -75,36 +75,49 @@ func (gt *GuildsTree) createGuildNode(n *tview.TreeNode, g discord.Guild) {
 
 func (gt *GuildsTree) channelToString(c discord.Channel) string {
 	var s string
-	tag := "[::d]"
+	tag := "[::]"
 	ready_extras := discordState.Ready().ReadyEventExtras
 	var channel_settings gateway.UserChannelOverride
 	var guild_settings gateway.UserGuildSetting
 	
-	// Get the settings of the channel channel
-	// to check if the user has muted it or not,
-	// since we should respect the user's decisions
-	for ig := range ready_extras.UserGuildSettings {
-		if ready_extras.UserGuildSettings[ig].GuildID == c.GuildID {
-			guild_settings = ready_extras.UserGuildSettings[ig]
-			for ico := range guild_settings.ChannelOverrides {
-				if guild_settings.ChannelOverrides[ico].ChannelID == c.ID {
-					channel_settings = guild_settings.ChannelOverrides[ico]
-				}
+	// Get the guild and channel settings so we can respect
+	// whether the user wants unread indicators or not
+	//
+	// We use seperate for loops to avoid heavy nesting
+	{
+		// Get guild settings
+		for ig := range ready_extras.UserGuildSettings {
+			if ready_extras.UserGuildSettings[ig].GuildID == c.GuildID {
+				guild_settings = ready_extras.UserGuildSettings[ig]
+				break	
+			}
+		}
+		// Get channel settings
+		for ico := range guild_settings.ChannelOverrides {
+			if guild_settings.ChannelOverrides[ico].ChannelID == c.ID {
+				channel_settings = guild_settings.ChannelOverrides[ico]
+				break
 			}
 		}
 	}
-	
+
 	// Check if the user has muted the channel, then if
 	// not, go over each of the read states, then if:
 	// - The channel IDs match
 	// - The last message IDs don't match
 	// then set the tag to bold and italics
+	//
+	// If the channel is muted, then let's slightly dim it and 
+	// make the italicized.
 	if !channel_settings.Muted && !guild_settings.Muted {
 		for ic := range ready_extras.ReadStates {
 			if ready_extras.ReadStates[ic].ChannelID == c.ID && ready_extras.ReadStates[ic].LastMessageID != c.LastMessageID {
 				tag = "[::bi]"
+				break
 			}
 		}
+	} else {
+		tag = "[::di]"
 	}
 
 	switch c.Type {
