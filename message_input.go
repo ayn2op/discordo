@@ -117,7 +117,7 @@ func (mi *MessageInput) launchEditorAction() {
 		e = os.Getenv("EDITOR")
 	}
 	
-	// Create a temporary (with discord_msg inn the name) file 
+	// Create a temporary (with discord_msg in the name) file 
 	// that we'll open in the editor. The reason is because 
 	// capturing Stdout to a variable actually causes editors 
 	// to not work for some reason, so we're going with the more
