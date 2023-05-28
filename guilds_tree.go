@@ -75,20 +75,20 @@ func (gt *GuildsTree) createGuildNode(n *tview.TreeNode, g discord.Guild) {
 
 func (gt *GuildsTree) channelToString(c discord.Channel) string {
 	var s string
-	tag := ""
+	tag := "[::d]"
 	read_states := discordState.Ready().ReadyEventExtras.ReadStates
 
 	for i := range read_states {
 		if read_states[i].ChannelID == c.ID {
 			if read_states[i].LastMessageID != c.LastMessageID {
-				tag = "UNREAD-"
+				tag = "[::bi]"
 			}
 		}
 	}
 
 	switch c.Type {
 	case discord.GuildText:
-		s = "#" + tag + c.Name
+		s = "#" + c.Name
 	case discord.DirectMessage:
 		r := c.DMRecipients[0]
 		s = r.Tag()
@@ -115,7 +115,7 @@ func (gt *GuildsTree) channelToString(c discord.Channel) string {
 		s = c.Name
 	}
 
-	return s
+	return tag + s + "[-]"
 }
 
 func (gt *GuildsTree) createChannelNode(n *tview.TreeNode, c discord.Channel) {
