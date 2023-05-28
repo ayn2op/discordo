@@ -112,12 +112,20 @@ func (gt *GuildsTree) channelToString(c discord.Channel) string {
 	if !channelSettings.Muted && !guildSettings.Muted {
 		for ic := range readyExtras.ReadStates {
 			if readyExtras.ReadStates[ic].ChannelID == c.ID && readyExtras.ReadStates[ic].LastMessageID != c.LastMessageID {
-				tag = config.Current.Theme.GuildsTree.UnreadReadIndicator
+				mentionCount := readyExtras.ReadStates[ic].MentionCount
+				if mentionCount > 0 {
+					tag = fmt.Sprintf("[%s]", 
+						fmt.Sprintf("%s%s", 
+							config.Current.Theme.GuildsTree.MentionColor, 
+							config.Current.Theme.GuildsTree.UnreadIndicator)) + fmt.Sprint(mentionCount)
+				} else {
+					tag = fmt.Sprintf("[%s]", config.Current.Theme.GuildsTree.UnreadIndicator)
+				}
 				break
 			}
 		}
 	} else {
-		tag = config.Current.Theme.GuildsTree.MutedIndicator
+		tag = fmt.Sprintf("[%s]", config.Current.Theme.GuildsTree.MutedIndicator)
 	}
 
 	switch c.Type {
