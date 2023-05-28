@@ -76,9 +76,9 @@ func (gt *GuildsTree) createGuildNode(n *tview.TreeNode, g discord.Guild) {
 func (gt *GuildsTree) channelToString(c discord.Channel) string {
 	var s string
 	tag := "[::]"
-	ready_extras := discordState.Ready().ReadyEventExtras
-	var channel_settings gateway.UserChannelOverride
-	var guild_settings gateway.UserGuildSetting
+	readyExtras := discordState.Ready().ReadyEventExtras
+	var channelSettings gateway.UserChannelOverride
+	var guildSettings gateway.UserGuildSetting
 	
 	// Get the guild and channel settings so we can respect
 	// whether the user wants unread indicators or not
@@ -86,16 +86,16 @@ func (gt *GuildsTree) channelToString(c discord.Channel) string {
 	// We use seperate for loops to avoid heavy nesting
 	{
 		// Get guild settings
-		for ig := range ready_extras.UserGuildSettings {
-			if ready_extras.UserGuildSettings[ig].GuildID == c.GuildID {
-				guild_settings = ready_extras.UserGuildSettings[ig]
+		for ig := range readyExtras.UserGuildSettings {
+			if readyExtras.UserGuildSettings[ig].GuildID == c.GuildID {
+				guildSettings = readyExtras.UserGuildSettings[ig]
 				break	
 			}
 		}
 		// Get channel settings
-		for ico := range guild_settings.ChannelOverrides {
-			if guild_settings.ChannelOverrides[ico].ChannelID == c.ID {
-				channel_settings = guild_settings.ChannelOverrides[ico]
+		for ico := range guildSettings.ChannelOverrides {
+			if guildSettings.ChannelOverrides[ico].ChannelID == c.ID {
+				channelSettings = guildSettings.ChannelOverrides[ico]
 				break
 			}
 		}
@@ -109,9 +109,9 @@ func (gt *GuildsTree) channelToString(c discord.Channel) string {
 	//
 	// If the channel is muted, then let's slightly dim it and 
 	// make the italicized.
-	if !channel_settings.Muted && !guild_settings.Muted {
-		for ic := range ready_extras.ReadStates {
-			if ready_extras.ReadStates[ic].ChannelID == c.ID && ready_extras.ReadStates[ic].LastMessageID != c.LastMessageID {
+	if !channelSettings.Muted && !guildSettings.Muted {
+		for ic := range readyExtras.ReadStates {
+			if readyExtras.ReadStates[ic].ChannelID == c.ID && readyExtras.ReadStates[ic].LastMessageID != c.LastMessageID {
 				tag = config.Current.Theme.GuildsTree.UnreadReadIndicator
 				break
 			}
