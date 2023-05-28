@@ -117,7 +117,7 @@ func (gt *GuildsTree) channelToString(c discord.Channel) string {
 		s = c.Name
 	}
 
-	return tag + s + "[-]"
+	return tag + s + "[::-]"
 }
 
 func (gt *GuildsTree) createChannelNode(n *tview.TreeNode, c discord.Channel) {
@@ -176,7 +176,7 @@ PARENT_CHANNELS:
 	}
 }
 
-func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
+fnc (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 	gt.selectedChannelID = 0
 
 	mainFlex.messagesText.reset()
