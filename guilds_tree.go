@@ -112,12 +112,12 @@ func (gt *GuildsTree) channelToString(c discord.Channel) string {
 	if !channel_settings.Muted && !guild_settings.Muted {
 		for ic := range ready_extras.ReadStates {
 			if ready_extras.ReadStates[ic].ChannelID == c.ID && ready_extras.ReadStates[ic].LastMessageID != c.LastMessageID {
-				tag = "[::bi]"
+				tag = config.Current.Theme.GuildsTree.UnreadReadIndicator
 				break
 			}
 		}
 	} else {
-		tag = "[::di]"
+		tag = config.Current.Theme.GuildsTree.MutedIndicator
 	}
 
 	switch c.Type {

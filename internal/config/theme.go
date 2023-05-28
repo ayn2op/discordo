@@ -4,6 +4,8 @@ type (
 	GuildsTreeTheme struct {
 		// Graphics indicates whether to draw the line graphics to illustrate the hierarchy or not.
 		Graphics bool `yaml:"graphics"`
+		UnreadReadIndicator string `yaml:"unread_indicator"`
+		MutedIndicator string `yaml:"muted_indicator"`
 	}
 
 	MessagesTextTheme struct {
@@ -38,6 +40,8 @@ func defTheme() Theme {
 
 		GuildsTree: GuildsTreeTheme{
 			Graphics: true,
+			UnreadReadIndicator: "[::bi]",
+			MutedIndicator: "[::di]",
 		},
 		MessagesText: MessagesTextTheme{
 			AuthorColor: "aqua",
