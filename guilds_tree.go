@@ -176,7 +176,7 @@ PARENT_CHANNELS:
 	}
 }
 
-fnc (gt *GuildsTree) onSelected(n *tview.TreeNode) {
+func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 	gt.selectedChannelID = 0
 
 	mainFlex.messagesText.reset()
