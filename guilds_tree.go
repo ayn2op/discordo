@@ -68,7 +68,60 @@ func (gt *GuildsTree) createGuildFolderNode(parent *tview.TreeNode, gf gateway.G
 }
 
 func (gt *GuildsTree) createGuildNode(n *tview.TreeNode, g discord.Guild) {
-	gn := tview.NewTreeNode(g.Name)
+	readyExtras := discordState.Ready().ReadyEventExtras
+	tag := "[::]"
+	
+	// Set the tag for the unread/muted/pinged indicators
+	//
+	// If the guild is muted, then we can safely just move to the 
+	// node creation and call it a day
+	{
+		var guildSettings gateway.UserGuildSetting
+		unreadCount := 0
+		mentionCount := 0
+		for ig := range readyExtras.UserGuildSettings {
+			if readyExtras.UserGuildSettings[ig].GuildID == g.ID {
+				guildSettings = readyExtras.UserGuildSettings[ig]
+				if guildSettings.Muted {
+					tag = fmt.Sprintf("[%s]", config.Current.Theme.GuildsTree.MutedIndicator)
+					goto create_guild_node
+				}
+			}
+		}
+		for ic := range guildSettings.ChannelOverrides {
+			channelSettings := guildSettings.ChannelOverrides[ic]
+			channel, err := discordState.Channel(channelSettings.ChannelID)
+			if err != nil {
+				log.Println(err)
+				return
+			} else if channelSettings.Muted {
+				continue
+			}
+			for rs := range readyExtras.ReadStates {
+				readState := readyExtras.ReadStates[rs]
+				if readState.ChannelID == channel.ID {
+					if readState.LastMessageID != channel.LastMessageID {
+						unreadCount += 1
+					}
+					if readState.MentionCount > 0 {
+						mentionCount += 1
+					}
+				}
+			}
+		}
+
+		if mentionCount > 0 {
+			tag = fmt.Sprintf("[%s]", 
+					fmt.Sprintf("%s%s", 
+						config.Current.Theme.GuildsTree.MentionColor, 
+						config.Current.Theme.GuildsTree.UnreadIndicator)) + fmt.Sprint(mentionCount)
+		} else if unreadCount > 0 {
+			tag = fmt.Sprintf("[%s]", config.Current.Theme.GuildsTree.UnreadIndicator)
+		}
+	}
+	
+	create_guild_node:
+	gn := tview.NewTreeNode(tag + g.Name + "[::-]")
 	gn.SetReference(g.ID)
 	n.AddChild(gn)
 }
