@@ -129,9 +129,13 @@ func (gt *GuildsTree) createGuildNode(n *tview.TreeNode, g discord.Guild) {
 			goto create_guild_node
 		}
 		
-		// For anyone concerned, this shouldn't affect
-		// muted channels. As far as I know, any guild with
-		// a muted channel will appear in ReadyEventExtras
+		// "Wait, didn't we already do this?"
+		//
+		// Well not quite. ChannelOverrides only 
+		// contains overriden channels, so we have to
+		// handle the rest of them
+		//
+		// Yay...
 		for ic := range channels {
 			for rs := range readyExtras.ReadStates {
 				readState := readyExtras.ReadStates[rs]
