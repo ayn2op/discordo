@@ -194,7 +194,7 @@ func (gt *GuildsTree) channelToString(c discord.Channel) string {
 				channelSettings = guildSettings.ChannelOverrides[ico]
 				if channelSettings.Muted {
 					tag = fmt.Sprintf("[%s]", config.Current.Theme.GuildsTree.MutedIndicator)
-					goto create_channel_string
+					break
 				}
 				break
 			}
@@ -205,6 +205,9 @@ func (gt *GuildsTree) channelToString(c discord.Channel) string {
 	// - The channel IDs match
 	// - The last message IDs don't match
 	// then set the tag to bold and italics
+	//
+	// Pings are exempt from channels being muted, since
+	// pings are important and as such should be seen regardless
 	for ic := range readyExtras.ReadStates {
 		if readyExtras.ReadStates[ic].ChannelID == c.ID && readyExtras.ReadStates[ic].LastMessageID != c.LastMessageID {
 			mentionCount := readyExtras.ReadStates[ic].MentionCount
@@ -213,14 +216,13 @@ func (gt *GuildsTree) channelToString(c discord.Channel) string {
 					fmt.Sprintf("%s%s", 
 						config.Current.Theme.GuildsTree.MentionColor, 
 						config.Current.Theme.GuildsTree.UnreadIndicator)) + fmt.Sprint(mentionCount)
-			} else {
+			} else if mentionCount == 0 && !channelSettings.Muted {
 				tag = fmt.Sprintf("[%s]", config.Current.Theme.GuildsTree.UnreadIndicator)
 			}
 			break
 		}
 	}
 	
-	create_channel_string:
 	switch c.Type {
 	case discord.GuildText:
 		s = "#" + c.Name
