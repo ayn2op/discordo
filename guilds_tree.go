@@ -75,48 +75,84 @@ func (gt *GuildsTree) createGuildNode(n *tview.TreeNode, g discord.Guild) {
 	//
 	// If the guild is muted, then we can safely just move to the 
 	// node creation and call it a day
+	//
+	// You'll also notice that we go to node creation if an error
+	// occurs. This is because this only relates to unread and read, so
+	// if an error occurs, the user should still be able to view the channel safely
 	{
-		var guildSettings gateway.UserGuildSetting
+		var guildSettings *gateway.UserGuildSetting
 		unreadCount := 0
 		mentionCount := 0
 		for ig := range readyExtras.UserGuildSettings {
 			if readyExtras.UserGuildSettings[ig].GuildID == g.ID {
-				guildSettings = readyExtras.UserGuildSettings[ig]
+				guildSettings = &readyExtras.UserGuildSettings[ig]
 				if guildSettings.Muted {
 					tag = fmt.Sprintf("[%s]", config.Current.Theme.GuildsTree.MutedIndicator)
 					goto create_guild_node
 				}
 			}
 		}
-		for ic := range guildSettings.ChannelOverrides {
-			channelSettings := guildSettings.ChannelOverrides[ic]
-			channel, err := discordState.Channel(channelSettings.ChannelID)
+		
+		// Turns out that ReadyEventExtras is not required
+		// to have all guilds, so we're going to have to 
+		// handle that seperately
+		if guildSettings == nil {
+			channels, err := discordState.Channels(g.ID)
 			if err != nil {
 				log.Println(err)
-				return
-			} else if channelSettings.Muted {
-				continue
+				goto create_guild_node
 			}
-			for rs := range readyExtras.ReadStates {
-				readState := readyExtras.ReadStates[rs]
-				if readState.ChannelID == channel.ID {
-					if readState.LastMessageID != channel.LastMessageID {
-						unreadCount += 1
+			
+			// For anyone concerned, this shouldn't affect
+			// muted channels. As far as I know, any guild with
+			// a muted channel will appear in ReadyEventExtras
+			for ic := range channels {
+				for rs := range readyExtras.ReadStates {
+					readState := readyExtras.ReadStates[rs]
+					if readState.ChannelID == channels[ic].ID {
+						if readState.LastMessageID != channels[ic].LastMessageID {
+							unreadCount += 1
+						}
+						if readState.MentionCount > 0 {
+							mentionCount += 1
+						}
+						break
 					}
-					if readState.MentionCount > 0 {
-						mentionCount += 1
+				}
+			}
+		} else {	
+			for ic := range guildSettings.ChannelOverrides {
+				channelSettings := guildSettings.ChannelOverrides[ic]
+				channel, err := discordState.Channel(channelSettings.ChannelID)
+				if err != nil {
+					log.Println(err)
+					goto create_guild_node
+				} else if channelSettings.Muted {
+					continue
+				}
+				for rs := range readyExtras.ReadStates {
+					readState := readyExtras.ReadStates[rs]
+					if readState.ChannelID == channel.ID {
+						if readState.LastMessageID != channel.LastMessageID {
+							unreadCount += 1
+						}
+						if readState.MentionCount > 0 {
+							mentionCount += 1
+						}
+						break
 					}
 				}
 			}
 		}
 
+		if unreadCount > 0 { 
+			tag = fmt.Sprintf("[%s]", config.Current.Theme.GuildsTree.UnreadIndicator)
+		} 
 		if mentionCount > 0 {
 			tag = fmt.Sprintf("[%s]", 
-					fmt.Sprintf("%s%s", 
-						config.Current.Theme.GuildsTree.MentionColor, 
-						config.Current.Theme.GuildsTree.UnreadIndicator)) + fmt.Sprint(mentionCount)
-		} else if unreadCount > 0 {
-			tag = fmt.Sprintf("[%s]", config.Current.Theme.GuildsTree.UnreadIndicator)
+				fmt.Sprintf("%s%s", 
+					config.Current.Theme.GuildsTree.MentionColor, 
+					config.Current.Theme.GuildsTree.UnreadIndicator)) + fmt.Sprint(mentionCount)
 		}
 	}
 	
