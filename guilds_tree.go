@@ -96,37 +96,13 @@ func (gt *GuildsTree) createGuildNode(n *tview.TreeNode, g discord.Guild) {
 		// Turns out that ReadyEventExtras is not required
 		// to have all guilds, so we're going to have to 
 		// handle that seperately
-		if guildSettings == nil {
-			channels, err := discordState.Channels(g.ID)
-			if err != nil {
-				log.Println(err)
-				goto create_guild_node
-			}
-			
-			// For anyone concerned, this shouldn't affect
-			// muted channels. As far as I know, any guild with
-			// a muted channel will appear in ReadyEventExtras
-			for ic := range channels {
-				for rs := range readyExtras.ReadStates {
-					readState := readyExtras.ReadStates[rs]
-					if readState.ChannelID == channels[ic].ID {
-						if readState.LastMessageID != channels[ic].LastMessageID {
-							unreadCount += 1
-						}
-						if readState.MentionCount > 0 {
-							mentionCount += 1
-						}
-						break
-					}
-				}
-			}
-		} else {	
+		if guildSettings != nil {
 			for ic := range guildSettings.ChannelOverrides {
 				channelSettings := guildSettings.ChannelOverrides[ic]
 				channel, err := discordState.Channel(channelSettings.ChannelID)
 				if err != nil {
 					log.Println(err)
-					goto create_guild_node
+					continue
 				} else if channelSettings.Muted {
 					continue
 				}
@@ -137,10 +113,36 @@ func (gt *GuildsTree) createGuildNode(n *tview.TreeNode, g discord.Guild) {
 							unreadCount += 1
 						}
 						if readState.MentionCount > 0 {
-							mentionCount += 1
+							mentionCount += readState.MentionCount
 						}
 						break
 					}
+				}
+			} 
+		}
+
+		// Get all non-overriden channels, cause 
+		// Discord sucks at their API
+		channels, err := discordState.Channels(g.ID)
+		if err != nil {
+			log.Println(err)
+			goto create_guild_node
+		}
+		
+		// For anyone concerned, this shouldn't affect
+		// muted channels. As far as I know, any guild with
+		// a muted channel will appear in ReadyEventExtras
+		for ic := range channels {
+			for rs := range readyExtras.ReadStates {
+				readState := readyExtras.ReadStates[rs]
+				if readState.ChannelID == channels[ic].ID {
+					if readState.LastMessageID != channels[ic].LastMessageID {
+						unreadCount += 1
+					}
+					if readState.MentionCount > 0 {
+						mentionCount += readState.MentionCount
+					}
+					break
 				}
 			}
 		}
@@ -152,7 +154,7 @@ func (gt *GuildsTree) createGuildNode(n *tview.TreeNode, g discord.Guild) {
 			tag = fmt.Sprintf("[%s]", 
 				fmt.Sprintf("%s%s", 
 					config.Current.Theme.GuildsTree.MentionColor, 
-					config.Current.Theme.GuildsTree.UnreadIndicator)) + fmt.Sprint(mentionCount)
+					config.Current.Theme.GuildsTree.UnreadIndicator)) + fmt.Sprint(mentionCount) + " "
 		}
 	}
 	
