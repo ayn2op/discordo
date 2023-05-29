@@ -143,10 +143,6 @@ func (gt *GuildsTree) channelToString(c discord.Channel) string {
 		for ig := range readyExtras.UserGuildSettings {
 			if readyExtras.UserGuildSettings[ig].GuildID == c.GuildID {
 				guildSettings = readyExtras.UserGuildSettings[ig]
-				if guildSettings.Muted {
-					tag = fmt.Sprintf("[%s]", config.Current.Theme.GuildsTree.MutedIndicator)
-					goto create_channel_string
-				}
 				break	
 			}
 		}
