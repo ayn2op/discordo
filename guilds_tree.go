@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/gdamore/tcell/v2"
@@ -356,6 +357,10 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 
 		gt.selectedChannelID = ref
 		app.SetFocus(mainFlex.messageInput)
+
+		// We're playing with fire over here. One wrong 
+		// move, and accounts could get banned
+		discordState.Ack(c.ID, c.LastMessageID, &api.Ack{})
 	case nil: // Direct messages
 		cs, err := discordState.Cabinet.PrivateChannels()
 		if err != nil {
