@@ -83,12 +83,17 @@ func (gt *GuildsTree) channelToString(c discord.Channel) string {
 	// Get the guild and channel settings so we can respect
 	// whether the user wants unread indicators or not
 	//
-	// We use seperate for loops to avoid heavy nesting
+	// We use seperate for loops to avoid heavy nesting, and gotos
+	// to avoid doing extra loops if unnecesary
 	{
 		// Get guild settings
 		for ig := range readyExtras.UserGuildSettings {
 			if readyExtras.UserGuildSettings[ig].GuildID == c.GuildID {
 				guildSettings = readyExtras.UserGuildSettings[ig]
+				if guildSettings.Muted {
+					tag = fmt.Sprintf("[%s]", config.Current.Theme.GuildsTree.MutedIndicator)
+					goto create_channel_string
+				}
 				break	
 			}
 		}
@@ -96,38 +101,35 @@ func (gt *GuildsTree) channelToString(c discord.Channel) string {
 		for ico := range guildSettings.ChannelOverrides {
 			if guildSettings.ChannelOverrides[ico].ChannelID == c.ID {
 				channelSettings = guildSettings.ChannelOverrides[ico]
-				break
-			}
-		}
-	}
-
-	// Check if the user has muted the channel, then if
-	// not, go over each of the read states, then if:
-	// - The channel IDs match
-	// - The last message IDs don't match
-	// then set the tag to bold and italics
-	//
-	// If the channel is muted, then let's slightly dim it and 
-	// make the italicized.
-	if !channelSettings.Muted && !guildSettings.Muted {
-		for ic := range readyExtras.ReadStates {
-			if readyExtras.ReadStates[ic].ChannelID == c.ID && readyExtras.ReadStates[ic].LastMessageID != c.LastMessageID {
-				mentionCount := readyExtras.ReadStates[ic].MentionCount
-				if mentionCount > 0 {
-					tag = fmt.Sprintf("[%s]", 
-						fmt.Sprintf("%s%s", 
-							config.Current.Theme.GuildsTree.MentionColor, 
-							config.Current.Theme.GuildsTree.UnreadIndicator)) + fmt.Sprint(mentionCount)
-				} else {
-					tag = fmt.Sprintf("[%s]", config.Current.Theme.GuildsTree.UnreadIndicator)
+				if channelSettings.Muted {
+					tag = fmt.Sprintf("[%s]", config.Current.Theme.GuildsTree.MutedIndicator)
+					goto create_channel_string
 				}
 				break
 			}
 		}
-	} else {
-		tag = fmt.Sprintf("[%s]", config.Current.Theme.GuildsTree.MutedIndicator)
 	}
 
+	// Go over each of the read states, then if:
+	// - The channel IDs match
+	// - The last message IDs don't match
+	// then set the tag to bold and italics
+	for ic := range readyExtras.ReadStates {
+		if readyExtras.ReadStates[ic].ChannelID == c.ID && readyExtras.ReadStates[ic].LastMessageID != c.LastMessageID {
+			mentionCount := readyExtras.ReadStates[ic].MentionCount
+			if mentionCount > 0 {
+				tag = fmt.Sprintf("[%s]", 
+					fmt.Sprintf("%s%s", 
+						config.Current.Theme.GuildsTree.MentionColor, 
+						config.Current.Theme.GuildsTree.UnreadIndicator)) + fmt.Sprint(mentionCount)
+			} else {
+				tag = fmt.Sprintf("[%s]", config.Current.Theme.GuildsTree.UnreadIndicator)
+			}
+			break
+		}
+	}
+	
+	create_channel_string:
 	switch c.Type {
 	case discord.GuildText:
 		s = "#" + c.Name
