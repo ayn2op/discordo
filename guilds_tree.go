@@ -220,7 +220,7 @@ func (gt *GuildsTree) channelToString(c discord.Channel) string {
 				tag = fmt.Sprintf("[%s]", 
 					fmt.Sprintf("%s%s", 
 						config.Current.Theme.GuildsTree.MentionColor, 
-						config.Current.Theme.GuildsTree.UnreadIndicator)) + fmt.Sprint(mentionCount)
+						config.Current.Theme.GuildsTree.UnreadIndicator)) + fmt.Sprint(mentionCount) + " "
 			} else if mentionCount == 0 && !channelSettings.Muted {
 				tag = fmt.Sprintf("[%s]", config.Current.Theme.GuildsTree.UnreadIndicator)
 			}
@@ -361,15 +361,45 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 
 		gt.selectedChannelID = ref
 		app.SetFocus(mainFlex.messageInput)
-			
+				
+		// Here what we're doing is using some reasonable
+		// assumptions to check and see if a channel is unread. 
+		//
+		// All channels will have a block that begins with [ and ends with ], as
+		// that's how we perform formatting. As such, we can use the indicator format
+		// marking lengths to check where the ] is, and assume if something is read or
+		// unread.
+		isUnread := false
+		channelString := n.GetText()
+		unreadLen := len(config.Current.Theme.GuildsTree.UnreadIndicator)
+		mentionLen := unreadLen + len(config.Current.Theme.GuildsTree.MentionColor)
+		if string(channelString[0]) == "[" {
+			predictedIndex := unreadLen + 1
+			if string(channelString[predictedIndex]) == "]" {
+				isUnread = true
+			} else {
+				predictedIndex = mentionLen + 1
+				if string(channelString[predictedIndex]) == "]" {
+					isUnread = true
+				}
+			}
+
+			// Check to make sure we're not just dealing with 2 tags
+			// of the same index
+			if isUnread {
+				if channelString[1:predictedIndex] != config.Current.Theme.GuildsTree.UnreadIndicator &&
+				channelString[1:predictedIndex] != config.Current.Theme.GuildsTree.MentionColor + config.Current.Theme.GuildsTree.UnreadIndicator {
+					isUnread = false
+				}
+			}
+		}
+		
 		// We're playing with fire over here. One wrong 
 		// move, and accounts could get banned
 		//
 		// As such, we extract the tag and only mark a channel as unread
-		// if the channel has the Unread or Mention tags
-		cTag := strings.TrimLeft(strings.TrimRight(n.GetText(),"["),"]")
-		if cTag == config.Current.Theme.GuildsTree.UnreadIndicator || 
-		cTag == fmt.Sprintf("%s%s", config.Current.Theme.GuildsTree.UnreadIndicator, config.Current.Theme.GuildsTree.MentionColor) {
+		// if the channel is unread or has a ping
+		if isUnread {
 			discordState.Ack(c.ID, c.LastMessageID, &api.Ack{})
 		}
 	case nil: // Direct messages
