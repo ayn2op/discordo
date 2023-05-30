@@ -140,7 +140,9 @@ func (gt *GuildsTree) createGuildNode(n *tview.TreeNode, g discord.Guild) {
 		for ic := range channels {
 			for rs := range readyExtras.ReadStates {
 				readState := readyExtras.ReadStates[rs]
-				if readState.ChannelID == channels[ic].ID {
+				if readState.ChannelID == channels[ic].ID  && 
+				(channels[ic].Type == discord.GuildText ||
+				channels[ic].Type == discord.GuildAnnouncement) {
 					if readState.LastMessageID != channels[ic].LastMessageID {
 						unreadCount += 1
 					}
@@ -226,14 +228,14 @@ func (gt *GuildsTree) channelToString(c discord.Channel) string {
 	
 	switch c.Type {
 	case discord.GuildText:
-		s = "#" + c.Name
+		s = tag + "#" + c.Name + "[::-]"
 	case discord.DirectMessage:
 		r := c.DMRecipients[0]
-		s = r.Tag()
+		s = tag + r.Tag() + "[::-]"
 	case discord.GuildVoice:
-		s = "v-" + c.Name
+		s = "v-" + c.Name 
 	case discord.GroupDM:
-		s = c.Name
+		s = tag + c.Name + "[::-]"
 		// If the name of the channel is empty, use the recipients' tags
 		if s == "" {
 			rs := make([]string, len(c.DMRecipients))
@@ -241,10 +243,10 @@ func (gt *GuildsTree) channelToString(c discord.Channel) string {
 				rs = append(rs, r.Tag())
 			}
 
-			s = strings.Join(rs, ", ")
+			s = tag + strings.Join(rs, ", ") + "[::-]"
 		}
 	case discord.GuildAnnouncement:
-		s = "a-" + c.Name
+		s = tag + "a-" + c.Name + "[::-]"
 	case discord.GuildStore:
 		s = "s-" + c.Name
 	case discord.GuildForum:
@@ -253,7 +255,7 @@ func (gt *GuildsTree) channelToString(c discord.Channel) string {
 		s = c.Name
 	}
 
-	return tag + s + "[::-]"
+	return s
 }
 
 func (gt *GuildsTree) createChannelNode(n *tview.TreeNode, c discord.Channel) {
