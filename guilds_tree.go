@@ -109,7 +109,9 @@ func (gt *GuildsTree) createGuildNode(n *tview.TreeNode, g discord.Guild) {
 				}
 				for rs := range readyExtras.ReadStates {
 					readState := readyExtras.ReadStates[rs]
-					if readState.ChannelID == channel.ID {
+					if readState.ChannelID == channel.ID && 
+					(channel.Type == discord.GuildText ||
+					channel.Type == discord.GuildAnnouncement) {
 						if readState.LastMessageID != channel.LastMessageID {
 							unreadCount += 1
 						}
