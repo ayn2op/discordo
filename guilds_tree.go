@@ -357,10 +357,17 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 
 		gt.selectedChannelID = ref
 		app.SetFocus(mainFlex.messageInput)
-
+			
 		// We're playing with fire over here. One wrong 
 		// move, and accounts could get banned
-		discordState.Ack(c.ID, c.LastMessageID, &api.Ack{})
+		//
+		// As such, we extract the tag and only mark a channel as unread
+		// if the channel has the Unread or Mention tags
+		cTag := strings.TrimLeft(strings.TrimRight(n.GetText(),"["),"]")
+		if cTag == config.Current.Theme.GuildsTree.UnreadIndicator || 
+		cTag == fmt.Sprintf("%s%s", config.Current.Theme.GuildsTree.UnreadIndicator, config.Current.Theme.GuildsTree.MentionColor) {
+			discordState.Ack(c.ID, c.LastMessageID, &api.Ack{})
+		}
 	case nil: // Direct messages
 		cs, err := discordState.Cabinet.PrivateChannels()
 		if err != nil {
