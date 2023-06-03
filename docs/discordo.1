@@ -1,0 +1,71 @@
+.nh
+.TH discordo 1
+.SH NAME
+.PP
+\fB\fCdiscordo\fR - A lightweight, secure, and feature-rich Discord terminal client
+
+.SH SYNOPSIS
+.PP
+\fB\fCdiscordo\fR [\fB\fC--token "TOKEN"\fR] [\fB\fC--config "OPTIONAL/PATH/HERE.yml"\fR]
+
+.SH DESCRIPTION
+.PP
+\fB\fCdiscordo\fR is a lightweight, secure, and feature-rich Discord terminal client.
+
+.PP
+If no token is provided, you will be prompted with an interactive login.
+.br
+The token is stored securely in the default OS-specific keyring.
+
+.SH USAGE
+.PP
+The default keybindings in the app are as follow
+
+.SS Guilds Tree
+.TS
+allbox;
+l l 
+l l .
+\fB\fCAction\fR	\fB\fCKeybinding\fR
+Focus	Alt + g
+Toggle Alt + b
+.TE
+
+.SS Messages Text
+.TS
+allbox;
+l l 
+l l .
+\fB\fCAction\fR	\fB\fCKeybinding\fR
+Focus	Alt + m
+Show image	i
+Copy message content	c
+Reply without mention	r
+Reply with mention	R
+Select reply	s
+Reply previous	Up arrow
+Select next	Down arrow
+Select first	Home
+Select last	End
+.TE
+
+.SS Message Input
+.TS
+allbox;
+l l 
+l l .
+\fB\fCAction\fR	\fB\fCKeybinding\fR
+Focus	Alt + i
+Send message	Enter
+Paste from clipboard	Ctrl + v
+Launch editor	Ctrl + e
+.TE
+
+.SH FILES
+.PP
+\fI$HOME/.config/discordo/config.yml\fP
+  The configuration file.
+
+.PP
+\fI$HOME/.cache/discordo/logs.txt\fP
+  The log file.

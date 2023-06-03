@@ -8,6 +8,7 @@ type (
 
 	MessagesTextTheme struct {
 		AuthorColor string `yaml:"author_color"`
+		ReplyIndicator string `yaml:"reply_indicator"`
 	}
 
 	MessageInputTheme struct{}
@@ -40,6 +41,7 @@ func defTheme() Theme {
 		},
 		MessagesText: MessagesTextTheme{
 			AuthorColor: "aqua",
+			ReplyIndicator: "╭",
 		},
 		MessageInput: MessageInputTheme{},
 	}

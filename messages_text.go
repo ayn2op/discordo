@@ -14,8 +14,6 @@ import (
 	"github.com/rivo/tview"
 )
 
-const replyIndicator = '╭'
-
 type MessagesText struct {
 	*tview.TextView
 
@@ -68,15 +66,13 @@ func (mt *MessagesText) createMessage(m discord.Message) {
 		fmt.Fprintf(mt, `["%s"]`, m.ID)
 
 		if m.ReferencedMessage != nil {
-			fmt.Fprintf(mt, "[::d]%c ", replyIndicator)
-
-			mt.createHeader(mt, *m.ReferencedMessage)
+			mt.createHeader(mt, *m.ReferencedMessage, true)
 			mt.createBody(mt, *m.ReferencedMessage)
 
 			fmt.Fprint(mt, "[::-]\n")
 		}
 
-		mt.createHeader(mt, m)
+		mt.createHeader(mt, m, false)
 		mt.createBody(mt, m)
 		mt.createFooter(mt, m)
 
@@ -86,7 +82,11 @@ func (mt *MessagesText) createMessage(m discord.Message) {
 	}
 }
 
-func (mt *MessagesText) createHeader(w io.Writer, m discord.Message) {
+func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, isReply bool) {
+	if isReply {
+		fmt.Fprintf(mt, "[::d]%s", config.Current.Theme.MessagesText.ReplyIndicator)
+	}
+
 	fmt.Fprintf(w, "[%s]%s[-] ", config.Current.Theme.MessagesText.AuthorColor, m.Author.Username)
 
 	if config.Current.Timestamps {

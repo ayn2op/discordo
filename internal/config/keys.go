@@ -2,7 +2,8 @@ package config
 
 type (
 	GuildsTreeKeys struct {
-		Focus string `yaml:"focus"`
+		Focus  string `yaml:"focus"`
+		Toggle string `yaml:"toggle"`
 	}
 
 	MessagesTextKeys struct {
@@ -44,7 +45,8 @@ func defKeys() Keys {
 		Cancel: "Esc",
 
 		GuildsTree: GuildsTreeKeys{
-			Focus: "Alt+Rune[g]",
+			Focus:  "Alt+Rune[g]",
+			Toggle: "Alt+Rune[b]",
 		},
 
 		MessagesText: MessagesTextKeys{
