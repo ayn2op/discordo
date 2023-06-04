@@ -11,12 +11,14 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
-          go-version: '^1.19'
+          go-version: '^1.20'
 
       - name: Build
         run: go build .
+        env:
+          CGO_ENABLED: 0
   
       - uses: actions/upload-artifact@v3
         if: ${{ github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
