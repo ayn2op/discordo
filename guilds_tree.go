@@ -244,7 +244,7 @@ func (gt *GuildsTree) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		gt.gotoNode(bookmarksLen)
 		return nil
 	} else if bookmarksLen == 0 {
-		return nil
+		return event
 	} else if event.Name() == config.Current.Keys.Bookmark.FirstBookmark {
 		gt.gotoNode(0)
 		return nil
