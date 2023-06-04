@@ -30,6 +30,12 @@ type (
 
 		LaunchEditor string `yaml:"launch_editor"`
 	}
+
+	BookmarkKeys struct {
+		Slots []string `yaml:slots`
+		FirstBookmark string `yaml:"first_bookmark"`
+		PassBookmarks string `yaml:"pass_bookmarks"`
+	}
 )
 
 type Keys struct {
@@ -38,6 +44,7 @@ type Keys struct {
 	GuildsTree   GuildsTreeKeys   `yaml:"guilds_tree"`
 	MessagesText MessagesTextKeys `yaml:"messages_text"`
 	MessageInput MessageInputKeys `yaml:"message_input"`
+	Bookmark BookmarkKeys     `yaml:"bookmark"`
 }
 
 func defKeys() Keys {
@@ -72,6 +79,23 @@ func defKeys() Keys {
 
 			Paste:        "Ctrl+V",
 			LaunchEditor: "Ctrl+E",
+		},
+
+		Bookmark: BookmarkKeys{
+			Slots: []string{
+				"Rune[1]",
+				"Rune[2]",
+				"Rune[3]",
+				"Rune[4]",
+				"Rune[5]",
+				"Rune[6]",
+				"Rune[7]",
+				"Rune[8]",
+				"Rune[9]",
+				"Rune[0]",
+			},
+			FirstBookmark: "Rune[K]",
+			PassBookmarks: "Rune[J]",
 		},
 	}
 }

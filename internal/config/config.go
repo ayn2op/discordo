@@ -5,12 +5,19 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/diamondburned/arikawa/v3/discord"
+
 	"gopkg.in/yaml.v3"
 )
 
 const Name = "discordo"
 
 var Current = defConfig()
+
+type Bookmark struct {
+	Alias string `yaml:"alias"`
+	CID discord.ChannelID `yaml:"id"`
+}
 
 type Config struct {
 	// Mouse indicates whether the mouse is usable or not.
@@ -21,6 +28,8 @@ type Config struct {
 	Timestamps bool `yaml:"timestamps"`
 	// Editor is the program to open when the `LaunchEditor` key is pressed. If the value of the field is "default", the `$EDITOR` environment variable is used instead.
 	Editor string `yaml:"editor"`
+	// Channel bookmarks
+	Bookmarks []Bookmark `yaml:"bookmarks"`
 
 	Keys  Keys  `yaml:"keys"`
 	Theme Theme `yaml:"theme"`
@@ -32,6 +41,7 @@ func defConfig() Config {
 		Timestamps:    false,
 		MessagesLimit: 50,
 		Editor:        "default",
+		Bookmarks:     nil,
 
 		Keys:  defKeys(),
 		Theme: defTheme(),

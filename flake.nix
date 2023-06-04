@@ -1,7 +1,7 @@
 { 
   description = "A lightweight, secure, and feature-rich Discord terminal client.";
 
-  inputs.nixpkgs.url = "nixpkgs/nixos-unstable";
+  inputs.nixpkgs.url = "nixpkgs/nixos-23.05";
 
   outputs = { self, nixpkgs, ... }: let 
     version = builtins.substring 0 8 self.lastModifiedDate;
@@ -22,7 +22,7 @@
           pname = "discordio";
           inherit version;
           src = ./.;
-          vendorSha256 = "sha256-zsbR8qshQVlFjSs1ywXkdUaXUJ9bnNp75rfL1Vi5rAU=";
+          vendorSha256 = "sha256-B/wo7ByXXxce1MHpZgG423IEr2k7V9lbnGqNOrtANJI=";
         };
       });
 
