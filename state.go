@@ -55,18 +55,6 @@ func (s *State) onRequest(r httpdriver.Request) error {
 }
 
 func (s *State) onReady(r *gateway.ReadyEvent) {
-
-	// add bookmarks first of all
-	for n, bm := range config.Current.Bookmarks {
-		c, err := s.Cabinet.Channel(bm.CID)
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-		node := mainFlex.guildsTree.createChannelNode(mainFlex.guildsTree.root, *c)
-		node.SetText(fmt.Sprintf("%d: %s", n + 1, bm.Alias))
-	}
-
 	dmNode := tview.NewTreeNode("Direct Messages")
 	mainFlex.guildsTree.root.AddChild(dmNode)
 

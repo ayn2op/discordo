@@ -32,7 +32,6 @@ func newGuildsTree() *GuildsTree {
 	gt.SetGraphics(config.Current.Theme.GuildsTree.Graphics)
 	gt.SetBackgroundColor(tcell.GetColor(config.Current.Theme.BackgroundColor))
 	gt.SetSelectedFunc(gt.onSelected)
-	gt.SetInputCapture(gt.onInputCapture)
 
 	gt.SetTitle("Guilds")
 	gt.SetTitleColor(tcell.GetColor(config.Current.Theme.TitleColor))
@@ -108,23 +107,22 @@ func (gt *GuildsTree) channelToString(c discord.Channel) string {
 	return s
 }
 
-func (gt *GuildsTree) createChannelNode(n *tview.TreeNode, c discord.Channel) *tview.TreeNode {
+func (gt *GuildsTree) createChannelNode(n *tview.TreeNode, c discord.Channel) {
 	if c.Type != discord.DirectMessage && c.Type != discord.GroupDM {
 		ps, err := discordState.Permissions(c.ID, discordState.Ready().User.ID)
 		if err != nil {
 			log.Println(err)
-			return nil
+			return
 		}
 
 		if !ps.Has(discord.PermissionViewChannel) {
-			return nil
+			return
 		}
 	}
 
 	cn := tview.NewTreeNode(gt.channelToString(c))
 	cn.SetReference(c.ID)
 	n.AddChild(cn)
-	return cn
 }
 
 func (gt *GuildsTree) createChannelNodes(n *tview.TreeNode, cs []discord.Channel) {
@@ -225,41 +223,4 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 			gt.createChannelNode(n, c)
 		}
 	}
-}
-
-func (gt *GuildsTree) gotoNode(idx int) *tview.TreeNode {
-	child := gt.GetRoot().GetChildren()[idx]
-	gt.SetCurrentNode(child)
-	return child
-}
-
-func (gt *GuildsTree) selectNode(idx int) {
-	gt.onSelected(gt.gotoNode(idx))
-}
-
-func (gt *GuildsTree) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
-	bookmarksLen := len(config.Current.Bookmarks)
-
-	if event.Name() == config.Current.Keys.Bookmark.PassBookmarks{
-		gt.gotoNode(bookmarksLen)
-		return nil
-	} else if bookmarksLen == 0 {
-		return nil
-	} else if event.Name() == config.Current.Keys.Bookmark.FirstBookmark {
-		gt.gotoNode(0)
-		return nil
-	} else {
-		for n, keyStroke := range config.Current.Keys.Bookmark.Slots {
-			if keyStroke == event.Name() {
-				if n < bookmarksLen {
-					gt.selectNode(n)
-				} else {
-					gt.selectNode(bookmarksLen - 1)
-				}
-				return nil
-			}	
-		}
-	}
-
-	return event
 }
