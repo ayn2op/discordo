@@ -3,6 +3,7 @@ module github.com/ayn2op/discordo
 go 1.20
 
 require (
+	github.com/alecthomas/kong v0.7.1
 	github.com/atotto/clipboard v0.1.4
 	github.com/diamondburned/arikawa/v3 v3.3.0
 	github.com/gdamore/tcell/v2 v2.6.0
