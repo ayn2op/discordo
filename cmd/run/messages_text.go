@@ -1,4 +1,4 @@
-package main
+package run
 
 import (
 	"fmt"
@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/atotto/clipboard"
-	"github.com/ayn2op/discordo/internal/config"
-	"github.com/ayn2op/discordo/pkg/markdown"
+	"github.com/ayn2op/discordo/config"
+	"github.com/ayn2op/discordo/markdown"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"

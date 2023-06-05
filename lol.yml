@@ -1,0 +1,37 @@
+mouse: true
+messages_limit: 50
+timestamps: false
+editor: default
+keys:
+    cancel: Esc
+    guilds_tree:
+        focus: Alt+Rune[g]
+        toggle: Alt+Rune[b]
+    messages_text:
+        focus: Alt+Rune[m]
+        show_image: Rune[i]
+        copy_content: Rune[c]
+        reply: Rune[r]
+        reply_mention: Rune[R]
+        select_reply: Rune[s]
+        select_previous: Up
+        select_next: Down
+        select_first: Home
+        select_last: End
+    message_input:
+        focus: Alt+Rune[i]
+        send: Enter
+        paste: Ctrl+V
+        launch_editor: Ctrl+E
+theme:
+    border: false
+    border_color: default
+    border_padding: [0, 0, 1, 1]
+    title_color: pink
+    background_color: violet
+    guilds_tree:
+        graphics: true
+    messages_text:
+        author_color: aqua
+        reply_indicator: ╭
+    message_input: {}
