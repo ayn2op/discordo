@@ -30,36 +30,9 @@ Use the `--token` flag:
 discordo --token "OTI2MDU5NTQxNDE2Nzc5ODA2.Yc2KKA.2iZ-5JxgxG-9Ub8GHzBSn-NJjNg"
 ```
 
-## Keybindings
+## Logs
 
-Keybindings are configurable in the [configuration file](#configuration).
-
-| Action                | Keybinding |
-| --------------------- | ---------- |
-| **Guilds Tree**       |            |
-| Focus                 | Alt + g    |
-|                       |            |
-| **Messages Text**     |            |
-| Focus                 | Alt + m    |
-| Show image            | i          |
-| Copy message content  | c          |
-| Reply without mention | r          |
-| Reply with mention    | R          |
-| Select reply          | s          |
-| Reply previous        | Up arrow   |
-| Select next           | Down arrow |
-| Select first          | Home       |
-| Select last           | End        |
-|                       |            |
-| **Message Input**     |            |
-| Focus                 | Alt + i    |
-| Send message          | Enter      |
-| Paste from clipboard  | Ctrl + v   |
-| Launch editor         | Ctrl + e   |
-
-## Log files
-
-The log file is stored in the following location:
+The log file is created on first start-up at the following location:
 
 | Operating System | Log File Location                        |
 | ---------------- | ---------------------------------------- |

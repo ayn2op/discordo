@@ -68,14 +68,6 @@ sudo mv ./discordo /usr/local/bin
 
 [Here.](./docs)
 
-### Configuration
-
-A default configuration file is created on first start-up at `$HOME/.config/discordo/config.yml` on Unix, `$HOME/Library/Application Support/discordo/config.yml` on Darwin, and `%AppData%/discordo/config.yml` on Windows.
-
-Optionally, you can specify an alternative configuration file location with the `config` command-line flag to the executable (eg: `--config OPTIONAL/PATH/HERE.yml`).
-
-Similarly, a log file is created on first start-up at `$HOME/.cache/discordo/logs.txt` on Unix, `$HOME/Library/Caches/discordo/logs.txt` on Darwin, and `%LocalAppData%/discordo/logs.txt` on Windows.
-
 ## Disclaimer
 
 Automated user accounts or "self-bots" are against Discord's Terms of Service. I am not responsible for any loss caused by using "self-bots" or Discordo.
