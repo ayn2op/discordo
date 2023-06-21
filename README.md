@@ -64,6 +64,10 @@ sudo mv ./discordo /usr/local/bin
 
 - Most of the Discord third-party clients store the token in a configuration file unencrypted. Discordo securely stores the token in the default OS-specific keyring.
 
+## Documentation
+
+[Here.](./docs)
+
 ### Configuration
 
 A default configuration file is created on first start-up at `$HOME/.config/discordo/config.yml` on Unix, `$HOME/Library/Application Support/discordo/config.yml` on Darwin, and `%AppData%/discordo/config.yml` on Windows.
