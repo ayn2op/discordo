@@ -18,6 +18,7 @@ Keybindings are configurable in the [configuration file](#configuration).
 | --------------------- | ---------- |
 | **Guilds Tree**       |            |
 | Focus                 | Alt + g    |
+| Toggle                | Alt + b    |
 |                       |            |
 | **Messages Text**     |            |
 | Focus                 | Alt + m    |
@@ -26,7 +27,7 @@ Keybindings are configurable in the [configuration file](#configuration).
 | Reply without mention | r          |
 | Reply with mention    | R          |
 | Select reply          | s          |
-| Reply previous        | Up arrow   |
+| Select previous       | Up arrow   |
 | Select next           | Down arrow |
 | Select first          | Home       |
 | Select last           | End        |
