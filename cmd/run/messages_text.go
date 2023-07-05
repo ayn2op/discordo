@@ -18,7 +18,6 @@ type MessagesText struct {
 	*tview.TextView
 
 	selectedMessage int
-	editingMessage bool
 }
 
 func newMessagesText() *MessagesText {
@@ -26,7 +25,6 @@ func newMessagesText() *MessagesText {
 		TextView: tview.NewTextView(),
 
 		selectedMessage: -1,
-		editingMessage: false,
 	}
 
 	mt.SetDynamicColors(true)
@@ -54,7 +52,6 @@ func newMessagesText() *MessagesText {
 
 func (mt *MessagesText) reset() {
 	mainFlex.messagesText.selectedMessage = -1
-	mainFlex.messagesText.editingMessage = false
 
 	mt.SetTitle("")
 	mt.Clear()
@@ -194,9 +191,13 @@ func (mt *MessagesText) editAction() {
 		return
 	}
 
-	mainFlex.messageInput.SetTitle("Editing message")
-	mainFlex.messageInput.SetText(ms[mt.selectedMessage].Content)
-	mt.editingMessage = true
+	m := ms[mt.selectedMessage]
+	if m.Author.ID != discordState.Ready().User.ID {
+		return
+	}
+
+	mainFlex.messageInput.SetTitle("Editing")
+	mainFlex.messageInput.SetText(m.Content)
 	app.SetFocus(mainFlex.messageInput)
 }
 
