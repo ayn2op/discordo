@@ -53,7 +53,13 @@ func (r *Cmd) Run() error {
 
 		go func() {
 			mainFlex = newMainFlex()
+			if err := <-lf.Error; err != nil {
+				app.Stop()
+				log.Fatal(err)
+			}
+
 			if err := openState(<-lf.Token); err != nil {
+				app.Stop()
 				log.Fatal(err)
 			}
 
@@ -66,7 +72,7 @@ func (r *Cmd) Run() error {
 	} else {
 		mainFlex = newMainFlex()
 		if err := openState(r.Token); err != nil {
-			log.Fatal(err)
+			app.Stop()
 		}
 
 		app.SetRoot(mainFlex, true)
