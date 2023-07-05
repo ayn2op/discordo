@@ -114,8 +114,10 @@ func (mi *MessageInput) sendAction() {
 				return
 			}
 
-			if err := discordState.MessageSet(m, true); err != nil {
+			err = discordState.MessageSet(m, true)
+			if err != nil {
 				log.Println(err)
+				return
 			}
 
 			redrawChannel(mainFlex.guildsTree.selectedChannelID)
