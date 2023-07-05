@@ -167,20 +167,17 @@ func (mt *MessagesText) replyAction(mention bool) {
 		return
 	}
 
-	var title string
-	if mention {
-		title += "[@] Replying to "
-	} else {
-		title += "Replying to "
-	}
-
 	ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
-	title += ms[mt.selectedMessage].Author.Tag()
+	title := "Replying to " + ms[mt.selectedMessage].Author.Tag()
+	if mention {
+		title += "[@]"
+	}
+
 	mainFlex.messageInput.SetTitle(title)
 
 	app.SetFocus(mainFlex.messageInput)
