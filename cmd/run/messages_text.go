@@ -58,6 +58,22 @@ func (mt *MessagesText) reset() {
 	mt.Highlight()
 }
 
+func redrawChannel(c discord.ChannelID) {
+	ms, err := discordState.Cabinet.Messages(c)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	mainFlex.messagesText.Clear()
+
+	for i := len(ms) - 1; i >= 0; i-- {
+		mainFlex.messagesText.createMessage(ms[i])
+	}
+
+	app.ForceDraw()
+}
+
 func (mt *MessagesText) createMessage(m discord.Message) {
 	switch m.Type {
 	case discord.DefaultMessage, discord.InlinedReplyMessage:
@@ -130,6 +146,9 @@ func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	case config.Current.Keys.MessagesText.Edit:
 		mt.editAction()
 		return nil
+	case config.Current.Keys.MessagesText.Delete:
+		mt.deleteAction()
+		return nil
 	case config.Current.Keys.MessagesText.SelectPrevious:
 		mt.selectPreviousAction()
 		return nil
@@ -200,6 +219,31 @@ func (mt *MessagesText) editAction() {
 	mainFlex.messageInput.SetText(m.Content)
 	app.SetFocus(mainFlex.messageInput)
 }
+
+func (mt *MessagesText) deleteAction() {
+	if mt.selectedMessage == -1 {
+		return
+	}
+
+	ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	// X-Audit-Log-Reason by official discord client is empty
+	if err := discordState.DeleteMessage(mainFlex.guildsTree.selectedChannelID, ms[mt.selectedMessage].ID, ""); err != nil {
+		log.Println(err)
+	}
+
+	if err = discordState.MessageRemove(mainFlex.guildsTree.selectedChannelID, ms[mt.selectedMessage].ID); err != nil {
+		log.Println(err)
+	}
+
+	redrawChannel(mainFlex.guildsTree.selectedChannelID)
+	app.SetFocus(mainFlex.messageInput)
+}
+
 
 func (mt *MessagesText) selectPreviousAction() {
 	ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)

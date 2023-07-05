@@ -68,7 +68,6 @@ func (mi *MessageInput) sendAction() {
 		return
 	}
 
-	title := mi.GetTitle()
 	text := strings.TrimSpace(mi.GetText())
 	if text == "" {
 		return
@@ -94,6 +93,8 @@ func (mi *MessageInput) sendAction() {
 	}
 
 	if mainFlex.messagesText.selectedMessage != -1 {
+		title := mi.GetTitle()
+
 		if strings.HasPrefix(title, "Replying") {
 			data := api.SendMessageData{
 				Content:         text,
@@ -117,18 +118,7 @@ func (mi *MessageInput) sendAction() {
 				log.Println(err)
 			}
 
-			ms, err = discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
-			if err != nil {
-				log.Println(err)
-				return
-			}
-
-			mainFlex.messagesText.Clear()
-			for i := len(ms) - 1; i >= 0; i-- {
-				mainFlex.messagesText.createMessage(ms[i])
-			}
-
-			app.ForceDraw()
+			redrawChannel(mainFlex.guildsTree.selectedChannelID)
 		}
 
 		mainFlex.messagesText.selectedMessage = -1

@@ -17,6 +17,7 @@ type (
 		SelectReply  string `yaml:"select_reply"`
 		
 		Edit  string `yaml:"edit"`
+		Delete string `yaml:"delete"`
 
 		SelectPrevious string `yaml:"select_previous"`
 		SelectNext     string `yaml:"select_next"`
@@ -62,6 +63,7 @@ func defKeys() Keys {
 			SelectReply:  "Rune[s]",
 
 			Edit:         "Rune[e]",
+			Delete:       "Rune[d]",
 
 			SelectPrevious: "Up",
 			SelectNext:     "Down",
