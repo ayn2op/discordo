@@ -18,6 +18,7 @@ type MessagesText struct {
 	*tview.TextView
 
 	selectedMessage int
+	editingMessage bool
 }
 
 func newMessagesText() *MessagesText {
@@ -25,6 +26,7 @@ func newMessagesText() *MessagesText {
 		TextView: tview.NewTextView(),
 
 		selectedMessage: -1,
+		editingMessage: false,
 	}
 
 	mt.SetDynamicColors(true)
@@ -52,6 +54,7 @@ func newMessagesText() *MessagesText {
 
 func (mt *MessagesText) reset() {
 	mainFlex.messagesText.selectedMessage = -1
+	mainFlex.messagesText.editingMessage = false
 
 	mt.SetTitle("")
 	mt.Clear()
@@ -78,6 +81,11 @@ func (mt *MessagesText) createMessage(m discord.Message) {
 
 		// Tags with no region ID ([""]) don't start new regions. They can therefore be used to mark the end of a region.
 		fmt.Fprint(mt, `[""]`)
+
+		if m.EditedTimestamp.IsValid() {
+			fmt.Fprint(mt, " [::d](edited)[-:-:-]")
+		}
+
 		fmt.Fprintln(mt)
 	}
 }
@@ -121,6 +129,9 @@ func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		return nil
 	case config.Current.Keys.MessagesText.ReplyMention:
 		mt.replyAction(true)
+		return nil
+	case config.Current.Keys.MessagesText.Edit:
+		mt.editAction()
 		return nil
 	case config.Current.Keys.MessagesText.SelectPrevious:
 		mt.selectPreviousAction()
@@ -172,6 +183,23 @@ func (mt *MessagesText) replyAction(mention bool) {
 	title += ms[mt.selectedMessage].Author.Tag()
 	mainFlex.messageInput.SetTitle(title)
 
+	app.SetFocus(mainFlex.messageInput)
+}
+
+func (mt *MessagesText) editAction() {
+	if mt.selectedMessage == -1 {
+		return
+	}
+
+	ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	mainFlex.messageInput.SetTitle("Editing message")
+	mainFlex.messageInput.SetText(ms[mt.selectedMessage].Content)
+	mt.editingMessage = true
 	app.SetFocus(mainFlex.messageInput)
 }
 

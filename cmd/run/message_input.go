@@ -73,29 +73,52 @@ func (mi *MessageInput) sendAction() {
 		return
 	}
 
+	cid := discordState.Ready().User.ID
+
+	ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	rp := strings.Split(text, "/")
+
+	if strings.HasPrefix(text, "s/") && len(rp) == 3 {
+		for i, msg := range ms {
+			if msg.Author.ID == cid {
+				text = strings.ReplaceAll(msg.Content, rp[1], rp[2])
+				msg.Content = text
+
+				mainFlex.messagesText.selectedMessage = i
+				mainFlex.messagesText.editingMessage = true
+
+				break
+			}
+		}
+	}
+
 	if mainFlex.messagesText.selectedMessage != -1 {
-		ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
-		if err != nil {
-			log.Println(err)
-			return
+		if mainFlex.messagesText.editingMessage {
+			go discordState.EditText(mainFlex.guildsTree.selectedChannelID, ms[mainFlex.messagesText.selectedMessage].ID, text)
+		} else {
+			data := api.SendMessageData{
+				Content:         text,
+				Reference:       &discord.MessageReference{MessageID: ms[mainFlex.messagesText.selectedMessage].ID},
+				AllowedMentions: &api.AllowedMentions{RepliedUser: option.False},
+			}
+	
+			if strings.HasPrefix(mi.GetTitle(), "[@]") {
+				data.AllowedMentions.RepliedUser = option.True
+			}
+	
+			go discordState.SendMessageComplex(mainFlex.guildsTree.selectedChannelID, data)
 		}
-
-		data := api.SendMessageData{
-			Content:         text,
-			Reference:       &discord.MessageReference{MessageID: ms[mainFlex.messagesText.selectedMessage].ID},
-			AllowedMentions: &api.AllowedMentions{RepliedUser: option.False},
-		}
-
-		if strings.HasPrefix(mi.GetTitle(), "[@]") {
-			data.AllowedMentions.RepliedUser = option.True
-		}
-
-		go discordState.SendMessageComplex(mainFlex.guildsTree.selectedChannelID, data)
 	} else {
 		go discordState.SendMessage(mainFlex.guildsTree.selectedChannelID, text)
 	}
 
 	mainFlex.messagesText.selectedMessage = -1
+	mainFlex.messagesText.editingMessage = false
 	mainFlex.messagesText.Highlight()
 	mi.reset()
 }

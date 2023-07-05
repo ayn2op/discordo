@@ -15,6 +15,8 @@ type (
 		Reply        string `yaml:"reply"`
 		ReplyMention string `yaml:"reply_mention"`
 		SelectReply  string `yaml:"select_reply"`
+		
+		Edit  string `yaml:"edit"`
 
 		SelectPrevious string `yaml:"select_previous"`
 		SelectNext     string `yaml:"select_next"`
@@ -58,6 +60,8 @@ func defKeys() Keys {
 			Reply:        "Rune[r]",
 			ReplyMention: "Rune[R]",
 			SelectReply:  "Rune[s]",
+
+			Edit:         "Rune[e]",
 
 			SelectPrevious: "Up",
 			SelectNext:     "Down",
