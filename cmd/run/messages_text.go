@@ -211,6 +211,10 @@ func (mt *MessagesText) selectNextAction() {
 		}
 	}
 
+	if mt.selectedMessage < 0 {
+		return
+	}
+
 	mt.Highlight(ms[mt.selectedMessage].ID.String())
 	mt.ScrollToHighlight()
 }
