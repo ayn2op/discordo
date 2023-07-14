@@ -188,6 +188,8 @@ func (mt *MessagesText) selectPreviousAction() {
 	} else {
 		if mt.selectedMessage < len(ms)-1 {
 			mt.selectedMessage++
+		} else {
+			return
 		}
 	}
 
@@ -208,6 +210,8 @@ func (mt *MessagesText) selectNextAction() {
 	} else {
 		if mt.selectedMessage > 0 {
 			mt.selectedMessage--
+		} else {
+			return
 		}
 	}
 
