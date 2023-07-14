@@ -20,7 +20,7 @@ func NewLoginForm() *LoginForm {
 	lf := &LoginForm{
 		Form:  tview.NewForm(),
 		Token: make(chan string, 1),
-		Error: make(chan error, 0),
+		Error: make(chan error),
 	}
 
 	lf.AddInputField("Email", "", 0, nil, nil)
