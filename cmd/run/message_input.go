@@ -58,9 +58,6 @@ func (mi *MessageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		return nil
 	case "Alt+Enter":
 		return tcell.NewEventKey(tcell.KeyEnter, 0, tcell.ModNone)
-	case config.Current.Keys.MessageInput.Paste:
-		mi.pasteAction()
-		return nil
 	case config.Current.Keys.MessageInput.LaunchEditor:
 		mainFlex.messageInput.launchEditorAction()
 		return nil
@@ -107,17 +104,6 @@ func (mi *MessageInput) sendAction() {
 	mainFlex.messagesText.selectedMessage = -1
 	mainFlex.messagesText.Highlight()
 	mi.reset()
-}
-
-func (mi *MessageInput) pasteAction() {
-	text, err := clipboard.ReadAll()
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	// Append the text to the message input.
-	mi.SetText(mi.GetText()+text, true)
 }
 
 func (mi *MessageInput) launchEditorAction() {

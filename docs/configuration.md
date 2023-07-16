@@ -35,5 +35,4 @@ Keybindings are configurable in the [configuration file](#configuration).
 | **Message Input**     |            |
 | Focus                 | Alt + i    |
 | Send message          | Enter      |
-| Paste from clipboard  | Ctrl + v   |
 | Launch editor         | Ctrl + e   |
