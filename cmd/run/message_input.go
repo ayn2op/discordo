@@ -16,17 +16,24 @@ import (
 )
 
 type MessageInput struct {
-	*tview.InputField
+	*tview.TextArea
 }
 
 func newMessageInput() *MessageInput {
 	mi := &MessageInput{
-		InputField: tview.NewInputField(),
+		TextArea: tview.NewTextArea(),
 	}
+
+	mi.SetTextStyle(tcell.StyleDefault.Background(tcell.GetColor(config.Current.Theme.BackgroundColor)))
+	mi.SetClipboard(func(s string) {
+		_ = clipboard.WriteAll(s)
+	}, func() string {
+		text, _ := clipboard.ReadAll()
+		return text
+	})
 
 	mi.SetInputCapture(mi.onInputCapture)
 	mi.SetBackgroundColor(tcell.GetColor(config.Current.Theme.BackgroundColor))
-	mi.SetFieldBackgroundColor(tcell.GetColor(config.Current.Theme.BackgroundColor))
 
 	mi.SetTitleColor(tcell.GetColor(config.Current.Theme.TitleColor))
 	mi.SetTitleAlign(tview.AlignLeft)
@@ -41,7 +48,7 @@ func newMessageInput() *MessageInput {
 
 func (mi *MessageInput) reset() {
 	mi.SetTitle("")
-	mi.SetText("")
+	mi.SetText("", true)
 }
 
 func (mi *MessageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
@@ -49,9 +56,8 @@ func (mi *MessageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	case config.Current.Keys.MessageInput.Send:
 		mi.sendAction()
 		return nil
-	case config.Current.Keys.MessageInput.Paste:
-		mi.pasteAction()
-		return nil
+	case "Alt+Enter":
+		return tcell.NewEventKey(tcell.KeyEnter, 0, tcell.ModNone)
 	case config.Current.Keys.MessageInput.LaunchEditor:
 		mainFlex.messageInput.launchEditorAction()
 		return nil
@@ -100,17 +106,6 @@ func (mi *MessageInput) sendAction() {
 	mi.reset()
 }
 
-func (mi *MessageInput) pasteAction() {
-	text, err := clipboard.ReadAll()
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	// Append the text to the message input.
-	mi.SetText(mi.GetText() + text)
-}
-
 func (mi *MessageInput) launchEditorAction() {
 	e := config.Current.Editor
 	if e == "default" {
@@ -129,5 +124,5 @@ func (mi *MessageInput) launchEditorAction() {
 		}
 	})
 
-	mi.SetText(b.String())
+	mi.SetText(b.String(), true)
 }
