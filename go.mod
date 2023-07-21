@@ -3,10 +3,11 @@ module github.com/ayn2op/discordo
 go 1.20
 
 require (
+	github.com/alecthomas/kong v0.8.0
 	github.com/atotto/clipboard v0.1.4
 	github.com/diamondburned/arikawa/v3 v3.3.0
 	github.com/gdamore/tcell/v2 v2.6.0
-	github.com/rivo/tview v0.0.0-20230530133550-8bd761dda819
+	github.com/rivo/tview v0.0.0-20230621164836-6cc0565babaf
 	github.com/zalando/go-keyring v0.2.3
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -22,8 +23,8 @@ require (
 	github.com/mattn/go-runewidth v0.0.14 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
-	golang.org/x/sys v0.8.0 // indirect
-	golang.org/x/term v0.8.0 // indirect
-	golang.org/x/text v0.9.0 // indirect
+	golang.org/x/sys v0.10.0 // indirect
+	golang.org/x/term v0.9.0 // indirect
+	golang.org/x/text v0.11.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 )

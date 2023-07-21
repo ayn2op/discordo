@@ -1,19 +1,25 @@
 # Discordo
 
-Discordo is a lightweight, secure, and feature-rich Discord terminal client.  
+Discordo is a lightweight, secure, and feature-rich Discord terminal client.
+
+## Table of Contents
+
+- [FAQ](./faq.md)
+- [Configuration](./configuration.md)
 
 ## Warning
 
 Automated user accounts or "self-bots" are against Discord's Terms of Service. I am not responsible for any loss caused by using "self-bots" or Discordo.
 
-## Authentification
+## Authentication
 
-There are two ways to login:  
+There are two ways to login:
+
 > In both cases, the authentication token is stored securely in the default OS-specific keyring.
 
 **Username / Password login**
 
-1. Run `discordo` without arguments.  
+1. Run `discordo` without arguments.
 2. Enter your email and password then click on the "Login" button to continue.
 
 **Token login**
@@ -24,54 +30,9 @@ Use the `--token` flag:
 discordo --token "OTI2MDU5NTQxNDE2Nzc5ODA2.Yc2KKA.2iZ-5JxgxG-9Ub8GHzBSn-NJjNg"
 ```
 
-## Keybindings
+## Logs
 
-Keybindings are configurable in the [configuration file](#configuration).
-
-| Action                | Keybinding |
-| --------------------- | ---------- |
-| **Guilds Tree**       |            |
-| Focus                 | Alt + g    |
-|                       |            |
-| **Messages Text**     |            |
-| Focus                 | Alt + m    |
-| Show image            | i          |
-| Copy message content  | c          |
-| Reply without mention | r          |
-| Reply with mention    | R          |
-| Select reply          | s          |
-| Reply previous        | Up arrow   |
-| Select next           | Down arrow |
-| Select first          | Home       |
-| Select last           | End        |
-|                       |            |
-| **Message Input**     |            |
-| Focus                 | Alt + i    |
-| Send message          | Enter      |
-| Paste from clipboard  | Ctrl + v   |
-| Launch editor         | Ctrl + e   |
-
-## Configuration
-
-The configuration file allows you to edit keybindings or change the theme.
-By default, it is stored in the following location:
-
-| Operating System | Configuration File Location                             |
-| ---------------- | ------------------------------------------------------- |
-| Unix             | `$HOME/.config/discordo/config.yml`                     |
-| Darwin           | `$HOME/Library/Application Support/discordo/config.yml` |
-| Windows          | `%AppData%/discordo/config.yml`                         |
-
-You can also use the `--config` flag to specify a different location for the configuration file:
-
-```
-discordo --config "/foo/bar/config.yml"
-```
-
-
-## Log files
-
-The log file is stored in the following location:
+The log file is created on first start-up at the following location:
 
 | Operating System | Log File Location                        |
 | ---------------- | ---------------------------------------- |
