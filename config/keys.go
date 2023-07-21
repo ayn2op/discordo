@@ -25,9 +25,7 @@ type (
 	MessageInputKeys struct {
 		Focus string `yaml:"focus"`
 
-		Send  string `yaml:"send"`
-		Paste string `yaml:"paste"`
-
+		Send         string `yaml:"send"`
 		LaunchEditor string `yaml:"launch_editor"`
 	}
 )
@@ -68,9 +66,7 @@ func defKeys() Keys {
 		MessageInput: MessageInputKeys{
 			Focus: "Alt+Rune[i]",
 
-			Send: "Enter",
-
-			Paste:        "Ctrl+V",
+			Send:         "Enter",
 			LaunchEditor: "Ctrl+E",
 		},
 	}

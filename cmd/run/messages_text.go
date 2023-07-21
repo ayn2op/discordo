@@ -1,4 +1,4 @@
-package main
+package run
 
 import (
 	"fmt"
@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/atotto/clipboard"
-	"github.com/ayn2op/discordo/internal/config"
-	"github.com/ayn2op/discordo/pkg/markdown"
+	"github.com/ayn2op/discordo/config"
+	"github.com/ayn2op/discordo/markdown"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -83,14 +83,20 @@ func (mt *MessagesText) createMessage(m discord.Message) {
 }
 
 func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, isReply bool) {
+	time := m.Timestamp.Format(time.Kitchen)
+
+	if config.Current.Timestamps && config.Current.TimestampsBeforeAuthor {
+		fmt.Fprintf(w, "[::d]%7s[::-] ", time)
+	}
+
 	if isReply {
 		fmt.Fprintf(mt, "[::d]%s", config.Current.Theme.MessagesText.ReplyIndicator)
 	}
 
-	fmt.Fprintf(w, "[%s]%s[-] ", config.Current.Theme.MessagesText.AuthorColor, m.Author.Username)
+	fmt.Fprintf(w, "[%s]%s[-:-:-] ", config.Current.Theme.MessagesText.AuthorColor, m.Author.Username)
 
-	if config.Current.Timestamps {
-		fmt.Fprintf(w, "[::d]%s[::-] ", m.Timestamp.Format(time.Kitchen))
+	if config.Current.Timestamps && !config.Current.TimestampsBeforeAuthor {
+		fmt.Fprintf(w, "[::d]%s[::-] ", time)
 	}
 }
 
@@ -182,6 +188,8 @@ func (mt *MessagesText) selectPreviousAction() {
 	} else {
 		if mt.selectedMessage < len(ms)-1 {
 			mt.selectedMessage++
+		} else {
+			return
 		}
 	}
 
@@ -202,6 +210,8 @@ func (mt *MessagesText) selectNextAction() {
 	} else {
 		if mt.selectedMessage > 0 {
 			mt.selectedMessage--
+		} else {
+			return
 		}
 	}
 

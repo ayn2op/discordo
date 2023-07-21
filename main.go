@@ -1,86 +1,28 @@
 package main
 
 import (
-	"flag"
 	"log"
-	"os"
-	"path/filepath"
 
-	"github.com/ayn2op/discordo/internal/config"
-	"github.com/ayn2op/discordo/internal/ui"
-	"github.com/rivo/tview"
+	"github.com/alecthomas/kong"
+	"github.com/ayn2op/discordo/cmd/run"
+	"github.com/ayn2op/discordo/config"
 	"github.com/zalando/go-keyring"
 )
 
-var (
-	token      string
-	configPath string
-
-	discordState *State
-
-	app      = tview.NewApplication()
-	mainFlex *MainFlex
-)
-
-func init() {
-	t, _ := keyring.Get(config.Name, "token")
-	flag.StringVar(&token, "token", t, "The authentication token.")
-	flag.StringVar(&configPath, "config", "none", "Optional alternative configuration file.")
-
-	path, err := os.UserCacheDir()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	path = filepath.Join(path, config.Name)
-	err = os.MkdirAll(path, os.ModePerm)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	path = filepath.Join(path, "logs.txt")
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, os.ModePerm)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.SetOutput(f)
-	log.SetFlags(log.LstdFlags | log.Llongfile)
+var cli struct {
+	Run run.Cmd `cmd:"" default:"withargs"`
 }
 
 func main() {
-	flag.Parse()
+	t, _ := keyring.Get(config.Name, "token")
+	ctx := kong.Parse(&cli, kong.Vars{
+		"token":      t,
+		"configPath": config.DefaultPath(),
+		"logPath":    config.DefaultLogPath(),
+	})
 
-	if err := config.Load(configPath); err != nil {
-		log.Fatal(err)
-	}
-
-	if token == "" {
-		lf := ui.NewLoginForm()
-
-		go func() {
-			mainFlex = newMainFlex()
-			if err := openState(<-lf.Token); err != nil {
-				log.Fatal(err)
-			}
-
-			app.QueueUpdateDraw(func() {
-				app.SetRoot(mainFlex, true)
-			})
-		}()
-
-		app.SetRoot(lf, true)
-	} else {
-		mainFlex = newMainFlex()
-		if err := openState(token); err != nil {
-			log.Fatal(err)
-		}
-
-		app.SetRoot(mainFlex, true)
-	}
-
-	app.EnableMouse(config.Current.Mouse)
-	if err := app.Run(); err != nil {
+	err := ctx.Run()
+	if err != nil {
 		log.Fatal(err)
 	}
 }

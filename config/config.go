@@ -1,7 +1,6 @@
 package config
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
 
@@ -17,6 +16,8 @@ type Config struct {
 	Mouse bool `yaml:"mouse"`
 	// MessagesLimit is the number of messages to fetch when a text-based channel is selected.
 	MessagesLimit uint `yaml:"messages_limit"`
+	// TimestampsBeforeAuthor indicates whether to draw the timestamp before or after the author.
+	TimestampsBeforeAuthor bool `yaml:"timestamps_before_author"`
 	// Timestamps indicates whether to draw the timestamp in front of the message or not.
 	Timestamps bool `yaml:"timestamps"`
 	// Editor is the program to open when the `LaunchEditor` key is pressed. If the value of the field is "default", the `$EDITOR` environment variable is used instead.
@@ -28,63 +29,19 @@ type Config struct {
 
 func defConfig() Config {
 	return Config{
-		Mouse:         true,
-		Timestamps:    false,
-		MessagesLimit: 50,
-		Editor:        "default",
+		Mouse:                  true,
+		TimestampsBeforeAuthor: false,
+		Timestamps:             false,
+		MessagesLimit:          50,
+		Editor:                 "default",
 
 		Keys:  defKeys(),
 		Theme: defTheme(),
 	}
 }
 
-func getPath(optionalPath string) (string, error) {
-	// Trigger an error if config flag used but is empty.
-	if optionalPath == "" {
-		return "", errors.New("Optional path cannot be empty.")
-	}
-
-	// Use the path provided by flags.
-	if optionalPath != "none" {
-		return optionalPath, nil
-	}
-
-	// Use the default for the OS.
-	path, err := os.UserConfigDir()
-	if err != nil {
-		return "", err
-	}
-
-	path = filepath.Join(path, Name)
-	if err != nil {
-		return "", err
-	}
-
-	path = filepath.Join(path, "config.yml")
-	if err != nil {
-		return "", err
-	}
-
-	return path, nil
-}
-
-func Load(optionalPath string) error {
-	path, err := getPath(optionalPath)
-	if err != nil {
-		return err
-	}
-
-	// Split the directory from the configuration file.
-	dir, file := filepath.Split(path)
-
-	// Create the configuration directory if it does not exist already.
-	err = os.MkdirAll(dir, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	path = filepath.Join(dir, file)
-	_, err = os.Stat(path)
+func Load(path string) error {
+	_, err := os.Stat(path)
 	if os.IsNotExist(err) {
 		f, err := os.Create(path)
 		if err != nil {
@@ -110,4 +67,14 @@ func Load(optionalPath string) error {
 	}
 
 	return nil
+}
+
+func DefaultPath() string {
+	path, _ := os.UserConfigDir()
+	return filepath.Join(path, Name, "config.yml")
+}
+
+func DefaultLogPath() string {
+	path, _ := os.UserCacheDir()
+	return filepath.Join(path, Name, "logs.txt")
 }
