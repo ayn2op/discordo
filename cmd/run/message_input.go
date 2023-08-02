@@ -146,7 +146,7 @@ func (mi *MessageInput) launchEditorAction() {
 	// One may ask "Why don't we remove the file earlier?". Well,
 	// the file won't contain any message up until this point, and the file
 	// is created in /tmp anyway so it'll be cleared on a reboot.
-	var msg, read_err = os.ReadFile(f.Name())
+	msg, read_err := os.ReadFile(f.Name())
 	if read_err != nil {
 		log.Println(read_err)
 		return
