@@ -120,6 +120,7 @@ func (mi *MessageInput) launchEditorAction() {
 	f, err := os.CreateTemp("", config.Name + "-*.md")
 	if err != nil {
 		log.Println(err)
+		return
 	}
 	f.Close()
 	
