@@ -31,7 +31,7 @@ You can download and install a [prebuilt binary here](https://nightly.link/ayn2o
 
 ### Package managers
 
-- [Arch Linux](https://aur.archlinux.org/packages/discordo-git/): `yay -S discordo-git` (thanks to [Alyxia Sother](https://github.com/lexisother) for maintaining the AUR package).
+- [Arch Linux](https://aur.archlinux.org/packages/discordo-git/): `yay -S discordo-git`
 - [FreeBSD](https://www.freshports.org/net-im/discordo): `pkg install discordo` or via the ports system `make -C /usr/ports/net-im/discordo install clean`.
 
 ### Building from source
