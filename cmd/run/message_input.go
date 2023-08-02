@@ -125,7 +125,7 @@ func (mi *MessageInput) launchEditorAction() {
 	f.Close()
 	
 	// Defer this so the file is deleted when the
-	// function returns, regardless of failiure or not
+	// function returns, regardless of failure or not
 	defer os.Remove(f.Name())
 	
 	cmd := exec.Command(e, f.Name())
