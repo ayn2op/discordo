@@ -1,6 +1,6 @@
 module github.com/ayn2op/discordo
 
-go 1.20
+go 1.21.0
 
 require (
 	github.com/alecthomas/kong v0.8.0
