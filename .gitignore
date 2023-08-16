@@ -3,5 +3,4 @@ discordo*
 # Visual Studio Code
 .vscode/
 
-# nix build
 result/
