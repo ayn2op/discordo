@@ -79,30 +79,62 @@ func (mi *MessageInput) sendAction() {
 		return
 	}
 
+	ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	substitution := false
+	rp := strings.Split(text, "/")
+	if strings.HasPrefix(text, "s/") && len(rp) == 3 {
+		substitution = true
+		for i, msg := range ms {
+			if msg.Author.ID == discordState.Ready().User.ID {
+				text = strings.ReplaceAll(msg.Content, rp[1], rp[2])
+				mainFlex.messagesText.selectedMessage = i
+				break
+			}
+		}
+	}
+
 	if mainFlex.messagesText.selectedMessage != -1 {
-		ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
-		if err != nil {
-			log.Println(err)
-			return
+		title := mi.GetTitle()
+
+		if strings.HasPrefix(title, "Replying") {
+			data := api.SendMessageData{
+				Content:         text,
+				Reference:       &discord.MessageReference{MessageID: ms[mainFlex.messagesText.selectedMessage].ID},
+				AllowedMentions: &api.AllowedMentions{RepliedUser: option.False},
+			}
+	
+			if strings.HasSuffix(title, "[@]") {
+				data.AllowedMentions.RepliedUser = option.True
+			}
+	
+			go discordState.SendMessageComplex(mainFlex.guildsTree.selectedChannelID, data)
+		} else if strings.HasPrefix(title, "Editing") || substitution {
+			m, err := discordState.EditText(mainFlex.guildsTree.selectedChannelID, ms[mainFlex.messagesText.selectedMessage].ID, text)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+
+			err = discordState.MessageSet(m, true)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+
+			redrawChannel(mainFlex.guildsTree.selectedChannelID)
 		}
 
-		data := api.SendMessageData{
-			Content:         text,
-			Reference:       &discord.MessageReference{MessageID: ms[mainFlex.messagesText.selectedMessage].ID},
-			AllowedMentions: &api.AllowedMentions{RepliedUser: option.False},
-		}
-
-		if strings.HasPrefix(mi.GetTitle(), "[@]") {
-			data.AllowedMentions.RepliedUser = option.True
-		}
-
-		go discordState.SendMessageComplex(mainFlex.guildsTree.selectedChannelID, data)
+		mainFlex.messagesText.selectedMessage = -1
+		mainFlex.messagesText.Highlight()
 	} else {
 		go discordState.SendMessage(mainFlex.guildsTree.selectedChannelID, text)
 	}
 
-	mainFlex.messagesText.selectedMessage = -1
-	mainFlex.messagesText.Highlight()
 	mi.reset()
 }
 

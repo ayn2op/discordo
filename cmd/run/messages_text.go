@@ -58,6 +58,22 @@ func (mt *MessagesText) reset() {
 	mt.Highlight()
 }
 
+func redrawChannel(c discord.ChannelID) {
+	ms, err := discordState.Cabinet.Messages(c)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	mainFlex.messagesText.Clear()
+
+	for i := len(ms) - 1; i >= 0; i-- {
+		mainFlex.messagesText.createMessage(ms[i])
+	}
+
+	app.ForceDraw()
+}
+
 func (mt *MessagesText) createMessage(m discord.Message) {
 	switch m.Type {
 	case discord.DefaultMessage, discord.InlinedReplyMessage:
@@ -78,6 +94,11 @@ func (mt *MessagesText) createMessage(m discord.Message) {
 
 		// Tags with no region ID ([""]) don't start new regions. They can therefore be used to mark the end of a region.
 		fmt.Fprint(mt, `[""]`)
+
+		if m.EditedTimestamp.IsValid() {
+			fmt.Fprint(mt, " [::d](edited)[-:-:-]")
+		}
+
 		fmt.Fprintln(mt)
 	}
 }
@@ -122,6 +143,12 @@ func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	case config.Current.Keys.MessagesText.ReplyMention:
 		mt.replyAction(true)
 		return nil
+	case config.Current.Keys.MessagesText.Edit:
+		mt.editAction()
+		return nil
+	case config.Current.Keys.MessagesText.Delete:
+		mt.deleteAction()
+		return nil
 	case config.Current.Keys.MessagesText.SelectPrevious:
 		mt.selectPreviousAction()
 		return nil
@@ -156,11 +183,25 @@ func (mt *MessagesText) replyAction(mention bool) {
 		return
 	}
 
-	var title string
+	ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	title := "Replying to " + ms[mt.selectedMessage].Author.Tag()
 	if mention {
-		title += "[@] Replying to "
-	} else {
-		title += "Replying to "
+		title += "[@]"
+	}
+
+	mainFlex.messageInput.SetTitle(title)
+
+	app.SetFocus(mainFlex.messageInput)
+}
+
+func (mt *MessagesText) editAction() {
+	if mt.selectedMessage == -1 {
+		return
 	}
 
 	ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
@@ -169,11 +210,40 @@ func (mt *MessagesText) replyAction(mention bool) {
 		return
 	}
 
-	title += ms[mt.selectedMessage].Author.Tag()
-	mainFlex.messageInput.SetTitle(title)
+	m := ms[mt.selectedMessage]
+	if m.Author.ID != discordState.Ready().User.ID {
+		return
+	}
 
+	mainFlex.messageInput.SetTitle("Editing")
+	mainFlex.messageInput.SetText(m.Content)
 	app.SetFocus(mainFlex.messageInput)
 }
+
+func (mt *MessagesText) deleteAction() {
+	if mt.selectedMessage == -1 {
+		return
+	}
+
+	ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	// X-Audit-Log-Reason by official discord client is empty
+	if err := discordState.DeleteMessage(mainFlex.guildsTree.selectedChannelID, ms[mt.selectedMessage].ID, ""); err != nil {
+		log.Println(err)
+	}
+
+	if err = discordState.MessageRemove(mainFlex.guildsTree.selectedChannelID, ms[mt.selectedMessage].ID); err != nil {
+		log.Println(err)
+	}
+
+	redrawChannel(mainFlex.guildsTree.selectedChannelID)
+	app.SetFocus(mainFlex.messageInput)
+}
+
 
 func (mt *MessagesText) selectPreviousAction() {
 	ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
