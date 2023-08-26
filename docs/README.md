@@ -17,12 +17,12 @@ There are two ways to login:
 
 > In both cases, the authentication token is stored securely in the default OS-specific keyring.
 
-**Username / Password login**
+### Email login
 
 1. Run `discordo` without arguments.
 2. Enter your email and password then click on the "Login" button to continue.
 
-**Token login**
+### Token login
 
 Use the `--token` flag:
 

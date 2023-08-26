@@ -144,9 +144,19 @@ func (mi *MessageInput) launchEditorAction() {
 		e = os.Getenv("EDITOR")
 	}
 
-	cmd := exec.Command(e)
-	var b strings.Builder
-	cmd.Stdout = &b
+	f, err := os.CreateTemp("", config.Name+"-*.md")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	f.Close()
+
+	defer os.Remove(f.Name())
+
+	cmd := exec.Command(e, f.Name())
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 
 	app.Suspend(func() {
 		err := cmd.Run()
@@ -156,5 +166,11 @@ func (mi *MessageInput) launchEditorAction() {
 		}
 	})
 
-	mi.SetText(b.String(), true)
+	msg, err := os.ReadFile(f.Name())
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	mi.SetText(string(msg), true)
 }
