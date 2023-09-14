@@ -140,6 +140,9 @@ func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	case config.Current.Keys.MessagesText.ShowImage:
 		mt.showImageAction()
 		return nil
+	case config.Current.Keys.MessagesText.Delete:
+		mt.deleteAction()
+		return nil
 	case config.Current.Keys.Cancel:
 		mainFlex.guildsTree.selectedChannelID = 0
 
@@ -308,4 +311,37 @@ func (mt *MessagesText) showImageAction() {
 	}
 
 	app.SetRoot(ai, true)
+}
+
+func (mt *MessagesText) deleteAction() {
+	if mt.selectedMessage == -1 {
+		return
+	}
+
+	ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	m := ms[mt.selectedMessage]
+	if err := discordState.DeleteMessage(mainFlex.guildsTree.selectedChannelID, m.ID, ""); err != nil {
+		log.Println(err)
+	}
+
+	if err := discordState.MessageRemove(mainFlex.guildsTree.selectedChannelID, m.ID); err != nil {
+		log.Println(err)
+	}
+
+	ms, err = discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	mt.Clear()
+
+	for i := len(ms) - 1; i >= 0; i-- {
+		mainFlex.messagesText.createMessage(ms[i])
+	}
 }
