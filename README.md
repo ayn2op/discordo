@@ -31,8 +31,9 @@ You can download and install a [prebuilt binary here](https://nightly.link/ayn2o
 
 ### Package managers
 
-- [Arch Linux](https://aur.archlinux.org/packages/discordo-git/): `yay -S discordo-git`
-- [FreeBSD](https://www.freshports.org/net-im/discordo): `pkg install discordo` or via the ports system `make -C /usr/ports/net-im/discordo install clean`.
+- Arch Linux: `yay -S discordo-git`
+- FreeBSD: `pkg install discordo` or via the ports system `make -C /usr/ports/net-im/discordo install clean`.
+- NixOS: `nix-shell -p discordo`
 
 ### Building from source
 
