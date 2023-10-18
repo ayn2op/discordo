@@ -1,7 +1,7 @@
 package ui
 
 import (
-	"log"
+	"errors"
 
 	"github.com/ayn2op/discordo/config"
 	"github.com/diamondburned/arikawa/v3/api"
@@ -13,12 +13,14 @@ import (
 type LoginForm struct {
 	*tview.Form
 	Token chan string
+	Error chan error
 }
 
 func NewLoginForm() *LoginForm {
 	lf := &LoginForm{
 		Form:  tview.NewForm(),
 		Token: make(chan string, 1),
+		Error: make(chan error, 0),
 	}
 
 	lf.AddInputField("Email", "", 0, nil, nil)
@@ -51,7 +53,8 @@ func (lf *LoginForm) onLoginButtonSelected() {
 	// Log in using the provided email and password.
 	lr, err := apiClient.Login(email, password)
 	if err != nil {
-		log.Fatal(err)
+		lf.Error <- err
+		return
 	}
 
 	// If the account has MFA-enabled, attempt to log in using the provided code.
@@ -63,18 +66,20 @@ func (lf *LoginForm) onLoginButtonSelected() {
 
 		lr, err = apiClient.TOTP(code, lr.Ticket)
 		if err != nil {
-			log.Fatal(err)
+			lf.Error <- err
+			return
 		}
 	}
 
 	if lr.Token == "" {
-		log.Fatal("missing token")
-	} else {
-		rememberMe := lf.GetFormItem(3).(*tview.Checkbox).IsChecked()
-		if rememberMe {
-			go keyring.Set(config.Name, "token", lr.Token)
-		}
-
-		lf.Token <- lr.Token
+		lf.Error <- errors.New("Token is missing")
+		return
 	}
+
+	rememberMe := lf.GetFormItem(3).(*tview.Checkbox).IsChecked()
+	if rememberMe {
+		go keyring.Set(config.Name, "token", lr.Token)
+	}
+
+	lf.Token <- lr.Token
 }
