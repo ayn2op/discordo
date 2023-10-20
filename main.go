@@ -16,9 +16,7 @@ var cli struct {
 func main() {
 	t, _ := keyring.Get(config.Name, "token")
 	ctx := kong.Parse(&cli, kong.Vars{
-		"token":      t,
-		"configPath": config.DefaultPath(),
-		"logPath":    config.DefaultLogPath(),
+		"token": t,
 	})
 
 	err := ctx.Run()

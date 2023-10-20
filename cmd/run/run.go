@@ -19,28 +19,27 @@ var (
 
 type Cmd struct {
 	Token string `default:"${token}" help:"The authentication token." short:"t"`
-
-	Config string `default:"${configPath}" help:"The path of the configuration file." short:"l" type:"path"`
-	Log    string `default:"${logPath}" help:"The path of the log file." short:"c" type:"path"`
 }
 
 func (r *Cmd) Run() error {
-	err := os.MkdirAll(filepath.Dir(r.Config), os.ModePerm)
+	path := config.DefaultPath()
+	err := os.MkdirAll(filepath.Dir(path), os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	err = config.Load(r.Config)
+	err = config.Load(path)
 	if err != nil {
 		return err
 	}
 
-	err = os.MkdirAll(filepath.Dir(r.Log), os.ModePerm)
+	path = config.DefaultLogPath()
+	err = os.MkdirAll(filepath.Dir(path), os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	f, err := os.OpenFile(r.Log, os.O_CREATE|os.O_WRONLY, os.ModePerm)
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, os.ModePerm)
 	if err != nil {
 		return err
 	}
