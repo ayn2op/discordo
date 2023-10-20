@@ -8,8 +8,6 @@ The configuration file allows you to customize behavior, keybindings, and theme 
 | Darwin           | `$HOME/Library/Application Support/discordo/config.yml` |
 | Windows          | `%AppData%/discordo/config.yml`                         |
 
-Optionally, you can specify a different location for configuration file with the `config` command-line flag to the executable (eg: `--config foo/bar/conf.yml`).
-
 ## Keybindings
 
 Keybindings are configurable in the [configuration file](#configuration).
