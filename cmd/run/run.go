@@ -17,11 +17,7 @@ var (
 	mainFlex *MainFlex
 )
 
-type Cmd struct {
-	Token string `default:"${token}" help:"The authentication token." short:"t"`
-}
-
-func (r *Cmd) Run() error {
+func Run(token string) error {
 	path := config.DefaultPath()
 	err := os.MkdirAll(filepath.Dir(path), os.ModePerm)
 	if err != nil {
@@ -47,7 +43,7 @@ func (r *Cmd) Run() error {
 	log.SetOutput(f)
 	log.SetFlags(log.LstdFlags | log.Llongfile)
 
-	if r.Token == "" {
+	if token == "" {
 		lf := ui.NewLoginForm()
 
 		go func() {
@@ -70,7 +66,7 @@ func (r *Cmd) Run() error {
 		app.SetRoot(lf, true)
 	} else {
 		mainFlex = newMainFlex()
-		if err := openState(r.Token); err != nil {
+		if err := openState(token); err != nil {
 			app.Stop()
 		}
 
