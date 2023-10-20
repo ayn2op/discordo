@@ -1,36 +1,7 @@
 # Configuration
 
-The configuration file allows you to customize behavior, keybindings, and theme of the application. It is created on first start-up at the following location:
+The configuration file allows you to configure and customize the behavior, keybindings, and theme of the application. It is automatically created on first start-up at the following location:
 
-| Operating System | Configuration File Location                             |
-| ---------------- | ------------------------------------------------------- |
-| Unix             | `$HOME/.config/discordo/config.yml`                     |
-| Darwin           | `$HOME/Library/Application Support/discordo/config.yml` |
-| Windows          | `%AppData%/discordo/config.yml`                         |
-
-## Keybindings
-
-Keybindings are configurable in the [configuration file](#configuration).
-
-| Action                | Keybinding |
-| --------------------- | ---------- |
-| **Guilds Tree**       |            |
-| Focus                 | Alt + g    |
-| Toggle                | Alt + b    |
-|                       |            |
-| **Messages Text**     |            |
-| Focus                 | Alt + m    |
-| Show image            | i          |
-| Copy message content  | c          |
-| Reply without mention | r          |
-| Reply with mention    | R          |
-| Select reply          | s          |
-| Select previous       | Up arrow   |
-| Select next           | Down arrow |
-| Select first          | Home       |
-| Select last           | End        |
-|                       |            |
-| **Message Input**     |            |
-| Focus                 | Alt + i    |
-| Send message          | Enter      |
-| Launch editor         | Ctrl + e   |
+- Unix: `$XDG_CONFIG_HOME/discordo/config.yml` or `$HOME/.config/discordo/config.yml`
+- Darwin: `$HOME/Library/Application Support/discordo/config.yml`
+- Windows: `%AppData%/discordo/config.yml`
