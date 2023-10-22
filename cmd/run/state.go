@@ -2,11 +2,10 @@ package run
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"runtime"
 
-	"github.com/ayn2op/discordo/config"
+	"github.com/ayn2op/discordo/internal/constants"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
@@ -15,10 +14,10 @@ import (
 )
 
 func init() {
-	api.UserAgent = fmt.Sprintf("%s/0.1 (https://github.com/diamondburned/arikawa, v3)", config.Name)
+	api.UserAgent = constants.UserAgent
 	gateway.DefaultIdentity = gateway.IdentifyProperties{
 		OS:      runtime.GOOS,
-		Browser: config.Name,
+		Browser: constants.Name,
 		Device:  "",
 	}
 }

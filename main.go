@@ -5,12 +5,12 @@ import (
 	"log"
 
 	"github.com/ayn2op/discordo/cmd/run"
-	"github.com/ayn2op/discordo/config"
+	"github.com/ayn2op/discordo/internal/constants"
 	"github.com/zalando/go-keyring"
 )
 
 func main() {
-	t, _ := keyring.Get(config.Name, "token")
+	t, _ := keyring.Get(constants.Name, "token")
 	token := flag.String("token", t, "The authentication token.")
 	flag.Parse()
 

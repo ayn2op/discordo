@@ -8,6 +8,7 @@ import (
 
 	"github.com/atotto/clipboard"
 	"github.com/ayn2op/discordo/config"
+	"github.com/ayn2op/discordo/internal/constants"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
@@ -112,7 +113,7 @@ func (mi *MessageInput) launchEditorAction() {
 		e = os.Getenv("EDITOR")
 	}
 
-	f, err := os.CreateTemp("", config.Name+"-*.md")
+	f, err := os.CreateTemp("", constants.TmpFilePattern)
 	if err != nil {
 		log.Println(err)
 		return

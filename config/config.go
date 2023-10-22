@@ -4,10 +4,9 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/ayn2op/discordo/internal/constants"
 	"gopkg.in/yaml.v3"
 )
-
-const Name = "discordo"
 
 var Current = defConfig()
 
@@ -71,10 +70,10 @@ func Load(path string) error {
 
 func DefaultPath() string {
 	path, _ := os.UserConfigDir()
-	return filepath.Join(path, Name, "config.yml")
+	return filepath.Join(path, constants.Name, "config.yml")
 }
 
 func DefaultLogPath() string {
 	path, _ := os.UserCacheDir()
-	return filepath.Join(path, Name, "logs.txt")
+	return filepath.Join(path, constants.Name, "logs.txt")
 }

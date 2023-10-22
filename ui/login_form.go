@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/ayn2op/discordo/config"
+	"github.com/ayn2op/discordo/internal/constants"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -20,7 +21,7 @@ func NewLoginForm() *LoginForm {
 	lf := &LoginForm{
 		Form:  tview.NewForm(),
 		Token: make(chan string, 1),
-		Error: make(chan error, 0),
+		Error: make(chan error),
 	}
 
 	lf.AddInputField("Email", "", 0, nil, nil)
@@ -72,13 +73,13 @@ func (lf *LoginForm) onLoginButtonSelected() {
 	}
 
 	if lr.Token == "" {
-		lf.Error <- errors.New("Token is missing")
+		lf.Error <- errors.New("token is missing")
 		return
 	}
 
 	rememberMe := lf.GetFormItem(3).(*tview.Checkbox).IsChecked()
 	if rememberMe {
-		go keyring.Set(config.Name, "token", lr.Token)
+		go keyring.Set(constants.Name, "token", lr.Token)
 	}
 
 	lf.Token <- lr.Token
