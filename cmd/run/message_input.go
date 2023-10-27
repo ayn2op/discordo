@@ -18,12 +18,16 @@ import (
 
 type MessageInput struct {
 	*tview.TextArea
+
+	replyFlag bool
 }
 
 func newMessageInput() *MessageInput {
 	mi := &MessageInput{
 		TextArea: tview.NewTextArea(),
 	}
+
+	mi.SetReply(false)
 
 	mi.SetTextStyle(tcell.StyleDefault.Background(tcell.GetColor(config.Current.Theme.BackgroundColor)))
 	mi.SetClipboard(func(s string) {
@@ -48,8 +52,17 @@ func newMessageInput() *MessageInput {
 }
 
 func (mi *MessageInput) reset() {
-	mi.SetTitle("")
-	mi.SetText("", true)
+	if mi.replyFlag {
+		mi.SetReply(false)
+		mi.SetTitle("")
+	} else {
+		mi.SetTitle("")
+		mi.SetText("", true)
+	}
+}
+
+func (mi *MessageInput) SetReply(flag bool) {
+	mi.replyFlag = flag
 }
 
 func (mi *MessageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
@@ -65,6 +78,7 @@ func (mi *MessageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	case config.Current.Keys.Cancel:
 		mi.reset()
 		return nil
+
 	}
 
 	return event
@@ -80,7 +94,7 @@ func (mi *MessageInput) sendAction() {
 		return
 	}
 
-	if mainFlex.messagesText.selectedMessage != -1 {
+	if mainFlex.messagesText.selectedMessage != -1 && mi.replyFlag == true {
 		ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
 		if err != nil {
 			log.Println(err)
