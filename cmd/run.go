@@ -1,13 +1,12 @@
 package cmd
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 
-	oldConfig "github.com/ayn2op/discordo/config"
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/constants"
 	"github.com/ayn2op/discordo/ui"
 	"github.com/rivo/tview"
 )
@@ -27,15 +26,19 @@ func Run(token string) error {
 		return err
 	}
 
-	fmt.Printf("%+v\n", cfg)
-
-	path := oldConfig.DefaultLogPath()
-	err = os.MkdirAll(filepath.Dir(path), os.ModePerm)
+	logPath, err := os.UserCacheDir()
 	if err != nil {
 		return err
 	}
 
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, os.ModePerm)
+	logPath = filepath.Join(logPath, constants.Name)
+	err = os.MkdirAll(logPath, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	logPath = filepath.Join(logPath, "logs.txt")
+	f, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY, os.ModePerm)
 	if err != nil {
 		return err
 	}
