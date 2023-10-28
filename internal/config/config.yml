@@ -1,0 +1,56 @@
+# Whether the mouse is usable or not.
+mouse: true
+
+# Whether to draw the timestamps of the corresponding message in front of it.
+timestamps: false
+# Whether to draw the timestamps before the name of author of the message or not. 
+timestamps_before_author: false
+
+# The number of messages to fetch when a text-based channel is selected. The value must be >0 and <=100.
+messages_limit: 50
+
+# The name of the program to launch when the launch_editor key is pressed. If the value of the field is set to "default", the `$EDITOR` environment variable is used instead.
+editor: default
+
+keys:
+  cancel: Esc
+  
+  guilds_tree:
+    focus: Alt+Rune[g]
+    toggle: Alt+Rune[b]
+  
+  messages_text:
+    focus: Alt+Rune[m]
+    show_image: Rune[i]
+    copy_content: Rune[c]
+    delete: Rune[d]
+
+    reply: Rune[r]
+    reply_mention: Rune[R]
+
+    select_previous: Up
+    select_next: Down
+    select_first: Home
+    select_last: End
+    select_reply: Rune[s]
+
+  message_input:
+    focus: Alt+Rune[i]
+
+    send: Enter
+    launch_editor: Ctrl+E
+
+theme:
+  border: true
+  border_color: default
+  border_padding: [0, 0, 1, 1]
+
+  title_color: default
+  background_color: default
+
+  guilds_tree:
+    graphics: true
+
+  messages_text:
+    author_color: aqua
+    reply_indicator: ╭

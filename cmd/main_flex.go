@@ -1,7 +1,6 @@
-package run
+package cmd
 
 import (
-	"github.com/ayn2op/discordo/config"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -43,7 +42,7 @@ func (mf *MainFlex) init() {
 
 func (mf *MainFlex) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
-	case config.Current.Keys.GuildsTree.Toggle:
+	case cfg.Keys.GuildsTree.Toggle:
 		// The guilds tree is visible if the numbers of items is two.
 		if mf.GetItemCount() == 2 {
 			mf.RemoveItem(mf.guildsTree)
@@ -57,13 +56,13 @@ func (mf *MainFlex) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		}
 
 		return nil
-	case config.Current.Keys.GuildsTree.Focus:
+	case cfg.Keys.GuildsTree.Focus:
 		app.SetFocus(mf.guildsTree)
 		return nil
-	case config.Current.Keys.MessagesText.Focus:
+	case cfg.Keys.MessagesText.Focus:
 		app.SetFocus(mf.messagesText)
 		return nil
-	case config.Current.Keys.MessageInput.Focus:
+	case cfg.Keys.MessageInput.Focus:
 		app.SetFocus(mf.messageInput)
 		return nil
 	}

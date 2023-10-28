@@ -3,7 +3,7 @@ package ui
 import (
 	"errors"
 
-	"github.com/ayn2op/discordo/config"
+	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/constants"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/gdamore/tcell/v2"
@@ -17,7 +17,7 @@ type LoginForm struct {
 	Error chan error
 }
 
-func NewLoginForm() *LoginForm {
+func NewLoginForm(cfg *config.Config) *LoginForm {
 	lf := &LoginForm{
 		Form:  tview.NewForm(),
 		Token: make(chan string, 1),
@@ -31,12 +31,12 @@ func NewLoginForm() *LoginForm {
 	lf.AddButton("Login", lf.onLoginButtonSelected)
 
 	lf.SetTitle("Login")
-	lf.SetTitleColor(tcell.GetColor(config.Current.Theme.TitleColor))
+	lf.SetTitleColor(tcell.GetColor(cfg.Theme.TitleColor))
 	lf.SetTitleAlign(tview.AlignLeft)
 
-	p := config.Current.Theme.BorderPadding
-	lf.SetBorder(config.Current.Theme.Border)
-	lf.SetBorderColor(tcell.GetColor(config.Current.Theme.BorderColor))
+	p := cfg.Theme.BorderPadding
+	lf.SetBorder(cfg.Theme.Border)
+	lf.SetBorderColor(tcell.GetColor(cfg.Theme.BorderColor))
 	lf.SetBorderPadding(p[0], p[1], p[2], p[3])
 
 	return lf
