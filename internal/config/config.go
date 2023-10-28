@@ -76,18 +76,27 @@ type Config struct {
 	} `yaml:"theme"`
 }
 
-func Load() (*Config, error) {
+// Recursively creates the configuration directory if it does not exist already and returns the path to the configuration file.
+func initialize() (string, error) {
 	path, err := os.UserConfigDir()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	path = filepath.Join(path, constants.Name)
 	if err := os.MkdirAll(path, os.ModePerm); err != nil {
-		return nil, err
+		return "", err
 	}
 
-	path = filepath.Join(path, "config.yml")
+	return filepath.Join(path, "config.yml"), nil
+}
+
+// Recursively creates the configuration file if it does not exist already and writes the default configuration to it; otherwise, the existing configuration file is read, and returns the parsed configuration.
+func Load() (*Config, error) {
+	path, err := initialize()
+	if err != nil {
+		return nil, err
+	}
 
 	f, err := os.Open(path)
 	reader := io.Reader(f)
