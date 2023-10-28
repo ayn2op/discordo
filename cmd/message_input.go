@@ -1,4 +1,4 @@
-package run
+package cmd
 
 import (
 	"log"
@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/atotto/clipboard"
-	"github.com/ayn2op/discordo/config"
 	"github.com/ayn2op/discordo/internal/constants"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -25,7 +24,7 @@ func newMessageInput() *MessageInput {
 		TextArea: tview.NewTextArea(),
 	}
 
-	mi.SetTextStyle(tcell.StyleDefault.Background(tcell.GetColor(config.Current.Theme.BackgroundColor)))
+	mi.SetTextStyle(tcell.StyleDefault.Background(tcell.GetColor(cfg.Theme.BackgroundColor)))
 	mi.SetClipboard(func(s string) {
 		_ = clipboard.WriteAll(s)
 	}, func() string {
@@ -34,14 +33,14 @@ func newMessageInput() *MessageInput {
 	})
 
 	mi.SetInputCapture(mi.onInputCapture)
-	mi.SetBackgroundColor(tcell.GetColor(config.Current.Theme.BackgroundColor))
+	mi.SetBackgroundColor(tcell.GetColor(cfg.Theme.BackgroundColor))
 
-	mi.SetTitleColor(tcell.GetColor(config.Current.Theme.TitleColor))
+	mi.SetTitleColor(tcell.GetColor(cfg.Theme.TitleColor))
 	mi.SetTitleAlign(tview.AlignLeft)
 
-	p := config.Current.Theme.BorderPadding
-	mi.SetBorder(config.Current.Theme.Border)
-	mi.SetBorderColor(tcell.GetColor(config.Current.Theme.BorderColor))
+	p := cfg.Theme.BorderPadding
+	mi.SetBorder(cfg.Theme.Border)
+	mi.SetBorderColor(tcell.GetColor(cfg.Theme.BorderColor))
 	mi.SetBorderPadding(p[0], p[1], p[2], p[3])
 
 	return mi
@@ -54,15 +53,15 @@ func (mi *MessageInput) reset() {
 
 func (mi *MessageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
-	case config.Current.Keys.MessageInput.Send:
+	case cfg.Keys.MessageInput.Send:
 		mi.sendAction()
 		return nil
 	case "Alt+Enter":
 		return tcell.NewEventKey(tcell.KeyEnter, 0, tcell.ModNone)
-	case config.Current.Keys.MessageInput.LaunchEditor:
+	case cfg.Keys.MessageInput.LaunchEditor:
 		mainFlex.messageInput.launchEditorAction()
 		return nil
-	case config.Current.Keys.Cancel:
+	case cfg.Keys.Cancel:
 		mi.reset()
 		return nil
 	}
@@ -108,7 +107,7 @@ func (mi *MessageInput) sendAction() {
 }
 
 func (mi *MessageInput) launchEditorAction() {
-	e := config.Current.Editor
+	e := cfg.Editor
 	if e == "default" {
 		e = os.Getenv("EDITOR")
 	}

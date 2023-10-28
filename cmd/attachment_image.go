@@ -1,4 +1,4 @@
-package run
+package cmd
 
 import (
 	"image"
@@ -6,7 +6,6 @@ import (
 	_ "image/png"
 	"net/http"
 
-	"github.com/ayn2op/discordo/config"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -22,13 +21,13 @@ func newAttachmentImage(a discord.Attachment) (*AttachmentImage, error) {
 	}
 
 	ai.SetInputCapture(ai.onInputCapture)
-	ai.SetBackgroundColor(tcell.GetColor(config.Current.Theme.BackgroundColor))
-	ai.SetTitleColor(tcell.GetColor(config.Current.Theme.TitleColor))
+	ai.SetBackgroundColor(tcell.GetColor(cfg.Theme.BackgroundColor))
+	ai.SetTitleColor(tcell.GetColor(cfg.Theme.TitleColor))
 	ai.SetTitleAlign(tview.AlignLeft)
 
-	p := config.Current.Theme.BorderPadding
-	ai.SetBorder(config.Current.Theme.Border)
-	ai.SetBorderColor(tcell.GetColor(config.Current.Theme.BorderColor))
+	p := cfg.Theme.BorderPadding
+	ai.SetBorder(cfg.Theme.Border)
+	ai.SetBorderColor(tcell.GetColor(cfg.Theme.BorderColor))
 	ai.SetBorderPadding(p[0], p[1], p[2], p[3])
 
 	resp, err := http.Get(a.URL)
@@ -48,7 +47,7 @@ func newAttachmentImage(a discord.Attachment) (*AttachmentImage, error) {
 }
 
 func (ai *AttachmentImage) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
-	if event.Name() == config.Current.Keys.Cancel {
+	if event.Name() == cfg.Keys.Cancel {
 		app.SetRoot(mainFlex, true)
 		app.SetFocus(mainFlex.messagesText)
 		return nil

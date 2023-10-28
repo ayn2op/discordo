@@ -1,11 +1,13 @@
-package run
+package cmd
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 
-	"github.com/ayn2op/discordo/config"
+	oldConfig "github.com/ayn2op/discordo/config"
+	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/ui"
 	"github.com/rivo/tview"
 )
@@ -13,23 +15,21 @@ import (
 var (
 	discordState *State
 
+	cfg      *config.Config
 	app      = tview.NewApplication()
 	mainFlex *MainFlex
 )
 
 func Run(token string) error {
-	path := config.DefaultPath()
-	err := os.MkdirAll(filepath.Dir(path), os.ModePerm)
+	var err error
+	cfg, err = config.Load()
 	if err != nil {
 		return err
 	}
 
-	err = config.Load(path)
-	if err != nil {
-		return err
-	}
+	fmt.Printf("%+v\n", cfg)
 
-	path = config.DefaultLogPath()
+	path := oldConfig.DefaultLogPath()
 	err = os.MkdirAll(filepath.Dir(path), os.ModePerm)
 	if err != nil {
 		return err
@@ -44,7 +44,7 @@ func Run(token string) error {
 	log.SetFlags(log.LstdFlags | log.Llongfile)
 
 	if token == "" {
-		lf := ui.NewLoginForm()
+		lf := ui.NewLoginForm(cfg)
 
 		go func() {
 			mainFlex = newMainFlex()
@@ -73,6 +73,6 @@ func Run(token string) error {
 		app.SetRoot(mainFlex, true)
 	}
 
-	app.EnableMouse(config.Current.Mouse)
+	app.EnableMouse(cfg.Mouse)
 	return app.Run()
 }
