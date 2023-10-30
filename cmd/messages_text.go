@@ -1,4 +1,4 @@
-package run
+package cmd
 
 import (
 	"fmt"
@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/atotto/clipboard"
-	"github.com/ayn2op/discordo/config"
 	"github.com/ayn2op/discordo/markdown"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/gdamore/tcell/v2"
@@ -36,30 +35,26 @@ func newMessagesText() *MessagesText {
 		app.Draw()
 	})
 
-	mt.SetBackgroundColor(tcell.GetColor(config.Current.Theme.BackgroundColor))
+	mt.SetBackgroundColor(tcell.GetColor(cfg.Theme.BackgroundColor))
 
 	mt.SetTitle("Messages")
-	mt.SetTitleColor(tcell.GetColor(config.Current.Theme.TitleColor))
+	mt.SetTitleColor(tcell.GetColor(cfg.Theme.TitleColor))
 	mt.SetTitleAlign(tview.AlignLeft)
 
-	p := config.Current.Theme.BorderPadding
-	mt.SetBorder(config.Current.Theme.Border)
-	mt.SetBorderColor(tcell.GetColor(config.Current.Theme.BorderColor))
+	p := cfg.Theme.BorderPadding
+	mt.SetBorder(cfg.Theme.Border)
+	mt.SetBorderColor(tcell.GetColor(cfg.Theme.BorderColor))
 	mt.SetBorderPadding(p[0], p[1], p[2], p[3])
 
 	return mt
 }
 
-func (mt *MessagesText) reset() int {
-	mt.Highlight()
-
-	if mainFlex.messagesText.selectedMessage == -1 {
-		mt.SetTitle("")
-		mt.Clear()
-		return 0
-	}
+func (mt *MessagesText) reset() {
 	mainFlex.messagesText.selectedMessage = -1
-	return 1
+
+	mt.SetTitle("")
+	mt.Clear()
+	mt.Highlight()
 }
 
 func (mt *MessagesText) createMessage(m discord.Message) {
@@ -89,17 +84,17 @@ func (mt *MessagesText) createMessage(m discord.Message) {
 func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, isReply bool) {
 	time := m.Timestamp.Format(time.Kitchen)
 
-	if config.Current.Timestamps && config.Current.TimestampsBeforeAuthor {
+	if cfg.Timestamps && cfg.TimestampsBeforeAuthor {
 		fmt.Fprintf(w, "[::d]%7s[::-] ", time)
 	}
 
 	if isReply {
-		fmt.Fprintf(mt, "[::d]%s", config.Current.Theme.MessagesText.ReplyIndicator)
+		fmt.Fprintf(mt, "[::d]%s", cfg.Theme.MessagesText.ReplyIndicator)
 	}
 
-	fmt.Fprintf(w, "[%s]%s[-:-:-] ", config.Current.Theme.MessagesText.AuthorColor, m.Author.Username)
+	fmt.Fprintf(w, "[%s]%s[-:-:-] ", cfg.Theme.MessagesText.AuthorColor, m.Author.Username)
 
-	if config.Current.Timestamps && !config.Current.TimestampsBeforeAuthor {
+	if cfg.Timestamps && !cfg.TimestampsBeforeAuthor {
 		fmt.Fprintf(w, "[::d]%s[::-] ", time)
 	}
 }
@@ -117,42 +112,41 @@ func (mt *MessagesText) createFooter(w io.Writer, m discord.Message) {
 
 func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
-	case config.Current.Keys.MessagesText.CopyContent:
+	case cfg.Keys.MessagesText.CopyContent:
 		mt.copyContentAction()
 		return nil
-	case config.Current.Keys.MessagesText.Reply:
+	case cfg.Keys.MessagesText.Reply:
 		mt.replyAction(false)
 		return nil
-	case config.Current.Keys.MessagesText.ReplyMention:
+	case cfg.Keys.MessagesText.ReplyMention:
 		mt.replyAction(true)
 		return nil
-	case config.Current.Keys.MessagesText.SelectPrevious:
+	case cfg.Keys.MessagesText.SelectPrevious:
 		mt.selectPreviousAction()
 		return nil
-	case config.Current.Keys.MessagesText.SelectNext:
+	case cfg.Keys.MessagesText.SelectNext:
 		mt.selectNextAction()
 		return nil
-	case config.Current.Keys.MessagesText.SelectFirst:
+	case cfg.Keys.MessagesText.SelectFirst:
 		mt.selectFirstAction()
 		return nil
-	case config.Current.Keys.MessagesText.SelectLast:
+	case cfg.Keys.MessagesText.SelectLast:
 		mt.selectLastAction()
 		return nil
-	case config.Current.Keys.MessagesText.SelectReply:
+	case cfg.Keys.MessagesText.SelectReply:
 		mt.selectReplyAction()
 		return nil
-	case config.Current.Keys.MessagesText.ShowImage:
+	case cfg.Keys.MessagesText.ShowImage:
 		mt.showImageAction()
 		return nil
-	case config.Current.Keys.MessagesText.Delete:
+	case cfg.Keys.MessagesText.Delete:
 		mt.deleteAction()
 		return nil
-	case config.Current.Keys.Cancel:
-		deselect := mainFlex.messagesText.reset()
-		if deselect == 0 {
-			mainFlex.guildsTree.selectedChannelID = 0
-			mainFlex.messageInput.reset()
-		}
+	case cfg.Keys.Cancel:
+		mainFlex.guildsTree.selectedChannelID = 0
+
+		mainFlex.messagesText.reset()
+		mainFlex.messageInput.reset()
 		return nil
 	}
 
@@ -179,7 +173,6 @@ func (mt *MessagesText) replyAction(mention bool) {
 
 	title += ms[mt.selectedMessage].Author.Tag()
 	mainFlex.messageInput.SetTitle(title)
-	mainFlex.messageInput.SetReply(true)
 
 	app.SetFocus(mainFlex.messageInput)
 }
