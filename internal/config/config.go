@@ -91,7 +91,7 @@ func initialize() (string, error) {
 	return filepath.Join(path, "config.yml"), nil
 }
 
-// Recursively creates the configuration file if it does not exist already and writes the default configuration to it; otherwise, the existing configuration file is read, and returns the parsed configuration.
+// Reads the configuration file and parses it.
 func Load() (*Config, error) {
 	path, err := initialize()
 	if err != nil {
