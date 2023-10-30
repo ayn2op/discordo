@@ -17,6 +17,8 @@ import (
 
 type MessageInput struct {
 	*tview.TextArea
+
+	replyFlag bool
 }
 
 func newMessageInput() *MessageInput {
@@ -43,12 +45,23 @@ func newMessageInput() *MessageInput {
 	mi.SetBorderColor(tcell.GetColor(cfg.Theme.BorderColor))
 	mi.SetBorderPadding(p[0], p[1], p[2], p[3])
 
+	mi.SetReply(false)
+
 	return mi
 }
 
 func (mi *MessageInput) reset() {
-	mi.SetTitle("")
-	mi.SetText("", true)
+	if mi.replyFlag {
+		mi.SetReply(false)
+		mi.SetTitle("")
+	} else {
+		mi.SetTitle("")
+		mi.SetText("", true)
+	}
+}
+
+func (mi *MessageInput) SetReply(flag bool) {
+	mi.replyFlag = flag
 }
 
 func (mi *MessageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
@@ -79,7 +92,7 @@ func (mi *MessageInput) sendAction() {
 		return
 	}
 
-	if mainFlex.messagesText.selectedMessage != -1 {
+	if mainFlex.messagesText.selectedMessage != -1 && mi.replyFlag == true {
 		ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
 		if err != nil {
 			log.Println(err)

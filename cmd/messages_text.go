@@ -173,6 +173,7 @@ func (mt *MessagesText) replyAction(mention bool) {
 
 	title += ms[mt.selectedMessage].Author.Tag()
 	mainFlex.messageInput.SetTitle(title)
+	mainFlex.messageInput.SetReply(true)
 
 	app.SetFocus(mainFlex.messageInput)
 }
