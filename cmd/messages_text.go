@@ -49,12 +49,16 @@ func newMessagesText() *MessagesText {
 	return mt
 }
 
-func (mt *MessagesText) reset() {
-	mainFlex.messagesText.selectedMessage = -1
-
-	mt.SetTitle("")
-	mt.Clear()
+func (mt *MessagesText) reset() int {
 	mt.Highlight()
+
+	if mainFlex.messagesText.selectedMessage == -1 {
+		mt.SetTitle("")
+		mt.Clear()
+		return 0
+	}
+	mainFlex.messagesText.selectedMessage = -1
+	return 1
 }
 
 func (mt *MessagesText) createMessage(m discord.Message) {
@@ -143,10 +147,12 @@ func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		mt.deleteAction()
 		return nil
 	case cfg.Keys.Cancel:
-		mainFlex.guildsTree.selectedChannelID = 0
+		deselect := mainFlex.messagesText.reset()
 
-		mainFlex.messagesText.reset()
-		mainFlex.messageInput.reset()
+		if deselect == 0 {
+			mainFlex.guildsTree.selectedChannelID = 0
+			mainFlex.messageInput.reset()
+		}
 		return nil
 	}
 
