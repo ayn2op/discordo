@@ -116,6 +116,7 @@ func (mi *MessageInput) sendAction() {
 
 	mainFlex.messagesText.selectedMessage = -1
 	mainFlex.messagesText.Highlight()
+	mi.SetReply(false)
 	mi.reset()
 }
 
