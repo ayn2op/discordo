@@ -49,6 +49,18 @@ func newMessagesText() *MessagesText {
 	return mt
 }
 
+func (mt *MessagesText) drawMsgs(cID discord.ChannelID) {
+	ms, err := discordState.Messages(cID, uint(cfg.MessagesLimit))
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	for i := len(ms) - 1; i >= 0; i-- {
+		mainFlex.messagesText.createMessage(ms[i])
+	}
+}
+
 func (mt *MessagesText) reset() {
 	mainFlex.messagesText.selectedMessage = -1
 
