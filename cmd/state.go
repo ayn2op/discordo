@@ -34,6 +34,8 @@ func openState(token string) error {
 	// Handlers
 	discordState.AddHandler(discordState.onReady)
 	discordState.AddHandler(discordState.onMessageCreate)
+	discordState.AddHandler(discordState.onMessageDelete)
+
 	discordState.StateLog = discordState.onLog
 	discordState.OnRequest = append(discordState.Client.OnRequest, discordState.onRequest)
 
@@ -79,5 +81,12 @@ func (s *State) onReady(r *gateway.ReadyEvent) {
 func (s *State) onMessageCreate(m *gateway.MessageCreateEvent) {
 	if mainFlex.guildsTree.selectedChannelID.IsValid() && mainFlex.guildsTree.selectedChannelID == m.ChannelID {
 		mainFlex.messagesText.createMessage(m.Message)
+	}
+}
+
+func (s *State) onMessageDelete(m *gateway.MessageDeleteEvent) {
+	if mainFlex.guildsTree.selectedChannelID == m.ChannelID {
+		mainFlex.messagesText.reset()
+		mainFlex.messagesText.drawMsgs(m.ChannelID)
 	}
 }

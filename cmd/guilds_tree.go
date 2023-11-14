@@ -187,15 +187,7 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 
 		gt.createChannelNodes(n, cs)
 	case discord.ChannelID:
-		ms, err := discordState.Messages(ref, uint(cfg.MessagesLimit))
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
-		for i := len(ms) - 1; i >= 0; i-- {
-			mainFlex.messagesText.createMessage(ms[i])
-		}
+		mainFlex.messagesText.drawMsgs(ref)
 
 		c, err := discordState.Cabinet.Channel(ref)
 		if err != nil {
