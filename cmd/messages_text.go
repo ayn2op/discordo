@@ -7,15 +7,17 @@ import (
 	"time"
 
 	"github.com/atotto/clipboard"
-	"github.com/ayn2op/discordo/markdown"
+	"github.com/ayn2op/discordo/internal/md"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	"github.com/yuin/goldmark"
 )
 
 type MessagesText struct {
 	*tview.TextView
 
+	md              goldmark.Markdown
 	selectedMessage int
 }
 
@@ -23,6 +25,7 @@ func newMessagesText() *MessagesText {
 	mt := &MessagesText{
 		TextView: tview.NewTextView(),
 
+		md:              md.New(),
 		selectedMessage: -1,
 	}
 
@@ -112,7 +115,9 @@ func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, isReply boo
 }
 
 func (mt *MessagesText) createBody(w io.Writer, m discord.Message) {
-	fmt.Fprint(w, markdown.Parse(tview.Escape(m.Content)))
+	if err := mt.md.Convert([]byte(tview.Escape(m.Content)), w); err != nil {
+		log.Println(err)
+	}
 }
 
 func (mt *MessagesText) createFooter(w io.Writer, m discord.Message) {
