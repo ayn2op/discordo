@@ -11,17 +11,20 @@ import (
 	"github.com/zalando/go-keyring"
 )
 
+type Token struct {
+	Value string
+	Error error
+}
+
 type LoginForm struct {
 	*tview.Form
-	Token chan string
-	Error chan error
+	Token chan Token
 }
 
 func NewLoginForm(cfg *config.Config) *LoginForm {
 	lf := &LoginForm{
 		Form:  tview.NewForm(),
-		Token: make(chan string, 1),
-		Error: make(chan error),
+		Token: make(chan Token, 1),
 	}
 
 	lf.AddInputField("Email", "", 0, nil, nil)
@@ -54,7 +57,7 @@ func (lf *LoginForm) onLoginButtonSelected() {
 	// Log in using the provided email and password.
 	lr, err := apiClient.Login(email, password)
 	if err != nil {
-		lf.Error <- err
+		lf.Token <- Token{Error: err}
 		return
 	}
 
@@ -62,18 +65,19 @@ func (lf *LoginForm) onLoginButtonSelected() {
 	if lr.MFA && lr.Token == "" {
 		code := lf.GetFormItem(2).(*tview.InputField).GetText()
 		if code == "" {
+			lf.Token <- Token{Error: errors.New("code required")}
 			return
 		}
 
 		lr, err = apiClient.TOTP(code, lr.Ticket)
 		if err != nil {
-			lf.Error <- err
+			lf.Token <- Token{Error: err}
 			return
 		}
 	}
 
 	if lr.Token == "" {
-		lf.Error <- errors.New("token is missing")
+		lf.Token <- Token{Error: errors.New("missing token")}
 		return
 	}
 
@@ -82,5 +86,5 @@ func (lf *LoginForm) onLoginButtonSelected() {
 		go keyring.Set(constants.Name, "token", lr.Token)
 	}
 
-	lf.Token <- lr.Token
+	lf.Token <- Token{Value: lr.Token}
 }
