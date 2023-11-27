@@ -32,13 +32,16 @@ func Run(token string) error {
 		lf := ui.NewLoginForm(cfg)
 
 		go func() {
+			// mainFlex must be initialized before opening a new state.
 			mainFlex = newMainFlex()
-			if err := <-lf.Error; err != nil {
+
+			token := <-lf.Token
+			if token.Error != nil {
 				app.Stop()
-				log.Fatal(err)
+				log.Fatal(token.Error)
 			}
 
-			if err := openState(<-lf.Token); err != nil {
+			if err := openState(token.Value); err != nil {
 				app.Stop()
 				log.Fatal(err)
 			}
