@@ -55,7 +55,7 @@ func Run(token string) error {
 	} else {
 		mainFlex = newMainFlex()
 		if err := openState(token); err != nil {
-			app.Stop()
+			return err
 		}
 
 		app.SetRoot(mainFlex, true)
