@@ -14,9 +14,16 @@ import (
 //go:embed config.yml
 var defaultConfig []byte
 
-type Config struct {
-	Mouse bool `yaml:"mouse"`
+type Keys struct {
+	Common map[string]string `yaml:",inline"`
 
+	GuildsTree   map[string]string `yaml:"guilds_tree"`
+	MessagesText map[string]string `yaml:"messages_text"`
+	MessageInput map[string]string `yaml:"message_input"`
+}
+
+type Config struct {
+	Mouse                  bool `yaml:"mouse"`
 	Timestamps             bool `yaml:"timestamps"`
 	TimestampsBeforeAuthor bool `yaml:"timestamps_before_author"`
 
@@ -25,38 +32,17 @@ type Config struct {
 	Editor string `yaml:"editor"`
 
 	Keys struct {
-		Cancel string `yaml:"cancel"`
-
-		GuildsTree struct {
-			Focus  string `yaml:"focus"`
-			Toggle string `yaml:"toggle"`
-		} `yaml:"guilds_tree"`
+		Normal Keys `yaml:"normal"`
+		Insert Keys `yaml:"insert"`
 
 		MessagesText struct {
-			Focus string `yaml:"focus"`
+			ShowImage string `yaml:"show_image"`
 
-			ShowImage   string `yaml:"show_image"`
-			CopyContent string `yaml:"copy_content"`
-
-			Reply        string `yaml:"reply"`
-			ReplyMention string `yaml:"reply_mention"`
-
-			Delete string `yaml:"delete"`
-
-			SelectPrevious string `yaml:"select_previous"`
-			SelectNext     string `yaml:"select_next"`
-			SelectFirst    string `yaml:"select_first"`
-			SelectLast     string `yaml:"select_last"`
-			SelectReply    string `yaml:"select_reply"`
+			SelectFirst string `yaml:"select_first"`
+			SelectLast  string `yaml:"select_last"`
 		} `yaml:"messages_text"`
-
-		MessageInput struct {
-			Focus string `yaml:"focus"`
-
-			Send         string `yaml:"send"`
-			LaunchEditor string `yaml:"launch_editor"`
-		} `yaml:"message_input"`
 	} `yaml:"keys"`
+
 	Theme struct {
 		Border        bool   `yaml:"border"`
 		BorderColor   string `yaml:"border_color"`

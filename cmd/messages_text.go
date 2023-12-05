@@ -46,6 +46,46 @@ func newMessagesText() *MessagesText {
 	mt.SetBorderColor(tcell.GetColor(cfg.Theme.BorderColor))
 	mt.SetBorderPadding(p[0], p[1], p[2], p[3])
 
+	commands.messagesText["focus_messages_text"] = func(event *tcell.EventKey) *tcell.EventKey {
+		app.SetFocus(mt)
+		return nil
+	}
+
+	commands.messagesText["copy"] = func(event *tcell.EventKey) *tcell.EventKey {
+		mt.copyContentAction()
+		return nil
+	}
+
+	commands.messagesText["delete"] = func(event *tcell.EventKey) *tcell.EventKey {
+		mt.deleteAction()
+		return nil
+	}
+
+	commands.messagesText["reply"] = func(event *tcell.EventKey) *tcell.EventKey {
+		mt.replyAction(false)
+		return nil
+	}
+
+	commands.messagesText["reply_mention"] = func(event *tcell.EventKey) *tcell.EventKey {
+		mt.replyAction(true)
+		return nil
+	}
+
+	commands.messagesText["select_prev"] = func(event *tcell.EventKey) *tcell.EventKey {
+		mt.selectPreviousAction()
+		return nil
+	}
+
+	commands.messagesText["select_next"] = func(event *tcell.EventKey) *tcell.EventKey {
+		mt.selectNextAction()
+		return nil
+	}
+
+	commands.messagesText["select_reply"] = func(event *tcell.EventKey) *tcell.EventKey {
+		mt.selectReplyAction()
+		return nil
+	}
+
 	return mt
 }
 
@@ -123,43 +163,10 @@ func (mt *MessagesText) createFooter(w io.Writer, m discord.Message) {
 }
 
 func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
-	switch event.Name() {
-	case cfg.Keys.MessagesText.CopyContent:
-		mt.copyContentAction()
-		return nil
-	case cfg.Keys.MessagesText.Reply:
-		mt.replyAction(false)
-		return nil
-	case cfg.Keys.MessagesText.ReplyMention:
-		mt.replyAction(true)
-		return nil
-	case cfg.Keys.MessagesText.SelectPrevious:
-		mt.selectPreviousAction()
-		return nil
-	case cfg.Keys.MessagesText.SelectNext:
-		mt.selectNextAction()
-		return nil
-	case cfg.Keys.MessagesText.SelectFirst:
-		mt.selectFirstAction()
-		return nil
-	case cfg.Keys.MessagesText.SelectLast:
-		mt.selectLastAction()
-		return nil
-	case cfg.Keys.MessagesText.SelectReply:
-		mt.selectReplyAction()
-		return nil
-	case cfg.Keys.MessagesText.ShowImage:
-		mt.showImageAction()
-		return nil
-	case cfg.Keys.MessagesText.Delete:
-		mt.deleteAction()
-		return nil
-	case cfg.Keys.Cancel:
-		mainFlex.guildsTree.selectedChannelID = 0
-
-		mainFlex.messagesText.reset()
-		mainFlex.messageInput.reset()
-		return nil
+	if commandName, ok := mainFlex.keysByMode().MessagesText[event.Name()]; ok {
+		if command, ok := commands.messagesText[commandName]; ok {
+			return command(event)
+		}
 	}
 
 	return event

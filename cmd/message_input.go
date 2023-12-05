@@ -43,6 +43,16 @@ func newMessageInput() *MessageInput {
 	mi.SetBorderColor(tcell.GetColor(cfg.Theme.BorderColor))
 	mi.SetBorderPadding(p[0], p[1], p[2], p[3])
 
+	commands.messageInput["send"] = func(event *tcell.EventKey) *tcell.EventKey {
+		mi.sendAction()
+		return nil
+	}
+
+	commands.messageInput["launch_editor"] = func(event *tcell.EventKey) *tcell.EventKey {
+		mi.launchEditorAction()
+		return nil
+	}
+
 	return mi
 }
 
@@ -52,18 +62,10 @@ func (mi *MessageInput) reset() {
 }
 
 func (mi *MessageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
-	switch event.Name() {
-	case cfg.Keys.MessageInput.Send:
-		mi.sendAction()
-		return nil
-	case "Alt+Enter":
-		return tcell.NewEventKey(tcell.KeyEnter, 0, tcell.ModNone)
-	case cfg.Keys.MessageInput.LaunchEditor:
-		mainFlex.messageInput.launchEditorAction()
-		return nil
-	case cfg.Keys.Cancel:
-		mi.reset()
-		return nil
+	if commandName, ok := mainFlex.keysByMode().MessageInput[event.Name()]; ok {
+		if command, ok := commands.messageInput[commandName]; ok {
+			return command(event)
+		}
 	}
 
 	return event

@@ -41,6 +41,26 @@ func newGuildsTree() *GuildsTree {
 	gt.SetBorderColor(tcell.GetColor(cfg.Theme.BorderColor))
 	gt.SetBorderPadding(p[0], p[1], p[2], p[3])
 
+	commands.guildsTree["focus_guilds_tree"] = func(event *tcell.EventKey) *tcell.EventKey {
+		app.SetFocus(gt)
+		return nil
+	}
+
+	commands.guildsTree["toggle_guilds_tree"] = func(event *tcell.EventKey) *tcell.EventKey {
+		// guilds tree is visible if the number of items is two.
+		if mainFlex.GetItemCount() == 2 {
+			mainFlex.RemoveItem(mainFlex.guildsTree)
+
+			if mainFlex.guildsTree.HasFocus() {
+				app.SetFocus(mainFlex)
+			}
+		} else {
+			app.SetFocus(mainFlex.guildsTree)
+		}
+
+		return nil
+	}
+
 	return gt
 }
 

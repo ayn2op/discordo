@@ -47,11 +47,11 @@ func newAttachmentImage(a discord.Attachment) (*AttachmentImage, error) {
 }
 
 func (ai *AttachmentImage) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
-	if event.Name() == cfg.Keys.Cancel {
-		app.SetRoot(mainFlex, true)
-		app.SetFocus(mainFlex.messagesText)
-		return nil
-	}
+	// if event.Name() == cfg.Keys.Cancel {
+	// 	app.SetRoot(mainFlex, true)
+	// 	app.SetFocus(mainFlex.messagesText)
+	// 	return nil
+	// }
 
 	return event
 }
