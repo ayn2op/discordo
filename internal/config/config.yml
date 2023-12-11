@@ -16,11 +16,11 @@ keys:
   cancel: Esc
   
   guilds_tree:
-    focus: Alt+Rune[g]
-    toggle: Alt+Rune[b]
+    focus: Ctrl+G
+    toggle: Ctrl+B
   
   messages_text:
-    focus: Alt+Rune[m]
+    focus: Ctrl+T
     show_image: Rune[i]
     copy_content: Rune[c]
     delete: Rune[d]
@@ -35,7 +35,7 @@ keys:
     select_reply: Rune[s]
 
   message_input:
-    focus: Alt+Rune[i]
+    focus: Ctrl+P
 
     send: Enter
     launch_editor: Ctrl+E
