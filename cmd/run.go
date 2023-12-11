@@ -5,7 +5,7 @@ import (
 
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/logger"
-	"github.com/ayn2op/discordo/ui"
+	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/rivo/tview"
 )
 
