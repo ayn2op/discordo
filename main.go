@@ -10,7 +10,11 @@ import (
 )
 
 func main() {
-	t, _ := keyring.Get(constants.Name, "token")
+	t, err := keyring.Get(constants.Name, "token")
+	if err != nil {
+		log.Println("token not found in keyring:", err)
+	}
+
 	token := flag.String("token", t, "The authentication token.")
 	flag.Parse()
 
