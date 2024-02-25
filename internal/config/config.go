@@ -72,6 +72,8 @@ type Config struct {
 		MessagesText struct {
 			AuthorColor    string `yaml:"author_color"`
 			ReplyIndicator string `yaml:"reply_indicator"`
+			OwnAuthorName  string `yaml:"own_author_name"`
+			OwnAuthorColor string `yaml:"own_author_color"`
 		} `yaml:"messages_text"`
 	} `yaml:"theme"`
 }

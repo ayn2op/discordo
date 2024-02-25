@@ -104,7 +104,11 @@ func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, isReply boo
 		fmt.Fprintf(mt, "[::d]%s", cfg.Theme.MessagesText.ReplyIndicator)
 	}
 
-	fmt.Fprintf(w, "[%s]%s[-:-:-] ", cfg.Theme.MessagesText.AuthorColor, m.Author.Username)
+	var authorcolor = cfg.Theme.MessagesText.AuthorColor
+	if cfg.Theme.MessagesText.OwnAuthorName == m.Author.Username {
+		authorcolor = cfg.Theme.MessagesText.OwnAuthorColor
+	}
+	fmt.Fprintf(w, "[%s]%s[-:-:-] ", authorcolor, m.Author.Username)
 
 	if cfg.Timestamps && !cfg.TimestampsBeforeAuthor {
 		fmt.Fprintf(w, "[::d]%s[::-] ", time)
