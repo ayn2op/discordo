@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"strings"
 	"fmt"
 	"io"
 	"log"
@@ -111,8 +112,24 @@ func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, isReply boo
 	}
 }
 
+func parseIDsToUsernames(m discord.Message) string {
+	c := m.Content
+	for _, mention := range m.Mentions {
+		mentionUserID := fmt.Sprintf("<@%s>", mention.User.ID.String())
+		mentionUsername := fmt.Sprintf("__**@%s**__", mention.User.Username)
+		c = strings.Replace(c, mentionUserID, mentionUsername, -1)
+	}
+	return c
+}
+
 func (mt *MessagesText) createBody(w io.Writer, m discord.Message) {
-	fmt.Fprint(w, markdown.Parse(tview.Escape(m.Content)))
+	var body string
+	if len(m.Mentions) > 0 {
+		body = parseIDsToUsernames(m)
+	} else {
+		body = m.Content
+	}
+	fmt.Fprint(w, markdown.Parse(tview.Escape(body)))
 }
 
 func (mt *MessagesText) createFooter(w io.Writer, m discord.Message) {
