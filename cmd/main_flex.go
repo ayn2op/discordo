@@ -57,7 +57,9 @@ func (mf *MainFlex) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 
 		return nil
 	case cfg.Keys.GuildsTree.Focus:
-		app.SetFocus(mf.guildsTree)
+		if mf.GetItemCount() == 2 {
+			app.SetFocus(mf.guildsTree)
+		}
 		return nil
 	case cfg.Keys.MessagesText.Focus:
 		app.SetFocus(mf.messagesText)
