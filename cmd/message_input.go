@@ -64,6 +64,7 @@ func (mi *MessageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		mainFlex.messageInput.launchEditorAction()
 		return nil
 	case cfg.Keys.Cancel:
+		mi.replyMessageID = -1
 		mi.reset()
 		return nil
 	}
