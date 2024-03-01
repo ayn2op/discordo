@@ -17,13 +17,13 @@ import (
 
 type MessageInput struct {
 	*tview.TextArea
-	replyMessageID int
+	replyMessageIdx int
 }
 
 func newMessageInput() *MessageInput {
 	mi := &MessageInput{
 		TextArea: tview.NewTextArea(),
-		replyMessageID: -1,
+		replyMessageIdx: -1,
 	}
 
 	mi.SetTextStyle(tcell.StyleDefault.Background(tcell.GetColor(cfg.Theme.BackgroundColor)))
@@ -64,7 +64,7 @@ func (mi *MessageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		mainFlex.messageInput.launchEditorAction()
 		return nil
 	case cfg.Keys.Cancel:
-		mi.replyMessageID = -1
+		mi.replyMessageIdx = -1
 		mi.reset()
 		return nil
 	}
@@ -82,7 +82,7 @@ func (mi *MessageInput) sendAction() {
 		return
 	}
 
-	if mi.replyMessageID != -1 {
+	if mi.replyMessageIdx != -1 {
 		ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
 		if err != nil {
 			log.Println(err)
@@ -91,7 +91,7 @@ func (mi *MessageInput) sendAction() {
 
 		data := api.SendMessageData{
 			Content:         text,
-			Reference:       &discord.MessageReference{MessageID: ms[mi.replyMessageID].ID},
+			Reference:       &discord.MessageReference{MessageID: ms[mi.replyMessageIdx].ID},
 			AllowedMentions: &api.AllowedMentions{RepliedUser: option.False},
 		}
 
@@ -104,7 +104,7 @@ func (mi *MessageInput) sendAction() {
 		go discordState.SendMessage(mainFlex.guildsTree.selectedChannelID, text)
 	}
 
-	mi.replyMessageID = -1
+	mi.replyMessageIdx = -1
 	mainFlex.messagesText.Highlight()
 	mi.reset()
 }
