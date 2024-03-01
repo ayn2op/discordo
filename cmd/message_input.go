@@ -17,11 +17,13 @@ import (
 
 type MessageInput struct {
 	*tview.TextArea
+	replyMessageID int
 }
 
 func newMessageInput() *MessageInput {
 	mi := &MessageInput{
 		TextArea: tview.NewTextArea(),
+		replyMessageID: -1,
 	}
 
 	mi.SetTextStyle(tcell.StyleDefault.Background(tcell.GetColor(cfg.Theme.BackgroundColor)))
@@ -79,7 +81,7 @@ func (mi *MessageInput) sendAction() {
 		return
 	}
 
-	if mainFlex.messagesText.selectedMessage != -1 {
+	if mi.replyMessageID != -1 {
 		ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
 		if err != nil {
 			log.Println(err)
@@ -88,7 +90,7 @@ func (mi *MessageInput) sendAction() {
 
 		data := api.SendMessageData{
 			Content:         text,
-			Reference:       &discord.MessageReference{MessageID: ms[mainFlex.messagesText.selectedMessage].ID},
+			Reference:       &discord.MessageReference{MessageID: ms[mi.replyMessageID].ID},
 			AllowedMentions: &api.AllowedMentions{RepliedUser: option.False},
 		}
 
@@ -101,7 +103,7 @@ func (mi *MessageInput) sendAction() {
 		go discordState.SendMessage(mainFlex.guildsTree.selectedChannelID, text)
 	}
 
-	mainFlex.messagesText.selectedMessage = -1
+	mi.replyMessageID = -1
 	mainFlex.messagesText.Highlight()
 	mi.reset()
 }
