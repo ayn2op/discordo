@@ -6,6 +6,12 @@ timestamps: false
 # Whether to draw the timestamps before the name of author of the message or not. 
 timestamps_before_author: false
 
+# How to display the timestamp on the title of a reply message
+# Note: Go uses the following datetime as its format: Jan 2 15:04:05 2006 MST
+# See https://pkg.go.dev/time#example-Time.Format for more information
+timestamps_format_time: "15:04:05"
+timestamps_format_datetime: "15:04:05 2006-01-02"
+
 # The number of messages to fetch when a text-based channel is selected. The value must be >0 and <=100.
 messages_limit: 50
 

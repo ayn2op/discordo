@@ -193,9 +193,9 @@ func (mt *MessagesText) replyAction(mention bool) {
 	sy, sm, sd := ms[mt.selectedMessage].Timestamp.Time().Date()
 	ny, nm, nd := time.Now().Date()
 	if sy == ny && sm == nm && sd == nd {
-		timestamp = ms[mt.selectedMessage].Timestamp.Time().Format("15:04:05")
+		timestamp = ms[mt.selectedMessage].Timestamp.Time().Format(cfg.TimestampsFormatTime)
 	} else {
-		timestamp = ms[mt.selectedMessage].Timestamp.Time().Format("2006-01-02 15:04:05")
+		timestamp = ms[mt.selectedMessage].Timestamp.Time().Format(cfg.TimestampsFormatDatetime)
 	}
 
 	title += fmt.Sprintf(" @ %s", timestamp)
