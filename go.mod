@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/atotto/clipboard v0.1.4
 	github.com/diamondburned/arikawa/v3 v3.3.5
-	github.com/gdamore/tcell/v2 v2.7.1
+	github.com/gdamore/tcell/v2 v2.7.4
 	github.com/rivo/tview v0.0.0-20240225120200-5605142ca62e
 	github.com/zalando/go-keyring v0.2.3
 	gopkg.in/yaml.v3 v3.0.1
