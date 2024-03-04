@@ -79,13 +79,13 @@ func (mt *MessagesText) createMessage(m discord.Message) {
 
 		if m.ReferencedMessage != nil {
 			mt.createHeader(mt, *m.ReferencedMessage, true)
-			mt.createBody(mt, *m.ReferencedMessage)
+			mt.createBody(mt, *m.ReferencedMessage, true)
 
 			fmt.Fprint(mt, "[::-]\n")
 		}
 
 		mt.createHeader(mt, m, false)
-		mt.createBody(mt, m)
+		mt.createBody(mt, m, false)
 		mt.createFooter(mt, m)
 
 		// Tags with no region ID ([""]) don't start new regions. They can therefore be used to mark the end of a region.
@@ -124,7 +124,7 @@ func parseIDsToUsernames(m discord.Message) string {
 	return strings.NewReplacer(toReplace...).Replace(m.Content)
 }
 
-func (mt *MessagesText) createBody(w io.Writer, m discord.Message) {
+func (mt *MessagesText) createBody(w io.Writer, m discord.Message, isReply bool) {
 	var body string
 	if len(m.Mentions) > 0 {
 		body = parseIDsToUsernames(m)
@@ -132,7 +132,9 @@ func (mt *MessagesText) createBody(w io.Writer, m discord.Message) {
 		body = m.Content
 	}
 
+	if isReply { fmt.Fprint(w, "[::d]") }
 	fmt.Fprint(w, markdown.Parse(tview.Escape(body)))
+	if isReply { fmt.Fprint(w, "[::-]") }
 }
 
 func (mt *MessagesText) createFooter(w io.Writer, m discord.Message) {
@@ -205,6 +207,7 @@ func (mt *MessagesText) replyAction(mention bool) {
 
 	title += ms[mt.selectedMessage].Author.Tag()
 	mainFlex.messageInput.SetTitle(title)
+	mainFlex.messageInput.replyMessageIdx = mt.selectedMessage
 
 	app.SetFocus(mainFlex.messageInput)
 }
