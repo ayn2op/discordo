@@ -113,17 +113,15 @@ func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, isReply boo
 }
 
 func parseIDsToUsernames(m discord.Message) string {
-	c := m.Content
 	var toReplace []string
-
 	for _, mention := range m.Mentions {
 		toReplace = append(toReplace,
 			fmt.Sprintf("<@%s>", mention.User.ID.String()),
-			fmt.Sprintf("__**@%s**__", mention.User.Username))
+			fmt.Sprintf("__**@%s**__", mention.User.Username),
+		)
 	}
-	r := strings.NewReplacer(toReplace...)
-	c = r.Replace(c)
-	return c
+
+	return strings.NewReplacer(toReplace...).Replace(m.Content)
 }
 
 func (mt *MessagesText) createBody(w io.Writer, m discord.Message) {
