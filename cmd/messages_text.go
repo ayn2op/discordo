@@ -78,13 +78,13 @@ func (mt *MessagesText) createMessage(m discord.Message) {
 
 		if m.ReferencedMessage != nil {
 			mt.createHeader(mt, *m.ReferencedMessage, true)
-			mt.createBody(mt, *m.ReferencedMessage)
+			mt.createBody(mt, *m.ReferencedMessage, true)
 
 			fmt.Fprint(mt, "[::-]\n")
 		}
 
 		mt.createHeader(mt, m, false)
-		mt.createBody(mt, m)
+		mt.createBody(mt, m, false)
 		mt.createFooter(mt, m)
 
 		// Tags with no region ID ([""]) don't start new regions. They can therefore be used to mark the end of a region.
@@ -111,8 +111,10 @@ func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, isReply boo
 	}
 }
 
-func (mt *MessagesText) createBody(w io.Writer, m discord.Message) {
+func (mt *MessagesText) createBody(w io.Writer, m discord.Message, isReply bool) {
+	if isReply { fmt.Fprint(w, "[::d]") }
 	fmt.Fprint(w, markdown.Parse(tview.Escape(m.Content)))
+	if isReply { fmt.Fprint(w, "[::-]") }
 }
 
 func (mt *MessagesText) createFooter(w io.Writer, m discord.Message) {
