@@ -133,6 +133,7 @@ func (mt *MessagesText) createBody(w io.Writer, m discord.Message) {
 	} else {
 		body = m.Content
 	}
+
 	fmt.Fprint(w, markdown.Parse(tview.Escape(body)))
 }
 
