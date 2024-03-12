@@ -120,6 +120,7 @@ func (mi *MessageInput) launchEditorAction() {
 		log.Println(err)
 		return
 	}
+	f.WriteString(mi.GetText())
 	f.Close()
 
 	defer os.Remove(f.Name())
@@ -143,5 +144,5 @@ func (mi *MessageInput) launchEditorAction() {
 		return
 	}
 
-	mi.SetText(string(msg), true)
+	mi.SetText(strings.TrimSpace(string(msg)), true)
 }
