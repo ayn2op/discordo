@@ -221,19 +221,20 @@ func (mt *MessagesText) selectNextAction() {
 		return
 	}
 
-	// If no message is currently selected, select the latest message.
-	if len(mt.GetHighlights()) == 0 {
-		mt.selectedMessage = 0
-	} else {
-		if mt.selectedMessage > 0 {
-			mt.selectedMessage--
-		} else {
-			return
-		}
-	}
+	// If no message is currently selected, do nothing
+	if mt.selectedMessage == -1 { return }
 
-	mt.Highlight(ms[mt.selectedMessage].ID.String())
-	mt.ScrollToHighlight()
+	// Otherwise select the next message. This causes the desired
+	// behaviour of unselecting messages after the last one.
+	mt.selectedMessage--
+
+	// If a message is selected, highlight it and scroll to it, otherwise remove the highlight
+	if mt.selectedMessage >= 0 {
+		mt.Highlight(ms[mt.selectedMessage].ID.String())
+	        mt.ScrollToHighlight()
+	} else {
+		mt.Highlight()
+	}
 }
 
 func (mt *MessagesText) selectFirstAction() {
