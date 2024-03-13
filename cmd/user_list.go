@@ -72,13 +72,15 @@ func (ul *UserList) onSelected(n *tview.TreeNode) {
 	switch ref := n.GetReference().(type) {
 	case discord.UserID:
 		n.ClearChildren()
-		n.AddChild(tview.NewTreeNode(constants.UserListCmdMention))
+		n.AddChild(tview.NewTreeNode(constants.UserListCmdMention).SetReference(ref.String()))
 		n.SetExpanded(!n.IsExpanded())
 		return
-	case nil: // Dropdown options/commands
+	case string: // Dropdown options/commands
 		switch n.GetText() {
 		case constants.UserListCmdMention:
-			mainFlex.messageInput.SetText(fmt.Sprintf("User ID: %d", ref), true)
+			mi := mainFlex.messageInput
+			mi.Replace(mi.GetTextLength(), mi.GetTextLength(), fmt.Sprintf("<@%s>", n.GetReference()))
+      app.SetFocus(mi)
 		}
 
 		// TODO: run user command based on node name
