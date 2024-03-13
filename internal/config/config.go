@@ -151,8 +151,7 @@ func Load() (*Config, error) {
 	cfg.Theme.MessagesText.ReplyIndicator = "╭"
 
 	// Overwrite default values via config file
-	decoder := yaml.NewDecoder(reader)
-	if err := decoder.Decode(&cfg); err != nil {
+	if err := yaml.NewDecoder(reader).Decode(&cfg); err != nil {
 		// Decoder might reach end of file without decoding anything (empty file) - this is not an issue
 		if err.Error() == "EOF" {
 		} else {
