@@ -110,9 +110,54 @@ func Load() (*Config, error) {
 	}
 	defer f.Close()
 
+	// Initialize config struct with default values
 	var cfg Config
-	if err := yaml.NewDecoder(reader).Decode(&cfg); err != nil {
-		return nil, err
+	cfg.Mouse                             = true
+	cfg.Timestamps                        = false
+	cfg.TimestampsBeforeAuthor            = false
+	cfg.MessagesLimit                     = 50
+	cfg.Editor                            = "default"
+
+	cfg.Keys.Cancel                       = "Esc"
+
+	cfg.Keys.GuildsTree.Focus             = "Ctrl+G"
+	cfg.Keys.GuildsTree.Toggle            = "Ctrl+B"
+
+	cfg.Keys.MessagesText.Focus           = "Ctrl+T"
+	cfg.Keys.MessagesText.ShowImage       = "i"
+	cfg.Keys.MessagesText.CopyContent     = "c"
+	cfg.Keys.MessagesText.Delete          = "d"
+	cfg.Keys.MessagesText.Reply           = "r"
+	cfg.Keys.MessagesText.ReplyMention    = "R"
+	cfg.Keys.MessagesText.SelectPrevious  = "Up"
+	cfg.Keys.MessagesText.SelectNext      = "Down"
+	cfg.Keys.MessagesText.SelectFirst     = "Home"
+	cfg.Keys.MessagesText.SelectLast      = "End"
+	cfg.Keys.MessagesText.SelectReply     = "s"
+
+	cfg.Keys.MessageInput.Focus           = "Ctrl+P"
+	cfg.Keys.MessageInput.Send            = "Enter"
+	cfg.Keys.MessageInput.LaunchEditor    = "Ctrl+E"
+
+	cfg.Theme.Border                      = true
+	cfg.Theme.BorderColor                 = "default"
+	cfg.Theme.BorderPadding               = [4]int{0, 0, 1, 1}
+	cfg.Theme.TitleColor                  = "default"
+	cfg.Theme.BackgroundColor             = "default"
+
+	cfg.Theme.GuildsTree.Graphics         = true
+
+	cfg.Theme.MessagesText.AuthorColor    = "aqua"
+	cfg.Theme.MessagesText.ReplyIndicator = "╭"
+
+	// Overwrite default values via config file
+	decoder := yaml.NewDecoder(reader)
+	if err := decoder.Decode(&cfg); err != nil {
+		// Decoder might reach end of file without decoding anything (empty file) - this is not an issue
+		if err.Error() == "EOF" {
+		} else {
+			return nil, err
+		}
 	}
 
 	return &cfg, nil
