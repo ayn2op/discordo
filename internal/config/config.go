@@ -56,6 +56,11 @@ type Config struct {
 			Send         string `yaml:"send"`
 			LaunchEditor string `yaml:"launch_editor"`
 		} `yaml:"message_input"`
+
+		UserList struct {
+			Focus  string `yaml:"focus"`
+			Toggle string `yaml:"toggle"`
+		} `yaml:"user_list"`
 	} `yaml:"keys"`
 	Theme struct {
 		Border        bool   `yaml:"border"`
