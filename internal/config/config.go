@@ -66,6 +66,7 @@ type Config struct {
 		BackgroundColor string `yaml:"background_color"`
 
 		GuildsTree struct {
+			AutoExpandFolders bool `yaml:"auto_expand_folders"`
 			Graphics bool `yaml:"graphics"`
 		} `yaml:"guilds_tree"`
 
