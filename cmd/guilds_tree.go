@@ -108,7 +108,8 @@ func (gt *GuildsTree) channelToString(c discord.Channel) string {
 }
 
 func (gt *GuildsTree) createChannelNode(n *tview.TreeNode, c discord.Channel) {
-	if c.Type != discord.DirectMessage && c.Type != discord.GroupDM {
+	// If c is a regular channel, abort if user does not have view permission
+	if c.Type != discord.DirectMessage && c.Type != discord.GroupDM && c.Type != discord.GuildCategory {
 		ps, err := discordState.Permissions(c.ID, discordState.Ready().User.ID)
 		if err != nil {
 			log.Println(err)
@@ -126,26 +127,47 @@ func (gt *GuildsTree) createChannelNode(n *tview.TreeNode, c discord.Channel) {
 }
 
 func (gt *GuildsTree) createChannelNodes(n *tview.TreeNode, cs []discord.Channel) {
+	// Create all top-level, non-category channels
 	for _, c := range cs {
 		if c.Type != discord.GuildCategory && !c.ParentID.IsValid() {
 			gt.createChannelNode(n, c)
 		}
 	}
 
+	// Create categories that have child channels, if at least one child channel is visible to the user
 PARENT_CHANNELS:
 	for _, c := range cs {
 		if c.Type == discord.GuildCategory {
 			for _, nested := range cs {
 				if nested.ParentID == c.ID {
-					gt.createChannelNode(n, c)
-					continue PARENT_CHANNELS
+					ps, err := discordState.Permissions(nested.ID, discordState.Ready().User.ID)
+					if err != nil {
+						log.Println(err)
+						continue
+					}
+					if ps.Has(discord.PermissionViewChannel) {
+						gt.createChannelNode(n, c)
+						continue PARENT_CHANNELS
+					}
 				}
 			}
 		}
 	}
 
+	// Create category-channels if user has view channel permission
 	for _, c := range cs {
 		if c.ParentID.IsValid() {
+			// Check if user has view permission for this channel (if not, we don't need to look for the parent)
+			ps, err := discordState.Permissions(c.ID, discordState.Ready().User.ID)
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+			if !ps.Has(discord.PermissionViewChannel) {
+				continue
+			}
+
+			// Get parent reference if it exists
 			var parent *tview.TreeNode
 			n.Walk(func(node, _ *tview.TreeNode) bool {
 				if node.GetReference() == c.ParentID {
