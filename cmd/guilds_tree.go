@@ -53,6 +53,7 @@ func (gt *GuildsTree) createGuildFolderNode(parent *tview.TreeNode, gf gateway.G
 	}
 
 	n := tview.NewTreeNode(name)
+	n.SetExpanded(cfg.Theme.GuildsTree.AutoExpandFolders)
 	parent.AddChild(n)
 
 	for _, gid := range gf.GuildIDs {

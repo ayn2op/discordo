@@ -49,6 +49,7 @@ theme:
   background_color: default
 
   guilds_tree:
+    auto_expand_folders: true
     graphics: true
 
   messages_text:
