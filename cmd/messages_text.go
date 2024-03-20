@@ -205,7 +205,20 @@ func (mt *MessagesText) replyAction(mention bool) {
 		return
 	}
 
+	// Add username to reply title
 	title += ms[mt.selectedMessage].Author.Tag()
+
+	// Add timestamp to reply title
+	var timestamp string
+	sy, sm, sd := ms[mt.selectedMessage].Timestamp.Time().Date()
+	ny, nm, nd := time.Now().Date()
+	if sy == ny && sm == nm && sd == nd {
+		timestamp = ms[mt.selectedMessage].Timestamp.Time().In(time.Local).Format(cfg.TimestampsFormatTime)
+	} else {
+		timestamp = ms[mt.selectedMessage].Timestamp.Time().In(time.Local).Format(cfg.TimestampsFormatDatetime)
+	}
+
+	title += fmt.Sprintf(" @ %s", timestamp)
 	mainFlex.messageInput.SetTitle(title)
 	mainFlex.messageInput.replyMessageIdx = mt.selectedMessage
 

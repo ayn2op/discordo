@@ -20,6 +20,9 @@ type Config struct {
 	Timestamps             bool `yaml:"timestamps"`
 	TimestampsBeforeAuthor bool `yaml:"timestamps_before_author"`
 
+	TimestampsFormatTime     string `yaml:"timestamps_format_time"`
+	TimestampsFormatDatetime string `yaml:"timestamps_format_datetime"`
+
 	MessagesLimit uint8 `yaml:"messages_limit"`
 
 	Editor string `yaml:"editor"`
