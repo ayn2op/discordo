@@ -67,7 +67,7 @@ type Config struct {
 
 		GuildsTree struct {
 			AutoExpandFolders bool `yaml:"auto_expand_folders"`
-			Graphics bool `yaml:"graphics"`
+			Graphics          bool `yaml:"graphics"`
 		} `yaml:"guilds_tree"`
 
 		MessagesText struct {
