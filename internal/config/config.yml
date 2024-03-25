@@ -3,7 +3,7 @@ mouse: true
 
 # Whether to draw the timestamps of the corresponding message in front of it.
 timestamps: false
-# Whether to draw the timestamps before the name of author of the message or not. 
+# Whether to draw the timestamps before the name of author of the message or not.
 timestamps_before_author: false
 
 # The number of messages to fetch when a text-based channel is selected. The value must be >0 and <=100.
@@ -14,11 +14,11 @@ editor: default
 
 keys:
   cancel: Esc
-  
+
   guilds_tree:
     focus: Ctrl+G
     toggle: Ctrl+B
-  
+
   messages_text:
     focus: Ctrl+T
     show_image: Rune[i]
@@ -39,6 +39,10 @@ keys:
 
     send: Enter
     launch_editor: Ctrl+E
+
+  user_list:
+    toggle: Alt+U
+    focus: Ctrl+U
 
 theme:
   border: true
