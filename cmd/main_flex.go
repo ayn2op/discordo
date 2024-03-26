@@ -5,9 +5,17 @@ import (
 	"github.com/rivo/tview"
 )
 
+type Mode uint
+
+const (
+	ModeNormal Mode = iota
+	ModeInsert
+)
+
 type MainFlex struct {
 	*tview.Flex
 
+	mode         Mode
 	guildsTree   *GuildsTree
 	messagesText *MessagesText
 	messageInput *MessageInput
@@ -17,14 +25,25 @@ func newMainFlex() *MainFlex {
 	mf := &MainFlex{
 		Flex: tview.NewFlex(),
 
+		mode:         ModeNormal,
 		guildsTree:   newGuildsTree(),
 		messagesText: newMessagesText(),
 		messageInput: newMessageInput(),
 	}
 
+	app.SetBeforeDrawFunc(func(screen tcell.Screen) bool {
+		switch mf.mode {
+		case ModeNormal:
+			mf.messageInput.SetBorderAttributes(tcell.AttrNone)
+		case ModeInsert:
+			mf.messageInput.SetBorderAttributes(tcell.AttrDim)
+		}
+
+		return false
+	})
+
 	mf.init()
 	mf.SetInputCapture(mf.onInputCapture)
-
 	return mf
 }
 
@@ -41,32 +60,49 @@ func (mf *MainFlex) init() {
 }
 
 func (mf *MainFlex) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
-	switch event.Name() {
-	case cfg.Keys.GuildsTree.Toggle:
-		// The guilds tree is visible if the numbers of items is two.
-		if mf.GetItemCount() == 2 {
-			mf.RemoveItem(mf.guildsTree)
+	switch mf.mode {
+	case ModeNormal:
+		switch event.Name() {
+		case cfg.Keys.Normal.InsertMode:
+			mf.mode = ModeInsert
+			app.SetFocus(mf.messageInput)
+			return nil
 
-			if mf.guildsTree.HasFocus() {
-				app.SetFocus(mf)
+		case cfg.Keys.Normal.FocusGuildsTree:
+			app.SetFocus(mf.guildsTree)
+			return nil
+		case cfg.Keys.Normal.FocusMessagesText:
+			app.SetFocus(mf.messagesText)
+			return nil
+		case cfg.Keys.Normal.ToggleGuildsTree:
+			// The guilds tree is visible if the numbers of items is two.
+			if mf.GetItemCount() == 2 {
+				mf.RemoveItem(mf.guildsTree)
+				if mf.guildsTree.HasFocus() {
+					app.SetFocus(mf)
+				}
+			} else {
+				mf.init()
+				app.SetFocus(mf.guildsTree)
 			}
-		} else {
-			mf.init()
-			app.SetFocus(mf.guildsTree)
+
+			return nil
 		}
 
-		return nil
-	case cfg.Keys.GuildsTree.Focus:
-		if mf.GetItemCount() == 2 {
-			app.SetFocus(mf.guildsTree)
+		// do not propagate event to the children if the message input is focused in normal mode.
+		if mf.messageInput.HasFocus() {
+			return nil
 		}
-		return nil
-	case cfg.Keys.MessagesText.Focus:
-		app.SetFocus(mf.messagesText)
-		return nil
-	case cfg.Keys.MessageInput.Focus:
-		app.SetFocus(mf.messageInput)
-		return nil
+	case ModeInsert:
+		switch event.Name() {
+		case cfg.Keys.Insert.NormalMode:
+			mf.mode = ModeNormal
+			return nil
+		}
+
+		if !mf.messageInput.HasFocus() {
+			return nil
+		}
 	}
 
 	return event

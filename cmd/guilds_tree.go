@@ -41,6 +41,7 @@ func newGuildsTree() *GuildsTree {
 	gt.SetBorderColor(tcell.GetColor(cfg.Theme.BorderColor))
 	gt.SetBorderPadding(p[0], p[1], p[2], p[3])
 
+	gt.SetInputCapture(gt.onInputCapture)
 	return gt
 }
 
@@ -215,4 +216,27 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 			gt.createChannelNode(n, c)
 		}
 	}
+}
+
+func (gt *GuildsTree) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
+	switch mainFlex.mode {
+	case ModeNormal:
+		switch event.Name() {
+		case cfg.Keys.Normal.GuildsTree.SelectCurrent:
+			return tcell.NewEventKey(tcell.KeyEnter, 0, tcell.ModNone)
+		case cfg.Keys.Normal.GuildsTree.SelectPrevious:
+			return tcell.NewEventKey(tcell.KeyUp, 0, tcell.ModNone)
+		case cfg.Keys.Normal.GuildsTree.SelectNext:
+			return tcell.NewEventKey(tcell.KeyDown, 0, tcell.ModNone)
+		case cfg.Keys.Normal.GuildsTree.SelectFirst:
+			return tcell.NewEventKey(tcell.KeyHome, 0, tcell.ModNone)
+		case cfg.Keys.Normal.GuildsTree.SelectLast:
+			return tcell.NewEventKey(tcell.KeyEnd, 0, tcell.ModNone)
+		}
+
+		// do not propagate event to the children in normal mode.
+		return nil
+	}
+
+	return event
 }
