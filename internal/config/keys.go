@@ -2,8 +2,8 @@ package config
 
 type (
 	Keys struct {
-		Normal NormalModeKeys `yaml:"normal"`
-		Insert InsertModeKeys `yaml:"insert"`
+		Normal NormalModeKeys `toml:"normal"`
+		Insert InsertModeKeys `toml:"insert"`
 	}
 
 	NormalModeKeys struct {
@@ -34,7 +34,7 @@ type (
 		Reply        string `toml:"reply"`
 		ReplyMention string `toml:"reply_mention"`
 
-		Delete string `yaml:"delete"`
+		Delete string `toml:"delete"`
 		Yank   string `toml:"yank"`
 		Open   string `toml:"open"`
 	}
