@@ -1,7 +1,6 @@
 package config
 
 import (
-	"log"
 	"os"
 	"path/filepath"
 
@@ -60,8 +59,6 @@ func Load() (*Config, error) {
 	if _, err := toml.NewDecoder(f).Decode(&cfg); err != nil {
 		return nil, err
 	}
-
-	log.Println(cfg.Theme.MessagesText.ReplyIndicator)
 
 	return &cfg, nil
 }
