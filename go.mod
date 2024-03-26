@@ -3,12 +3,13 @@ module github.com/ayn2op/discordo
 go 1.22.1
 
 require (
+	github.com/BurntSushi/toml v1.3.2
 	github.com/atotto/clipboard v0.1.4
 	github.com/diamondburned/arikawa/v3 v3.3.5
 	github.com/gdamore/tcell/v2 v2.7.4
 	github.com/rivo/tview v0.0.0-20240307173318-e804876934a1
+	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/zalando/go-keyring v0.2.4
-	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (

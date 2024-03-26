@@ -11,14 +11,14 @@ import (
 
 func main() {
 	// Declare and parse all flags first
-	token := flag.String("token", "", "The authentication token.")
+	token := flag.String("token", "", "authentication token")
 	flag.Parse()
 
 	// If no token was provided, look it up in the keyring
 	if *token == "" {
 		t, err := keyring.Get(constants.Name, "token")
 		if err != nil {
-			log.Println("Authentication token not found in keyring:", err)
+			log.Println("failed to get token from keyring:", err)
 		} else {
 			*token = t
 		}
