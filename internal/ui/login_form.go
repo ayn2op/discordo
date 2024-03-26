@@ -2,6 +2,7 @@ package ui
 
 import (
 	"errors"
+	"log"
 
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/constants"
@@ -83,7 +84,11 @@ func (lf *LoginForm) onLoginButtonSelected() {
 
 	rememberMe := lf.GetFormItem(3).(*tview.Checkbox).IsChecked()
 	if rememberMe {
-		go keyring.Set(constants.Name, "token", lr.Token)
+		go func() {
+			if err := keyring.Set(constants.Name, "token", lr.Token); err != nil {
+				log.Println(err)
+			}
+		}()
 	}
 
 	lf.Token <- Token{Value: lr.Token}

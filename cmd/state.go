@@ -43,7 +43,7 @@ func openState(token string) error {
 }
 
 func (s *State) onLog(err error) {
-	log.Printf("%s\n", err)
+	log.Println(err.Error())
 }
 
 func (s *State) onRequest(r httpdriver.Request) error {
