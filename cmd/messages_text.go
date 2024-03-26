@@ -284,6 +284,17 @@ func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 			}
 
 			m := ms[mt.selectedMessage]
+			clientID := discordState.Ready().User.ID
+
+			ps, err := discordState.Permissions(mainFlex.guildsTree.selectedChannelID, discordState.Ready().User.ID)
+			if err != nil {
+				return nil
+			}
+
+			if m.Author.ID != clientID && !ps.Has(discord.PermissionManageMessages) {
+				return nil
+			}
+
 			if err := discordState.DeleteMessage(mainFlex.guildsTree.selectedChannelID, m.ID, ""); err != nil {
 				log.Println(err)
 			}
