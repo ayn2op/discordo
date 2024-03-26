@@ -166,7 +166,7 @@ func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 
 			err = clipboard.WriteAll(ms[mt.selectedMessage].Content)
 			if err != nil {
-				log.Println(err)
+				log.Println("failed to write to clipboard:", err)
 				return nil
 			}
 

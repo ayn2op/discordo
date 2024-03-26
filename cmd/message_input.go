@@ -86,13 +86,13 @@ func (mi *MessageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 
 				go func() {
 					if _, err := discordState.SendMessageComplex(mainFlex.guildsTree.selectedChannelID, data); err != nil {
-						log.Println(err)
+						log.Println("failed to send message:", err)
 					}
 				}()
 			} else {
 				go func() {
 					if _, err := discordState.SendMessage(mainFlex.guildsTree.selectedChannelID, text); err != nil {
-						log.Println(err)
+						log.Println("failed to send message:", err)
 					}
 				}()
 			}

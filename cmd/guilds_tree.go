@@ -60,7 +60,7 @@ func (gt *GuildsTree) createGuildFolderNode(parent *tview.TreeNode, gf gateway.G
 	for _, gid := range gf.GuildIDs {
 		g, err := discordState.Cabinet.Guild(gid)
 		if err != nil {
-			log.Println(err)
+			log.Printf("guild %v not found in state: %v", gid, err)
 			continue
 		}
 
