@@ -45,10 +45,10 @@ func Load() (*Config, error) {
 		return nil, err
 	}
 
+	cfg := defaultConfig()
 	path = filepath.Join(path, constants.Name, "config.toml")
 	f, err := os.Open(path)
 	if os.IsNotExist(err) {
-		cfg := defaultConfig()
 		return &cfg, nil
 	}
 
@@ -57,7 +57,6 @@ func Load() (*Config, error) {
 	}
 	defer f.Close()
 
-	cfg := defaultConfig()
 	if _, err := toml.NewDecoder(f).Decode(&cfg); err != nil {
 		return nil, err
 	}
