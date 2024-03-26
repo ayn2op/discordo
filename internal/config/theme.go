@@ -1,5 +1,7 @@
 package config
 
+import "github.com/rivo/tview"
+
 type (
 	Theme struct {
 		Border        bool   `toml:"border"`
@@ -39,7 +41,7 @@ func defaultTheme() Theme {
 		},
 		MessagesText: MessagesTextTheme{
 			AuthorColor:    "aqua",
-			ReplyIndicator: "╭",
+			ReplyIndicator: string(tview.BoxDrawingsLightArcDownAndRight) + " ",
 		},
 	}
 }
