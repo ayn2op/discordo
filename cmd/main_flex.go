@@ -19,6 +19,10 @@ type MainFlex struct {
 	guildsTree   *GuildsTree
 	messagesText *MessagesText
 	messageInput *MessageInput
+	userList     *UserList
+
+	guildsTreeVisible bool
+	userListVisible bool
 }
 
 func newMainFlex() *MainFlex {
@@ -26,9 +30,12 @@ func newMainFlex() *MainFlex {
 		Flex: tview.NewFlex(),
 
 		mode:         ModeNormal,
-		guildsTree:   newGuildsTree(),
+		guildsTree: newGuildsTree(),
+		guildsTreeVisible: true,
 		messagesText: newMessagesText(),
 		messageInput: newMessageInput(),
+		userList: newUserList(),
+		userListVisible: true,
 	}
 
 	app.SetBeforeDrawFunc(func(screen tcell.Screen) bool {
@@ -50,13 +57,19 @@ func newMainFlex() *MainFlex {
 func (mf *MainFlex) init() {
 	mf.Clear()
 
-	right := tview.NewFlex()
-	right.SetDirection(tview.FlexRow)
-	right.AddItem(mf.messagesText, 0, 1, false)
-	right.AddItem(mf.messageInput, 3, 1, false)
-	// The guilds tree is always focused first at start-up.
-	mf.AddItem(mf.guildsTree, 0, 1, true)
-	mf.AddItem(right, 0, 4, false)
+	if mf.guildsTreeVisible {
+		mf.AddItem(mf.guildsTree, 0, 1, true)
+	}
+
+	chat := tview.NewFlex()
+	chat.SetDirection(tview.FlexRow)
+	chat.AddItem(mf.messagesText, 0, 1, false)
+	chat.AddItem(mf.messageInput, 3, 1, false)
+	mf.AddItem(chat, 0, 4, false)
+
+	if mf.userListVisible {
+		mf.AddItem(mf.userList, 0, 1, false)
+	}
 }
 
 func (mf *MainFlex) onInputCapture(event *tcell.EventKey) *tcell.EventKey {

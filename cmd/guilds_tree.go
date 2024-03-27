@@ -201,6 +201,8 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 
 		gt.selectedChannelID = ref
 		app.SetFocus(mainFlex.messageInput)
+
+		mainFlex.userList.updateUsersFromGuildID(c.GuildID)
 	case nil: // Direct messages
 		cs, err := discordState.Cabinet.PrivateChannels()
 		if err != nil {
