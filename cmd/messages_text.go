@@ -232,29 +232,6 @@ func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	case cfg.Keys.MessagesText.Delete:
 		mt.delete()
 		return nil
-
-	case cfg.Keys.MessagesText.Message:
-		msg, err := mt.getSelectedMessage()
-		if err != nil {
-			log.Println(err)
-			return nil
-		}
-
-		c, err := discordState.CreatePrivateChannel(msg.Author.ID)
-		if err != nil {
-			log.Println("failed to create private channel", err)
-		}
-
-		root := mainFlex.guildsTree.GetRoot()
-		children := root.GetChildren()
-		// len(children) will always be >=1
-		dmNode := children[0]
-		chNode := mainFlex.guildsTree.createChannelNode(dmNode, *c)
-		mainFlex.guildsTree.SetCurrentNode(chNode)
-		dmNode.ExpandAll()
-		mainFlex.guildsTree.onSelected(chNode)
-
-		return nil
 	}
 
 	return event

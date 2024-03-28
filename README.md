@@ -80,7 +80,6 @@ editor = "default"
   reply_mention = "Rune[R]"
   delete = "Rune[d]"
   yank = "Rune[y]"
-  message = "Rune[m]"
   open = "Rune[o]"
 
 [keys.message_input]
