@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"log"
 	"fmt"
+	"log"
 
 	"github.com/ayn2op/discordo/internal/constants"
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -20,7 +20,7 @@ type UserList struct {
 func newUserList() *UserList {
 	ul := &UserList{
 		TreeView: tview.NewTreeView(),
-		root: tview.NewTreeNode(""),
+		root:     tview.NewTreeNode(""),
 	}
 
 	ul.SetTopLevel(1)
@@ -80,7 +80,7 @@ func (ul *UserList) onSelected(n *tview.TreeNode) {
 		case constants.UserListCmdMention:
 			mi := mainFlex.messageInput
 			mi.Replace(mi.GetTextLength(), mi.GetTextLength(), fmt.Sprintf("<@%s>", n.GetReference()))
-      app.SetFocus(mi)
+			app.SetFocus(mi)
 		}
 
 		// TODO: run user command based on node name

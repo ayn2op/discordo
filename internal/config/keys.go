@@ -10,10 +10,13 @@ type (
 		InsertMode        string `toml:"insert_mode"`
 		FocusGuildsTree   string `toml:"focus_guilds_tree"`
 		FocusMessagesText string `toml:"focus_messages_text"`
+		FocusUserList     string `toml:"focus_user_list"`
 		ToggleGuildsTree  string `toml:"toggle_guild_tree"`
+		ToggleUserList    string `toml:"toggle_user_list"`
 
 		GuildsTree   GuildsTreeNormalModeKeys   `toml:"guilds_tree"`
 		MessagesText MessagesTextNormalModeKeys `toml:"messages_text"`
+		UserList     UserListNormalModeKeys     `toml:"user_list"`
 	}
 
 	GuildsTreeNormalModeKeys struct {
@@ -39,6 +42,14 @@ type (
 		Open   string `toml:"open"`
 	}
 
+	UserListNormalModeKeys struct {
+		SelectCurrent  string `toml:"select_current"`
+		SelectPrevious string `toml:"select_previous"`
+		SelectNext     string `toml:"select_next"`
+		SelectFirst    string `toml:"select_first"`
+		SelectLast     string `toml:"select_last"`
+	}
+
 	InsertModeKeys struct {
 		NormalMode string `toml:"normal_mode"`
 
@@ -58,7 +69,9 @@ func defaultKeys() Keys {
 
 			FocusGuildsTree:   "Ctrl+G",
 			FocusMessagesText: "Ctrl+T",
+			FocusUserList:     "Ctrl+U",
 			ToggleGuildsTree:  "Ctrl+B",
+			ToggleUserList:    "Ctrl+P",
 
 			GuildsTree: GuildsTreeNormalModeKeys{
 				SelectCurrent:  "Enter",
@@ -80,6 +93,13 @@ func defaultKeys() Keys {
 				Delete: "Rune[d]",
 				Yank:   "Rune[y]",
 				Open:   "Rune[o]",
+			},
+			UserList: UserListNormalModeKeys{
+				SelectCurrent:  "Enter",
+				SelectPrevious: "Rune[k]",
+				SelectNext:     "Rune[j]",
+				SelectFirst:    "Rune[g]",
+				SelectLast:     "Rune[G]",
 			},
 		},
 		Insert: InsertModeKeys{

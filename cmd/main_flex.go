@@ -22,20 +22,20 @@ type MainFlex struct {
 	userList     *UserList
 
 	guildsTreeVisible bool
-	userListVisible bool
+	userListVisible   bool
 }
 
 func newMainFlex() *MainFlex {
 	mf := &MainFlex{
 		Flex: tview.NewFlex(),
 
-		mode:         ModeNormal,
-		guildsTree: newGuildsTree(),
+		mode:              ModeNormal,
+		guildsTree:        newGuildsTree(),
 		guildsTreeVisible: true,
-		messagesText: newMessagesText(),
-		messageInput: newMessageInput(),
-		userList: newUserList(),
-		userListVisible: true,
+		messagesText:      newMessagesText(),
+		messageInput:      newMessageInput(),
+		userList:          newUserList(),
+		userListVisible:   true,
 	}
 
 	app.SetBeforeDrawFunc(func(screen tcell.Screen) bool {
@@ -87,18 +87,38 @@ func (mf *MainFlex) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		case cfg.Keys.Normal.FocusMessagesText:
 			app.SetFocus(mf.messagesText)
 			return nil
+		case cfg.Keys.Normal.FocusUserList:
+			if mf.userListVisible {
+				app.SetFocus(mf.userList)
+			}
+			return nil
 		case cfg.Keys.Normal.ToggleGuildsTree:
-			// The guilds tree is visible if the numbers of items is two.
-			if mf.GetItemCount() == 2 {
+			// The guilds tree is visible if the state boolean says so
+			if mf.guildsTreeVisible {
 				mf.RemoveItem(mf.guildsTree)
 				if mf.guildsTree.HasFocus() {
 					app.SetFocus(mf)
 				}
+				mf.guildsTreeVisible = false
 			} else {
+				mf.guildsTreeVisible = true
 				mf.init()
 				app.SetFocus(mf.guildsTree)
 			}
-
+			return nil
+		case cfg.Keys.Normal.ToggleUserList:
+			// The user list is visible if the state boolean says so
+			if mf.userListVisible {
+				mf.RemoveItem(mf.userList)
+				if mf.userList.HasFocus() {
+					app.SetFocus(mf)
+				}
+				mf.userListVisible = false
+			} else {
+				mf.userListVisible = true
+				mf.init()
+				app.SetFocus(mf.userList)
+			}
 			return nil
 		}
 
