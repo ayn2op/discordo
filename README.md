@@ -63,54 +63,51 @@ messages_limit = 50
 editor = "default"
 
 [keys.normal]
-  insert_mode = "Rune[i]"
-  focus_guilds_tree = "Ctrl+G"
-  focus_messages_text = "Ctrl+T"
-  toggle_guild_tree = "Ctrl+B"
+insert_mode = "Rune[i]"
+focus_guilds_tree = "Ctrl+G"
+focus_messages_text = "Ctrl+T"
+toggle_guild_tree = "Ctrl+B"
 
-  guilds_tree = {
-    select_current = "Enter"
-    select_previous = "Rune[k]"
-    select_next = "Rune[j]"
-    select_first = "Rune[g]"
-    select_last = "Rune[G]"
-  }
+[keys.normal.guilds_tree]
+select_current = "Enter"
+select_previous = "Rune[k]"
+select_next = "Rune[j]"
+select_first = "Rune[g]"
+select_last = "Rune[G]"
 
-  messages_text = {
-    select_previous = "Rune[k]"
-    select_next = "Rune[j]"
-    select_first = "Rune[g]"
-    select_last = "Rune[G]"
-    select_reply = "Rune[s]"
-    reply = "Rune[r]"
-    reply_mention = "Rune[R]"
-    delete = "Rune[d]"
-    yank = "Rune[y]"
-    open = "Rune[o]"
-  }
+[keys.normal.messages_text]
+select_previous = "Rune[k]"
+select_next = "Rune[j]"
+select_first = "Rune[g]"
+select_last = "Rune[G]"
+select_reply = "Rune[s]"
+reply = "Rune[r]"
+reply_mention = "Rune[R]"
+delete = "Rune[d]"
+yank = "Rune[y]"
+open = "Rune[o]"
 
 [keys.insert]
-  normal_mode = "Esc"
-  
-  message_input = {
-    send = "Enter"
-    editor = "Ctrl+E"
-  }
+normal_mode = "Esc"
+
+[keys.insert.message_input]
+send = "Enter"
+editor = "Ctrl+E"
 
 [theme]
-  border = true
-  border_color = "default"
-  border_padding = [0, 0, 1, 1]
-  title_color = "default"
-  background_color = "default"
+border = true
+border_color = "default"
+border_padding = [0, 0, 1, 1]
+title_color = "default"
+background_color = "default"
 
 [theme.guilds_tree]
-  auto_expand_folders = true
-  graphics = true
+auto_expand_folders = true
+graphics = true
 
 [theme.messages_text]
-  author_color = "aqua"
-  reply_indicator = "╭ "
+author_color = "aqua"
+reply_indicator = "╭ "
 ```
 
 ## Documentation
