@@ -49,97 +49,106 @@ func newMessageInput() *MessageInput {
 }
 
 func (mi *MessageInput) reset() {
+	mi.replyMessageIdx = -1
 	mi.SetTitle("")
 	mi.SetText("", true)
 }
 
 func (mi *MessageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
-	switch mainFlex.mode {
-	case ModeInsert:
-		switch event.Name() {
-		case cfg.Keys.Insert.MessageInput.Send:
-			if !mainFlex.guildsTree.selectedChannelID.IsValid() {
-				return nil
-			}
-
-			text := strings.TrimSpace(mi.GetText())
-			if text == "" {
-				return nil
-			}
-
-			if mi.replyMessageIdx != -1 {
-				ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
-				if err != nil {
-					log.Println(err)
-					return nil
-				}
-
-				data := api.SendMessageData{
-					Content:         text,
-					Reference:       &discord.MessageReference{MessageID: ms[mi.replyMessageIdx].ID},
-					AllowedMentions: &api.AllowedMentions{RepliedUser: option.False},
-				}
-
-				if strings.HasPrefix(mi.GetTitle(), "[@]") {
-					data.AllowedMentions.RepliedUser = option.True
-				}
-
-				go func() {
-					if _, err := discordState.SendMessageComplex(mainFlex.guildsTree.selectedChannelID, data); err != nil {
-						log.Println("failed to send message:", err)
-					}
-				}()
-			} else {
-				go func() {
-					if _, err := discordState.SendMessage(mainFlex.guildsTree.selectedChannelID, text); err != nil {
-						log.Println("failed to send message:", err)
-					}
-				}()
-			}
-
-			mi.replyMessageIdx = -1
-			mainFlex.messagesText.Highlight()
-			mi.reset()
-			return nil
-		case cfg.Keys.Insert.MessageInput.Editor:
-			e := cfg.Editor
-			if e == "default" {
-				e = os.Getenv("EDITOR")
-			}
-
-			f, err := os.CreateTemp("", constants.TmpFilePattern)
-			if err != nil {
-				log.Println(err)
-				return nil
-			}
-			_, _ = f.WriteString(mi.GetText())
-			f.Close()
-
-			defer os.Remove(f.Name())
-
-			cmd := exec.Command(e, f.Name())
-			cmd.Stdin = os.Stdin
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-
-			app.Suspend(func() {
-				err := cmd.Run()
-				if err != nil {
-					log.Println(err)
-					return
-				}
-			})
-
-			msg, err := os.ReadFile(f.Name())
-			if err != nil {
-				log.Println(err)
-				return nil
-			}
-
-			mi.SetText(strings.TrimSpace(string(msg)), true)
-			return nil
-		}
+	switch event.Name() {
+	case cfg.Keys.MessageInput.Send:
+		mi.send()
+		return nil
+	case cfg.Keys.MessageInput.Editor:
+		mi.editor()
+		return nil
+	case cfg.Keys.MessageInput.Cancel:
+		mi.reset()
+		return nil
 	}
 
 	return event
+}
+
+func (mi *MessageInput) send() {
+	if !mainFlex.guildsTree.selectedChannelID.IsValid() {
+		return
+	}
+
+	text := strings.TrimSpace(mi.GetText())
+	if text == "" {
+		return
+	}
+
+	if mi.replyMessageIdx != -1 {
+		ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		data := api.SendMessageData{
+			Content:         text,
+			Reference:       &discord.MessageReference{MessageID: ms[mi.replyMessageIdx].ID},
+			AllowedMentions: &api.AllowedMentions{RepliedUser: option.False},
+		}
+
+		if strings.HasPrefix(mi.GetTitle(), "[@]") {
+			data.AllowedMentions.RepliedUser = option.True
+		}
+
+		go func() {
+			if _, err := discordState.SendMessageComplex(mainFlex.guildsTree.selectedChannelID, data); err != nil {
+				log.Println("failed to send message:", err)
+			}
+		}()
+	} else {
+		go func() {
+			if _, err := discordState.SendMessage(mainFlex.guildsTree.selectedChannelID, text); err != nil {
+				log.Println("failed to send message:", err)
+			}
+		}()
+	}
+
+	mi.replyMessageIdx = -1
+	mainFlex.messagesText.Highlight()
+	mi.reset()
+}
+
+func (mi *MessageInput) editor() {
+	e := cfg.Editor
+	if e == "default" {
+		e = os.Getenv("EDITOR")
+	}
+
+	f, err := os.CreateTemp("", constants.TmpFilePattern)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	_, _ = f.WriteString(mi.GetText())
+	f.Close()
+
+	defer os.Remove(f.Name())
+
+	cmd := exec.Command(e, f.Name())
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	app.Suspend(func() {
+		err := cmd.Run()
+		if err != nil {
+			log.Println(err)
+			return
+		}
+	})
+
+	msg, err := os.ReadFile(f.Name())
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	mi.SetText(strings.TrimSpace(string(msg)), true)
 }

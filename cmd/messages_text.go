@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -149,179 +150,215 @@ func (mt *MessagesText) createFooter(w io.Writer, m discord.Message) {
 	}
 }
 
+func (mt *MessagesText) getSelectedMessage() (*discord.Message, error) {
+	if mt.selectedMessage == -1 {
+		return nil, errors.New("no message is currently selected")
+	}
+
+	ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ms[mt.selectedMessage], nil
+}
+
 func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
-	switch mainFlex.mode {
-	case ModeNormal:
-		switch event.Name() {
-		case cfg.Keys.Normal.MessagesText.Yank:
-			if mt.selectedMessage == -1 {
-				return nil
-			}
-
-			ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
-			if err != nil {
-				log.Println(err)
-				return nil
-			}
-
-			err = clipboard.WriteAll(ms[mt.selectedMessage].Content)
-			if err != nil {
-				log.Println("failed to write to clipboard:", err)
-				return nil
-			}
-
-			return nil
-
-		case cfg.Keys.Normal.MessagesText.SelectFirst, cfg.Keys.Normal.MessagesText.SelectLast, cfg.Keys.Normal.MessagesText.SelectPrevious, cfg.Keys.Normal.MessagesText.SelectNext, cfg.Keys.Normal.MessagesText.SelectReply:
-			ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
-			if err != nil {
-				log.Println(err)
-				return nil
-			}
-
-			switch event.Name() {
-			case cfg.Keys.Normal.MessagesText.SelectPrevious:
-				// If no message is currently selected, select the latest message.
-				if len(mt.GetHighlights()) == 0 {
-					mt.selectedMessage = 0
-				} else {
-					if mt.selectedMessage < len(ms)-1 {
-						mt.selectedMessage++
-					} else {
-						return nil
-					}
-				}
-			case cfg.Keys.Normal.MessagesText.SelectNext:
-				// If no message is currently selected, select the latest message.
-				if len(mt.GetHighlights()) == 0 {
-					mt.selectedMessage = 0
-				} else {
-					if mt.selectedMessage > 0 {
-						mt.selectedMessage--
-					} else {
-						return nil
-					}
-				}
-			case cfg.Keys.Normal.MessagesText.SelectFirst:
-				mt.selectedMessage = len(ms) - 1
-			case cfg.Keys.Normal.MessagesText.SelectLast:
-				mt.selectedMessage = 0
-			case cfg.Keys.Normal.MessagesText.SelectReply:
-				if mt.selectedMessage == -1 {
-					return nil
-				}
-
-				if ref := ms[mt.selectedMessage].ReferencedMessage; ref != nil {
-					for i, m := range ms {
-						if ref.ID == m.ID {
-							mt.selectedMessage = i
-						}
-					}
-				}
-			}
-
-			mt.Highlight(ms[mt.selectedMessage].ID.String())
-			mt.ScrollToHighlight()
-			return nil
-		case cfg.Keys.Normal.MessagesText.Open:
-			if mt.selectedMessage == -1 {
-				return nil
-			}
-
-			ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
-			if err != nil {
-				log.Println(err)
-				return nil
-			}
-
-			attachments := ms[mt.selectedMessage].Attachments
-			if len(attachments) == 0 {
-				return nil
-			}
-
-			for _, a := range attachments {
-				go func() {
-					if err := open.Start(a.URL); err != nil {
-						log.Println(err)
-					}
-				}()
-			}
-
-			return nil
-		case cfg.Keys.Normal.MessagesText.Reply, cfg.Keys.Normal.MessagesText.ReplyMention:
-			if mt.selectedMessage == -1 {
-				return nil
-			}
-
-			var title string
-			if event.Name() == cfg.Keys.Normal.MessagesText.ReplyMention {
-				title += "[@] Replying to "
-			} else {
-				title += "Replying to "
-			}
-
-			ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
-			if err != nil {
-				log.Println(err)
-				return nil
-			}
-
-			title += ms[mt.selectedMessage].Author.Tag()
-			mainFlex.messageInput.SetTitle(title)
-			mainFlex.messageInput.replyMessageIdx = mt.selectedMessage
-
-			app.SetFocus(mainFlex.messageInput)
-			return nil
-		case cfg.Keys.Normal.MessagesText.Delete:
-			if mt.selectedMessage == -1 {
-				return nil
-			}
-
-			ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
-			if err != nil {
-				log.Println(err)
-				return nil
-			}
-
-			m := ms[mt.selectedMessage]
-			clientID := discordState.Ready().User.ID
-
-			ps, err := discordState.Permissions(mainFlex.guildsTree.selectedChannelID, discordState.Ready().User.ID)
-			if err != nil {
-				return nil
-			}
-
-			if m.Author.ID != clientID && !ps.Has(discord.PermissionManageMessages) {
-				return nil
-			}
-
-			if err := discordState.DeleteMessage(mainFlex.guildsTree.selectedChannelID, m.ID, ""); err != nil {
-				log.Println(err)
-			}
-
-			if err := discordState.MessageRemove(mainFlex.guildsTree.selectedChannelID, m.ID); err != nil {
-				log.Println(err)
-			}
-
-			ms, err = discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
-			if err != nil {
-				log.Println(err)
-				return nil
-			}
-
-			mt.Clear()
-
-			for i := len(ms) - 1; i >= 0; i-- {
-				mainFlex.messagesText.createMessage(ms[i])
-			}
-
+	switch event.Name() {
+	case cfg.Keys.SelectPrevious, cfg.Keys.SelectNext, cfg.Keys.SelectFirst, cfg.Keys.SelectLast, cfg.Keys.MessagesText.SelectReply:
+		ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
+		if err != nil {
+			log.Println(err)
 			return nil
 		}
 
-		// do not propagate event to the children in normal mode.
+		switch event.Name() {
+		case cfg.Keys.SelectPrevious:
+			// If no message is currently selected, select the latest message.
+			if len(mt.GetHighlights()) == 0 {
+				mt.selectedMessage = 0
+			} else {
+				if mt.selectedMessage < len(ms)-1 {
+					mt.selectedMessage++
+				} else {
+					return nil
+				}
+			}
+		case cfg.Keys.SelectNext:
+			// If no message is currently selected, select the latest message.
+			if len(mt.GetHighlights()) == 0 {
+				mt.selectedMessage = 0
+			} else {
+				if mt.selectedMessage > 0 {
+					mt.selectedMessage--
+				} else {
+					return nil
+				}
+			}
+		case cfg.Keys.SelectFirst:
+			mt.selectedMessage = len(ms) - 1
+		case cfg.Keys.SelectLast:
+			mt.selectedMessage = 0
+		case cfg.Keys.MessagesText.SelectReply:
+			if mt.selectedMessage == -1 {
+				return nil
+			}
+
+			if ref := ms[mt.selectedMessage].ReferencedMessage; ref != nil {
+				for i, m := range ms {
+					if ref.ID == m.ID {
+						mt.selectedMessage = i
+					}
+				}
+			}
+		}
+
+		mt.Highlight(ms[mt.selectedMessage].ID.String())
+		mt.ScrollToHighlight()
 		return nil
 
+	case cfg.Keys.MessagesText.Yank:
+		mt.yank()
+		return nil
+	case cfg.Keys.MessagesText.Open:
+		mt.open()
+		return nil
+	case cfg.Keys.MessagesText.Reply:
+		mt.reply(false)
+		return nil
+	case cfg.Keys.MessagesText.ReplyMention:
+		mt.reply(true)
+		return nil
+	case cfg.Keys.MessagesText.Delete:
+		mt.delete()
+		return nil
+
+	case cfg.Keys.MessagesText.Message:
+		msg, err := mt.getSelectedMessage()
+		if err != nil {
+			log.Println(err)
+			return nil
+		}
+
+		c, err := discordState.CreatePrivateChannel(msg.Author.ID)
+		if err != nil {
+			log.Println("failed to create private channel", err)
+		}
+
+		root := mainFlex.guildsTree.GetRoot()
+		children := root.GetChildren()
+		// len(children) will always be >=1
+		dmNode := children[0]
+		chNode := mainFlex.guildsTree.createChannelNode(dmNode, *c)
+		mainFlex.guildsTree.SetCurrentNode(chNode)
+		dmNode.ExpandAll()
+		mainFlex.guildsTree.onSelected(chNode)
+
+		return nil
 	}
 
 	return event
+}
+
+func (mt *MessagesText) yank() {
+	msg, err := mt.getSelectedMessage()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	err = clipboard.WriteAll(msg.Content)
+	if err != nil {
+		log.Println("failed to write to clipboard:", err)
+		return
+	}
+}
+
+func (mt *MessagesText) open() {
+	msg, err := mt.getSelectedMessage()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	attachments := msg.Attachments
+	if len(attachments) == 0 {
+		return
+	}
+
+	for _, a := range attachments {
+		go func() {
+			if err := open.Start(a.URL); err != nil {
+				log.Println(err)
+			}
+		}()
+	}
+
+}
+
+func (mt *MessagesText) reply(mention bool) {
+	var title string
+	if mention {
+		title += "[@] Replying to "
+	} else {
+		title += "Replying to "
+	}
+
+	msg, err := mt.getSelectedMessage()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	title += msg.Author.Tag()
+	mainFlex.messageInput.SetTitle(title)
+	mainFlex.messageInput.replyMessageIdx = mt.selectedMessage
+	app.SetFocus(mainFlex.messageInput)
+}
+
+func (mt *MessagesText) delete() {
+
+	msg, err := mt.getSelectedMessage()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	clientID := discordState.Ready().User.ID
+	if msg.GuildID.IsValid() {
+		ps, err := discordState.Permissions(mainFlex.guildsTree.selectedChannelID, discordState.Ready().User.ID)
+		if err != nil {
+			return
+		}
+
+		if msg.Author.ID != clientID && !ps.Has(discord.PermissionManageMessages) {
+			return
+		}
+	} else {
+		if msg.Author.ID != clientID {
+			return
+		}
+	}
+
+	if err := discordState.DeleteMessage(mainFlex.guildsTree.selectedChannelID, msg.ID, ""); err != nil {
+		log.Println(err)
+		return
+	}
+
+	if err := discordState.MessageRemove(mainFlex.guildsTree.selectedChannelID, msg.ID); err != nil {
+		log.Println(err)
+	}
+
+	ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	mt.Clear()
+
+	for i := len(ms) - 1; i >= 0; i-- {
+		mainFlex.messagesText.createMessage(ms[i])
+	}
+
 }
