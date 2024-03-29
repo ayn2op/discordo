@@ -42,7 +42,7 @@ func defaultKeys() Keys {
 	return Keys{
 		FocusGuildsTree:   "Ctrl+G",
 		FocusMessagesText: "Ctrl+T",
-		FocusMessageInput: "Ctrl+I",
+		FocusMessageInput: "Ctrl+P",
 		ToggleGuildsTree:  "Ctrl+B",
 
 		SelectPrevious: "Rune[k]",
