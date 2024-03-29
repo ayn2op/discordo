@@ -51,9 +51,9 @@ go build .
 
 The configuration file allows you to configure and customize the behavior, keybindings, and theme of the application.
 
-- Unix: `$XDG_CONFIG_HOME/discordo/config.yml` or `$HOME/.config/discordo/config.yml`
-- Darwin: `$HOME/Library/Application Support/discordo/config.yml`
-- Windows: `%AppData%/discordo/config.yml`
+- Unix: `$XDG_CONFIG_HOME/discordo/config.toml` or `$HOME/.config/discordo/config.toml`
+- Darwin: `$HOME/Library/Application Support/discordo/config.toml`
+- Windows: `%AppData%/discordo/config.toml`
 
 ```toml
 mouse = true
@@ -62,24 +62,19 @@ timestamps_before_author = false
 messages_limit = 50
 editor = "default"
 
-[keys.normal]
-insert_mode = "Rune[i]"
+[keys]
 focus_guilds_tree = "Ctrl+G"
 focus_messages_text = "Ctrl+T"
 toggle_guild_tree = "Ctrl+B"
+select_previous = "Rune[k]"
+select_next = "Rune[j]"
+select_first = "Rune[g]"
+select_last = "Rune[G]"
 
-[keys.normal.guilds_tree]
+[keys.guilds_tree]
 select_current = "Enter"
-select_previous = "Rune[k]"
-select_next = "Rune[j]"
-select_first = "Rune[g]"
-select_last = "Rune[G]"
 
-[keys.normal.messages_text]
-select_previous = "Rune[k]"
-select_next = "Rune[j]"
-select_first = "Rune[g]"
-select_last = "Rune[G]"
+[keys.messages_text]
 select_reply = "Rune[s]"
 reply = "Rune[r]"
 reply_mention = "Rune[R]"
@@ -87,12 +82,10 @@ delete = "Rune[d]"
 yank = "Rune[y]"
 open = "Rune[o]"
 
-[keys.insert]
-normal_mode = "Esc"
-
-[keys.insert.message_input]
+[keys.message_input]
 send = "Enter"
 editor = "Ctrl+E"
+cancel = "Esc"
 
 [theme]
 border = true
@@ -104,15 +97,11 @@ background_color = "default"
 [theme.guilds_tree]
 auto_expand_folders = true
 graphics = true
-
+  
 [theme.messages_text]
 author_color = "aqua"
 reply_indicator = "╭ "
 ```
-
-## Documentation
-
-[Here.](./docs)
 
 ## Disclaimer
 

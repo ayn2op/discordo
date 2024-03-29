@@ -22,7 +22,7 @@ type Config struct {
 	Theme Theme `toml:"theme"`
 }
 
-func defaultConfig() Config {
+func DefaultConfig() Config {
 	return Config{
 		Mouse: true,
 
@@ -44,7 +44,7 @@ func Load() (*Config, error) {
 		return nil, err
 	}
 
-	cfg := defaultConfig()
+	cfg := DefaultConfig()
 	path = filepath.Join(path, constants.Name, "config.toml")
 	f, err := os.Open(path)
 	if os.IsNotExist(err) {
