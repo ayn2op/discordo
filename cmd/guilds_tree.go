@@ -108,22 +108,23 @@ func (gt *GuildsTree) channelToString(c discord.Channel) string {
 	return s
 }
 
-func (gt *GuildsTree) createChannelNode(n *tview.TreeNode, c discord.Channel) {
+func (gt *GuildsTree) createChannelNode(n *tview.TreeNode, c discord.Channel) *tview.TreeNode {
 	if c.Type != discord.DirectMessage && c.Type != discord.GroupDM {
 		ps, err := discordState.Permissions(c.ID, discordState.Ready().User.ID)
 		if err != nil {
 			log.Println(err)
-			return
+			return nil
 		}
 
 		if !ps.Has(discord.PermissionViewChannel) {
-			return
+			return nil
 		}
 	}
 
 	cn := tview.NewTreeNode(gt.channelToString(c))
 	cn.SetReference(c.ID)
 	n.AddChild(cn)
+	return cn
 }
 
 func (gt *GuildsTree) createChannelNodes(n *tview.TreeNode, cs []discord.Channel) {
@@ -219,23 +220,18 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 }
 
 func (gt *GuildsTree) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
-	switch mainFlex.mode {
-	case ModeNormal:
-		switch event.Name() {
-		case cfg.Keys.Normal.GuildsTree.SelectCurrent:
-			return tcell.NewEventKey(tcell.KeyEnter, 0, tcell.ModNone)
-		case cfg.Keys.Normal.GuildsTree.SelectPrevious:
-			return tcell.NewEventKey(tcell.KeyUp, 0, tcell.ModNone)
-		case cfg.Keys.Normal.GuildsTree.SelectNext:
-			return tcell.NewEventKey(tcell.KeyDown, 0, tcell.ModNone)
-		case cfg.Keys.Normal.GuildsTree.SelectFirst:
-			return tcell.NewEventKey(tcell.KeyHome, 0, tcell.ModNone)
-		case cfg.Keys.Normal.GuildsTree.SelectLast:
-			return tcell.NewEventKey(tcell.KeyEnd, 0, tcell.ModNone)
-		}
+	switch event.Name() {
+	case cfg.Keys.SelectPrevious:
+		return tcell.NewEventKey(tcell.KeyUp, 0, tcell.ModNone)
+	case cfg.Keys.SelectNext:
+		return tcell.NewEventKey(tcell.KeyDown, 0, tcell.ModNone)
+	case cfg.Keys.SelectFirst:
+		return tcell.NewEventKey(tcell.KeyHome, 0, tcell.ModNone)
+	case cfg.Keys.SelectLast:
+		return tcell.NewEventKey(tcell.KeyEnd, 0, tcell.ModNone)
 
-		// do not propagate event to the children in normal mode.
-		return nil
+	case cfg.Keys.GuildsTree.SelectCurrent:
+		return tcell.NewEventKey(tcell.KeyEnter, 0, tcell.ModNone)
 	}
 
 	return event
