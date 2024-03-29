@@ -4,6 +4,7 @@ type (
 	Keys struct {
 		FocusGuildsTree   string `toml:"focus_guilds_tree"`
 		FocusMessagesText string `toml:"focus_messages_text"`
+		FocusMessageInput string `toml:"focus_message_input"`
 		ToggleGuildsTree  string `toml:"toggle_guild_tree"`
 
 		SelectPrevious string `toml:"select_previous"`
@@ -41,6 +42,7 @@ func defaultKeys() Keys {
 	return Keys{
 		FocusGuildsTree:   "Ctrl+G",
 		FocusMessagesText: "Ctrl+T",
+		FocusMessageInput: "Ctrl+I",
 		ToggleGuildsTree:  "Ctrl+B",
 
 		SelectPrevious: "Rune[k]",

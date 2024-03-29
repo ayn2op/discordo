@@ -47,6 +47,9 @@ func (mf *MainFlex) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	case cfg.Keys.FocusMessagesText:
 		app.SetFocus(mf.messagesText)
 		return nil
+	case cfg.Keys.FocusMessageInput:
+		app.SetFocus(mf.messageInput)
+		return nil
 	case cfg.Keys.ToggleGuildsTree:
 		// The guilds tree is visible if the numbers of items is two.
 		if mf.GetItemCount() == 2 {
