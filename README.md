@@ -63,44 +63,44 @@ messages_limit = 50
 editor = "default"
 
 [keys]
-  focus_guilds_tree = "Ctrl+G"
-  focus_messages_text = "Ctrl+T"
-  toggle_guild_tree = "Ctrl+B"
-  select_previous = "Rune[k]"
-  select_next = "Rune[j]"
-  select_first = "Rune[g]"
-  select_last = "Rune[G]"
+focus_guilds_tree = "Ctrl+G"
+focus_messages_text = "Ctrl+T"
+toggle_guild_tree = "Ctrl+B"
+select_previous = "Rune[k]"
+select_next = "Rune[j]"
+select_first = "Rune[g]"
+select_last = "Rune[G]"
 
 [keys.guilds_tree]
-  select_current = "Enter"
+select_current = "Enter"
 
 [keys.messages_text]
-  select_reply = "Rune[s]"
-  reply = "Rune[r]"
-  reply_mention = "Rune[R]"
-  delete = "Rune[d]"
-  yank = "Rune[y]"
-  open = "Rune[o]"
+select_reply = "Rune[s]"
+reply = "Rune[r]"
+reply_mention = "Rune[R]"
+delete = "Rune[d]"
+yank = "Rune[y]"
+open = "Rune[o]"
 
 [keys.message_input]
-  send = "Enter"
-  editor = "Ctrl+E"
-  cancel = "Esc"
+send = "Enter"
+editor = "Ctrl+E"
+cancel = "Esc"
 
 [theme]
-  border = true
-  border_color = "default"
-  border_padding = [0, 0, 1, 1]
-  title_color = "default"
-  background_color = "default"
-  guilds_tree = {
-    auto_expand_folders = true
-    graphics = true
-  }
-  messages_text = {
-    author_color = "aqua"
-    reply_indicator = "╭ "
-  }
+border = true
+border_color = "default"
+border_padding = [0, 0, 1, 1]
+title_color = "default"
+background_color = "default"
+
+[theme.guilds_tree]
+auto_expand_folders = true
+graphics = true
+  
+[theme.messages_text]
+author_color = "aqua"
+reply_indicator = "╭ "
 ```
 
 ## Documentation
