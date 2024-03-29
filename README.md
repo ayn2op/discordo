@@ -51,9 +51,9 @@ go build .
 
 The configuration file allows you to configure and customize the behavior, keybindings, and theme of the application.
 
-- Unix: `$XDG_CONFIG_HOME/discordo/config.yml` or `$HOME/.config/discordo/config.yml`
-- Darwin: `$HOME/Library/Application Support/discordo/config.yml`
-- Windows: `%AppData%/discordo/config.yml`
+- Unix: `$XDG_CONFIG_HOME/discordo/config.toml` or `$HOME/.config/discordo/config.toml`
+- Darwin: `$HOME/Library/Application Support/discordo/config.toml`
+- Windows: `%AppData%/discordo/config.toml`
 
 ```toml
 mouse = true
@@ -102,10 +102,6 @@ graphics = true
 author_color = "aqua"
 reply_indicator = "╭ "
 ```
-
-## Documentation
-
-[Here.](./docs)
 
 ## Disclaimer
 
