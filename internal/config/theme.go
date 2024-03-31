@@ -6,7 +6,7 @@ type (
 	Theme struct {
 		Border        bool   `toml:"border"`
 		BorderColor   string `toml:"border_color"`
-		BorderPadding [4]int `toml:"border_padding,flow"`
+		BorderPadding [4]int `toml:"border_padding"`
 
 		TitleColor      string `toml:"title_color"`
 		BackgroundColor string `toml:"background_color"`
