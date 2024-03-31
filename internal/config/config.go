@@ -13,7 +13,7 @@ type Config struct {
 
 	Timestamps             bool `toml:"timestamps"`
 	TimestampsBeforeAuthor bool `toml:"timestamps_before_author"`
-	Timestamps ISO         bool 'toml:"timestamps_iso"`
+	Timestamps ISO         bool `toml:"timestamps_iso"`
 
 	MessagesLimit uint8 `toml:"messages_limit"`
 
