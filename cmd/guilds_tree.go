@@ -198,21 +198,10 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 			return
 		}
 
-		clientID := discordState.Ready().User.ID
-		perms, err := discordState.Permissions(c.ID, clientID)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
-		if perms.Has(discord.PermissionSendMessages) {
-			app.SetFocus(mainFlex.messageInput)
-		} else {
-			mainFlex.messageInput.SetDisabled(true)
-		}
-
 		mainFlex.messagesText.SetTitle(gt.channelToString(*c))
+
 		gt.selectedChannelID = ref
+		app.SetFocus(mainFlex.messageInput)
 	case nil: // Direct messages
 		cs, err := discordState.Cabinet.PrivateChannels()
 		if err != nil {
