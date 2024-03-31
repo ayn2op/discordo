@@ -59,18 +59,25 @@ func (s *State) onReady(r *gateway.ReadyEvent) {
 	dmNode := tview.NewTreeNode("Direct Messages")
 	mainFlex.guildsTree.root.AddChild(dmNode)
 
-	for _, gf := range r.UserSettings.GuildFolders {
-		/// If the ID of the guild folder is zero, the guild folder only contains single guild.
-		if gf.ID == 0 {
-			g, err := s.Cabinet.Guild(gf.GuildIDs[0])
-			if err != nil {
-				log.Println(err)
-				continue
-			}
+	folders := r.UserSettings.GuildFolders
+	if len(folders) == 0 {
+		for _, g := range r.Guilds {
+			mainFlex.guildsTree.createGuildNode(mainFlex.guildsTree.root, g.Guild)
+		}
+	} else {
+		for _, gf := range folders {
+			// If the ID of the guild folder is zero, the guild folder only contains single guild.
+			if gf.ID == 0 {
+				g, err := s.Cabinet.Guild(gf.GuildIDs[0])
+				if err != nil {
+					log.Println(err)
+					continue
+				}
 
-			mainFlex.guildsTree.createGuildNode(mainFlex.guildsTree.root, *g)
-		} else {
-			mainFlex.guildsTree.createGuildFolderNode(mainFlex.guildsTree.root, gf)
+				mainFlex.guildsTree.createGuildNode(mainFlex.guildsTree.root, *g)
+			} else {
+				mainFlex.guildsTree.createGuildFolderNode(mainFlex.guildsTree.root, gf)
+			}
 		}
 	}
 
