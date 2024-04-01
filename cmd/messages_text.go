@@ -97,12 +97,7 @@ func (mt *MessagesText) createMessage(m discord.Message) {
 }
 
 func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, isReply bool) {
-    timeFormat := time.Kitchen
-    if cfg.TimestampsISO {
-        timeFormat = time.DateTime
-    }
-
-	time := m.Timestamp.Time().In(time.Local).Format(timeFormat)
+  	time := m.Timestamp.Time().In(time.Local).Format(cfg.TimestampsFormat)
 
 	if cfg.Timestamps && cfg.TimestampsBeforeAuthor {
 		fmt.Fprintf(w, "[::d]%s[::-] ", time)
