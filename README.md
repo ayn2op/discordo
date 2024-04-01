@@ -65,6 +65,7 @@ editor = "default"
 [keys]
 focus_guilds_tree = "Ctrl+G"
 focus_messages_text = "Ctrl+T"
+focus_message_input = "Ctrl+P"
 toggle_guild_tree = "Ctrl+B"
 select_previous = "Rune[k]"
 select_next = "Rune[j]"
@@ -97,7 +98,7 @@ background_color = "default"
 [theme.guilds_tree]
 auto_expand_folders = true
 graphics = true
-  
+
 [theme.messages_text]
 author_color = "aqua"
 reply_indicator = "╭ "
