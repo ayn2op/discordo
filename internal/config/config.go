@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/ayn2op/discordo/internal/constants"
@@ -13,7 +14,7 @@ type Config struct {
 
 	Timestamps             bool `toml:"timestamps"`
 	TimestampsBeforeAuthor bool `toml:"timestamps_before_author"`
-	TimestampsISO          bool `toml:"timestamps_iso"`
+	TimestampsFormat       string `toml:"timestamps_format"`
 
 	MessagesLimit uint8 `toml:"messages_limit"`
 
@@ -29,7 +30,7 @@ func DefaultConfig() Config {
 
 		Timestamps:             false,
 		TimestampsBeforeAuthor: false,
-		TimestampsISO:          false,
+		TimestampsFormat:       time.Kitchen,
 
 		MessagesLimit: 50,
 		Editor:        "default",
