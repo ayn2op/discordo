@@ -36,14 +36,8 @@ func openState(token string) error {
 	discordState.AddHandler(discordState.onMessageCreate)
 	discordState.AddHandler(discordState.onMessageDelete)
 
-	discordState.StateLog = discordState.onLog
 	discordState.OnRequest = append(discordState.Client.OnRequest, discordState.onRequest)
-
 	return discordState.Open(context.TODO())
-}
-
-func (s *State) onLog(err error) {
-	log.Println(err.Error())
 }
 
 func (s *State) onRequest(r httpdriver.Request) error {
@@ -56,32 +50,34 @@ func (s *State) onRequest(r httpdriver.Request) error {
 }
 
 func (s *State) onReady(r *gateway.ReadyEvent) {
+	root := mainFlex.guildsTree.GetRoot()
 	dmNode := tview.NewTreeNode("Direct Messages")
-	mainFlex.guildsTree.root.AddChild(dmNode)
+	root.AddChild(dmNode)
 
 	folders := r.UserSettings.GuildFolders
 	if len(folders) == 0 {
 		for _, g := range r.Guilds {
-			mainFlex.guildsTree.createGuildNode(mainFlex.guildsTree.root, g.Guild)
+			mainFlex.guildsTree.createGuildNode(root, g.Guild)
 		}
 	} else {
-		for _, gf := range folders {
+		for _, folder := range folders {
 			// If the ID of the guild folder is zero, the guild folder only contains single guild.
-			if gf.ID == 0 {
-				g, err := s.Cabinet.Guild(gf.GuildIDs[0])
+			if folder.ID == 0 {
+				gID := folder.GuildIDs[0]
+				g, err := discordState.Cabinet.Guild(gID)
 				if err != nil {
-					log.Println(err)
+					log.Printf("guild %v not found in state: %v\n", gID, err)
 					continue
 				}
 
-				mainFlex.guildsTree.createGuildNode(mainFlex.guildsTree.root, *g)
+				mainFlex.guildsTree.createGuildNode(root, *g)
 			} else {
-				mainFlex.guildsTree.createGuildFolderNode(mainFlex.guildsTree.root, gf)
+				mainFlex.guildsTree.createFolderNode(folder)
 			}
 		}
 	}
 
-	mainFlex.guildsTree.SetCurrentNode(mainFlex.guildsTree.root)
+	mainFlex.guildsTree.SetCurrentNode(root)
 	app.SetFocus(mainFlex.guildsTree)
 }
 
