@@ -15,19 +15,18 @@ import (
 type GuildsTree struct {
 	*tview.TreeView
 
-	root              *tview.TreeNode
 	selectedChannelID discord.ChannelID
 }
 
 func newGuildsTree() *GuildsTree {
 	gt := &GuildsTree{
 		TreeView: tview.NewTreeView(),
-
-		root: tview.NewTreeNode(""),
 	}
 
+	root := tview.NewTreeNode("")
+	gt.SetRoot(root)
+
 	gt.SetTopLevel(1)
-	gt.SetRoot(gt.root)
 	gt.SetGraphics(cfg.Theme.GuildsTree.Graphics)
 	gt.SetBackgroundColor(tcell.GetColor(cfg.Theme.BackgroundColor))
 	gt.SetSelectedFunc(gt.onSelected)
@@ -45,33 +44,34 @@ func newGuildsTree() *GuildsTree {
 	return gt
 }
 
-func (gt *GuildsTree) createGuildFolderNode(parent *tview.TreeNode, gf gateway.GuildFolder) {
+func (gt *GuildsTree) createFolderNode(folder gateway.GuildFolder) {
 	var name string
-	if gf.Name != "" {
-		name = fmt.Sprintf("[%s]%s[-]", gf.Color.String(), gf.Name)
-	} else {
+	if folder.Name == "" {
 		name = "Folder"
+	} else {
+		name = fmt.Sprintf("[%s]%s[-]", folder.Color.String(), folder.Name)
 	}
 
-	n := tview.NewTreeNode(name)
-	n.SetExpanded(cfg.Theme.GuildsTree.AutoExpandFolders)
-	parent.AddChild(n)
+	root := gt.GetRoot()
+	folderNode := tview.NewTreeNode(name)
+	folderNode.SetExpanded(cfg.Theme.GuildsTree.AutoExpandFolders)
+	root.AddChild(folderNode)
 
-	for _, gid := range gf.GuildIDs {
-		g, err := discordState.Cabinet.Guild(gid)
+	for _, gID := range folder.GuildIDs {
+		g, err := discordState.Cabinet.Guild(gID)
 		if err != nil {
-			log.Printf("guild %v not found in state: %v", gid, err)
+			log.Printf("guild %v not found in state: %v\n", gID, err)
 			continue
 		}
 
-		gt.createGuildNode(n, *g)
+		gt.createGuildNode(folderNode, *g)
 	}
 }
 
 func (gt *GuildsTree) createGuildNode(n *tview.TreeNode, g discord.Guild) {
-	gn := tview.NewTreeNode(g.Name)
-	gn.SetReference(g.ID)
-	n.AddChild(gn)
+	guildNode := tview.NewTreeNode(g.Name)
+	guildNode.SetReference(g.ID)
+	n.AddChild(guildNode)
 }
 
 func (gt *GuildsTree) channelToString(c discord.Channel) string {
@@ -121,10 +121,10 @@ func (gt *GuildsTree) createChannelNode(n *tview.TreeNode, c discord.Channel) *t
 		}
 	}
 
-	cn := tview.NewTreeNode(gt.channelToString(c))
-	cn.SetReference(c.ID)
-	n.AddChild(cn)
-	return cn
+	channelNode := tview.NewTreeNode(gt.channelToString(c))
+	channelNode.SetReference(c.ID)
+	n.AddChild(channelNode)
+	return channelNode
 }
 
 func (gt *GuildsTree) createChannelNodes(n *tview.TreeNode, cs []discord.Channel) {
