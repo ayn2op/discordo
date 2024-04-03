@@ -57,8 +57,11 @@ The configuration file allows you to configure and customize the behavior, keybi
 
 ```toml
 mouse = true
+
 timestamps = false
 timestamps_before_author = false
+timestamps_format = "3:04PM"
+
 messages_limit = 50
 editor = "default"
 
