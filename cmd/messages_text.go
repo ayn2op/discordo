@@ -97,7 +97,7 @@ func (mt *MessagesText) createMessage(m discord.Message) {
 }
 
 func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, isReply bool) {
-  	time := m.Timestamp.Time().In(time.Local).Format(cfg.TimestampsFormat)
+	time := m.Timestamp.Time().In(time.Local).Format(cfg.TimestampsFormat)
 
 	if cfg.Timestamps && cfg.TimestampsBeforeAuthor {
 		fmt.Fprintf(w, "[::d]%s[::-] ", time)
@@ -166,57 +166,8 @@ func (mt *MessagesText) getSelectedMessage() (*discord.Message, error) {
 func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case cfg.Keys.SelectPrevious, cfg.Keys.SelectNext, cfg.Keys.SelectFirst, cfg.Keys.SelectLast, cfg.Keys.MessagesText.SelectReply:
-		ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
-		if err != nil {
-			log.Println(err)
-			return nil
-		}
-
-		switch event.Name() {
-		case cfg.Keys.SelectPrevious:
-			// If no message is currently selected, select the latest message.
-			if len(mt.GetHighlights()) == 0 {
-				mt.selectedMessage = 0
-			} else {
-				if mt.selectedMessage < len(ms)-1 {
-					mt.selectedMessage++
-				} else {
-					return nil
-				}
-			}
-		case cfg.Keys.SelectNext:
-			// If no message is currently selected, select the latest message.
-			if len(mt.GetHighlights()) == 0 {
-				mt.selectedMessage = 0
-			} else {
-				if mt.selectedMessage > 0 {
-					mt.selectedMessage--
-				} else {
-					return nil
-				}
-			}
-		case cfg.Keys.SelectFirst:
-			mt.selectedMessage = len(ms) - 1
-		case cfg.Keys.SelectLast:
-			mt.selectedMessage = 0
-		case cfg.Keys.MessagesText.SelectReply:
-			if mt.selectedMessage == -1 {
-				return nil
-			}
-
-			if ref := ms[mt.selectedMessage].ReferencedMessage; ref != nil {
-				for i, m := range ms {
-					if ref.ID == m.ID {
-						mt.selectedMessage = i
-					}
-				}
-			}
-		}
-
-		mt.Highlight(ms[mt.selectedMessage].ID.String())
-		mt.ScrollToHighlight()
+		mt._select(event.Name())
 		return nil
-
 	case cfg.Keys.MessagesText.Yank:
 		mt.yank()
 		return nil
@@ -234,7 +185,59 @@ func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		return nil
 	}
 
-	return event
+	return nil
+}
+
+func (mt *MessagesText) _select(name string) {
+	ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	switch name {
+	case cfg.Keys.SelectPrevious:
+		// If no message is currently selected, select the latest message.
+		if len(mt.GetHighlights()) == 0 {
+			mt.selectedMessage = 0
+		} else {
+			if mt.selectedMessage < len(ms)-1 {
+				mt.selectedMessage++
+			} else {
+				return
+			}
+		}
+	case cfg.Keys.SelectNext:
+		// If no message is currently selected, select the latest message.
+		if len(mt.GetHighlights()) == 0 {
+			mt.selectedMessage = 0
+		} else {
+			if mt.selectedMessage > 0 {
+				mt.selectedMessage--
+			} else {
+				return
+			}
+		}
+	case cfg.Keys.SelectFirst:
+		mt.selectedMessage = len(ms) - 1
+	case cfg.Keys.SelectLast:
+		mt.selectedMessage = 0
+	case cfg.Keys.MessagesText.SelectReply:
+		if mt.selectedMessage == -1 {
+			return
+		}
+
+		if ref := ms[mt.selectedMessage].ReferencedMessage; ref != nil {
+			for i, m := range ms {
+				if ref.ID == m.ID {
+					mt.selectedMessage = i
+				}
+			}
+		}
+	}
+
+	mt.Highlight(ms[mt.selectedMessage].ID.String())
+	mt.ScrollToHighlight()
 }
 
 func (mt *MessagesText) yank() {
