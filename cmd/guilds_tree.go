@@ -53,7 +53,7 @@ func (gt *GuildsTree) createFolderNode(folder gateway.GuildFolder) {
 	}
 
 	root := gt.GetRoot()
-	folderNode := tview.NewTreeNode(name)
+	folderNode := tview.NewTreeNode(name).SetColor(tcell.GetColor(cfg.Theme.GuildsTree.TreeColor))
 	folderNode.SetExpanded(cfg.Theme.GuildsTree.AutoExpandFolders)
 	root.AddChild(folderNode)
 
@@ -70,6 +70,7 @@ func (gt *GuildsTree) createFolderNode(folder gateway.GuildFolder) {
 
 func (gt *GuildsTree) createGuildNode(n *tview.TreeNode, g discord.Guild) {
 	guildNode := tview.NewTreeNode(g.Name)
+	guildNode.SetColor(tcell.GetColor(cfg.Theme.GuildsTree.TreeColor))
 	guildNode.SetReference(g.ID)
 	n.AddChild(guildNode)
 }
@@ -121,7 +122,7 @@ func (gt *GuildsTree) createChannelNode(n *tview.TreeNode, c discord.Channel) *t
 		}
 	}
 
-	channelNode := tview.NewTreeNode(gt.channelToString(c))
+	channelNode := tview.NewTreeNode(gt.channelToString(c)).SetColor(tcell.GetColor(cfg.Theme.GuildsTree.TreeColor))
 	channelNode.SetReference(c.ID)
 	n.AddChild(channelNode)
 	return channelNode

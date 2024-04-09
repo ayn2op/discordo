@@ -16,8 +16,9 @@ type (
 	}
 
 	GuildsTreeTheme struct {
-		AutoExpandFolders bool `toml:"auto_expand_folders"`
-		Graphics          bool `toml:"graphics"`
+		TreeColor         string `toml:"tree_color"`
+		AutoExpandFolders bool   `toml:"auto_expand_folders"`
+		Graphics          bool   `toml:"graphics"`
 	}
 
 	MessagesTextTheme struct {
@@ -36,6 +37,7 @@ func defaultTheme() Theme {
 		TitleColor:      "default",
 
 		GuildsTree: GuildsTreeTheme{
+			TreeColor:         "white",
 			AutoExpandFolders: true,
 			Graphics:          true,
 		},

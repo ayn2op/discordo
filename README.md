@@ -99,6 +99,7 @@ title_color = "default"
 background_color = "default"
 
 [theme.guilds_tree]
+tree_color = "white"
 auto_expand_folders = true
 graphics = true
 
