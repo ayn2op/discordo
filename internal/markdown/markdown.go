@@ -13,10 +13,10 @@ var (
 )
 
 func Parse(input string) string {
-	input = boldRe.ReplaceAllString(input, "[::b]$1[::B]")
-	input = italicRe.ReplaceAllString(input, "[::i]$1[::I]")
-	input = underlineRe.ReplaceAllString(input, "[::u]$1[::U]")
-	input = strikethroughRe.ReplaceAllString(input, "[::s]$1[::S]")
-	input = codeblockRe.ReplaceAllString(input, "[::r]$1[::R]")
+	input = boldRe.ReplaceAllString(input, "[::b]$1[::-]")
+	input = italicRe.ReplaceAllString(input, "[::i]$1[::-]")
+	input = underlineRe.ReplaceAllString(input, "[::u]$1[::-]")
+	input = strikethroughRe.ReplaceAllString(input, "[::s]$1[::-]")
+	input = codeblockRe.ReplaceAllString(input, "[::r]$1[::-]")
 	return input
 }
