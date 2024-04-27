@@ -6,7 +6,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest, macos-14]
+        # https://docs.github.com/en/actions/using-github-hosted-runners
+        os: [ubuntu-latest, windows-latest, macos-latest, macos-13]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
