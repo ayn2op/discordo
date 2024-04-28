@@ -17,8 +17,6 @@ in
         Configuration for discordo.
         See https://github.com/ayn2op/discordo?tab=readme-ov-file#configuration 
         for available options and default values.
-
-        Configuration gets written to ~/.config/discordo/config.toml.
       '';
       default = { };
     };
@@ -56,7 +54,7 @@ in
           }
       )
     ];
-    programs.discordo.settings = lib.mkDefault (import ./default-settings.nix);
+
     xdg.configFile."discordo/config.toml".source = settingsFormat.generate
       "discordo-config.toml"
       config.programs.discordo.settings;
