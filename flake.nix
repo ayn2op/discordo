@@ -25,13 +25,9 @@
     in
     {
       packages = forSupportedSystems (system: pkgs: {
-        default = pkgs.buildGo122Module {
-          pname = "discordo";
-          version = builtins.substring 0 8 self.lastModifiedDate;
-          src = ./.;
-          vendorHash = "sha256-hSrGN3NHPpp5601l4KcmNHVYOGWfLjFeWWr9g11nM3I=";
-        };
+        default = pkgs.callPackage ./nix/package { };
       });
+      homeManagerModules.default = import ./nix/hm-module.nix self;
     };
 }
   
