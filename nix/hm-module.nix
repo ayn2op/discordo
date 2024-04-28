@@ -3,7 +3,7 @@ self: { options, config, lib, pkgs, ... }: {
     enable = lib.mkEnableOption "discordo";
     package = lib.mkOption {
       type = lib.types.package;
-      default = self.packages.${pkgs.sytem}.default;
+      default = self.packages.${pkgs.system}.default;
       description = "The discordo package to use.";
     };
 
