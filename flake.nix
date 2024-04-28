@@ -25,7 +25,7 @@
     in
     {
       packages = forSupportedSystems (system: pkgs: {
-        default = pkgs.callPackage ./nix/package { };
+        default = pkgs.callPackage ./nix/package.nix { };
       });
       homeManagerModules.default = import ./nix/hm-module.nix self;
     };

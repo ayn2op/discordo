@@ -14,19 +14,19 @@ buildGo122Module {
   pname = "discordo";
   version = "unstable-2024-04-28";
 
-  src = ./.;
+  src = ./..;
   vendorHash = "sha256-hSrGN3NHPpp5601l4KcmNHVYOGWfLjFeWWr9g11nM3I=";
   # doCheck = false;
 
-  nativeBuildInputs = lib.mkIf anyClipboardSupport [ makeWrapper ];
+  nativeBuildInputs = lib.optional anyClipboardSupport makeWrapper;
 
   postInstall =
     let
       clipboardPkgs =
-        lib.optionals xorgClipboardSupport [ xsel ]
-        ++ lib.optionals waylandClipboardSupport [ wl-clipboard ];
+        lib.optional xorgClipboardSupport xsel
+        ++ lib.optional waylandClipboardSupport wl-clipboard;
     in
-    lib.mkIf anyClipboardSupport ''
+    lib.optionalString anyClipboardSupport ''
       wrapProgram $out/bin/discordo \
         --prefix PATH : ${lib.makeBinPath clipboardPkgs}
     '';
