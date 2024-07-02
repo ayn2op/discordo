@@ -10,6 +10,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/httputil/httpdriver"
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
@@ -51,7 +52,7 @@ func (s *State) onRequest(r httpdriver.Request) error {
 
 func (s *State) onReady(r *gateway.ReadyEvent) {
 	root := mainFlex.guildsTree.GetRoot()
-	dmNode := tview.NewTreeNode("Direct Messages")
+	dmNode := tview.NewTreeNode("Direct Messages").SetColor(tcell.GetColor(cfg.Theme.GuildsTree.TreeColor))
 	root.AddChild(dmNode)
 
 	folders := r.UserSettings.GuildFolders
