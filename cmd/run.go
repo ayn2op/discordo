@@ -6,6 +6,7 @@ import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/logger"
 	"github.com/ayn2op/discordo/internal/ui"
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
@@ -62,5 +63,17 @@ func Run(token string) error {
 	}
 
 	app.EnableMouse(cfg.Mouse)
+	app.SetInputCapture(CaptureQuit)
 	return app.Run()
+}
+
+func CaptureQuit(event *tcell.EventKey) *tcell.EventKey {
+	switch event.Name() {
+	case cfg.Keys.Quit:
+		app.Stop()
+	case "Ctrl+C":
+		return tcell.NewEventKey(tcell.KeyCtrlC, 0, tcell.ModNone)
+	}
+
+	return event
 }

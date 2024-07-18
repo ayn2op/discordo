@@ -2,6 +2,7 @@ package config
 
 type (
 	Keys struct {
+		Quit              string `toml:"quit"`
 		FocusGuildsTree   string `toml:"focus_guilds_tree"`
 		FocusMessagesText string `toml:"focus_messages_text"`
 		FocusMessageInput string `toml:"focus_message_input"`
@@ -40,6 +41,7 @@ type (
 
 func defaultKeys() Keys {
 	return Keys{
+		Quit:              "Ctrl+C",
 		FocusGuildsTree:   "Ctrl+G",
 		FocusMessagesText: "Ctrl+T",
 		FocusMessageInput: "Ctrl+P",
