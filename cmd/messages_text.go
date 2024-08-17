@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"slices"
 	"strings"
 	"time"
 
@@ -59,8 +60,8 @@ func (mt *MessagesText) drawMsgs(cID discord.ChannelID) {
 		return
 	}
 
-	for i := len(ms) - 1; i >= 0; i-- {
-		mainFlex.messagesText.createMessage(ms[i])
+	for _, m := range slices.Backward(ms) {
+		mainFlex.messagesText.createMessage(m)
 	}
 }
 
@@ -337,8 +338,7 @@ func (mt *MessagesText) delete() {
 
 	mt.Clear()
 
-	for i := len(ms) - 1; i >= 0; i-- {
-		mainFlex.messagesText.createMessage(ms[i])
+	for _, m := range slices.Backward(ms) {
+		mainFlex.messagesText.createMessage(m)
 	}
-
 }
