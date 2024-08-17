@@ -26,6 +26,13 @@ You can download and install a [prebuilt binary here](https://nightly.link/ayn2o
 - FreeBSD: `pkg install discordo` or via the ports system `make -C /usr/ports/net-im/discordo install clean`.
 - NixOS: `nix-shell -p discordo`
 
+- Windows (Scoop):
+
+```sh
+scoop bucket add vvxrtues https://github.com/vvirtues/bucket
+scoop install discordo
+```
+
 ### Building from source
 
 ```bash
