@@ -10,7 +10,6 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/httputil/httpdriver"
-	"github.com/diamondburned/ningen/v3"
 	"github.com/rivo/tview"
 )
 
@@ -24,13 +23,12 @@ func init() {
 }
 
 type State struct {
-	*ningen.State
+	*state.State
 }
 
 func openState(token string) error {
-	s := state.New(token)
 	discordState = &State{
-		State: ningen.FromState(s),
+		State: state.New(token),
 	}
 
 	// Handlers
