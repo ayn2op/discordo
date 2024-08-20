@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ayn2op/discordo/pkg/itertools"
+	"github.com/ayn2op/go-itertools"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/gdamore/tcell/v2"
