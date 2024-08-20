@@ -5,9 +5,10 @@ go 1.23.0
 require (
 	github.com/BurntSushi/toml v1.4.0
 	github.com/atotto/clipboard v0.1.4
+	github.com/ayn2op/go-itertools v0.0.0-20240820180307-e12e136d577b
 	github.com/diamondburned/arikawa/v3 v3.4.0
 	github.com/gdamore/tcell/v2 v2.7.4
-	github.com/rivo/tview v0.0.0-20240807205129-e4c497cc59ed
+	github.com/rivo/tview v0.0.0-20240818110301-fd649dbf1223
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/zalando/go-keyring v0.2.5
 )
