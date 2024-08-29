@@ -12,8 +12,8 @@ import (
 type Config struct {
 	Mouse bool `toml:"mouse"`
 
-	Timestamps             bool `toml:"timestamps"`
-	TimestampsBeforeAuthor bool `toml:"timestamps_before_author"`
+	Timestamps             bool   `toml:"timestamps"`
+	TimestampsBeforeAuthor bool   `toml:"timestamps_before_author"`
 	TimestampsFormat       string `toml:"timestamps_format"`
 
 	MessagesLimit uint8 `toml:"messages_limit"`
