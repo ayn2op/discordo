@@ -4,9 +4,11 @@ import (
 	"context"
 	"log"
 	"runtime"
+	"slices"
 
 	"github.com/ayn2op/discordo/internal/constants"
 	"github.com/diamondburned/arikawa/v3/api"
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/httputil/httpdriver"
@@ -54,26 +56,18 @@ func (s *State) onReady(r *gateway.ReadyEvent) {
 	dmNode := tview.NewTreeNode("Direct Messages")
 	root.AddChild(dmNode)
 
-	folders := r.UserSettings.GuildFolders
-	if len(folders) == 0 {
-		for _, g := range r.Guilds {
-			mainFlex.guildsTree.createGuildNode(root, g.Guild)
-		}
-	} else {
-		for _, folder := range folders {
-			// If the ID of the guild folder is zero, the guild folder only contains single guild.
-			if folder.ID == 0 {
-				gID := folder.GuildIDs[0]
-				g, err := discordState.Cabinet.Guild(gID)
-				if err != nil {
-					log.Printf("guild %v not found in state: %v\n", gID, err)
-					continue
-				}
+	// Track guilds that have a parent (folder) to add orphan channels later
+	var folderGuildIds []discord.GuildID
+	for _, folder := range r.UserSettings.GuildFolders {
+		folderGuildIds = append(folderGuildIds, folder.GuildIDs...)
 
-				mainFlex.guildsTree.createGuildNode(root, *g)
-			} else {
-				mainFlex.guildsTree.createFolderNode(folder)
-			}
+		mainFlex.guildsTree.createFolderNode(folder)
+	}
+
+	// Orphan channels are added here
+	for _, guild := range r.Guilds {
+		if !slices.Contains(folderGuildIds, guild.ID) {
+			mainFlex.guildsTree.createGuildNode(root, guild.Guild)
 		}
 	}
 
