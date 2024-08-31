@@ -42,13 +42,8 @@ func DefaultConfig() Config {
 
 // Reads the configuration file and parses it.
 func Load() (*Config, error) {
-	path, err := os.UserConfigDir()
-	if err != nil {
-		return nil, err
-	}
-
 	cfg := DefaultConfig()
-	path = filepath.Join(path, constants.Name, "config.toml")
+	path := filepath.Join(constants.ConfigDirPath, "config.toml")
 	f, err := os.Open(path)
 	if os.IsNotExist(err) {
 		return &cfg, nil
