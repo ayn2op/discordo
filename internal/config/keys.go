@@ -5,7 +5,7 @@ type (
 		FocusGuildsTree   string `toml:"focus_guilds_tree"`
 		FocusMessagesText string `toml:"focus_messages_text"`
 		FocusMessageInput string `toml:"focus_message_input"`
-		ToggleGuildsTree  string `toml:"toggle_guild_tree"`
+		ToggleGuildsTree  string `toml:"toggle_guilds_tree"`
 
 		SelectPrevious string `toml:"select_previous"`
 		SelectNext     string `toml:"select_next"`
