@@ -18,13 +18,13 @@ var (
 )
 
 func Run(token string) error {
-	var err error
-	cfg, err = config.Load()
-	if err != nil {
+	if err := logger.Load(); err != nil {
 		return err
 	}
 
-	if err := logger.Load(); err != nil {
+	var err error
+	cfg, err = config.Load()
+	if err != nil {
 		return err
 	}
 
