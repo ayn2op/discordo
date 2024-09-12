@@ -64,13 +64,13 @@ The configuration file allows you to configure and customize the behavior, keybi
 
 ```toml
 mouse = true
+hide_blocked_users = true
+messages_limit = 50
+editor = "default"
 
 timestamps = false
 timestamps_before_author = false
 timestamps_format = "3:04PM"
-
-messages_limit = 50
-editor = "default"
 
 [keys]
 focus_guilds_tree = "Ctrl+G"

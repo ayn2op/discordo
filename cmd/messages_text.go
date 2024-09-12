@@ -74,6 +74,22 @@ func (mt *MessagesText) reset() {
 }
 
 func (mt *MessagesText) createMessage(m discord.Message) {
+	if cfg.HideBlockedUsers {
+		ready := discordState.Ready()
+		var isBlocked bool
+		for _, relationship := range ready.Relationships {
+			if relationship.Type == discord.BlockedRelationship && relationship.UserID == m.Author.ID {
+				isBlocked = true
+				break
+			}
+		}
+
+		if isBlocked {
+			fmt.Fprintln(mt, "[:red:b]Blocked message[:-:-]")
+			return
+		}
+	}
+
 	switch m.Type {
 	case discord.DefaultMessage, discord.InlinedReplyMessage:
 		// Region tags are square brackets that contain a region ID in double quotes
