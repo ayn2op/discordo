@@ -5,7 +5,6 @@ import (
 
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/logger"
-	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/rivo/tview"
 )
 
@@ -28,32 +27,25 @@ func Run(token string) error {
 		return err
 	}
 
+	// mainFlex must be initialized before opening a new state.
+	mainFlex = newMainFlex()
 	if token == "" {
-		lf := ui.NewLoginForm(cfg)
-
-		go func() {
-			// mainFlex must be initialized before opening a new state.
-			mainFlex = newMainFlex()
-
-			token := <-lf.Token
-			if token.Error != nil {
-				app.Stop()
-				log.Fatal(token.Error)
-			}
-
-			if err := openState(token.Value); err != nil {
+		lf := NewLoginForm(func(token string, err error) {
+			if err != nil {
 				app.Stop()
 				log.Fatal(err)
 			}
 
-			app.QueueUpdateDraw(func() {
-				app.SetRoot(mainFlex, true)
-			})
-		}()
+			if err := openState(token); err != nil {
+				app.Stop()
+				log.Fatal(err)
+			}
+
+			app.SetRoot(mainFlex, true)
+		})
 
 		app.SetRoot(lf, true)
 	} else {
-		mainFlex = newMainFlex()
 		if err := openState(token); err != nil {
 			return err
 		}

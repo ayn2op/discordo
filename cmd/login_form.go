@@ -1,10 +1,8 @@
-package ui
+package cmd
 
 import (
 	"errors"
-	"log"
 
-	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/constants"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/gdamore/tcell/v2"
@@ -12,27 +10,24 @@ import (
 	"github.com/zalando/go-keyring"
 )
 
-type Token struct {
-	Value string
-	Error error
-}
+type DoneFn func(token string, err error)
 
 type LoginForm struct {
 	*tview.Form
-	Token chan Token
+	done DoneFn
 }
 
-func NewLoginForm(cfg *config.Config) *LoginForm {
+func NewLoginForm(done DoneFn) *LoginForm {
 	lf := &LoginForm{
-		Form:  tview.NewForm(),
-		Token: make(chan Token, 1),
+		Form: tview.NewForm(),
+		done: done,
 	}
 
 	lf.AddInputField("Email", "", 0, nil, nil)
 	lf.AddPasswordField("Password", "", 0, 0, nil)
 	lf.AddPasswordField("Code (optional)", "", 0, 0, nil)
 	lf.AddCheckbox("Remember Me", true, nil)
-	lf.AddButton("Login", lf.onLoginButtonSelected)
+	lf.AddButton("Login", lf.login)
 
 	lf.SetTitle("Login")
 	lf.SetTitleColor(tcell.GetColor(cfg.Theme.TitleColor))
@@ -46,7 +41,7 @@ func NewLoginForm(cfg *config.Config) *LoginForm {
 	return lf
 }
 
-func (lf *LoginForm) onLoginButtonSelected() {
+func (lf *LoginForm) login() {
 	email := lf.GetFormItem(0).(*tview.InputField).GetText()
 	password := lf.GetFormItem(1).(*tview.InputField).GetText()
 	if email == "" || password == "" {
@@ -58,7 +53,10 @@ func (lf *LoginForm) onLoginButtonSelected() {
 	// Log in using the provided email and password.
 	lr, err := apiClient.Login(email, password)
 	if err != nil {
-		lf.Token <- Token{Error: err}
+		if lf.done != nil {
+			lf.done("", err)
+		}
+
 		return
 	}
 
@@ -66,19 +64,28 @@ func (lf *LoginForm) onLoginButtonSelected() {
 	if lr.MFA && lr.Token == "" {
 		code := lf.GetFormItem(2).(*tview.InputField).GetText()
 		if code == "" {
-			lf.Token <- Token{Error: errors.New("code required")}
+			if lf.done != nil {
+				lf.done("", errors.New("code required"))
+			}
+
 			return
 		}
 
 		lr, err = apiClient.TOTP(code, lr.Ticket)
 		if err != nil {
-			lf.Token <- Token{Error: err}
+			if lf.done != nil {
+				lf.done("", err)
+			}
+
 			return
 		}
 	}
 
 	if lr.Token == "" {
-		lf.Token <- Token{Error: errors.New("missing token")}
+		if lf.done != nil {
+			lf.done("", errors.New("missing token"))
+		}
+
 		return
 	}
 
@@ -86,10 +93,14 @@ func (lf *LoginForm) onLoginButtonSelected() {
 	if rememberMe {
 		go func() {
 			if err := keyring.Set(constants.Name, "token", lr.Token); err != nil {
-				log.Println(err)
+				if lf.done != nil {
+					lf.done("", err)
+				}
 			}
 		}()
 	}
 
-	lf.Token <- Token{Value: lr.Token}
+	if lf.done != nil {
+		lf.done(lr.Token, nil)
+	}
 }
