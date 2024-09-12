@@ -10,7 +10,9 @@ import (
 )
 
 type Config struct {
-	Mouse         bool   `toml:"mouse"`
+	Mouse            bool `toml:"mouse"`
+	HideBlockedUsers bool `toml:"hide_blocked_users"`
+
 	MessagesLimit uint8  `toml:"messages_limit"`
 	Editor        string `toml:"editor"`
 
@@ -24,9 +26,10 @@ type Config struct {
 
 func defaultConfig() *Config {
 	return &Config{
-		Mouse:         true,
-		MessagesLimit: 50,
-		Editor:        "default",
+		Mouse:            true,
+		HideBlockedUsers: true,
+		MessagesLimit:    50,
+		Editor:           "default",
 
 		Timestamps:             false,
 		TimestampsBeforeAuthor: false,
