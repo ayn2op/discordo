@@ -75,15 +75,7 @@ func (mt *MessagesText) reset() {
 
 func (mt *MessagesText) createMessage(m discord.Message) {
 	if cfg.HideBlockedUsers {
-		ready := discordState.Ready()
-		var isBlocked bool
-		for _, relationship := range ready.Relationships {
-			if relationship.Type == discord.BlockedRelationship && relationship.UserID == m.Author.ID {
-				isBlocked = true
-				break
-			}
-		}
-
+		isBlocked := discordState.UserIsBlocked(m.Author.ID)
 		if isBlocked {
 			fmt.Fprintln(mt, "[:red:b]Blocked message[:-:-]")
 			return
