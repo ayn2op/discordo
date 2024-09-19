@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"log"
+	"log/slog"
 
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/logger"
@@ -33,12 +33,14 @@ func Run(token string) error {
 		lf := NewLoginForm(func(token string, err error) {
 			if err != nil {
 				app.Stop()
-				log.Fatal(err)
+				slog.Error("failed to login", "err", err)
+				return
 			}
 
 			if err := openState(token); err != nil {
 				app.Stop()
-				log.Fatal(err)
+				slog.Error("failed to open state", "err", err)
+				return
 			}
 
 			app.SetRoot(mainFlex, true)

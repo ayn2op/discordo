@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"log"
+	"log/slog"
 	"os"
 	"os/exec"
 	"strings"
@@ -80,10 +80,11 @@ func (mi *MessageInput) send() {
 		return
 	}
 
+	logger := slog.With("channel_id", mainFlex.guildsTree.selectedChannelID)
 	if mi.replyMessageIdx != -1 {
 		ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
 		if err != nil {
-			log.Println(err)
+			logger.Error("failed to get messages", "err", err)
 			return
 		}
 
@@ -99,13 +100,13 @@ func (mi *MessageInput) send() {
 
 		go func() {
 			if _, err := discordState.SendMessageComplex(mainFlex.guildsTree.selectedChannelID, data); err != nil {
-				log.Println("failed to send message:", err)
+				slog.Error("failed to send message", "err", err)
 			}
 		}()
 	} else {
 		go func() {
 			if _, err := discordState.SendMessage(mainFlex.guildsTree.selectedChannelID, text); err != nil {
-				log.Println("failed to send message:", err)
+				slog.Error("failed to send message", "err", err)
 			}
 		}()
 	}
@@ -125,7 +126,7 @@ func (mi *MessageInput) editor() {
 
 	f, err := os.CreateTemp("", constants.TmpFilePattern)
 	if err != nil {
-		log.Println(err)
+		slog.Error("failed to create temporary file", "err", err)
 		return
 	}
 	_, _ = f.WriteString(mi.GetText())
@@ -141,14 +142,14 @@ func (mi *MessageInput) editor() {
 	app.Suspend(func() {
 		err := cmd.Run()
 		if err != nil {
-			log.Println(err)
+			slog.Error("failed to run command", "err", err, "command", cmd)
 			return
 		}
 	})
 
 	msg, err := os.ReadFile(f.Name())
 	if err != nil {
-		log.Println(err)
+		slog.Error("failed to read temporary file", "err", err, "name", f.Name())
 		return
 	}
 

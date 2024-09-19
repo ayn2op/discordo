@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"runtime"
 	"slices"
 
@@ -45,7 +45,7 @@ func openState(token string) error {
 func (s *State) onRequest(r httpdriver.Request) error {
 	req, ok := r.(*httpdriver.DefaultRequest)
 	if ok {
-		log.Printf("method = %s; url = %s\n", req.Method, req.URL)
+		slog.Info("new HTTP request", "method", req.Method, "path", req.URL.Path)
 	}
 
 	return nil

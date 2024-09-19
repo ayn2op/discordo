@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"log"
+	"log/slog"
 
 	"github.com/ayn2op/discordo/internal/constants"
 	"github.com/gdamore/tcell/v2"
@@ -56,9 +56,12 @@ func (mf *MainFlex) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		return nil
 	case cfg.Keys.Logout:
 		app.Stop()
+
 		if err := keyring.Delete(constants.Name, "token"); err != nil {
-			log.Fatal(err)
+			slog.Error("failed to delete token from keyring", "err", err)
+			return nil
 		}
+
 		return nil
 	case cfg.Keys.ToggleGuildsTree:
 		// The guilds tree is visible if the numbers of items is two.
