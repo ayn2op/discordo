@@ -55,7 +55,7 @@ func (s *State) onRequest(r httpdriver.Request) error {
 func (s *State) onReady(r *gateway.ReadyEvent) {
 	root := mainFlex.guildsTree.GetRoot()
 	dmNode := tview.NewTreeNode("Direct Messages")
-  dmNode.SetColor(tcell.GetColor(cfg.Theme.GuildsTree.DmColor))
+	dmNode.SetColor(tcell.GetColor(cfg.Theme.GuildsTree.PrivateChannelColor))
 	root.AddChild(dmNode)
 
 	// Track guilds that have a parent (folder) to add orphan channels later

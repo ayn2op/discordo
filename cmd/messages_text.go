@@ -39,7 +39,7 @@ func newMessagesText() *MessagesText {
 		app.Draw()
 	})
 
-	mt.SetTextColor(tcell.GetColor(cfg.Theme.MessagesText.TextColor))
+	mt.SetTextColor(tcell.GetColor(cfg.Theme.MessagesText.ContentColor))
 	mt.SetBackgroundColor(tcell.GetColor(cfg.Theme.BackgroundColor))
 
 	mt.SetTitle("Messages")
