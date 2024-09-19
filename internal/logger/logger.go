@@ -1,7 +1,7 @@
 package logger
 
 import (
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -30,12 +30,14 @@ func Load() error {
 		return err
 	}
 
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, os.ModePerm)
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	log.SetOutput(f)
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	l := slog.New(slog.NewTextHandler(file, &slog.HandlerOptions{
+		AddSource: true,
+	}))
+	slog.SetDefault(l)
 	return nil
 }
