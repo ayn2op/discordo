@@ -59,6 +59,7 @@ func (s *State) onReady(r *gateway.ReadyEvent) {
 	// Track guilds that have a parent (folder) to add orphan channels later
 	var folderGuildIds []discord.GuildID
 	for _, folder := range r.UserSettings.GuildFolders {
+		// Hide unnamed, single-server folders
 		if folder.Name == "" && len(folder.GuildIDs) < 2 {
 			continue
 		}
