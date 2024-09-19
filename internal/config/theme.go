@@ -16,12 +16,16 @@ type (
 	}
 
 	GuildsTreeTheme struct {
-		AutoExpandFolders bool `toml:"auto_expand_folders"`
-		Graphics          bool `toml:"graphics"`
+		AutoExpandFolders bool   `toml:"auto_expand_folders"`
+		Graphics          bool   `toml:"graphics"`
+		DmColor           string `toml:"dm_color"`
+		FolderColor       string `toml:"folder_color"`
+		ChannelColor      string `toml:"channel_color"`
 	}
 
 	MessagesTextTheme struct {
 		AuthorColor    string `toml:"author_color"`
+		TextColor      string `toml:"text_color"`
 		ReplyIndicator string `toml:"reply_indicator"`
 	}
 )
