@@ -68,7 +68,7 @@ func (s *State) onReady(r *gateway.ReadyEvent) {
 		mainFlex.guildsTree.createFolderNode(folder)
 	}
 
-	// Orphan channels are added here
+	// add orphan (without folder) guilds to guilds tree
 	for _, guild := range r.Guilds {
 		if !slices.Contains(folderGuildIds, guild.ID) {
 			mainFlex.guildsTree.createGuildNode(root, guild.Guild)
