@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"log"
+	"log/slog"
 
 	"github.com/ayn2op/discordo/cmd"
 	"github.com/ayn2op/discordo/internal/constants"
@@ -10,7 +10,6 @@ import (
 )
 
 func main() {
-	// Declare and parse all flags first
 	token := flag.String("token", "", "authentication token")
 	flag.Parse()
 
@@ -18,13 +17,13 @@ func main() {
 	if *token == "" {
 		t, err := keyring.Get(constants.Name, "token")
 		if err != nil {
-			log.Println("failed to get token from keyring:", err)
+			slog.Info("failed to get token from keyring", "err", err)
 		} else {
 			*token = t
 		}
 	}
 
 	if err := cmd.Run(*token); err != nil {
-		log.Fatal(err)
+		slog.Error("failed to run", "err", err)
 	}
 }
