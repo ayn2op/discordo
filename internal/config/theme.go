@@ -23,6 +23,7 @@ type (
 	MessagesTextTheme struct {
 		AuthorColor     string `toml:"author_color"`
 		EmoteColor      string `toml:"emote_color"`
+		PinnedColor     string `toml:"pinned_color"`
 		ReplyIndicator  string `toml:"reply_indicator"`
 	}
 )
@@ -43,6 +44,7 @@ func defaultTheme() Theme {
 		MessagesText: MessagesTextTheme{
 			AuthorColor:        "aqua",
 			EmoteColor:         "green",
+			PinnedColor:        "purple",
 			ReplyIndicator:     string(tview.BoxDrawingsLightArcDownAndRight) + " ",
 		},
 	}

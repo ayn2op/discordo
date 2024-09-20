@@ -112,6 +112,7 @@ graphics = true
 [theme.messages_text]
 author_color = "aqua"
 emote_color = "green"
+pinned_color = "purple"
 reply_indicator = "╭ "
 ```
 

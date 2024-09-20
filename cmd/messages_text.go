@@ -73,21 +73,33 @@ func (mt *MessagesText) reset() {
 	mt.Highlight()
 }
 
+// Region tags are square brackets that contain a region ID in double quotes
+// https://pkg.go.dev/github.com/rivo/tview#hdr-Regions_and_Highlights
+func (mt *MessagesText) startRegion(m discord.Message) {
+	fmt.Fprintf(mt, `["%s"]`, m.ID)
+}
+
+// Tags with no region ID ([""]) don't start new regions. They can therefore be used to mark the end of a region.
+func (mt *MessagesText) endRegion() {
+	fmt.Fprint(mt, `[""]`)
+}
+
 func (mt *MessagesText) createMessage(m discord.Message) {
+	mt.startRegion(m)
 	if cfg.HideBlockedUsers {
 		isBlocked := discordState.UserIsBlocked(m.Author.ID)
 		if isBlocked {
 			fmt.Fprintln(mt, "[:red:b]Blocked message[:-:-]")
+			mt.endRegion()
 			return
 		}
 	}
 
 	switch m.Type {
+	case discord.ChannelPinnedMessage:
+		fmt.Fprint(mt, "[" + cfg.Theme.MessagesText.PinnedColor + "]" + m.Author.Username + " pinned a message" + "[-:-:-]")
+	break;
 	case discord.DefaultMessage, discord.InlinedReplyMessage:
-		// Region tags are square brackets that contain a region ID in double quotes
-		// https://pkg.go.dev/github.com/rivo/tview#hdr-Regions_and_Highlights
-		fmt.Fprintf(mt, `["%s"]`, m.ID)
-
 		if m.ReferencedMessage != nil {
 			mt.createHeader(mt, *m.ReferencedMessage, true)
 			mt.createBody(mt, *m.ReferencedMessage, true)
@@ -98,11 +110,11 @@ func (mt *MessagesText) createMessage(m discord.Message) {
 		mt.createHeader(mt, m, false)
 		mt.createBody(mt, m, false)
 		mt.createFooter(mt, m)
-
-		// Tags with no region ID ([""]) don't start new regions. They can therefore be used to mark the end of a region.
-		fmt.Fprint(mt, `[""]`)
+		
 		fmt.Fprintln(mt)
 	}
+
+	mt.endRegion()
 }
 
 func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, isReply bool) {
@@ -240,6 +252,13 @@ func (mt *MessagesText) _select(name string) {
 			for i, m := range ms {
 				if ref.ID == m.ID {
 					mt.selectedMessage = i
+				}
+			}
+		} else if ref := ms[mt.selectedMessage].Reference; ref != nil {
+			for i, m := range ms {
+				if ref.MessageID == m.ID {
+					mt.selectedMessage = i
+					break;
 				}
 			}
 		}
