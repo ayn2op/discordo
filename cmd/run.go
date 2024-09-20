@@ -5,7 +5,6 @@ import (
 
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/logger"
-	"github.com/ayn2op/discordo/internal/markdown"
 	"github.com/rivo/tview"
 )
 
@@ -27,7 +26,6 @@ func Run(token string) error {
 	if err != nil {
 		return err
 	}
-	markdown.Init()
 
 	// mainFlex must be initialized before opening a new state.
 	mainFlex = newMainFlex()
