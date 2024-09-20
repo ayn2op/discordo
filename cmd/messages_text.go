@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"slices"
 	"strings"
 	"time"
@@ -56,7 +56,7 @@ func newMessagesText() *MessagesText {
 func (mt *MessagesText) drawMsgs(cID discord.ChannelID) {
 	ms, err := discordState.Messages(cID, uint(cfg.MessagesLimit))
 	if err != nil {
-		log.Println(err)
+		slog.Error("failed to get messages", "err", err, "channel_id", cID)
 		return
 	}
 
@@ -200,7 +200,7 @@ func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 func (mt *MessagesText) _select(name string) {
 	ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
 	if err != nil {
-		log.Println(err)
+		slog.Error("failed to get messages", "err", err, "channel_id", mainFlex.guildsTree.selectedChannelID)
 		return
 	}
 
@@ -252,13 +252,13 @@ func (mt *MessagesText) _select(name string) {
 func (mt *MessagesText) yank() {
 	msg, err := mt.getSelectedMessage()
 	if err != nil {
-		log.Println(err)
+		slog.Error("failed to get selected message", "err", err)
 		return
 	}
 
 	err = clipboard.WriteAll(msg.Content)
 	if err != nil {
-		log.Println("failed to write to clipboard:", err)
+		slog.Error("failed to write to clipboard", "err", err)
 		return
 	}
 }
@@ -266,7 +266,7 @@ func (mt *MessagesText) yank() {
 func (mt *MessagesText) open() {
 	msg, err := mt.getSelectedMessage()
 	if err != nil {
-		log.Println(err)
+		slog.Error("failed to get selected message", "err", err)
 		return
 	}
 
@@ -278,7 +278,7 @@ func (mt *MessagesText) open() {
 	for _, a := range attachments {
 		go func() {
 			if err := open.Start(a.URL); err != nil {
-				log.Println(err)
+				slog.Error("failed to open URL", "err", err, "url", a.URL)
 			}
 		}()
 	}
@@ -295,7 +295,7 @@ func (mt *MessagesText) reply(mention bool) {
 
 	msg, err := mt.getSelectedMessage()
 	if err != nil {
-		log.Println(err)
+		slog.Error("failed to get selected message", "err", err)
 		return
 	}
 
@@ -309,7 +309,7 @@ func (mt *MessagesText) delete() {
 
 	msg, err := mt.getSelectedMessage()
 	if err != nil {
-		log.Println(err)
+		slog.Error("failed to get selected message", "err", err)
 		return
 	}
 
@@ -330,17 +330,18 @@ func (mt *MessagesText) delete() {
 	}
 
 	if err := discordState.DeleteMessage(mainFlex.guildsTree.selectedChannelID, msg.ID, ""); err != nil {
-		log.Println(err)
+		slog.Error("failed to delete message", "err", err, "channel_id", mainFlex.guildsTree.selectedChannelID, "message_id", msg.ID)
 		return
 	}
 
 	if err := discordState.MessageRemove(mainFlex.guildsTree.selectedChannelID, msg.ID); err != nil {
-		log.Println(err)
+		slog.Error("failed to delete message", "err", err, "channel_id", mainFlex.guildsTree.selectedChannelID, "message_id", msg.ID)
+		return
 	}
 
 	ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
 	if err != nil {
-		log.Println(err)
+		slog.Error("failed to delete message", "err", err, "channel_id", mainFlex.guildsTree.selectedChannelID)
 		return
 	}
 

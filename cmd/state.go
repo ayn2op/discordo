@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"runtime"
 	"slices"
 
@@ -45,7 +45,7 @@ func openState(token string) error {
 func (s *State) onRequest(r httpdriver.Request) error {
 	req, ok := r.(*httpdriver.DefaultRequest)
 	if ok {
-		log.Printf("method = %s; url = %s\n", req.Method, req.URL)
+		slog.Info("new HTTP request", "method", req.Method, "path", req.URL.Path)
 	}
 
 	return nil
@@ -59,12 +59,16 @@ func (s *State) onReady(r *gateway.ReadyEvent) {
 	// Track guilds that have a parent (folder) to add orphan channels later
 	var folderGuildIds []discord.GuildID
 	for _, folder := range r.UserSettings.GuildFolders {
+		// Hide unnamed, single-server folders
+		if folder.Name == "" && len(folder.GuildIDs) < 2 {
+			continue
+		}
 		folderGuildIds = append(folderGuildIds, folder.GuildIDs...)
 
 		mainFlex.guildsTree.createFolderNode(folder)
 	}
 
-	// Orphan channels are added here
+	// add orphan (without folder) guilds to guilds tree
 	for _, guild := range r.Guilds {
 		if !slices.Contains(folderGuildIds, guild.ID) {
 			mainFlex.guildsTree.createGuildNode(root, guild.Guild)

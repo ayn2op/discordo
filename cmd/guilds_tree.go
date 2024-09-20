@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"slices"
 	"sort"
 	"strings"
@@ -62,7 +62,7 @@ func (gt *GuildsTree) createFolderNode(folder gateway.GuildFolder) {
 	for _, gID := range folder.GuildIDs {
 		g, err := discordState.Cabinet.Guild(gID)
 		if err != nil {
-			log.Printf("guild %v not found in state: %v\n", gID, err)
+			slog.Info("guild not found in state", "err", err, "guild", g)
 			continue
 		}
 
@@ -113,7 +113,7 @@ func (gt *GuildsTree) createChannelNode(n *tview.TreeNode, c discord.Channel) *t
 	if c.Type != discord.DirectMessage && c.Type != discord.GroupDM {
 		ps, err := discordState.Permissions(c.ID, discordState.Ready().User.ID)
 		if err != nil {
-			log.Println(err)
+			slog.Error("failed to get permissions", "err", err, "channel_id", c.ID)
 			return nil
 		}
 
@@ -183,7 +183,7 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 	case discord.GuildID:
 		cs, err := discordState.Cabinet.Channels(ref)
 		if err != nil {
-			log.Println(err)
+			slog.Error("failed to get channels", "err", err, "guild_id", ref)
 			return
 		}
 
@@ -198,7 +198,7 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 
 		c, err := discordState.Cabinet.Channel(ref)
 		if err != nil {
-			log.Println(err)
+			slog.Error("failed to get channel", "channel_id", ref)
 			return
 		}
 
@@ -209,7 +209,7 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 	case nil: // Direct messages
 		cs, err := discordState.PrivateChannels()
 		if err != nil {
-			log.Println(err)
+			slog.Error("failed to get private channels", "err", err)
 			return
 		}
 
