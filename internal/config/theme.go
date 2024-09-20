@@ -21,8 +21,9 @@ type (
 	}
 
 	MessagesTextTheme struct {
-		AuthorColor    string `toml:"author_color"`
-		ReplyIndicator string `toml:"reply_indicator"`
+		AuthorColor     string `toml:"author_color"`
+		EmoteColor      string `toml:"emote_color"`
+		ReplyIndicator  string `toml:"reply_indicator"`
 	}
 )
 
@@ -40,8 +41,9 @@ func defaultTheme() Theme {
 			Graphics:          true,
 		},
 		MessagesText: MessagesTextTheme{
-			AuthorColor:    "aqua",
-			ReplyIndicator: string(tview.BoxDrawingsLightArcDownAndRight) + " ",
+			AuthorColor:        "aqua",
+			EmoteColor:         "green",
+			ReplyIndicator:     string(tview.BoxDrawingsLightArcDownAndRight) + " ",
 		},
 	}
 }
