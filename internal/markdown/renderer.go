@@ -34,6 +34,8 @@ func (r *renderer) Render(w io.Writer, source []byte, n ast.Node) error {
 		switch n := n.(type) {
 		case *ast.Document:
 		// noop
+		case *ast.Heading:
+			io.WriteString(w, "\n")
 		case *ast.FencedCodeBlock:
 			io.WriteString(w, "\n")
 
@@ -45,16 +47,30 @@ func (r *renderer) Render(w io.Writer, source []byte, n ast.Node) error {
 					w.Write(line.Value(source))
 				}
 			}
+		case *ast.AutoLink:
+			if entering {
+				linkColor := r.config.Options["linkColor"].(string)
+				io.WriteString(w, "["+linkColor+"]")
+				w.Write(n.URL(source))
+			} else {
+				io.WriteString(w, "[-::]")
+			}
 		case *ast.Link:
 			if entering {
-				io.WriteString(w, fmt.Sprintf("[:::%s]", n.Destination))
+				linkColor := r.config.Options["linkColor"].(string)
+				io.WriteString(w, fmt.Sprintf("[%s:::%s]", linkColor, n.Destination))
 			} else {
-				io.WriteString(w, "[:::-]")
+				io.WriteString(w, "[-:::-]")
 			}
 		case *ast.Text:
 			if entering {
-				value := n.Segment.Value(source)
-				w.Write(value)
+				w.Write(n.Segment.Value(source))
+				switch {
+				case n.HardLineBreak():
+					io.WriteString(w, "\n\n")
+				case n.SoftLineBreak():
+					io.WriteString(w, "\n")
+				}
 			}
 
 		case *discordmd.Inline:
