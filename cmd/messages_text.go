@@ -82,8 +82,8 @@ func (mt *MessagesText) reset() {
 
 // Region tags are square brackets that contain a region ID in double quotes
 // https://pkg.go.dev/github.com/rivo/tview#hdr-Regions_and_Highlights
-func (mt *MessagesText) startRegion(m discord.Message) {
-	fmt.Fprintf(mt, `["%s"]`, m.ID)
+func (mt *MessagesText) startRegion(msgID discord.MessageID) {
+	fmt.Fprintf(mt, `["%s"]`, msgID)
 }
 
 // Tags with no region ID ([""]) don't start new regions. They can therefore be used to mark the end of a region.
@@ -92,7 +92,7 @@ func (mt *MessagesText) endRegion() {
 }
 
 func (mt *MessagesText) createMessage(m discord.Message) {
-	mt.startRegion(m)
+	mt.startRegion(m.ID)
 	if cfg.HideBlockedUsers {
 		isBlocked := discordState.UserIsBlocked(m.Author.ID)
 		if isBlocked {
