@@ -121,9 +121,6 @@ func (mt *MessagesText) createMessage(m discord.Message) {
 	default:
 		mt.createHeader(mt, m, false)
 	}
-
-	fmt.Fprintln(mt)
-	mt.endRegion()
 }
 
 func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, isReply bool) {
