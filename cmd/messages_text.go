@@ -6,15 +6,16 @@ import (
 	"io"
 	"log/slog"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/atotto/clipboard"
 	"github.com/ayn2op/discordo/internal/markdown"
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/ningen/v3/discordmd"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/skratchdot/open-golang/open"
+	"github.com/yuin/goldmark/renderer"
 )
 
 type MessagesText struct {
@@ -50,6 +51,8 @@ func newMessagesText() *MessagesText {
 	mt.SetBorder(cfg.Theme.Border)
 	mt.SetBorderColor(tcell.GetColor(cfg.Theme.BorderColor))
 	mt.SetBorderPadding(p[0], p[1], p[2], p[3])
+
+	markdown.DefaultRenderer.AddOptions(renderer.WithOption("emojiColor", cfg.Theme.MessagesText.EmoteColor))
 
 	return mt
 }
@@ -136,30 +139,15 @@ func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, isReply boo
 	}
 }
 
-func parseIDsToUsernames(m discord.Message) string {
-	var toReplace []string
-	for _, mention := range m.Mentions {
-		toReplace = append(toReplace,
-			fmt.Sprintf("<@%s>", mention.User.ID.String()),
-			fmt.Sprintf("__**@%s**__", mention.User.Username),
-		)
-	}
-
-	return strings.NewReplacer(toReplace...).Replace(m.Content)
-}
-
 func (mt *MessagesText) createBody(w io.Writer, m discord.Message, isReply bool) {
-	var body string
-	if len(m.Mentions) > 0 {
-		body = parseIDsToUsernames(m)
-	} else {
-		body = m.Content
-	}
-
 	if isReply {
 		fmt.Fprint(w, "[::d]")
 	}
-	fmt.Fprint(w, markdown.Parse(tview.Escape(body), cfg.Theme.MessagesText.EmoteColor))
+
+	src := []byte(m.Content)
+	ast := discordmd.ParseWithMessage(src, *discordState.Cabinet, &m, false)
+	markdown.DefaultRenderer.Render(w, src, ast)
+
 	if isReply {
 		fmt.Fprint(w, "[::-]")
 	}
