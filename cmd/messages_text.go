@@ -116,12 +116,11 @@ func (mt *MessagesText) createMessage(m discord.Message) {
 		mt.createHeader(mt, m, false)
 		mt.createBody(mt, m, false)
 		mt.createFooter(mt, m)
-		
-		fmt.Fprintln(mt)
 	default:
 		mt.createHeader(mt, m, false)
 	}
 
+	fmt.Fprintln(mt)
 	mt.endRegion()
 }
 
