@@ -3,11 +3,9 @@ package cmd
 import (
 	"fmt"
 	"log/slog"
-	"slices"
 	"sort"
 	"strings"
 
-	"github.com/ayn2op/discordo/pkg/itertools"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/gdamore/tcell/v2"
@@ -91,11 +89,12 @@ func (gt *GuildsTree) channelToString(c discord.Channel) string {
 		s = c.Name
 		// If the name of the channel is empty, use the recipients' tags
 		if s == "" {
-			recipients := itertools.Map(slices.Values(c.DMRecipients), func(r discord.User) string {
-				return r.Tag()
-			})
+			var recipients []string
+			for _, r := range c.DMRecipients {
+				recipients = append(recipients, r.DisplayOrUsername())
+			}
 
-			s = strings.Join(slices.Collect(recipients), ", ")
+			s = strings.Join(recipients, ", ")
 		}
 	case discord.GuildAnnouncement:
 		s = "a-" + c.Name
@@ -131,11 +130,14 @@ func (gt *GuildsTree) createChannelNode(n *tview.TreeNode, c discord.Channel) *t
 }
 
 func (gt *GuildsTree) createChannelNodes(n *tview.TreeNode, cs []discord.Channel) {
-	orphanChannels := itertools.Filter(slices.Values(cs), func(c discord.Channel) bool {
-		return c.Type != discord.GuildCategory && !c.ParentID.IsValid()
-	})
+	var orphanChs []discord.Channel
+	for _, ch := range cs {
+		if ch.Type != discord.GuildCategory && !ch.ParentID.IsValid() {
+			orphanChs = append(orphanChs, ch)
+		}
+	}
 
-	for _, c := range slices.Collect(orphanChannels) {
+	for _, c := range orphanChs {
 		gt.createChannelNode(n, c)
 	}
 
