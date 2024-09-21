@@ -93,11 +93,13 @@ func (mt *MessagesText) endRegion() {
 
 func (mt *MessagesText) createMessage(m discord.Message) {
 	mt.startRegion(m.ID)
+	defer fmt.Fprintln(mt)
+	defer mt.endRegion()
+
 	if cfg.HideBlockedUsers {
 		isBlocked := discordState.UserIsBlocked(m.Author.ID)
 		if isBlocked {
-			fmt.Fprintln(mt, "[:red:b]Blocked message[:-:-]")
-			mt.endRegion()
+			fmt.Fprint(mt, "[:red:b]Blocked message[:-:-]")
 			return
 		}
 	}
