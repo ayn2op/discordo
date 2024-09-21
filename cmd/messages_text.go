@@ -80,7 +80,21 @@ func (mt *MessagesText) reset() {
 	mt.Highlight()
 }
 
+// Region tags are square brackets that contain a region ID in double quotes
+// https://pkg.go.dev/github.com/rivo/tview#hdr-Regions_and_Highlights
+func (mt *MessagesText) startRegion(msgID discord.MessageID) {
+	fmt.Fprintf(mt, `["%s"]`, msgID)
+}
+
+// Tags with no region ID ([""]) don't start new regions. They can therefore be used to mark the end of a region.
+func (mt *MessagesText) endRegion() {
+	fmt.Fprint(mt, `[""]`)
+}
+
 func (mt *MessagesText) createMessage(m discord.Message) {
+	mt.startRegion(m.ID)
+	defer mt.endRegion()
+
 	if cfg.HideBlockedUsers {
 		isBlocked := discordState.UserIsBlocked(m.Author.ID)
 		if isBlocked {
@@ -90,11 +104,9 @@ func (mt *MessagesText) createMessage(m discord.Message) {
 	}
 
 	switch m.Type {
+	case discord.ChannelPinnedMessage:
+		fmt.Fprint(mt, "[" + cfg.Theme.MessagesText.ContentColor + "]" + m.Author.Username + " pinned a message" + "[-:-:-]")
 	case discord.DefaultMessage, discord.InlinedReplyMessage:
-		// Region tags are square brackets that contain a region ID in double quotes
-		// https://pkg.go.dev/github.com/rivo/tview#hdr-Regions_and_Highlights
-		fmt.Fprintf(mt, `["%s"]`, m.ID)
-
 		if m.ReferencedMessage != nil {
 			mt.createHeader(mt, *m.ReferencedMessage, true)
 			mt.createBody(mt, *m.ReferencedMessage, true)
@@ -105,11 +117,11 @@ func (mt *MessagesText) createMessage(m discord.Message) {
 		mt.createHeader(mt, m, false)
 		mt.createBody(mt, m, false)
 		mt.createFooter(mt, m)
-
-		// Tags with no region ID ([""]) don't start new regions. They can therefore be used to mark the end of a region.
-		fmt.Fprint(mt, `[""]`)
-		fmt.Fprintln(mt)
+	default:
+		mt.createHeader(mt, m, false)
 	}
+
+	fmt.Fprintln(mt)
 }
 
 func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, isReply bool) {
@@ -166,7 +178,7 @@ func (mt *MessagesText) getSelectedMessage() (*discord.Message, error) {
 
 func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
-	case cfg.Keys.SelectPrevious, cfg.Keys.SelectNext, cfg.Keys.SelectFirst, cfg.Keys.SelectLast, cfg.Keys.MessagesText.SelectReply:
+	case cfg.Keys.SelectPrevious, cfg.Keys.SelectNext, cfg.Keys.SelectFirst, cfg.Keys.SelectLast, cfg.Keys.MessagesText.SelectReply, cfg.Keys.MessagesText.SelectPin:
 		mt._select(event.Name())
 		return nil
 	case cfg.Keys.MessagesText.Yank:
@@ -231,6 +243,14 @@ func (mt *MessagesText) _select(name string) {
 		if ref := ms[mt.selectedMessage].ReferencedMessage; ref != nil {
 			for i, m := range ms {
 				if ref.ID == m.ID {
+					mt.selectedMessage = i
+				}
+			}
+		}
+	case cfg.Keys.MessagesText.SelectPin:
+		if ref := ms[mt.selectedMessage].Reference; ref != nil {
+			for i, m := range ms {
+				if ref.MessageID == m.ID {
 					mt.selectedMessage = i
 				}
 			}
