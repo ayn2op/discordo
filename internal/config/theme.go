@@ -24,9 +24,10 @@ type (
 	}
 
 	MessagesTextTheme struct {
-		AuthorColor    string `toml:"author_color"`
-		ContentColor   string `toml:"content_color"`
-		ReplyIndicator string `toml:"reply_indicator"`
+		AuthorColor     string `toml:"author_color"`
+    ContentColor   string `toml:"content_color"`
+		EmoteColor      string `toml:"emote_color"`
+		ReplyIndicator  string `toml:"reply_indicator"`
 	}
 )
 
@@ -47,9 +48,10 @@ func defaultTheme() Theme {
 			PrivateChannelColor: tview.Styles.PrimaryTextColor.String(),
 		},
 		MessagesText: MessagesTextTheme{
-			AuthorColor:    "aqua",
-			ContentColor:   tview.Styles.PrimaryTextColor.String(),
-			ReplyIndicator: string(tview.BoxDrawingsLightArcDownAndRight) + " ",
+			AuthorColor:        "aqua",
+      ContentColor:       tview.Styles.PrimaryTextColor.String(),
+			EmoteColor:         "green",
+			ReplyIndicator:     string(tview.BoxDrawingsLightArcDownAndRight) + " ",
 		},
 	}
 }

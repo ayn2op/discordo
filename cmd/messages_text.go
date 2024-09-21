@@ -147,7 +147,7 @@ func (mt *MessagesText) createBody(w io.Writer, m discord.Message, isReply bool)
 	if isReply {
 		fmt.Fprint(w, "[::d]")
 	}
-	fmt.Fprint(w, markdown.Parse(tview.Escape(body)))
+	fmt.Fprint(w, markdown.Parse(tview.Escape(body), cfg.Theme.MessagesText.EmoteColor))
 	if isReply {
 		fmt.Fprint(w, "[::-]")
 	}
