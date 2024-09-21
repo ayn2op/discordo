@@ -73,6 +73,7 @@ func (gt *GuildsTree) createFolderNode(folder gateway.GuildFolder) {
 func (gt *GuildsTree) createGuildNode(n *tview.TreeNode, g discord.Guild) {
 	guildNode := tview.NewTreeNode(g.Name)
 	guildNode.SetReference(g.ID)
+	guildNode.SetColor(tcell.GetColor(cfg.Theme.GuildsTree.GuildColor))
 	n.AddChild(guildNode)
 }
 
@@ -124,6 +125,7 @@ func (gt *GuildsTree) createChannelNode(n *tview.TreeNode, c discord.Channel) *t
 
 	channelNode := tview.NewTreeNode(gt.channelToString(c))
 	channelNode.SetReference(c.ID)
+	channelNode.SetColor(tcell.GetColor(cfg.Theme.GuildsTree.ChannelColor))
 	n.AddChild(channelNode)
 	return channelNode
 }
