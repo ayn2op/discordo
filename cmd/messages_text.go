@@ -52,7 +52,10 @@ func newMessagesText() *MessagesText {
 	mt.SetBorderColor(tcell.GetColor(cfg.Theme.BorderColor))
 	mt.SetBorderPadding(p[0], p[1], p[2], p[3])
 
-	markdown.DefaultRenderer.AddOptions(renderer.WithOption("emojiColor", cfg.Theme.MessagesText.EmojiColor))
+	markdown.DefaultRenderer.AddOptions(
+		renderer.WithOption("emojiColor", cfg.Theme.MessagesText.EmojiColor),
+		renderer.WithOption("linkColor", cfg.Theme.MessagesText.LinkColor),
+	)
 
 	return mt
 }
