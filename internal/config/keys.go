@@ -25,6 +25,7 @@ type (
 
 	MessagesTextKeys struct {
 		SelectReply  string `toml:"select_reply"`
+		SelectPin    string `toml:"select_pin"`
 		Reply        string `toml:"reply"`
 		ReplyMention string `toml:"reply_mention"`
 
@@ -60,6 +61,7 @@ func defaultKeys() Keys {
 
 		MessagesText: MessagesTextKeys{
 			SelectReply: "Rune[s]",
+			SelectPin:   "Rune[p]",
 
 			Reply:        "Rune[r]",
 			ReplyMention: "Rune[R]",
