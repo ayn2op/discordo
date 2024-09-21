@@ -178,7 +178,7 @@ func (mt *MessagesText) getSelectedMessage() (*discord.Message, error) {
 
 func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
-	case cfg.Keys.SelectPrevious, cfg.Keys.SelectNext, cfg.Keys.SelectFirst, cfg.Keys.SelectLast, cfg.Keys.MessagesText.SelectReply:
+	case cfg.Keys.SelectPrevious, cfg.Keys.SelectNext, cfg.Keys.SelectFirst, cfg.Keys.SelectLast, cfg.Keys.MessagesText.SelectReply, cfg.Keys.MessagesText.SelectPin:
 		mt._select(event.Name())
 		return nil
 	case cfg.Keys.MessagesText.Yank:
@@ -246,7 +246,9 @@ func (mt *MessagesText) _select(name string) {
 					mt.selectedMessage = i
 				}
 			}
-		} else if ref := ms[mt.selectedMessage].Reference; ref != nil {
+		}
+	case cfg.Keys.MessagesText.SelectPin:
+		if ref := ms[mt.selectedMessage].Reference; ref != nil {
 			for i, m := range ms {
 				if ref.MessageID == m.ID {
 					mt.selectedMessage = i
