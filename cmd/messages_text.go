@@ -93,13 +93,12 @@ func (mt *MessagesText) endRegion() {
 
 func (mt *MessagesText) createMessage(m discord.Message) {
 	mt.startRegion(m.ID)
-	defer fmt.Fprintln(mt)
 	defer mt.endRegion()
 
 	if cfg.HideBlockedUsers {
 		isBlocked := discordState.UserIsBlocked(m.Author.ID)
 		if isBlocked {
-			fmt.Fprint(mt, "[:red:b]Blocked message[:-:-]")
+			fmt.Fprintln(mt, "[:red:b]Blocked message[:-:-]")
 			return
 		}
 	}
@@ -121,6 +120,8 @@ func (mt *MessagesText) createMessage(m discord.Message) {
 	default:
 		mt.createHeader(mt, m, false)
 	}
+
+	fmt.Fprintln(mt)
 }
 
 func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, isReply bool) {
