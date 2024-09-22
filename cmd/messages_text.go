@@ -103,7 +103,7 @@ func (mt *MessagesText) createMessage(m discord.Message) {
 
 	switch m.Type {
 	case discord.ChannelPinnedMessage:
-		fmt.Fprint(mt, "[" + cfg.Theme.MessagesText.ContentColor + "]" + m.Author.Username + " pinned a message" + "[-:-:-]")
+		fmt.Fprint(mt, "["+cfg.Theme.MessagesText.ContentColor+"]"+m.Author.Username+" pinned a message"+"[-:-:-]")
 	case discord.DefaultMessage, discord.InlinedReplyMessage:
 		if m.ReferencedMessage != nil {
 			mt.createHeader(mt, *m.ReferencedMessage, true)
@@ -162,22 +162,16 @@ func (mt *MessagesText) createFooter(w io.Writer, m discord.Message) {
 }
 
 func (mt *MessagesText) getSelectedMessage() (*discord.Message, error) {
-	if mt.selectedMessageID == 0 {
+	if !mt.selectedMessageID.IsValid() {
 		return nil, errors.New("no message is currently selected")
 	}
 
-	ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
+	msg, err := discordState.Cabinet.Message(mainFlex.guildsTree.selectedChannelID, mt.selectedMessageID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not retrieve selected message: %w", err)
 	}
 
-	for idx, m := range ms {
-		for m.ID == mt.selectedMessageID {
-			return &ms[idx], nil
-		}
-	}
-
-	return nil, nil
+	return msg, nil
 }
 
 func (mt *MessagesText) getSelectedMessageIndex() (int, error) {
@@ -257,7 +251,7 @@ func (mt *MessagesText) _select(name string) {
 			}
 		}
 	case cfg.Keys.SelectFirst:
-		mt.selectedMessageID = ms[len(ms) - 1].ID
+		mt.selectedMessageID = ms[len(ms)-1].ID
 	case cfg.Keys.SelectLast:
 		mt.selectedMessageID = ms[0].ID
 	case cfg.Keys.MessagesText.SelectReply:
