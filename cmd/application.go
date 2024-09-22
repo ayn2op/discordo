@@ -17,11 +17,11 @@ func newApplication() *Application {
 	}
 
 	app.EnableMouse(cfg.Mouse)
-	app.SetInputCapture(onInputCapture)
+	app.SetInputCapture(app.onInputCapture)
 	return app
 }
 
-func onInputCapture(event *tcell.EventKey) *tcell.EventKey {
+func (app *Application) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
  	switch event.Name() {
  	case cfg.Keys.Quit:
  		app.Stop()
