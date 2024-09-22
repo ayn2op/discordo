@@ -17,7 +17,6 @@ import (
 
 type MessageInput struct {
 	*tview.TextArea
-	replyMessageIdx int
 	replyMessageID discord.MessageID 
 }
 
