@@ -24,7 +24,6 @@ type MessageInput struct {
 func newMessageInput() *MessageInput {
 	mi := &MessageInput{
 		TextArea:        tview.NewTextArea(),
-		replyMessageID: 0,
 	}
 
 	mi.SetTextStyle(tcell.StyleDefault.Background(tcell.GetColor(cfg.Theme.BackgroundColor)))

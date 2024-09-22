@@ -27,8 +27,6 @@ type MessagesText struct {
 func newMessagesText() *MessagesText {
 	mt := &MessagesText{
 		TextView: tview.NewTextView(),
-
-		selectedMessageID: 0,
 	}
 
 	mt.SetDynamicColors(true)
