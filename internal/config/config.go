@@ -20,6 +20,8 @@ type Config struct {
 	TimestampsBeforeAuthor bool   `toml:"timestamps_before_author"`
 	TimestampsFormat       string `toml:"timestamps_format"`
 
+	ShowAttachmentLinks bool `toml:"show_attachment_links"`
+
 	Keys  Keys  `toml:"keys"`
 	Theme Theme `toml:"theme"`
 }
@@ -34,6 +36,8 @@ func defaultConfig() *Config {
 		Timestamps:             false,
 		TimestampsBeforeAuthor: false,
 		TimestampsFormat:       time.Kitchen,
+	
+		ShowAttachmentLinks: true,
 
 		Keys:  defaultKeys(),
 		Theme: defaultTheme(),
