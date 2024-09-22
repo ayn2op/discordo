@@ -89,7 +89,7 @@ func (s *State) onMessageCreate(m *gateway.MessageCreateEvent) {
 
 func (s *State) onMessageDelete(m *gateway.MessageDeleteEvent) {
 	if mainFlex.guildsTree.selectedChannelID == m.ChannelID {
-		mainFlex.messagesText.selectedMessage = -1
+		mainFlex.messagesText.selectedMessageID = 0
 		mainFlex.messagesText.Highlight()
 		mainFlex.messagesText.Clear()
 
