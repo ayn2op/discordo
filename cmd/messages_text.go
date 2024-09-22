@@ -224,14 +224,20 @@ func (mt *MessagesText) _select(name string) {
 		return
 	}
 
+	idx, err := mt.getSelectedMessageIndex()
+	if err != nil {
+		slog.Error("failed to get selected message", "err", err)
+		return
+	}
+
 	switch name {
 	case cfg.Keys.SelectPrevious:
 		// If no message is currently selected, select the latest message.
 		if len(mt.GetHighlights()) == 0 {
-			mt.selectedMessage = 0
+			mt.selectedMessageID = ms[0].ID
 		} else {
-			if mt.selectedMessage < len(ms)-1 {
-				mt.selectedMessage++
+			if idx < len(ms)-1 {
+				mt.selectedMessageID = ms[idx+1].ID
 			} else {
 				return
 			}
@@ -239,10 +245,10 @@ func (mt *MessagesText) _select(name string) {
 	case cfg.Keys.SelectNext:
 		// If no message is currently selected, select the latest message.
 		if len(mt.GetHighlights()) == 0 {
-			mt.selectedMessage = 0
+			mt.selectedMessageID = ms[0].ID
 		} else {
-			if mt.selectedMessage > 0 {
-				mt.selectedMessage--
+			if idx > 0 {
+				mt.selectedMessageID = ms[idx-1].ID
 			} else {
 				return
 			}
@@ -273,7 +279,7 @@ func (mt *MessagesText) _select(name string) {
 		}
 	}
 
-	mt.Highlight(ms[mt.selectedMessage].ID.String())
+	mt.Highlight(mt.selectedMessageID.String())
 	mt.ScrollToHighlight()
 }
 
