@@ -22,6 +22,7 @@ type MessagesText struct {
 	*tview.TextView
 
 	selectedMessage int
+	selectedMessageID discord.MessageID
 }
 
 func newMessagesText() *MessagesText {
