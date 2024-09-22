@@ -17,13 +17,12 @@ import (
 
 type MessageInput struct {
 	*tview.TextArea
-	replyMessageIdx int
+	replyMessageID discord.MessageID 
 }
 
 func newMessageInput() *MessageInput {
 	mi := &MessageInput{
 		TextArea:        tview.NewTextArea(),
-		replyMessageIdx: -1,
 	}
 
 	mi.SetTextStyle(tcell.StyleDefault.Background(tcell.GetColor(cfg.Theme.BackgroundColor)))
@@ -49,7 +48,7 @@ func newMessageInput() *MessageInput {
 }
 
 func (mi *MessageInput) reset() {
-	mi.replyMessageIdx = -1
+	mi.replyMessageID = 0
 	mi.SetTitle("")
 	mi.SetText("", true)
 }
@@ -80,17 +79,10 @@ func (mi *MessageInput) send() {
 		return
 	}
 
-	logger := slog.With("channel_id", mainFlex.guildsTree.selectedChannelID)
-	if mi.replyMessageIdx != -1 {
-		ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
-		if err != nil {
-			logger.Error("failed to get messages", "err", err)
-			return
-		}
-
+	if mi.replyMessageID != 0 {
 		data := api.SendMessageData{
 			Content:         text,
-			Reference:       &discord.MessageReference{MessageID: ms[mi.replyMessageIdx].ID},
+			Reference:       &discord.MessageReference{MessageID: mi.replyMessageID},
 			AllowedMentions: &api.AllowedMentions{RepliedUser: option.False},
 		}
 
@@ -111,7 +103,7 @@ func (mi *MessageInput) send() {
 		}()
 	}
 
-	mi.replyMessageIdx = -1
+	mi.replyMessageID = 0
 	mi.reset()
 
 	mainFlex.messagesText.Highlight()
