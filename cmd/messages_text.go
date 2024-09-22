@@ -177,6 +177,21 @@ func (mt *MessagesText) getSelectedMessage() (*discord.Message, error) {
 	return &ms[mt.selectedMessage], nil
 }
 
+func (mt *MessagesText) getSelectedMessageIndex() (int, error) {
+	ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
+	if err != nil {
+		return -1, err
+	}
+
+	for idx, m := range ms {
+		for m.ID == mt.selectedMessageID {
+			return idx, nil
+		}
+	}
+
+	return -1, nil
+}
+
 func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case cfg.Keys.SelectPrevious, cfg.Keys.SelectNext, cfg.Keys.SelectFirst, cfg.Keys.SelectLast, cfg.Keys.MessagesText.SelectReply, cfg.Keys.MessagesText.SelectPin:
