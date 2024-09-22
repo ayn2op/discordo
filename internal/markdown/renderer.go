@@ -111,7 +111,7 @@ func (r *renderer) Render(w io.Writer, source []byte, n ast.Node) error {
 				io.WriteString(w, "["+emojiColor+"]")
 				io.WriteString(w, ":"+n.Name+":")
 			} else {
-				io.WriteString(w, "[::-]")
+				io.WriteString(w, "[-]")
 			}
 		}
 
