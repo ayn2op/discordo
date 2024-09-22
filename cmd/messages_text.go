@@ -157,7 +157,7 @@ func (mt *MessagesText) createBody(w io.Writer, m discord.Message, isReply bool)
 func (mt *MessagesText) createFooter(w io.Writer, m discord.Message) {
 	for _, a := range m.Attachments {
 		fmt.Fprintln(w)
-		fmt.Fprintf(w, "[%s]: %s", a.Filename, a.URL)
+		fmt.Fprintf(w, "[%s][%s][-]: %s", cfg.Theme.MessagesText.FileColor, a.Filename, a.URL)
 	}
 }
 

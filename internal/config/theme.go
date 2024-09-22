@@ -30,6 +30,7 @@ type (
 		ContentColor string `toml:"content_color"`
 		EmojiColor   string `toml:"emoji_color"`
 		LinkColor    string `toml:"link_color"`
+		FileColor    string `toml:"file_color"`
 	}
 )
 
@@ -56,6 +57,7 @@ func defaultTheme() Theme {
 			ContentColor: tview.Styles.PrimaryTextColor.String(),
 			EmojiColor:   "green",
 			LinkColor:    "blue",
+			FileColor:    "yellow",
 		},
 	}
 }
