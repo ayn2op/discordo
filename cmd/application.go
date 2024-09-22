@@ -4,7 +4,6 @@ import (
 	"log/slog"
 
 	"github.com/rivo/tview"
-	"github.com/gdamore/tcell/v2"
 )
 
 type Application struct {
@@ -17,20 +16,7 @@ func newApplication() *Application {
 	}
 
 	app.EnableMouse(cfg.Mouse)
-	app.SetInputCapture(onInputCapture)
 	return app
-}
-
-func onInputCapture(event *tcell.EventKey) *tcell.EventKey {
- 	switch event.Name() {
- 	case cfg.Keys.Quit:
- 		app.Stop()
-	// Override Ctrl+C to be bindable
- 	case "Ctrl+C":
- 		return tcell.NewEventKey(tcell.KeyCtrlC, 'C', tcell.ModCtrl)
- 	}
-
-	return event
 }
 
 func (app *Application) Show(token string) error {

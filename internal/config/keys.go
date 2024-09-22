@@ -17,7 +17,6 @@ type (
 		MessageInput MessageInputKeys `toml:"message_input"`
 
 		Logout string `toml:"logout"`
-		Quit   string `toml:"quit"`
 	}
 
 	GuildsTreeKeys struct {
@@ -50,7 +49,6 @@ func defaultKeys() Keys {
 		ToggleGuildsTree:  "Ctrl+B",
 
 		Logout: "Ctrl+D",
-		Quit:   "Ctrl+Q",
 
 		SelectPrevious: "Rune[k]",
 		SelectNext:     "Rune[j]",
