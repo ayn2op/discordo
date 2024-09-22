@@ -26,11 +26,11 @@ type (
 	MessagesTextTheme struct {
 		ReplyIndicator string `toml:"reply_indicator"`
 
-		AuthorColor  string `toml:"author_color"`
-		ContentColor string `toml:"content_color"`
-		EmojiColor   string `toml:"emoji_color"`
-		LinkColor    string `toml:"link_color"`
-		FileColor    string `toml:"file_color"`
+		AuthorColor     string `toml:"author_color"`
+		ContentColor    string `toml:"content_color"`
+		EmojiColor      string `toml:"emoji_color"`
+		LinkColor       string `toml:"link_color"`
+		AttachmentColor string `toml:"attachment_color"`
 	}
 )
 
@@ -53,11 +53,11 @@ func defaultTheme() Theme {
 		MessagesText: MessagesTextTheme{
 			ReplyIndicator: string(tview.BoxDrawingsLightArcDownAndRight) + " ",
 
-			AuthorColor:  "aqua",
-			ContentColor: tview.Styles.PrimaryTextColor.String(),
-			EmojiColor:   "green",
-			LinkColor:    "blue",
-			FileColor:    "yellow",
+			AuthorColor:     "aqua",
+			ContentColor:    tview.Styles.PrimaryTextColor.String(),
+			EmojiColor:      "green",
+			LinkColor:       "blue",
+			AttachmentColor: "yellow",
 		},
 	}
 }

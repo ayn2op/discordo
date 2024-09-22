@@ -158,9 +158,9 @@ func (mt *MessagesText) createFooter(w io.Writer, m discord.Message) {
 	for _, a := range m.Attachments {
 		fmt.Fprintln(w)
 		if cfg.ShowAttachmentLinks { 
-			fmt.Fprintf(w, "[%s][%s]:\n%s[-]", cfg.Theme.MessagesText.FileColor, a.Filename, a.URL)
+			fmt.Fprintf(w, "[%s][%s]:\n%s[-]", cfg.Theme.MessagesText.AttachmentColor, a.Filename, a.URL)
 		} else {
-			fmt.Fprintf(w, "[%s][%s][-]", cfg.Theme.MessagesText.FileColor, a.Filename)
+			fmt.Fprintf(w, "[%s][%s][-]", cfg.Theme.MessagesText.AttachmentColor, a.Filename)
 		}
 	}
 }
