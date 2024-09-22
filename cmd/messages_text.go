@@ -21,7 +21,6 @@ import (
 type MessagesText struct {
 	*tview.TextView
 
-	selectedMessage int
 	selectedMessageID discord.MessageID
 }
 
@@ -29,7 +28,7 @@ func newMessagesText() *MessagesText {
 	mt := &MessagesText{
 		TextView: tview.NewTextView(),
 
-		selectedMessage: -1,
+		selectedMessageID: 0,
 	}
 
 	mt.SetDynamicColors(true)
@@ -74,7 +73,7 @@ func (mt *MessagesText) drawMsgs(cID discord.ChannelID) {
 }
 
 func (mt *MessagesText) reset() {
-	mainFlex.messagesText.selectedMessage = -1
+	mainFlex.messagesText.selectedMessageID = 0
 
 	mt.SetTitle("")
 	mt.Clear()
@@ -165,7 +164,7 @@ func (mt *MessagesText) createFooter(w io.Writer, m discord.Message) {
 }
 
 func (mt *MessagesText) getSelectedMessage() (*discord.Message, error) {
-	if mt.selectedMessage == -1 {
+	if mt.selectedMessageID == 0 {
 		return nil, errors.New("no message is currently selected")
 	}
 
@@ -174,7 +173,13 @@ func (mt *MessagesText) getSelectedMessage() (*discord.Message, error) {
 		return nil, err
 	}
 
-	return &ms[mt.selectedMessage], nil
+	for idx, m := range ms {
+		for m.ID == mt.selectedMessageID {
+			return &ms[idx], nil
+		}
+	}
+
+	return nil, nil
 }
 
 func (mt *MessagesText) getSelectedMessageIndex() (int, error) {
@@ -224,7 +229,7 @@ func (mt *MessagesText) _select(name string) {
 		return
 	}
 
-	idx, err := mt.getSelectedMessageIndex()
+	messageIdx, err := mt.getSelectedMessageIndex()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
 		return
@@ -236,8 +241,8 @@ func (mt *MessagesText) _select(name string) {
 		if len(mt.GetHighlights()) == 0 {
 			mt.selectedMessageID = ms[0].ID
 		} else {
-			if idx < len(ms)-1 {
-				mt.selectedMessageID = ms[idx+1].ID
+			if messageIdx < len(ms)-1 {
+				mt.selectedMessageID = ms[messageIdx+1].ID
 			} else {
 				return
 			}
@@ -247,33 +252,33 @@ func (mt *MessagesText) _select(name string) {
 		if len(mt.GetHighlights()) == 0 {
 			mt.selectedMessageID = ms[0].ID
 		} else {
-			if idx > 0 {
-				mt.selectedMessageID = ms[idx-1].ID
+			if messageIdx > 0 {
+				mt.selectedMessageID = ms[messageIdx-1].ID
 			} else {
 				return
 			}
 		}
 	case cfg.Keys.SelectFirst:
-		mt.selectedMessage = len(ms) - 1
+		mt.selectedMessageID = ms[len(ms) - 1].ID
 	case cfg.Keys.SelectLast:
-		mt.selectedMessage = 0
+		mt.selectedMessageID = ms[0].ID
 	case cfg.Keys.MessagesText.SelectReply:
-		if mt.selectedMessage == -1 {
+		if mt.selectedMessageID == 0 {
 			return
 		}
 
-		if ref := ms[mt.selectedMessage].ReferencedMessage; ref != nil {
-			for i, m := range ms {
+		if ref := ms[messageIdx].ReferencedMessage; ref != nil {
+			for _, m := range ms {
 				if ref.ID == m.ID {
-					mt.selectedMessage = i
+					mt.selectedMessageID = m.ID
 				}
 			}
 		}
 	case cfg.Keys.MessagesText.SelectPin:
-		if ref := ms[mt.selectedMessage].Reference; ref != nil {
-			for i, m := range ms {
+		if ref := ms[messageIdx].Reference; ref != nil {
+			for _, m := range ms {
 				if ref.MessageID == m.ID {
-					mt.selectedMessage = i
+					mt.selectedMessageID = m.ID
 				}
 			}
 		}
@@ -335,7 +340,7 @@ func (mt *MessagesText) reply(mention bool) {
 
 	title += msg.Author.Tag()
 	mainFlex.messageInput.SetTitle(title)
-	mainFlex.messageInput.replyMessageIdx = mt.selectedMessage
+	mainFlex.messageInput.replyMessageID = mt.selectedMessageID
 	app.SetFocus(mainFlex.messageInput)
 }
 
