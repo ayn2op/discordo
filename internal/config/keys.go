@@ -50,7 +50,7 @@ func defaultKeys() Keys {
 		ToggleGuildsTree:  "Ctrl+B",
 
 		Logout: "Ctrl+D",
-		Quit:   "Ctrl+Q",
+		Quit:   "Ctrl+C",
 
 		SelectPrevious: "Rune[k]",
 		SelectNext:     "Rune[j]",
