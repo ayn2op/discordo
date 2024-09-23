@@ -3,6 +3,7 @@ package cmd
 import (
 	"log/slog"
 
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
@@ -16,7 +17,20 @@ func newApplication() *Application {
 	}
 
 	app.EnableMouse(cfg.Mouse)
+	app.SetInputCapture(app.onInputCapture)
 	return app
+}
+
+func (app *Application) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
+	switch event.Name() {
+	case cfg.Keys.Quit:
+		app.Stop()
+	case "Ctrl+C":
+		// https://github.com/rivo/tview/blob/a64fc48d7654432f71922c8b908280cdb525805c/application.go#L153
+		return tcell.NewEventKey(tcell.KeyCtrlC, 0, tcell.ModNone)
+	}
+
+	return event
 }
 
 func (app *Application) Show(token string) error {
