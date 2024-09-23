@@ -313,7 +313,6 @@ func (mt *MessagesText) open() {
 			}
 		}()
 	}
-
 }
 
 func (mt *MessagesText) reply(mention bool) {
@@ -337,7 +336,6 @@ func (mt *MessagesText) reply(mention bool) {
 }
 
 func (mt *MessagesText) delete() {
-
 	msg, err := mt.getSelectedMessage()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)

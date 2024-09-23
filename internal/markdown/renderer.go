@@ -9,9 +9,7 @@ import (
 	gmr "github.com/yuin/goldmark/renderer"
 )
 
-var (
-	DefaultRenderer = newRenderer()
-)
+var DefaultRenderer = newRenderer()
 
 type renderer struct {
 	config *gmr.Config
@@ -41,7 +39,7 @@ func (r *renderer) Render(w io.Writer, source []byte, n ast.Node) error {
 
 			if entering {
 				// body
-				for i := 0; i < n.Lines().Len(); i++ {
+				for i := range n.Lines().Len() {
 					line := n.Lines().At(i)
 					io.WriteString(w, "| ")
 					w.Write(line.Value(source))
