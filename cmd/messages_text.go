@@ -56,8 +56,7 @@ func newMessagesText() *MessagesText {
 		renderer.WithOption("linkColor", cfg.Theme.MessagesText.LinkColor),
 	)
 
-	// register handler for highlight changes
-	mt.SetHighlightedFunc(onHighlighted)
+	mt.SetHighlightedFunc(mt.onHighlighted)
 
 	return mt
 }
@@ -284,14 +283,14 @@ func (mt *MessagesText) _select(name string) {
 	mt.ScrollToHighlight()
 }
 
-func onHighlighted(added, removed, remaining []string) {
+func (mt *MessagesText) onHighlighted(added, removed, remaining []string) {
 	if (len(added) > 0) {
 		mID, err := strconv.ParseInt(added[0], 10, 64)
 		if err != nil {
-			slog.Error("Failed to parse int of region as a message id.","err",err)
+			slog.Error("Failed to parse region id as int to use as message id.","err",err)
 			return
 		}
-		mainFlex.messagesText.selectedMessageID = discord.MessageID(mID)
+		mt.selectedMessageID = discord.MessageID(mID)
 	}
 }
 
