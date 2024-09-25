@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"slices"
+	"strconv"
 	"time"
 
 	"github.com/atotto/clipboard"
@@ -54,6 +55,8 @@ func newMessagesText() *MessagesText {
 		renderer.WithOption("emojiColor", cfg.Theme.MessagesText.EmojiColor),
 		renderer.WithOption("linkColor", cfg.Theme.MessagesText.LinkColor),
 	)
+
+	mt.SetHighlightedFunc(mt.onHighlighted)
 
 	return mt
 }
@@ -278,6 +281,17 @@ func (mt *MessagesText) _select(name string) {
 
 	mt.Highlight(mt.selectedMessageID.String())
 	mt.ScrollToHighlight()
+}
+
+func (mt *MessagesText) onHighlighted(added, removed, remaining []string) {
+	if (len(added) > 0) {
+		mID, err := strconv.ParseInt(added[0], 10, 64)
+		if err != nil {
+			slog.Error("Failed to parse region id as int to use as message id.","err",err)
+			return
+		}
+		mt.selectedMessageID = discord.MessageID(mID)
+	}
 }
 
 func (mt *MessagesText) yank() {
