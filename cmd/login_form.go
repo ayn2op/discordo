@@ -10,15 +10,19 @@ import (
 	"github.com/zalando/go-keyring"
 )
 
-type DoneFn func(token string, err error)
+type doneFn func(token string, err error)
 
-type LoginForm struct {
+type loginForm struct {
 	*tview.Form
-	done DoneFn
+	done doneFn
 }
 
-func NewLoginForm(done DoneFn) *LoginForm {
-	lf := &LoginForm{
+func newLoginForm(done doneFn) *loginForm {
+	if done == nil {
+		done = func(_ string, _ error) {}
+	}
+
+	lf := &loginForm{
 		Form: tview.NewForm(),
 		done: done,
 	}
@@ -41,7 +45,7 @@ func NewLoginForm(done DoneFn) *LoginForm {
 	return lf
 }
 
-func (lf *LoginForm) login() {
+func (lf *loginForm) login() {
 	email := lf.GetFormItem(0).(*tview.InputField).GetText()
 	password := lf.GetFormItem(1).(*tview.InputField).GetText()
 	if email == "" || password == "" {
@@ -53,10 +57,7 @@ func (lf *LoginForm) login() {
 	// Log in using the provided email and password.
 	lr, err := apiClient.Login(email, password)
 	if err != nil {
-		if lf.done != nil {
-			lf.done("", err)
-		}
-
+		lf.done("", err)
 		return
 	}
 
@@ -64,28 +65,19 @@ func (lf *LoginForm) login() {
 	if lr.MFA && lr.Token == "" {
 		code := lf.GetFormItem(2).(*tview.InputField).GetText()
 		if code == "" {
-			if lf.done != nil {
-				lf.done("", errors.New("code required"))
-			}
-
+			lf.done("", errors.New("code required"))
 			return
 		}
 
 		lr, err = apiClient.TOTP(code, lr.Ticket)
 		if err != nil {
-			if lf.done != nil {
-				lf.done("", err)
-			}
-
+			lf.done("", err)
 			return
 		}
 	}
 
 	if lr.Token == "" {
-		if lf.done != nil {
-			lf.done("", errors.New("missing token"))
-		}
-
+		lf.done("", errors.New("missing token"))
 		return
 	}
 
@@ -93,14 +85,10 @@ func (lf *LoginForm) login() {
 	if rememberMe {
 		go func() {
 			if err := keyring.Set(constants.Name, "token", lr.Token); err != nil {
-				if lf.done != nil {
-					lf.done("", err)
-				}
+				lf.done("", err)
 			}
 		}()
 	}
 
-	if lf.done != nil {
-		lf.done(lr.Token, nil)
-	}
+	lf.done(lr.Token, nil)
 }
