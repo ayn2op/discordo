@@ -67,6 +67,7 @@ func (mf *MainFlex) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		// The guilds tree is visible if the numbers of items is two.
 		if mf.GetItemCount() == 2 {
 			mf.RemoveItem(mf.guildsTree)
+
 			if mf.guildsTree.HasFocus() {
 				app.SetFocus(mf)
 			}

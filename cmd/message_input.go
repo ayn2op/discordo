@@ -17,12 +17,12 @@ import (
 
 type MessageInput struct {
 	*tview.TextArea
-	replyMessageID discord.MessageID 
+	replyMessageID discord.MessageID
 }
 
 func newMessageInput() *MessageInput {
 	mi := &MessageInput{
-		TextArea:        tview.NewTextArea(),
+		TextArea: tview.NewTextArea(),
 	}
 
 	mi.SetTextStyle(tcell.StyleDefault.Background(tcell.GetColor(cfg.Theme.BackgroundColor)))

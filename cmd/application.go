@@ -35,7 +35,7 @@ func (app *Application) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 
 func (app *Application) Show(token string) error {
 	if token == "" {
-		loginForm := NewLoginForm(func(token string, err error) {
+		loginForm := newLoginForm(func(token string, err error) {
 			if err != nil {
 				slog.Error("failed to login", "err", err)
 				return
