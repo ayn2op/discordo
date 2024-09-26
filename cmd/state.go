@@ -10,6 +10,9 @@ import (
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/arikawa/v3/state"
+	"github.com/diamondburned/arikawa/v3/state/store"
+	"github.com/diamondburned/arikawa/v3/state/store/defaultstore"
 	"github.com/diamondburned/arikawa/v3/utils/httputil/httpdriver"
 	"github.com/diamondburned/ningen/v3"
 	"github.com/gdamore/tcell/v2"
@@ -29,9 +32,28 @@ type State struct {
 	*ningen.State
 }
 
+type OtherState struct {
+	*state.State
+}
+
 func openState(token string) error {
 	discordState = &State{
-		State: ningen.New(token),
+		State: ningen.FromState(
+			state.NewWithStore(
+				token, 
+				&store.Cabinet{
+					MeStore:         defaultstore.NewMe(),
+					ChannelStore:    defaultstore.NewChannel(),
+					EmojiStore:      defaultstore.NewEmoji(),
+					GuildStore:      defaultstore.NewGuild(),
+					MemberStore:     defaultstore.NewMember(),
+					MessageStore:    defaultstore.NewMessage(int(cfg.MessagesLimit)),
+					PresenceStore:   defaultstore.NewPresence(),
+					RoleStore:       defaultstore.NewRole(),
+					VoiceStateStore: defaultstore.NewVoiceState(),
+				},
+			),
+		),
 	}
 
 	// Handlers
