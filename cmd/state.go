@@ -32,10 +32,6 @@ type State struct {
 	*ningen.State
 }
 
-type OtherState struct {
-	*state.State
-}
-
 func openState(token string) error {
 	discordState = &State{
 		State: ningen.FromState(
