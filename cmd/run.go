@@ -20,6 +20,9 @@ func Run(token string) error {
 
 	var err error
 	cfg, err = config.Load()
+	if(cfg.MessagesLimit > 100) {
+		cfg.MessagesLimit = 100
+	}
 	if err != nil {
 		return err
 	}
