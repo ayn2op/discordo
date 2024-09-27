@@ -126,9 +126,8 @@ func (mt *MessagesText) createMessage(m discord.Message) {
 }
 
 func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, isReply bool) {
-	time := m.Timestamp.Time().In(time.Local).Format(cfg.TimestampsFormat)
-
-	if cfg.Timestamps && cfg.TimestampsBeforeAuthor {
+	if cfg.Timestamps {
+		time := m.Timestamp.Time().In(time.Local).Format(cfg.TimestampsFormat)
 		fmt.Fprintf(w, "[::d]%s[::-] ", time)
 	}
 
@@ -137,10 +136,6 @@ func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, isReply boo
 	}
 
 	fmt.Fprintf(w, "[%s]%s[-:-:-] ", cfg.Theme.MessagesText.AuthorColor, m.Author.Username)
-
-	if cfg.Timestamps && !cfg.TimestampsBeforeAuthor {
-		fmt.Fprintf(w, "[::d]%s[::-] ", time)
-	}
 }
 
 func (mt *MessagesText) createBody(w io.Writer, m discord.Message, isReply bool) {
@@ -160,7 +155,11 @@ func (mt *MessagesText) createBody(w io.Writer, m discord.Message, isReply bool)
 func (mt *MessagesText) createFooter(w io.Writer, m discord.Message) {
 	for _, a := range m.Attachments {
 		fmt.Fprintln(w)
-		fmt.Fprintf(w, "[%s]: %s", a.Filename, a.URL)
+		if cfg.ShowAttachmentLinks {
+			fmt.Fprintf(w, "[%s][%s]:\n%s[-]", cfg.Theme.MessagesText.AttachmentColor, a.Filename, a.URL)
+		} else {
+			fmt.Fprintf(w, "[%s][%s][-]", cfg.Theme.MessagesText.AttachmentColor, a.Filename)
+		}
 	}
 }
 
@@ -284,10 +283,10 @@ func (mt *MessagesText) _select(name string) {
 }
 
 func (mt *MessagesText) onHighlighted(added, removed, remaining []string) {
-	if (len(added) > 0) {
+	if len(added) > 0 {
 		mID, err := strconv.ParseInt(added[0], 10, 64)
 		if err != nil {
-			slog.Error("Failed to parse region id as int to use as message id.","err",err)
+			slog.Error("Failed to parse region id as int to use as message id.", "err", err)
 			return
 		}
 		mt.selectedMessageID = discord.MessageID(mID)
