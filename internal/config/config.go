@@ -16,9 +16,8 @@ type Config struct {
 	MessagesLimit uint8  `toml:"messages_limit"`
 	Editor        string `toml:"editor"`
 
-	Timestamps             bool   `toml:"timestamps"`
-	TimestampsBeforeAuthor bool   `toml:"timestamps_before_author"`
-	TimestampsFormat       string `toml:"timestamps_format"`
+	Timestamps       bool   `toml:"timestamps"`
+	TimestampsFormat string `toml:"timestamps_format"`
 
 	ShowAttachmentLinks bool `toml:"show_attachment_links"`
 
@@ -33,10 +32,9 @@ func defaultConfig() *Config {
 		MessagesLimit:    50,
 		Editor:           "default",
 
-		Timestamps:             false,
-		TimestampsBeforeAuthor: false,
-		TimestampsFormat:       time.Kitchen,
-	
+		Timestamps:       false,
+		TimestampsFormat: time.Kitchen,
+
 		ShowAttachmentLinks: true,
 
 		Keys:  defaultKeys(),
