@@ -175,7 +175,7 @@ PARENT_CHANNELS:
 func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 	gt.selectedChannelID = 0
 
-	mainFlex.messagesText.reset()
+	//mainFlex.messagesText.reset()
 	mainFlex.messageInput.reset()
 
 	if len(n.GetChildren()) != 0 {
@@ -197,16 +197,16 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 
 		gt.createChannelNodes(n, cs)
 	case discord.ChannelID:
-		mainFlex.messagesText.drawMsgs(ref)
-		mainFlex.messagesText.ScrollToEnd()
+		//mainFlex.messagesText.drawMsgs(ref)
+		//mainFlex.messagesText.ScrollToEnd()
 
-		c, err := discordState.Cabinet.Channel(ref)
-		if err != nil {
-			slog.Error("failed to get channel", "channel_id", ref)
-			return
-		}
+		//c, err := discordState.Cabinet.Channel(ref)
+		//if err != nil {
+		//	slog.Error("failed to get channel", "channel_id", ref)
+		//	return
+		//}
 
-		mainFlex.messagesText.SetTitle(gt.channelToString(*c))
+		//mainFlex.messagesText.SetTitle(gt.channelToString(*c))
 
 		gt.selectedChannelID = ref
 		app.SetFocus(mainFlex.messageInput)

@@ -30,6 +30,7 @@ type NewMessagesText struct {
 	*tview.Box
 
 	selectedMessageID discord.MessageID
+	messageBoxes []*MessageBox
 }
 
 func newNewMessagesText() *NewMessagesText{
@@ -38,15 +39,22 @@ func newNewMessagesText() *NewMessagesText{
 	}
 
 	mt.SetBorder(true)
+	mt.SetBackgroundColor(tcell.GetColor(cfg.Theme.BackgroundColor))
+
+	for i := 0; i < 5; i++ {
+		mb := newMessageBox()
+		mb.body = "test\n"
+		mt.messageBoxes = append(mt.messageBoxes, mb)
+	}
 
 	mt.SetDrawFunc(func(screen tcell.Screen, x int, y int, width int, height int) (int, int, int, int) {
-		nextMsgY := y + 1
-
-		for i := 0; i < 30; i++ {
-			mb := newMessageBox(x+1, nextMsgY, width-2, (height-1 - nextMsgY), "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.", screen)
-			nextMsgY += mb.getLineCount()
+		prevLineCount := 0
+		for _, m := range mt.messageBoxes {
+			m.SetRect(x+1, y+1+prevLineCount, width-2, height-2)
+			m.SetText(m.body).Draw(screen)
+			prevLineCount = m.getLineCount()
 		}
-
+		
 		return 0, 0, 0, 0
   	})
 
@@ -101,7 +109,7 @@ func (mt *MessagesText) drawMsgs(cID discord.ChannelID) {
 	}
 }
 
-func (mt *MessagesText) reset() {
+func (mt *NewMessagesText) reset() {
 	mainFlex.messagesText.selectedMessageID = 0
 
 	mt.SetTitle("")
@@ -120,7 +128,17 @@ func (mt *MessagesText) endRegion() {
 	fmt.Fprint(mt, `[""]`)
 }
 
-func (mt *MessagesText) createMessage(m discord.Message) {
+func (mt *NewMessagesText) createMessage(m discord.Message) {
+	mb := newMessageBox()
+	mt.messageBoxes = append(mt.messageBoxes, mb)
+
+	switch m.Type {
+	case discord.DefaultMessage, discord.InlinedReplyMessage:
+		mb.body = m.Content
+	}
+}
+
+func (mt *MessagesText) oldCreateMessage(m discord.Message) {
 	mt.startRegion(m.ID)
 	defer mt.endRegion()
 

@@ -8,16 +8,15 @@ import (
 
 type MessageBox struct {
 	*tview.TextView
+	body string
 }
 
-func newMessageBox(x int, y int, w int, h int, str string, screen tcell.Screen) *MessageBox {
+func newMessageBox() *MessageBox {
 	mb := &MessageBox{
 		TextView: tview.NewTextView(),
 	}
 
 	mb.SetDynamicColors(true)
-	mb.SetRect(x, y, w, h)
-	mb.SetText(str).Draw(screen)
 
 	return mb
 }
@@ -49,4 +48,8 @@ func (m *MessageBox) getLineCount() int {
 
 func (m *MessageBox) Draw(screen tcell.Screen) {
 	m.Box.DrawForSubclass(screen, m)
+}
+
+func (m *MessageBox) Render(screen tcell.Screen) {
+	m.SetText(m.body).Draw(screen)
 }
