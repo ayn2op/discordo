@@ -31,33 +31,50 @@ type NewMessagesText struct {
 
 	selectedMessageID discord.MessageID
 	messageBoxes []*MessageBox
+	init bool
 }
 
 func newNewMessagesText() *NewMessagesText{
 	mt := &NewMessagesText{
 		Box: tview.NewBox(),
+		init: true,
 	}
 
 	mt.SetBorder(true)
 	mt.SetBackgroundColor(tcell.GetColor(cfg.Theme.BackgroundColor))
 
-	for i := 0; i < 5; i++ {
-		mb := newMessageBox()
-		mb.body = "test\n"
-		mt.messageBoxes = append(mt.messageBoxes, mb)
-	}
-
 	mt.SetDrawFunc(func(screen tcell.Screen, x int, y int, width int, height int) (int, int, int, int) {
-		prevLineCount := 0
-		for _, m := range mt.messageBoxes {
-			m.SetRect(x+1, y+1+prevLineCount, width-2, height-2)
-			m.SetText(m.body).Draw(screen)
-			prevLineCount = m.getLineCount()
+		if mt.init {
+			prevLineCount := 0
+			for _, m := range mt.messageBoxes {
+				m.SetText("")
+				m.SetRect(x+1, y+1+prevLineCount, width-2, (height-2-prevLineCount))
+				src := []byte(m.Content)
+				ast := discordmd.ParseWithMessage(src, *discordState.Cabinet, m.Message, false)
+				// send parsed text to message box...
+				markdown.DefaultRenderer.Render(m.TextView, src, ast)
+				// ...so it can rewrite and call Draw immediately
+				m.SetText(m.GetText(false)).Draw(screen)
+
+				prevLineCount += m.getLineCount()
+			}
+			mt.init = false 
+		} else {
+			for _, m := range mt.messageBoxes {
+				m.SetText(m.GetText(false)).Draw(screen)
+			}
 		}
 		
-		return 0, 0, 0, 0
+		return x, y, width, height
   	})
 
+	mt.SetFocusFunc(func(){mt.init = true})
+	mt.SetBlurFunc(func(){mt.init = true})
+
+	markdown.DefaultRenderer.AddOptions(
+		renderer.WithOption("emojiColor", cfg.Theme.MessagesText.EmojiColor),
+		renderer.WithOption("linkColor", cfg.Theme.MessagesText.LinkColor),
+	)
 	return mt
 }
 
@@ -97,7 +114,8 @@ func newMessagesText() *MessagesText {
 	return mt
 }
 
-func (mt *MessagesText) drawMsgs(cID discord.ChannelID) {
+func (mt *NewMessagesText) drawMsgs(cID discord.ChannelID) {
+	mt.messageBoxes = nil
 	ms, err := discordState.Messages(cID, uint(cfg.MessagesLimit))
 	if err != nil {
 		slog.Error("failed to get messages", "err", err, "channel_id", cID)
@@ -107,6 +125,8 @@ func (mt *MessagesText) drawMsgs(cID discord.ChannelID) {
 	for _, m := range slices.Backward(ms) {
 		mainFlex.messagesText.createMessage(m)
 	}
+
+	mt.init = true
 }
 
 func (mt *NewMessagesText) reset() {
@@ -130,12 +150,13 @@ func (mt *MessagesText) endRegion() {
 
 func (mt *NewMessagesText) createMessage(m discord.Message) {
 	mb := newMessageBox()
-	mt.messageBoxes = append(mt.messageBoxes, mb)
+	mb.Message = &m
 
 	switch m.Type {
 	case discord.DefaultMessage, discord.InlinedReplyMessage:
-		mb.body = m.Content
 	}
+
+	mt.messageBoxes = append(mt.messageBoxes, mb)
 }
 
 func (mt *MessagesText) oldCreateMessage(m discord.Message) {

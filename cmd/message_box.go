@@ -4,11 +4,12 @@ import (
 	"strings"
 	"github.com/rivo/tview"
 	"github.com/gdamore/tcell/v2"
+	"github.com/diamondburned/arikawa/v3/discord"
 )
 
 type MessageBox struct {
 	*tview.TextView
-	body string
+	*discord.Message
 }
 
 func newMessageBox() *MessageBox {
@@ -17,6 +18,7 @@ func newMessageBox() *MessageBox {
 	}
 
 	mb.SetDynamicColors(true)
+	mb.SetBackgroundColor(tcell.GetColor(cfg.Theme.BackgroundColor))
 
 	return mb
 }
@@ -27,7 +29,7 @@ func (m *MessageBox) getLineCount() int {
 
 	_, _, width, _ := m.GetInnerRect()
 
-	for _, w := range strings.Split(m.GetText(false), " ") {
+	for _, w := range strings.Split(m.Content, " ") {
 		// newline char
 		if strings.Index(w, "\n") != -1 {
 			lineCount += 1
@@ -48,8 +50,4 @@ func (m *MessageBox) getLineCount() int {
 
 func (m *MessageBox) Draw(screen tcell.Screen) {
 	m.Box.DrawForSubclass(screen, m)
-}
-
-func (m *MessageBox) Render(screen tcell.Screen) {
-	m.SetText(m.body).Draw(screen)
 }
