@@ -25,6 +25,34 @@ type MessagesText struct {
 	selectedMessageID discord.MessageID
 }
 
+type NewMessagesText struct {
+	*MessagesText
+	*tview.Box
+
+	selectedMessageID discord.MessageID
+}
+
+func newNewMessagesText() *NewMessagesText{
+	mt := &NewMessagesText{
+		Box: tview.NewBox(),
+	}
+
+	mt.SetBorder(true)
+
+	mt.SetDrawFunc(func(screen tcell.Screen, x int, y int, width int, height int) (int, int, int, int) {
+		nextMsgY := y + 1
+
+		for i := 0; i < 30; i++ {
+			mb := newMessageBox(x+1, nextMsgY, width-2, (height-1 - nextMsgY), "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.", screen)
+			nextMsgY += mb.getLineCount()
+		}
+
+		return 0, 0, 0, 0
+  	})
+
+	return mt
+}
+
 func newMessagesText() *MessagesText {
 	mt := &MessagesText{
 		TextView: tview.NewTextView(),
