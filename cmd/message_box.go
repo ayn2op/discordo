@@ -18,6 +18,8 @@ func newMessageBox() *MessageBox {
 	}
 
 	mb.SetDynamicColors(true)
+	mb.SetWordWrap(true)
+	mb.SetRegions(true)
 	mb.SetBackgroundColor(tcell.GetColor(cfg.Theme.BackgroundColor))
 
 	return mb
@@ -49,5 +51,5 @@ func (m *MessageBox) getLineCount() int {
 }
 
 func (m *MessageBox) Draw(screen tcell.Screen) {
-	m.Box.DrawForSubclass(screen, m)
+	m.DrawForSubclass(screen, m)
 }

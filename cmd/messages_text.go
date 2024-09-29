@@ -31,51 +31,64 @@ type NewMessagesText struct {
 
 	selectedMessageID discord.MessageID
 	messageBoxes []*MessageBox
-	init bool
+	screen tcell.Screen
+}
+
+func (r *NewMessagesText) InputHandler() func(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
+	return r.WrapInputHandler(func(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
+		switch event.Key() {
+		}
+	})
 }
 
 func newNewMessagesText() *NewMessagesText{
 	mt := &NewMessagesText{
 		Box: tview.NewBox(),
-		init: true,
 	}
 
 	mt.SetBorder(true)
 	mt.SetBackgroundColor(tcell.GetColor(cfg.Theme.BackgroundColor))
+	mt.Box.SetInputCapture(mt.onInputCapture)
 
 	mt.SetDrawFunc(func(screen tcell.Screen, x int, y int, width int, height int) (int, int, int, int) {
-		if mt.init {
-			prevLineCount := 0
-			for _, m := range mt.messageBoxes {
-				m.SetText("")
-				m.SetRect(x+1, y+1+prevLineCount, width-2, (height-2-prevLineCount))
-				src := []byte(m.Content)
-				ast := discordmd.ParseWithMessage(src, *discordState.Cabinet, m.Message, false)
-				// send parsed text to message box...
-				markdown.DefaultRenderer.Render(m.TextView, src, ast)
-				// ...so it can rewrite and call Draw immediately
-				m.SetText(m.GetText(false)).Draw(screen)
+		prevLineCount := 0
+		for _, m := range mt.messageBoxes {
+			m.SetRect(x+1, y+1+prevLineCount, width-2, (height-2-prevLineCount))
+			prevLineCount += m.getLineCount()
 
-				prevLineCount += m.getLineCount()
-			}
-			mt.init = false 
-		} else {
-			for _, m := range mt.messageBoxes {
-				m.SetText(m.GetText(false)).Draw(screen)
+			// To render the message, Draw() needs to be called once after any TextView func that returns itself
+			// There has to be a better way of handling that
+			if m.ID == mt.selectedMessageID {
+				m.Highlight("msg").Draw(screen)
+			} else {
+				m.Highlight().Draw(screen)
 			}
 		}
-		
+
 		return x, y, width, height
   	})
 
-	mt.SetFocusFunc(func(){mt.init = true})
-	mt.SetBlurFunc(func(){mt.init = true})
+	mt.SetFocusFunc(mt.refresh)
+	mt.SetBlurFunc(mt.refresh)
 
 	markdown.DefaultRenderer.AddOptions(
 		renderer.WithOption("emojiColor", cfg.Theme.MessagesText.EmojiColor),
 		renderer.WithOption("linkColor", cfg.Theme.MessagesText.LinkColor),
 	)
+	
 	return mt
+}
+
+func (mt *NewMessagesText) refresh() {
+	for _, m := range mt.messageBoxes {
+		m.SetText("")
+
+		src := []byte(m.Content)
+		ast := discordmd.ParseWithMessage(src, *discordState.Cabinet, m.Message, false)
+		markdown.DefaultRenderer.Render(m.TextView, src, ast)
+
+		m.SetText(`["msg"]` + m.GetText(false))
+	}
 }
 
 func newMessagesText() *MessagesText {
@@ -86,7 +99,7 @@ func newMessagesText() *MessagesText {
 	mt.SetDynamicColors(true)
 	mt.SetRegions(true)
 	mt.SetWordWrap(true)
-	mt.SetInputCapture(mt.onInputCapture)
+	//mt.SetInputCapture(mt.onInputCapture)
 	mt.ScrollToEnd()
 	mt.SetChangedFunc(func() {
 		app.Draw()
@@ -123,10 +136,11 @@ func (mt *NewMessagesText) drawMsgs(cID discord.ChannelID) {
 	}
 
 	for _, m := range slices.Backward(ms) {
+	//for _, m := range ms {
 		mainFlex.messagesText.createMessage(m)
 	}
 
-	mt.init = true
+	mt.refresh()
 }
 
 func (mt *NewMessagesText) reset() {
@@ -243,7 +257,7 @@ func (mt *MessagesText) getSelectedMessage() (*discord.Message, error) {
 	return msg, nil
 }
 
-func (mt *MessagesText) getSelectedMessageIndex() (int, error) {
+func (mt *NewMessagesText) getSelectedMessageIndex() (int, error) {
 	ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
 	if err != nil {
 		return -1, err
@@ -258,7 +272,7 @@ func (mt *MessagesText) getSelectedMessageIndex() (int, error) {
 	return -1, nil
 }
 
-func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
+func (mt *NewMessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case cfg.Keys.SelectPrevious, cfg.Keys.SelectNext, cfg.Keys.SelectFirst, cfg.Keys.SelectLast, cfg.Keys.MessagesText.SelectReply, cfg.Keys.MessagesText.SelectPin:
 		mt._select(event.Name())
@@ -283,7 +297,7 @@ func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	return nil
 }
 
-func (mt *MessagesText) _select(name string) {
+func (mt *NewMessagesText) _select(name string) {
 	ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
 	if err != nil {
 		slog.Error("failed to get messages", "err", err, "channel_id", mainFlex.guildsTree.selectedChannelID)
@@ -299,8 +313,9 @@ func (mt *MessagesText) _select(name string) {
 	switch name {
 	case cfg.Keys.SelectPrevious:
 		// If no message is currently selected, select the latest message.
-		if len(mt.GetHighlights()) == 0 {
+		if messageIdx == -1 {
 			mt.selectedMessageID = ms[0].ID
+			messageIdx = 0
 		} else {
 			if messageIdx < len(ms)-1 {
 				mt.selectedMessageID = ms[messageIdx+1].ID
@@ -310,9 +325,10 @@ func (mt *MessagesText) _select(name string) {
 		}
 	case cfg.Keys.SelectNext:
 		// If no message is currently selected, select the latest message.
-		if len(mt.GetHighlights()) == 0 {
+		if messageIdx == -1 { 
 			mt.selectedMessageID = ms[0].ID
-		} else {
+			messageIdx = 0
+		} else { 
 			if messageIdx > 0 {
 				mt.selectedMessageID = ms[messageIdx-1].ID
 			} else {
@@ -344,9 +360,6 @@ func (mt *MessagesText) _select(name string) {
 			}
 		}
 	}
-
-	mt.Highlight(mt.selectedMessageID.String())
-	mt.ScrollToHighlight()
 }
 
 func (mt *MessagesText) onHighlighted(added, removed, remaining []string) {
