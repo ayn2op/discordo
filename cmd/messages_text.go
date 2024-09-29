@@ -53,7 +53,10 @@ func newNewMessagesText() *NewMessagesText{
 	mt.SetDrawFunc(func(screen tcell.Screen, x int, y int, width int, height int) (int, int, int, int) {
 		prevLineCount := 0
 		for _, m := range mt.messageBoxes {
+			// performance: add check to immediately 'continue' on offscreen messages
+
 			m.SetRect(x+1, y+1+prevLineCount, width-2, (height-2-prevLineCount))
+			// todo: get line counts for attachments
 			prevLineCount += m.getLineCount()
 
 			// To render the message, Draw() needs to be called once after any TextView func that returns itself
@@ -68,27 +71,12 @@ func newNewMessagesText() *NewMessagesText{
 		return x, y, width, height
   	})
 
-	mt.SetFocusFunc(mt.refresh)
-	mt.SetBlurFunc(mt.refresh)
-
 	markdown.DefaultRenderer.AddOptions(
 		renderer.WithOption("emojiColor", cfg.Theme.MessagesText.EmojiColor),
 		renderer.WithOption("linkColor", cfg.Theme.MessagesText.LinkColor),
 	)
 	
 	return mt
-}
-
-func (mt *NewMessagesText) refresh() {
-	for _, m := range mt.messageBoxes {
-		m.SetText("")
-
-		src := []byte(m.Content)
-		ast := discordmd.ParseWithMessage(src, *discordState.Cabinet, m.Message, false)
-		markdown.DefaultRenderer.Render(m.TextView, src, ast)
-
-		m.SetText(`["msg"]` + m.GetText(false))
-	}
 }
 
 func newMessagesText() *MessagesText {
@@ -136,11 +124,8 @@ func (mt *NewMessagesText) drawMsgs(cID discord.ChannelID) {
 	}
 
 	for _, m := range slices.Backward(ms) {
-	//for _, m := range ms {
 		mainFlex.messagesText.createMessage(m)
 	}
-
-	mt.refresh()
 }
 
 func (mt *NewMessagesText) reset() {
@@ -157,17 +142,16 @@ func (mt *MessagesText) startRegion(msgID discord.MessageID) {
 	fmt.Fprintf(mt, `["%s"]`, msgID)
 }
 
-// Tags with no region ID ([""]) don't start new regions. They can therefore be used to mark the end of a region.
-func (mt *MessagesText) endRegion() {
-	fmt.Fprint(mt, `[""]`)
-}
-
 func (mt *NewMessagesText) createMessage(m discord.Message) {
 	mb := newMessageBox()
 	mb.Message = &m
 
 	switch m.Type {
 	case discord.DefaultMessage, discord.InlinedReplyMessage:
+		fmt.Fprintf(mb, `["msg"]`)
+		mt.createHeader(mb, m, false)
+		mt.createBody(mb, m, false)
+		mt.createFooter(mb, m)
 	}
 
 	mt.messageBoxes = append(mt.messageBoxes, mb)
@@ -175,7 +159,6 @@ func (mt *NewMessagesText) createMessage(m discord.Message) {
 
 func (mt *MessagesText) oldCreateMessage(m discord.Message) {
 	mt.startRegion(m.ID)
-	defer mt.endRegion()
 
 	if cfg.HideBlockedUsers {
 		isBlocked := discordState.UserIsBlocked(m.Author.ID)
