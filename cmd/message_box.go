@@ -26,28 +26,25 @@ func newMessageBox() *MessageBox {
 }
 
 func (m *MessageBox) getLineCount() int {
-	lineCount := 1
+	lineCount := 0
 	charCount := 0
 
 	_, _, width, _ := m.GetInnerRect()
 
 	for _, w := range strings.Split(m.Content, " ") {
-		// newline char
+		// don't count \n, since GetOriginalLineCount() already does that
 		if strings.Index(w, "\n") != -1 {
-			lineCount += 1
-			charCount = len(w) + 1
+			charCount = 0
 			continue
 		}
-
 		charCount += len(w) + 1
-
-		if charCount > width {
+		if charCount > width  {
+			lineCount++
 			charCount = len(w) + 1
-			lineCount += 1
 		}
 	}
 
-	return lineCount
+	return lineCount + m.GetOriginalLineCount()
 }
 
 func (m *MessageBox) Draw(screen tcell.Screen) {

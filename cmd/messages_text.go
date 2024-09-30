@@ -34,13 +34,6 @@ type NewMessagesText struct {
 	screen tcell.Screen
 }
 
-func (r *NewMessagesText) InputHandler() func(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
-	return r.WrapInputHandler(func(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
-		switch event.Key() {
-		}
-	})
-}
-
 func newNewMessagesText() *NewMessagesText{
 	mt := &NewMessagesText{
 		Box: tview.NewBox(),
@@ -56,16 +49,17 @@ func newNewMessagesText() *NewMessagesText{
 		if err != nil {
 			slog.Error("failed to get selected message", "err", err)
 		}
-		messageIdx = 50 - messageIdx - 25
+		messageIdx = 50 - messageIdx - 3
 
 		for i, m := range mt.messageBoxes {
 			if i < messageIdx {
 				continue
 			}
 			// performance: add check to immediately 'continue' on offscreen messages
-
+			
 			m.SetRect(x+1, y+1+prevLineCount, width-2, (height-2-prevLineCount))
 			// todo: get line counts for attachments
+
 			prevLineCount += m.getLineCount()
 
 			// To render the message, Draw() needs to be called once after any TextView func that returns itself
@@ -157,12 +151,12 @@ func (mt *NewMessagesText) createMessage(m discord.Message) {
 
 	switch m.Type {
 	case discord.DefaultMessage, discord.InlinedReplyMessage:
-		//if m.ReferencedMessage != nil {
-		//	mt.createHeader(mb, *m.ReferencedMessage, true)
-		//	mt.createBody(mb, *m.ReferencedMessage, true)
+		if m.ReferencedMessage != nil {
+			mt.createHeader(mb, *m.ReferencedMessage, true)
+			mt.createBody(mb, *m.ReferencedMessage, true)
 
-		//	fmt.Fprint(mb, "[::-]\n")
-		//}
+			fmt.Fprint(mb, "[::-]\n")
+		}
 
 		mt.createHeader(mb, m, false)
 		mt.createBody(mb, m, false)
