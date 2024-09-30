@@ -52,7 +52,16 @@ func newNewMessagesText() *NewMessagesText{
 
 	mt.SetDrawFunc(func(screen tcell.Screen, x int, y int, width int, height int) (int, int, int, int) {
 		prevLineCount := 0
-		for _, m := range mt.messageBoxes {
+		messageIdx, err := mt.getSelectedMessageIndex()
+		if err != nil {
+			slog.Error("failed to get selected message", "err", err)
+		}
+		messageIdx = 50 - messageIdx - 25
+
+		for i, m := range mt.messageBoxes {
+			if i < messageIdx {
+				continue
+			}
 			// performance: add check to immediately 'continue' on offscreen messages
 
 			m.SetRect(x+1, y+1+prevLineCount, width-2, (height-2-prevLineCount))
@@ -75,7 +84,6 @@ func newNewMessagesText() *NewMessagesText{
 		renderer.WithOption("emojiColor", cfg.Theme.MessagesText.EmojiColor),
 		renderer.WithOption("linkColor", cfg.Theme.MessagesText.LinkColor),
 	)
-	
 	return mt
 }
 
@@ -145,10 +153,17 @@ func (mt *MessagesText) startRegion(msgID discord.MessageID) {
 func (mt *NewMessagesText) createMessage(m discord.Message) {
 	mb := newMessageBox()
 	mb.Message = &m
+	fmt.Fprintf(mb, `["msg"]`)
 
 	switch m.Type {
 	case discord.DefaultMessage, discord.InlinedReplyMessage:
-		fmt.Fprintf(mb, `["msg"]`)
+		//if m.ReferencedMessage != nil {
+		//	mt.createHeader(mb, *m.ReferencedMessage, true)
+		//	mt.createBody(mb, *m.ReferencedMessage, true)
+
+		//	fmt.Fprint(mb, "[::-]\n")
+		//}
+
 		mt.createHeader(mb, m, false)
 		mt.createBody(mb, m, false)
 		mt.createFooter(mb, m)
@@ -196,7 +211,7 @@ func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, isReply boo
 	}
 
 	if isReply {
-		fmt.Fprintf(mt, "[::d]%s", cfg.Theme.MessagesText.ReplyIndicator)
+		fmt.Fprintf(w, "[::d]%s", cfg.Theme.MessagesText.ReplyIndicator)
 	}
 
 	fmt.Fprintf(w, "[%s]%s[-:-:-] ", cfg.Theme.MessagesText.AuthorColor, m.Author.Username)
@@ -227,7 +242,7 @@ func (mt *MessagesText) createFooter(w io.Writer, m discord.Message) {
 	}
 }
 
-func (mt *MessagesText) getSelectedMessage() (*discord.Message, error) {
+func (mt *NewMessagesText) getSelectedMessage() (*discord.Message, error) {
 	if !mt.selectedMessageID.IsValid() {
 		return nil, errors.New("no message is currently selected")
 	}
@@ -356,7 +371,7 @@ func (mt *MessagesText) onHighlighted(added, removed, remaining []string) {
 	}
 }
 
-func (mt *MessagesText) yank() {
+func (mt *NewMessagesText) yank() {
 	msg, err := mt.getSelectedMessage()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
@@ -370,7 +385,7 @@ func (mt *MessagesText) yank() {
 	}
 }
 
-func (mt *MessagesText) open() {
+func (mt *NewMessagesText) open() {
 	msg, err := mt.getSelectedMessage()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
@@ -391,7 +406,7 @@ func (mt *MessagesText) open() {
 	}
 }
 
-func (mt *MessagesText) reply(mention bool) {
+func (mt *NewMessagesText) reply(mention bool) {
 	var title string
 	if mention {
 		title += "[@] Replying to "
@@ -411,7 +426,7 @@ func (mt *MessagesText) reply(mention bool) {
 	app.SetFocus(mainFlex.messageInput)
 }
 
-func (mt *MessagesText) delete() {
+func (mt *NewMessagesText) delete() {
 	msg, err := mt.getSelectedMessage()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
