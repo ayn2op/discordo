@@ -40,33 +40,78 @@ func newNewMessagesText() *NewMessagesText{
 	}
 
 	mt.SetBorder(true)
+	mt.SetTitle("Messages")
+	mt.SetTitleAlign(tview.AlignLeft)
 	mt.SetBackgroundColor(tcell.GetColor(cfg.Theme.BackgroundColor))
 	mt.Box.SetInputCapture(mt.onInputCapture)
 
 	mt.SetDrawFunc(func(screen tcell.Screen, x int, y int, width int, height int) (int, int, int, int) {
-		prevLineCount := 0
 		messageIdx, err := mt.getSelectedMessageIndex()
 		if err != nil {
 			slog.Error("failed to get selected message", "err", err)
 		}
-		messageIdx = 50 - messageIdx - 3
+		totalMessages := 50
+		messageIdx = totalMessages - messageIdx - 1
 
+		// check if currently rendered messages wouldn't reach the end of the box
+		// if they wouldn't, render in 'bottom-first' mode
+		draftLinesCount := 0
 		for i, m := range mt.messageBoxes {
 			if i < messageIdx {
 				continue
 			}
-			// performance: add check to immediately 'continue' on offscreen messages
-			
-			m.SetRect(x+1, y+1+prevLineCount, width-2, (height-2-prevLineCount))
+			draftLinesCount += m.getLineCount(width)
+		}
 
-			prevLineCount += m.getLineCount()
+		prevLineCount := 0
+		if draftLinesCount < height-2 {
+			for _, m := range slices.Backward(mt.messageBoxes) {
+				lineCount := m.getLineCount(width-2)
+				prevLineCount += lineCount
 
-			// To render the message, Draw() needs to be called once after any TextView func that returns itself
-			// There has to be a better way of handling that
-			if m.ID == mt.selectedMessageID {
-				m.Highlight("msg").Draw(screen)
-			} else {
-				m.Highlight().Draw(screen)
+				m.SetRect(x+1, height-1-prevLineCount, width-2, lineCount)
+
+				// To render the message, Draw() needs to be called once after any TextView func that returns itself
+				// There has to be a better way of handling that
+				if m.ID == mt.selectedMessageID {
+					m.Highlight("msg").Draw(screen)
+				} else {
+					m.Highlight().Draw(screen)
+				}
+
+				// If this is the last visible message, manually render the top border of the box so the message is cut off
+				// A bit hacky, but the best way to cut off text from the top (visually, at least)
+				if height-1-prevLineCount < y+2 {
+					topLine := mt.GetTitle()
+					for i := 0; i < width-2 - len(mt.GetTitle()); i++ {
+						if mt.HasFocus() {
+							topLine += "═"
+						} else {
+							topLine += "─"
+						}
+					}
+					tview.PrintSimple(screen, topLine, x+1, y)
+
+					// Break loop, since this would be the last visible message
+					break
+				}
+			}
+		} else {
+			for i, m := range mt.messageBoxes {
+				if i < messageIdx {
+					continue
+				}
+				// performance: add check to immediately 'continue' on offscreen messages
+				
+				m.SetRect(x+1, y+1+prevLineCount, width-2, (height-2-prevLineCount))
+
+				prevLineCount += m.getLineCount(width-2)
+				
+				if m.ID == mt.selectedMessageID {
+					m.Highlight("msg").Draw(screen)
+				} else {
+					m.Highlight().Draw(screen)
+				}
 			}
 		}
 

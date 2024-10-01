@@ -25,11 +25,9 @@ func newMessageBox() *MessageBox {
 	return mb
 }
 
-func (m *MessageBox) getLineCount() int {
+func (m *MessageBox) getLineCount(width int) int {
 	lineCount := 0
 	charCount := 0
-
-	_, _, width, _ := m.GetInnerRect()
 
 	for _, w := range strings.Split(m.Content, " ") {
 		// don't count \n, since GetOriginalLineCount() already does that
