@@ -13,7 +13,7 @@ type MainFlex struct {
 	*tview.Flex
 
 	guildsTree   *GuildsTree
-	messagesText *NewMessagesText
+	messagesText *MessagesText
 	messageInput *MessageInput
 }
 
@@ -22,7 +22,7 @@ func newMainFlex() *MainFlex {
 		Flex: tview.NewFlex(),
 
 		guildsTree:   newGuildsTree(),
-		messagesText: newNewMessagesText(),
+		messagesText: newMessagesText(),
 		messageInput: newMessageInput(),
 	}
 

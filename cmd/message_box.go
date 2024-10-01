@@ -48,3 +48,13 @@ func (m *MessageBox) getLineCount(width int) int {
 func (m *MessageBox) Draw(screen tcell.Screen) {
 	m.DrawForSubclass(screen, m)
 }
+
+// To render the message, Draw() needs to be called once after any TextView func that returns itself
+// There has to be a better way of handling that
+func (m *MessageBox) Render(highlight bool, screen tcell.Screen) {
+	if highlight {
+		m.Highlight("msg").Draw(screen)
+	} else {
+		m.Highlight().Draw(screen)
+	}
+}

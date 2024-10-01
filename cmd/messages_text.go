@@ -20,13 +20,6 @@ import (
 )
 
 type MessagesText struct {
-	*tview.TextView
-
-	selectedMessageID discord.MessageID
-}
-
-type NewMessagesText struct {
-	*MessagesText
 	*tview.Box
 
 	selectedMessageID discord.MessageID
@@ -34,8 +27,8 @@ type NewMessagesText struct {
 	screen tcell.Screen
 }
 
-func newNewMessagesText() *NewMessagesText{
-	mt := &NewMessagesText{
+func newMessagesText() *MessagesText{
+	mt := &MessagesText{
 		Box: tview.NewBox(),
 	}
 
@@ -71,13 +64,7 @@ func newNewMessagesText() *NewMessagesText{
 
 				m.SetRect(x+1, height-1-prevLineCount, width-2, lineCount)
 
-				// To render the message, Draw() needs to be called once after any TextView func that returns itself
-				// There has to be a better way of handling that
-				if m.ID == mt.selectedMessageID {
-					m.Highlight("msg").Draw(screen)
-				} else {
-					m.Highlight().Draw(screen)
-				}
+				m.Render(mt.selectedMessageID == m.ID, screen)
 
 				// If this is the last visible message, manually render the top border of the box so the message is cut off
 				// A bit hacky, but the best way to cut off text from the top (visually, at least)
@@ -106,12 +93,8 @@ func newNewMessagesText() *NewMessagesText{
 				m.SetRect(x+1, y+1+prevLineCount, width-2, (height-2-prevLineCount))
 
 				prevLineCount += m.getLineCount(width-2)
-				
-				if m.ID == mt.selectedMessageID {
-					m.Highlight("msg").Draw(screen)
-				} else {
-					m.Highlight().Draw(screen)
-				}
+
+				m.Render(mt.selectedMessageID == m.ID, screen)
 			}
 		}
 
@@ -125,43 +108,7 @@ func newNewMessagesText() *NewMessagesText{
 	return mt
 }
 
-func newMessagesText() *MessagesText {
-	mt := &MessagesText{
-		TextView: tview.NewTextView(),
-	}
-
-	mt.SetDynamicColors(true)
-	mt.SetRegions(true)
-	mt.SetWordWrap(true)
-	//mt.SetInputCapture(mt.onInputCapture)
-	mt.ScrollToEnd()
-	mt.SetChangedFunc(func() {
-		app.Draw()
-	})
-
-	mt.SetTextColor(tcell.GetColor(cfg.Theme.MessagesText.ContentColor))
-	mt.SetBackgroundColor(tcell.GetColor(cfg.Theme.BackgroundColor))
-
-	mt.SetTitle("Messages")
-	mt.SetTitleColor(tcell.GetColor(cfg.Theme.TitleColor))
-	mt.SetTitleAlign(tview.AlignLeft)
-
-	p := cfg.Theme.BorderPadding
-	mt.SetBorder(cfg.Theme.Border)
-	mt.SetBorderColor(tcell.GetColor(cfg.Theme.BorderColor))
-	mt.SetBorderPadding(p[0], p[1], p[2], p[3])
-
-	markdown.DefaultRenderer.AddOptions(
-		renderer.WithOption("emojiColor", cfg.Theme.MessagesText.EmojiColor),
-		renderer.WithOption("linkColor", cfg.Theme.MessagesText.LinkColor),
-	)
-
-	mt.SetHighlightedFunc(mt.onHighlighted)
-
-	return mt
-}
-
-func (mt *NewMessagesText) drawMsgs(cID discord.ChannelID) {
+func (mt *MessagesText) drawMsgs(cID discord.ChannelID) {
 	mt.messageBoxes = nil
 	ms, err := discordState.Messages(cID, uint(cfg.MessagesLimit))
 	if err != nil {
@@ -174,21 +121,13 @@ func (mt *NewMessagesText) drawMsgs(cID discord.ChannelID) {
 	}
 }
 
-func (mt *NewMessagesText) reset() {
+func (mt *MessagesText) reset() {
 	mainFlex.messagesText.selectedMessageID = 0
 
 	mt.SetTitle("")
-	mt.Clear()
-	mt.Highlight()
 }
 
-// Region tags are square brackets that contain a region ID in double quotes
-// https://pkg.go.dev/github.com/rivo/tview#hdr-Regions_and_Highlights
-func (mt *MessagesText) startRegion(msgID discord.MessageID) {
-	fmt.Fprintf(mt, `["%s"]`, msgID)
-}
-
-func (mt *NewMessagesText) createMessage(m discord.Message) {
+func (mt *MessagesText) createMessage(m discord.Message) {
 	mb := newMessageBox()
 	mb.Message = &m
 	fmt.Fprintf(mb, `["msg"]`)
@@ -208,38 +147,6 @@ func (mt *NewMessagesText) createMessage(m discord.Message) {
 	}
 
 	mt.messageBoxes = append(mt.messageBoxes, mb)
-}
-
-func (mt *MessagesText) oldCreateMessage(m discord.Message) {
-	mt.startRegion(m.ID)
-
-	if cfg.HideBlockedUsers {
-		isBlocked := discordState.UserIsBlocked(m.Author.ID)
-		if isBlocked {
-			fmt.Fprintln(mt, "[:red:b]Blocked message[:-:-]")
-			return
-		}
-	}
-
-	switch m.Type {
-	case discord.ChannelPinnedMessage:
-		fmt.Fprint(mt, "["+cfg.Theme.MessagesText.ContentColor+"]"+m.Author.Username+" pinned a message"+"[-:-:-]")
-	case discord.DefaultMessage, discord.InlinedReplyMessage:
-		if m.ReferencedMessage != nil {
-			mt.createHeader(mt, *m.ReferencedMessage, true)
-			mt.createBody(mt, *m.ReferencedMessage, true)
-
-			fmt.Fprint(mt, "[::-]\n")
-		}
-
-		mt.createHeader(mt, m, false)
-		mt.createBody(mt, m, false)
-		mt.createFooter(mt, m)
-	default:
-		mt.createHeader(mt, m, false)
-	}
-
-	fmt.Fprintln(mt)
 }
 
 func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, isReply bool) {
@@ -280,7 +187,7 @@ func (mt *MessagesText) createFooter(w io.Writer, m discord.Message) {
 	}
 }
 
-func (mt *NewMessagesText) getSelectedMessage() (*discord.Message, error) {
+func (mt *MessagesText) getSelectedMessage() (*discord.Message, error) {
 	if !mt.selectedMessageID.IsValid() {
 		return nil, errors.New("no message is currently selected")
 	}
@@ -293,7 +200,7 @@ func (mt *NewMessagesText) getSelectedMessage() (*discord.Message, error) {
 	return msg, nil
 }
 
-func (mt *NewMessagesText) getSelectedMessageIndex() (int, error) {
+func (mt *MessagesText) getSelectedMessageIndex() (int, error) {
 	ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
 	if err != nil {
 		return -1, err
@@ -308,7 +215,7 @@ func (mt *NewMessagesText) getSelectedMessageIndex() (int, error) {
 	return -1, nil
 }
 
-func (mt *NewMessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
+func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case cfg.Keys.SelectPrevious, cfg.Keys.SelectNext, cfg.Keys.SelectFirst, cfg.Keys.SelectLast, cfg.Keys.MessagesText.SelectReply, cfg.Keys.MessagesText.SelectPin:
 		mt._select(event.Name())
@@ -333,7 +240,7 @@ func (mt *NewMessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey
 	return nil
 }
 
-func (mt *NewMessagesText) _select(name string) {
+func (mt *MessagesText) _select(name string) {
 	ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
 	if err != nil {
 		slog.Error("failed to get messages", "err", err, "channel_id", mainFlex.guildsTree.selectedChannelID)
@@ -409,7 +316,7 @@ func (mt *MessagesText) onHighlighted(added, removed, remaining []string) {
 	}
 }
 
-func (mt *NewMessagesText) yank() {
+func (mt *MessagesText) yank() {
 	msg, err := mt.getSelectedMessage()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
@@ -423,7 +330,7 @@ func (mt *NewMessagesText) yank() {
 	}
 }
 
-func (mt *NewMessagesText) open() {
+func (mt *MessagesText) open() {
 	msg, err := mt.getSelectedMessage()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
@@ -444,7 +351,7 @@ func (mt *NewMessagesText) open() {
 	}
 }
 
-func (mt *NewMessagesText) reply(mention bool) {
+func (mt *MessagesText) reply(mention bool) {
 	var title string
 	if mention {
 		title += "[@] Replying to "
@@ -464,7 +371,7 @@ func (mt *NewMessagesText) reply(mention bool) {
 	app.SetFocus(mainFlex.messageInput)
 }
 
-func (mt *NewMessagesText) delete() {
+func (mt *MessagesText) delete() {
 	msg, err := mt.getSelectedMessage()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
@@ -502,8 +409,6 @@ func (mt *NewMessagesText) delete() {
 		slog.Error("failed to delete message", "err", err, "channel_id", mainFlex.guildsTree.selectedChannelID)
 		return
 	}
-
-	mt.Clear()
 
 	for _, m := range slices.Backward(ms) {
 		mainFlex.messagesText.createMessage(m)
