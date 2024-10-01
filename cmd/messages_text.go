@@ -58,7 +58,6 @@ func newNewMessagesText() *NewMessagesText{
 			// performance: add check to immediately 'continue' on offscreen messages
 			
 			m.SetRect(x+1, y+1+prevLineCount, width-2, (height-2-prevLineCount))
-			// todo: get line counts for attachments
 
 			prevLineCount += m.getLineCount()
 
