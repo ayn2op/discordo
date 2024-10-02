@@ -26,7 +26,5 @@ func Run(token string) error {
 
 	// app must be initialized after configuration is loaded
 	app = newApplication()
-	// mainFlex must be initialized before opening a new state.
-	mainFlex = newMainFlex()
 	return app.Run(token)
 }
