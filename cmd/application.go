@@ -33,7 +33,7 @@ func (app *Application) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	return event
 }
 
-func (app *Application) Show(token string) error {
+func (app *Application) show(token string) error {
 	if token == "" {
 		loginForm := newLoginForm(func(token string, err error) {
 			if err != nil {
@@ -41,12 +41,14 @@ func (app *Application) Show(token string) error {
 				return
 			}
 
-			if err := app.Show(token); err != nil {
+			if err := app.show(token); err != nil {
 				slog.Error("failed to show app", "err", err)
 			}
 		})
 		app.SetRoot(loginForm, true)
 	} else {
+		// mainFlex must be initialized before opening a new state.
+		mainFlex = newMainFlex()
 		if err := openState(token); err != nil {
 			return err
 		}
@@ -58,7 +60,7 @@ func (app *Application) Show(token string) error {
 }
 
 func (app *Application) Run(token string) error {
-	if err := app.Show(token); err != nil {
+	if err := app.show(token); err != nil {
 		return err
 	}
 
