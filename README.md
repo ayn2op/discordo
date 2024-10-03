@@ -29,8 +29,8 @@ You can download and install a [prebuilt binary here](https://nightly.link/ayn2o
 - Windows (Scoop):
 
 ```sh
-scoop bucket add vvxrtues https://github.com/vvirtues/bucket
-scoop install discordo
+scoop bucket add ingenarel https://github.com/ingenarel/ingenarel-scoop-bucket
+scoop install discordo-git
 ```
 
 ### Building from source
