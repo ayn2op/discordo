@@ -144,7 +144,7 @@ func (mt *MessagesText) drawMsgs(cID discord.ChannelID) {
 }
 
 func (mt *MessagesText) reset() {
-	//mainFlex.messagesText.selectedMessageID = 0
+	mainFlex.messagesText.selectedMessageID = 0
 	mt.SetTitle("")
 }
 
