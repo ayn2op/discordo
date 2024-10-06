@@ -24,7 +24,6 @@ type MessagesText struct {
 
 	selectedMessageID discord.MessageID
 	messageBoxes []*MessageBox
-	screen tcell.Screen
 }
 
 func newMessagesText() *MessagesText{
@@ -39,62 +38,73 @@ func newMessagesText() *MessagesText{
 	mt.Box.SetInputCapture(mt.onInputCapture)
 
 	mt.SetDrawFunc(func(screen tcell.Screen, x int, y int, width int, height int) (int, int, int, int) {
+		// Always render messages (and top border for clipping)
+		defer func() {
+			for _, m := range mt.messageBoxes {
+				m.Render(mt.selectedMessageID == m.ID, screen)
+			}
+
+			mt.renderTopBorder(x, y, width, height, screen)
+		}()
+
 		messageIdx, err := mt.getSelectedMessageIndex()
 		if err != nil {
 			slog.Error("failed to get selected message", "err", err)
 		}
-		totalMessages := 50
-		messageIdx = totalMessages - messageIdx - 1
+		messageIdx = min(messageIdx, len(mt.messageBoxes)-1)
 
-		// check if currently rendered messages wouldn't reach the end of the box
-		// if they wouldn't, render in 'bottom-first' mode
-		draftLinesCount := 0
-		for i, m := range mt.messageBoxes {
-			if i < messageIdx {
-				continue
+		// force bottom-first if no message is selected
+		if messageIdx == -1 {
+			prevLineCount := 0
+			for _, m := range slices.Backward(mt.messageBoxes) {
+				lineCount := m.getLineCount(width-1)
+				prevLineCount += lineCount
+				m.SetRect(x+1, height-1-prevLineCount, width-1, lineCount)
 			}
-			draftLinesCount += m.getLineCount(width)
+
+			return x, y, width, height
 		}
 
+		// Position messages without any scrolling offset
 		prevLineCount := 0
-		if draftLinesCount < height-2 {
-			for _, m := range slices.Backward(mt.messageBoxes) {
-				lineCount := m.getLineCount(width-2)
-				prevLineCount += lineCount
+		for _, m := range mt.messageBoxes {
+			mY := y+1+prevLineCount
+			mH := height-2-prevLineCount
+			m.SetRect(x+1, mY, width, mH)
+			prevLineCount += m.getLineCount(width-1)
+		}
 
-				m.SetRect(x+1, height-1-prevLineCount, width-2, lineCount)
+		// Apply scrolling offset to messages
+		_, mY, _, _ := mt.messageBoxes[len(mt.messageBoxes)-1-messageIdx].GetRect()
+		scrollY := -(mY - (y+1)-20)
+		for _, m := range mt.messageBoxes {
+			mX, mY, mW, mH := m.GetRect()
+			mY += scrollY
+			mH -= scrollY
+			m.SetRect(mX, mY, mW, mH)
+		}
 
-				m.Render(mt.selectedMessageID == m.ID, screen)
-
-				// If this is the last visible message, manually render the top border of the box so the message is cut off
-				// A bit hacky, but the best way to cut off text from the top (visually, at least)
-				if height-1-prevLineCount < y+2 {
-					topLine := mt.GetTitle()
-					for i := 0; i < width-2 - len(mt.GetTitle()); i++ {
-						if mt.HasFocus() {
-							topLine += "═"
-						} else {
-							topLine += "─"
-						}
-					}
-					tview.PrintSimple(screen, topLine, x+1, y)
-
-					// Break loop, since this would be the last visible message
-					break
-				}
+		// Check if first message is below top border
+		// If it isn't, the top has been reached. Render top-first
+		_, mY, _, _ = mt.messageBoxes[0].GetRect()
+		if mY > y+1 {
+			prevLineCount = 0
+			for _, m := range mt.messageBoxes {
+				m.SetRect(x+1, y+1+prevLineCount, width-1, height-2-prevLineCount)
+				prevLineCount += m.getLineCount(width-1)
 			}
-		} else {
-			for i, m := range mt.messageBoxes {
-				if i < messageIdx {
-					continue
-				}
-				// performance: add check to immediately 'continue' on offscreen messages
-				
-				m.SetRect(x+1, y+1+prevLineCount, width-2, (height-2-prevLineCount))
+		}
 
-				prevLineCount += m.getLineCount(width-2)
-
-				m.Render(mt.selectedMessageID == m.ID, screen)
+		// Check if last message is beyond bottom border
+		// If it isn't, the bottom has been reached. Render bottom-first
+		_, mY, _, _ = mt.messageBoxes[len(mt.messageBoxes)-1].GetRect()
+		lc := mt.messageBoxes[len(mt.messageBoxes)-1].getLineCount(width-1)
+		if mY+lc < height-1 {
+			prevLineCount = 0
+			for _, m := range slices.Backward(mt.messageBoxes) {
+				lineCount := m.getLineCount(width-1)
+				prevLineCount += lineCount
+				m.SetRect(x+1, height-1-prevLineCount, width-1, lineCount)
 			}
 		}
 
@@ -106,6 +116,18 @@ func newMessagesText() *MessagesText{
 		renderer.WithOption("linkColor", cfg.Theme.MessagesText.LinkColor),
 	)
 	return mt
+}
+
+func (mt *MessagesText) renderTopBorder(x int, y int, width int, height int, screen tcell.Screen) {
+	topLine := mt.GetTitle()
+	for i := 0; i < width-2 - len(mt.GetTitle()); i++ {
+		if mt.HasFocus() {
+			topLine += "═"
+		} else {
+			topLine += "─"
+		}
+	}
+	tview.PrintSimple(screen, topLine, x+1, y)
 }
 
 func (mt *MessagesText) drawMsgs(cID discord.ChannelID) {
@@ -122,8 +144,7 @@ func (mt *MessagesText) drawMsgs(cID discord.ChannelID) {
 }
 
 func (mt *MessagesText) reset() {
-	mainFlex.messagesText.selectedMessageID = 0
-
+	//mainFlex.messagesText.selectedMessageID = 0
 	mt.SetTitle("")
 }
 
@@ -258,25 +279,15 @@ func (mt *MessagesText) _select(name string) {
 		// If no message is currently selected, select the latest message.
 		if messageIdx == -1 {
 			mt.selectedMessageID = ms[0].ID
-			messageIdx = 0
-		} else {
-			if messageIdx < len(ms)-1 {
-				mt.selectedMessageID = ms[messageIdx+1].ID
-			} else {
-				return
-			}
+		} else if messageIdx < len(ms)-1 {
+			mt.selectedMessageID = ms[messageIdx+1].ID
 		}
 	case cfg.Keys.SelectNext:
 		// If no message is currently selected, select the latest message.
 		if messageIdx == -1 { 
 			mt.selectedMessageID = ms[0].ID
-			messageIdx = 0
-		} else { 
-			if messageIdx > 0 {
-				mt.selectedMessageID = ms[messageIdx-1].ID
-			} else {
-				return
-			}
+		} else if messageIdx > 0 {
+			mt.selectedMessageID = ms[messageIdx-1].ID
 		}
 	case cfg.Keys.SelectFirst:
 		mt.selectedMessageID = ms[len(ms)-1].ID
