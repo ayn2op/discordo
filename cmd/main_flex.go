@@ -36,7 +36,7 @@ func (mf *MainFlex) init() {
 
 	right := tview.NewFlex()
 	right.SetDirection(tview.FlexRow)
-	right.AddItem(mf.messagesText.Box, 0, 1, false)
+	right.AddItem(mf.messagesText, 0, 1, false)
 	right.AddItem(mf.messageInput, 3, 1, false)
 	// The guilds tree is always focused first at start-up.
 	mf.AddItem(mf.guildsTree, 0, 1, true)
@@ -49,7 +49,7 @@ func (mf *MainFlex) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		app.SetFocus(mf.guildsTree)
 		return nil
 	case cfg.Keys.FocusMessagesText:
-		app.SetFocus(mf.messagesText.Box)
+		app.SetFocus(mf.messagesText)
 		return nil
 	case cfg.Keys.FocusMessageInput:
 		app.SetFocus(mf.messageInput)
