@@ -59,7 +59,7 @@ func newMessagesText() *MessagesText{
 			for _, m := range slices.Backward(mt.messageBoxes) {
 				lineCount := m.getLineCount(width-1)
 				prevLineCount += lineCount
-				m.SetRect(x+1, height-1-prevLineCount, width-1, lineCount)
+				m.SetRect(x+1, height-1-prevLineCount, width-2, lineCount)
 			}
 
 			return x, y, width, height
@@ -70,7 +70,7 @@ func newMessagesText() *MessagesText{
 		for _, m := range mt.messageBoxes {
 			mY := y+1+prevLineCount
 			mH := height-2-prevLineCount
-			m.SetRect(x+1, mY, width, mH)
+			m.SetRect(x+1, mY, width-2, mH)
 			prevLineCount += m.getLineCount(width-1)
 		}
 
@@ -90,7 +90,7 @@ func newMessagesText() *MessagesText{
 		if mY > y+1 {
 			prevLineCount = 0
 			for _, m := range mt.messageBoxes {
-				m.SetRect(x+1, y+1+prevLineCount, width-1, height-2-prevLineCount)
+				m.SetRect(x+1, y+1+prevLineCount, width-2, height-2-prevLineCount)
 				prevLineCount += m.getLineCount(width-1)
 			}
 		}
@@ -104,7 +104,7 @@ func newMessagesText() *MessagesText{
 			for _, m := range slices.Backward(mt.messageBoxes) {
 				lineCount := m.getLineCount(width-1)
 				prevLineCount += lineCount
-				m.SetRect(x+1, height-1-prevLineCount, width-1, lineCount)
+				m.SetRect(x+1, height-1-prevLineCount, width-2, lineCount)
 			}
 		}
 
