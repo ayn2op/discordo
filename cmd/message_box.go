@@ -18,7 +18,6 @@ func newMessageBox() *MessageBox {
 	}
 
 	mb.SetDynamicColors(true)
-	mb.SetWordWrap(true)
 	mb.SetRegions(true)
 	mb.SetBackgroundColor(tcell.GetColor(cfg.Theme.BackgroundColor))
 
@@ -30,15 +29,16 @@ func (m *MessageBox) getLineCount(width int) int {
 	charCount := 0
 
 	for _, w := range strings.Split(m.Content, " ") {
-		// don't count \n, since GetOriginalLineCount() already does that
+		// Don't count \n, since GetOriginalLineCount() already does that
 		if strings.Index(w, "\n") != -1 {
 			charCount = 0
 			continue
 		}
+
 		charCount += len(w) + 1
-		if charCount > width  {
+		for charCount > width  {
 			lineCount++
-			charCount = len(w) + 1
+			charCount -= width
 		}
 	}
 
