@@ -154,6 +154,8 @@ func (mt *MessagesText) createMessage(m discord.Message) {
 	fmt.Fprintf(mb, `["msg"]`)
 
 	switch m.Type {
+	case discord.ChannelPinnedMessage:
+			fmt.Fprint(mb, "["+cfg.Theme.MessagesText.ContentColor+"]"+m.Author.Username+" pinned a message"+"[-:-:-]")
 	case discord.DefaultMessage, discord.InlinedReplyMessage:
 		if m.ReferencedMessage != nil {
 			mt.createHeader(mb, *m.ReferencedMessage, true)
