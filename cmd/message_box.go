@@ -18,6 +18,7 @@ func newMessageBox() *MessageBox {
 	}
 
 	mb.SetDynamicColors(true)
+	mb.SetWordWrap(false)
 	mb.SetRegions(true)
 	mb.SetBackgroundColor(tcell.GetColor(cfg.Theme.BackgroundColor))
 
