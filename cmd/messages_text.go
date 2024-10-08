@@ -62,7 +62,7 @@ func newMessagesText() *MessagesText{
 
 		// Get scrolling offset based on selected message
 		_, selectedY, _, _ := mt.messageBoxes[len(mt.messageBoxes)-1-messageIdx].GetRect()
-		scrollOffset := 30
+		scrollOffset := 20
 		scrollY := -(selectedY - (y+1) - scrollOffset)
 		
 		// Get first and last message coordinates to determine the render options
