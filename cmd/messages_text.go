@@ -125,6 +125,7 @@ func (mt *MessagesText) renderMessagesBottomFirst(x int, y int, width int, heigh
 	}
 }
 
+// Rendering the top border manually is the easiest way to cut text from the top
 func (mt *MessagesText) renderTopBorder(x int, y int, width int, height int, screen tcell.Screen) {
 	topLine := mt.GetTitle()
 	for i := 0; i < width-2 - len(mt.GetTitle()); i++ {
