@@ -38,15 +38,6 @@ func newMessagesText() *MessagesText{
 	mt.Box.SetInputCapture(mt.onInputCapture)
 
 	mt.SetDrawFunc(func(screen tcell.Screen, x int, y int, width int, height int) (int, int, int, int) {
-		// Always render messages (and top border for clipping)
-		defer func() {
-			for _, m := range mt.messageBoxes {
-				m.Render(mt.selectedMessageID == m.ID, screen)
-			}
-
-			mt.renderTopBorder(x, y, width, height, screen)
-		}()
-
 		messageIdx, err := mt.getSelectedMessageIndex()
 		if err != nil {
 			slog.Error("failed to get selected message", "err", err)
@@ -55,13 +46,8 @@ func newMessagesText() *MessagesText{
 
 		// force bottom-first if no message is selected
 		if messageIdx == -1 {
-			prevLineCount := 0
-			for _, m := range slices.Backward(mt.messageBoxes) {
-				lineCount := m.getLineCount(width-1)
-				prevLineCount += lineCount
-				m.SetRect(x+1, height-1-prevLineCount, width-2, lineCount)
-			}
-
+			mt.renderMessagesBottomFirst(x, y, width, height, screen)
+			mt.renderTopBorder(x, y, width, height, screen)
 			return x, y, width, height
 		}
 
@@ -74,38 +60,42 @@ func newMessagesText() *MessagesText{
 			prevLineCount += m.getLineCount(width-1)
 		}
 
-		// Apply scrolling offset to messages
-		_, mY, _, _ := mt.messageBoxes[len(mt.messageBoxes)-1-messageIdx].GetRect()
-		scrollY := -(mY - (y+1)-20)
-		for _, m := range mt.messageBoxes {
-			mX, mY, mW, mH := m.GetRect()
-			mY += scrollY
-			mH -= scrollY
-			m.SetRect(mX, mY, mW, mH)
-		}
+		// Get scrolling offset based on selected message
+		_, selectedY, _, _ := mt.messageBoxes[len(mt.messageBoxes)-1-messageIdx].GetRect()
+		scrollOffset := 30
+		scrollY := -(selectedY - (y+1) - scrollOffset)
+		
+		// Get first and last message coordinates to determine the render options
+		_, firstY, _, _ := mt.messageBoxes[0].GetRect()
+		_, lastY, _, _ := mt.messageBoxes[len(mt.messageBoxes)-1].GetRect()
+		firstY += scrollY
+		lastY += scrollY
+		lastLineCount := mt.messageBoxes[len(mt.messageBoxes)-1].getLineCount(width-1)
 
-		// Check if first message is below top border
-		// If it isn't, the top has been reached. Render top-first
-		_, mY, _, _ = mt.messageBoxes[0].GetRect()
-		if mY > y+1 {
+		if firstY > y+1 {
+			// top-first rendering
 			prevLineCount = 0
 			for _, m := range mt.messageBoxes {
 				m.SetRect(x+1, y+1+prevLineCount, width-2, height-2-prevLineCount)
 				prevLineCount += m.getLineCount(width-1)
+				m.Render(mt.selectedMessageID == m.ID, screen)
+				if y+1+prevLineCount > height-2 {
+					break
+				}
 			}
-		}
-
-		// Check if last message is beyond bottom border
-		// If it isn't, the bottom has been reached. Render bottom-first
-		_, mY, _, _ = mt.messageBoxes[len(mt.messageBoxes)-1].GetRect()
-		lc := mt.messageBoxes[len(mt.messageBoxes)-1].getLineCount(width-1)
-		if mY+lc < height-1 {
-			prevLineCount = 0
-			for _, m := range slices.Backward(mt.messageBoxes) {
-				lineCount := m.getLineCount(width-1)
-				prevLineCount += lineCount
-				m.SetRect(x+1, height-1-prevLineCount, width-2, lineCount)
+		} else if lastY+lastLineCount < height-1 {
+			mt.renderMessagesBottomFirst(x, y, width, height, screen)
+			mt.renderTopBorder(x, y, width, height, screen)
+		} else {
+			// in-between rendering 
+			for _, m := range mt.messageBoxes {
+				mX, mY, mW, mH := m.GetRect()
+				mY += scrollY
+				mH -= scrollY
+				m.SetRect(mX, mY, mW, mH)
+				m.Render(mt.selectedMessageID == m.ID, screen)
 			}
+			mt.renderTopBorder(x, y, width, height, screen)
 		}
 
 		return x, y, width, height
@@ -116,6 +106,19 @@ func newMessagesText() *MessagesText{
 		renderer.WithOption("linkColor", cfg.Theme.MessagesText.LinkColor),
 	)
 	return mt
+}
+
+func (mt *MessagesText) renderMessagesBottomFirst(x int, y int, width int, height int, screen tcell.Screen) {
+	prevLineCount := 0
+	for _, m := range slices.Backward(mt.messageBoxes) {
+		lineCount := m.getLineCount(width-1)
+		prevLineCount += lineCount
+		m.SetRect(x+1, height-1-prevLineCount, width-2, lineCount)
+		m.Render(mt.selectedMessageID == m.ID, screen)
+		if height-1-prevLineCount + lineCount < y+1 {
+			break
+		}
+	}
 }
 
 func (mt *MessagesText) renderTopBorder(x int, y int, width int, height int, screen tcell.Screen) {
