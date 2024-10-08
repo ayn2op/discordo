@@ -57,7 +57,7 @@ func newMessagesText() *MessagesText{
 			mY := y+1+prevLineCount
 			mH := height-2-prevLineCount
 			m.SetRect(x+1, mY, width-2, mH)
-			prevLineCount += m.getLineCount(width-1)
+			prevLineCount += m.lineCount
 		}
 
 		// Get scrolling offset based on selected message
@@ -70,14 +70,14 @@ func newMessagesText() *MessagesText{
 		_, lastY, _, _ := mt.messageBoxes[len(mt.messageBoxes)-1].GetRect()
 		firstY += scrollY
 		lastY += scrollY
-		lastLineCount := mt.messageBoxes[len(mt.messageBoxes)-1].getLineCount(width-1)
+		lastLineCount := mt.messageBoxes[len(mt.messageBoxes)-1].lineCount
 
 		if firstY > y+1 {
 			// top-first rendering
 			prevLineCount = 0
 			for _, m := range mt.messageBoxes {
 				m.SetRect(x+1, y+1+prevLineCount, width-2, height-2-prevLineCount)
-				prevLineCount += m.getLineCount(width-1)
+				prevLineCount += m.lineCount
 				m.Render(mt.selectedMessageID == m.ID, screen)
 				if y+1+prevLineCount > height-2 {
 					break
@@ -92,6 +92,10 @@ func newMessagesText() *MessagesText{
 				mX, mY, mW, mH := m.GetRect()
 				mY += scrollY
 				mH -= scrollY
+				if mY+m.lineCount < y+1 || mY > height-1 {
+					continue
+				}
+
 				m.SetRect(mX, mY, mW, mH)
 				m.Render(mt.selectedMessageID == m.ID, screen)
 			}
@@ -111,7 +115,7 @@ func newMessagesText() *MessagesText{
 func (mt *MessagesText) renderMessagesBottomFirst(x int, y int, width int, height int, screen tcell.Screen) {
 	prevLineCount := 0
 	for _, m := range slices.Backward(mt.messageBoxes) {
-		lineCount := m.getLineCount(width-1)
+		lineCount := m.lineCount
 		prevLineCount += lineCount
 		m.SetRect(x+1, height-1-prevLineCount, width-2, lineCount)
 		m.Render(mt.selectedMessageID == m.ID, screen)
@@ -172,6 +176,8 @@ func (mt *MessagesText) createMessage(m discord.Message) {
 		mt.createFooter(mb, m)
 	}
 
+	_, _, width, _ := mt.GetRect()
+	mb.lineCount = mb.getLineCount(width-1)
 	mt.messageBoxes = append(mt.messageBoxes, mb)
 }
 

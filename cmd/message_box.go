@@ -10,6 +10,7 @@ import (
 type MessageBox struct {
 	*tview.TextView
 	*discord.Message
+	lineCount int
 }
 
 func newMessageBox() *MessageBox {
