@@ -105,9 +105,6 @@ func (mi *MessageInput) send() {
 
 	mi.replyMessageID = 0
 	mi.reset()
-
-	mainFlex.messagesText.Highlight()
-	mainFlex.messagesText.ScrollToEnd()
 }
 
 func (mi *MessageInput) editor() {

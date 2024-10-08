@@ -198,7 +198,6 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 		gt.createChannelNodes(n, cs)
 	case discord.ChannelID:
 		mainFlex.messagesText.drawMsgs(ref)
-		mainFlex.messagesText.ScrollToEnd()
 
 		c, err := discordState.Cabinet.Channel(ref)
 		if err != nil {
