@@ -21,13 +21,14 @@ import (
 
 type MessagesText struct {
 	*tview.TextView
-
+	app               *tview.Application
 	selectedMessageID discord.MessageID
 }
 
-func newMessagesText() *MessagesText {
+func newMessagesText(app *tview.Application) *MessagesText {
 	mt := &MessagesText{
 		TextView: tview.NewTextView(),
+		app:      app,
 	}
 
 	mt.SetDynamicColors(true)
@@ -345,7 +346,7 @@ func (mt *MessagesText) reply(mention bool) {
 	title += msg.Author.Tag()
 	mainFlex.messageInput.SetTitle(title)
 	mainFlex.messageInput.replyMessageID = mt.selectedMessageID
-	app.SetFocus(mainFlex.messageInput)
+	mt.app.SetFocus(mainFlex.messageInput)
 }
 
 func (mt *MessagesText) delete() {

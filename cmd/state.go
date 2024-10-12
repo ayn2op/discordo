@@ -27,11 +27,13 @@ func init() {
 
 type State struct {
 	*ningen.State
+	app *tview.Application
 }
 
-func openState(token string) error {
+func openState(token string, app *tview.Application) error {
 	discordState = &State{
 		State: ningen.New(token),
+		app:   app,
 	}
 
 	// Handlers
@@ -78,7 +80,7 @@ func (s *State) onReady(r *gateway.ReadyEvent) {
 	}
 
 	mainFlex.guildsTree.SetCurrentNode(root)
-	app.SetFocus(mainFlex.guildsTree)
+	s.app.SetFocus(mainFlex.guildsTree)
 }
 
 func (s *State) onMessageCreate(m *gateway.MessageCreateEvent) {

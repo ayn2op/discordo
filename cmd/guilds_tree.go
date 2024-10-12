@@ -14,13 +14,14 @@ import (
 
 type GuildsTree struct {
 	*tview.TreeView
-
+	app               *tview.Application
 	selectedChannelID discord.ChannelID
 }
 
-func newGuildsTree() *GuildsTree {
+func newGuildsTree(app *tview.Application) *GuildsTree {
 	gt := &GuildsTree{
 		TreeView: tview.NewTreeView(),
+		app:      app,
 	}
 
 	root := tview.NewTreeNode("")
@@ -209,7 +210,7 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 		mainFlex.messagesText.SetTitle(gt.channelToString(*c))
 
 		gt.selectedChannelID = ref
-		app.SetFocus(mainFlex.messageInput)
+		gt.app.SetFocus(mainFlex.messageInput)
 	case nil: // Direct messages
 		cs, err := discordState.PrivateChannels()
 		if err != nil {
