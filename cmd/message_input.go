@@ -17,12 +17,14 @@ import (
 
 type MessageInput struct {
 	*tview.TextArea
+	app            *tview.Application
 	replyMessageID discord.MessageID
 }
 
-func newMessageInput() *MessageInput {
+func newMessageInput(app *tview.Application) *MessageInput {
 	mi := &MessageInput{
 		TextArea: tview.NewTextArea(),
+		app:      app,
 	}
 
 	mi.SetTextStyle(tcell.StyleDefault.Background(tcell.GetColor(cfg.Theme.BackgroundColor)))
@@ -131,7 +133,7 @@ func (mi *MessageInput) editor() {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	app.Suspend(func() {
+	mi.app.Suspend(func() {
 		err := cmd.Run()
 		if err != nil {
 			slog.Error("failed to run command", "err", err, "command", cmd)
