@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/ayn2op/discordo/internal/config"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/gdamore/tcell/v2"
@@ -14,13 +15,15 @@ import (
 
 type GuildsTree struct {
 	*tview.TreeView
+	cfg               *config.Config
 	app               *tview.Application
 	selectedChannelID discord.ChannelID
 }
 
-func newGuildsTree(app *tview.Application) *GuildsTree {
+func newGuildsTree(app *tview.Application, cfg *config.Config) *GuildsTree {
 	gt := &GuildsTree{
 		TreeView: tview.NewTreeView(),
+		cfg:      cfg,
 		app:      app,
 	}
 
@@ -55,7 +58,7 @@ func (gt *GuildsTree) createFolderNode(folder gateway.GuildFolder) {
 
 	root := gt.GetRoot()
 	folderNode := tview.NewTreeNode(name)
-	folderNode.SetExpanded(cfg.Theme.GuildsTree.AutoExpandFolders)
+	folderNode.SetExpanded(gt.cfg.Theme.GuildsTree.AutoExpandFolders)
 	root.AddChild(folderNode)
 
 	for _, gID := range folder.GuildIDs {
@@ -72,7 +75,7 @@ func (gt *GuildsTree) createFolderNode(folder gateway.GuildFolder) {
 func (gt *GuildsTree) createGuildNode(n *tview.TreeNode, g discord.Guild) {
 	guildNode := tview.NewTreeNode(g.Name)
 	guildNode.SetReference(g.ID)
-	guildNode.SetColor(tcell.GetColor(cfg.Theme.GuildsTree.GuildColor))
+	guildNode.SetColor(tcell.GetColor(gt.cfg.Theme.GuildsTree.GuildColor))
 	n.AddChild(guildNode)
 }
 
@@ -125,7 +128,7 @@ func (gt *GuildsTree) createChannelNode(n *tview.TreeNode, c discord.Channel) *t
 
 	channelNode := tview.NewTreeNode(gt.channelToString(c))
 	channelNode.SetReference(c.ID)
-	channelNode.SetColor(tcell.GetColor(cfg.Theme.GuildsTree.ChannelColor))
+	channelNode.SetColor(tcell.GetColor(gt.cfg.Theme.GuildsTree.ChannelColor))
 	n.AddChild(channelNode)
 	return channelNode
 }
@@ -226,16 +229,16 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 
 func (gt *GuildsTree) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
-	case cfg.Keys.SelectPrevious:
+	case gt.cfg.Keys.SelectPrevious:
 		return tcell.NewEventKey(tcell.KeyUp, 0, tcell.ModNone)
-	case cfg.Keys.SelectNext:
+	case gt.cfg.Keys.SelectNext:
 		return tcell.NewEventKey(tcell.KeyDown, 0, tcell.ModNone)
-	case cfg.Keys.SelectFirst:
+	case gt.cfg.Keys.SelectFirst:
 		return tcell.NewEventKey(tcell.KeyHome, 0, tcell.ModNone)
-	case cfg.Keys.SelectLast:
+	case gt.cfg.Keys.SelectLast:
 		return tcell.NewEventKey(tcell.KeyEnd, 0, tcell.ModNone)
 
-	case cfg.Keys.GuildsTree.SelectCurrent:
+	case gt.cfg.Keys.GuildsTree.SelectCurrent:
 		return tcell.NewEventKey(tcell.KeyEnter, 0, tcell.ModNone)
 	}
 

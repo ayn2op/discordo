@@ -3,6 +3,7 @@ package cmd
 import (
 	"log/slog"
 
+	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/constants"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -10,23 +11,23 @@ import (
 )
 
 type Layout struct {
-	app  *tview.Application
-	flex *tview.Flex
-
+	cfg          *config.Config
+	app          *tview.Application
+	flex         *tview.Flex
 	guildsTree   *GuildsTree
 	messagesText *MessagesText
 	messageInput *MessageInput
 }
 
-func newLayout() *Layout {
+func newLayout(cfg *config.Config) *Layout {
 	app := tview.NewApplication()
 	l := &Layout{
 		app:  app,
 		flex: tview.NewFlex(),
 
-		guildsTree:   newGuildsTree(app),
-		messagesText: newMessagesText(app),
-		messageInput: newMessageInput(app),
+		guildsTree:   newGuildsTree(app, cfg),
+		messagesText: newMessagesText(app, cfg),
+		messageInput: newMessageInput(app, cfg),
 	}
 
 	l.init()
@@ -49,10 +50,10 @@ func (l *Layout) show(token string) error {
 			if err := l.show(token); err != nil {
 				slog.Error("failed to show app", "err", err)
 			}
-		})
+		}, l.cfg)
 		l.app.SetRoot(loginForm, true)
 	} else {
-		if err := openState(token, l.app); err != nil {
+		if err := openState(token, l.app, l.cfg); err != nil {
 			return err
 		}
 
@@ -84,7 +85,7 @@ func (l *Layout) init() {
 
 func (l *Layout) onAppInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
-	case cfg.Keys.Quit:
+	case l.cfg.Keys.Quit:
 		l.app.Stop()
 	case "Ctrl+C":
 		// https://github.com/rivo/tview/blob/a64fc48d7654432f71922c8b908280cdb525805c/application.go#L153
@@ -96,16 +97,16 @@ func (l *Layout) onAppInputCapture(event *tcell.EventKey) *tcell.EventKey {
 
 func (l *Layout) onFlexInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
-	case cfg.Keys.FocusGuildsTree:
+	case l.cfg.Keys.FocusGuildsTree:
 		l.app.SetFocus(l.guildsTree)
 		return nil
-	case cfg.Keys.FocusMessagesText:
+	case l.cfg.Keys.FocusMessagesText:
 		l.app.SetFocus(l.messagesText)
 		return nil
-	case cfg.Keys.FocusMessageInput:
+	case l.cfg.Keys.FocusMessageInput:
 		l.app.SetFocus(l.messageInput)
 		return nil
-	case cfg.Keys.Logout:
+	case l.cfg.Keys.Logout:
 		l.app.Stop()
 
 		if err := keyring.Delete(constants.Name, "token"); err != nil {
@@ -114,7 +115,7 @@ func (l *Layout) onFlexInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		}
 
 		return nil
-	case cfg.Keys.ToggleGuildsTree:
+	case l.cfg.Keys.ToggleGuildsTree:
 		// The guilds tree is visible if the numbers of items is two.
 		if l.flex.GetItemCount() == 2 {
 			l.flex.RemoveItem(l.guildsTree)

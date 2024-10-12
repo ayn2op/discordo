@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/atotto/clipboard"
+	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/constants"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -17,11 +18,12 @@ import (
 
 type MessageInput struct {
 	*tview.TextArea
+	cfg            *config.Config
 	app            *tview.Application
 	replyMessageID discord.MessageID
 }
 
-func newMessageInput(app *tview.Application) *MessageInput {
+func newMessageInput(app *tview.Application, cfg *config.Config) *MessageInput {
 	mi := &MessageInput{
 		TextArea: tview.NewTextArea(),
 		app:      app,
@@ -57,13 +59,13 @@ func (mi *MessageInput) reset() {
 
 func (mi *MessageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
-	case cfg.Keys.MessageInput.Send:
+	case mi.cfg.Keys.MessageInput.Send:
 		mi.send()
 		return nil
-	case cfg.Keys.MessageInput.Editor:
+	case mi.cfg.Keys.MessageInput.Editor:
 		mi.editor()
 		return nil
-	case cfg.Keys.MessageInput.Cancel:
+	case mi.cfg.Keys.MessageInput.Cancel:
 		mi.reset()
 		return nil
 	}
@@ -113,7 +115,7 @@ func (mi *MessageInput) send() {
 }
 
 func (mi *MessageInput) editor() {
-	e := cfg.Editor
+	e := mi.cfg.Editor
 	if e == "default" {
 		e = os.Getenv("EDITOR")
 	}
