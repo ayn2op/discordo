@@ -7,9 +7,7 @@ import (
 
 var (
 	discordState *State
-
-	cfg      *config.Config
-	mainFlex *Layout
+	mainFlex     *Layout
 )
 
 func Run(token string) error {
@@ -17,12 +15,11 @@ func Run(token string) error {
 		return err
 	}
 
-	var err error
-	cfg, err = config.Load()
+	cfg, err := config.Load()
 	if err != nil {
 		return err
 	}
 
-	mainFlex = newLayout()
+	mainFlex = newLayout(cfg)
 	return mainFlex.run(token)
 }

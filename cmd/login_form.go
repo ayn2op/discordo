@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 
+	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/constants"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/gdamore/tcell/v2"
@@ -17,7 +18,7 @@ type loginForm struct {
 	done doneFn
 }
 
-func newLoginForm(done doneFn) *loginForm {
+func newLoginForm(done doneFn, cfg *config.Config) *loginForm {
 	if done == nil {
 		done = func(_ string, _ error) {}
 	}
