@@ -26,6 +26,7 @@ type MessageInput struct {
 func newMessageInput(app *tview.Application, cfg *config.Config) *MessageInput {
 	mi := &MessageInput{
 		TextArea: tview.NewTextArea(),
+		cfg:      cfg,
 		app:      app,
 	}
 
