@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ayn2op/discordo/internal/constants"
+	"github.com/ayn2op/discordo/internal/config"
 )
 
 // Recursively creates the log directory if it does not exist already and returns the path to the log file.
@@ -15,7 +15,7 @@ func initialize() (string, error) {
 		return "", err
 	}
 
-	path = filepath.Join(path, constants.Name)
+	path = filepath.Join(path, config.Name)
 	if err := os.MkdirAll(path, os.ModePerm); err != nil {
 		return "", err
 	}

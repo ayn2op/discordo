@@ -5,7 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/ayn2op/discordo/cmd"
-	"github.com/ayn2op/discordo/internal/constants"
+	"github.com/ayn2op/discordo/internal/config"
 	"github.com/zalando/go-keyring"
 )
 
@@ -15,7 +15,7 @@ func main() {
 
 	// If no token was provided, look it up in the keyring
 	if *token == "" {
-		t, err := keyring.Get(constants.Name, "token")
+		t, err := keyring.Get(config.Name, "token")
 		if err != nil {
 			slog.Info("failed to get token from keyring", "err", err)
 		} else {

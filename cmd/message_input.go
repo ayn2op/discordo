@@ -8,13 +8,14 @@ import (
 
 	"github.com/atotto/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
-	"github.com/ayn2op/discordo/internal/constants"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
+
+const tmpFilePattern = config.Name + "_*.md"
 
 type MessageInput struct {
 	*tview.TextArea
@@ -121,7 +122,7 @@ func (mi *MessageInput) editor() {
 		e = os.Getenv("EDITOR")
 	}
 
-	f, err := os.CreateTemp("", constants.TmpFilePattern)
+	f, err := os.CreateTemp("", tmpFilePattern)
 	if err != nil {
 		slog.Error("failed to create temporary file", "err", err)
 		return

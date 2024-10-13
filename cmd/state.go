@@ -7,7 +7,6 @@ import (
 	"slices"
 
 	"github.com/ayn2op/discordo/internal/config"
-	"github.com/ayn2op/discordo/internal/constants"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
@@ -17,12 +16,16 @@ import (
 	"github.com/rivo/tview"
 )
 
+const userAgent = config.Name + "/0.1 (https://github.com/diamondburned/arikawa, v3)"
+
 func init() {
-	api.UserAgent = constants.UserAgent
+	api.UserAgent = userAgent
 	gateway.DefaultIdentity = gateway.IdentifyProperties{
-		OS:      runtime.GOOS,
-		Browser: constants.Name,
-		Device:  "",
+		OS:     runtime.GOOS,
+		Device: "",
+
+		Browser:          config.Name,
+		BrowserUserAgent: userAgent,
 	}
 }
 
