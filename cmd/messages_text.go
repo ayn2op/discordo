@@ -73,12 +73,12 @@ func (mt *MessagesText) drawMsgs(cID discord.ChannelID) {
 	}
 
 	for _, m := range slices.Backward(ms) {
-		mainFlex.messagesText.createMessage(m)
+		layout.messagesText.createMessage(m)
 	}
 }
 
 func (mt *MessagesText) reset() {
-	mainFlex.messagesText.selectedMessageID = 0
+	layout.messagesText.selectedMessageID = 0
 
 	mt.SetTitle("")
 	mt.Clear()
@@ -172,7 +172,7 @@ func (mt *MessagesText) getSelectedMessage() (*discord.Message, error) {
 		return nil, errors.New("no message is currently selected")
 	}
 
-	msg, err := discordState.Cabinet.Message(mainFlex.guildsTree.selectedChannelID, mt.selectedMessageID)
+	msg, err := discordState.Cabinet.Message(layout.guildsTree.selectedChannelID, mt.selectedMessageID)
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve selected message: %w", err)
 	}
@@ -181,7 +181,7 @@ func (mt *MessagesText) getSelectedMessage() (*discord.Message, error) {
 }
 
 func (mt *MessagesText) getSelectedMessageIndex() (int, error) {
-	ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
+	ms, err := discordState.Cabinet.Messages(layout.guildsTree.selectedChannelID)
 	if err != nil {
 		return -1, err
 	}
@@ -221,9 +221,9 @@ func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 }
 
 func (mt *MessagesText) _select(name string) {
-	ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
+	ms, err := discordState.Cabinet.Messages(layout.guildsTree.selectedChannelID)
 	if err != nil {
-		slog.Error("failed to get messages", "err", err, "channel_id", mainFlex.guildsTree.selectedChannelID)
+		slog.Error("failed to get messages", "err", err, "channel_id", layout.guildsTree.selectedChannelID)
 		return
 	}
 
@@ -347,9 +347,9 @@ func (mt *MessagesText) reply(mention bool) {
 	}
 
 	title += msg.Author.Tag()
-	mainFlex.messageInput.SetTitle(title)
-	mainFlex.messageInput.replyMessageID = mt.selectedMessageID
-	mt.app.SetFocus(mainFlex.messageInput)
+	layout.messageInput.SetTitle(title)
+	layout.messageInput.replyMessageID = mt.selectedMessageID
+	mt.app.SetFocus(layout.messageInput)
 }
 
 func (mt *MessagesText) delete() {
@@ -361,7 +361,7 @@ func (mt *MessagesText) delete() {
 
 	clientID := discordState.Ready().User.ID
 	if msg.GuildID.IsValid() {
-		ps, err := discordState.Permissions(mainFlex.guildsTree.selectedChannelID, discordState.Ready().User.ID)
+		ps, err := discordState.Permissions(layout.guildsTree.selectedChannelID, discordState.Ready().User.ID)
 		if err != nil {
 			return
 		}
@@ -375,25 +375,25 @@ func (mt *MessagesText) delete() {
 		}
 	}
 
-	if err := discordState.DeleteMessage(mainFlex.guildsTree.selectedChannelID, msg.ID, ""); err != nil {
-		slog.Error("failed to delete message", "err", err, "channel_id", mainFlex.guildsTree.selectedChannelID, "message_id", msg.ID)
+	if err := discordState.DeleteMessage(layout.guildsTree.selectedChannelID, msg.ID, ""); err != nil {
+		slog.Error("failed to delete message", "err", err, "channel_id", layout.guildsTree.selectedChannelID, "message_id", msg.ID)
 		return
 	}
 
-	if err := discordState.MessageRemove(mainFlex.guildsTree.selectedChannelID, msg.ID); err != nil {
-		slog.Error("failed to delete message", "err", err, "channel_id", mainFlex.guildsTree.selectedChannelID, "message_id", msg.ID)
+	if err := discordState.MessageRemove(layout.guildsTree.selectedChannelID, msg.ID); err != nil {
+		slog.Error("failed to delete message", "err", err, "channel_id", layout.guildsTree.selectedChannelID, "message_id", msg.ID)
 		return
 	}
 
-	ms, err := discordState.Cabinet.Messages(mainFlex.guildsTree.selectedChannelID)
+	ms, err := discordState.Cabinet.Messages(layout.guildsTree.selectedChannelID)
 	if err != nil {
-		slog.Error("failed to delete message", "err", err, "channel_id", mainFlex.guildsTree.selectedChannelID)
+		slog.Error("failed to delete message", "err", err, "channel_id", layout.guildsTree.selectedChannelID)
 		return
 	}
 
 	mt.Clear()
 
 	for _, m := range slices.Backward(ms) {
-		mainFlex.messagesText.createMessage(m)
+		layout.messagesText.createMessage(m)
 	}
 }

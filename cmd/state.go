@@ -61,7 +61,7 @@ func (s *State) onRequest(r httpdriver.Request) error {
 }
 
 func (s *State) onReady(r *gateway.ReadyEvent) {
-	root := mainFlex.guildsTree.GetRoot()
+	root := layout.guildsTree.GetRoot()
 	dmNode := tview.NewTreeNode("Direct Messages")
 	dmNode.SetColor(tcell.GetColor(s.cfg.Theme.GuildsTree.PrivateChannelColor))
 	root.AddChild(dmNode)
@@ -75,32 +75,32 @@ func (s *State) onReady(r *gateway.ReadyEvent) {
 		}
 		folderGuildIds = append(folderGuildIds, folder.GuildIDs...)
 
-		mainFlex.guildsTree.createFolderNode(folder)
+		layout.guildsTree.createFolderNode(folder)
 	}
 
 	// add orphan (without folder) guilds to guilds tree
 	for _, guild := range r.Guilds {
 		if !slices.Contains(folderGuildIds, guild.ID) {
-			mainFlex.guildsTree.createGuildNode(root, guild.Guild)
+			layout.guildsTree.createGuildNode(root, guild.Guild)
 		}
 	}
 
-	mainFlex.guildsTree.SetCurrentNode(root)
-	s.app.SetFocus(mainFlex.guildsTree)
+	layout.guildsTree.SetCurrentNode(root)
+	s.app.SetFocus(layout.guildsTree)
 }
 
 func (s *State) onMessageCreate(m *gateway.MessageCreateEvent) {
-	if mainFlex.guildsTree.selectedChannelID.IsValid() && mainFlex.guildsTree.selectedChannelID == m.ChannelID {
-		mainFlex.messagesText.createMessage(m.Message)
+	if layout.guildsTree.selectedChannelID.IsValid() && layout.guildsTree.selectedChannelID == m.ChannelID {
+		layout.messagesText.createMessage(m.Message)
 	}
 }
 
 func (s *State) onMessageDelete(m *gateway.MessageDeleteEvent) {
-	if mainFlex.guildsTree.selectedChannelID == m.ChannelID {
-		mainFlex.messagesText.selectedMessageID = 0
-		mainFlex.messagesText.Highlight()
-		mainFlex.messagesText.Clear()
+	if layout.guildsTree.selectedChannelID == m.ChannelID {
+		layout.messagesText.selectedMessageID = 0
+		layout.messagesText.Highlight()
+		layout.messagesText.Clear()
 
-		mainFlex.messagesText.drawMsgs(m.ChannelID)
+		layout.messagesText.drawMsgs(m.ChannelID)
 	}
 }

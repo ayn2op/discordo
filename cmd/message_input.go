@@ -76,7 +76,7 @@ func (mi *MessageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 }
 
 func (mi *MessageInput) send() {
-	if !mainFlex.guildsTree.selectedChannelID.IsValid() {
+	if !layout.guildsTree.selectedChannelID.IsValid() {
 		return
 	}
 
@@ -97,13 +97,13 @@ func (mi *MessageInput) send() {
 		}
 
 		go func() {
-			if _, err := discordState.SendMessageComplex(mainFlex.guildsTree.selectedChannelID, data); err != nil {
+			if _, err := discordState.SendMessageComplex(layout.guildsTree.selectedChannelID, data); err != nil {
 				slog.Error("failed to send message", "err", err)
 			}
 		}()
 	} else {
 		go func() {
-			if _, err := discordState.SendMessage(mainFlex.guildsTree.selectedChannelID, text); err != nil {
+			if _, err := discordState.SendMessage(layout.guildsTree.selectedChannelID, text); err != nil {
 				slog.Error("failed to send message", "err", err)
 			}
 		}()
@@ -112,8 +112,8 @@ func (mi *MessageInput) send() {
 	mi.replyMessageID = 0
 	mi.reset()
 
-	mainFlex.messagesText.Highlight()
-	mainFlex.messagesText.ScrollToEnd()
+	layout.messagesText.Highlight()
+	layout.messagesText.ScrollToEnd()
 }
 
 func (mi *MessageInput) editor() {

@@ -7,7 +7,7 @@ import (
 
 var (
 	discordState *State
-	mainFlex     *Layout
+	layout       *Layout
 )
 
 func Run(token string) error {
@@ -20,6 +20,6 @@ func Run(token string) error {
 		return err
 	}
 
-	mainFlex = newLayout(cfg)
-	return mainFlex.run(token)
+	layout = newLayout(cfg)
+	return layout.run(token)
 }
