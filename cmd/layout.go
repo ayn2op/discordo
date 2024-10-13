@@ -22,6 +22,7 @@ type Layout struct {
 func newLayout(cfg *config.Config) *Layout {
 	app := tview.NewApplication()
 	l := &Layout{
+		cfg:  cfg,
 		app:  app,
 		flex: tview.NewFlex(),
 
