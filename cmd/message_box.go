@@ -13,7 +13,7 @@ type MessageBox struct {
 	lineCount int
 }
 
-func newMessageBox() *MessageBox {
+func newMessageBox(bgColor string) *MessageBox {
 	mb := &MessageBox{
 		TextView: tview.NewTextView(),
 	}
@@ -21,7 +21,7 @@ func newMessageBox() *MessageBox {
 	mb.SetDynamicColors(true)
 	mb.SetWordWrap(false)
 	mb.SetRegions(true)
-	mb.SetBackgroundColor(tcell.GetColor(cfg.Theme.BackgroundColor))
+	mb.SetBackgroundColor(tcell.GetColor(bgColor))
 
 	return mb
 }

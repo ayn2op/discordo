@@ -28,15 +28,17 @@ type MessagesText struct {
 	messageBoxes []*MessageBox
 }
 
-func newMessagesText() *MessagesText{
+func newMessagesText(app *tview.Application, cfg *config.Config) *MessagesText{
 	mt := &MessagesText{
 		Box: tview.NewBox(),
+		cfg:      cfg,
+		app:      app,
 	}
 
 	mt.SetBorder(true)
 	mt.SetTitle("Messages")
 	mt.SetTitleAlign(tview.AlignLeft)
-	mt.SetBackgroundColor(tcell.GetColor(cfg.Theme.BackgroundColor))
+	mt.SetBackgroundColor(tcell.GetColor(mt.cfg.Theme.BackgroundColor))
 	mt.Box.SetInputCapture(mt.onInputCapture)
 
 	mt.SetDrawFunc(func(screen tcell.Screen, x int, y int, width int, height int) (int, int, int, int) {
@@ -154,18 +156,18 @@ func (mt *MessagesText) drawMsgs(cID discord.ChannelID) {
 }
 
 func (mt *MessagesText) reset() {
-	mainFlex.messagesText.selectedMessageID = 0
+	layout.messagesText.selectedMessageID = 0
 	mt.SetTitle("")
 }
 
 func (mt *MessagesText) createMessage(m discord.Message) {
-	mb := newMessageBox()
+	mb := newMessageBox(mt.cfg.Theme.BackgroundColor)
 	mb.Message = &m
 	fmt.Fprintf(mb, `["msg"]`)
 
 	switch m.Type {
 	case discord.ChannelPinnedMessage:
-			fmt.Fprint(mb, "["+cfg.Theme.MessagesText.ContentColor+"]"+m.Author.Username+" pinned a message"+"[-:-:-]")
+			fmt.Fprint(mb, "["+mt.cfg.Theme.MessagesText.ContentColor+"]"+m.Author.Username+" pinned a message"+"[-:-:-]")
 	case discord.DefaultMessage, discord.InlinedReplyMessage:
 		if m.ReferencedMessage != nil {
 			mt.createHeader(mb, *m.ReferencedMessage, true)
@@ -191,7 +193,7 @@ func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, isReply boo
 	}
 
 	if isReply {
-		fmt.Fprintf(w, "[::d]%s", cfg.Theme.MessagesText.ReplyIndicator)
+		fmt.Fprintf(w, "[::d]%s", mt.cfg.Theme.MessagesText.ReplyIndicator)
 	}
 
 	fmt.Fprintf(w, "[%s]%s[-:-:-] ", mt.cfg.Theme.MessagesText.AuthorColor, m.Author.Username)
