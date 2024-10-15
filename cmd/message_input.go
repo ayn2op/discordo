@@ -111,9 +111,6 @@ func (mi *MessageInput) send() {
 
 	mi.replyMessageID = 0
 	mi.reset()
-
-	layout.messagesText.Highlight()
-	layout.messagesText.ScrollToEnd()
 }
 
 func (mi *MessageInput) editor() {

@@ -21,51 +21,129 @@ import (
 )
 
 type MessagesText struct {
-	*tview.TextView
+	*tview.Box
 	cfg               *config.Config
 	app               *tview.Application
 	selectedMessageID discord.MessageID
+	messageBoxes []*MessageBox
 }
 
-func newMessagesText(app *tview.Application, cfg *config.Config) *MessagesText {
+func newMessagesText(app *tview.Application, cfg *config.Config) *MessagesText{
 	mt := &MessagesText{
-		TextView: tview.NewTextView(),
+		Box: tview.NewBox(),
 		cfg:      cfg,
 		app:      app,
 	}
 
-	mt.SetDynamicColors(true)
-	mt.SetRegions(true)
-	mt.SetWordWrap(true)
-	mt.SetInputCapture(mt.onInputCapture)
-	mt.ScrollToEnd()
-	mt.SetChangedFunc(func() {
-		app.Draw()
-	})
-
-	mt.SetTextColor(tcell.GetColor(mt.cfg.Theme.MessagesText.ContentColor))
-	mt.SetBackgroundColor(tcell.GetColor(mt.cfg.Theme.BackgroundColor))
-
+	mt.SetBorder(true)
 	mt.SetTitle("Messages")
-	mt.SetTitleColor(tcell.GetColor(mt.cfg.Theme.TitleColor))
 	mt.SetTitleAlign(tview.AlignLeft)
+	mt.SetBackgroundColor(tcell.GetColor(mt.cfg.Theme.BackgroundColor))
+	mt.Box.SetInputCapture(mt.onInputCapture)
 
-	p := mt.cfg.Theme.BorderPadding
-	mt.SetBorder(mt.cfg.Theme.Border)
-	mt.SetBorderColor(tcell.GetColor(mt.cfg.Theme.BorderColor))
-	mt.SetBorderPadding(p[0], p[1], p[2], p[3])
+	mt.SetDrawFunc(func(screen tcell.Screen, x int, y int, width int, height int) (int, int, int, int) {
+		messageIdx, err := mt.getSelectedMessageIndex()
+		if err != nil {
+			slog.Error("failed to get selected message", "err", err)
+		}
+		messageIdx = min(messageIdx, len(mt.messageBoxes)-1)
+
+		// force bottom-first if no message is selected
+		if messageIdx == -1 {
+			mt.renderMessagesBottomFirst(x, y, width, height, screen)
+			mt.renderTopBorder(x, y, width, height, screen)
+			return x, y, width, height
+		}
+
+		// Position messages without any scrolling offset
+		prevLineCount := 0
+		for _, m := range mt.messageBoxes {
+			mY := y+1+prevLineCount
+			mH := height-2-prevLineCount
+			m.SetRect(x+1, mY, width-2, mH)
+			prevLineCount += m.lineCount
+		}
+
+		// Get scrolling offset based on selected message
+		_, selectedY, _, _ := mt.messageBoxes[len(mt.messageBoxes)-1-messageIdx].GetRect()
+		scrollOffset := 20
+		scrollY := -(selectedY - (y+1) - scrollOffset)
+		
+		// Get first and last message coordinates to determine the render options
+		_, firstY, _, _ := mt.messageBoxes[0].GetRect()
+		_, lastY, _, _ := mt.messageBoxes[len(mt.messageBoxes)-1].GetRect()
+		firstY += scrollY
+		lastY += scrollY
+		lastLineCount := mt.messageBoxes[len(mt.messageBoxes)-1].lineCount
+
+		if firstY > y+1 {
+			// top-first rendering
+			prevLineCount = 0
+			for _, m := range mt.messageBoxes {
+				m.SetRect(x+1, y+1+prevLineCount, width-2, height-2-prevLineCount)
+				prevLineCount += m.lineCount
+				m.Render(mt.selectedMessageID == m.ID, screen)
+				if y+1+prevLineCount > height-2 {
+					break
+				}
+			}
+		} else if lastY+lastLineCount < height-1 {
+			mt.renderMessagesBottomFirst(x, y, width, height, screen)
+			mt.renderTopBorder(x, y, width, height, screen)
+		} else {
+			// in-between rendering 
+			for _, m := range mt.messageBoxes {
+				mX, mY, mW, mH := m.GetRect()
+				mY += scrollY
+				mH -= scrollY
+				if mY+m.lineCount < y+1 || mY > height-1 {
+					continue
+				}
+
+				m.SetRect(mX, mY, mW, mH)
+				m.Render(mt.selectedMessageID == m.ID, screen)
+			}
+			mt.renderTopBorder(x, y, width, height, screen)
+		}
+
+		return x, y, width, height
+  	})
 
 	markdown.DefaultRenderer.AddOptions(
 		renderer.WithOption("emojiColor", mt.cfg.Theme.MessagesText.EmojiColor),
 		renderer.WithOption("linkColor", mt.cfg.Theme.MessagesText.LinkColor),
 	)
-
-	mt.SetHighlightedFunc(mt.onHighlighted)
-
 	return mt
 }
 
+func (mt *MessagesText) renderMessagesBottomFirst(x int, y int, width int, height int, screen tcell.Screen) {
+	prevLineCount := 0
+	for _, m := range slices.Backward(mt.messageBoxes) {
+		lineCount := m.lineCount
+		prevLineCount += lineCount
+		m.SetRect(x+1, height-1-prevLineCount, width-2, lineCount)
+		m.Render(mt.selectedMessageID == m.ID, screen)
+		if height-1-prevLineCount + lineCount < y+1 {
+			break
+		}
+	}
+}
+
+// Rendering the top border manually is the easiest way to cut text from the top
+func (mt *MessagesText) renderTopBorder(x int, y int, width int, height int, screen tcell.Screen) {
+	topLine := mt.GetTitle()
+	for i := 0; i < width-2 - len(mt.GetTitle()); i++ {
+		if mt.HasFocus() {
+			topLine += "═"
+		} else {
+			topLine += "─"
+		}
+	}
+	tview.PrintSimple(screen, topLine, x+1, y)
+}
+
 func (mt *MessagesText) drawMsgs(cID discord.ChannelID) {
+	mt.messageBoxes = nil
 	ms, err := discordState.Messages(cID, uint(mt.cfg.MessagesLimit))
 	if err != nil {
 		slog.Error("failed to get messages", "err", err, "channel_id", cID)
@@ -79,54 +157,33 @@ func (mt *MessagesText) drawMsgs(cID discord.ChannelID) {
 
 func (mt *MessagesText) reset() {
 	layout.messagesText.selectedMessageID = 0
-
 	mt.SetTitle("")
-	mt.Clear()
-	mt.Highlight()
-}
-
-// Region tags are square brackets that contain a region ID in double quotes
-// https://pkg.go.dev/github.com/rivo/tview#hdr-Regions_and_Highlights
-func (mt *MessagesText) startRegion(msgID discord.MessageID) {
-	fmt.Fprintf(mt, `["%s"]`, msgID)
-}
-
-// Tags with no region ID ([""]) don't start new regions. They can therefore be used to mark the end of a region.
-func (mt *MessagesText) endRegion() {
-	fmt.Fprint(mt, `[""]`)
 }
 
 func (mt *MessagesText) createMessage(m discord.Message) {
-	mt.startRegion(m.ID)
-	defer mt.endRegion()
-
-	if mt.cfg.HideBlockedUsers {
-		isBlocked := discordState.UserIsBlocked(m.Author.ID)
-		if isBlocked {
-			fmt.Fprintln(mt, "[:red:b]Blocked message[:-:-]")
-			return
-		}
-	}
+	mb := newMessageBox(mt.cfg.Theme.BackgroundColor)
+	mb.Message = &m
+	fmt.Fprintf(mb, `["msg"]`)
 
 	switch m.Type {
 	case discord.ChannelPinnedMessage:
-		fmt.Fprint(mt, "["+mt.cfg.Theme.MessagesText.ContentColor+"]"+m.Author.Username+" pinned a message"+"[-:-:-]")
+			fmt.Fprint(mb, "["+mt.cfg.Theme.MessagesText.ContentColor+"]"+m.Author.Username+" pinned a message"+"[-:-:-]")
 	case discord.DefaultMessage, discord.InlinedReplyMessage:
 		if m.ReferencedMessage != nil {
-			mt.createHeader(mt, *m.ReferencedMessage, true)
-			mt.createBody(mt, *m.ReferencedMessage, true)
+			mt.createHeader(mb, *m.ReferencedMessage, true)
+			mt.createBody(mb, *m.ReferencedMessage, true)
 
-			fmt.Fprint(mt, "[::-]\n")
+			fmt.Fprint(mb, "[::-]\n")
 		}
 
-		mt.createHeader(mt, m, false)
-		mt.createBody(mt, m, false)
-		mt.createFooter(mt, m)
-	default:
-		mt.createHeader(mt, m, false)
+		mt.createHeader(mb, m, false)
+		mt.createBody(mb, m, false)
+		mt.createFooter(mb, m)
 	}
 
-	fmt.Fprintln(mt)
+	_, _, width, _ := mt.GetRect()
+	mb.lineCount = mb.getLineCount(width-1)
+	mt.messageBoxes = append(mt.messageBoxes, mb)
 }
 
 func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, isReply bool) {
@@ -136,7 +193,7 @@ func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, isReply boo
 	}
 
 	if isReply {
-		fmt.Fprintf(mt, "[::d]%s", mt.cfg.Theme.MessagesText.ReplyIndicator)
+		fmt.Fprintf(w, "[::d]%s", mt.cfg.Theme.MessagesText.ReplyIndicator)
 	}
 
 	fmt.Fprintf(w, "[%s]%s[-:-:-] ", mt.cfg.Theme.MessagesText.AuthorColor, m.Author.Username)
@@ -236,25 +293,17 @@ func (mt *MessagesText) _select(name string) {
 	switch name {
 	case mt.cfg.Keys.SelectPrevious:
 		// If no message is currently selected, select the latest message.
-		if len(mt.GetHighlights()) == 0 {
+		if messageIdx == -1 {
 			mt.selectedMessageID = ms[0].ID
-		} else {
-			if messageIdx < len(ms)-1 {
-				mt.selectedMessageID = ms[messageIdx+1].ID
-			} else {
-				return
-			}
+		} else if messageIdx < len(ms)-1 {
+			mt.selectedMessageID = ms[messageIdx+1].ID
 		}
 	case mt.cfg.Keys.SelectNext:
 		// If no message is currently selected, select the latest message.
-		if len(mt.GetHighlights()) == 0 {
+		if messageIdx == -1 { 
 			mt.selectedMessageID = ms[0].ID
-		} else {
-			if messageIdx > 0 {
-				mt.selectedMessageID = ms[messageIdx-1].ID
-			} else {
-				return
-			}
+		} else if messageIdx > 0 {
+			mt.selectedMessageID = ms[messageIdx-1].ID
 		}
 	case mt.cfg.Keys.SelectFirst:
 		mt.selectedMessageID = ms[len(ms)-1].ID
@@ -281,9 +330,6 @@ func (mt *MessagesText) _select(name string) {
 			}
 		}
 	}
-
-	mt.Highlight(mt.selectedMessageID.String())
-	mt.ScrollToHighlight()
 }
 
 func (mt *MessagesText) onHighlighted(added, removed, remaining []string) {
@@ -390,8 +436,6 @@ func (mt *MessagesText) delete() {
 		slog.Error("failed to delete message", "err", err, "channel_id", layout.guildsTree.selectedChannelID)
 		return
 	}
-
-	mt.Clear()
 
 	for _, m := range slices.Backward(ms) {
 		layout.messagesText.createMessage(m)
