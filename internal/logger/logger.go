@@ -5,7 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ayn2op/discordo/internal/constants"
+	"github.com/ayn2op/discordo/internal/config"
+	"github.com/lmittmann/tint"
 )
 
 // Recursively creates the log directory if it does not exist already and returns the path to the log file.
@@ -15,7 +16,7 @@ func initialize() (string, error) {
 		return "", err
 	}
 
-	path = filepath.Join(path, constants.Name)
+	path = filepath.Join(path, config.Name)
 	if err := os.MkdirAll(path, os.ModePerm); err != nil {
 		return "", err
 	}
@@ -35,9 +36,8 @@ func Load() error {
 		return err
 	}
 
-	l := slog.New(slog.NewTextHandler(file, &slog.HandlerOptions{
-		AddSource: true,
-	}))
+	h := tint.NewHandler(file, nil)
+	l := slog.New(h)
 	slog.SetDefault(l)
 	return nil
 }

@@ -7,10 +7,7 @@ import (
 
 var (
 	discordState *State
-
-	cfg      *config.Config
-	app      *Application
-	mainFlex *MainFlex
+	layout       *Layout
 )
 
 func Run(token string) error {
@@ -18,15 +15,11 @@ func Run(token string) error {
 		return err
 	}
 
-	var err error
-	cfg, err = config.Load()
+	cfg, err := config.Load()
 	if err != nil {
 		return err
 	}
 
-	// app must be initialized after configuration is loaded
-	app = newApplication()
-	// mainFlex must be initialized before opening a new state.
-	mainFlex = newMainFlex()
-	return app.Run(token)
+	layout = newLayout(cfg)
+	return layout.run(token)
 }

@@ -6,8 +6,9 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
-	"github.com/ayn2op/discordo/internal/constants"
 )
+
+const Name = "discordo"
 
 type Config struct {
 	Mouse            bool `toml:"mouse"`
@@ -44,7 +45,12 @@ func defaultConfig() *Config {
 
 // Reads the configuration file and parses it.
 func Load() (*Config, error) {
-	path := filepath.Join(constants.ConfigDirPath, "config.toml")
+	path, err := os.UserConfigDir()
+	if err != nil {
+		path = "."
+	}
+
+	path = filepath.Join(path, Name, "config.toml")
 	f, err := os.Open(path)
 
 	cfg := defaultConfig()
