@@ -25,14 +25,14 @@ type MessagesText struct {
 	cfg               *config.Config
 	app               *tview.Application
 	selectedMessageID discord.MessageID
-	messageBoxes []*MessageBox
+	messageBoxes      []*MessageBox
 }
 
-func newMessagesText(app *tview.Application, cfg *config.Config) *MessagesText{
+func newMessagesText(app *tview.Application, cfg *config.Config) *MessagesText {
 	mt := &MessagesText{
 		Box: tview.NewBox(),
-		cfg:      cfg,
-		app:      app,
+		cfg: cfg,
+		app: app,
 	}
 
 	mt.SetBorder(true)
@@ -58,8 +58,8 @@ func newMessagesText(app *tview.Application, cfg *config.Config) *MessagesText{
 		// Position messages without any scrolling offset
 		prevLineCount := 0
 		for _, m := range mt.messageBoxes {
-			mY := y+1+prevLineCount
-			mH := height-2-prevLineCount
+			mY := y + 1 + prevLineCount
+			mH := height - 2 - prevLineCount
 			m.SetRect(x+1, mY, width-2, mH)
 			prevLineCount += m.lineCount
 		}
@@ -67,8 +67,8 @@ func newMessagesText(app *tview.Application, cfg *config.Config) *MessagesText{
 		// Get scrolling offset based on selected message
 		_, selectedY, _, _ := mt.messageBoxes[len(mt.messageBoxes)-1-messageIdx].GetRect()
 		scrollOffset := 20
-		scrollY := -(selectedY - (y+1) - scrollOffset)
-		
+		scrollY := -(selectedY - (y + 1) - scrollOffset)
+
 		// Get first and last message coordinates to determine the render options
 		_, firstY, _, _ := mt.messageBoxes[0].GetRect()
 		_, lastY, _, _ := mt.messageBoxes[len(mt.messageBoxes)-1].GetRect()
@@ -91,7 +91,7 @@ func newMessagesText(app *tview.Application, cfg *config.Config) *MessagesText{
 			mt.renderMessagesBottomFirst(x, y, width, height, screen)
 			mt.renderTopBorder(x, y, width, height, screen)
 		} else {
-			// in-between rendering 
+			// in-between rendering
 			for _, m := range mt.messageBoxes {
 				mX, mY, mW, mH := m.GetRect()
 				mY += scrollY
@@ -107,7 +107,7 @@ func newMessagesText(app *tview.Application, cfg *config.Config) *MessagesText{
 		}
 
 		return x, y, width, height
-  	})
+	})
 
 	markdown.DefaultRenderer.AddOptions(
 		renderer.WithOption("emojiColor", mt.cfg.Theme.MessagesText.EmojiColor),
@@ -119,11 +119,10 @@ func newMessagesText(app *tview.Application, cfg *config.Config) *MessagesText{
 func (mt *MessagesText) renderMessagesBottomFirst(x int, y int, width int, height int, screen tcell.Screen) {
 	prevLineCount := 0
 	for _, m := range slices.Backward(mt.messageBoxes) {
-		lineCount := m.lineCount
-		prevLineCount += lineCount
-		m.SetRect(x+1, height-1-prevLineCount, width-2, lineCount)
+		prevLineCount += m.lineCount
+		m.SetRect(x+1, height-1-prevLineCount, width-2, m.lineCount)
 		m.Render(mt.selectedMessageID == m.ID, screen)
-		if height-1-prevLineCount + lineCount < y+1 {
+		if height-1-prevLineCount+m.lineCount < y+1 {
 			break
 		}
 	}
@@ -132,7 +131,7 @@ func (mt *MessagesText) renderMessagesBottomFirst(x int, y int, width int, heigh
 // Rendering the top border manually is the easiest way to cut text from the top
 func (mt *MessagesText) renderTopBorder(x int, y int, width int, height int, screen tcell.Screen) {
 	topLine := mt.GetTitle()
-	for i := 0; i < width-2 - len(mt.GetTitle()); i++ {
+	for i := 0; i < width-2-len(mt.GetTitle()); i++ {
 		if mt.HasFocus() {
 			topLine += "═"
 		} else {
@@ -167,7 +166,7 @@ func (mt *MessagesText) createMessage(m discord.Message) {
 
 	switch m.Type {
 	case discord.ChannelPinnedMessage:
-			fmt.Fprint(mb, "["+mt.cfg.Theme.MessagesText.ContentColor+"]"+m.Author.Username+" pinned a message"+"[-:-:-]")
+		fmt.Fprint(mb, "["+mt.cfg.Theme.MessagesText.ContentColor+"]"+m.Author.Username+" pinned a message"+"[-:-:-]")
 	case discord.DefaultMessage, discord.InlinedReplyMessage:
 		if m.ReferencedMessage != nil {
 			mt.createHeader(mb, *m.ReferencedMessage, true)
@@ -182,7 +181,7 @@ func (mt *MessagesText) createMessage(m discord.Message) {
 	}
 
 	_, _, width, _ := mt.GetRect()
-	mb.lineCount = mb.getLineCount(width-1)
+	mb.lineCount = mb.getLineCount(width - 1)
 	mt.messageBoxes = append(mt.messageBoxes, mb)
 }
 
@@ -200,11 +199,20 @@ func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, isReply boo
 }
 
 func (mt *MessagesText) createBody(w io.Writer, m discord.Message, isReply bool) {
+	content := m.Content
+
 	if isReply {
 		fmt.Fprint(w, "[::d]")
+
+		// truncate reply content to a single line
+		headerLen := len(m.Author.Username) + 8
+		_, _, w, _ := mt.GetRect()
+		if headerLen+len(content) > w {
+			content = m.Content[0:max(0, min(w-replyLen, len(m.Content)))] + "..."
+		}
 	}
 
-	src := []byte(m.Content)
+	src := []byte(content)
 	ast := discordmd.ParseWithMessage(src, *discordState.Cabinet, &m, false)
 	markdown.DefaultRenderer.Render(w, src, ast)
 
@@ -300,7 +308,7 @@ func (mt *MessagesText) _select(name string) {
 		}
 	case mt.cfg.Keys.SelectNext:
 		// If no message is currently selected, select the latest message.
-		if messageIdx == -1 { 
+		if messageIdx == -1 {
 			mt.selectedMessageID = ms[0].ID
 		} else if messageIdx > 0 {
 			mt.selectedMessageID = ms[messageIdx-1].ID
