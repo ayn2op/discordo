@@ -208,7 +208,7 @@ func (mt *MessagesText) createBody(w io.Writer, m discord.Message, isReply bool)
 		headerLen := len(m.Author.Username) + 8
 		_, _, w, _ := mt.GetRect()
 		if headerLen+len(content) > w {
-			content = m.Content[0:max(0, min(w-replyLen, len(m.Content)))] + "..."
+			content = m.Content[0:max(0, min(w-headerLen, len(m.Content)))] + "..."
 		}
 	}
 
