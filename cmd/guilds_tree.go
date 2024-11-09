@@ -80,37 +80,32 @@ func (gt *GuildsTree) createGuildNode(n *tview.TreeNode, g discord.Guild) {
 }
 
 func (gt *GuildsTree) channelToString(c discord.Channel) string {
-	var s string
 	switch c.Type {
-	case discord.GuildText:
-		s = "#" + c.Name
-	case discord.DirectMessage:
-		r := c.DMRecipients[0]
-		s = r.Tag()
-	case discord.GuildVoice:
-		s = "v-" + c.Name
-	case discord.GroupDM:
-		s = c.Name
-		// If the name of the channel is empty, use the recipients' tags
-		if s == "" {
-			var recipients []string
-			for _, r := range c.DMRecipients {
-				recipients = append(recipients, r.DisplayOrUsername())
-			}
-
-			s = strings.Join(recipients, ", ")
+	case discord.DirectMessage, discord.GroupDM:
+		if c.Name != "" {
+			return c.Name
 		}
-	case discord.GuildAnnouncement:
-		s = "a-" + c.Name
-	case discord.GuildStore:
-		s = "s-" + c.Name
-	case discord.GuildForum:
-		s = "f-" + c.Name
-	default:
-		s = c.Name
-	}
 
-	return s
+		recipients := make([]string, len(c.DMRecipients))
+		for i, r := range c.DMRecipients {
+			recipients[i] = r.DisplayOrUsername()
+		}
+
+		return strings.Join(recipients, ", ")
+
+	case discord.GuildText:
+		return "#" + c.Name
+	case discord.GuildVoice, discord.GuildStageVoice:
+		return "v-" + c.Name
+	case discord.GuildAnnouncement:
+		return "a-" + c.Name
+	case discord.GuildStore:
+		return "s-" + c.Name
+	case discord.GuildForum:
+		return "f-" + c.Name
+	default:
+		return c.Name
+	}
 }
 
 func (gt *GuildsTree) createChannelNode(n *tview.TreeNode, c discord.Channel) *tview.TreeNode {
