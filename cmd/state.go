@@ -62,6 +62,8 @@ func (s *State) onRequest(r httpdriver.Request) error {
 
 func (s *State) onReady(r *gateway.ReadyEvent) {
 	root := layout.guildsTree.GetRoot()
+	root.ClearChildren()
+
 	dmNode := tview.NewTreeNode("Direct Messages")
 	dmNode.SetColor(tcell.GetColor(s.cfg.Theme.GuildsTree.PrivateChannelColor))
 	root.AddChild(dmNode)
