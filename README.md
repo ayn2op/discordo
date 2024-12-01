@@ -56,6 +56,9 @@ go build .
 
 ## Manually adding token to keyring
 
+Do this if you get the error:
+>failed to get token from keyring: secret not found in keyring
+
 1. First, start the keyring daemon
 ```bash
 eval $(gnome-keyring-daemon --start)
