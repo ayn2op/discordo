@@ -54,6 +54,23 @@ go build .
 
 2. Enter your email and password and click on the "Login" button to continue.
 
+## Manually adding token to keyring
+
+1. First, start the keyring daemon
+```bash
+eval $(gnome-keyring-daemon --start)
+export $(gnome-keyring-daemon --start)
+```
+
+2. Create a keyring using `seahorse` application if a keyring doesn't already exist.
+   
+3. Add the token secret using
+```bash
+secret-tool store --label="Discord Token" service discordo username token
+```
+
+4. When it prompts for the password, paste your token, and that's it!
+
 ## Configuration
 
 The configuration file allows you to configure and customize the behavior, keybindings, and theme of the application.
