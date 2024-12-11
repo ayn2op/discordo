@@ -54,7 +54,20 @@ go build .
 
 2. Enter your email and password and click on the "Login" button to continue.
 
-## Manually adding token to keyring
+## Configuration
+
+The configuration file allows you to configure and customize the behavior, keybindings, and theme of the application.
+
+- Unix: `$XDG_CONFIG_HOME/discordo/config.toml` or `$HOME/.config/discordo/config.toml`
+- Darwin: `$HOME/Library/Application Support/discordo/config.toml`
+- Windows: `%AppData%/discordo/config.toml`
+
+[The default configuration can be found here](./internal/config/config.go).
+
+
+## FAQ
+
+### Manually adding token to keyring
 
 Do this if you get the error:
 >failed to get token from keyring: secret not found in keyring
@@ -74,15 +87,6 @@ secret-tool store --label="Discord Token" service discordo username token
 
 4. When it prompts for the password, paste your token, and that's it!
 
-## Configuration
-
-The configuration file allows you to configure and customize the behavior, keybindings, and theme of the application.
-
-- Unix: `$XDG_CONFIG_HOME/discordo/config.toml` or `$HOME/.config/discordo/config.toml`
-- Darwin: `$HOME/Library/Application Support/discordo/config.toml`
-- Windows: `%AppData%/discordo/config.toml`
-
-[The default configuration can be found here](./internal/config/config.go).
 
 ## Disclaimer
 
