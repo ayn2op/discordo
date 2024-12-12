@@ -95,11 +95,6 @@ func (mi *MessageInput) send() {
 		if strings.HasPrefix(mi.GetTitle(), "[@]") {
 			data.AllowedMentions.RepliedUser = option.True
 		}
-
-		go func() {
-			if _, err := discordState.SendMessageComplex(layout.guildsTree.selectedChannelID, data); err != nil {
-			}
-		}()
 	}
 
 	go func() {
