@@ -64,6 +64,30 @@ The configuration file allows you to configure and customize the behavior, keybi
 
 [The default configuration can be found here](./internal/config/config.go).
 
+
+## FAQ
+
+### Manually adding token to keyring
+
+Do this if you get the error:
+>failed to get token from keyring: secret not found in keyring
+
+1. First, start the keyring daemon
+```bash
+eval $(gnome-keyring-daemon --start)
+export $(gnome-keyring-daemon --start)
+```
+
+2. Create a keyring using `seahorse` application if a keyring doesn't already exist.
+   
+3. Add the token secret using
+```bash
+secret-tool store --label="Discord Token" service discordo username token
+```
+
+4. When it prompts for the password, paste your token, and that's it!
+
+
 ## Disclaimer
 
 Automated user accounts or "self-bots" are against Discord's Terms of Service. I am not responsible for any loss caused by using "self-bots" or Discordo.
