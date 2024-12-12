@@ -2,11 +2,11 @@ package cmd
 
 import (
 	"fmt"
-	"log/slog"
 	"sort"
 	"strings"
 
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/charmbracelet/log"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/gdamore/tcell/v2"
@@ -64,7 +64,7 @@ func (gt *GuildsTree) createFolderNode(folder gateway.GuildFolder) {
 	for _, gID := range folder.GuildIDs {
 		g, err := discordState.Cabinet.Guild(gID)
 		if err != nil {
-			slog.Info("guild not found in state", "err", err, "guild", g)
+			log.Error("failed to get guild from state", "guild_id", gID, "err", err)
 			continue
 		}
 
@@ -110,9 +110,10 @@ func (gt *GuildsTree) channelToString(c discord.Channel) string {
 
 func (gt *GuildsTree) createChannelNode(n *tview.TreeNode, c discord.Channel) *tview.TreeNode {
 	if c.Type != discord.DirectMessage && c.Type != discord.GroupDM {
-		ps, err := discordState.Permissions(c.ID, discordState.Ready().User.ID)
+		userID := discordState.Ready().User.ID
+		ps, err := discordState.Permissions(c.ID, userID)
 		if err != nil {
-			slog.Error("failed to get permissions", "err", err, "channel_id", c.ID)
+			log.Error("failed to get permissions for user in channel", "user_id", userID, "channel_id", c.ID, "err", err)
 			return nil
 		}
 
@@ -186,7 +187,7 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 	case discord.GuildID:
 		cs, err := discordState.Cabinet.Channels(ref)
 		if err != nil {
-			slog.Error("failed to get channels", "err", err, "guild_id", ref)
+			log.Error("failed to get channels in the guild", "guild_id", ref, "err", err)
 			return
 		}
 
@@ -201,7 +202,7 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 
 		c, err := discordState.Cabinet.Channel(ref)
 		if err != nil {
-			slog.Error("failed to get channel", "channel_id", ref)
+			log.Error("channel not found in state", "channel_id", ref, "err", err)
 			return
 		}
 
@@ -212,7 +213,7 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 	case nil: // Direct messages
 		cs, err := discordState.PrivateChannels()
 		if err != nil {
-			slog.Error("failed to get private channels", "err", err)
+			log.Error("failed to get private channels", "err", err)
 			return
 		}
 

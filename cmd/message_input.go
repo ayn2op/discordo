@@ -1,13 +1,13 @@
 package cmd
 
 import (
-	"log/slog"
 	"os"
 	"os/exec"
 	"strings"
 
 	"github.com/atotto/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/charmbracelet/log"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
@@ -85,12 +85,12 @@ func (mi *MessageInput) send() {
 		return
 	}
 
+	data := api.SendMessageData{
+		Content: text,
+	}
 	if mi.replyMessageID != 0 {
-		data := api.SendMessageData{
-			Content:         text,
-			Reference:       &discord.MessageReference{MessageID: mi.replyMessageID},
-			AllowedMentions: &api.AllowedMentions{RepliedUser: option.False},
-		}
+		data.Reference = &discord.MessageReference{MessageID: mi.replyMessageID}
+		data.AllowedMentions = &api.AllowedMentions{RepliedUser: option.False}
 
 		if strings.HasPrefix(mi.GetTitle(), "[@]") {
 			data.AllowedMentions.RepliedUser = option.True
@@ -98,16 +98,15 @@ func (mi *MessageInput) send() {
 
 		go func() {
 			if _, err := discordState.SendMessageComplex(layout.guildsTree.selectedChannelID, data); err != nil {
-				slog.Error("failed to send message", "err", err)
-			}
-		}()
-	} else {
-		go func() {
-			if _, err := discordState.SendMessage(layout.guildsTree.selectedChannelID, text); err != nil {
-				slog.Error("failed to send message", "err", err)
 			}
 		}()
 	}
+
+	go func() {
+		if _, err := discordState.SendMessageComplex(layout.guildsTree.selectedChannelID, data); err != nil {
+			log.Error("failed to send message in channel", "channel_id", layout.guildsTree.selectedChannelID, "err", err)
+		}
+	}()
 
 	mi.replyMessageID = 0
 	mi.reset()
@@ -124,7 +123,7 @@ func (mi *MessageInput) editor() {
 
 	f, err := os.CreateTemp("", tmpFilePattern)
 	if err != nil {
-		slog.Error("failed to create temporary file", "err", err)
+		log.Error("failed to create temporary file", "err", err)
 		return
 	}
 	_, _ = f.WriteString(mi.GetText())
@@ -140,14 +139,14 @@ func (mi *MessageInput) editor() {
 	mi.app.Suspend(func() {
 		err := cmd.Run()
 		if err != nil {
-			slog.Error("failed to run command", "err", err, "command", cmd)
+			log.Error("failed to run command", "args", cmd.Args, "err", err)
 			return
 		}
 	})
 
 	msg, err := os.ReadFile(f.Name())
 	if err != nil {
-		slog.Error("failed to read temporary file", "err", err, "name", f.Name())
+		log.Error("failed to read temporary file", "name", f.Name(), "err", err)
 		return
 	}
 
