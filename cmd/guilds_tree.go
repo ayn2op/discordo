@@ -64,7 +64,7 @@ func (gt *GuildsTree) createFolderNode(folder gateway.GuildFolder) {
 	for _, gID := range folder.GuildIDs {
 		g, err := discordState.Cabinet.Guild(gID)
 		if err != nil {
-			slog.Info("guild not found in state", "err", err, "guild", g)
+			slog.Info("failed to get guild from state", "guild_id", gID, "err", err)
 			continue
 		}
 
