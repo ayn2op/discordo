@@ -8,7 +8,6 @@ require (
 	github.com/diamondburned/arikawa/v3 v3.4.0
 	github.com/diamondburned/ningen/v3 v3.0.1-0.20240808103805-f1a24c0da3d8
 	github.com/gdamore/tcell/v2 v2.7.4
-	github.com/lmittmann/tint v1.0.5
 	github.com/rivo/tview v0.0.0-20241103174730-c76f7879f592
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/yuin/goldmark v1.7.8
