@@ -26,7 +26,7 @@ func Load() error {
 	}
 
 	path = filepath.Join(path, "logs.txt")
-	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, os.ModePerm)
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND, os.ModePerm)
 	if err != nil {
 		return err
 	}
