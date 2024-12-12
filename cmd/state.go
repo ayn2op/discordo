@@ -2,11 +2,11 @@ package cmd
 
 import (
 	"context"
+	"log/slog"
 	"runtime"
 	"slices"
 
 	"github.com/ayn2op/discordo/internal/config"
-	"github.com/charmbracelet/log"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
@@ -54,7 +54,7 @@ func openState(token string, app *tview.Application, cfg *config.Config) error {
 func (s *State) onRequest(r httpdriver.Request) error {
 	req, ok := r.(*httpdriver.DefaultRequest)
 	if ok {
-		log.Info("new HTTP request", "method", req.Method, "path", req.URL.Path)
+		slog.Info("new HTTP request", "method", req.Method, "path", req.URL.Path)
 	}
 
 	return nil

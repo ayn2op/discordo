@@ -1,8 +1,9 @@
 package cmd
 
 import (
+	"log/slog"
+
 	"github.com/ayn2op/discordo/internal/config"
-	"github.com/charmbracelet/log"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/zalando/go-keyring"
@@ -42,13 +43,12 @@ func (l *Layout) show(token string) error {
 	if token == "" {
 		loginForm := newLoginForm(func(token string, err error) {
 			if err != nil {
-				log.Error(err)
+				slog.Error("failed to login", "err", err)
 				return
 			}
 
 			if err := l.show(token); err != nil {
-				log.Error("failed to show app", "err", err)
-				return
+				slog.Error("failed to show app", "err", err)
 			}
 		}, l.cfg)
 		l.app.SetRoot(loginForm, true)
@@ -110,7 +110,7 @@ func (l *Layout) onFlexInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		l.app.Stop()
 
 		if err := keyring.Delete(config.Name, "token"); err != nil {
-			log.Error("failed to delete token from keyring", "err", err)
+			slog.Error("failed to delete token from keyring", "err", err)
 			return nil
 		}
 

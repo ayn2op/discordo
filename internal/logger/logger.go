@@ -1,36 +1,43 @@
 package logger
 
 import (
+	"log/slog"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/ayn2op/discordo/internal/config"
-	"github.com/charmbracelet/log"
+	"github.com/lmittmann/tint"
 )
 
-// Opens the log file and configures the default logger.
-func Load() error {
-	log.SetReportTimestamp(true)
-	log.SetReportCaller(true)
-	log.SetTimeFormat(time.Kitchen)
-
+// Recursively creates the log directory if it does not exist already and returns the path to the log file.
+func initialize() (string, error) {
 	path, err := os.UserCacheDir()
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	path = filepath.Join(path, config.Name)
 	if err := os.MkdirAll(path, os.ModePerm); err != nil {
-		return err
+		return "", err
 	}
 
-	path = filepath.Join(path, "logs.txt")
-	file, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND, os.ModePerm)
+	return filepath.Join(path, "logs.txt"), nil
+}
+
+// Opens the log file and configures standard logger.
+func Load() error {
+	path, err := initialize()
 	if err != nil {
 		return err
 	}
 
-	log.SetOutput(file)
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	h := tint.NewHandler(file, nil)
+	l := slog.New(h)
+	slog.SetDefault(l)
 	return nil
 }
