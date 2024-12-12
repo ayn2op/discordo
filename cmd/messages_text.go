@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"slices"
 	"strconv"
 	"time"
@@ -12,6 +11,7 @@ import (
 	"github.com/atotto/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/markdown"
+	"github.com/charmbracelet/log"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/ningen/v3/discordmd"
 	"github.com/gdamore/tcell/v2"
@@ -68,7 +68,7 @@ func newMessagesText(app *tview.Application, cfg *config.Config) *MessagesText {
 func (mt *MessagesText) drawMsgs(cID discord.ChannelID) {
 	ms, err := discordState.Messages(cID, uint(mt.cfg.MessagesLimit))
 	if err != nil {
-		slog.Error("failed to get messages", "err", err, "channel_id", cID)
+		log.Error("failed to get messages in channel", "channel_id", cID, "err", err)
 		return
 	}
 
@@ -223,13 +223,13 @@ func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 func (mt *MessagesText) _select(name string) {
 	ms, err := discordState.Cabinet.Messages(layout.guildsTree.selectedChannelID)
 	if err != nil {
-		slog.Error("failed to get messages", "err", err, "channel_id", layout.guildsTree.selectedChannelID)
+		log.Error("failed to get messages in channel", "channel_id", layout.guildsTree.selectedChannelID, "err", err)
 		return
 	}
 
 	messageIdx, err := mt.getSelectedMessageIndex()
 	if err != nil {
-		slog.Error("failed to get selected message", "err", err)
+		log.Error("failed to get selected message", "err", err)
 		return
 	}
 
@@ -290,7 +290,7 @@ func (mt *MessagesText) onHighlighted(added, removed, remaining []string) {
 	if len(added) > 0 {
 		mID, err := strconv.ParseInt(added[0], 10, 64)
 		if err != nil {
-			slog.Error("Failed to parse region id as int to use as message id.", "err", err)
+			log.Error("failed to parse region ID", "id", added[0], "err", err)
 			return
 		}
 		mt.selectedMessageID = discord.MessageID(mID)
@@ -300,13 +300,13 @@ func (mt *MessagesText) onHighlighted(added, removed, remaining []string) {
 func (mt *MessagesText) yank() {
 	msg, err := mt.getSelectedMessage()
 	if err != nil {
-		slog.Error("failed to get selected message", "err", err)
+		log.Error("failed to get selected message", "err", err)
 		return
 	}
 
 	err = clipboard.WriteAll(msg.Content)
 	if err != nil {
-		slog.Error("failed to write to clipboard", "err", err)
+		log.Error("failed to write to clipboard", "err", err)
 		return
 	}
 }
@@ -314,7 +314,7 @@ func (mt *MessagesText) yank() {
 func (mt *MessagesText) open() {
 	msg, err := mt.getSelectedMessage()
 	if err != nil {
-		slog.Error("failed to get selected message", "err", err)
+		log.Error("failed to get selected message", "err", err)
 		return
 	}
 
@@ -326,7 +326,7 @@ func (mt *MessagesText) open() {
 	for _, a := range attachments {
 		go func() {
 			if err := open.Start(a.URL); err != nil {
-				slog.Error("failed to open URL", "err", err, "url", a.URL)
+				log.Error("failed to open url", "content_type", a.ContentType, "url", a.URL, "err", err)
 			}
 		}()
 	}
@@ -342,7 +342,7 @@ func (mt *MessagesText) reply(mention bool) {
 
 	msg, err := mt.getSelectedMessage()
 	if err != nil {
-		slog.Error("failed to get selected message", "err", err)
+		log.Error("failed to get selected message", "err", err)
 		return
 	}
 
@@ -355,7 +355,7 @@ func (mt *MessagesText) reply(mention bool) {
 func (mt *MessagesText) delete() {
 	msg, err := mt.getSelectedMessage()
 	if err != nil {
-		slog.Error("failed to get selected message", "err", err)
+		log.Error("failed to get selected message", "err", err)
 		return
 	}
 
@@ -376,18 +376,18 @@ func (mt *MessagesText) delete() {
 	}
 
 	if err := discordState.DeleteMessage(layout.guildsTree.selectedChannelID, msg.ID, ""); err != nil {
-		slog.Error("failed to delete message", "err", err, "channel_id", layout.guildsTree.selectedChannelID, "message_id", msg.ID)
+		log.Error("failed to delete message in channel", "channel_id", layout.guildsTree.selectedChannelID, "message_id", msg.ID, "err", err)
 		return
 	}
 
 	if err := discordState.MessageRemove(layout.guildsTree.selectedChannelID, msg.ID); err != nil {
-		slog.Error("failed to delete message", "err", err, "channel_id", layout.guildsTree.selectedChannelID, "message_id", msg.ID)
+		log.Error("failed to delete message in channel", "channel_id", layout.guildsTree.selectedChannelID, "message_id", msg.ID, "err", err)
 		return
 	}
 
 	ms, err := discordState.Cabinet.Messages(layout.guildsTree.selectedChannelID)
 	if err != nil {
-		slog.Error("failed to delete message", "err", err, "channel_id", layout.guildsTree.selectedChannelID)
+		log.Error("failed to get messages in channel", "channel_id", layout.guildsTree.selectedChannelID, "err", err)
 		return
 	}
 

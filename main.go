@@ -2,10 +2,10 @@ package main
 
 import (
 	"flag"
-	"log/slog"
 
 	"github.com/ayn2op/discordo/cmd"
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/charmbracelet/log"
 	"github.com/zalando/go-keyring"
 )
 
@@ -17,13 +17,13 @@ func main() {
 	if *token == "" {
 		t, err := keyring.Get(config.Name, "token")
 		if err != nil {
-			slog.Info("failed to get token from keyring", "err", err)
+			log.Info("failed to get token from keyring", "err", err)
 		} else {
 			*token = t
 		}
 	}
 
 	if err := cmd.Run(*token); err != nil {
-		slog.Error("failed to run", "err", err)
+		log.Fatal(err)
 	}
 }
