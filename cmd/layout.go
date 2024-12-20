@@ -86,6 +86,10 @@ func (l *Layout) init() {
 func (l *Layout) onAppInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case l.cfg.Keys.Quit:
+		if err := discordState.Close(); err != nil {
+			slog.Error("failed to close the session", "err", err)
+		}
+
 		l.app.Stop()
 	case "Ctrl+C":
 		// https://github.com/rivo/tview/blob/a64fc48d7654432f71922c8b908280cdb525805c/application.go#L153
