@@ -1,6 +1,7 @@
 package config
 
 import (
+	"log/slog"
 	"os"
 	"path/filepath"
 	"time"
@@ -47,6 +48,7 @@ func defaultConfig() *Config {
 func Load() (*Config, error) {
 	path, err := os.UserConfigDir()
 	if err != nil {
+		slog.Info("user configuration directory path cannot be determined; falling back to the current directory path")
 		path = "."
 	}
 
@@ -55,6 +57,7 @@ func Load() (*Config, error) {
 
 	cfg := defaultConfig()
 	if os.IsNotExist(err) {
+		slog.Info("the configuration file does not exist, falling back to the default configuration", "path", path, "err", err)
 		return cfg, nil
 	}
 
