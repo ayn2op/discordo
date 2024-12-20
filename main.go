@@ -12,6 +12,6 @@ func main() {
 	flag.Parse()
 
 	if err := cmd.Run(*token); err != nil {
-		slog.Error("failed to run", "err", err)
+		slog.Error(err.Error())
 	}
 }
