@@ -1,16 +1,18 @@
 package config
 
 type (
+	NavigationKeys struct {
+		SelectPrevious string `toml:"select_previous"`
+		SelectNext     string `toml:"select_next"`
+		SelectFirst    string `toml:"select_first"`
+		SelectLast     string `toml:"select_last"`
+	}
+
 	Keys struct {
 		FocusGuildsTree   string `toml:"focus_guilds_tree"`
 		FocusMessagesText string `toml:"focus_messages_text"`
 		FocusMessageInput string `toml:"focus_message_input"`
 		ToggleGuildsTree  string `toml:"toggle_guilds_tree"`
-
-		SelectPrevious string `toml:"select_previous"`
-		SelectNext     string `toml:"select_next"`
-		SelectFirst    string `toml:"select_first"`
-		SelectLast     string `toml:"select_last"`
 
 		GuildsTree   GuildsTreeKeys   `toml:"guilds_tree"`
 		MessagesText MessagesTextKeys `toml:"messages_text"`
@@ -21,10 +23,12 @@ type (
 	}
 
 	GuildsTreeKeys struct {
+		NavigationKeys
 		SelectCurrent string `toml:"select_current"`
 	}
 
 	MessagesTextKeys struct {
+		NavigationKeys
 		SelectReply  string `toml:"select_reply"`
 		SelectPin    string `toml:"select_pin"`
 		Reply        string `toml:"reply"`
@@ -52,16 +56,23 @@ func defaultKeys() Keys {
 		Logout: "Ctrl+D",
 		Quit:   "Ctrl+C",
 
-		SelectPrevious: "Rune[k]",
-		SelectNext:     "Rune[j]",
-		SelectFirst:    "Rune[g]",
-		SelectLast:     "Rune[G]",
-
 		GuildsTree: GuildsTreeKeys{
+			NavigationKeys: NavigationKeys{
+				SelectPrevious: "Rune[k]",
+				SelectNext:     "Rune[j]",
+				SelectFirst:    "Rune[g]",
+				SelectLast:     "Rune[G]",
+			},
 			SelectCurrent: "Enter",
 		},
 
 		MessagesText: MessagesTextKeys{
+			NavigationKeys: NavigationKeys{
+				SelectPrevious: "Rune[k]",
+				SelectNext:     "Rune[j]",
+				SelectFirst:    "Rune[g]",
+				SelectLast:     "Rune[G]",
+			},
 			SelectReply: "Rune[s]",
 			SelectPin:   "Rune[p]",
 
