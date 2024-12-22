@@ -224,14 +224,14 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 
 func (gt *GuildsTree) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
-	case gt.cfg.Keys.SelectPrevious:
+	case gt.cfg.Keys.GuildsTree.SelectPrevious:
 		return tcell.NewEventKey(tcell.KeyUp, 0, tcell.ModNone)
-	case gt.cfg.Keys.SelectNext:
+	case gt.cfg.Keys.GuildsTree.SelectNext:
 		return tcell.NewEventKey(tcell.KeyDown, 0, tcell.ModNone)
-	case gt.cfg.Keys.SelectFirst:
+	case gt.cfg.Keys.GuildsTree.SelectFirst:
 		gt.Move(gt.GetRowCount() * -1)
 		// return tcell.NewEventKey(tcell.KeyHome, 0, tcell.ModNone)
-	case gt.cfg.Keys.SelectLast:
+	case gt.cfg.Keys.GuildsTree.SelectLast:
 		gt.Move(gt.GetRowCount())
 		// return tcell.NewEventKey(tcell.KeyEnd, 0, tcell.ModNone)
 

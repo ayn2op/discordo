@@ -197,24 +197,18 @@ func (mt *MessagesText) getSelectedMessageIndex() (int, error) {
 
 func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
-	case mt.cfg.Keys.SelectPrevious, mt.cfg.Keys.SelectNext, mt.cfg.Keys.SelectFirst, mt.cfg.Keys.SelectLast, mt.cfg.Keys.MessagesText.SelectReply, mt.cfg.Keys.MessagesText.SelectPin:
+	case mt.cfg.Keys.MessagesText.SelectPrevious, mt.cfg.Keys.MessagesText.SelectNext, mt.cfg.Keys.MessagesText.SelectFirst, mt.cfg.Keys.MessagesText.SelectLast, mt.cfg.Keys.MessagesText.SelectReply, mt.cfg.Keys.MessagesText.SelectPin:
 		mt._select(event.Name())
-		return nil
 	case mt.cfg.Keys.MessagesText.Yank:
 		mt.yank()
-		return nil
 	case mt.cfg.Keys.MessagesText.Open:
 		mt.open()
-		return nil
 	case mt.cfg.Keys.MessagesText.Reply:
 		mt.reply(false)
-		return nil
 	case mt.cfg.Keys.MessagesText.ReplyMention:
 		mt.reply(true)
-		return nil
 	case mt.cfg.Keys.MessagesText.Delete:
 		mt.delete()
-		return nil
 	}
 
 	return nil
@@ -234,7 +228,7 @@ func (mt *MessagesText) _select(name string) {
 	}
 
 	switch name {
-	case mt.cfg.Keys.SelectPrevious:
+	case mt.cfg.Keys.MessagesText.SelectPrevious:
 		// If no message is currently selected, select the latest message.
 		if len(mt.GetHighlights()) == 0 {
 			mt.selectedMessageID = ms[0].ID
@@ -245,7 +239,7 @@ func (mt *MessagesText) _select(name string) {
 				return
 			}
 		}
-	case mt.cfg.Keys.SelectNext:
+	case mt.cfg.Keys.MessagesText.SelectNext:
 		// If no message is currently selected, select the latest message.
 		if len(mt.GetHighlights()) == 0 {
 			mt.selectedMessageID = ms[0].ID
@@ -256,9 +250,9 @@ func (mt *MessagesText) _select(name string) {
 				return
 			}
 		}
-	case mt.cfg.Keys.SelectFirst:
+	case mt.cfg.Keys.MessagesText.SelectFirst:
 		mt.selectedMessageID = ms[len(ms)-1].ID
-	case mt.cfg.Keys.SelectLast:
+	case mt.cfg.Keys.MessagesText.SelectLast:
 		mt.selectedMessageID = ms[0].ID
 	case mt.cfg.Keys.MessagesText.SelectReply:
 		if mt.selectedMessageID == 0 {
