@@ -29,10 +29,8 @@ jobs:
 
       - name: Send repository dispatch
         if: ${{ github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
         run: |
           curl -X POST -H "Accept: application/vnd.github.v3+json" \
-            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Authorization: Bearer ${{ secrets.REPO_ACCESS_TOKEN }}" \
             https://api.github.com/repos/vvirtues/bucket/dispatches \
             -d '{"event_type": "discordo-ci-completed"}'
