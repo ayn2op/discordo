@@ -1,11 +1,10 @@
-module github.com/ayn2op/discordo/cli
+module github.com/ayn2op/discordo
 
 go 1.23.4
 
 require (
 	github.com/BurntSushi/toml v1.4.0
 	github.com/atotto/clipboard v0.1.4
-	github.com/ayn2op/discordo v0.0.0-20241222021153-9f15a6342413
 	github.com/diamondburned/arikawa/v3 v3.4.0
 	github.com/diamondburned/ningen/v3 v3.0.1-0.20240808103805-f1a24c0da3d8
 	github.com/gdamore/tcell/v2 v2.7.4
