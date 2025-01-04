@@ -1,13 +1,15 @@
 package config
 
 import (
+	"log/slog"
 	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/BurntSushi/toml"
-	"github.com/ayn2op/discordo/internal/constants"
 )
+
+const Name = "discordo"
 
 type Config struct {
 	Mouse            bool `toml:"mouse"`
@@ -44,11 +46,18 @@ func defaultConfig() *Config {
 
 // Reads the configuration file and parses it.
 func Load() (*Config, error) {
-	path := filepath.Join(constants.ConfigDirPath, "config.toml")
+	path, err := os.UserConfigDir()
+	if err != nil {
+		slog.Info("user configuration directory path cannot be determined; falling back to the current directory path")
+		path = "."
+	}
+
+	path = filepath.Join(path, Name, "config.toml")
 	f, err := os.Open(path)
 
 	cfg := defaultConfig()
 	if os.IsNotExist(err) {
+		slog.Info("the configuration file does not exist, falling back to the default configuration", "path", path, "err", err)
 		return cfg, nil
 	}
 

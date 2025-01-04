@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/ayn2op/discordo/internal/config"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/gdamore/tcell/v2"
@@ -14,13 +15,16 @@ import (
 
 type GuildsTree struct {
 	*tview.TreeView
-
+	cfg               *config.Config
+	app               *tview.Application
 	selectedChannelID discord.ChannelID
 }
 
-func newGuildsTree() *GuildsTree {
+func newGuildsTree(app *tview.Application, cfg *config.Config) *GuildsTree {
 	gt := &GuildsTree{
 		TreeView: tview.NewTreeView(),
+		cfg:      cfg,
+		app:      app,
 	}
 
 	root := tview.NewTreeNode("")
@@ -54,13 +58,13 @@ func (gt *GuildsTree) createFolderNode(folder gateway.GuildFolder) {
 
 	root := gt.GetRoot()
 	folderNode := tview.NewTreeNode(name)
-	folderNode.SetExpanded(cfg.Theme.GuildsTree.AutoExpandFolders)
+	folderNode.SetExpanded(gt.cfg.Theme.GuildsTree.AutoExpandFolders)
 	root.AddChild(folderNode)
 
 	for _, gID := range folder.GuildIDs {
 		g, err := discordState.Cabinet.Guild(gID)
 		if err != nil {
-			slog.Info("guild not found in state", "err", err, "guild", g)
+			slog.Info("failed to get guild from state", "guild_id", gID, "err", err)
 			continue
 		}
 
@@ -71,42 +75,37 @@ func (gt *GuildsTree) createFolderNode(folder gateway.GuildFolder) {
 func (gt *GuildsTree) createGuildNode(n *tview.TreeNode, g discord.Guild) {
 	guildNode := tview.NewTreeNode(g.Name)
 	guildNode.SetReference(g.ID)
-	guildNode.SetColor(tcell.GetColor(cfg.Theme.GuildsTree.GuildColor))
+	guildNode.SetColor(tcell.GetColor(gt.cfg.Theme.GuildsTree.GuildColor))
 	n.AddChild(guildNode)
 }
 
 func (gt *GuildsTree) channelToString(c discord.Channel) string {
-	var s string
 	switch c.Type {
-	case discord.GuildText:
-		s = "#" + c.Name
-	case discord.DirectMessage:
-		r := c.DMRecipients[0]
-		s = r.Tag()
-	case discord.GuildVoice:
-		s = "v-" + c.Name
-	case discord.GroupDM:
-		s = c.Name
-		// If the name of the channel is empty, use the recipients' tags
-		if s == "" {
-			var recipients []string
-			for _, r := range c.DMRecipients {
-				recipients = append(recipients, r.DisplayOrUsername())
-			}
-
-			s = strings.Join(recipients, ", ")
+	case discord.DirectMessage, discord.GroupDM:
+		if c.Name != "" {
+			return c.Name
 		}
-	case discord.GuildAnnouncement:
-		s = "a-" + c.Name
-	case discord.GuildStore:
-		s = "s-" + c.Name
-	case discord.GuildForum:
-		s = "f-" + c.Name
-	default:
-		s = c.Name
-	}
 
-	return s
+		recipients := make([]string, len(c.DMRecipients))
+		for i, r := range c.DMRecipients {
+			recipients[i] = r.DisplayOrUsername()
+		}
+
+		return strings.Join(recipients, ", ")
+
+	case discord.GuildText:
+		return "#" + c.Name
+	case discord.GuildVoice, discord.GuildStageVoice:
+		return "v-" + c.Name
+	case discord.GuildAnnouncement:
+		return "a-" + c.Name
+	case discord.GuildStore:
+		return "s-" + c.Name
+	case discord.GuildForum:
+		return "f-" + c.Name
+	default:
+		return c.Name
+	}
 }
 
 func (gt *GuildsTree) createChannelNode(n *tview.TreeNode, c discord.Channel) *tview.TreeNode {
@@ -124,7 +123,7 @@ func (gt *GuildsTree) createChannelNode(n *tview.TreeNode, c discord.Channel) *t
 
 	channelNode := tview.NewTreeNode(gt.channelToString(c))
 	channelNode.SetReference(c.ID)
-	channelNode.SetColor(tcell.GetColor(cfg.Theme.GuildsTree.ChannelColor))
+	channelNode.SetColor(tcell.GetColor(gt.cfg.Theme.GuildsTree.ChannelColor))
 	n.AddChild(channelNode)
 	return channelNode
 }
@@ -175,8 +174,8 @@ PARENT_CHANNELS:
 func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 	gt.selectedChannelID = 0
 
-	mainFlex.messagesText.reset()
-	mainFlex.messageInput.reset()
+	layout.messagesText.reset()
+	layout.messageInput.reset()
 
 	if len(n.GetChildren()) != 0 {
 		n.SetExpanded(!n.IsExpanded())
@@ -197,8 +196,8 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 
 		gt.createChannelNodes(n, cs)
 	case discord.ChannelID:
-		mainFlex.messagesText.drawMsgs(ref)
-		mainFlex.messagesText.ScrollToEnd()
+		layout.messagesText.drawMsgs(ref)
+		layout.messagesText.ScrollToEnd()
 
 		c, err := discordState.Cabinet.Channel(ref)
 		if err != nil {
@@ -206,10 +205,10 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 			return
 		}
 
-		mainFlex.messagesText.SetTitle(gt.channelToString(*c))
+		layout.messagesText.SetTitle(gt.channelToString(*c))
 
 		gt.selectedChannelID = ref
-		app.SetFocus(mainFlex.messageInput)
+		gt.app.SetFocus(layout.messageInput)
 	case nil: // Direct messages
 		cs, err := discordState.PrivateChannels()
 		if err != nil {
@@ -225,16 +224,18 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 
 func (gt *GuildsTree) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
-	case cfg.Keys.SelectPrevious:
+	case gt.cfg.Keys.GuildsTree.SelectPrevious:
 		return tcell.NewEventKey(tcell.KeyUp, 0, tcell.ModNone)
-	case cfg.Keys.SelectNext:
+	case gt.cfg.Keys.GuildsTree.SelectNext:
 		return tcell.NewEventKey(tcell.KeyDown, 0, tcell.ModNone)
-	case cfg.Keys.SelectFirst:
-		return tcell.NewEventKey(tcell.KeyHome, 0, tcell.ModNone)
-	case cfg.Keys.SelectLast:
-		return tcell.NewEventKey(tcell.KeyEnd, 0, tcell.ModNone)
+	case gt.cfg.Keys.GuildsTree.SelectFirst:
+		gt.Move(gt.GetRowCount() * -1)
+		// return tcell.NewEventKey(tcell.KeyHome, 0, tcell.ModNone)
+	case gt.cfg.Keys.GuildsTree.SelectLast:
+		gt.Move(gt.GetRowCount())
+		// return tcell.NewEventKey(tcell.KeyEnd, 0, tcell.ModNone)
 
-	case cfg.Keys.GuildsTree.SelectCurrent:
+	case gt.cfg.Keys.GuildsTree.SelectCurrent:
 		return tcell.NewEventKey(tcell.KeyEnter, 0, tcell.ModNone)
 	}
 

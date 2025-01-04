@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/atotto/clipboard"
-	"github.com/ayn2op/discordo/internal/constants"
+	"github.com/ayn2op/discordo/internal/config"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
@@ -15,14 +15,20 @@ import (
 	"github.com/rivo/tview"
 )
 
+const tmpFilePattern = config.Name + "_*.md"
+
 type MessageInput struct {
 	*tview.TextArea
+	cfg            *config.Config
+	app            *tview.Application
 	replyMessageID discord.MessageID
 }
 
-func newMessageInput() *MessageInput {
+func newMessageInput(app *tview.Application, cfg *config.Config) *MessageInput {
 	mi := &MessageInput{
 		TextArea: tview.NewTextArea(),
+		cfg:      cfg,
+		app:      app,
 	}
 
 	mi.SetTextStyle(tcell.StyleDefault.Background(tcell.GetColor(cfg.Theme.BackgroundColor)))
@@ -55,13 +61,13 @@ func (mi *MessageInput) reset() {
 
 func (mi *MessageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
-	case cfg.Keys.MessageInput.Send:
+	case mi.cfg.Keys.MessageInput.Send:
 		mi.send()
 		return nil
-	case cfg.Keys.MessageInput.Editor:
+	case mi.cfg.Keys.MessageInput.Editor:
 		mi.editor()
 		return nil
-	case cfg.Keys.MessageInput.Cancel:
+	case mi.cfg.Keys.MessageInput.Cancel:
 		mi.reset()
 		return nil
 	}
@@ -70,7 +76,7 @@ func (mi *MessageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 }
 
 func (mi *MessageInput) send() {
-	if !mainFlex.guildsTree.selectedChannelID.IsValid() {
+	if !layout.guildsTree.selectedChannelID.IsValid() {
 		return
 	}
 
@@ -79,46 +85,40 @@ func (mi *MessageInput) send() {
 		return
 	}
 
+	data := api.SendMessageData{
+		Content: text,
+	}
 	if mi.replyMessageID != 0 {
-		data := api.SendMessageData{
-			Content:         text,
-			Reference:       &discord.MessageReference{MessageID: mi.replyMessageID},
-			AllowedMentions: &api.AllowedMentions{RepliedUser: option.False},
-		}
+		data.Reference = &discord.MessageReference{MessageID: mi.replyMessageID}
+		data.AllowedMentions = &api.AllowedMentions{RepliedUser: option.False}
 
 		if strings.HasPrefix(mi.GetTitle(), "[@]") {
 			data.AllowedMentions.RepliedUser = option.True
 		}
-
-		go func() {
-			if _, err := discordState.SendMessageComplex(mainFlex.guildsTree.selectedChannelID, data); err != nil {
-				slog.Error("failed to send message", "err", err)
-			}
-		}()
-	} else {
-		go func() {
-			if _, err := discordState.SendMessage(mainFlex.guildsTree.selectedChannelID, text); err != nil {
-				slog.Error("failed to send message", "err", err)
-			}
-		}()
 	}
+
+	go func() {
+		if _, err := discordState.SendMessageComplex(layout.guildsTree.selectedChannelID, data); err != nil {
+			slog.Error("failed to send message in channel", "channel_id", layout.guildsTree.selectedChannelID, "err", err)
+		}
+	}()
 
 	mi.replyMessageID = 0
 	mi.reset()
 
-	mainFlex.messagesText.Highlight()
-	mainFlex.messagesText.ScrollToEnd()
+	layout.messagesText.Highlight()
+	layout.messagesText.ScrollToEnd()
 }
 
 func (mi *MessageInput) editor() {
-	e := cfg.Editor
+	e := mi.cfg.Editor
 	if e == "default" {
 		e = os.Getenv("EDITOR")
 	}
 
-	f, err := os.CreateTemp("", constants.TmpFilePattern)
+	f, err := os.CreateTemp("", tmpFilePattern)
 	if err != nil {
-		slog.Error("failed to create temporary file", "err", err)
+		slog.Error("failed to create tmp file", "err", err)
 		return
 	}
 	_, _ = f.WriteString(mi.GetText())
@@ -131,17 +131,17 @@ func (mi *MessageInput) editor() {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	app.Suspend(func() {
+	mi.app.Suspend(func() {
 		err := cmd.Run()
 		if err != nil {
-			slog.Error("failed to run command", "err", err, "command", cmd)
+			slog.Error("failed to run command", "args", cmd.Args, "err", err)
 			return
 		}
 	})
 
 	msg, err := os.ReadFile(f.Name())
 	if err != nil {
-		slog.Error("failed to read temporary file", "err", err, "name", f.Name())
+		slog.Error("failed to read tmp file", "name", f.Name(), "err", err)
 		return
 	}
 

@@ -1,16 +1,16 @@
 package cmd
 
 import (
+	"log/slog"
+
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/logger"
+	"github.com/zalando/go-keyring"
 )
 
 var (
 	discordState *State
-
-	cfg      *config.Config
-	app      *Application
-	mainFlex *MainFlex
+	layout       *Layout
 )
 
 func Run(token string) error {
@@ -18,15 +18,21 @@ func Run(token string) error {
 		return err
 	}
 
-	var err error
-	cfg, err = config.Load()
+	// If no token was provided, look it up in the keyring.
+	if token == "" {
+		tok, err := keyring.Get(config.Name, "token")
+		if err != nil {
+			slog.Info("failed to get token from keyring", "err", err)
+		} else {
+			token = tok
+		}
+	}
+
+	cfg, err := config.Load()
 	if err != nil {
 		return err
 	}
 
-	// app must be initialized after configuration is loaded
-	app = newApplication()
-	// mainFlex must be initialized before opening a new state.
-	mainFlex = newMainFlex()
-	return app.Run(token)
+	layout = newLayout(cfg)
+	return layout.run(token)
 }

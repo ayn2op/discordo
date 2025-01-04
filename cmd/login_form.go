@@ -3,7 +3,7 @@ package cmd
 import (
 	"errors"
 
-	"github.com/ayn2op/discordo/internal/constants"
+	"github.com/ayn2op/discordo/internal/config"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -17,7 +17,7 @@ type loginForm struct {
 	done doneFn
 }
 
-func newLoginForm(done doneFn) *loginForm {
+func newLoginForm(done doneFn, cfg *config.Config) *loginForm {
 	if done == nil {
 		done = func(_ string, _ error) {}
 	}
@@ -84,7 +84,7 @@ func (lf *loginForm) login() {
 	rememberMe := lf.GetFormItem(3).(*tview.Checkbox).IsChecked()
 	if rememberMe {
 		go func() {
-			if err := keyring.Set(constants.Name, "token", lr.Token); err != nil {
+			if err := keyring.Set(config.Name, "token", lr.Token); err != nil {
 				lf.done("", err)
 			}
 		}()

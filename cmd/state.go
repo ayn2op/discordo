@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"slices"
 
-	"github.com/ayn2op/discordo/internal/constants"
+	"github.com/ayn2op/discordo/internal/config"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
@@ -16,22 +16,30 @@ import (
 	"github.com/rivo/tview"
 )
 
+const userAgent = config.Name + "/0.1 (https://github.com/diamondburned/arikawa, v3)"
+
 func init() {
-	api.UserAgent = constants.UserAgent
+	api.UserAgent = userAgent
 	gateway.DefaultIdentity = gateway.IdentifyProperties{
-		OS:      runtime.GOOS,
-		Browser: constants.Name,
-		Device:  "",
+		OS:     runtime.GOOS,
+		Device: "",
+
+		Browser:          config.Name,
+		BrowserUserAgent: userAgent,
 	}
 }
 
 type State struct {
 	*ningen.State
+	cfg *config.Config
+	app *tview.Application
 }
 
-func openState(token string) error {
+func openState(token string, app *tview.Application, cfg *config.Config) error {
 	discordState = &State{
 		State: ningen.New(token),
+		cfg:   cfg,
+		app:   app,
 	}
 
 	// Handlers
@@ -53,9 +61,11 @@ func (s *State) onRequest(r httpdriver.Request) error {
 }
 
 func (s *State) onReady(r *gateway.ReadyEvent) {
-	root := mainFlex.guildsTree.GetRoot()
+	root := layout.guildsTree.GetRoot()
+	root.ClearChildren()
+
 	dmNode := tview.NewTreeNode("Direct Messages")
-	dmNode.SetColor(tcell.GetColor(cfg.Theme.GuildsTree.PrivateChannelColor))
+	dmNode.SetColor(tcell.GetColor(s.cfg.Theme.GuildsTree.PrivateChannelColor))
 	root.AddChild(dmNode)
 
 	// Track guilds that have a parent (folder) to add orphan channels later
@@ -67,32 +77,32 @@ func (s *State) onReady(r *gateway.ReadyEvent) {
 		}
 		folderGuildIds = append(folderGuildIds, folder.GuildIDs...)
 
-		mainFlex.guildsTree.createFolderNode(folder)
+		layout.guildsTree.createFolderNode(folder)
 	}
 
 	// add orphan (without folder) guilds to guilds tree
 	for _, guild := range r.Guilds {
 		if !slices.Contains(folderGuildIds, guild.ID) {
-			mainFlex.guildsTree.createGuildNode(root, guild.Guild)
+			layout.guildsTree.createGuildNode(root, guild.Guild)
 		}
 	}
 
-	mainFlex.guildsTree.SetCurrentNode(root)
-	app.SetFocus(mainFlex.guildsTree)
+	layout.guildsTree.SetCurrentNode(root)
+	s.app.SetFocus(layout.guildsTree)
 }
 
 func (s *State) onMessageCreate(m *gateway.MessageCreateEvent) {
-	if mainFlex.guildsTree.selectedChannelID.IsValid() && mainFlex.guildsTree.selectedChannelID == m.ChannelID {
-		mainFlex.messagesText.createMessage(m.Message)
+	if layout.guildsTree.selectedChannelID.IsValid() && layout.guildsTree.selectedChannelID == m.ChannelID {
+		layout.messagesText.createMessage(m.Message)
 	}
 }
 
 func (s *State) onMessageDelete(m *gateway.MessageDeleteEvent) {
-	if mainFlex.guildsTree.selectedChannelID == m.ChannelID {
-		mainFlex.messagesText.selectedMessageID = 0
-		mainFlex.messagesText.Highlight()
-		mainFlex.messagesText.Clear()
+	if layout.guildsTree.selectedChannelID == m.ChannelID {
+		layout.messagesText.selectedMessageID = 0
+		layout.messagesText.Highlight()
+		layout.messagesText.Clear()
 
-		mainFlex.messagesText.drawMsgs(m.ChannelID)
+		layout.messagesText.drawMsgs(m.ChannelID)
 	}
 }
