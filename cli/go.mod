@@ -1,14 +1,15 @@
-module github.com/ayn2op/discordo
+module github.com/ayn2op/discordo/cli
 
-go 1.23.2
+go 1.23.4
 
 require (
 	github.com/BurntSushi/toml v1.4.0
 	github.com/atotto/clipboard v0.1.4
+	github.com/ayn2op/discordo v0.0.0-20241222021153-9f15a6342413
 	github.com/diamondburned/arikawa/v3 v3.4.0
 	github.com/diamondburned/ningen/v3 v3.0.1-0.20240808103805-f1a24c0da3d8
 	github.com/gdamore/tcell/v2 v2.7.4
-	github.com/rivo/tview v0.0.0-20241103174730-c76f7879f592
+	github.com/rivo/tview v0.0.0-20241227133733-17b7edb88c57
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/yuin/goldmark v1.7.8
 	github.com/zalando/go-keyring v0.2.6

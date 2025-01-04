@@ -38,7 +38,7 @@ scoop install discordo
 ```bash
 git clone https://github.com/ayn2op/discordo
 cd discordo
-go build .
+go build ./cli
 ```
 
 ### Linux clipboard support
@@ -64,29 +64,30 @@ The configuration file allows you to configure and customize the behavior, keybi
 
 [The default configuration can be found here](./internal/config/config.go).
 
-
 ## FAQ
 
-### Manually adding token to keyring
+### Manually adding token to keyring (Linux)
 
-Do this if you get the error:
->failed to get token from keyring: secret not found in keyring
+Do this if you get the following error:
+
+> failed to get token from keyring: secret not found in keyring
 
 1. First, start the keyring daemon
-```bash
+
+```sh
 eval $(gnome-keyring-daemon --start)
 export $(gnome-keyring-daemon --start)
 ```
 
 2. Create a keyring using `seahorse` application if a keyring doesn't already exist.
-   
+
 3. Add the token secret using
-```bash
+
+```sh
 secret-tool store --label="Discord Token" service discordo username token
 ```
 
 4. When it prompts for the password, paste your token, and that's it!
-
 
 ## Disclaimer
 
