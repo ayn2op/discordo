@@ -32,8 +32,4 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.PAT }}
         run: |
-          gh api \
-            --method POST \
-            -H "Accept: application/vnd.github+json" \
-            /repos/vvirtues/bucket/dispatches \
-            -f "event_type=discordo-ci-completed"
+          gh api --method POST -H "Accept: application/vnd.github+json" -f "event_type=discordo-ci-completed" /repos/vvirtues/bucket/dispatches
