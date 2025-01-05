@@ -37,10 +37,3 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             /repos/vvirtues/bucket/dispatches \
             -f "event_type=discordo-ci-completed"
-
-#      - name: Repository Dispatch
-#        uses: peter-evans/repository-dispatch@v3
-#        with:
-#          token: ${{ secrets.PAT }}
-#          repository: vvirtues/bucket
-#          event-type: discordo-ci-completed
