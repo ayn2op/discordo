@@ -54,6 +54,38 @@ go build .
 
 2. Enter your email and password and click on the "Login" button to continue.
 
+
+# Key bindings
+
+## Default keybindings
+
+* App navigation
+  * `j` (vim) down and `k` (vim) up (any context except input).
+  * `esc` Reset message selection or close channel selection popup.
+  * `ctrl+c` Quit.
+  * ⚠️`ctrl+d` Deletes credentials, will need to login again on restart.
+* Message input
+  * `alt+enter` Switch between multi-line and singl-line input modes.
+  * `ctrl+w / alt+backspace` Delete last word.
+  * `ctrl+u`Delete to the start of the line.
+  * `enter` Send message.
+* Multi-line message input
+  * `Up` Previous line
+  * `Down` Next line
+* Cursor
+  * `ctrl+Right` Move forward one word.
+  * `ctrl+Left` Move backward one word.
+  * `ctrl+a / Home` Move cursor to the beginning of the line.
+  * `ctrl+e / End` Move cursor the the end of the line.
+* Message/channel selection
+  * `ctrl+g` Switch to groups/server channels selection.
+  * `ctrl+m` Unroll a channel/server.
+  * `ctrl+r` Channel quick select.
+  * `ctrl+b` Hide channels sidebar.
+  * `ctrl+t` Switch to currently selected channel.
+  * `ctrl+p` Switch to user input box.
+
+
 ## Configuration
 
 The configuration file allows you to configure and customize the behavior, keybindings, and theme of the application.
