@@ -38,7 +38,7 @@ scoop install discordo
 ```bash
 git clone https://github.com/ayn2op/discordo
 cd discordo
-go build .
+make
 ```
 
 ### Linux clipboard support
