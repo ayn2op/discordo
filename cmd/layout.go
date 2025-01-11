@@ -88,8 +88,10 @@ func (l *Layout) init() {
 func (l *Layout) onAppInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case l.cfg.Keys.Quit:
-		if err := discordState.Close(); err != nil {
-			slog.Error("failed to close the session", "err", err)
+		if discordState != nil {
+			if err := discordState.Close(); err != nil {
+				slog.Error("failed to close the session", "err", err)
+			}
 		}
 
 		l.app.Stop()
