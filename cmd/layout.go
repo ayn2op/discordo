@@ -4,6 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/login"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/zalando/go-keyring"
@@ -41,7 +42,7 @@ func newLayout(cfg *config.Config) *Layout {
 
 func (l *Layout) show(token string) error {
 	if token == "" {
-		loginForm := newLoginForm(func(token string, err error) {
+		loginForm := login.NewForm(l.app, func(token string, err error) {
 			if err != nil {
 				slog.Error("failed to login", "err", err)
 				return
@@ -49,8 +50,9 @@ func (l *Layout) show(token string) error {
 
 			if err := l.show(token); err != nil {
 				slog.Error("failed to show app", "err", err)
+				return
 			}
-		}, l.cfg)
+		})
 		l.app.SetRoot(loginForm, true)
 	} else {
 		if err := openState(token, l.app, l.cfg); err != nil {
@@ -86,8 +88,10 @@ func (l *Layout) init() {
 func (l *Layout) onAppInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case l.cfg.Keys.Quit:
-		if err := discordState.Close(); err != nil {
-			slog.Error("failed to close the session", "err", err)
+		if discordState != nil {
+			if err := discordState.Close(); err != nil {
+				slog.Error("failed to close the session", "err", err)
+			}
 		}
 
 		l.app.Stop()
