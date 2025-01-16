@@ -55,36 +55,40 @@ go build .
 2. Enter your email and password and click on the "Login" button to continue.
 
 
-# Key bindings
+## Key Bindings
 
-## Default keybindings
+### Default Key Bindings
 
-* App navigation
-  * `j` (vim) down and `k` (vim) up (any context except input).
-  * `esc` Reset message selection or close channel selection popup.
-  * `ctrl+c` Quit.
-  * ⚠️`ctrl+d` Deletes credentials, will need to login again on restart.
-* Message input
-  * `alt+enter` Switch between multi-line and singl-line input modes.
-  * `ctrl+w / alt+backspace` Delete last word.
-  * `ctrl+u`Delete to the start of the line.
-  * `enter` Send message.
-* Multi-line message input
-  * `Up` Previous line
-  * `Down` Next line
-* Cursor
-  * `ctrl+Right` Move forward one word.
-  * `ctrl+Left` Move backward one word.
-  * `ctrl+a / Home` Move cursor to the beginning of the line.
-  * `ctrl+e / End` Move cursor the the end of the line.
-* Message/channel selection
-  * `ctrl+g` Switch to groups/server channels selection.
-  * `ctrl+m` Unroll a channel/server.
-  * `ctrl+r` Channel quick select.
-  * `ctrl+b` Hide channels sidebar.
-  * `ctrl+t` Switch to currently selected channel.
-  * `ctrl+p` Switch to user input box.
+#### App Navigation
+- `j` (vim): Navigate down (any context except input).  
+- `k` (vim): Navigate up (any context except input).  
+- `esc`: Reset message selection or close the channel selection popup.  
+- `ctrl+c`: Quit the application.  
+- ⚠️ `ctrl+d`: Delete credentials (requires re-login upon restart).  
 
+#### Message Input
+- `alt+enter`: Toggle between multi-line and single-line input modes.  
+- `ctrl+w` / `alt+backspace`: Delete the last word.  
+- `ctrl+u`: Delete to the start of the line.  
+- `enter`: Send the message.  
+
+#### Multi-Line Message Input
+- `Up`: Move to the previous line.  
+- `Down`: Move to the next line.  
+
+#### Cursor Movement
+- `ctrl+Right`: Move forward one word.  
+- `ctrl+Left`: Move backward one word.  
+- `ctrl+a` / `Home`: Move the cursor to the beginning of the line.  
+- `ctrl+e` / `End`: Move the cursor to the end of the line.  
+
+#### Message/Channel Selection
+- `ctrl+g`: Switch to group/server channel selection.  
+- `ctrl+m`: Expand a channel/server.  
+- `ctrl+r`: Quick-select a channel.  
+- `ctrl+b`: Hide the channels sidebar.  
+- `ctrl+t`: Switch to the currently selected channel.  
+- `ctrl+p`: Switch to the user input box.  
 
 ## Configuration
 
