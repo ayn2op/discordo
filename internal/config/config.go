@@ -10,8 +10,11 @@ import (
 )
 
 const (
-	Name      = "discordo"
-	UserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36"
+	Name = "discordo"
+
+	Browser        = "Chrome"
+	BrowserVersion = "132.0.0.0"
+	UserAgent      = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) " + Browser + "/" + BrowserVersion + " Safari/537.36"
 )
 
 type Config struct {
@@ -21,10 +24,14 @@ type Config struct {
 	ShowAttachmentLinks bool   `toml:"show_attachment_links"`
 	MessagesLimit       uint8  `toml:"messages_limit"`
 	Editor              string `toml:"editor"`
-	UserAgent           string `toml:"user_agent"`
-	TimestampsFormat    string `toml:"timestamps_format"`
-	Keys                Keys   `toml:"keys"`
-	Theme               Theme  `toml:"theme"`
+
+	Browser        string `toml:"browser"`
+	BrowserVersion string `toml:"browser_version"`
+	UserAgent      string `toml:"user_agent"`
+
+	TimestampsFormat string `toml:"timestamps_format"`
+	Keys             Keys   `toml:"keys"`
+	Theme            Theme  `toml:"theme"`
 }
 
 func defaultConfig() *Config {
@@ -36,9 +43,13 @@ func defaultConfig() *Config {
 		MessagesLimit:       50,
 		Editor:              "default",
 		TimestampsFormat:    time.Kitchen,
-		UserAgent:           UserAgent,
-		Keys:                defaultKeys(),
-		Theme:               defaultTheme(),
+
+		Browser:        Browser,
+		BrowserVersion: BrowserVersion,
+		UserAgent:      UserAgent,
+
+		Keys:  defaultKeys(),
+		Theme: defaultTheme(),
 	}
 }
 

@@ -28,8 +28,9 @@ func openState(token string, app *tview.Application, cfg *config.Config) error {
 		OS:     runtime.GOOS,
 		Device: "",
 
-		Browser:          config.Name,
-		BrowserUserAgent: api.UserAgent,
+		Browser:          cfg.Browser,
+		BrowserVersion:   cfg.BrowserVersion,
+		BrowserUserAgent: cfg.UserAgent,
 	}
 
 	discordState = &State{
