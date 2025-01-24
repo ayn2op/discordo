@@ -108,6 +108,8 @@ func (self *Form) login() {
 
 	// Create an API client without an authentication token.
 	client := api.NewClient("")
+	// Spoof the user agent of a web browser.
+	client.UserAgent = config.UserAgent
 
 	// Attempt to login using the email and password.
 	resp, err := client.Login(email, password)
