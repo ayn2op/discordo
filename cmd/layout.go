@@ -42,17 +42,13 @@ func newLayout(cfg *config.Config) *Layout {
 
 func (l *Layout) show(token string) error {
 	if token == "" {
-		loginForm := login.NewForm(l.app, func(token string, err error) {
-			if err != nil {
-				slog.Error("failed to login", "err", err)
-				return
-			}
-
+		loginForm := login.NewForm(l.app, func(token string) {
 			if err := l.show(token); err != nil {
 				slog.Error("failed to show app", "err", err)
 				return
 			}
 		})
+
 		l.app.SetRoot(loginForm, true)
 	} else {
 		if err := openState(token, l.app, l.cfg); err != nil {
