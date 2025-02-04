@@ -68,11 +68,11 @@ go build .
 
 #### Message Input
 
-- `alt+enter`: Toggle between multi-line and single-line input modes.  
-- `ctrl+w` / `alt+backspace`: Delete the last word.  
-- `ctrl+u`: Delete to the start of the line.  
-- `enter`: Send the message.
-- `ctrl+e`: open message input in your default $EDITOR
+- `Alt+Enter`: Add a new line to the current text.
+- `Ctrl+W` / `Alt+Backspace`: Delete the last word.
+- `Ctrl+U`: Delete to the start of the line.
+- `Enter`: Send the message.
+- `Ctrl+E`: Open message input in your default `$EDITOR`.
 
 #### Multi-Line Message Input
 - `Up`: Move to the previous line.  
