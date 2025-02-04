@@ -58,12 +58,13 @@ go build .
 ## Keymaps
 
 
-#### App Navigation
-- `j` (vim): Navigate down (any context except input).  
-- `k` (vim): Navigate up (any context except input).  
-- `esc`: Reset message selection or close the channel selection popup.  
-- `ctrl+c`: Quit the application.  
-- ⚠️ `ctrl+d`: Delete credentials (requires re-login upon restart).  
+### Global
+
+- `j`: Navigate down (any context except input).  
+- `k`: Navigate up (any context except input).
+- `Esc`: Reset message selection or close the channel selection popup.  
+- `Ctrl+C`: Quit the application.
+- ⚠️ `Ctrl+D`: Delete credentials (requires re-login upon restart).  
 
 #### Message Input
 
