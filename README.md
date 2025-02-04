@@ -55,7 +55,7 @@ go build .
 2. Enter your email and password and click on the "Login" button to continue.
 
 
-## Key Bindings
+## Keymaps
 
 ### Default Key Bindings
 
