@@ -66,7 +66,7 @@ go build .
 - `Ctrl+C`: Quit the application.
 - ⚠️ `Ctrl+D`: Delete credentials (requires re-login upon restart).  
 
-#### Message Input
+### Message Input
 
 - `Alt+Enter`: Add a new line to the current text.
 - `Ctrl+W` / `Alt+Backspace`: Delete the last word.
