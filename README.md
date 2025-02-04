@@ -67,14 +67,23 @@ go build .
 - ⚠️ `ctrl+d`: Delete credentials (requires re-login upon restart).  
 
 #### Message Input
+
 - `alt+enter`: Toggle between multi-line and single-line input modes.  
 - `ctrl+w` / `alt+backspace`: Delete the last word.  
 - `ctrl+u`: Delete to the start of the line.  
-- `enter`: Send the message.  
+- `enter`: Send the message.
+- `ctrl+e`: open message input in your default $EDITOR
 
 #### Multi-Line Message Input
 - `Up`: Move to the previous line.  
-- `Down`: Move to the next line.  
+- `Down`: Move to the next line.
+
+#### Message Actions
+
+- `r`: reply selected message.
+- `R`: reply selected message and mention the user who sent it.
+- `d`: delete selected message.
+- `y`: yank (copy) selected message content.
 
 #### Cursor Movement
 - `ctrl+Right`: Move forward one word.  
@@ -88,7 +97,9 @@ go build .
 - `ctrl+r`: Quick-select a channel.  
 - `ctrl+b`: Hide the channels sidebar.  
 - `ctrl+t`: Switch to the currently selected channel.  
-- `ctrl+p`: Switch to the user input box.  
+- `ctrl+p`: Switch to the user input box.
+- `g`: navigate to the first item.
+- `G`: navigate to the last item
 
 ## Configuration
 
