@@ -57,7 +57,6 @@ go build .
 
 ## Keymaps
 
-### Default Key Bindings
 
 #### App Navigation
 - `j` (vim): Navigate down (any context except input).  
