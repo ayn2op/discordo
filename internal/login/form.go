@@ -2,6 +2,7 @@ package login
 
 import (
 	"errors"
+	"log/slog"
 
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/diamondburned/arikawa/v3/api"
@@ -10,7 +11,7 @@ import (
 	"github.com/zalando/go-keyring"
 )
 
-type DoneFn = func(token string, err error)
+type DoneFn = func(token string)
 
 type Form struct {
 	*tview.Flex
@@ -108,6 +109,8 @@ func (self *Form) login() {
 
 	// Create an API client without an authentication token.
 	client := api.NewClient("")
+	// Spoof the user agent of a web browser.
+	client.UserAgent = config.UserAgent
 
 	// Attempt to login using the email and password.
 	resp, err := client.Login(email, password)
@@ -139,14 +142,11 @@ func (self *Form) login() {
 	go keyring.Set(config.Name, "token", resp.Token)
 
 	if self.done != nil {
-		self.done(resp.Token, nil)
+		self.done(resp.Token)
 	}
 }
 
 func (self *Form) onError(err error) {
+	slog.Error("failed to login", "err", err)
 	self.errorTextView.SetText(err.Error())
-
-	if self.done != nil {
-		self.done("", err)
-	}
 }

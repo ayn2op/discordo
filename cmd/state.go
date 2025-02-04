@@ -16,19 +16,6 @@ import (
 	"github.com/rivo/tview"
 )
 
-const userAgent = config.Name + "/0.1 (https://github.com/diamondburned/arikawa, v3)"
-
-func init() {
-	api.UserAgent = userAgent
-	gateway.DefaultIdentity = gateway.IdentifyProperties{
-		OS:     runtime.GOOS,
-		Device: "",
-
-		Browser:          config.Name,
-		BrowserUserAgent: userAgent,
-	}
-}
-
 type State struct {
 	*ningen.State
 	cfg *config.Config
@@ -36,6 +23,16 @@ type State struct {
 }
 
 func openState(token string, app *tview.Application, cfg *config.Config) error {
+	api.UserAgent = cfg.UserAgent
+	gateway.DefaultIdentity = gateway.IdentifyProperties{
+		OS:     runtime.GOOS,
+		Device: "",
+
+		Browser:          cfg.Browser,
+		BrowserVersion:   cfg.BrowserVersion,
+		BrowserUserAgent: cfg.UserAgent,
+	}
+
 	discordState = &State{
 		State: ningen.New(token),
 		cfg:   cfg,
