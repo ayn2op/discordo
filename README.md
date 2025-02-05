@@ -78,18 +78,12 @@ go build .
 - `Up`: Move to the previous line.  
 - `Down`: Move to the next line.
 
-#### Message Actions
+#### Message Text
 
 - `r`: reply selected message.
 - `R`: reply selected message and mention the user who sent it.
 - `d`: delete selected message.
 - `y`: yank (copy) selected message content.
-
-#### Cursor Movement
-- `ctrl+Right`: Move forward one word.  
-- `ctrl+Left`: Move backward one word.  
-- `ctrl+a` / `Home`: Move the cursor to the beginning of the line.  
-- `ctrl+e` / `End`: Move the cursor to the end of the line.  
 
 #### Message/Channel Selection
 - `ctrl+g`: Switch to group/server channel selection.  
