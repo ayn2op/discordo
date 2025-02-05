@@ -54,6 +54,47 @@ go build .
 
 2. Enter your email and password and click on the "Login" button to continue.
 
+
+## Keymaps
+
+
+### Global
+
+- `j`: Navigate down (any context except input).  
+- `k`: Navigate up (any context except input).
+- `Esc`: Reset message selection or close the channel selection popup.  
+- `Ctrl+C`: Quit the application.
+- ⚠️ `Ctrl+D`: Delete credentials (requires re-login upon restart).  
+
+### Message Input
+
+- `Alt+Enter`: Add a new line to the current text.
+- `Ctrl+W` / `Alt+Backspace`: Delete the last word.
+- `Ctrl+U`: Delete to the start of the line.
+- `Enter`: Send the message.
+- `Ctrl+E`: Open message input in your default `$EDITOR`.
+
+#### Multi-Line Message Input
+- `Up`: Move to the previous line.  
+- `Down`: Move to the next line.
+
+#### Message Text
+
+- `r`: reply selected message.
+- `R`: reply selected message and mention the user who sent it.
+- `d`: delete selected message.
+- `y`: yank (copy) selected message content.
+
+#### Message/Channel Selection
+- `ctrl+g`: Switch to group/server channel selection.  
+- `ctrl+m`: Expand a channel/server.  
+- `ctrl+r`: Quick-select a channel.  
+- `ctrl+b`: Hide the channels sidebar.  
+- `ctrl+t`: Switch to the currently selected channel.  
+- `ctrl+p`: Switch to the user input box.
+- `g`: navigate to the first item.
+- `G`: navigate to the last item
+
 ## Configuration
 
 The configuration file allows you to configure and customize the behavior, keybindings, and theme of the application.
