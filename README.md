@@ -86,12 +86,12 @@ go build .
 - `y`: yank (copy) selected message content.
 
 #### Message/Channel Selection
-- `ctrl+g`: Switch to group/server channel selection.  
-- `ctrl+m`: Expand a channel/server.  
-- `ctrl+r`: Quick-select a channel.  
-- `ctrl+b`: Hide the channels sidebar.  
-- `ctrl+t`: Switch to the currently selected channel.  
-- `ctrl+p`: Switch to the user input box.
+- `Ctrl+g`: Switch to group/server channel selection.  
+- `Ctrl+m`: Expand a channel/server.  
+- `Ctrl+r`: Quick-select a channel.  
+- `Ctrl+b`: Hide the channels sidebar.  
+- `Ctrl+t`: Switch to the currently selected channel.  
+- `Ctrl+p`: Switch to the user input box.
 - `g`: navigate to the first item.
 - `G`: navigate to the last item
 
