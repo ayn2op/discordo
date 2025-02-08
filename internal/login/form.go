@@ -6,7 +6,6 @@ import (
 
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/diamondburned/arikawa/v3/api"
-	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/zalando/go-keyring"
 )
@@ -14,95 +13,33 @@ import (
 type DoneFn = func(token string)
 
 type Form struct {
-	*tview.Flex
-	app           *tview.Application
-	errorTextView *tview.TextView
-
-	inputs []*tview.InputField
-	active int
-	done   DoneFn
+	*tview.Pages
+	form *tview.Form
+	app  *tview.Application
+	done DoneFn
 }
 
 func NewForm(app *tview.Application, done DoneFn) *Form {
 	self := &Form{
-		Flex:          tview.NewFlex().SetDirection(tview.FlexRow),
-		app:           app,
-		errorTextView: tview.NewTextView(),
-
-		done: done,
-	}
-
-	emailInput := tview.NewInputField()
-	emailInput.
-		SetBorder(true).
-		SetTitle("Email").
-		SetTitleAlign(tview.AlignLeft)
-
-	passwordInput := tview.NewInputField()
-	passwordInput.
-		SetMaskCharacter('*').
-		SetBorder(true).
-		SetTitle("Password").
-		SetTitleAlign(tview.AlignLeft)
-
-	codeInput := tview.NewInputField()
-	codeInput.
-		SetMaskCharacter('*').
-		SetBorder(true).
-		SetTitle("Code (optional)").
-		SetTitleAlign(tview.AlignLeft)
-
-	self.inputs = []*tview.InputField{emailInput, passwordInput, codeInput}
-	for i, input := range self.inputs {
-		var focus bool
-		if i == 0 {
-			focus = true
-		}
-
-		self.AddItem(input, 3, 1, focus)
+		Pages: tview.NewPages(),
+		form:  tview.NewForm(),
+		app:   app,
+		done:  done,
 	}
 
 	self.
-		AddItem(self.errorTextView, 0, 1, false).
-		SetBorderPadding(0, 0, 1, 1).
-		SetInputCapture(self.onInputCapture)
+		form.
+		AddInputField("Email", "", 0, nil, nil).
+		AddPasswordField("Password", "", 0, 0, nil).
+		AddPasswordField("Code (optional)", "", 0, 0, nil).
+		AddButton("Login", self.login)
+	self.AddAndSwitchToPage("form", self.form, true)
 	return self
 }
 
-func (self *Form) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
-	switch event.Key() {
-	case tcell.KeyBacktab:
-		if self.active == 0 {
-			self.active = len(self.inputs) - 1
-		} else {
-			self.active--
-		}
-
-		self.app.SetFocus(self.inputs[self.active])
-		return nil
-	case tcell.KeyTab:
-		if self.active == len(self.inputs)-1 {
-			self.active = 0
-		} else {
-			self.active++
-		}
-
-		self.app.SetFocus(self.inputs[self.active])
-		return nil
-
-	case tcell.KeyEnter:
-		// If the currently active input is not the email input, proceed to login with the provided details.
-		if self.active != 0 {
-			self.login()
-		}
-	}
-
-	return event
-}
-
 func (self *Form) login() {
-	email := self.inputs[0].GetText()
-	password := self.inputs[1].GetText()
+	email := self.form.GetFormItem(0).(*tview.InputField).GetText()
+	password := self.form.GetFormItem(1).(*tview.InputField).GetText()
 	if email == "" || password == "" {
 		return
 	}
@@ -120,7 +57,7 @@ func (self *Form) login() {
 	}
 
 	if resp.Token == "" && resp.MFA {
-		code := self.inputs[2].GetText()
+		code := self.form.GetFormItem(2).(*tview.InputField).GetText()
 		if code == "" {
 			self.onError(errors.New("code required"))
 			return
@@ -148,5 +85,21 @@ func (self *Form) login() {
 
 func (self *Form) onError(err error) {
 	slog.Error("failed to login", "err", err)
-	self.errorTextView.SetText(err.Error())
+
+	modal := tview.NewModal().
+		SetText(err.Error()).
+		AddButtons([]string{"Close"}).
+		SetDoneFunc(func(_ int, _ string) {
+			self.RemovePage("modal").SwitchToPage("form")
+		})
+	self.
+		AddAndSwitchToPage("modal", centered(modal, 0, 0), true).
+		ShowPage("form")
+}
+
+func centered(p tview.Primitive, width, height int) tview.Primitive {
+	return tview.NewGrid().
+		SetColumns(0, width, 0).
+		SetRows(0, height, 0).
+		AddItem(p, 1, 1, 1, 1, 0, 0, true)
 }
