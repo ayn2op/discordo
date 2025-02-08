@@ -85,7 +85,7 @@ go build .
 - `d`: delete selected message.
 - `y`: yank (copy) selected message content.
 
-#### Message/Channel Selection
+### Guilds Tree
 - `Ctrl+g`: Switch to group/server channel selection.  
 - `Ctrl+m`: Expand a channel/server.  
 - `Ctrl+r`: Quick-select a channel.  
