@@ -70,15 +70,13 @@ go build .
 
 - `Alt+Enter`: Add a new line to the current text.
 - `Ctrl+W` / `Alt+Backspace`: Delete the last word.
+- `Up`: Move to the previous line.  
+- `Down`: Move to the next line.
 - `Ctrl+U`: Delete to the start of the line.
 - `Enter`: Send the message.
 - `Ctrl+E`: Open message input in your default `$EDITOR`.
 
-#### Multi-Line Message Input
-- `Up`: Move to the previous line.  
-- `Down`: Move to the next line.
-
-#### Message Text
+### Message Text
 
 - `r`: reply selected message.
 - `R`: reply selected message and mention the user who sent it.
