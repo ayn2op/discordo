@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/consts"
 )
 
 // Opens the log file and configures default logger.
@@ -15,7 +15,7 @@ func Load() error {
 		return err
 	}
 
-	path = filepath.Join(path, config.Name)
+	path = filepath.Join(path, consts.Name)
 	if err := os.MkdirAll(path, os.ModePerm); err != nil {
 		return err
 	}
