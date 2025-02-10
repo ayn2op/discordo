@@ -4,6 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/login"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -113,7 +114,7 @@ func (l *Layout) onFlexInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	case l.cfg.Keys.Logout:
 		l.app.Stop()
 
-		if err := keyring.Delete(config.Name, "token"); err != nil {
+		if err := keyring.Delete(consts.Name, "token"); err != nil {
 			slog.Error("failed to delete token from keyring", "err", err)
 			return nil
 		}

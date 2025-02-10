@@ -7,14 +7,7 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
-)
-
-const (
-	Name = "discordo"
-
-	Browser        = "Chrome"
-	BrowserVersion = "132.0.0.0"
-	UserAgent      = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) " + Browser + "/" + BrowserVersion + " Safari/537.36"
+	"github.com/ayn2op/discordo/internal/consts"
 )
 
 type Config struct {
@@ -44,9 +37,9 @@ func defaultConfig() *Config {
 		Editor:              "default",
 		TimestampsFormat:    time.Kitchen,
 
-		Browser:        Browser,
-		BrowserVersion: BrowserVersion,
-		UserAgent:      UserAgent,
+		Browser:        consts.Browser,
+		BrowserVersion: consts.BrowserVersion,
+		UserAgent:      consts.UserAgent,
 
 		Keys:  defaultKeys(),
 		Theme: defaultTheme(),
@@ -61,7 +54,7 @@ func Load() (*Config, error) {
 		path = "."
 	}
 
-	path = filepath.Join(path, Name, "config.toml")
+	path = filepath.Join(path, consts.Name, "config.toml")
 	f, err := os.Open(path)
 
 	cfg := defaultConfig()
