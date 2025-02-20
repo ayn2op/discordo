@@ -3,9 +3,11 @@ package login
 import (
 	"errors"
 	"log/slog"
+	"net/http"
 
-	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/diamondburned/arikawa/v3/api"
+	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/rivo/tview"
 	"github.com/zalando/go-keyring"
 )
@@ -47,10 +49,18 @@ func (self *Form) login() {
 	// Create an API client without an authentication token.
 	client := api.NewClient("")
 	// Spoof the user agent of a web browser.
-	client.UserAgent = config.UserAgent
+	client.UserAgent = consts.UserAgent
 
-	// Attempt to login using the email and password.
-	resp, err := client.Login(email, password)
+	body := httputil.WithJSONBody(struct {
+		Email    string `json:"login"`
+		Password string `json:"password"`
+	}{email, password})
+
+	var (
+		resp *api.LoginResponse
+		err  error
+	)
+	err = client.RequestJSON(&resp, http.MethodPost, api.EndpointLogin, body)
 	if err != nil {
 		self.onError(err)
 		return
@@ -76,7 +86,7 @@ func (self *Form) login() {
 		return
 	}
 
-	go keyring.Set(config.Name, "token", resp.Token)
+	go keyring.Set(consts.Name, "token", resp.Token)
 
 	if self.done != nil {
 		self.done(resp.Token)

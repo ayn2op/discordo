@@ -8,6 +8,7 @@ import (
 
 	"github.com/atotto/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
@@ -15,7 +16,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-const tmpFilePattern = config.Name + "_*.md"
+const tmpFilePattern = consts.Name + "_*.md"
 
 type MessageInput struct {
 	*tview.TextArea
