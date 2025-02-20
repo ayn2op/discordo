@@ -54,6 +54,44 @@ go build .
 
 2. Enter your email and password and click on the "Login" button to continue.
 
+## Keymaps
+
+### Global
+
+- `j`: Navigate down (any context except input).
+- `k`: Navigate up (any context except input).
+- `Esc`: Reset message selection or close the channel selection popup.
+- `Ctrl+C`: Quit the application.
+- ⚠️ `Ctrl+D`: Delete credentials (requires re-login upon restart).
+
+### Message Input
+
+- `Alt+Enter`: Add a new line to the current text.
+- `Ctrl+W` / `Alt+Backspace`: Delete the last word.
+- `Up`: Move to the previous line.
+- `Down`: Move to the next line.
+- `Ctrl+U`: Delete to the start of the line.
+- `Enter`: Send the message.
+- `Ctrl+E`: Open message input in your default `$EDITOR`.
+
+### Message Text
+
+- `r`: reply selected message.
+- `R`: reply selected message and mention the user who sent it.
+- `d`: delete selected message.
+- `y`: yank (copy) selected message content.
+
+### Guilds Tree
+
+- `Ctrl+g`: Switch to group/server channel selection.
+- `Ctrl+m`: Expand a channel/server.
+- `Ctrl+r`: Quick-select a channel.
+- `Ctrl+b`: Hide the channels sidebar.
+- `Ctrl+t`: Switch to the currently selected channel.
+- `Ctrl+p`: Switch to the user input box.
+- `g`: navigate to the first item.
+- `G`: navigate to the last item
+
 ## Configuration
 
 The configuration file allows you to configure and customize the behavior, keybindings, and theme of the application.
@@ -64,29 +102,30 @@ The configuration file allows you to configure and customize the behavior, keybi
 
 [The default configuration can be found here](./internal/config/config.go).
 
-
 ## FAQ
 
 ### Manually adding token to keyring
 
 Do this if you get the error:
->failed to get token from keyring: secret not found in keyring
+
+> failed to get token from keyring: secret not found in keyring
 
 1. First, start the keyring daemon
+
 ```bash
 eval $(gnome-keyring-daemon --start)
 export $(gnome-keyring-daemon --start)
 ```
 
 2. Create a keyring using `seahorse` application if a keyring doesn't already exist.
-   
+
 3. Add the token secret using
+
 ```bash
 secret-tool store --label="Discord Token" service discordo username token
 ```
 
 4. When it prompts for the password, paste your token, and that's it!
-
 
 ## Disclaimer
 
