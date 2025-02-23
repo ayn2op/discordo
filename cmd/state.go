@@ -33,6 +33,10 @@ func openState(token string, app *tview.Application, cfg *config.Config) error {
 		BrowserUserAgent: cfg.UserAgent,
 	}
 
+	gateway.DefaultPresence = &gateway.UpdatePresenceCommand{
+		Status: cfg.Status,
+	}
+
 	discordState = &State{
 		State: ningen.New(token),
 		cfg:   cfg,
