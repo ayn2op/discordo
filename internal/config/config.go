@@ -8,15 +8,17 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/ayn2op/discordo/internal/consts"
+	"github.com/diamondburned/arikawa/v3/discord"
 )
 
 type Config struct {
-	Mouse               bool   `toml:"mouse"`
-	HideBlockedUsers    bool   `toml:"hide_blocked_users"`
-	Timestamps          bool   `toml:"timestamps"`
-	ShowAttachmentLinks bool   `toml:"show_attachment_links"`
-	MessagesLimit       uint8  `toml:"messages_limit"`
-	Editor              string `toml:"editor"`
+	Mouse               bool           `toml:"mouse"`
+	HideBlockedUsers    bool           `toml:"hide_blocked_users"`
+	Timestamps          bool           `toml:"timestamps"`
+	ShowAttachmentLinks bool           `toml:"show_attachment_links"`
+	MessagesLimit       uint8          `toml:"messages_limit"`
+	Editor              string         `toml:"editor"`
+	Status              discord.Status `toml:"status"`
 
 	Browser        string `toml:"browser"`
 	BrowserVersion string `toml:"browser_version"`
@@ -36,6 +38,7 @@ func defaultConfig() *Config {
 		MessagesLimit:       50,
 		Editor:              "default",
 		TimestampsFormat:    time.Kitchen,
+		Status:              discord.OnlineStatus,
 
 		Browser:        consts.Browser,
 		BrowserVersion: consts.BrowserVersion,
