@@ -58,39 +58,41 @@ go build .
 
 ### Global
 
-- `j`: Navigate down (any context except input).
-- `k`: Navigate up (any context except input).
+- `Ctrl+G`: Focus Guilds Tree
+- `Ctrl+T`: Focus Messages Text
+- `Ctrl+P`: Focus Message Input
+- `Ctrl+B`: Toggle Guilds Tree (sidebar)
 - `Esc`: Reset message selection or close the channel selection popup.
 - `Ctrl+C`: Quit the application.
-- ⚠️ `Ctrl+D`: Delete credentials (requires re-login upon restart).
+- `Ctrl+D`: Log out and remove the authentication token from keyring (requires re-login upon restart).
 
-### Message Input
+#### Navigation
 
-- `Alt+Enter`: Add a new line to the current text.
-- `Ctrl+W` / `Alt+Backspace`: Delete the last word.
-- `Up`: Move to the previous line.
-- `Down`: Move to the next line.
-- `Ctrl+U`: Delete to the start of the line.
-- `Enter`: Send the message.
-- `Ctrl+E`: Open message input in your default `$EDITOR`.
-
-### Message Text
-
-- `r`: reply selected message.
-- `R`: reply selected message and mention the user who sent it.
-- `d`: delete selected message.
-- `y`: yank (copy) selected message content.
+- `k`: Select Previous (any context except input)
+- `j`: Select Next  (any context except input)
+- `g`: Select First (any context except input)
+- `G`: Select Last (any context except input)
 
 ### Guilds Tree
 
-- `Ctrl+g`: Switch to group/server channel selection.
-- `Ctrl+m`: Expand a channel/server.
-- `Ctrl+r`: Quick-select a channel.
-- `Ctrl+b`: Hide the channels sidebar.
-- `Ctrl+t`: Switch to the currently selected channel.
-- `Ctrl+p`: Switch to the user input box.
-- `g`: navigate to the first item.
-- `G`: navigate to the last item
+- `Enter`: Select the currently highlighted text-based channel or expand a guild or channel.
+
+### Message Text
+
+- `s`: Select the message reference (reply) of the selected channel.
+- `p`: Select the pinned message.
+- `r`: Reply to the selected message.
+- `R`: Reply (with mention) to the selected message.
+- `d`: Delete the selected message.
+- `y`: Yank (copy) the selected message's content.
+- `o`: Open the selected message's attachments in the default browser application.
+
+### Message Input
+
+- `Alt+Enter`: Insert a new line to the current text.
+- `Enter`: Send the message.
+- `Ctrl+E`: Open message input in your default `$EDITOR`.
+- `Esc`: Remove existing text or cancel reply.
 
 ## Configuration
 
