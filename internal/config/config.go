@@ -8,35 +8,42 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/ayn2op/discordo/internal/consts"
+	"github.com/diamondburned/arikawa/v3/discord"
 )
 
 type Config struct {
-	Mouse               bool   `toml:"mouse"`
-	HideBlockedUsers    bool   `toml:"hide_blocked_users"`
-	Timestamps          bool   `toml:"timestamps"`
-	ShowAttachmentLinks bool   `toml:"show_attachment_links"`
-	MessagesLimit       uint8  `toml:"messages_limit"`
-	Editor              string `toml:"editor"`
+	Mouse  bool   `toml:"mouse"`
+	Editor string `toml:"editor"`
 
-	Browser        string `toml:"browser"`
-	BrowserVersion string `toml:"browser_version"`
-	UserAgent      string `toml:"user_agent"`
+	HideBlockedUsers    bool  `toml:"hide_blocked_users"`
+	ShowAttachmentLinks bool  `toml:"show_attachment_links"`
+	MessagesLimit       uint8 `toml:"messages_limit"`
 
+	Timestamps       bool   `toml:"timestamps"`
 	TimestampsFormat string `toml:"timestamps_format"`
-	Keys             Keys   `toml:"keys"`
-	Theme            Theme  `toml:"theme"`
+
+	Status         discord.Status `toml:"status"`
+	Browser        string         `toml:"browser"`
+	BrowserVersion string         `toml:"browser_version"`
+	UserAgent      string         `toml:"user_agent"`
+
+	Keys  Keys  `toml:"keys"`
+	Theme Theme `toml:"theme"`
 }
 
 func defaultConfig() *Config {
 	return &Config{
-		Mouse:               true,
+		Mouse:  true,
+		Editor: "default",
+
 		HideBlockedUsers:    true,
-		Timestamps:          false,
 		ShowAttachmentLinks: true,
 		MessagesLimit:       50,
-		Editor:              "default",
-		TimestampsFormat:    time.Kitchen,
 
+		Timestamps:       false,
+		TimestampsFormat: time.Kitchen,
+
+		Status:         discord.OnlineStatus,
 		Browser:        consts.Browser,
 		BrowserVersion: consts.BrowserVersion,
 		UserAgent:      consts.UserAgent,
