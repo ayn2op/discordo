@@ -246,13 +246,8 @@ func (gt *GuildsTree) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		}
 
 		// Reference of a tree node in the guilds tree is its ID.
-		ref := node.GetReference()
-		if ref == nil {
-			return nil
-		}
-
 		// discord.Snowflake (discord.GuildID and discord.ChannelID) have the String method.
-		if id, ok := ref.(fmt.Stringer); ok {
+		if id, ok := node.GetReference().(fmt.Stringer); ok {
 			go clipboard.WriteAll(id.String())
 		}
 	}
