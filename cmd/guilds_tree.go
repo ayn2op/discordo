@@ -245,7 +245,7 @@ func (gt *GuildsTree) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 			return nil
 		}
 
-		// Reference is a tree node in the guilds tree is its ID.
+		// Reference of a tree node in the guilds tree is its ID.
 		ref := node.GetReference()
 		if ref == nil {
 			return nil
