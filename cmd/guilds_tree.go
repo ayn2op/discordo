@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/atotto/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
@@ -237,6 +238,23 @@ func (gt *GuildsTree) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 
 	case gt.cfg.Keys.GuildsTree.SelectCurrent:
 		return tcell.NewEventKey(tcell.KeyEnter, 0, tcell.ModNone)
+
+	case gt.cfg.Keys.GuildsTree.YankID:
+		node := gt.GetCurrentNode()
+		if node == nil {
+			return nil
+		}
+
+		// Reference is a tree node in the guilds tree is its ID.
+		ref := node.GetReference()
+		if ref == nil {
+			return nil
+		}
+
+		// discord.Snowflake (discord.GuildID and discord.ChannelID) have the String method.
+		if id, ok := ref.(fmt.Stringer); ok {
+			go clipboard.WriteAll(id.String())
+		}
 	}
 
 	return nil

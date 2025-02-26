@@ -25,6 +25,7 @@ type (
 	GuildsTreeKeys struct {
 		NavigationKeys
 		SelectCurrent string `toml:"select_current"`
+		YankID        string `toml:"yank_id"`
 	}
 
 	MessagesTextKeys struct {
@@ -64,6 +65,7 @@ func defaultKeys() Keys {
 				SelectLast:     "Rune[G]",
 			},
 			SelectCurrent: "Enter",
+			YankID:        "Rune[y]",
 		},
 
 		MessagesText: MessagesTextKeys{
