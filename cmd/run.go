@@ -11,7 +11,7 @@ import (
 
 var (
 	discordState *State
-	layout       *Layout
+	app          *App
 )
 
 func Run(token string) error {
@@ -34,6 +34,6 @@ func Run(token string) error {
 		return err
 	}
 
-	layout = newLayout(cfg)
-	return layout.run(token)
+	app = newApp(cfg)
+	return app.run(token)
 }

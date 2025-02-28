@@ -77,7 +77,7 @@ func (mi *MessageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 }
 
 func (mi *MessageInput) send() {
-	if !layout.guildsTree.selectedChannelID.IsValid() {
+	if !app.guildsTree.selectedChannelID.IsValid() {
 		return
 	}
 
@@ -99,16 +99,16 @@ func (mi *MessageInput) send() {
 	}
 
 	go func() {
-		if _, err := discordState.SendMessageComplex(layout.guildsTree.selectedChannelID, data); err != nil {
-			slog.Error("failed to send message in channel", "channel_id", layout.guildsTree.selectedChannelID, "err", err)
+		if _, err := discordState.SendMessageComplex(app.guildsTree.selectedChannelID, data); err != nil {
+			slog.Error("failed to send message in channel", "channel_id", app.guildsTree.selectedChannelID, "err", err)
 		}
 	}()
 
 	mi.replyMessageID = 0
 	mi.reset()
 
-	layout.messagesText.Highlight()
-	layout.messagesText.ScrollToEnd()
+	app.messagesText.Highlight()
+	app.messagesText.ScrollToEnd()
 }
 
 func (mi *MessageInput) editor() {
