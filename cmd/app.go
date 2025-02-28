@@ -11,20 +11,22 @@ import (
 	"github.com/zalando/go-keyring"
 )
 
-type Layout struct {
+type App struct {
+	*tview.Application
+
 	cfg          *config.Config
-	app          *tview.Application
 	flex         *tview.Flex
 	guildsTree   *GuildsTree
 	messagesText *MessagesText
 	messageInput *MessageInput
 }
 
-func newLayout(cfg *config.Config) *Layout {
+func newApp(cfg *config.Config) *App {
 	app := tview.NewApplication()
-	l := &Layout{
+	a := &App{
+		Application: app,
+
 		cfg:  cfg,
-		app:  app,
 		flex: tview.NewFlex(),
 
 		guildsTree:   newGuildsTree(app, cfg),
@@ -32,66 +34,64 @@ func newLayout(cfg *config.Config) *Layout {
 		messageInput: newMessageInput(app, cfg),
 	}
 
-	l.init()
-
-	l.app.EnableMouse(cfg.Mouse)
-	l.app.SetInputCapture(l.onAppInputCapture)
-
-	l.flex.SetInputCapture(l.onFlexInputCapture)
-	return l
+	a.init()
+	a.EnableMouse(cfg.Mouse)
+	a.SetInputCapture(a.onInputCapture)
+	a.flex.SetInputCapture(a.onFlexInputCapture)
+	return a
 }
 
-func (l *Layout) show(token string) error {
+func (app *App) show(token string) error {
 	if token == "" {
-		loginForm := login.NewForm(l.app, func(token string) {
-			if err := l.show(token); err != nil {
+		loginForm := login.NewForm(app.Application, func(token string) {
+			if err := app.show(token); err != nil {
 				slog.Error("failed to show app", "err", err)
 				return
 			}
 		})
 
-		l.app.SetRoot(loginForm, true)
+		app.SetRoot(loginForm, true)
 	} else {
-		if err := openState(token, l.app, l.cfg); err != nil {
+		if err := openState(token); err != nil {
 			return err
 		}
 
-		l.app.SetRoot(l.flex, true)
+		app.SetRoot(app.flex, true)
 	}
 
 	return nil
 }
 
-func (l *Layout) run(token string) error {
-	if err := l.show(token); err != nil {
+func (app *App) run(token string) error {
+	if err := app.show(token); err != nil {
 		return err
 	}
 
-	return l.app.Run()
+	return app.Run()
 }
 
-func (l *Layout) init() {
-	l.flex.Clear()
+func (app *App) init() {
+	app.flex.Clear()
 
 	right := tview.NewFlex()
 	right.SetDirection(tview.FlexRow)
-	right.AddItem(l.messagesText, 0, 1, false)
-	right.AddItem(l.messageInput, 3, 1, false)
+	right.AddItem(app.messagesText, 0, 1, false)
+	right.AddItem(app.messageInput, 3, 1, false)
 	// The guilds tree is always focused first at start-up.
-	l.flex.AddItem(l.guildsTree, 0, 1, true)
-	l.flex.AddItem(right, 0, 4, false)
+	app.flex.AddItem(app.guildsTree, 0, 1, true)
+	app.flex.AddItem(right, 0, 4, false)
 }
 
-func (l *Layout) onAppInputCapture(event *tcell.EventKey) *tcell.EventKey {
+func (app *App) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
-	case l.cfg.Keys.Quit:
+	case app.cfg.Keys.Quit:
 		if discordState != nil {
 			if err := discordState.Close(); err != nil {
 				slog.Error("failed to close the session", "err", err)
 			}
 		}
 
-		l.app.Stop()
+		app.Stop()
 	case "Ctrl+C":
 		// https://github.com/rivo/tview/blob/a64fc48d7654432f71922c8b908280cdb525805c/application.go#L153
 		return tcell.NewEventKey(tcell.KeyCtrlC, 0, tcell.ModNone)
@@ -100,19 +100,19 @@ func (l *Layout) onAppInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	return event
 }
 
-func (l *Layout) onFlexInputCapture(event *tcell.EventKey) *tcell.EventKey {
+func (app *App) onFlexInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
-	case l.cfg.Keys.FocusGuildsTree:
-		l.app.SetFocus(l.guildsTree)
+	case app.cfg.Keys.FocusGuildsTree:
+		app.SetFocus(app.guildsTree)
 		return nil
-	case l.cfg.Keys.FocusMessagesText:
-		l.app.SetFocus(l.messagesText)
+	case app.cfg.Keys.FocusMessagesText:
+		app.SetFocus(app.messagesText)
 		return nil
-	case l.cfg.Keys.FocusMessageInput:
-		l.app.SetFocus(l.messageInput)
+	case app.cfg.Keys.FocusMessageInput:
+		app.SetFocus(app.messageInput)
 		return nil
-	case l.cfg.Keys.Logout:
-		l.app.Stop()
+	case app.cfg.Keys.Logout:
+		app.Stop()
 
 		if err := keyring.Delete(consts.Name, "token"); err != nil {
 			slog.Error("failed to delete token from keyring", "err", err)
@@ -120,17 +120,17 @@ func (l *Layout) onFlexInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		}
 
 		return nil
-	case l.cfg.Keys.ToggleGuildsTree:
+	case app.cfg.Keys.ToggleGuildsTree:
 		// The guilds tree is visible if the numbers of items is two.
-		if l.flex.GetItemCount() == 2 {
-			l.flex.RemoveItem(l.guildsTree)
+		if app.flex.GetItemCount() == 2 {
+			app.flex.RemoveItem(app.guildsTree)
 
-			if l.guildsTree.HasFocus() {
-				l.app.SetFocus(l.flex)
+			if app.guildsTree.HasFocus() {
+				app.SetFocus(app.flex)
 			}
 		} else {
-			l.init()
-			l.app.SetFocus(l.guildsTree)
+			app.init()
+			app.SetFocus(app.guildsTree)
 		}
 
 		return nil
