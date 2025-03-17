@@ -19,7 +19,7 @@ type State struct {
 	*ningen.State
 }
 
-func openState(token string) error {
+func newState(token string) (*State, error) {
 	api.UserAgent = app.cfg.UserAgent
 	gateway.DefaultIdentity = gateway.IdentifyProperties{
 		OS:     runtime.GOOS,
@@ -34,17 +34,19 @@ func openState(token string) error {
 		Status: app.cfg.Status,
 	}
 
-	discordState = &State{
-		State: ningen.New(token),
-	}
+	s := &State{State: ningen.New(token)}
 
 	// Handlers
-	discordState.AddHandler(discordState.onReady)
-	discordState.AddHandler(discordState.onMessageCreate)
-	discordState.AddHandler(discordState.onMessageDelete)
+	s.AddHandler(s.onReady)
+	s.AddHandler(s.onMessageCreate)
+	s.AddHandler(s.onMessageDelete)
+	s.OnRequest = append(s.OnRequest, s.onRequest)
 
-	discordState.OnRequest = append(discordState.OnRequest, discordState.onRequest)
-	return discordState.Open(context.TODO())
+	if err := s.Open(context.TODO()); err != nil {
+		return nil, err
+	}
+
+	return s, nil
 }
 
 func (s *State) onRequest(r httpdriver.Request) error {
