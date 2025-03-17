@@ -11,6 +11,8 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 )
 
+const fileName = "config.toml"
+
 type Config struct {
 	Mouse  bool   `toml:"mouse"`
 	Editor string `toml:"editor"`
@@ -61,7 +63,7 @@ func Load() (*Config, error) {
 		path = "."
 	}
 
-	path = filepath.Join(path, consts.Name, "config.toml")
+	path = filepath.Join(path, consts.Name, fileName)
 	f, err := os.Open(path)
 
 	cfg := defaultConfig()
