@@ -52,7 +52,9 @@ func (app *App) show(token string) error {
 
 		app.SetRoot(loginForm, true)
 	} else {
-		if err := openState(token); err != nil {
+		var err error
+		discordState, err = newState(token)
+		if err != nil {
 			return err
 		}
 
