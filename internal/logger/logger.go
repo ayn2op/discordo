@@ -8,6 +8,8 @@ import (
 	"github.com/ayn2op/discordo/internal/consts"
 )
 
+const fileName = "logs.txt"
+
 // Opens the log file and configures default logger.
 func Load() error {
 	path, err := os.UserCacheDir()
@@ -20,7 +22,7 @@ func Load() error {
 		return err
 	}
 
-	path = filepath.Join(path, "logs.txt")
+	path = filepath.Join(path, fileName)
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, os.ModePerm)
 	if err != nil {
 		return err
