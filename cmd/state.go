@@ -43,7 +43,7 @@ func openState(token string) error {
 	discordState.AddHandler(discordState.onMessageCreate)
 	discordState.AddHandler(discordState.onMessageDelete)
 
-	discordState.OnRequest = append(discordState.Client.OnRequest, discordState.onRequest)
+	discordState.OnRequest = append(discordState.OnRequest, discordState.onRequest)
 	return discordState.Open(context.TODO())
 }
 
