@@ -112,22 +112,32 @@ Do this if you get the error:
 
 > failed to get token from keyring: secret not found in keyring
 
-1. First, start the keyring daemon
+#### MacOS
 
-```bash
+Run the following command in a terminal window with `sudo` to create the `token` entry.
+
+```sh
+security add-generic-password -s discordo -a token -w "DISCORD TOKEN HERE"
+```
+
+#### Linux
+
+1. Start the keyring daemon.
+
+```sh
 eval $(gnome-keyring-daemon --start)
 export $(gnome-keyring-daemon --start)
 ```
 
-2. Create a keyring using `seahorse` application if a keyring doesn't already exist.
+2. Create the `login` keyring if it does not exist already. See [GNOME/Keyring](https://wiki.archlinux.org/title/GNOME/Keyring) for more information.
 
-3. Add the token secret using
+3. Run the following command to create the `token` entry.
 
-```bash
-secret-tool store --label="Discord Token" service discordo username token
+```sh
+secret-tool store --label="DISCORD TOKEN HERE" service discordo username token
 ```
 
-4. When it prompts for the password, paste your token, and that's it!
+4. When it prompts for the password, paste your token, and hit enter to confirm.
 
 ## Disclaimer
 
