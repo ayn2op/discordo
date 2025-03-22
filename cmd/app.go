@@ -104,13 +104,10 @@ func (app *App) onFlexInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case app.cfg.Keys.FocusGuildsTree:
 		app.SetFocus(app.guildsTree)
-		return nil
 	case app.cfg.Keys.FocusMessagesText:
 		app.SetFocus(app.messagesText)
-		return nil
 	case app.cfg.Keys.FocusMessageInput:
 		app.SetFocus(app.messageInput)
-		return nil
 	case app.cfg.Keys.Logout:
 		app.Stop()
 
@@ -118,8 +115,6 @@ func (app *App) onFlexInputCapture(event *tcell.EventKey) *tcell.EventKey {
 			slog.Error("failed to delete token from keyring", "err", err)
 			return nil
 		}
-
-		return nil
 	case app.cfg.Keys.ToggleGuildsTree:
 		// The guilds tree is visible if the numbers of items is two.
 		if app.flex.GetItemCount() == 2 {
@@ -132,9 +127,7 @@ func (app *App) onFlexInputCapture(event *tcell.EventKey) *tcell.EventKey {
 			app.init()
 			app.SetFocus(app.guildsTree)
 		}
-
-		return nil
 	}
 
-	return event
+	return nil
 }
