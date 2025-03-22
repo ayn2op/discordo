@@ -22,26 +22,25 @@ type Form struct {
 }
 
 func NewForm(app *tview.Application, done DoneFn) *Form {
-	self := &Form{
+	f := &Form{
 		Pages: tview.NewPages(),
 		form:  tview.NewForm(),
 		app:   app,
 		done:  done,
 	}
 
-	self.
-		form.
+	f.form.
 		AddInputField("Email", "", 0, nil, nil).
 		AddPasswordField("Password", "", 0, 0, nil).
 		AddPasswordField("Code (optional)", "", 0, 0, nil).
-		AddButton("Login", self.login)
-	self.AddAndSwitchToPage("form", self.form, true)
-	return self
+		AddButton("Login", f.login)
+	f.AddAndSwitchToPage("form", f.form, true)
+	return f
 }
 
-func (self *Form) login() {
-	email := self.form.GetFormItem(0).(*tview.InputField).GetText()
-	password := self.form.GetFormItem(1).(*tview.InputField).GetText()
+func (f *Form) login() {
+	email := f.form.GetFormItem(0).(*tview.InputField).GetText()
+	password := f.form.GetFormItem(1).(*tview.InputField).GetText()
 	if email == "" || password == "" {
 		return
 	}
@@ -62,47 +61,47 @@ func (self *Form) login() {
 	)
 	err = client.RequestJSON(&resp, http.MethodPost, api.EndpointLogin, body)
 	if err != nil {
-		self.onError(err)
+		f.onError(err)
 		return
 	}
 
 	if resp.Token == "" && resp.MFA {
-		code := self.form.GetFormItem(2).(*tview.InputField).GetText()
+		code := f.form.GetFormItem(2).(*tview.InputField).GetText()
 		if code == "" {
-			self.onError(errors.New("code required"))
+			f.onError(errors.New("code required"))
 			return
 		}
 
 		// Attempt to login using the code.
 		resp, err = client.TOTP(code, resp.Ticket)
 		if err != nil {
-			self.onError(err)
+			f.onError(err)
 			return
 		}
 	}
 
 	if resp.Token == "" {
-		self.onError(errors.New("missing token"))
+		f.onError(errors.New("missing token"))
 		return
 	}
 
 	go keyring.Set(consts.Name, "token", resp.Token)
 
-	if self.done != nil {
-		self.done(resp.Token)
+	if f.done != nil {
+		f.done(resp.Token)
 	}
 }
 
-func (self *Form) onError(err error) {
+func (f *Form) onError(err error) {
 	slog.Error("failed to login", "err", err)
 
 	modal := tview.NewModal().
 		SetText(err.Error()).
 		AddButtons([]string{"Close"}).
 		SetDoneFunc(func(_ int, _ string) {
-			self.RemovePage("modal").SwitchToPage("form")
+			f.RemovePage("modal").SwitchToPage("form")
 		})
-	self.
+	f.
 		AddAndSwitchToPage("modal", centered(modal, 0, 0), true).
 		ShowPage("form")
 }
