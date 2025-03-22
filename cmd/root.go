@@ -15,32 +15,34 @@ var (
 	app          *App
 )
 
-var rootCmd = &cobra.Command{
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := logger.Load(); err != nil {
-			return err
-		}
-
-		token, _ := cmd.Flags().GetString("token")
-		if token == "" {
-			var err error
-			token, err = keyring.Get(consts.Name, "token")
-			if err != nil {
-				slog.Info("failed to retrieve token from keyring", "err", err)
+var (
+	rootCmd = &cobra.Command{
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := logger.Load(); err != nil {
+				return err
 			}
-		}
 
-		cfg, err := config.Load()
-		if err != nil {
-			return err
-		}
+			token, _ := cmd.Flags().GetString("token")
+			if token == "" {
+				var err error
+				token, err = keyring.Get(consts.Name, "token")
+				if err != nil {
+					slog.Info("failed to retrieve token from keyring", "err", err)
+				}
+			}
 
-		app = newApp(cfg)
-		return app.run(token)
-	},
-}
+			cfg, err := config.Load()
+			if err != nil {
+				return err
+			}
 
-var Execute = rootCmd.Execute
+			app = newApp(cfg)
+			return app.run(token)
+		},
+	}
+
+	Execute = rootCmd.Execute
+)
 
 func init() {
 	rootCmd.Flags().StringP("token", "t", "", "the authentication token")
