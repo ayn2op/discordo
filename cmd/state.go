@@ -20,18 +20,18 @@ type State struct {
 }
 
 func openState(token string) error {
-	api.UserAgent = app.cfg.UserAgent
+	api.UserAgent = app.cfg.Identify.UserAgent
 	gateway.DefaultIdentity = gateway.IdentifyProperties{
 		OS:     runtime.GOOS,
 		Device: "",
 
-		Browser:          app.cfg.Browser,
-		BrowserVersion:   app.cfg.BrowserVersion,
-		BrowserUserAgent: app.cfg.UserAgent,
+		Browser:          app.cfg.Identify.Browser,
+		BrowserVersion:   app.cfg.Identify.BrowserVersion,
+		BrowserUserAgent: app.cfg.Identify.UserAgent,
 	}
 
 	gateway.DefaultPresence = &gateway.UpdatePresenceCommand{
-		Status: app.cfg.Status,
+		Status: app.cfg.Identify.Status,
 	}
 
 	discordState = &State{

@@ -13,25 +13,30 @@ import (
 
 const fileName = "config.toml"
 
-type Config struct {
-	Mouse  bool   `toml:"mouse"`
-	Editor string `toml:"editor"`
+type (
+	Identify struct {
+		Status         discord.Status `toml:"status"`
+		Browser        string         `toml:"browser"`
+		BrowserVersion string         `toml:"browser_version"`
+		UserAgent      string         `toml:"user_agent"`
+	}
 
-	HideBlockedUsers    bool  `toml:"hide_blocked_users"`
-	ShowAttachmentLinks bool  `toml:"show_attachment_links"`
-	MessagesLimit       uint8 `toml:"messages_limit"`
+	Config struct {
+		Mouse  bool   `toml:"mouse"`
+		Editor string `toml:"editor"`
 
-	Timestamps       bool   `toml:"timestamps"`
-	TimestampsFormat string `toml:"timestamps_format"`
+		HideBlockedUsers    bool  `toml:"hide_blocked_users"`
+		ShowAttachmentLinks bool  `toml:"show_attachment_links"`
+		MessagesLimit       uint8 `toml:"messages_limit"`
 
-	Status         discord.Status `toml:"status"`
-	Browser        string         `toml:"browser"`
-	BrowserVersion string         `toml:"browser_version"`
-	UserAgent      string         `toml:"user_agent"`
+		Timestamps       bool   `toml:"timestamps"`
+		TimestampsFormat string `toml:"timestamps_format"`
 
-	Keys  Keys  `toml:"keys"`
-	Theme Theme `toml:"theme"`
-}
+		Identify Identify `toml:"identify"`
+		Keys     Keys     `toml:"keys"`
+		Theme    Theme    `toml:"theme"`
+	}
+)
 
 func defaultConfig() *Config {
 	return &Config{
@@ -45,10 +50,12 @@ func defaultConfig() *Config {
 		Timestamps:       false,
 		TimestampsFormat: time.Kitchen,
 
-		Status:         discord.OnlineStatus,
-		Browser:        consts.Browser,
-		BrowserVersion: consts.BrowserVersion,
-		UserAgent:      consts.UserAgent,
+		Identify: Identify{
+			Status:         discord.OnlineStatus,
+			Browser:        consts.Browser,
+			BrowserVersion: consts.BrowserVersion,
+			UserAgent:      consts.UserAgent,
+		},
 
 		Keys:  defaultKeys(),
 		Theme: defaultTheme(),
