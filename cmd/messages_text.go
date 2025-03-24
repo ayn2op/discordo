@@ -169,7 +169,20 @@ func (mt *MessagesText) createFooter(w io.Writer, m discord.Message) {
 		fmt.Fprintln(w)
 		fmt.Fprint(w, "["+mt.cfg.Theme.MessagesText.ContentColor+"]")
 		for i, reaction := range m.Reactions {
-			fmt.Fprintf(w, "%s %d", reaction.Emoji.Name, reaction.Count)
+			var emojiDisplay string
+			if reaction.Emoji.ID.IsValid() {
+				emojiDisplay = ":" + strings.TrimSpace(reaction.Emoji.Name) + ":"
+			} else {
+				runes := []rune(reaction.Emoji.Name)
+				if len(runes) > 0 {
+					emojiDisplay = string(runes[0])
+				} else {
+					emojiDisplay = "?"
+				}
+			}
+
+			fmt.Fprintf(w, "%s %d", emojiDisplay, reaction.Count)
+
 			if i < len(m.Reactions)-1 {
 				fmt.Fprint(w, " | ")
 			}
