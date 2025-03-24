@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/atotto/clipboard"
@@ -313,17 +314,32 @@ func (mt *MessagesText) open() {
 	}
 
 	attachments := msg.Attachments
-	if len(attachments) == 0 {
+	content := msg.Content
+	if len(attachments) != 0 {
+		for _, a := range attachments {
+			go func() {
+				if err := open.Start(a.URL); err != nil {
+					slog.Error("failed to open URL", "err", err, "url", a.URL)
+				}
+			}()
+		}
+		return
+	}
+	if strings.Contains(content, "http://") || strings.Contains(content, "https://") {
+		words := strings.Fields(content)
+		for _, word := range words {
+			if strings.HasPrefix(word, "http://") || strings.HasPrefix(word, "https://") {
+				go func(url string) {
+					if err := open.Start(url); err != nil {
+						slog.Error("failed to open URL", "err", err, "url", url)
+					}
+				}(word)
+				break
+			}
+		}
 		return
 	}
 
-	for _, a := range attachments {
-		go func() {
-			if err := open.Start(a.URL); err != nil {
-				slog.Error("failed to open URL", "err", err, "url", a.URL)
-			}
-		}()
-	}
 }
 
 func (mt *MessagesText) reply(mention bool) {
