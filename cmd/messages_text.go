@@ -165,6 +165,17 @@ func (mt *MessagesText) createFooter(w io.Writer, m discord.Message) {
 			fmt.Fprintf(w, "[%s][%s][-]", mt.cfg.Theme.MessagesText.AttachmentColor, a.Filename)
 		}
 	}
+	if len(m.Reactions) > 0 {
+		fmt.Fprintln(w)
+		fmt.Fprint(w, "["+mt.cfg.Theme.MessagesText.ContentColor+"]")
+		for i, reaction := range m.Reactions {
+			fmt.Fprintf(w, "%s %d", reaction.Emoji.Name, reaction.Count)
+			if i < len(m.Reactions)-1 {
+				fmt.Fprint(w, " | ")
+			}
+		}
+		fmt.Fprint(w, "[-:-:-]")
+	}
 }
 
 func (mt *MessagesText) getSelectedMessage() (*discord.Message, error) {
