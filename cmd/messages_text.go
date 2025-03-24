@@ -322,7 +322,6 @@ func (mt *MessagesText) open() {
 		return
 	}
 
-	// If there's only one URL or attachment, open it directly
 	if len(urls)+len(msg.Attachments) == 1 {
 		if len(urls) == 1 {
 			go openURL(urls[0])
