@@ -313,33 +313,110 @@ func (mt *MessagesText) open() {
 		return
 	}
 
-	attachments := msg.Attachments
-	content := msg.Content
-	if len(attachments) != 0 {
-		for _, a := range attachments {
-			go func() {
-				if err := open.Start(a.URL); err != nil {
-					slog.Error("failed to open URL", "err", err, "url", a.URL)
-				}
-			}()
-		}
+	var urls []string
+	if msg.Content != "" {
+		urls = extractURLs(msg.Content)
+	}
+
+	if len(urls) == 0 && len(msg.Attachments) == 0 {
 		return
 	}
-	if strings.Contains(content, "http://") || strings.Contains(content, "https://") {
-		words := strings.Fields(content)
-		for _, word := range words {
-			if strings.HasPrefix(word, "http://") || strings.HasPrefix(word, "https://") {
-				go func(url string) {
-					if err := open.Start(url); err != nil {
-						slog.Error("failed to open URL", "err", err, "url", url)
-					}
-				}(word)
-				break
-			}
+
+	// If there's only one URL or attachment, open it directly
+	if len(urls)+len(msg.Attachments) == 1 {
+		if len(urls) == 1 {
+			go openURL(urls[0])
+		} else {
+			go openURL(msg.Attachments[0].URL)
 		}
 		return
 	}
 
+	showSelector(mt, urls, msg.Attachments)
+}
+
+func extractURLs(content string) []string {
+	var urls []string
+	words := strings.Fields(content)
+	for _, word := range words {
+		if strings.HasPrefix(word, "http://") || strings.HasPrefix(word, "https://") {
+			urls = append(urls, word)
+		}
+	}
+	return urls
+}
+
+func showSelector(mt *MessagesText, urls []string, attachments []discord.Attachment) {
+	list := tview.NewList().
+		SetWrapAround(true).
+		SetHighlightFullLine(true).
+		ShowSecondaryText(false)
+
+	for i, a := range attachments {
+		attachment := a
+		list.AddItem(a.Filename, "", rune('a'+i), func() {
+			go openURL(attachment.URL)
+			app.SetRoot(app.flex, true)
+		})
+	}
+
+	for i, url := range urls {
+		urlCopy := url
+		list.AddItem(url, "", rune('1'+i), func() {
+			go openURL(urlCopy)
+			app.SetRoot(app.flex, true)
+		})
+	}
+
+	list.AddItem("Cancel", "", 'q', func() {
+		app.SetRoot(app.flex, true)
+	})
+
+	list.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		switch event.Name() {
+		case mt.cfg.Keys.MessagesText.SelectPrevious:
+			return tcell.NewEventKey(tcell.KeyUp, 0, tcell.ModNone)
+		case mt.cfg.Keys.MessagesText.SelectNext:
+			return tcell.NewEventKey(tcell.KeyDown, 0, tcell.ModNone)
+		case mt.cfg.Keys.MessagesText.SelectFirst:
+			list.SetCurrentItem(0)
+			return nil
+		case mt.cfg.Keys.MessagesText.SelectLast:
+			list.SetCurrentItem(list.GetItemCount() - 1)
+			return nil
+		case "Escape":
+			app.SetRoot(app.flex, true)
+			return nil
+		}
+		return event
+	})
+
+	height := len(urls) + len(attachments) + 1
+	maxHeight := 20
+	if height > maxHeight {
+		height = maxHeight
+	}
+
+	modal := createCenteredModal(list, height, 60)
+
+	app.SetRoot(modal, true)
+	app.SetFocus(list)
+}
+
+func createCenteredModal(p tview.Primitive, height, width int) tview.Primitive {
+	return tview.NewFlex().
+		AddItem(nil, 0, 1, false).
+		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
+			AddItem(nil, 0, 1, false).
+			AddItem(p, height, 1, true).
+			AddItem(nil, 0, 1, false), width, 1, true).
+		AddItem(nil, 0, 1, false)
+}
+
+func openURL(url string) {
+	if err := open.Start(url); err != nil {
+		slog.Error("failed to open URL", "err", err, "url", url)
+	}
 }
 
 func (mt *MessagesText) reply(mention bool) {
