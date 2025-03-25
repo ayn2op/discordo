@@ -340,6 +340,17 @@ func extractURLs(content string) []string {
 	for _, word := range words {
 		if strings.HasPrefix(word, "http://") || strings.HasPrefix(word, "https://") {
 			urls = append(urls, word)
+			continue
+		}
+		if strings.HasPrefix(word, "[") {
+			index := strings.Index(word, "](")
+			if index != -1 {
+				url := word[index+2:]
+				url = url[:len(url)-1]
+				if strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://") {
+					urls = append(urls, url)
+				}
+			}
 		}
 	}
 	return urls
