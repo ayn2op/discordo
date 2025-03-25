@@ -342,6 +342,15 @@ func extractURLs(content string) []string {
 			urls = append(urls, word)
 			continue
 		}
+		if strings.HasPrefix(word, "<") || strings.HasSuffix(word, ">") {
+			word = word[:len(word)-1]
+			word = word[1:]
+			if strings.HasPrefix(word, "http://") || strings.HasPrefix(word, "https://") {
+				urls = append(urls, word)
+				continue
+			}
+		}
+
 		if strings.HasPrefix(word, "[") {
 			index := strings.Index(word, "](")
 			if index != -1 {
