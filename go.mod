@@ -8,7 +8,7 @@ require (
 	github.com/diamondburned/arikawa/v3 v3.4.0
 	github.com/diamondburned/ningen/v3 v3.0.1-0.20240808103805-f1a24c0da3d8
 	github.com/gdamore/tcell/v2 v2.8.1
-	github.com/rivo/tview v0.0.0-20241227133733-17b7edb88c57
+	github.com/rivo/tview v0.0.0-20250325173046-7b72abf45814
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/spf13/cobra v1.9.1
 	github.com/yuin/goldmark v1.7.8
