@@ -43,7 +43,7 @@ func newApp(cfg *config.Config) *App {
 
 func (app *App) show(token string) error {
 	if token == "" {
-		loginForm := login.NewForm(app.Application, func(token string) {
+		loginForm := login.NewForm(app.cfg, app.Application, func(token string) {
 			if err := app.show(token); err != nil {
 				slog.Error("failed to show app", "err", err)
 				return
