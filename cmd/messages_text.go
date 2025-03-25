@@ -335,9 +335,26 @@ func (mt *MessagesText) open() {
 }
 
 func extractURLs(content string) []string {
+	var findbracket bool
+	findbracket = false
 	var urls []string
 	words := strings.Fields(content)
 	for _, word := range words {
+		if findbracket {
+			if !strings.Contains(word, "]") {
+				continue
+			}
+			index := strings.Index(word, "](")
+			if index != -1 {
+				url := word[index+2:]
+				url = url[:len(url)-1]
+				if strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://") {
+					urls = append(urls, url)
+					continue
+				}
+			}
+
+		}
 		if strings.HasPrefix(word, "http://") || strings.HasPrefix(word, "https://") {
 			urls = append(urls, word)
 			continue
@@ -352,12 +369,18 @@ func extractURLs(content string) []string {
 		}
 
 		if strings.HasPrefix(word, "[") {
+			if !strings.Contains(word, "]") {
+				findbracket = true
+				continue
+			}
+
 			index := strings.Index(word, "](")
 			if index != -1 {
 				url := word[index+2:]
 				url = url[:len(url)-1]
 				if strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://") {
 					urls = append(urls, url)
+					continue
 				}
 			}
 		}
