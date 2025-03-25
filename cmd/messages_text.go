@@ -344,6 +344,7 @@ func extractURLs(content string) []string {
 			if !strings.Contains(word, "]") {
 				continue
 			}
+			findbracket = false
 			index := strings.Index(word, "](")
 			if index != -1 {
 				url := word[index+2:]
