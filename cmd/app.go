@@ -14,7 +14,8 @@ import (
 type App struct {
 	*tview.Application
 
-	cfg          *config.Config
+	cfg *config.Config
+
 	flex         *tview.Flex
 	guildsTree   *GuildsTree
 	messagesText *MessagesText
@@ -26,15 +27,14 @@ func newApp(cfg *config.Config) *App {
 	a := &App{
 		Application: app,
 
-		cfg:  cfg,
-		flex: tview.NewFlex(),
+		cfg: cfg,
 
+		flex:         tview.NewFlex(),
 		guildsTree:   newGuildsTree(app, cfg),
 		messagesText: newMessagesText(app, cfg),
 		messageInput: newMessageInput(app, cfg),
 	}
 
-	a.init()
 	a.EnableMouse(cfg.Mouse)
 	a.SetInputCapture(a.onInputCapture)
 	a.flex.SetInputCapture(a.onFlexInputCapture)
@@ -56,6 +56,7 @@ func (app *App) show(token string) error {
 			return err
 		}
 
+		app.init()
 		app.SetRoot(app.flex, true)
 	}
 
