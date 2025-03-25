@@ -16,6 +16,7 @@ type App struct {
 
 	cfg *config.Config
 
+	pages        *tview.Pages
 	flex         *tview.Flex
 	guildsTree   *GuildsTree
 	messagesText *MessagesText
@@ -29,6 +30,7 @@ func newApp(cfg *config.Config) *App {
 
 		cfg: cfg,
 
+		pages:        tview.NewPages(),
 		flex:         tview.NewFlex(),
 		guildsTree:   newGuildsTree(app, cfg),
 		messagesText: newMessagesText(app, cfg),
@@ -71,16 +73,24 @@ func (app *App) run(token string) error {
 	return app.Run()
 }
 
-func (app *App) init() {
-	app.flex.Clear()
+func (a *App) clearPages() {
+	for _, name := range a.pages.GetPageNames(false) {
+		a.pages.RemovePage(name)
+	}
+}
+
+func (a *App) init() {
+	a.clearPages()
+	a.flex.Clear()
 
 	right := tview.NewFlex()
 	right.SetDirection(tview.FlexRow)
-	right.AddItem(app.messagesText, 0, 1, false)
-	right.AddItem(app.messageInput, 3, 1, false)
+	right.AddItem(a.messagesText, 0, 1, false)
+	right.AddItem(a.messageInput, 3, 1, false)
 	// The guilds tree is always focused first at start-up.
-	app.flex.AddItem(app.guildsTree, 0, 1, true)
-	app.flex.AddItem(right, 0, 4, false)
+	a.flex.AddItem(a.guildsTree, 0, 1, true)
+	a.flex.AddItem(right, 0, 4, false)
+	a.pages.AddAndSwitchToPage("flex", a.flex, true)
 }
 
 func (app *App) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
