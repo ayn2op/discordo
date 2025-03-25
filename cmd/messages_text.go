@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"slices"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/atotto/clipboard"
@@ -18,7 +17,10 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/skratchdot/open-golang/open"
+	"github.com/yuin/goldmark/ast"
+	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer"
+	"github.com/yuin/goldmark/text"
 )
 
 type MessagesText struct {
@@ -335,57 +337,25 @@ func (mt *MessagesText) open() {
 }
 
 func extractURLs(content string) []string {
-	var findbracket bool
-	findbracket = false
+	src := []byte(content)
+	node := parser.NewParser(
+		parser.WithBlockParsers(discordmd.BlockParsers()...),
+		parser.WithInlineParsers(discordmd.InlineParserWithLink()...),
+	).Parse(text.NewReader(src))
+
 	var urls []string
-	words := strings.Fields(content)
-	for _, word := range words {
-		if findbracket {
-			if !strings.Contains(word, "]") {
-				continue
-			}
-			findbracket = false
-			index := strings.Index(word, "](")
-			if index != -1 {
-				url := word[index+2:]
-				url = url[:len(url)-1]
-				if strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://") {
-					urls = append(urls, url)
-					continue
-				}
-			}
-
-		}
-		if strings.HasPrefix(word, "http://") || strings.HasPrefix(word, "https://") {
-			urls = append(urls, word)
-			continue
-		}
-		if strings.HasPrefix(word, "<") || strings.HasSuffix(word, ">") {
-			word = word[:len(word)-1]
-			word = word[1:]
-			if strings.HasPrefix(word, "http://") || strings.HasPrefix(word, "https://") {
-				urls = append(urls, word)
-				continue
+	ast.Walk(node, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+		if entering {
+			switch n := n.(type) {
+			case *ast.AutoLink:
+				urls = append(urls, string(n.URL(src)))
+			case *ast.Link:
+				urls = append(urls, string(n.Destination))
 			}
 		}
 
-		if strings.HasPrefix(word, "[") {
-			if !strings.Contains(word, "]") {
-				findbracket = true
-				continue
-			}
-
-			index := strings.Index(word, "](")
-			if index != -1 {
-				url := word[index+2:]
-				url = url[:len(url)-1]
-				if strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://") {
-					urls = append(urls, url)
-					continue
-				}
-			}
-		}
-	}
+		return ast.WalkContinue, nil
+	})
 	return urls
 }
 
