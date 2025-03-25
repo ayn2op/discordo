@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
@@ -16,16 +17,18 @@ type DoneFn = func(token string)
 
 type Form struct {
 	*tview.Pages
-	form *tview.Form
+	cfg  *config.Config
 	app  *tview.Application
+	form *tview.Form
 	done DoneFn
 }
 
-func NewForm(app *tview.Application, done DoneFn) *Form {
+func NewForm(cfg *config.Config, app *tview.Application, done DoneFn) *Form {
 	f := &Form{
 		Pages: tview.NewPages(),
-		form:  tview.NewForm(),
+		cfg:   cfg,
 		app:   app,
+		form:  tview.NewForm(),
 		done:  done,
 	}
 
@@ -48,7 +51,7 @@ func (f *Form) login() {
 	// Create an API client without an authentication token.
 	client := api.NewClient("")
 	// Spoof the user agent of a web browser.
-	client.UserAgent = consts.UserAgent
+	client.UserAgent = f.cfg.Identify.UserAgent
 
 	body := httputil.WithJSONBody(struct {
 		Email    string `json:"login"`
