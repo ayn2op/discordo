@@ -17,7 +17,10 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/skratchdot/open-golang/open"
+	"github.com/yuin/goldmark/ast"
+	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer"
+	"github.com/yuin/goldmark/text"
 )
 
 type MessagesText struct {
@@ -312,17 +315,120 @@ func (mt *MessagesText) open() {
 		return
 	}
 
-	attachments := msg.Attachments
-	if len(attachments) == 0 {
+	var urls []string
+	if msg.Content != "" {
+		urls = extractURLs(msg.Content)
+	}
+
+	if len(urls) == 0 && len(msg.Attachments) == 0 {
 		return
 	}
 
-	for _, a := range attachments {
-		go func() {
-			if err := open.Start(a.URL); err != nil {
-				slog.Error("failed to open URL", "err", err, "url", a.URL)
+	if len(urls)+len(msg.Attachments) == 1 {
+		if len(urls) == 1 {
+			go openURL(urls[0])
+		} else {
+			go openURL(msg.Attachments[0].URL)
+		}
+		return
+	}
+
+	showSelector(mt, urls, msg.Attachments)
+}
+
+func extractURLs(content string) []string {
+	src := []byte(content)
+	node := parser.NewParser(
+		parser.WithBlockParsers(discordmd.BlockParsers()...),
+		parser.WithInlineParsers(discordmd.InlineParserWithLink()...),
+	).Parse(text.NewReader(src))
+
+	var urls []string
+	ast.Walk(node, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+		if entering {
+			switch n := n.(type) {
+			case *ast.AutoLink:
+				urls = append(urls, string(n.URL(src)))
+			case *ast.Link:
+				urls = append(urls, string(n.Destination))
 			}
-		}()
+		}
+
+		return ast.WalkContinue, nil
+	})
+	return urls
+}
+
+func showSelector(mt *MessagesText, urls []string, attachments []discord.Attachment) {
+	list := tview.NewList().
+		SetWrapAround(true).
+		SetHighlightFullLine(true).
+		ShowSecondaryText(false)
+
+	for i, a := range attachments {
+		attachment := a
+		list.AddItem(a.Filename, "", rune('a'+i), func() {
+			go openURL(attachment.URL)
+			app.SetRoot(app.flex, true)
+		})
+	}
+
+	for i, url := range urls {
+		urlCopy := url
+		list.AddItem(url, "", rune('1'+i), func() {
+			go openURL(urlCopy)
+			app.SetRoot(app.flex, true)
+		})
+	}
+
+	list.AddItem("Cancel", "", 'q', func() {
+		app.SetRoot(app.flex, true)
+	})
+
+	list.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		switch event.Name() {
+		case mt.cfg.Keys.MessagesText.SelectPrevious:
+			return tcell.NewEventKey(tcell.KeyUp, 0, tcell.ModNone)
+		case mt.cfg.Keys.MessagesText.SelectNext:
+			return tcell.NewEventKey(tcell.KeyDown, 0, tcell.ModNone)
+		case mt.cfg.Keys.MessagesText.SelectFirst:
+			list.SetCurrentItem(0)
+			return nil
+		case mt.cfg.Keys.MessagesText.SelectLast:
+			list.SetCurrentItem(list.GetItemCount() - 1)
+			return nil
+		case "Escape":
+			app.SetRoot(app.flex, true)
+			return nil
+		}
+		return event
+	})
+
+	height := len(urls) + len(attachments) + 1
+	maxHeight := 20
+	if height > maxHeight {
+		height = maxHeight
+	}
+
+	modal := createCenteredModal(list, height, 60)
+
+	app.SetRoot(modal, true)
+	app.SetFocus(list)
+}
+
+func createCenteredModal(p tview.Primitive, height, width int) tview.Primitive {
+	return tview.NewFlex().
+		AddItem(nil, 0, 1, false).
+		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
+			AddItem(nil, 0, 1, false).
+			AddItem(p, height, 1, true).
+			AddItem(nil, 0, 1, false), width, 1, true).
+		AddItem(nil, 0, 1, false)
+}
+
+func openURL(url string) {
+	if err := open.Start(url); err != nil {
+		slog.Error("failed to open URL", "err", err, "url", url)
 	}
 }
 
