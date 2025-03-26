@@ -26,3 +26,10 @@ jobs:
           path: |
             discordo
             discordo.exe
+
+      - name: Send repository dispatch
+        if: ${{ runner.os == 'Windows' && github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
+        run: |
+          gh api --method POST -H "Accept: application/vnd.github+json" -f "event_type=discordo-ci-completed" /repos/vvirtues/bucket/dispatches

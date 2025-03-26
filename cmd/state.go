@@ -2,33 +2,40 @@ package cmd
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"runtime"
+	"slices"
 
-	"github.com/ayn2op/discordo/internal/constants"
 	"github.com/diamondburned/arikawa/v3/api"
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
-	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/httputil/httpdriver"
+	"github.com/diamondburned/ningen/v3"
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
-func init() {
-	api.UserAgent = constants.UserAgent
-	gateway.DefaultIdentity = gateway.IdentifyProperties{
-		OS:      runtime.GOOS,
-		Browser: constants.Name,
-		Device:  "",
-	}
-}
-
 type State struct {
-	*state.State
+	*ningen.State
 }
 
 func openState(token string) error {
+	api.UserAgent = app.cfg.Identify.UserAgent
+	gateway.DefaultIdentity = gateway.IdentifyProperties{
+		OS:     runtime.GOOS,
+		Device: "",
+
+		Browser:          app.cfg.Identify.Browser,
+		BrowserVersion:   app.cfg.Identify.BrowserVersion,
+		BrowserUserAgent: app.cfg.Identify.UserAgent,
+	}
+
+	gateway.DefaultPresence = &gateway.UpdatePresenceCommand{
+		Status: app.cfg.Identify.Status,
+	}
+
 	discordState = &State{
-		State: state.New(token),
+		State: ningen.New(token),
 	}
 
 	// Handlers
@@ -36,63 +43,62 @@ func openState(token string) error {
 	discordState.AddHandler(discordState.onMessageCreate)
 	discordState.AddHandler(discordState.onMessageDelete)
 
-	discordState.OnRequest = append(discordState.Client.OnRequest, discordState.onRequest)
+	discordState.OnRequest = append(discordState.OnRequest, discordState.onRequest)
 	return discordState.Open(context.TODO())
 }
 
 func (s *State) onRequest(r httpdriver.Request) error {
 	req, ok := r.(*httpdriver.DefaultRequest)
 	if ok {
-		log.Printf("method = %s; url = %s\n", req.Method, req.URL)
+		slog.Info("new HTTP request", "method", req.Method, "path", req.URL.Path)
 	}
 
 	return nil
 }
 
 func (s *State) onReady(r *gateway.ReadyEvent) {
-	root := mainFlex.guildsTree.GetRoot()
+	root := app.guildsTree.GetRoot()
+	root.ClearChildren()
+
 	dmNode := tview.NewTreeNode("Direct Messages")
+	dmNode.SetColor(tcell.GetColor(app.cfg.Theme.GuildsTree.PrivateChannelColor))
 	root.AddChild(dmNode)
 
-	folders := r.UserSettings.GuildFolders
-	if len(folders) == 0 {
-		for _, g := range r.Guilds {
-			mainFlex.guildsTree.createGuildNode(root, g.Guild)
+	// Track guilds that have a parent (folder) to add orphan channels later
+	var folderGuildIds []discord.GuildID
+	for _, folder := range r.UserSettings.GuildFolders {
+		// Hide unnamed, single-server folders
+		if folder.Name == "" && len(folder.GuildIDs) < 2 {
+			continue
 		}
-	} else {
-		for _, folder := range folders {
-			// If the ID of the guild folder is zero, the guild folder only contains single guild.
-			if folder.ID == 0 {
-				gID := folder.GuildIDs[0]
-				g, err := discordState.Cabinet.Guild(gID)
-				if err != nil {
-					log.Printf("guild %v not found in state: %v\n", gID, err)
-					continue
-				}
+		folderGuildIds = append(folderGuildIds, folder.GuildIDs...)
 
-				mainFlex.guildsTree.createGuildNode(root, *g)
-			} else {
-				mainFlex.guildsTree.createFolderNode(folder)
-			}
+		app.guildsTree.createFolderNode(folder)
+	}
+
+	// add orphan (without folder) guilds to guilds tree
+	for _, guild := range r.Guilds {
+		if !slices.Contains(folderGuildIds, guild.ID) {
+			app.guildsTree.createGuildNode(root, guild.Guild)
 		}
 	}
 
-	mainFlex.guildsTree.SetCurrentNode(root)
-	app.SetFocus(mainFlex.guildsTree)
+	app.guildsTree.SetCurrentNode(root)
+	app.SetFocus(app.guildsTree)
 }
 
 func (s *State) onMessageCreate(m *gateway.MessageCreateEvent) {
-	if mainFlex.guildsTree.selectedChannelID.IsValid() && mainFlex.guildsTree.selectedChannelID == m.ChannelID {
-		mainFlex.messagesText.createMessage(m.Message)
+	if app.guildsTree.selectedChannelID.IsValid() && app.guildsTree.selectedChannelID == m.ChannelID {
+		app.messagesText.createMessage(m.Message)
 	}
 }
 
 func (s *State) onMessageDelete(m *gateway.MessageDeleteEvent) {
-	if mainFlex.guildsTree.selectedChannelID == m.ChannelID {
-		mainFlex.messagesText.selectedMessage = -1
-		mainFlex.messagesText.Highlight()
-		mainFlex.messagesText.Clear()
+	if app.guildsTree.selectedChannelID == m.ChannelID {
+		app.messagesText.selectedMessageID = 0
+		app.messagesText.Highlight()
+		app.messagesText.Clear()
 
-		mainFlex.messagesText.drawMsgs(m.ChannelID)
+		app.messagesText.drawMsgs(m.ChannelID)
 	}
 }
