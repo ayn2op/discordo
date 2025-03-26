@@ -12,6 +12,7 @@ import (
 	"github.com/atotto/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/markdown"
+	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/ningen/v3/discordmd"
 	"github.com/gdamore/tcell/v2"
@@ -330,10 +331,9 @@ func (mt *MessagesText) open() {
 		} else {
 			go openURL(msg.Attachments[0].URL)
 		}
-		return
+	} else {
+		mt.showUrlSelector(urls, msg.Attachments)
 	}
-
-	showSelector(mt, urls, msg.Attachments)
 }
 
 func extractURLs(content string) []string {
@@ -359,17 +359,43 @@ func extractURLs(content string) []string {
 	return urls
 }
 
-func showSelector(mt *MessagesText, urls []string, attachments []discord.Attachment) {
+func (mt *MessagesText) showUrlSelector(urls []string, attachments []discord.Attachment) {
+	done := func() {
+		app.pages.RemovePage("list").SwitchToPage("flex")
+		app.SetFocus(app.messagesText)
+	}
+
 	list := tview.NewList().
 		SetWrapAround(true).
 		SetHighlightFullLine(true).
-		ShowSecondaryText(false)
+		ShowSecondaryText(false).
+		SetDoneFunc(done)
+
+	p := mt.cfg.Theme.BorderPadding
+	list.
+		SetBorder(mt.cfg.Theme.Border).
+		SetBorderColor(tcell.GetColor(mt.cfg.Theme.BorderColor)).
+		SetBorderPadding(p[0], p[1], p[2], p[3]).
+		SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+			switch event.Name() {
+			case mt.cfg.Keys.MessagesText.SelectPrevious:
+				return tcell.NewEventKey(tcell.KeyUp, 0, tcell.ModNone)
+			case mt.cfg.Keys.MessagesText.SelectNext:
+				return tcell.NewEventKey(tcell.KeyDown, 0, tcell.ModNone)
+			case mt.cfg.Keys.MessagesText.SelectFirst:
+				return tcell.NewEventKey(tcell.KeyHome, 0, tcell.ModNone)
+			case mt.cfg.Keys.MessagesText.SelectLast:
+				return tcell.NewEventKey(tcell.KeyEnd, 0, tcell.ModNone)
+			}
+
+			return event
+		})
 
 	for i, a := range attachments {
 		attachment := a
 		list.AddItem(a.Filename, "", rune('a'+i), func() {
 			go openURL(attachment.URL)
-			app.SetRoot(app.flex, true)
+			done()
 		})
 	}
 
@@ -377,53 +403,13 @@ func showSelector(mt *MessagesText, urls []string, attachments []discord.Attachm
 		urlCopy := url
 		list.AddItem(url, "", rune('1'+i), func() {
 			go openURL(urlCopy)
-			app.SetRoot(app.flex, true)
+			done()
 		})
 	}
 
-	list.AddItem("Cancel", "", 'q', func() {
-		app.SetRoot(app.flex, true)
-	})
-
-	list.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		switch event.Name() {
-		case mt.cfg.Keys.MessagesText.SelectPrevious:
-			return tcell.NewEventKey(tcell.KeyUp, 0, tcell.ModNone)
-		case mt.cfg.Keys.MessagesText.SelectNext:
-			return tcell.NewEventKey(tcell.KeyDown, 0, tcell.ModNone)
-		case mt.cfg.Keys.MessagesText.SelectFirst:
-			list.SetCurrentItem(0)
-			return nil
-		case mt.cfg.Keys.MessagesText.SelectLast:
-			list.SetCurrentItem(list.GetItemCount() - 1)
-			return nil
-		case "Escape":
-			app.SetRoot(app.flex, true)
-			return nil
-		}
-		return event
-	})
-
-	height := len(urls) + len(attachments) + 1
-	maxHeight := 20
-	if height > maxHeight {
-		height = maxHeight
-	}
-
-	modal := createCenteredModal(list, height, 60)
-
-	app.SetRoot(modal, true)
-	app.SetFocus(list)
-}
-
-func createCenteredModal(p tview.Primitive, height, width int) tview.Primitive {
-	return tview.NewFlex().
-		AddItem(nil, 0, 1, false).
-		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
-			AddItem(nil, 0, 1, false).
-			AddItem(p, height, 1, true).
-			AddItem(nil, 0, 1, false), width, 1, true).
-		AddItem(nil, 0, 1, false)
+	app.pages.
+		AddAndSwitchToPage("list", ui.Centered(list, 0, 0), true).
+		ShowPage("flex")
 }
 
 func openURL(url string) {

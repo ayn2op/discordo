@@ -7,6 +7,7 @@ import (
 
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/consts"
+	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/rivo/tview"
@@ -105,13 +106,6 @@ func (f *Form) onError(err error) {
 			f.RemovePage("modal").SwitchToPage("form")
 		})
 	f.
-		AddAndSwitchToPage("modal", centered(modal, 0, 0), true).
+		AddAndSwitchToPage("modal", ui.Centered(modal, 0, 0), true).
 		ShowPage("form")
-}
-
-func centered(p tview.Primitive, width, height int) tview.Primitive {
-	return tview.NewGrid().
-		SetColumns(0, width, 0).
-		SetRows(0, height, 0).
-		AddItem(p, 1, 1, 1, 1, 0, 0, true)
 }

@@ -59,7 +59,7 @@ func (app *App) show(token string) error {
 		}
 
 		app.init()
-		app.SetRoot(app.flex, true)
+		app.SetRoot(app.pages, true)
 	}
 
 	return nil
