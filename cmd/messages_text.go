@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/atotto/clipboard"
