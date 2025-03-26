@@ -35,9 +35,11 @@ type (
 		Reply        string `toml:"reply"`
 		ReplyMention string `toml:"reply_mention"`
 
-		Delete string `toml:"delete"`
-		Yank   string `toml:"yank"`
-		Open   string `toml:"open"`
+		Delete      string `toml:"delete"`
+		YankID      string `toml:"yank_id"`
+		YankContent string `toml:"yank_content"`
+		YankURL     string `toml:"yank_url"`
+		Open        string `toml:"open"`
 	}
 
 	MessageInputKeys struct {
@@ -81,9 +83,10 @@ func defaultKeys() Keys {
 			Reply:        "Rune[r]",
 			ReplyMention: "Rune[R]",
 
-			Delete: "Rune[d]",
-			Yank:   "Rune[y]",
-			Open:   "Rune[o]",
+			Delete:      "Rune[d]",
+			YankContent: "Rune[y]",
+			YankURL:     "Rune[i]",
+			Open:        "Rune[o]",
 		},
 
 		MessageInput: MessageInputKeys{
