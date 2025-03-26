@@ -203,8 +203,12 @@ func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case mt.cfg.Keys.MessagesText.SelectPrevious, mt.cfg.Keys.MessagesText.SelectNext, mt.cfg.Keys.MessagesText.SelectFirst, mt.cfg.Keys.MessagesText.SelectLast, mt.cfg.Keys.MessagesText.SelectReply, mt.cfg.Keys.MessagesText.SelectPin:
 		mt._select(event.Name())
-	case mt.cfg.Keys.MessagesText.Yank:
-		mt.yank()
+	case mt.cfg.Keys.MessagesText.YankID:
+		mt.yankID()
+	case mt.cfg.Keys.MessagesText.YankContent:
+		mt.yankContent()
+	case mt.cfg.Keys.MessagesText.YankURL:
+		mt.yankURL()
 	case mt.cfg.Keys.MessagesText.Open:
 		mt.open()
 	case mt.cfg.Keys.MessagesText.Reply:
@@ -295,17 +299,39 @@ func (mt *MessagesText) onHighlighted(added, removed, remaining []string) {
 	}
 }
 
-func (mt *MessagesText) yank() {
+func (mt *MessagesText) yankID() {
 	msg, err := mt.getSelectedMessage()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
 		return
 	}
 
-	err = clipboard.WriteAll(msg.Content)
-	if err != nil {
+	if err := clipboard.WriteAll(msg.ID.String()); err != nil {
 		slog.Error("failed to write to clipboard", "err", err)
+	}
+}
+
+func (mt *MessagesText) yankContent() {
+	msg, err := mt.getSelectedMessage()
+	if err != nil {
+		slog.Error("failed to get selected message", "err", err)
 		return
+	}
+
+	if err = clipboard.WriteAll(msg.Content); err != nil {
+		slog.Error("failed to write to clipboard", "err", err)
+	}
+}
+
+func (mt *MessagesText) yankURL() {
+	msg, err := mt.getSelectedMessage()
+	if err != nil {
+		slog.Error("failed to get selected message", "err", err)
+		return
+	}
+
+	if err = clipboard.WriteAll(msg.URL()); err != nil {
+		slog.Error("failed to write to clipboard", "err", err)
 	}
 }
 
