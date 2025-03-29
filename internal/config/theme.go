@@ -67,21 +67,20 @@ type (
 	}
 
 	Theme struct {
-		Border BorderTheme `toml:"border"`
-
-		TitleColor      string `toml:"title_color"`
-		BackgroundColor string `toml:"background_color"`
-
-		GuildsTree   GuildsTreeTheme   `toml:"guilds_tree"`
-		MessagesText MessagesTextTheme `toml:"messages_text"`
+		TitleColor      string            `toml:"title_color"`
+		BackgroundColor string            `toml:"background_color"`
+		Border          BorderTheme       `toml:"border"`
+		GuildsTree      GuildsTreeTheme   `toml:"guilds_tree"`
+		MessagesText    MessagesTextTheme `toml:"messages_text"`
 	}
 
 	GuildsTreeTheme struct {
-		AutoExpandFolders   bool   `toml:"auto_expand_folders"`
-		ChannelColor        string `toml:"channel_color"`
-		Graphics            bool   `toml:"graphics"`
-		GuildColor          string `toml:"guild_color"`
+		AutoExpandFolders bool `toml:"auto_expand_folders"`
+		Graphics          bool `toml:"graphics"`
+
 		PrivateChannelColor string `toml:"private_channel_color"`
+		GuildColor          string `toml:"guild_color"`
+		ChannelColor        string `toml:"channel_color"`
 	}
 
 	MessagesTextTheme struct {
@@ -102,7 +101,7 @@ func defaultTheme() Theme {
 			Padding: [...]int{0, 0, 1, 1},
 
 			Color:       "default",
-			ActiveColor: "gold",
+			ActiveColor: "green",
 			Preset: BorderPreset{
 				Horizontal:  tview.Borders.Horizontal,
 				Vertical:    tview.Borders.Vertical,
