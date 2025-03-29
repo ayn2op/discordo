@@ -37,12 +37,12 @@ var (
 				return err
 			}
 
-			tview.Borders.Horizontal = cfg.Theme.Border.Type.Horizontal
-			tview.Borders.Vertical = cfg.Theme.Border.Type.Vertical
-			tview.Borders.TopLeft = cfg.Theme.Border.Type.TopLeft
-			tview.Borders.TopRight = cfg.Theme.Border.Type.TopRight
-			tview.Borders.BottomLeft = cfg.Theme.Border.Type.BottomLeft
-			tview.Borders.BottomRight = cfg.Theme.Border.Type.BottomRight
+			tview.Borders.Horizontal = cfg.Theme.Border.Preset.Horizontal
+			tview.Borders.Vertical = cfg.Theme.Border.Preset.Vertical
+			tview.Borders.TopLeft = cfg.Theme.Border.Preset.TopLeft
+			tview.Borders.TopRight = cfg.Theme.Border.Preset.TopRight
+			tview.Borders.BottomLeft = cfg.Theme.Border.Preset.BottomLeft
+			tview.Borders.BottomRight = cfg.Theme.Border.Preset.BottomRight
 
 			tview.Borders.HorizontalFocus = tview.Borders.Horizontal
 			tview.Borders.VerticalFocus = tview.Borders.Vertical
