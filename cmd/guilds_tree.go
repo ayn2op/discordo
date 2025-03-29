@@ -28,24 +28,30 @@ func newGuildsTree(app *tview.Application, cfg *config.Config) *GuildsTree {
 		app:      app,
 	}
 
-	root := tview.NewTreeNode("")
-	gt.SetRoot(root)
+	t := cfg.Theme
+	gt.
+		SetRoot(tview.NewTreeNode("")).
+		SetTopLevel(1).
+		SetGraphics(t.GuildsTree.Graphics).
+		SetSelectedFunc(gt.onSelected)
 
-	gt.SetTopLevel(1)
-	gt.SetGraphics(cfg.Theme.GuildsTree.Graphics)
-	gt.SetBackgroundColor(tcell.GetColor(cfg.Theme.BackgroundColor))
-	gt.SetSelectedFunc(gt.onSelected)
+	b := t.Border
+	p := b.Padding
+	gt.
+		SetInputCapture(gt.onInputCapture).
+		SetBackgroundColor(tcell.GetColor(cfg.Theme.BackgroundColor)).
+		SetTitle("Guilds").
+		SetTitleColor(tcell.GetColor(cfg.Theme.TitleColor)).
+		SetTitleAlign(tview.AlignLeft).
+		SetBorder(b.Enabled).
+		SetBorderPadding(p[0], p[1], p[2], p[3]).
+		SetFocusFunc(func() {
+			gt.SetBorderColor(tcell.GetColor(b.ActiveColor))
+		}).
+		SetBlurFunc(func() {
+			gt.SetBorderColor(tcell.GetColor(b.Color))
+		})
 
-	gt.SetTitle("Guilds")
-	gt.SetTitleColor(tcell.GetColor(cfg.Theme.TitleColor))
-	gt.SetTitleAlign(tview.AlignLeft)
-
-	p := cfg.Theme.BorderPadding
-	gt.SetBorder(cfg.Theme.Border)
-	gt.SetBorderColor(tcell.GetColor(cfg.Theme.BorderColor))
-	gt.SetBorderPadding(p[0], p[1], p[2], p[3])
-
-	gt.SetInputCapture(gt.onInputCapture)
 	return gt
 }
 
