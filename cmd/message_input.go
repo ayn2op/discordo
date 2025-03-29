@@ -46,8 +46,6 @@ func newMessageInput(app *tview.Application, cfg *config.Config) *MessageInput {
 	p := b.Padding
 	mi.
 		SetInputCapture(mi.onInputCapture).
-		SetBackgroundColor(tcell.GetColor(t.BackgroundColor)).
-		SetTitleColor(tcell.GetColor(t.TitleColor)).
 		SetTitleAlign(tview.AlignLeft).
 		SetBorder(b.Enabled).
 		SetBorderPadding(p[0], p[1], p[2], p[3]).

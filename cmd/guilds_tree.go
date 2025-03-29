@@ -39,9 +39,7 @@ func newGuildsTree(app *tview.Application, cfg *config.Config) *GuildsTree {
 	p := b.Padding
 	gt.
 		SetInputCapture(gt.onInputCapture).
-		SetBackgroundColor(tcell.GetColor(cfg.Theme.BackgroundColor)).
 		SetTitle("Guilds").
-		SetTitleColor(tcell.GetColor(cfg.Theme.TitleColor)).
 		SetTitleAlign(tview.AlignLeft).
 		SetBorder(b.Enabled).
 		SetBorderPadding(p[0], p[1], p[2], p[3]).

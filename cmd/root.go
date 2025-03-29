@@ -6,6 +6,7 @@ import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/logger"
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/spf13/cobra"
 	"github.com/zalando/go-keyring"
@@ -36,6 +37,9 @@ var (
 			if err != nil {
 				return err
 			}
+
+			tview.Styles.PrimitiveBackgroundColor = tcell.GetColor(cfg.Theme.BackgroundColor)
+			tview.Styles.TitleColor = tcell.GetColor(cfg.Theme.TitleColor)
 
 			tview.Borders.Horizontal = cfg.Theme.Border.Preset.Horizontal
 			tview.Borders.Vertical = cfg.Theme.Border.Preset.Vertical

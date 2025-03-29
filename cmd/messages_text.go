@@ -54,9 +54,7 @@ func newMessagesText(app *tview.Application, cfg *config.Config) *MessagesText {
 	p := b.Padding
 	mt.
 		SetInputCapture(mt.onInputCapture).
-		SetBackgroundColor(tcell.GetColor(t.BackgroundColor)).
 		SetTitle("Messages").
-		SetTitleColor(tcell.GetColor(t.TitleColor)).
 		SetTitleAlign(tview.AlignLeft).
 		SetBorder(b.Enabled).
 		SetBorderPadding(p[0], p[1], p[2], p[3]).
