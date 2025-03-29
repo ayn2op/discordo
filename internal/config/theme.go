@@ -3,10 +3,16 @@ package config
 import "github.com/rivo/tview"
 
 type (
+	BorderTheme struct {
+		Enabled bool   `toml:"enabled"`
+		Padding [4]int `toml:"padding"`
+
+		Color       string `toml:"color"`
+		ActiveColor string `toml:"active_color"`
+	}
+
 	Theme struct {
-		Border        bool   `toml:"border"`
-		BorderColor   string `toml:"border_color"`
-		BorderPadding [4]int `toml:"border_padding"`
+		Border BorderTheme `toml:"border"`
 
 		TitleColor      string `toml:"title_color"`
 		BackgroundColor string `toml:"background_color"`
@@ -36,9 +42,13 @@ type (
 
 func defaultTheme() Theme {
 	return Theme{
-		Border:        true,
-		BorderColor:   "default",
-		BorderPadding: [...]int{0, 0, 1, 1},
+		Border: BorderTheme{
+			Enabled: true,
+			Padding: [...]int{0, 0, 1, 1},
+
+			Color:       "default",
+			ActiveColor: "darkcyan",
+		},
 
 		BackgroundColor: "default",
 		TitleColor:      "default",

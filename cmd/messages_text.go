@@ -38,33 +38,39 @@ func newMessagesText(app *tview.Application, cfg *config.Config) *MessagesText {
 		app:      app,
 	}
 
-	mt.SetDynamicColors(true)
-	mt.SetRegions(true)
-	mt.SetWordWrap(true)
-	mt.SetInputCapture(mt.onInputCapture)
-	mt.ScrollToEnd()
-	mt.SetChangedFunc(func() {
-		app.Draw()
-	})
+	t := cfg.Theme
+	mt.
+		SetDynamicColors(true).
+		SetRegions(true).
+		SetWordWrap(true).
+		ScrollToEnd().
+		SetTextColor(tcell.GetColor(t.MessagesText.ContentColor)).
+		SetHighlightedFunc(mt.onHighlighted).
+		SetChangedFunc(func() {
+			app.Draw()
+		})
 
-	mt.SetTextColor(tcell.GetColor(mt.cfg.Theme.MessagesText.ContentColor))
-	mt.SetBackgroundColor(tcell.GetColor(mt.cfg.Theme.BackgroundColor))
-
-	mt.SetTitle("Messages")
-	mt.SetTitleColor(tcell.GetColor(mt.cfg.Theme.TitleColor))
-	mt.SetTitleAlign(tview.AlignLeft)
-
-	p := mt.cfg.Theme.BorderPadding
-	mt.SetBorder(mt.cfg.Theme.Border)
-	mt.SetBorderColor(tcell.GetColor(mt.cfg.Theme.BorderColor))
-	mt.SetBorderPadding(p[0], p[1], p[2], p[3])
+	b := t.Border
+	p := b.Padding
+	mt.
+		SetInputCapture(mt.onInputCapture).
+		SetBackgroundColor(tcell.GetColor(t.BackgroundColor)).
+		SetTitle("Messages").
+		SetTitleColor(tcell.GetColor(t.TitleColor)).
+		SetTitleAlign(tview.AlignLeft).
+		SetBorder(b.Enabled).
+		SetBorderPadding(p[0], p[1], p[2], p[3]).
+		SetFocusFunc(func() {
+			mt.SetBorderColor(tcell.GetColor(b.ActiveColor))
+		}).
+		SetBlurFunc(func() {
+			mt.SetBorderColor(tcell.GetColor(b.Color))
+		})
 
 	markdown.DefaultRenderer.AddOptions(
-		renderer.WithOption("emojiColor", mt.cfg.Theme.MessagesText.EmojiColor),
-		renderer.WithOption("linkColor", mt.cfg.Theme.MessagesText.LinkColor),
+		renderer.WithOption("emojiColor", t.MessagesText.EmojiColor),
+		renderer.WithOption("linkColor", t.MessagesText.LinkColor),
 	)
-
-	mt.SetHighlightedFunc(mt.onHighlighted)
 
 	return mt
 }
@@ -397,11 +403,14 @@ func (mt *MessagesText) showUrlSelector(urls []string, attachments []discord.Att
 		ShowSecondaryText(false).
 		SetDoneFunc(done)
 
-	p := mt.cfg.Theme.BorderPadding
+	b := mt.cfg.Theme.Border
+	p := b.Padding
 	list.
-		SetBorder(mt.cfg.Theme.Border).
-		SetBorderColor(tcell.GetColor(mt.cfg.Theme.BorderColor)).
-		SetBorderPadding(p[0], p[1], p[2], p[3]).
+		SetBorder(b.Enabled).
+		SetBorderColor(tcell.GetColor(b.Color)).
+		SetBorderPadding(p[0], p[1], p[2], p[3])
+
+	list.
 		SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 			switch event.Name() {
 			case mt.cfg.Keys.MessagesText.SelectPrevious:

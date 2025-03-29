@@ -32,24 +32,31 @@ func newMessageInput(app *tview.Application, cfg *config.Config) *MessageInput {
 		app:      app,
 	}
 
-	mi.SetTextStyle(tcell.StyleDefault.Background(tcell.GetColor(cfg.Theme.BackgroundColor)))
-	mi.SetClipboard(func(s string) {
-		_ = clipboard.WriteAll(s)
-	}, func() string {
-		text, _ := clipboard.ReadAll()
-		return text
-	})
+	t := cfg.Theme
+	mi.
+		SetTextStyle(tcell.StyleDefault.Background(tcell.GetColor(t.BackgroundColor))).
+		SetClipboard(func(s string) {
+			_ = clipboard.WriteAll(s)
+		}, func() string {
+			text, _ := clipboard.ReadAll()
+			return text
+		})
 
-	mi.SetInputCapture(mi.onInputCapture)
-	mi.SetBackgroundColor(tcell.GetColor(cfg.Theme.BackgroundColor))
-
-	mi.SetTitleColor(tcell.GetColor(cfg.Theme.TitleColor))
-	mi.SetTitleAlign(tview.AlignLeft)
-
-	p := cfg.Theme.BorderPadding
-	mi.SetBorder(cfg.Theme.Border)
-	mi.SetBorderColor(tcell.GetColor(cfg.Theme.BorderColor))
-	mi.SetBorderPadding(p[0], p[1], p[2], p[3])
+	b := t.Border
+	p := b.Padding
+	mi.
+		SetInputCapture(mi.onInputCapture).
+		SetBackgroundColor(tcell.GetColor(t.BackgroundColor)).
+		SetTitleColor(tcell.GetColor(t.TitleColor)).
+		SetTitleAlign(tview.AlignLeft).
+		SetBorder(b.Enabled).
+		SetBorderPadding(p[0], p[1], p[2], p[3]).
+		SetFocusFunc(func() {
+			mi.SetBorderColor(tcell.GetColor(b.ActiveColor))
+		}).
+		SetBlurFunc(func() {
+			mi.SetBorderColor(tcell.GetColor(b.Color))
+		})
 
 	return mi
 }
