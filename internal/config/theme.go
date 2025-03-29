@@ -47,7 +47,7 @@ func defaultTheme() Theme {
 			Padding: [...]int{0, 0, 1, 1},
 
 			Color:       "default",
-			ActiveColor: "darkcyan",
+			ActiveColor: "gold",
 		},
 
 		BackgroundColor: "default",
