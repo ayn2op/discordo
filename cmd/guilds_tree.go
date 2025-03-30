@@ -45,9 +45,11 @@ func newGuildsTree(app *tview.Application, cfg *config.Config) *GuildsTree {
 		SetBorderPadding(p[0], p[1], p[2], p[3]).
 		SetFocusFunc(func() {
 			gt.SetBorderColor(tcell.GetColor(b.ActiveColor))
+			gt.SetTitleColor(tcell.GetColor(t.ActiveTitleColor))
 		}).
 		SetBlurFunc(func() {
 			gt.SetBorderColor(tcell.GetColor(b.Color))
+			gt.SetTitleColor(tcell.GetColor(t.TitleColor))
 		})
 
 	return gt

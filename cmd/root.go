@@ -39,7 +39,6 @@ var (
 			}
 
 			tview.Styles.PrimitiveBackgroundColor = tcell.GetColor(cfg.Theme.BackgroundColor)
-			tview.Styles.TitleColor = tcell.GetColor(cfg.Theme.TitleColor)
 
 			tview.Borders.Horizontal = cfg.Theme.Border.Preset.Horizontal
 			tview.Borders.Vertical = cfg.Theme.Border.Preset.Vertical

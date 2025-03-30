@@ -61,17 +61,21 @@ type (
 		Enabled bool   `toml:"enabled"`
 		Padding [4]int `toml:"padding"`
 
-		Color       string       `toml:"color"`
-		ActiveColor string       `toml:"active_color"`
-		Preset      BorderPreset `toml:"preset"`
+		Color       string `toml:"color"`
+		ActiveColor string `toml:"active_color"`
+
+		Preset BorderPreset `toml:"preset"`
 	}
 
 	Theme struct {
-		TitleColor      string            `toml:"title_color"`
-		BackgroundColor string            `toml:"background_color"`
-		Border          BorderTheme       `toml:"border"`
-		GuildsTree      GuildsTreeTheme   `toml:"guilds_tree"`
-		MessagesText    MessagesTextTheme `toml:"messages_text"`
+		BackgroundColor string `toml:"background_color"`
+
+		TitleColor       string `toml:"title_color"`
+		ActiveTitleColor string `toml:"active_title_color"`
+
+		Border       BorderTheme       `toml:"border"`
+		GuildsTree   GuildsTreeTheme   `toml:"guilds_tree"`
+		MessagesText MessagesTextTheme `toml:"messages_text"`
 	}
 
 	GuildsTreeTheme struct {
@@ -113,7 +117,9 @@ func defaultTheme() Theme {
 		},
 
 		BackgroundColor: "default",
-		TitleColor:      "default",
+
+		TitleColor:       "default",
+		ActiveTitleColor: "green",
 
 		GuildsTree: GuildsTreeTheme{
 			AutoExpandFolders:   true,

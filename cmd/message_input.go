@@ -51,9 +51,11 @@ func newMessageInput(app *tview.Application, cfg *config.Config) *MessageInput {
 		SetBorderPadding(p[0], p[1], p[2], p[3]).
 		SetFocusFunc(func() {
 			mi.SetBorderColor(tcell.GetColor(b.ActiveColor))
+			mi.SetTitleColor(tcell.GetColor(t.ActiveTitleColor))
 		}).
 		SetBlurFunc(func() {
 			mi.SetBorderColor(tcell.GetColor(b.Color))
+			mi.SetTitleColor(tcell.GetColor(t.TitleColor))
 		})
 
 	return mi
