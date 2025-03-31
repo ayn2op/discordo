@@ -38,6 +38,8 @@ func newMessagesText(app *tview.Application, cfg *config.Config) *MessagesText {
 		app:      app,
 	}
 
+	mt.Box = ui.NewConfiguredBox(mt.Box, &cfg.Theme)
+
 	t := cfg.Theme
 	mt.
 		SetDynamicColors(true).
@@ -48,24 +50,9 @@ func newMessagesText(app *tview.Application, cfg *config.Config) *MessagesText {
 		SetHighlightedFunc(mt.onHighlighted).
 		SetChangedFunc(func() {
 			app.Draw()
-		})
-
-	b := t.Border
-	p := b.Padding
-	mt.
-		SetInputCapture(mt.onInputCapture).
-		SetTitle("Messages").
-		SetTitleAlign(tview.AlignLeft).
-		SetBorder(b.Enabled).
-		SetBorderPadding(p[0], p[1], p[2], p[3]).
-		SetFocusFunc(func() {
-			mt.SetBorderColor(tcell.GetColor(b.ActiveColor))
-			mt.SetTitleColor(tcell.GetColor(t.ActiveTitleColor))
 		}).
-		SetBlurFunc(func() {
-			mt.SetBorderColor(tcell.GetColor(b.Color))
-			mt.SetTitleColor(tcell.GetColor(t.TitleColor))
-		})
+		SetTitle("Messages").
+		SetInputCapture(mt.onInputCapture)
 
 	markdown.DefaultRenderer.AddOptions(
 		renderer.WithOption("emojiColor", t.MessagesText.EmojiColor),
