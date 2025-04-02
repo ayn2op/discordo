@@ -4,10 +4,8 @@ import (
 	"context"
 	"log/slog"
 	"runtime"
-	"slices"
 
 	"github.com/diamondburned/arikawa/v3/api"
-	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/httputil/httpdriver"
 	"github.com/diamondburned/ningen/v3"
@@ -64,22 +62,17 @@ func (s *State) onReady(r *gateway.ReadyEvent) {
 	dmNode.SetColor(tcell.GetColor(app.cfg.Theme.GuildsTree.PrivateChannelColor))
 	root.AddChild(dmNode)
 
-	// Track guilds that have a parent (folder) to add orphan channels later
-	var folderGuildIds []discord.GuildID
 	for _, folder := range r.UserSettings.GuildFolders {
-		// Hide unnamed, single-server folders
-		if folder.Name == "" && len(folder.GuildIDs) < 2 {
-			continue
-		}
-		folderGuildIds = append(folderGuildIds, folder.GuildIDs...)
+		if folder.ID == 0 && len(folder.GuildIDs) == 1 {
+			g, err := discordState.Cabinet.Guild(folder.GuildIDs[0])
+			if err != nil {
+				slog.Error("failed to get guild from state", "guild_id", g.ID, "err", err)
+				continue
+			}
 
-		app.guildsTree.createFolderNode(folder)
-	}
-
-	// add orphan (without folder) guilds to guilds tree
-	for _, guild := range r.Guilds {
-		if !slices.Contains(folderGuildIds, guild.ID) {
-			app.guildsTree.createGuildNode(root, guild.Guild)
+			app.guildsTree.createGuildNode(root, *g)
+		} else {
+			app.guildsTree.createFolderNode(folder)
 		}
 	}
 
