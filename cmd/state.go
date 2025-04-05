@@ -66,7 +66,7 @@ func (s *State) onReady(r *gateway.ReadyEvent) {
 		if folder.ID == 0 && len(folder.GuildIDs) == 1 {
 			g, err := discordState.Cabinet.Guild(folder.GuildIDs[0])
 			if err != nil {
-				slog.Error("failed to get guild from state", "guild_id", g.ID, "err", err)
+				slog.Error("failed to get guild from state", "guild_id", folder.GuildIDs[0], "err", err)
 				continue
 			}
 
