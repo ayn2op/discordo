@@ -9,6 +9,7 @@ import (
 	"github.com/atotto/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/consts"
+	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
@@ -32,24 +33,17 @@ func newMessageInput(app *tview.Application, cfg *config.Config) *MessageInput {
 		app:      app,
 	}
 
-	mi.SetTextStyle(tcell.StyleDefault.Background(tcell.GetColor(cfg.Theme.BackgroundColor)))
-	mi.SetClipboard(func(s string) {
-		_ = clipboard.WriteAll(s)
-	}, func() string {
-		text, _ := clipboard.ReadAll()
-		return text
-	})
+	mi.Box = ui.NewConfiguredBox(mi.Box, &cfg.Theme)
 
-	mi.SetInputCapture(mi.onInputCapture)
-	mi.SetBackgroundColor(tcell.GetColor(cfg.Theme.BackgroundColor))
-
-	mi.SetTitleColor(tcell.GetColor(cfg.Theme.TitleColor))
-	mi.SetTitleAlign(tview.AlignLeft)
-
-	p := cfg.Theme.BorderPadding
-	mi.SetBorder(cfg.Theme.Border)
-	mi.SetBorderColor(tcell.GetColor(cfg.Theme.BorderColor))
-	mi.SetBorderPadding(p[0], p[1], p[2], p[3])
+	mi.
+		SetTextStyle(tcell.StyleDefault.Background(tcell.GetColor(cfg.Theme.BackgroundColor))).
+		SetClipboard(func(s string) {
+			_ = clipboard.WriteAll(s)
+		}, func() string {
+			text, _ := clipboard.ReadAll()
+			return text
+		}).
+		SetInputCapture(mi.onInputCapture)
 
 	return mi
 }

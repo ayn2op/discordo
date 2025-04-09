@@ -8,6 +8,7 @@ import (
 
 	"github.com/atotto/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/gdamore/tcell/v2"
@@ -28,24 +29,16 @@ func newGuildsTree(app *tview.Application, cfg *config.Config) *GuildsTree {
 		app:      app,
 	}
 
-	root := tview.NewTreeNode("")
-	gt.SetRoot(root)
+	gt.Box = ui.NewConfiguredBox(gt.Box, &cfg.Theme)
 
-	gt.SetTopLevel(1)
-	gt.SetGraphics(cfg.Theme.GuildsTree.Graphics)
-	gt.SetBackgroundColor(tcell.GetColor(cfg.Theme.BackgroundColor))
-	gt.SetSelectedFunc(gt.onSelected)
+	gt.
+		SetRoot(tview.NewTreeNode("")).
+		SetTopLevel(1).
+		SetGraphics(cfg.Theme.GuildsTree.Graphics).
+		SetSelectedFunc(gt.onSelected).
+		SetTitle("Guilds").
+		SetInputCapture(gt.onInputCapture)
 
-	gt.SetTitle("Guilds")
-	gt.SetTitleColor(tcell.GetColor(cfg.Theme.TitleColor))
-	gt.SetTitleAlign(tview.AlignLeft)
-
-	p := cfg.Theme.BorderPadding
-	gt.SetBorder(cfg.Theme.Border)
-	gt.SetBorderColor(tcell.GetColor(cfg.Theme.BorderColor))
-	gt.SetBorderPadding(p[0], p[1], p[2], p[3])
-
-	gt.SetInputCapture(gt.onInputCapture)
 	return gt
 }
 
