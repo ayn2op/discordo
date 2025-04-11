@@ -8,19 +8,20 @@ import (
 
 func NewConfiguredBox(box *tview.Box, cfg *config.Theme) *tview.Box {
 	b := cfg.Border
+	t := cfg.Title
 	p := b.Padding
 	box.
 		SetBorder(cfg.Border.Enabled).
 		SetBorderColor(tcell.GetColor(b.Color)).
 		SetBorderPadding(p[0], p[1], p[2], p[3]).
-		SetTitleAlign(tview.AlignLeft).
+		SetTitleAlign(int(t.Align)).
 		SetFocusFunc(func() {
 			box.SetBorderColor(tcell.GetColor(b.ActiveColor))
-			box.SetTitleColor(tcell.GetColor(cfg.ActiveTitleColor))
+			box.SetTitleColor(tcell.GetColor(t.ActiveColor))
 		}).
 		SetBlurFunc(func() {
 			box.SetBorderColor(tcell.GetColor(b.Color))
-			box.SetTitleColor(tcell.GetColor(cfg.TitleColor))
+			box.SetTitleColor(tcell.GetColor(t.Color))
 		})
 	return box
 }
