@@ -4,53 +4,16 @@ import (
 	"github.com/rivo/tview"
 )
 
-type BorderPreset struct {
-	Horizontal  rune
-	Vertical    rune
-	TopLeft     rune
-	TopRight    rune
-	BottomLeft  rune
-	BottomRight rune
-}
+type TitleAlign int
 
-func (p *BorderPreset) UnmarshalTOML(v any) error {
+func (ta *TitleAlign) UnmarshalTOML(v any) error {
 	switch v.(string) {
-	case "double":
-		*p = BorderPreset{
-			Horizontal:  tview.BoxDrawingsDoubleHorizontal,
-			Vertical:    tview.BoxDrawingsDoubleVertical,
-			TopLeft:     tview.BoxDrawingsDoubleDownAndRight,
-			TopRight:    tview.BoxDrawingsDoubleDownAndLeft,
-			BottomLeft:  tview.BoxDrawingsDoubleUpAndRight,
-			BottomRight: tview.BoxDrawingsDoubleUpAndLeft,
-		}
-	case "thick":
-		*p = BorderPreset{
-			Horizontal:  tview.BoxDrawingsHeavyHorizontal,
-			Vertical:    tview.BoxDrawingsHeavyVertical,
-			TopLeft:     tview.BoxDrawingsHeavyDownAndRight,
-			TopRight:    tview.BoxDrawingsHeavyDownAndLeft,
-			BottomLeft:  tview.BoxDrawingsHeavyUpAndRight,
-			BottomRight: tview.BoxDrawingsHeavyUpAndLeft,
-		}
-	case "round":
-		*p = BorderPreset{
-			Horizontal:  tview.BoxDrawingsLightHorizontal,
-			Vertical:    tview.BoxDrawingsLightVertical,
-			TopLeft:     tview.BoxDrawingsLightArcDownAndRight,
-			TopRight:    tview.BoxDrawingsLightArcDownAndLeft,
-			BottomLeft:  tview.BoxDrawingsLightArcUpAndRight,
-			BottomRight: tview.BoxDrawingsLightArcUpAndLeft,
-		}
-	case "hidden":
-		*p = BorderPreset{
-			Horizontal:  ' ',
-			Vertical:    ' ',
-			TopLeft:     ' ',
-			TopRight:    ' ',
-			BottomLeft:  ' ',
-			BottomRight: ' ',
-		}
+	case "left":
+		*ta = tview.AlignLeft
+	case "center":
+		*ta = tview.AlignCenter
+	case "right":
+		*ta = tview.AlignRight
 	}
 
 	return nil
@@ -67,12 +30,16 @@ type (
 		Preset BorderPreset `toml:"preset"`
 	}
 
+	TitleTheme struct {
+		Color       string     `toml:"color"`
+		ActiveColor string     `toml:"active_color"`
+		Align       TitleAlign `toml:"align"`
+	}
+
 	Theme struct {
 		BackgroundColor string `toml:"background_color"`
 
-		TitleColor       string `toml:"title_color"`
-		ActiveTitleColor string `toml:"active_title_color"`
-
+		Title        TitleTheme        `toml:"title"`
 		Border       BorderTheme       `toml:"border"`
 		GuildsTree   GuildsTreeTheme   `toml:"guilds_tree"`
 		MessagesText MessagesTextTheme `toml:"messages_text"`
@@ -100,26 +67,22 @@ type (
 
 func defaultTheme() Theme {
 	return Theme{
+		BackgroundColor: "default",
+
 		Border: BorderTheme{
 			Enabled: true,
 			Padding: [...]int{0, 0, 1, 1},
 
 			Color:       "default",
 			ActiveColor: "green",
-			Preset: BorderPreset{
-				Horizontal:  tview.Borders.Horizontal,
-				Vertical:    tview.Borders.Vertical,
-				TopLeft:     tview.Borders.TopLeft,
-				TopRight:    tview.Borders.TopRight,
-				BottomLeft:  tview.Borders.BottomLeft,
-				BottomRight: tview.Borders.BottomRight,
-			},
+			Preset:      borderPresetRound(),
 		},
 
-		BackgroundColor: "default",
-
-		TitleColor:       "default",
-		ActiveTitleColor: "green",
+		Title: TitleTheme{
+			Color:       "default",
+			ActiveColor: "green",
+			Align:       tview.AlignLeft,
+		},
 
 		GuildsTree: GuildsTreeTheme{
 			AutoExpandFolders:   true,
