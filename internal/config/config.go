@@ -32,9 +32,10 @@ type (
 		Timestamps       bool   `toml:"timestamps"`
 		TimestampsFormat string `toml:"timestamps_format"`
 
-		Identify Identify `toml:"identify"`
-		Keys     Keys     `toml:"keys"`
-		Theme    Theme    `toml:"theme"`
+		Identify      Identify      `toml:"identify"`
+		Keys          Keys          `toml:"keys"`
+		Theme         Theme         `toml:"theme"`
+		Notifications Notifications `toml:"notifications"`
 	}
 )
 
@@ -57,8 +58,9 @@ func defaultConfig() *Config {
 			UserAgent:      consts.UserAgent,
 		},
 
-		Keys:  defaultKeys(),
-		Theme: defaultTheme(),
+		Keys:          defaultKeys(),
+		Theme:         defaultTheme(),
+		Notifications: defaultNotifications(),
 	}
 }
 
