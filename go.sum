@@ -34,6 +34,8 @@ github.com/danieljoos/wincred v1.2.2/go.mod h1:w7w4Utbrz8lqeMbDAK0lkNJUv5sAOkFi7
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/deckarep/gosx-notifier v0.0.0-20180201035817-e127226297fb h1:6S+TKObz6+Io2c8IOkcbK4Sz7nj6RpEVU7TkvmsZZcw=
+github.com/deckarep/gosx-notifier v0.0.0-20180201035817-e127226297fb/go.mod h1:wf3nKtOnQqCp7kp9xB7hHnNlZ6m3NoiOxjrB9hFRq4Y=
 github.com/diamondburned/arikawa/v3 v3.4.0 h1:wI3Qv8h2E2dkeddF1I35nv4T6OQ3RtA21rbghW/fnd0=
 github.com/diamondburned/arikawa/v3 v3.4.0/go.mod h1:WVkbdenUfsCCkptIlqSglF4eo2/HSXv74eCqGnOZaYY=
 github.com/diamondburned/ningen/v3 v3.0.1-0.20240808103805-f1a24c0da3d8 h1:wgvgSzI4N+BHhCWhGhHKfW4gm0UtBVptiDaBGPdHmcs=
@@ -117,8 +119,6 @@ github.com/rivo/uniseg v0.4.7/go.mod h1:FN3SvrM+Zdj16jyLfmOkMNblXMcoc8DfTHruCPUc
 github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/rwcarlsen/goexif v0.0.0-20190401172101-9e8deecbddbd/go.mod h1:hPqNNc0+uJM6H+SuU8sEs5K5IQeKccPqeSjfgcKGgPk=
-github.com/sahilm/fuzzy v0.1.1 h1:ceu5RHF8DGgoi+/dR5PsECjCDH1BE3Fnmpo7aVXOdRA=
-github.com/sahilm/fuzzy v0.1.1/go.mod h1:VFvziUEIMCrT6A6tw2RFIXPXXmzXbOsSHF0DOI8ZK9Y=
 github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 h1:JIAuq3EEf9cgbU6AtGPK4CTG3Zf6CKMNqf0MHTggAUA=
 github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966/go.mod h1:sUM3LWHvSMaG192sy56D9F7CNvL7jUJVXoqM1QKLnog=
 github.com/spf13/cobra v1.9.1 h1:CXSaggrXdbHK9CF+8ywj8Amf7PBRmPCOJugH954Nnlo=
