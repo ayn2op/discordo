@@ -14,7 +14,6 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/ningen/v3"
 	"github.com/diamondburned/ningen/v3/discordmd"
-	"github.com/gen2brain/beeep"
 )
 
 func HandleIncomingMessage(s ningen.State, m *gateway.MessageCreateEvent, cfg *config.Config) error {
@@ -65,8 +64,6 @@ func HandleIncomingMessage(s ningen.State, m *gateway.MessageCreateEvent, cfg *c
 		notifTitle = notifTitle + " (#" + ch.Name + ", " + guild.Name + ")"
 	}
 
-	beeep.DefaultDuration = cfg.Notifications.Duration
-
 	hash := m.Author.Avatar
 	if hash == "" {
 		hash = "default"
@@ -77,7 +74,7 @@ func HandleIncomingMessage(s ningen.State, m *gateway.MessageCreateEvent, cfg *c
 	}
 
 	shouldChime := cfg.Notifications.PlayChime.Enabled && (!cfg.Notifications.PlayChime.OnlyOnPing || (isChannelDM || s.MessageMentions(&m.Message) == 3))
-	if err := sendDesktopNotification(notifTitle, notifContent, imagePath, shouldChime); err != nil {
+	if err := sendDesktopNotification(notifTitle, notifContent, imagePath, shouldChime, cfg.Notifications.Duration); err != nil {
 		return err
 	}
 
