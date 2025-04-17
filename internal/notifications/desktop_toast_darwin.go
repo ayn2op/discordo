@@ -12,7 +12,7 @@ func sendDesktopNotification(title string, body string, image string, playSound 
 	notify.ContentImage = image
 
 	if playSound {
-		notify.Sound = gosxnotifier.Ping
+		notify.Sound = gosxnotifier.Default
 	}
 
 	return notify.Push()

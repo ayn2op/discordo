@@ -73,7 +73,7 @@ func HandleIncomingMessage(s ningen.State, m *gateway.MessageCreateEvent, cfg *c
 		slog.Error("Failed to retrieve avatar image for notification", "err", err)
 	}
 
-	shouldChime := cfg.Notifications.PlayChime.Enabled && (!cfg.Notifications.PlayChime.OnlyOnPing || (isChannelDM || s.MessageMentions(&m.Message) == 3))
+	shouldChime := cfg.Notifications.Sounds.Enabled && (!cfg.Notifications.Sounds.OnlyOnPing || (isChannelDM || s.MessageMentions(&m.Message) == 3))
 	if err := sendDesktopNotification(notifTitle, notifContent, imagePath, shouldChime, cfg.Notifications.Duration); err != nil {
 		return err
 	}
@@ -109,8 +109,7 @@ func getCachedProfileImage(avatarHash discord.Hash, url string) (string, error) 
 	}
 	defer resp.Body.Close()
 
-	_, err = io.Copy(image, resp.Body)
-	if err != nil {
+	if _, err := io.Copy(image, resp.Body); err != nil {
 		return "", err
 	}
 
