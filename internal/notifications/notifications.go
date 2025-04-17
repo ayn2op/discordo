@@ -73,7 +73,7 @@ func HandleIncomingMessage(s ningen.State, m *gateway.MessageCreateEvent, cfg *c
 		slog.Error("Failed to retrieve avatar image for notification", "err", err)
 	}
 
-	shouldChime := cfg.Notifications.Sounds.Enabled && (!cfg.Notifications.Sounds.OnlyOnPing || (isChannelDM || s.MessageMentions(&m.Message) == 3))
+	shouldChime := cfg.Notifications.Sound.Enabled && (!cfg.Notifications.Sound.OnlyOnPing || (isChannelDM || s.MessageMentions(&m.Message) == 3))
 	if err := sendDesktopNotification(notifTitle, notifContent, imagePath, shouldChime, cfg.Notifications.Duration); err != nil {
 		return err
 	}
