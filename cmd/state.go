@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"runtime"
 
+	"github.com/ayn2op/discordo/internal/notifications"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/httputil/httpdriver"
@@ -83,6 +84,10 @@ func (s *State) onReady(r *gateway.ReadyEvent) {
 func (s *State) onMessageCreate(m *gateway.MessageCreateEvent) {
 	if app.guildsTree.selectedChannelID.IsValid() && app.guildsTree.selectedChannelID == m.ChannelID {
 		app.messagesText.createMessage(m.Message)
+	}
+
+	if err := notifications.HandleIncomingMessage(*s.State, m, app.cfg); err != nil {
+		slog.Error("Notification failed", "err", err)
 	}
 }
 
