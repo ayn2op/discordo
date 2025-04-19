@@ -26,6 +26,9 @@ type (
 		NavigationKeys
 		SelectCurrent string `toml:"select_current"`
 		YankID        string `toml:"yank_id"`
+
+		CollapseParentNode string `toml:"collapse_parent_node"`
+		MoveToParentNode   string `toml:"move_to_parent_node"`
 	}
 
 	MessagesTextKeys struct {
@@ -69,6 +72,9 @@ func defaultKeys() Keys {
 			},
 			SelectCurrent: "Enter",
 			YankID:        "Rune[y]",
+
+			CollapseParentNode: "Rune[-]",
+			MoveToParentNode:   "Rune[p]",
 		},
 
 		MessagesText: MessagesTextKeys{
