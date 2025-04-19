@@ -216,8 +216,28 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 	}
 }
 
+func (gt *GuildsTree) collapseParentNode(node *tview.TreeNode) {
+	gt.
+		GetRoot().
+		Walk(func(n, parent *tview.TreeNode) bool {
+			if n == node && parent.GetLevel() != 0 {
+				parent.Collapse()
+				gt.SetCurrentNode(parent)
+				return false
+			}
+
+			return true
+		})
+}
+
 func (gt *GuildsTree) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
+	case gt.cfg.Keys.GuildsTree.CollapseParentNode:
+		gt.collapseParentNode(gt.GetCurrentNode())
+		return nil
+	case gt.cfg.Keys.GuildsTree.MoveToParentNode:
+		return tcell.NewEventKey(tcell.KeyRune, 'K', tcell.ModNone)
+
 	case gt.cfg.Keys.GuildsTree.SelectPrevious:
 		return tcell.NewEventKey(tcell.KeyUp, 0, tcell.ModNone)
 	case gt.cfg.Keys.GuildsTree.SelectNext:
