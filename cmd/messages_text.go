@@ -75,7 +75,8 @@ func (mt *MessagesText) drawMsgs(cID discord.ChannelID) {
 }
 
 func (mt *MessagesText) reset() {
-	app.messagesText.selectedMessageID = 0
+	mt.selectedMessageID = 0
+	app.messageInput.replyMessageID = 0
 
 	mt.SetTitle("")
 	mt.Clear()
@@ -194,6 +195,11 @@ func (mt *MessagesText) getSelectedMessageIndex() (int, error) {
 
 func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
+	case mt.cfg.Keys.MessagesText.Cancel:
+		mt.selectedMessageID = 0
+		app.messageInput.replyMessageID = 0
+		mt.Highlight()
+
 	case mt.cfg.Keys.MessagesText.SelectPrevious, mt.cfg.Keys.MessagesText.SelectNext, mt.cfg.Keys.MessagesText.SelectFirst, mt.cfg.Keys.MessagesText.SelectLast, mt.cfg.Keys.MessagesText.SelectReply, mt.cfg.Keys.MessagesText.SelectPin:
 		mt._select(event.Name())
 	case mt.cfg.Keys.MessagesText.YankID:

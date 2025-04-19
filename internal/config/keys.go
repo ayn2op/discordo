@@ -35,6 +35,7 @@ type (
 		Reply        string `toml:"reply"`
 		ReplyMention string `toml:"reply_mention"`
 
+		Cancel      string `toml:"cancel"`
 		Delete      string `toml:"delete"`
 		YankID      string `toml:"yank_id"`
 		YankContent string `toml:"yank_content"`
@@ -83,6 +84,7 @@ func defaultKeys() Keys {
 			Reply:        "Rune[r]",
 			ReplyMention: "Rune[R]",
 
+			Cancel:      "Esc",
 			Delete:      "Rune[d]",
 			YankContent: "Rune[y]",
 			YankURL:     "Rune[i]",
