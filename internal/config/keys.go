@@ -38,12 +38,13 @@ type (
 		Reply        string `toml:"reply"`
 		ReplyMention string `toml:"reply_mention"`
 
-		Cancel      string `toml:"cancel"`
-		Delete      string `toml:"delete"`
-		YankID      string `toml:"yank_id"`
+		Cancel string `toml:"cancel"`
+		Delete string `toml:"delete"`
+		Open   string `toml:"open"`
+
 		YankContent string `toml:"yank_content"`
 		YankURL     string `toml:"yank_url"`
-		Open        string `toml:"open"`
+		YankID      string `toml:"yank_id"`
 	}
 
 	MessageInputKeys struct {
@@ -70,9 +71,8 @@ func defaultKeys() Keys {
 				SelectFirst:    "Rune[g]",
 				SelectLast:     "Rune[G]",
 			},
-			SelectCurrent: "Enter",
-			YankID:        "Rune[y]",
-
+			SelectCurrent:      "Enter",
+			YankID:             "Rune[i]",
 			CollapseParentNode: "Rune[-]",
 			MoveToParentNode:   "Rune[p]",
 		},
@@ -90,11 +90,13 @@ func defaultKeys() Keys {
 			Reply:        "Rune[r]",
 			ReplyMention: "Rune[R]",
 
-			Cancel:      "Esc",
-			Delete:      "Rune[d]",
+			Cancel: "Esc",
+			Delete: "Rune[d]",
+			Open:   "Rune[o]",
+
 			YankContent: "Rune[y]",
-			YankURL:     "Rune[i]",
-			Open:        "Rune[o]",
+			YankURL:     "Rune[u]",
+			YankID:      "Rune[i]",
 		},
 
 		MessageInput: MessageInputKeys{
