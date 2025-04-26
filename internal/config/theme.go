@@ -55,6 +55,9 @@ type (
 	}
 
 	MessagesTextTheme struct {
+		ShowNicknames      bool `toml:"show_user_nicks"`
+		ShowUsernameColors bool `toml:"show_user_colors"`
+
 		ReplyIndicator string `toml:"reply_indicator"`
 
 		AuthorColor     string `toml:"author_color"`
@@ -92,6 +95,9 @@ func defaultTheme() Theme {
 			PrivateChannelColor: tview.Styles.PrimaryTextColor.String(),
 		},
 		MessagesText: MessagesTextTheme{
+			ShowNicknames:      true,
+			ShowUsernameColors: true,
+
 			ReplyIndicator: string(tview.BoxDrawingsLightArcDownAndRight) + " ",
 
 			AuthorColor:     "aqua",
