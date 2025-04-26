@@ -128,44 +128,6 @@ func (mt *MessagesText) createMessage(m discord.Message) {
 	fmt.Fprintln(mt)
 }
 
-func (mt *MessagesText) getAuthorDisplayName(m discord.Message, guildID discord.GuildID) string {
-	name := m.Author.DisplayOrUsername()
-
-	if guildID.IsValid() {
-		member, _ := discordState.Cabinet.Member(guildID, m.Author.ID)
-		if member != nil {
-			if app.cfg.Theme.MessagesText.ShowNicknames && member.Nick != "" {
-				// Use guild nickname if present
-				name = member.Nick
-			}
-		}
-	}
-
-	return name
-}
-
-func (mt *MessagesText) getAuthorDisplayColor(m discord.Message, guildID discord.GuildID) string {
-	color := mt.cfg.Theme.MessagesText.AuthorColor
-
-	if guildID.IsValid() {
-		member, _ := discordState.Cabinet.Member(guildID, m.Author.ID)
-		if member != nil {
-			if app.cfg.Theme.MessagesText.ShowUsernameColors && len(member.RoleIDs) > 0 {
-				// Use color from highest role in guild
-				roles, _ := discordState.SortedRoles(guildID)
-				for i := range roles {
-					if slices.Contains(member.RoleIDs, roles[i].ID) {
-						color = roles[i].Color.String()
-						break
-					}
-				}
-			}
-		}
-	}
-
-	return color
-}
-
 func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, guildID discord.GuildID, isReply bool) {
 	if mt.cfg.Timestamps {
 		time := m.Timestamp.Time().In(time.Local).Format(mt.cfg.TimestampsFormat)
@@ -233,6 +195,44 @@ func (mt *MessagesText) getSelectedMessageIndex() (int, error) {
 	}
 
 	return -1, nil
+}
+
+func (mt *MessagesText) getAuthorDisplayName(m discord.Message, guildID discord.GuildID) string {
+	name := m.Author.DisplayOrUsername()
+
+	if guildID.IsValid() {
+		member, _ := discordState.Cabinet.Member(guildID, m.Author.ID)
+		if member != nil {
+			if app.cfg.Theme.MessagesText.ShowNicknames && member.Nick != "" {
+				// Use guild nickname if present
+				name = member.Nick
+			}
+		}
+	}
+
+	return name
+}
+
+func (mt *MessagesText) getAuthorDisplayColor(m discord.Message, guildID discord.GuildID) string {
+	color := mt.cfg.Theme.MessagesText.AuthorColor
+
+	if guildID.IsValid() {
+		member, _ := discordState.Cabinet.Member(guildID, m.Author.ID)
+		if member != nil {
+			if app.cfg.Theme.MessagesText.ShowUsernameColors && len(member.RoleIDs) > 0 {
+				// Use color from highest role in guild
+				roles, _ := discordState.SortedRoles(guildID)
+				for i := range roles {
+					if slices.Contains(member.RoleIDs, roles[i].ID) {
+						color = roles[i].Color.String()
+						break
+					}
+				}
+			}
+		}
+	}
+
+	return color
 }
 
 func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
