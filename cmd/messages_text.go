@@ -14,6 +14,7 @@ import (
 	"github.com/ayn2op/discordo/internal/markdown"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/ningen/v3/discordmd"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -128,7 +129,7 @@ func (mt *MessagesText) createMessage(m discord.Message) {
 	fmt.Fprintln(mt)
 }
 
-func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, guildID discord.GuildID, isReply bool) {
+func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, gID discord.GuildID, isReply bool) {
 	if mt.cfg.Timestamps {
 		time := m.Timestamp.Time().In(time.Local).Format(mt.cfg.TimestampsFormat)
 		fmt.Fprintf(w, "[::d]%s[::-] ", time)
@@ -138,8 +139,8 @@ func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, guildID dis
 		fmt.Fprintf(mt, "[::d]%s", mt.cfg.Theme.MessagesText.ReplyIndicator)
 	}
 
-	displayName := mt.getAuthorDisplayName(m, guildID)
-	displayColor := mt.getAuthorDisplayColor(m, guildID)
+	displayName := mt.getAuthorDisplayName(m, gID)
+	displayColor := mt.getAuthorDisplayColor(m, gID)
 
 	fmt.Fprintf(w, "[%s]%s[-:-:-] ", displayColor, displayName)
 }
@@ -197,14 +198,15 @@ func (mt *MessagesText) getSelectedMessageIndex() (int, error) {
 	return -1, nil
 }
 
-func (mt *MessagesText) getAuthorDisplayName(m discord.Message, guildID discord.GuildID) string {
+func (mt *MessagesText) getAuthorDisplayName(m discord.Message, gID discord.GuildID) string {
 	name := m.Author.DisplayOrUsername()
 
-	if guildID.IsValid() {
-		member, _ := discordState.Cabinet.Member(guildID, m.Author.ID)
+	if app.cfg.Theme.MessagesText.ShowNicknames && gID.IsValid() {
+		member, _ := discordState.Cabinet.Member(gID, m.Author.ID)
+
+		// Use guild nickname if present
 		if member != nil {
-			if app.cfg.Theme.MessagesText.ShowNicknames && member.Nick != "" {
-				// Use guild nickname if present
+			if member.Nick != "" {
 				name = member.Nick
 			}
 		}
@@ -213,22 +215,20 @@ func (mt *MessagesText) getAuthorDisplayName(m discord.Message, guildID discord.
 	return name
 }
 
-func (mt *MessagesText) getAuthorDisplayColor(m discord.Message, guildID discord.GuildID) string {
+func (mt *MessagesText) getAuthorDisplayColor(m discord.Message, gID discord.GuildID) string {
 	color := mt.cfg.Theme.MessagesText.AuthorColor
 
-	if guildID.IsValid() {
-		member, _ := discordState.Cabinet.Member(guildID, m.Author.ID)
-		if member != nil {
-			if app.cfg.Theme.MessagesText.ShowUsernameColors && len(member.RoleIDs) > 0 {
-				// Use color from highest role in guild
-				roles, _ := discordState.SortedRoles(guildID)
-				for i := range roles {
-					if slices.Contains(member.RoleIDs, roles[i].ID) {
-						color = roles[i].Color.String()
-						break
-					}
-				}
-			}
+	if app.cfg.Theme.MessagesText.ShowUsernameColors && gID.IsValid() {
+		member, _ := discordState.Cabinet.Member(gID, m.Author.ID)
+
+		// Use color from highest role in guild
+		c, ok := state.MemberColor(member, func(id discord.RoleID) *discord.Role {
+			role, _ := discordState.Cabinet.Role(gID, id)
+			return role
+		})
+
+		if ok {
+			color = c.String()
 		}
 	}
 
