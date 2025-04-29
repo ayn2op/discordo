@@ -71,6 +71,10 @@ func (mt *MessagesText) drawMsgs(cID discord.ChannelID) {
 		return
 	}
 
+	if app.cfg.Theme.MessagesText.ShowNicknames || app.cfg.Theme.MessagesText.ShowUsernameColors {
+		discordState.guildMembers.fetchChannelMembers(ms, false)
+	}
+
 	for _, m := range slices.Backward(ms) {
 		app.messagesText.createMessage(m)
 	}

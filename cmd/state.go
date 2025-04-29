@@ -16,6 +16,7 @@ import (
 
 type State struct {
 	*ningen.State
+	guildMembers *GuildMembers
 }
 
 func openState(token string) error {
@@ -34,13 +35,15 @@ func openState(token string) error {
 	}
 
 	discordState = &State{
-		State: ningen.New(token),
+		State:        ningen.New(token),
+		guildMembers: newGuildMembers(),
 	}
 
 	// Handlers
 	discordState.AddHandler(discordState.onReady)
 	discordState.AddHandler(discordState.onMessageCreate)
 	discordState.AddHandler(discordState.onMessageDelete)
+	discordState.AddHandler(discordState.onGetMemberChunk)
 
 	discordState.OnRequest = append(discordState.OnRequest, discordState.onRequest)
 	return discordState.Open(context.TODO())
@@ -98,5 +101,11 @@ func (s *State) onMessageDelete(m *gateway.MessageDeleteEvent) {
 		app.messagesText.Clear()
 
 		app.messagesText.drawMsgs(m.ChannelID)
+	}
+}
+
+func (s *State) onGetMemberChunk(g *gateway.GuildMembersChunkEvent) {
+	if g.ChunkIndex+1 == g.ChunkCount {
+		s.guildMembers.setFetchingChunk(false)
 	}
 }
