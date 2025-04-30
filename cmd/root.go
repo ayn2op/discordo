@@ -20,8 +20,10 @@ var (
 var (
 	rootCmd = &cobra.Command{
 		PreRunE: func(cmd *cobra.Command, args []string) error {
+			flags := cmd.Flags()
+
 			var level slog.Level
-			switch str, _ := cmd.Flags().GetString("log-level"); str {
+			switch s, _ := flags.GetString("log-level"); s {
 			case "debug":
 				level = slog.LevelDebug
 			case "info":
@@ -32,7 +34,15 @@ var (
 				level = slog.LevelError
 			}
 
-			return logger.Load(level)
+			var format logger.Format
+			switch s, _ := flags.GetString("log-format"); s {
+			case "text":
+				format = logger.FormatText
+			case "json":
+				format = logger.FormatJson
+			}
+
+			return logger.Load(format, level)
 		},
 
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -77,5 +87,7 @@ var (
 func init() {
 	flags := rootCmd.Flags()
 	flags.StringP("token", "t", "", "the authentication token")
-	flags.StringP("log-level", "l", "info", "log level")
+
+	flags.String("log-level", "info", "log level")
+	flags.String("log-format", "text", "log format")
 }
