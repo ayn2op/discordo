@@ -128,8 +128,8 @@ func (mt *MessagesText) createMessage(m discord.Message) {
 }
 
 func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, isReply bool) {
-	if mt.cfg.Timestamps {
-		time := m.Timestamp.Time().In(time.Local).Format(mt.cfg.TimestampsFormat)
+	if mt.cfg.Timestamps.Enabled {
+		time := m.Timestamp.Time().In(time.Local).Format(mt.cfg.Timestamps.Format)
 		fmt.Fprintf(w, "[::d]%s[::-] ", time)
 	}
 
