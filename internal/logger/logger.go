@@ -11,7 +11,7 @@ import (
 const fileName = "logs.txt"
 
 // Opens the log file and configures default logger.
-func Load() error {
+func Load(level slog.Level) error {
 	path, err := os.UserCacheDir()
 	if err != nil {
 		return err
@@ -28,7 +28,7 @@ func Load() error {
 		return err
 	}
 
-	l := slog.New(slog.NewTextHandler(file, &slog.HandlerOptions{AddSource: true}))
+	l := slog.New(slog.NewTextHandler(file, &slog.HandlerOptions{AddSource: true, Level: level}))
 	slog.SetDefault(l)
 	return nil
 }

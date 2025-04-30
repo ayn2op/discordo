@@ -19,11 +19,23 @@ var (
 
 var (
 	rootCmd = &cobra.Command{
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := logger.Load(); err != nil {
-				return err
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			var level slog.Level
+			switch str, _ := cmd.Flags().GetString("log-level"); str {
+			case "debug":
+				level = slog.LevelDebug
+			case "info":
+				level = slog.LevelInfo
+			case "warn":
+				level = slog.LevelWarn
+			case "error":
+				level = slog.LevelError
 			}
 
+			return logger.Load(level)
+		},
+
+		RunE: func(cmd *cobra.Command, args []string) error {
 			token, _ := cmd.Flags().GetString("token")
 			if token == "" {
 				var err error
@@ -63,5 +75,7 @@ var (
 )
 
 func init() {
-	rootCmd.Flags().StringP("token", "t", "", "the authentication token")
+	flags := rootCmd.Flags()
+	flags.StringP("token", "t", "", "the authentication token")
+	flags.StringP("log-level", "l", "info", "log level")
 }

@@ -49,7 +49,7 @@ func openState(token string) error {
 func (s *State) onRequest(r httpdriver.Request) error {
 	req, ok := r.(*httpdriver.DefaultRequest)
 	if ok {
-		slog.Info("new HTTP request", "method", req.Method, "path", req.URL.Path)
+		slog.Debug("new HTTP request", "method", req.Method, "url", req.URL, "headers", req.Header)
 	}
 
 	return nil
