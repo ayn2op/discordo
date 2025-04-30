@@ -40,13 +40,13 @@ func HandleIncomingMessage(s ningen.State, m *gateway.MessageCreateEvent, cfg *c
 	src := []byte(m.Content)
 	ast := discordmd.ParseWithMessage(src, *s.Cabinet, &m.Message, false)
 	buff := strings.Builder{}
-	if err := PlainTextRenderer.Render(&buff, src, ast); err != nil {
+	if err := defaultRenderer.Render(&buff, src, ast); err != nil {
 		return err
 	}
 
 	// Handle sent files
 	notifContent := buff.String()
-	if m.Message.Content == "" && len(m.Message.Attachments) > 0 {
+	if m.Content == "" && len(m.Attachments) > 0 {
 		notifContent = "Uploaded " + m.Message.Attachments[0].Filename
 	}
 
@@ -87,7 +87,7 @@ func getCachedProfileImage(avatarHash discord.Hash, url string) (string, error) 
 		return "", err
 	}
 
-	path = filepath.Join(path, consts.Name)
+	path = filepath.Join(path, consts.Name, "assets")
 	if err := os.MkdirAll(path, os.ModePerm); err != nil {
 		return "", err
 	}
