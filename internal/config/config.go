@@ -21,6 +21,17 @@ type (
 		UserAgent      string         `toml:"user_agent"`
 	}
 
+	Notifications struct {
+		Enabled  bool  `toml:"enabled"`
+		Duration int   `toml:"duration"`
+		Sound    Sound `toml:"sound"`
+	}
+
+	Sound struct {
+		Enabled    bool `toml:"enabled"`
+		OnlyOnPing bool `toml:"only_on_ping"`
+	}
+
 	Config struct {
 		Mouse  bool   `toml:"mouse"`
 		Editor string `toml:"editor"`
@@ -33,9 +44,10 @@ type (
 		TimestampsFormat string `toml:"timestamps_format"`
 
 		Identify      Identify      `toml:"identify"`
-		Keys          Keys          `toml:"keys"`
-		Theme         Theme         `toml:"theme"`
 		Notifications Notifications `toml:"notifications"`
+
+		Keys  Keys  `toml:"keys"`
+		Theme Theme `toml:"theme"`
 	}
 )
 
@@ -58,9 +70,17 @@ func defaultConfig() *Config {
 			UserAgent:      consts.UserAgent,
 		},
 
-		Keys:          defaultKeys(),
-		Theme:         defaultTheme(),
-		Notifications: defaultNotifications(),
+		Notifications: Notifications{
+			Enabled:  true,
+			Duration: 500,
+			Sound: Sound{
+				Enabled:    true,
+				OnlyOnPing: true,
+			},
+		},
+
+		Keys:  defaultKeys(),
+		Theme: defaultTheme(),
 	}
 }
 
