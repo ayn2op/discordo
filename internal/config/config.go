@@ -14,6 +14,11 @@ import (
 const fileName = "config.toml"
 
 type (
+	Timestamps struct {
+		Enabled bool   `toml:"enabled"`
+		Format  string `toml:"format"`
+	}
+
 	Identify struct {
 		Status         discord.Status `toml:"status"`
 		Browser        string         `toml:"browser"`
@@ -40,9 +45,7 @@ type (
 		ShowAttachmentLinks bool  `toml:"show_attachment_links"`
 		MessagesLimit       uint8 `toml:"messages_limit"`
 
-		Timestamps       bool   `toml:"timestamps"`
-		TimestampsFormat string `toml:"timestamps_format"`
-
+		Timestamps    Timestamps    `toml:"timestamps"`
 		Identify      Identify      `toml:"identify"`
 		Notifications Notifications `toml:"notifications"`
 
@@ -60,8 +63,10 @@ func defaultConfig() *Config {
 		ShowAttachmentLinks: true,
 		MessagesLimit:       50,
 
-		Timestamps:       false,
-		TimestampsFormat: time.Kitchen,
+		Timestamps: Timestamps{
+			Enabled: false,
+			Format:  time.Kitchen,
+		},
 
 		Identify: Identify{
 			Status:         discord.OnlineStatus,
