@@ -40,7 +40,7 @@ func Load(format Format, level slog.Level) error {
 
 		h = slog.NewTextHandler(file, opts)
 	case FormatJson:
-		path := filepath.Join(path, "logs.json")
+		path := filepath.Join(path, "logs.jsonl")
 		file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, os.ModePerm)
 		if err != nil {
 			return err
