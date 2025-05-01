@@ -1,12 +1,14 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"slices"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/atotto/clipboard"
@@ -14,6 +16,7 @@ import (
 	"github.com/ayn2op/discordo/internal/markdown"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/ningen/v3/discordmd"
 	"github.com/gdamore/tcell/v2"
@@ -30,6 +33,11 @@ type MessagesText struct {
 	cfg               *config.Config
 	app               *tview.Application
 	selectedMessageID discord.MessageID
+	fetchingMembers   struct {
+		value bool
+		done  chan struct{}
+		mu    sync.Mutex
+	}
 }
 
 func newMessagesText(app *tview.Application, cfg *config.Config) *MessagesText {
@@ -72,7 +80,7 @@ func (mt *MessagesText) drawMsgs(cID discord.ChannelID) {
 	}
 
 	if app.cfg.Theme.MessagesText.ShowNicknames || app.cfg.Theme.MessagesText.ShowUsernameColors {
-		discordState.guildMembers.fetchChannelMembers(ms, false)
+		mt.fetchMembers(ms)
 	}
 
 	for _, m := range slices.Backward(ms) {
@@ -555,5 +563,66 @@ func (mt *MessagesText) delete() {
 
 	for _, m := range slices.Backward(ms) {
 		app.messagesText.createMessage(m)
+	}
+}
+
+func (mt *MessagesText) fetchMembers(ms []discord.Message) {
+	var gID discord.GuildID
+	var usersToFetch []discord.UserID
+	for _, m := range ms {
+		if !m.GuildID.IsValid() {
+			continue
+		}
+
+		member, _ := discordState.Cabinet.Member(m.GuildID, m.Author.ID)
+		if member == nil {
+			usersToFetch = append(usersToFetch, m.Author.ID)
+			gID = m.GuildID
+		}
+	}
+
+	if usersToFetch != nil {
+		err := discordState.Gateway().Send(context.Background(), &gateway.RequestGuildMembersCommand{
+			GuildIDs: []discord.GuildID{gID},
+			UserIDs:  slices.Compact(usersToFetch),
+		})
+		if err != nil {
+			slog.Error("Failed to request guild members", "err", err)
+			return
+		}
+
+		mt.setFetchingChunk(true)
+		mt.waitForChunkEvent()
+	}
+}
+
+func (mt *MessagesText) setFetchingChunk(value bool) {
+	mt.fetchingMembers.mu.Lock()
+	if mt.fetchingMembers.value == value {
+		mt.fetchingMembers.mu.Unlock()
+		return
+	}
+	mt.fetchingMembers.value = value
+	mt.fetchingMembers.mu.Unlock()
+
+	if value {
+		mt.fetchingMembers.done = make(chan struct{})
+	} else {
+		close(mt.fetchingMembers.done)
+	}
+}
+
+func (mt *MessagesText) waitForChunkEvent() {
+	mt.fetchingMembers.mu.Lock()
+	if !mt.fetchingMembers.value {
+		mt.fetchingMembers.mu.Unlock()
+		return
+	}
+	mt.fetchingMembers.mu.Unlock()
+
+	select {
+	case <-mt.fetchingMembers.done:
+	default:
+		<-mt.fetchingMembers.done
 	}
 }

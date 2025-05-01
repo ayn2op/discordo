@@ -17,7 +17,6 @@ import (
 
 type State struct {
 	*ningen.State
-	guildMembers *GuildMembers
 }
 
 func openState(token string) error {
@@ -36,8 +35,7 @@ func openState(token string) error {
 	}
 
 	discordState = &State{
-		State:        ningen.New(token),
-		guildMembers: newGuildMembers(),
+		State: ningen.New(token),
 	}
 
 	// Handlers
@@ -111,7 +109,5 @@ func (s *State) onMessageDelete(m *gateway.MessageDeleteEvent) {
 }
 
 func (s *State) onGetMemberChunk(g *gateway.GuildMembersChunkEvent) {
-	if g.ChunkIndex+1 == g.ChunkCount {
-		s.guildMembers.setFetchingChunk(false)
-	}
+	app.messagesText.setFetchingChunk(false)
 }
