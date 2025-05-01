@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"runtime"
 
@@ -40,6 +41,7 @@ func openState(token string) error {
 	}
 
 	// Handlers
+	discordState.AddHandler(discordState.onEvent)
 	discordState.AddHandler(discordState.onReady)
 	discordState.AddHandler(discordState.onMessageCreate)
 	discordState.AddHandler(discordState.onMessageDelete)
@@ -52,10 +54,14 @@ func openState(token string) error {
 func (s *State) onRequest(r httpdriver.Request) error {
 	req, ok := r.(*httpdriver.DefaultRequest)
 	if ok {
-		slog.Info("new HTTP request", "method", req.Method, "path", req.URL.Path)
+		slog.Debug("new HTTP request", "method", req.Method, "url", req.URL)
 	}
 
 	return nil
+}
+
+func (s *State) onEvent(event any) {
+	slog.Debug("new gateway event", "name", fmt.Sprintf("%T", event), "data", event)
 }
 
 func (s *State) onReady(r *gateway.ReadyEvent) {

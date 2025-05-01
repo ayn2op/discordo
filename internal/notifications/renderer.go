@@ -9,7 +9,7 @@ import (
 )
 
 // Using a modified version of the discordmd BasicRenderer
-var PlainTextRenderer = newRenderer()
+var defaultRenderer = newRenderer()
 
 type renderer struct {
 	config *gmr.Config
