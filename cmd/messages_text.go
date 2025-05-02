@@ -599,11 +599,11 @@ func (mt *MessagesText) setFetchingChunk(value bool) {
 
 func (mt *MessagesText) waitForChunkEvent() {
 	mt.fetchingMembers.mu.Lock()
-	defer mt.fetchingMembers.mu.Unlock()
-
 	if !mt.fetchingMembers.value {
+		mt.fetchingMembers.mu.Unlock()
 		return
 	}
+	mt.fetchingMembers.mu.Unlock()
 
 	select {
 	case <-mt.fetchingMembers.done:
