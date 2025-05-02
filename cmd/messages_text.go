@@ -582,12 +582,13 @@ func (mt *MessagesText) requestGuildMembers(gID discord.GuildID, ms []discord.Me
 
 func (mt *MessagesText) setFetchingChunk(value bool) {
 	mt.fetchingMembers.mu.Lock()
+	defer mt.fetchingMembers.mu.Unlock()
+
 	if mt.fetchingMembers.value == value {
-		mt.fetchingMembers.mu.Unlock()
 		return
 	}
+
 	mt.fetchingMembers.value = value
-	mt.fetchingMembers.mu.Unlock()
 
 	if value {
 		mt.fetchingMembers.done = make(chan struct{})
