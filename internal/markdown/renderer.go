@@ -96,7 +96,11 @@ func (r *renderer) Render(w io.Writer, source []byte, n ast.Node) error {
 				case n.Channel != nil:
 					io.WriteString(w, "#"+n.Channel.Name)
 				case n.GuildUser != nil:
-					io.WriteString(w, "@"+n.GuildUser.Username)
+					username := n.GuildUser.DisplayOrUsername()
+					if r.config.Options["showNicknames"].(bool) && n.GuildUser.Member != nil && n.GuildUser.Member.Nick != "" {
+						username = n.GuildUser.Member.Nick
+					}
+					io.WriteString(w, "@"+username)
 				case n.GuildRole != nil:
 					io.WriteString(w, "@"+n.GuildRole.Name)
 				}

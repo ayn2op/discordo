@@ -1,12 +1,14 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"slices"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/atotto/clipboard"
@@ -14,6 +16,7 @@ import (
 	"github.com/ayn2op/discordo/internal/markdown"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/ningen/v3/discordmd"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -29,6 +32,11 @@ type MessagesText struct {
 	cfg               *config.Config
 	app               *tview.Application
 	selectedMessageID discord.MessageID
+	fetchingMembers   struct {
+		value bool
+		done  chan struct{}
+		mu    sync.Mutex
+	}
 }
 
 func newMessagesText(app *tview.Application, cfg *config.Config) *MessagesText {
@@ -57,6 +65,7 @@ func newMessagesText(app *tview.Application, cfg *config.Config) *MessagesText {
 	markdown.DefaultRenderer.AddOptions(
 		renderer.WithOption("emojiColor", t.MessagesText.EmojiColor),
 		renderer.WithOption("linkColor", t.MessagesText.LinkColor),
+		renderer.WithOption("showNicknames", t.MessagesText.ShowNicknames),
 	)
 
 	return mt
@@ -67,6 +76,12 @@ func (mt *MessagesText) drawMsgs(cID discord.ChannelID) {
 	if err != nil {
 		slog.Error("failed to get messages", "err", err, "channel_id", cID)
 		return
+	}
+
+	if app.cfg.Theme.MessagesText.ShowNicknames || app.cfg.Theme.MessagesText.ShowUsernameColors {
+		if ch, _ := discordState.Cabinet.Channel(cID); ch.GuildID.IsValid() {
+			mt.fetchMembers(ch.GuildID, ms)
+		}
 	}
 
 	for _, m := range slices.Backward(ms) {
@@ -111,23 +126,23 @@ func (mt *MessagesText) createMessage(m discord.Message) {
 		fmt.Fprint(mt, "["+mt.cfg.Theme.MessagesText.ContentColor+"]"+m.Author.Username+" pinned a message"+"[-:-:-]")
 	case discord.DefaultMessage, discord.InlinedReplyMessage:
 		if m.ReferencedMessage != nil {
-			mt.createHeader(mt, *m.ReferencedMessage, true)
+			mt.createHeader(mt, *m.ReferencedMessage, m.GuildID, true)
 			mt.createBody(mt, *m.ReferencedMessage, true)
 
 			fmt.Fprint(mt, "[::-]\n")
 		}
 
-		mt.createHeader(mt, m, false)
+		mt.createHeader(mt, m, m.GuildID, false)
 		mt.createBody(mt, m, false)
 		mt.createFooter(mt, m)
 	default:
-		mt.createHeader(mt, m, false)
+		mt.createHeader(mt, m, m.GuildID, false)
 	}
 
 	fmt.Fprintln(mt)
 }
 
-func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, isReply bool) {
+func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, gID discord.GuildID, isReply bool) {
 	if mt.cfg.Timestamps.Enabled {
 		time := m.Timestamp.Time().In(time.Local).Format(mt.cfg.Timestamps.Format)
 		fmt.Fprintf(w, "[::d]%s[::-] ", time)
@@ -137,7 +152,10 @@ func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, isReply boo
 		fmt.Fprintf(mt, "[::d]%s", mt.cfg.Theme.MessagesText.ReplyIndicator)
 	}
 
-	fmt.Fprintf(w, "[%s]%s[-:-:-] ", mt.cfg.Theme.MessagesText.AuthorColor, m.Author.Username)
+	displayName := mt.getAuthorDisplayName(m, gID)
+	displayColor := mt.getAuthorDisplayColor(m, gID)
+
+	fmt.Fprintf(w, "[%s]%s[-:-:-] ", displayColor, displayName)
 }
 
 func (mt *MessagesText) createBody(w io.Writer, m discord.Message, isReply bool) {
@@ -191,6 +209,32 @@ func (mt *MessagesText) getSelectedMessageIndex() (int, error) {
 	}
 
 	return -1, nil
+}
+
+func (mt *MessagesText) getAuthorDisplayName(m discord.Message, gID discord.GuildID) string {
+	name := m.Author.DisplayOrUsername()
+
+	if app.cfg.Theme.MessagesText.ShowNicknames && gID.IsValid() {
+		// Use guild nickname if present
+		if member, _ := discordState.Cabinet.Member(gID, m.Author.ID); member != nil && member.Nick != "" {
+			name = member.Nick
+		}
+	}
+
+	return name
+}
+
+func (mt *MessagesText) getAuthorDisplayColor(m discord.Message, gID discord.GuildID) string {
+	color := mt.cfg.Theme.MessagesText.AuthorColor
+
+	if app.cfg.Theme.MessagesText.ShowUsernameColors && gID.IsValid() {
+		// Use color from highest role in guild
+		if c, ok := discordState.MemberColor(gID, m.Author.ID); ok {
+			color = c.String()
+		}
+	}
+
+	return color
 }
 
 func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
@@ -460,7 +504,7 @@ func (mt *MessagesText) reply(mention bool) {
 		return
 	}
 
-	title += msg.Author.Tag()
+	title += mt.getAuthorDisplayName(*msg, msg.GuildID)
 	app.messageInput.SetTitle(title)
 	app.messageInput.replyMessageID = mt.selectedMessageID
 	mt.app.SetFocus(app.messageInput)
@@ -509,5 +553,59 @@ func (mt *MessagesText) delete() {
 
 	for _, m := range slices.Backward(ms) {
 		app.messagesText.createMessage(m)
+	}
+}
+
+func (mt *MessagesText) fetchMembers(gID discord.GuildID, ms []discord.Message) {
+	var usersToFetch []discord.UserID
+	for _, m := range ms {
+		if member, _ := discordState.Cabinet.Member(gID, m.Author.ID); member == nil {
+			usersToFetch = append(usersToFetch, m.Author.ID)
+		}
+	}
+
+	if usersToFetch != nil {
+		err := discordState.Gateway().Send(context.Background(), &gateway.RequestGuildMembersCommand{
+			GuildIDs: []discord.GuildID{gID},
+			UserIDs:  slices.Compact(usersToFetch),
+		})
+		if err != nil {
+			slog.Error("Failed to request guild members", "err", err)
+			return
+		}
+
+		mt.setFetchingChunk(true)
+		mt.waitForChunkEvent()
+	}
+}
+
+func (mt *MessagesText) setFetchingChunk(value bool) {
+	mt.fetchingMembers.mu.Lock()
+	if mt.fetchingMembers.value == value {
+		mt.fetchingMembers.mu.Unlock()
+		return
+	}
+	mt.fetchingMembers.value = value
+	mt.fetchingMembers.mu.Unlock()
+
+	if value {
+		mt.fetchingMembers.done = make(chan struct{})
+	} else {
+		close(mt.fetchingMembers.done)
+	}
+}
+
+func (mt *MessagesText) waitForChunkEvent() {
+	mt.fetchingMembers.mu.Lock()
+	if !mt.fetchingMembers.value {
+		mt.fetchingMembers.mu.Unlock()
+		return
+	}
+	mt.fetchingMembers.mu.Unlock()
+
+	select {
+	case <-mt.fetchingMembers.done:
+	default:
+		<-mt.fetchingMembers.done
 	}
 }
