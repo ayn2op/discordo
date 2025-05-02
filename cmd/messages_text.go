@@ -559,8 +559,7 @@ func (mt *MessagesText) delete() {
 func (mt *MessagesText) fetchMembers(gID discord.GuildID, ms []discord.Message) {
 	var usersToFetch []discord.UserID
 	for _, m := range ms {
-		member, _ := discordState.Cabinet.Member(gID, m.Author.ID)
-		if member == nil {
+		if member, _ := discordState.Cabinet.Member(gID, m.Author.ID); member == nil {
 			usersToFetch = append(usersToFetch, m.Author.ID)
 		}
 	}
