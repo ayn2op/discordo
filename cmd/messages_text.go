@@ -570,7 +570,7 @@ func (mt *MessagesText) requestGuildMembers(gID discord.GuildID, ms []discord.Me
 			UserIDs:  slices.Compact(usersToFetch),
 		})
 		if err != nil {
-			slog.Error("Failed to request guild members", "err", err)
+			slog.Error("failed to request guild members", "err", err)
 			return
 		}
 
