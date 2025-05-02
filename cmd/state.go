@@ -43,6 +43,7 @@ func openState(token string) error {
 	discordState.AddHandler(discordState.onReady)
 	discordState.AddHandler(discordState.onMessageCreate)
 	discordState.AddHandler(discordState.onMessageDelete)
+	discordState.AddHandler(discordState.onGetMemberChunk)
 
 	discordState.OnRequest = append(discordState.OnRequest, discordState.onRequest)
 	return discordState.Open(context.TODO())
@@ -105,4 +106,8 @@ func (s *State) onMessageDelete(m *gateway.MessageDeleteEvent) {
 
 		app.messagesText.drawMsgs(m.ChannelID)
 	}
+}
+
+func (s *State) onGetMemberChunk(g *gateway.GuildMembersChunkEvent) {
+	app.messagesText.setFetchingChunk(false)
 }
