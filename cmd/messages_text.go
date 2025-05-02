@@ -17,7 +17,6 @@ import (
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
-	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/ningen/v3/discordmd"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -80,7 +79,9 @@ func (mt *MessagesText) drawMsgs(cID discord.ChannelID) {
 	}
 
 	if app.cfg.Theme.MessagesText.ShowNicknames || app.cfg.Theme.MessagesText.ShowUsernameColors {
-		mt.fetchMembers(ms)
+		if ch, _ := discordState.Cabinet.Channel(cID); ch.GuildID.IsValid() {
+			mt.fetchMembers(ch.GuildID, ms)
+		}
 	}
 
 	for _, m := range slices.Backward(ms) {
@@ -214,13 +215,9 @@ func (mt *MessagesText) getAuthorDisplayName(m discord.Message, gID discord.Guil
 	name := m.Author.DisplayOrUsername()
 
 	if app.cfg.Theme.MessagesText.ShowNicknames && gID.IsValid() {
-		member, _ := discordState.Cabinet.Member(gID, m.Author.ID)
-
 		// Use guild nickname if present
-		if member != nil {
-			if member.Nick != "" {
-				name = member.Nick
-			}
+		if member, _ := discordState.Cabinet.Member(gID, m.Author.ID); member != nil && member.Nick != "" {
+			name = member.Nick
 		}
 	}
 
@@ -231,15 +228,8 @@ func (mt *MessagesText) getAuthorDisplayColor(m discord.Message, gID discord.Gui
 	color := mt.cfg.Theme.MessagesText.AuthorColor
 
 	if app.cfg.Theme.MessagesText.ShowUsernameColors && gID.IsValid() {
-		member, _ := discordState.Cabinet.Member(gID, m.Author.ID)
-
 		// Use color from highest role in guild
-		c, ok := state.MemberColor(member, func(id discord.RoleID) *discord.Role {
-			role, _ := discordState.Cabinet.Role(gID, id)
-			return role
-		})
-
-		if ok {
+		if c, ok := discordState.MemberColor(gID, m.Author.ID); ok {
 			color = c.String()
 		}
 	}
@@ -566,18 +556,12 @@ func (mt *MessagesText) delete() {
 	}
 }
 
-func (mt *MessagesText) fetchMembers(ms []discord.Message) {
-	var gID discord.GuildID
+func (mt *MessagesText) fetchMembers(gID discord.GuildID, ms []discord.Message) {
 	var usersToFetch []discord.UserID
 	for _, m := range ms {
-		if !m.GuildID.IsValid() {
-			continue
-		}
-
-		member, _ := discordState.Cabinet.Member(m.GuildID, m.Author.ID)
+		member, _ := discordState.Cabinet.Member(gID, m.Author.ID)
 		if member == nil {
 			usersToFetch = append(usersToFetch, m.Author.ID)
-			gID = m.GuildID
 		}
 	}
 
