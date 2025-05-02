@@ -32,10 +32,11 @@ type MessagesText struct {
 	cfg               *config.Config
 	app               *tview.Application
 	selectedMessageID discord.MessageID
-	fetchingMembers   struct {
+
+	fetchingMembers struct {
+		mu    sync.Mutex
 		value bool
 		done  chan struct{}
-		mu    sync.Mutex
 	}
 }
 
