@@ -80,7 +80,7 @@ func (mt *MessagesText) drawMsgs(cID discord.ChannelID) {
 
 	if app.cfg.Theme.MessagesText.ShowNicknames || app.cfg.Theme.MessagesText.ShowUsernameColors {
 		if ch, _ := discordState.Cabinet.Channel(cID); ch.GuildID.IsValid() {
-			mt.fetchMembers(ch.GuildID, ms)
+			mt.requestGuildMembers(ch.GuildID, ms)
 		}
 	}
 
@@ -556,7 +556,7 @@ func (mt *MessagesText) delete() {
 	}
 }
 
-func (mt *MessagesText) fetchMembers(gID discord.GuildID, ms []discord.Message) {
+func (mt *MessagesText) requestGuildMembers(gID discord.GuildID, ms []discord.Message) {
 	var usersToFetch []discord.UserID
 	for _, m := range ms {
 		if member, _ := discordState.Cabinet.Member(gID, m.Author.ID); member == nil {
