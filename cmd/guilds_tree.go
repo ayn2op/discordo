@@ -190,18 +190,17 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 
 		gt.createChannelNodes(n, cs)
 	case discord.ChannelID:
-		app.messagesText.drawMsgs(ref)
-		app.messagesText.ScrollToEnd()
-
 		c, err := discordState.Cabinet.Channel(ref)
 		if err != nil {
 			slog.Error("failed to get channel", "channel_id", ref)
 			return
 		}
 
+		app.messagesText.drawMsgs(c.ID)
+		app.messagesText.ScrollToEnd()
 		app.messagesText.SetTitle(gt.channelToString(*c))
 
-		gt.selectedChannelID = ref
+		gt.selectedChannelID = c.ID
 		gt.app.SetFocus(app.messageInput)
 	case nil: // Direct messages
 		cs, err := discordState.PrivateChannels()
