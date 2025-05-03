@@ -6,11 +6,11 @@ require (
 	github.com/BurntSushi/toml v1.5.0
 	github.com/atotto/clipboard v0.1.4
 	github.com/deckarep/gosx-notifier v0.0.0-20180201035817-e127226297fb
-	github.com/diamondburned/arikawa/v3 v3.4.1-0.20250429060505-8a78eb04430c
+	github.com/diamondburned/arikawa/v3 v3.5.0
 	github.com/diamondburned/ningen/v3 v3.0.1-0.20240808103805-f1a24c0da3d8
 	github.com/gdamore/tcell/v2 v2.8.1
 	github.com/gen2brain/beeep v0.0.0-20240516210008-9c006672e7f4
-	github.com/rivo/tview v0.0.0-20250330220935-949945f8d922
+	github.com/rivo/tview v0.0.0-20250501113434-0c592cd31026
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/spf13/cobra v1.9.1
 	github.com/yuin/goldmark v1.7.11

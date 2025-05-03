@@ -40,6 +40,8 @@ github.com/diamondburned/arikawa/v3 v3.4.0 h1:wI3Qv8h2E2dkeddF1I35nv4T6OQ3RtA21r
 github.com/diamondburned/arikawa/v3 v3.4.0/go.mod h1:WVkbdenUfsCCkptIlqSglF4eo2/HSXv74eCqGnOZaYY=
 github.com/diamondburned/arikawa/v3 v3.4.1-0.20250429060505-8a78eb04430c h1:HQmi0n1vhncwTK5VXXT5HHnLuYzOGbOq6QUi0G9Onk4=
 github.com/diamondburned/arikawa/v3 v3.4.1-0.20250429060505-8a78eb04430c/go.mod h1:thocAM2X8lRDHuEZR5vWYaT4w+tb/vOKa1qm+r0gs5A=
+github.com/diamondburned/arikawa/v3 v3.5.0 h1:Ct93e1kZBLqlwTB88oOSZ/B0zzqrn5MpRwfGYiH81d8=
+github.com/diamondburned/arikawa/v3 v3.5.0/go.mod h1:thocAM2X8lRDHuEZR5vWYaT4w+tb/vOKa1qm+r0gs5A=
 github.com/diamondburned/ningen/v3 v3.0.1-0.20240808103805-f1a24c0da3d8 h1:wgvgSzI4N+BHhCWhGhHKfW4gm0UtBVptiDaBGPdHmcs=
 github.com/diamondburned/ningen/v3 v3.0.1-0.20240808103805-f1a24c0da3d8/go.mod h1:UU1lud9g/GBl2+CZ8nPCe3Qk1U6fABEP1fk1sUzo7w0=
 github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
@@ -116,6 +118,8 @@ github.com/rivo/tview v0.0.0-20250325173046-7b72abf45814 h1:pJIO3sp+rkDbJTeqqpe2
 github.com/rivo/tview v0.0.0-20250325173046-7b72abf45814/go.mod h1:02iFIz7K/A9jGCvrizLPvoqr4cEIx7q54RH5Qudkrss=
 github.com/rivo/tview v0.0.0-20250330220935-949945f8d922 h1:SMyqkaRfpE8ZQUSRTZKO3uN84xov++OGa+e3NCksaQw=
 github.com/rivo/tview v0.0.0-20250330220935-949945f8d922/go.mod h1:02iFIz7K/A9jGCvrizLPvoqr4cEIx7q54RH5Qudkrss=
+github.com/rivo/tview v0.0.0-20250501113434-0c592cd31026 h1:ij8h8B3psk3LdMlqkfPTKIzeGzTaZLOiyplILMlxPAM=
+github.com/rivo/tview v0.0.0-20250501113434-0c592cd31026/go.mod h1:02iFIz7K/A9jGCvrizLPvoqr4cEIx7q54RH5Qudkrss=
 github.com/rivo/uniseg v0.2.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
 github.com/rivo/uniseg v0.4.3/go.mod h1:FN3SvrM+Zdj16jyLfmOkMNblXMcoc8DfTHruCPUcx88=
 github.com/rivo/uniseg v0.4.7 h1:WUdvkW8uEhrYfLC4ZzdpI2ztxP1I582+49Oc5Mq64VQ=
