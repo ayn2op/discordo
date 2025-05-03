@@ -138,6 +138,5 @@ secret-tool store --label="DISCORD TOKEN HERE" service discordo username token
 
 4. When it prompts for the password, paste your token, and hit enter to confirm.
 
-## Disclaimer
-
-Automated user accounts or "self-bots" are against Discord's Terms of Service. I am not responsible for any loss caused by using "self-bots" or Discordo.
+> [!IMPORTANT]
+> Automated user accounts or "self-bots" are against Discord's Terms of Service. I am not responsible for any loss caused by using "self-bots" or Discordo.
