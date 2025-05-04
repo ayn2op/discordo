@@ -45,8 +45,13 @@ func openState(token string) error {
 	discordState.AddHandler(discordState.onMessageDelete)
 	discordState.AddHandler(discordState.onGetMemberChunk)
 
+	discordState.StateLog = discordState.onStateLog
 	discordState.OnRequest = append(discordState.OnRequest, discordState.onRequest)
 	return discordState.Open(context.TODO())
+}
+
+func (s *State) onStateLog(err error) {
+	slog.Error("state log", "err", err)
 }
 
 func (s *State) onRequest(r httpdriver.Request) error {
