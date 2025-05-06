@@ -178,6 +178,8 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 
 	switch ref := n.GetReference().(type) {
 	case discord.GuildID:
+		go discordState.MemberState.Subscribe(ref)
+
 		cs, err := discordState.Cabinet.Channels(ref)
 		if err != nil {
 			slog.Error("failed to get channels", "err", err, "guild_id", ref)
