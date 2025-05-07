@@ -171,6 +171,10 @@ func (mt *MessagesText) createBody(w io.Writer, m discord.Message, isReply bool)
 	if isReply {
 		fmt.Fprint(w, "[::-]")
 	}
+
+	if m.EditedTimestamp.IsValid() {
+		fmt.Fprint(w, " [::d](edited)[::-]")
+	}
 }
 
 func (mt *MessagesText) createFooter(w io.Writer, m discord.Message) {
