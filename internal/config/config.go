@@ -64,7 +64,7 @@ func defaultConfig() *Config {
 		MessagesLimit:       50,
 
 		Timestamps: Timestamps{
-			Enabled: false,
+			Enabled: true,
 			Format:  time.Kitchen,
 		},
 
