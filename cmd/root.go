@@ -6,6 +6,7 @@ import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/logger"
+	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/spf13/cobra"
@@ -25,6 +26,7 @@ var (
 			var level slog.Level
 			switch s, _ := flags.GetString("log-level"); s {
 			case "debug":
+				ws.EnableRawEvents = true
 				level = slog.LevelDebug
 			case "info":
 				level = slog.LevelInfo

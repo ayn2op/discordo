@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"runtime"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/httputil/httpdriver"
+	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/diamondburned/ningen/v3"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -39,19 +39,25 @@ func openState(token string) error {
 	}
 
 	// Handlers
-	discordState.AddHandler(discordState.onEvent)
 	discordState.AddHandler(discordState.onReady)
 	discordState.AddHandler(discordState.onMessageCreate)
 	discordState.AddHandler(discordState.onMessageDelete)
-	discordState.AddHandler(discordState.onGetMemberChunk)
 
-	discordState.StateLog = discordState.onStateLog
+	discordState.AddHandler(func(event *gateway.GuildMembersChunkEvent) {
+		app.messagesText.setFetchingChunk(false)
+	})
+
+	discordState.AddHandler(func(event *ws.RawEvent) {
+		slog.Debug("new raw event", "code", event.OriginalCode, "type", event.OriginalType, "data", event.Raw)
+	})
+
+	discordState.StateLog = func(err error) {
+		slog.Error("state log", "err", err)
+	}
+
 	discordState.OnRequest = append(discordState.OnRequest, discordState.onRequest)
-	return discordState.Open(context.TODO())
-}
 
-func (s *State) onStateLog(err error) {
-	slog.Error("state log", "err", err)
+	return discordState.Open(context.TODO())
 }
 
 func (s *State) onRequest(r httpdriver.Request) error {
@@ -61,10 +67,6 @@ func (s *State) onRequest(r httpdriver.Request) error {
 	}
 
 	return nil
-}
-
-func (s *State) onEvent(event any) {
-	slog.Debug("new gateway event", "name", fmt.Sprintf("%T", event), "data", event)
 }
 
 func (s *State) onReady(r *gateway.ReadyEvent) {
@@ -111,8 +113,4 @@ func (s *State) onMessageDelete(m *gateway.MessageDeleteEvent) {
 
 		app.messagesText.drawMsgs(m.ChannelID)
 	}
-}
-
-func (s *State) onGetMemberChunk(g *gateway.GuildMembersChunkEvent) {
-	app.messagesText.setFetchingChunk(false)
 }
