@@ -127,7 +127,7 @@ func (mt *MessagesText) createMsg(msg discord.Message) {
 
 	switch msg.Type {
 	case discord.DefaultMessage:
-		if msg.Reference != nil && msg.Reference.Type == 1 { // 1 = forwarded
+		if msg.Reference != nil && msg.Reference.Type == discord.MessageReferenceTypeForward {
 			mt.createForwardedMsg(msg)
 		} else {
 			mt.createDefaultMsg(msg)
@@ -219,7 +219,7 @@ func (mt *MessagesText) authorName(user discord.User, gID discord.GuildID) strin
 func (mt *MessagesText) createForwardedMsg(msg discord.Message) {
 	mt.drawTimestamps(msg.Timestamp)
 	mt.drawAuthor(msg)
-	fmt.Fprintf(mt, "[::d](Forwarded)[-:-:-] ")
+	fmt.Fprintf(mt, "[::d](Forwarded)[::-] ")
 	mt.drawSnapshotContent(msg.MessageSnapshots[0].Message)
 	fmt.Fprintf(mt, " [::d](%s)[-:-:-] ", mt.formatTimestamp(msg.MessageSnapshots[0].Message.Timestamp))
 }
