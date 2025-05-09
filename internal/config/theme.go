@@ -98,7 +98,7 @@ func defaultTheme() Theme {
 			ShowNicknames:      true,
 			ShowUsernameColors: true,
 
-			ReplyIndicator: string(tview.BoxDrawingsLightArcDownAndRight) + " ",
+			ReplyIndicator: ">",
 
 			AuthorColor:     "aqua",
 			ContentColor:    tview.Styles.PrimaryTextColor.String(),
