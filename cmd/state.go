@@ -97,7 +97,7 @@ func (s *State) onReady(r *gateway.ReadyEvent) {
 
 func (s *State) onMessageCreate(m *gateway.MessageCreateEvent) {
 	if app.guildsTree.selectedChannelID.IsValid() && app.guildsTree.selectedChannelID == m.ChannelID {
-		app.messagesText.createMessage(m.Message)
+		app.messagesText.createMsg(m.Message)
 	}
 
 	if err := notifications.HandleIncomingMessage(*s.State, m, app.cfg); err != nil {
