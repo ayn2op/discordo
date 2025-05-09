@@ -7,7 +7,6 @@ import (
 	"io"
 	"log/slog"
 	"slices"
-	"strconv"
 	"sync"
 	"time"
 
@@ -331,12 +330,13 @@ func (mt *MessagesText) _select(name string) {
 
 func (mt *MessagesText) onHighlighted(added, removed, remaining []string) {
 	if len(added) > 0 {
-		mID, err := strconv.ParseInt(added[0], 10, 64)
+		id, err := discord.ParseSnowflake(added[0])
 		if err != nil {
 			slog.Error("Failed to parse region id as int to use as message id.", "err", err)
 			return
 		}
-		mt.selectedMessageID = discord.MessageID(mID)
+
+		mt.selectedMessageID = discord.MessageID(id)
 	}
 }
 
