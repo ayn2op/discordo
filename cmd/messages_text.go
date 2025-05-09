@@ -127,7 +127,11 @@ func (mt *MessagesText) createMsg(msg discord.Message) {
 
 	switch msg.Type {
 	case discord.DefaultMessage:
-		mt.createDefaultMsg(msg)
+		if msg.Reference != nil && msg.Reference.Type == 1 { // 1 = forwarded
+			mt.createForwardedMsg(msg)
+		} else {
+			mt.createDefaultMsg(msg)
+		}
 	case discord.InlinedReplyMessage:
 		mt.createReplyMsg(msg)
 
@@ -157,6 +161,12 @@ func (mt *MessagesText) drawContent(msg discord.Message) {
 	c := []byte(tview.Escape(msg.Content))
 	ast := discordmd.ParseWithMessage(c, *discordState.Cabinet, &msg, false)
 	markdown.DefaultRenderer.Render(mt, c, ast)
+}
+
+func (mt *MessagesText) drawSnapshotContent(msg discord.MessageSnapshotMessage) {
+	c := []byte(tview.Escape(msg.Content))
+	// discordmd doesn't support MessageSnapshotMessage, so we just use write it as is. todo?
+	mt.Write(c)
 }
 
 func (mt *MessagesText) createDefaultMsg(msg discord.Message) {
@@ -201,6 +211,13 @@ func (mt *MessagesText) authorName(user discord.User, gID discord.GuildID) strin
 	}
 
 	return name
+}
+
+func (mt *MessagesText) createForwardedMsg(msg discord.Message) {
+	mt.drawTimestamps(msg.Timestamp)
+	mt.drawAuthor(msg)
+	fmt.Fprintf(mt, "[::d](Forwarded)[-:-:-] ")
+	mt.drawSnapshotContent(msg.MessageSnapshots[0].Message)
 }
 
 func (mt *MessagesText) authorColor(user discord.User, gID discord.GuildID) string {
