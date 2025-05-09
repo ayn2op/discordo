@@ -34,7 +34,6 @@ type (
 	MessagesTextKeys struct {
 		NavigationKeys
 		SelectReply  string `toml:"select_reply"`
-		SelectPin    string `toml:"select_pin"`
 		Reply        string `toml:"reply"`
 		ReplyMention string `toml:"reply_mention"`
 
@@ -85,7 +84,6 @@ func defaultKeys() Keys {
 				SelectLast:     "Rune[G]",
 			},
 			SelectReply: "Rune[s]",
-			SelectPin:   "Rune[p]",
 
 			Reply:        "Rune[r]",
 			ReplyMention: "Rune[R]",

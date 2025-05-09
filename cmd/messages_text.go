@@ -250,7 +250,7 @@ func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		app.messageInput.replyMessageID = 0
 		mt.Highlight()
 
-	case mt.cfg.Keys.MessagesText.SelectPrevious, mt.cfg.Keys.MessagesText.SelectNext, mt.cfg.Keys.MessagesText.SelectFirst, mt.cfg.Keys.MessagesText.SelectLast, mt.cfg.Keys.MessagesText.SelectReply, mt.cfg.Keys.MessagesText.SelectPin:
+	case mt.cfg.Keys.MessagesText.SelectPrevious, mt.cfg.Keys.MessagesText.SelectNext, mt.cfg.Keys.MessagesText.SelectFirst, mt.cfg.Keys.MessagesText.SelectLast, mt.cfg.Keys.MessagesText.SelectReply:
 		mt._select(event.Name())
 	case mt.cfg.Keys.MessagesText.YankID:
 		mt.yankID()
@@ -319,14 +319,6 @@ func (mt *MessagesText) _select(name string) {
 		if ref := ms[messageIdx].ReferencedMessage; ref != nil {
 			for _, m := range ms {
 				if ref.ID == m.ID {
-					mt.selectedMessageID = m.ID
-				}
-			}
-		}
-	case mt.cfg.Keys.MessagesText.SelectPin:
-		if ref := ms[messageIdx].Reference; ref != nil {
-			for _, m := range ms {
-				if ref.MessageID == m.ID {
 					mt.selectedMessageID = m.ID
 				}
 			}
