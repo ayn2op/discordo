@@ -183,7 +183,7 @@ func (mt *MessagesText) createDefaultMsg(msg discord.Message) {
 
 func (mt *MessagesText) createReplyMsg(msg discord.Message) {
 	// reply
-	fmt.Fprintf(mt, "[::d]%s", mt.cfg.Theme.MessagesText.ReplyIndicator)
+	fmt.Fprintf(mt, "[::d]%s ", mt.cfg.Theme.MessagesText.ReplyIndicator)
 	mt.drawAuthor(*msg.ReferencedMessage)
 	mt.drawContent(*msg.ReferencedMessage)
 	io.WriteString(mt, tview.NewLine)
