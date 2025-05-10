@@ -7,7 +7,6 @@ import (
 	"io"
 	"log/slog"
 	"slices"
-	"strconv"
 	"sync"
 	"time"
 
@@ -196,9 +195,12 @@ func (mt *MessagesText) createDefaultMsg(msg discord.Message) {
 
 func (mt *MessagesText) createReplyMsg(msg discord.Message) {
 	// reply
-	fmt.Fprintf(mt, "[::d]%s", mt.cfg.Theme.MessagesText.ReplyIndicator)
-	mt.drawAuthor(*msg.ReferencedMessage)
-	mt.drawContent(*msg.ReferencedMessage)
+	fmt.Fprintf(mt, "[::d]%s ", mt.cfg.Theme.MessagesText.ReplyIndicator)
+	if msg.ReferencedMessage != nil {
+		mt.drawAuthor(*msg.ReferencedMessage)
+		mt.drawContent(*msg.ReferencedMessage)
+	}
+
 	io.WriteString(mt, tview.NewLine)
 	// main
 	mt.createDefaultMsg(msg)
@@ -271,7 +273,7 @@ func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		app.messageInput.replyMessageID = 0
 		mt.Highlight()
 
-	case mt.cfg.Keys.MessagesText.SelectPrevious, mt.cfg.Keys.MessagesText.SelectNext, mt.cfg.Keys.MessagesText.SelectFirst, mt.cfg.Keys.MessagesText.SelectLast, mt.cfg.Keys.MessagesText.SelectReply, mt.cfg.Keys.MessagesText.SelectPin:
+	case mt.cfg.Keys.MessagesText.SelectPrevious, mt.cfg.Keys.MessagesText.SelectNext, mt.cfg.Keys.MessagesText.SelectFirst, mt.cfg.Keys.MessagesText.SelectLast, mt.cfg.Keys.MessagesText.SelectReply:
 		mt._select(event.Name())
 	case mt.cfg.Keys.MessagesText.YankID:
 		mt.yankID()
@@ -344,14 +346,6 @@ func (mt *MessagesText) _select(name string) {
 				}
 			}
 		}
-	case mt.cfg.Keys.MessagesText.SelectPin:
-		if ref := ms[messageIdx].Reference; ref != nil {
-			for _, m := range ms {
-				if ref.MessageID == m.ID {
-					mt.selectedMessageID = m.ID
-				}
-			}
-		}
 	}
 
 	mt.Highlight(mt.selectedMessageID.String())
@@ -360,12 +354,13 @@ func (mt *MessagesText) _select(name string) {
 
 func (mt *MessagesText) onHighlighted(added, removed, remaining []string) {
 	if len(added) > 0 {
-		mID, err := strconv.ParseInt(added[0], 10, 64)
+		id, err := discord.ParseSnowflake(added[0])
 		if err != nil {
 			slog.Error("Failed to parse region id as int to use as message id.", "err", err)
 			return
 		}
-		mt.selectedMessageID = discord.MessageID(mID)
+
+		mt.selectedMessageID = discord.MessageID(id)
 	}
 }
 
