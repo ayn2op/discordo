@@ -150,13 +150,13 @@ func (mt *MessagesText) formatTimestamp(ts discord.Timestamp) string {
 }
 
 func (mt *MessagesText) drawTimestamps(ts discord.Timestamp) {
-	fmt.Fprintf(mt, "[::d]%s[::-] ", mt.formatTimestamp(ts))
+	fmt.Fprintf(mt, "[::d]%s[::D] ", mt.formatTimestamp(ts))
 }
 
 func (mt *MessagesText) drawAuthor(msg discord.Message) {
 	name := mt.authorName(msg.Author, msg.GuildID)
 	color := mt.authorColor(msg.Author, msg.GuildID)
-	fmt.Fprintf(mt, "[%s]%s[-:-:-] ", color, name)
+	fmt.Fprintf(mt, "[%s]%s[-] ", color, name)
 }
 
 func (mt *MessagesText) drawContent(msg discord.Message) {
@@ -180,7 +180,7 @@ func (mt *MessagesText) createDefaultMsg(msg discord.Message) {
 	mt.drawContent(msg)
 
 	if msg.EditedTimestamp.IsValid() {
-		io.WriteString(mt, " [::d](edited)[::-]")
+		io.WriteString(mt, " [::d](edited)[::D]")
 	}
 
 	for _, a := range msg.Attachments {
@@ -196,9 +196,10 @@ func (mt *MessagesText) createDefaultMsg(msg discord.Message) {
 func (mt *MessagesText) createReplyMsg(msg discord.Message) {
 	// reply
 	fmt.Fprintf(mt, "[::d]%s ", mt.cfg.Theme.MessagesText.ReplyIndicator)
-	if msg.ReferencedMessage != nil {
-		mt.drawAuthor(*msg.ReferencedMessage)
-		mt.drawContent(*msg.ReferencedMessage)
+	if refMsg := msg.ReferencedMessage; refMsg != nil {
+		refMsg.GuildID = msg.GuildID
+		mt.drawAuthor(*refMsg)
+		mt.drawContent(*refMsg)
 	}
 
 	io.WriteString(mt, tview.NewLine)

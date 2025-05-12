@@ -86,7 +86,18 @@ func (r *renderer) Render(w io.Writer, source []byte, n ast.Node) error {
 					io.WriteString(w, "[::r]")
 				}
 			} else {
-				io.WriteString(w, "[::-]")
+				switch n.Attr {
+				case discordmd.AttrBold:
+					io.WriteString(w, "[::B]")
+				case discordmd.AttrItalics:
+					io.WriteString(w, "[::I]")
+				case discordmd.AttrUnderline:
+					io.WriteString(w, "[::U]")
+				case discordmd.AttrStrikethrough:
+					io.WriteString(w, "[::S]")
+				case discordmd.AttrMonospace:
+					io.WriteString(w, "[::R]")
+				}
 			}
 		case *discordmd.Mention:
 			if entering {
@@ -105,7 +116,7 @@ func (r *renderer) Render(w io.Writer, source []byte, n ast.Node) error {
 					io.WriteString(w, "@"+n.GuildRole.Name)
 				}
 			} else {
-				io.WriteString(w, "[::-]")
+				io.WriteString(w, "[::B]")
 			}
 		case *discordmd.Emoji:
 			if entering {
