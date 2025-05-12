@@ -222,7 +222,7 @@ func (mt *MessagesText) authorName(user discord.User, gID discord.GuildID) strin
 func (mt *MessagesText) createForwardedMsg(msg discord.Message) {
 	mt.drawTimestamps(msg.Timestamp)
 	mt.drawAuthor(msg)
-	fmt.Fprintf(mt, "[::d]%s [::-]", mt.cfg.Theme.MessagesText.ForwardIndicator)
+	fmt.Fprintf(mt, "[::d]%s [::-]", mt.cfg.Theme.MessagesText.ForwardedIndicator)
 	mt.drawSnapshotContent(msg.MessageSnapshots[0].Message)
 	fmt.Fprintf(mt, " [::d](%s)[-:-:-] ", mt.formatTimestamp(msg.MessageSnapshots[0].Message.Timestamp))
 }

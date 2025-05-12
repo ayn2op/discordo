@@ -59,7 +59,7 @@ type (
 		ShowUsernameColors bool `toml:"show_user_colors"`
 
 		ReplyIndicator string `toml:"reply_indicator"`
-		ForwardIndicator string `toml:"forward_indicator"`
+		ForwardedIndicator string `toml:"forwarded_indicator"`
 
 		AuthorColor     string `toml:"author_color"`
 		ContentColor    string `toml:"content_color"`
@@ -100,7 +100,7 @@ func defaultTheme() Theme {
 			ShowUsernameColors: true,
 
 			ReplyIndicator: ">",
-			ForwardIndicator: "<",
+			ForwardedIndicator: "<",
 
 			AuthorColor:     "aqua",
 			ContentColor:    tview.Styles.PrimaryTextColor.String(),
