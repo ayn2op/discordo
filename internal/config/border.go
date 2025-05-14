@@ -12,22 +12,49 @@ type BorderPreset struct {
 }
 
 func (p *BorderPreset) UnmarshalTOML(v any) error {
-	switch v.(string) {
-	case "double":
-		*p = borderPresetDouble()
-	case "thick":
-		*p = borderPresetThick()
-	case "round":
-		*p = borderPresetRound()
-	case "hidden":
-		*p = BorderPreset{
-			Horizontal:  ' ',
-			Vertical:    ' ',
-			TopLeft:     ' ',
-			TopRight:    ' ',
-			BottomLeft:  ' ',
-			BottomRight: ' ',
+	// Handle str and rune values
+	switch val := v.(type) {
+	case string:
+		switch val {
+		case "double":
+			*p = borderPresetDouble()
+		case "thick":
+			*p = borderPresetThick()
+		case "round":
+			*p = borderPresetRound()
+		case "hidden":
+			*p = BorderPreset{
+				Horizontal:  ' ',
+				Vertical:    ' ',
+				TopLeft:     ' ',
+				TopRight:    ' ',
+				BottomLeft:  ' ',
+				BottomRight: ' ',
+			}
 		}
+	case map[string]any:
+		var bp BorderPreset
+		
+		if h, ok := val["Horizontal"].(int64); ok {
+			bp.Horizontal = rune(h)
+		}
+		if v, ok := val["Vertical"].(int64); ok {
+			bp.Vertical = rune(v)
+		}
+		if tl, ok := val["TopLeft"].(int64); ok {
+			bp.TopLeft = rune(tl)
+		}
+		if tr, ok := val["TopRight"].(int64); ok {
+			bp.TopRight = rune(tr)
+		}
+		if bl, ok := val["BottomLeft"].(int64); ok {
+			bp.BottomLeft = rune(bl)
+		}
+		if br, ok := val["BottomRight"].(int64); ok {
+			bp.BottomRight = rune(br)
+		}
+		
+		*p = bp
 	}
 
 	return nil
