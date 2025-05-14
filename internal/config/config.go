@@ -102,8 +102,13 @@ func Load() (*Config, error) {
 
 	cfg := defaultConfig()
 	if os.IsNotExist(err) {
-		slog.Info("the configuration file does not exist, falling back to the default configuration", "path", path, "err", err)
-		return cfg, nil
+	    slog.Info("config does not exist, creating default config", "path", path)
+	    f, err := os.Create(path)
+	    if err == nil {
+		toml.NewEncoder(f).Encode(cfg)
+		f.Close()
+	    }
+	    return cfg, nil
 	}
 
 	if err != nil {
