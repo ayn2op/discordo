@@ -7,13 +7,20 @@ import (
 type TitleAlign int
 
 func (ta *TitleAlign) UnmarshalTOML(v any) error {
-	switch v.(string) {
-	case "left":
-		*ta = tview.AlignLeft
-	case "center":
-		*ta = tview.AlignCenter
-	case "right":
-		*ta = tview.AlignRight
+	// Handle int and str inputs
+	switch val := v.(type) {
+	case string:
+		switch val {
+		case "left":
+			*ta = tview.AlignLeft
+		case "center":
+			*ta = tview.AlignCenter
+		case "right":
+			*ta = tview.AlignRight
+		}
+	case int64:
+		// Direct numeric value
+		*ta = TitleAlign(val)
 	}
 
 	return nil
