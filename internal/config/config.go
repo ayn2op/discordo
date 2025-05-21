@@ -45,6 +45,8 @@ type (
 		ShowAttachmentLinks bool  `toml:"show_attachment_links"`
 		MessagesLimit       uint8 `toml:"messages_limit"`
 
+		MarkdownEnabled bool `toml:"markdown_enabled"`
+
 		Timestamps    Timestamps    `toml:"timestamps"`
 		Identify      Identify      `toml:"identify"`
 		Notifications Notifications `toml:"notifications"`
@@ -62,6 +64,8 @@ func defaultConfig() *Config {
 		HideBlockedUsers:    true,
 		ShowAttachmentLinks: true,
 		MessagesLimit:       50,
+
+		MarkdownEnabled: true,
 
 		Timestamps: Timestamps{
 			Enabled: true,
