@@ -162,7 +162,11 @@ func (mt *MessagesText) drawAuthor(msg discord.Message) {
 func (mt *MessagesText) drawContent(msg discord.Message) {
 	c := []byte(tview.Escape(msg.Content))
 	ast := discordmd.ParseWithMessage(c, *discordState.Cabinet, &msg, false)
-	markdown.DefaultRenderer.Render(mt, c, ast)
+	if app.cfg.MarkdownEnabled {
+		markdown.DefaultRenderer.Render(mt, c, ast)
+	} else {
+		mt.Write(c) // write the content as is
+	}
 }
 
 func (mt *MessagesText) drawSnapshotContent(msg discord.MessageSnapshotMessage) {
