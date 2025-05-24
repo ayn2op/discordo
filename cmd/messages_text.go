@@ -1,12 +1,13 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"slices"
-	"strconv"
+	"sync"
 	"time"
 
 	"github.com/atotto/clipboard"
@@ -14,6 +15,7 @@ import (
 	"github.com/ayn2op/discordo/internal/markdown"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/ningen/v3/discordmd"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -29,6 +31,12 @@ type MessagesText struct {
 	cfg               *config.Config
 	app               *tview.Application
 	selectedMessageID discord.MessageID
+
+	fetchingMembers struct {
+		mu    sync.Mutex
+		value bool
+		done  chan struct{}
+	}
 }
 
 func newMessagesText(app *tview.Application, cfg *config.Config) *MessagesText {
@@ -57,6 +65,7 @@ func newMessagesText(app *tview.Application, cfg *config.Config) *MessagesText {
 	markdown.DefaultRenderer.AddOptions(
 		renderer.WithOption("emojiColor", t.MessagesText.EmojiColor),
 		renderer.WithOption("linkColor", t.MessagesText.LinkColor),
+		renderer.WithOption("showNicknames", t.MessagesText.ShowNicknames),
 	)
 
 	return mt
@@ -69,13 +78,20 @@ func (mt *MessagesText) drawMsgs(cID discord.ChannelID) {
 		return
 	}
 
+	if app.cfg.Theme.MessagesText.ShowNicknames || app.cfg.Theme.MessagesText.ShowUsernameColors {
+		if ch, _ := discordState.Cabinet.Channel(cID); ch.GuildID.IsValid() {
+			mt.requestGuildMembers(ch.GuildID, ms)
+		}
+	}
+
 	for _, m := range slices.Backward(ms) {
-		app.messagesText.createMessage(m)
+		app.messagesText.createMsg(m)
 	}
 }
 
 func (mt *MessagesText) reset() {
-	app.messagesText.selectedMessageID = 0
+	mt.selectedMessageID = 0
+	app.messageInput.replyMessageID = 0
 
 	mt.SetTitle("")
 	mt.Clear()
@@ -93,78 +109,141 @@ func (mt *MessagesText) endRegion() {
 	fmt.Fprint(mt, `[""]`)
 }
 
-func (mt *MessagesText) createMessage(m discord.Message) {
-	mt.startRegion(m.ID)
+func (mt *MessagesText) createMsg(msg discord.Message) {
+	mt.startRegion(msg.ID)
 	defer mt.endRegion()
 
 	if mt.cfg.HideBlockedUsers {
-		isBlocked := discordState.UserIsBlocked(m.Author.ID)
+		isBlocked := discordState.UserIsBlocked(msg.Author.ID)
 		if isBlocked {
 			fmt.Fprintln(mt, "[:red:b]Blocked message[:-:-]")
 			return
 		}
 	}
 
-	switch m.Type {
-	case discord.ChannelPinnedMessage:
-		fmt.Fprint(mt, "["+mt.cfg.Theme.MessagesText.ContentColor+"]"+m.Author.Username+" pinned a message"+"[-:-:-]")
-	case discord.DefaultMessage, discord.InlinedReplyMessage:
-		if m.ReferencedMessage != nil {
-			mt.createHeader(mt, *m.ReferencedMessage, true)
-			mt.createBody(mt, *m.ReferencedMessage, true)
+	// reset
+	io.WriteString(mt, "[-:-:-]")
 
-			fmt.Fprint(mt, "[::-]\n")
+	switch msg.Type {
+	case discord.DefaultMessage:
+		if msg.Reference != nil && msg.Reference.Type == discord.MessageReferenceTypeForward {
+			mt.createForwardedMsg(msg)
+		} else {
+			mt.createDefaultMsg(msg)
 		}
+	case discord.InlinedReplyMessage:
+		mt.createReplyMsg(msg)
 
-		mt.createHeader(mt, m, false)
-		mt.createBody(mt, m, false)
-		mt.createFooter(mt, m)
+	case discord.ChannelPinnedMessage:
+		fmt.Fprint(mt, "["+mt.cfg.Theme.MessagesText.ContentColor+"]"+msg.Author.Username+" pinned a message"+"[-:-:-]")
+
 	default:
-		mt.createHeader(mt, m, false)
+		mt.drawTimestamps(msg.Timestamp)
+		mt.drawAuthor(msg)
 	}
 
 	fmt.Fprintln(mt)
 }
 
-func (mt *MessagesText) createHeader(w io.Writer, m discord.Message, isReply bool) {
-	if mt.cfg.Timestamps {
-		time := m.Timestamp.Time().In(time.Local).Format(mt.cfg.TimestampsFormat)
-		fmt.Fprintf(w, "[::d]%s[::-] ", time)
-	}
-
-	if isReply {
-		fmt.Fprintf(mt, "[::d]%s", mt.cfg.Theme.MessagesText.ReplyIndicator)
-	}
-
-	fmt.Fprintf(w, "[%s]%s[-:-:-] ", mt.cfg.Theme.MessagesText.AuthorColor, m.Author.Username)
+func (mt *MessagesText) formatTimestamp(ts discord.Timestamp) string {
+	return ts.Time().In(time.Local).Format(mt.cfg.Timestamps.Format)
 }
 
-func (mt *MessagesText) createBody(w io.Writer, m discord.Message, isReply bool) {
-	if isReply {
-		fmt.Fprint(w, "[::d]")
-	}
+func (mt *MessagesText) drawTimestamps(ts discord.Timestamp) {
+	fmt.Fprintf(mt, "[::d]%s[::D] ", mt.formatTimestamp(ts))
+}
 
-	src := []byte(m.Content)
-	ast := discordmd.ParseWithMessage(src, *discordState.Cabinet, &m, false)
-	markdown.DefaultRenderer.Render(w, src, ast)
+func (mt *MessagesText) drawAuthor(msg discord.Message) {
+	name := mt.authorName(msg.Author, msg.GuildID)
+	color := mt.authorColor(msg.Author, msg.GuildID)
+	fmt.Fprintf(mt, "[%s]%s[-] ", color, name)
+}
 
-	if isReply {
-		fmt.Fprint(w, "[::-]")
+func (mt *MessagesText) drawContent(msg discord.Message) {
+	c := []byte(tview.Escape(msg.Content))
+	ast := discordmd.ParseWithMessage(c, *discordState.Cabinet, &msg, false)
+	if app.cfg.MarkdownEnabled {
+		markdown.DefaultRenderer.Render(mt, c, ast)
+	} else {
+		mt.Write(c) // write the content as is
 	}
 }
 
-func (mt *MessagesText) createFooter(w io.Writer, m discord.Message) {
-	for _, a := range m.Attachments {
-		fmt.Fprintln(w)
+func (mt *MessagesText) drawSnapshotContent(msg discord.MessageSnapshotMessage) {
+	c := []byte(tview.Escape(msg.Content))
+	// discordmd doesn't support MessageSnapshotMessage, so we just use write it as is. todo?
+	mt.Write(c)
+}
+
+func (mt *MessagesText) createDefaultMsg(msg discord.Message) {
+	if mt.cfg.Timestamps.Enabled {
+		mt.drawTimestamps(msg.Timestamp)
+	}
+
+	mt.drawAuthor(msg)
+	mt.drawContent(msg)
+
+	if msg.EditedTimestamp.IsValid() {
+		io.WriteString(mt, " [::d](edited)[::D]")
+	}
+
+	for _, a := range msg.Attachments {
+		fmt.Fprintln(mt)
 		if mt.cfg.ShowAttachmentLinks {
-			fmt.Fprintf(w, "[%s][%s]:\n%s[-]", mt.cfg.Theme.MessagesText.AttachmentColor, a.Filename, a.URL)
+			fmt.Fprintf(mt, "[%s][%s]:\n%s[-]", mt.cfg.Theme.MessagesText.AttachmentColor, a.Filename, a.URL)
 		} else {
-			fmt.Fprintf(w, "[%s][%s][-]", mt.cfg.Theme.MessagesText.AttachmentColor, a.Filename)
+			fmt.Fprintf(mt, "[%s][%s][-]", mt.cfg.Theme.MessagesText.AttachmentColor, a.Filename)
 		}
 	}
 }
 
-func (mt *MessagesText) getSelectedMessage() (*discord.Message, error) {
+func (mt *MessagesText) createReplyMsg(msg discord.Message) {
+	// reply
+	fmt.Fprintf(mt, "[::d]%s ", mt.cfg.Theme.MessagesText.ReplyIndicator)
+	if refMsg := msg.ReferencedMessage; refMsg != nil {
+		refMsg.GuildID = msg.GuildID
+		mt.drawAuthor(*refMsg)
+		mt.drawContent(*refMsg)
+	}
+
+	io.WriteString(mt, tview.NewLine)
+	// main
+	mt.createDefaultMsg(msg)
+}
+
+func (mt *MessagesText) authorName(user discord.User, gID discord.GuildID) string {
+	name := user.DisplayOrUsername()
+	if app.cfg.Theme.MessagesText.ShowNicknames && gID.IsValid() {
+		// Use guild nickname if present
+		if member, _ := discordState.Cabinet.Member(gID, user.ID); member != nil && member.Nick != "" {
+			name = member.Nick
+		}
+	}
+
+	return name
+}
+
+func (mt *MessagesText) createForwardedMsg(msg discord.Message) {
+	mt.drawTimestamps(msg.Timestamp)
+	mt.drawAuthor(msg)
+	fmt.Fprintf(mt, "[::d]%s [::-]", mt.cfg.Theme.MessagesText.ForwardedIndicator)
+	mt.drawSnapshotContent(msg.MessageSnapshots[0].Message)
+	fmt.Fprintf(mt, " [::d](%s)[-:-:-] ", mt.formatTimestamp(msg.MessageSnapshots[0].Message.Timestamp))
+}
+
+func (mt *MessagesText) authorColor(user discord.User, gID discord.GuildID) string {
+	color := mt.cfg.Theme.MessagesText.AuthorColor
+	if app.cfg.Theme.MessagesText.ShowUsernameColors && gID.IsValid() {
+		// Use color from highest role in guild
+		if c, ok := discordState.MemberColor(gID, user.ID); ok {
+			color = c.String()
+		}
+	}
+
+	return color
+}
+
+func (mt *MessagesText) selectedMsg() (*discord.Message, error) {
 	if !mt.selectedMessageID.IsValid() {
 		return nil, errors.New("no message is currently selected")
 	}
@@ -177,7 +256,7 @@ func (mt *MessagesText) getSelectedMessage() (*discord.Message, error) {
 	return msg, nil
 }
 
-func (mt *MessagesText) getSelectedMessageIndex() (int, error) {
+func (mt *MessagesText) selectedMsgIndex() (int, error) {
 	ms, err := discordState.Cabinet.Messages(app.guildsTree.selectedChannelID)
 	if err != nil {
 		return -1, err
@@ -194,7 +273,12 @@ func (mt *MessagesText) getSelectedMessageIndex() (int, error) {
 
 func (mt *MessagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
-	case mt.cfg.Keys.MessagesText.SelectPrevious, mt.cfg.Keys.MessagesText.SelectNext, mt.cfg.Keys.MessagesText.SelectFirst, mt.cfg.Keys.MessagesText.SelectLast, mt.cfg.Keys.MessagesText.SelectReply, mt.cfg.Keys.MessagesText.SelectPin:
+	case mt.cfg.Keys.MessagesText.Cancel:
+		mt.selectedMessageID = 0
+		app.messageInput.replyMessageID = 0
+		mt.Highlight()
+
+	case mt.cfg.Keys.MessagesText.SelectPrevious, mt.cfg.Keys.MessagesText.SelectNext, mt.cfg.Keys.MessagesText.SelectFirst, mt.cfg.Keys.MessagesText.SelectLast, mt.cfg.Keys.MessagesText.SelectReply:
 		mt._select(event.Name())
 	case mt.cfg.Keys.MessagesText.YankID:
 		mt.yankID()
@@ -222,7 +306,7 @@ func (mt *MessagesText) _select(name string) {
 		return
 	}
 
-	messageIdx, err := mt.getSelectedMessageIndex()
+	messageIdx, err := mt.selectedMsgIndex()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
 		return
@@ -267,14 +351,6 @@ func (mt *MessagesText) _select(name string) {
 				}
 			}
 		}
-	case mt.cfg.Keys.MessagesText.SelectPin:
-		if ref := ms[messageIdx].Reference; ref != nil {
-			for _, m := range ms {
-				if ref.MessageID == m.ID {
-					mt.selectedMessageID = m.ID
-				}
-			}
-		}
 	}
 
 	mt.Highlight(mt.selectedMessageID.String())
@@ -283,17 +359,18 @@ func (mt *MessagesText) _select(name string) {
 
 func (mt *MessagesText) onHighlighted(added, removed, remaining []string) {
 	if len(added) > 0 {
-		mID, err := strconv.ParseInt(added[0], 10, 64)
+		id, err := discord.ParseSnowflake(added[0])
 		if err != nil {
 			slog.Error("Failed to parse region id as int to use as message id.", "err", err)
 			return
 		}
-		mt.selectedMessageID = discord.MessageID(mID)
+
+		mt.selectedMessageID = discord.MessageID(id)
 	}
 }
 
 func (mt *MessagesText) yankID() {
-	msg, err := mt.getSelectedMessage()
+	msg, err := mt.selectedMsg()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
 		return
@@ -305,7 +382,7 @@ func (mt *MessagesText) yankID() {
 }
 
 func (mt *MessagesText) yankContent() {
-	msg, err := mt.getSelectedMessage()
+	msg, err := mt.selectedMsg()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
 		return
@@ -317,7 +394,7 @@ func (mt *MessagesText) yankContent() {
 }
 
 func (mt *MessagesText) yankURL() {
-	msg, err := mt.getSelectedMessage()
+	msg, err := mt.selectedMsg()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
 		return
@@ -329,7 +406,7 @@ func (mt *MessagesText) yankURL() {
 }
 
 func (mt *MessagesText) open() {
-	msg, err := mt.getSelectedMessage()
+	msg, err := mt.selectedMsg()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
 		return
@@ -448,20 +525,20 @@ func (mt *MessagesText) reply(mention bool) {
 		title += "Replying to "
 	}
 
-	msg, err := mt.getSelectedMessage()
+	msg, err := mt.selectedMsg()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
 		return
 	}
 
-	title += msg.Author.Tag()
+	title += mt.authorName(msg.Author, msg.GuildID)
 	app.messageInput.SetTitle(title)
 	app.messageInput.replyMessageID = mt.selectedMessageID
 	mt.app.SetFocus(app.messageInput)
 }
 
 func (mt *MessagesText) delete() {
-	msg, err := mt.getSelectedMessage()
+	msg, err := mt.selectedMsg()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
 		return
@@ -502,6 +579,61 @@ func (mt *MessagesText) delete() {
 	mt.Clear()
 
 	for _, m := range slices.Backward(ms) {
-		app.messagesText.createMessage(m)
+		app.messagesText.createMsg(m)
+	}
+}
+
+func (mt *MessagesText) requestGuildMembers(gID discord.GuildID, ms []discord.Message) {
+	var usersToFetch []discord.UserID
+	for _, m := range ms {
+		if member, _ := discordState.Cabinet.Member(gID, m.Author.ID); member == nil {
+			usersToFetch = append(usersToFetch, m.Author.ID)
+		}
+	}
+
+	if usersToFetch != nil {
+		err := discordState.Gateway().Send(context.Background(), &gateway.RequestGuildMembersCommand{
+			GuildIDs: []discord.GuildID{gID},
+			UserIDs:  slices.Compact(usersToFetch),
+		})
+		if err != nil {
+			slog.Error("failed to request guild members", "err", err)
+			return
+		}
+
+		mt.setFetchingChunk(true)
+		mt.waitForChunkEvent()
+	}
+}
+
+func (mt *MessagesText) setFetchingChunk(value bool) {
+	mt.fetchingMembers.mu.Lock()
+	defer mt.fetchingMembers.mu.Unlock()
+
+	if mt.fetchingMembers.value == value {
+		return
+	}
+
+	mt.fetchingMembers.value = value
+
+	if value {
+		mt.fetchingMembers.done = make(chan struct{})
+	} else {
+		close(mt.fetchingMembers.done)
+	}
+}
+
+func (mt *MessagesText) waitForChunkEvent() {
+	mt.fetchingMembers.mu.Lock()
+	if !mt.fetchingMembers.value {
+		mt.fetchingMembers.mu.Unlock()
+		return
+	}
+	mt.fetchingMembers.mu.Unlock()
+
+	select {
+	case <-mt.fetchingMembers.done:
+	default:
+		<-mt.fetchingMembers.done
 	}
 }

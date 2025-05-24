@@ -8,10 +8,15 @@ import (
 	"github.com/ayn2op/discordo/internal/consts"
 )
 
-const fileName = "logs.txt"
+type Format int
+
+const (
+	FormatText Format = iota
+	FormatJson
+)
 
 // Opens the log file and configures default logger.
-func Load() error {
+func Load(format Format, level slog.Level) error {
 	path, err := os.UserCacheDir()
 	if err != nil {
 		return err
@@ -22,13 +27,28 @@ func Load() error {
 		return err
 	}
 
-	path = filepath.Join(path, fileName)
-	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, os.ModePerm)
-	if err != nil {
-		return err
+	opts := &slog.HandlerOptions{AddSource: true, Level: level}
+
+	var h slog.Handler
+	switch format {
+	case FormatText:
+		path := filepath.Join(path, "logs.txt")
+		file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, os.ModePerm)
+		if err != nil {
+			return err
+		}
+
+		h = slog.NewTextHandler(file, opts)
+	case FormatJson:
+		path := filepath.Join(path, "logs.jsonl")
+		file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, os.ModePerm)
+		if err != nil {
+			return err
+		}
+
+		h = slog.NewJSONHandler(file, opts)
 	}
 
-	l := slog.New(slog.NewTextHandler(file, &slog.HandlerOptions{AddSource: true}))
-	slog.SetDefault(l)
+	slog.SetDefault(slog.New(h))
 	return nil
 }

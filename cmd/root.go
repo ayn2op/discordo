@@ -6,6 +6,7 @@ import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/logger"
+	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/spf13/cobra"
@@ -19,11 +20,34 @@ var (
 
 var (
 	rootCmd = &cobra.Command{
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := logger.Load(); err != nil {
-				return err
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			flags := cmd.Flags()
+
+			var level slog.Level
+			switch s, _ := flags.GetString("log-level"); s {
+			case "debug":
+				ws.EnableRawEvents = true
+				level = slog.LevelDebug
+			case "info":
+				level = slog.LevelInfo
+			case "warn":
+				level = slog.LevelWarn
+			case "error":
+				level = slog.LevelError
 			}
 
+			var format logger.Format
+			switch s, _ := flags.GetString("log-format"); s {
+			case "text":
+				format = logger.FormatText
+			case "json":
+				format = logger.FormatJson
+			}
+
+			return logger.Load(format, level)
+		},
+
+		RunE: func(cmd *cobra.Command, args []string) error {
 			token, _ := cmd.Flags().GetString("token")
 			if token == "" {
 				var err error
@@ -63,5 +87,9 @@ var (
 )
 
 func init() {
-	rootCmd.Flags().StringP("token", "t", "", "the authentication token")
+	flags := rootCmd.Flags()
+	flags.StringP("token", "t", "", "the authentication token")
+
+	flags.String("log-level", "info", "log level")
+	flags.String("log-format", "text", "log format")
 }

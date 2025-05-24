@@ -14,11 +14,27 @@ import (
 const fileName = "config.toml"
 
 type (
+	Timestamps struct {
+		Enabled bool   `toml:"enabled"`
+		Format  string `toml:"format"`
+	}
+
 	Identify struct {
 		Status         discord.Status `toml:"status"`
 		Browser        string         `toml:"browser"`
 		BrowserVersion string         `toml:"browser_version"`
 		UserAgent      string         `toml:"user_agent"`
+	}
+
+	Notifications struct {
+		Enabled  bool  `toml:"enabled"`
+		Duration int   `toml:"duration"`
+		Sound    Sound `toml:"sound"`
+	}
+
+	Sound struct {
+		Enabled    bool `toml:"enabled"`
+		OnlyOnPing bool `toml:"only_on_ping"`
 	}
 
 	Config struct {
@@ -29,12 +45,14 @@ type (
 		ShowAttachmentLinks bool  `toml:"show_attachment_links"`
 		MessagesLimit       uint8 `toml:"messages_limit"`
 
-		Timestamps       bool   `toml:"timestamps"`
-		TimestampsFormat string `toml:"timestamps_format"`
+		MarkdownEnabled bool `toml:"markdown_enabled"`
 
-		Identify Identify `toml:"identify"`
-		Keys     Keys     `toml:"keys"`
-		Theme    Theme    `toml:"theme"`
+		Timestamps    Timestamps    `toml:"timestamps"`
+		Identify      Identify      `toml:"identify"`
+		Notifications Notifications `toml:"notifications"`
+
+		Keys  Keys  `toml:"keys"`
+		Theme Theme `toml:"theme"`
 	}
 )
 
@@ -47,14 +65,27 @@ func defaultConfig() *Config {
 		ShowAttachmentLinks: true,
 		MessagesLimit:       50,
 
-		Timestamps:       false,
-		TimestampsFormat: time.Kitchen,
+		MarkdownEnabled: true,
+
+		Timestamps: Timestamps{
+			Enabled: true,
+			Format:  time.Kitchen,
+		},
 
 		Identify: Identify{
 			Status:         discord.OnlineStatus,
 			Browser:        consts.Browser,
 			BrowserVersion: consts.BrowserVersion,
 			UserAgent:      consts.UserAgent,
+		},
+
+		Notifications: Notifications{
+			Enabled:  true,
+			Duration: 500,
+			Sound: Sound{
+				Enabled:    true,
+				OnlyOnPing: true,
+			},
 		},
 
 		Keys:  defaultKeys(),

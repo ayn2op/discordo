@@ -4,15 +4,14 @@ Discordo is a lightweight, secure, and feature-rich Discord terminal client. Hea
 
 ![Preview](.github/preview.png)
 
+## Features
+
 - Lightweight
-- Secure
 - Configurable
-- Cross-platform
-- Minimalistic
-- Feature-rich
-  - Mouse & clipboard support
-  - 2-Factor authentication
-  - [Discord-flavored markdown](https://support.discord.com/hc/en-us/articles/210298617-Markdown-Text-101-Chat-Formatting-Bold-Italic-Underline-)
+- Mouse & clipboard support
+- Notifications
+- 2-Factor authentication
+- Discord-flavored markdown
 
 ## Installation
 
@@ -139,6 +138,5 @@ secret-tool store --label="DISCORD TOKEN HERE" service discordo username token
 
 4. When it prompts for the password, paste your token, and hit enter to confirm.
 
-## Disclaimer
-
-Automated user accounts or "self-bots" are against Discord's Terms of Service. I am not responsible for any loss caused by using "self-bots" or Discordo.
+> [!IMPORTANT]
+> Automated user accounts or "self-bots" are against Discord's Terms of Service. I am not responsible for any loss caused by using "self-bots" or Discordo.

@@ -178,6 +178,8 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 
 	switch ref := n.GetReference().(type) {
 	case discord.GuildID:
+		go discordState.MemberState.Subscribe(ref)
+
 		cs, err := discordState.Cabinet.Channels(ref)
 		if err != nil {
 			slog.Error("failed to get channels", "err", err, "guild_id", ref)
@@ -190,18 +192,17 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 
 		gt.createChannelNodes(n, cs)
 	case discord.ChannelID:
-		app.messagesText.drawMsgs(ref)
-		app.messagesText.ScrollToEnd()
-
 		c, err := discordState.Cabinet.Channel(ref)
 		if err != nil {
 			slog.Error("failed to get channel", "channel_id", ref)
 			return
 		}
 
+		app.messagesText.drawMsgs(c.ID)
+		app.messagesText.ScrollToEnd()
 		app.messagesText.SetTitle(gt.channelToString(*c))
 
-		gt.selectedChannelID = ref
+		gt.selectedChannelID = c.ID
 		gt.app.SetFocus(app.messageInput)
 	case nil: // Direct messages
 		cs, err := discordState.PrivateChannels()
@@ -210,14 +211,44 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 			return
 		}
 
+	        sort.Slice(cs, func(a, b int) bool {
+	                msgID := func(ch discord.Channel) discord.MessageID {
+	         	    if ch.LastMessageID.IsValid() {
+	                	return ch.LastMessageID
+	            	    }
+	            	    return discord.MessageID(ch.ID)
+	               }
+	               return msgID(cs[a]) > msgID(cs[b])
+	        })
+
 		for _, c := range cs {
 			gt.createChannelNode(n, c)
 		}
 	}
 }
 
+func (gt *GuildsTree) collapseParentNode(node *tview.TreeNode) {
+	gt.
+		GetRoot().
+		Walk(func(n, parent *tview.TreeNode) bool {
+			if n == node && parent.GetLevel() != 0 {
+				parent.Collapse()
+				gt.SetCurrentNode(parent)
+				return false
+			}
+
+			return true
+		})
+}
+
 func (gt *GuildsTree) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
+	case gt.cfg.Keys.GuildsTree.CollapseParentNode:
+		gt.collapseParentNode(gt.GetCurrentNode())
+		return nil
+	case gt.cfg.Keys.GuildsTree.MoveToParentNode:
+		return tcell.NewEventKey(tcell.KeyRune, 'K', tcell.ModNone)
+
 	case gt.cfg.Keys.GuildsTree.SelectPrevious:
 		return tcell.NewEventKey(tcell.KeyUp, 0, tcell.ModNone)
 	case gt.cfg.Keys.GuildsTree.SelectNext:
