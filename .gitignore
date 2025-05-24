@@ -7,4 +7,5 @@ discordo*
 result
 
 # direnv (devs should have this file locally)
+.direnv/
 .envrc
