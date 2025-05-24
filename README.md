@@ -23,8 +23,10 @@ You can download and install a [prebuilt binary here](https://nightly.link/ayn2o
 
 - Arch Linux: `yay -S discordo-git`
 - FreeBSD: `pkg install discordo` or via the ports system `make -C /usr/ports/net-im/discordo install clean`.
-- NixOS: `nix-shell -p discordo`
-
+- Nix (NixOS, home-manager)
+  - Downstream nixpkgs installation: Add `pkgs.discordo` to `environment.systemPackages` or `home.packages`.
+  <!-- Temporary until downstream home-manager module --> 
+  - Upstream flake installation: Add `inputs.discordo.url = "github:ayn2op/discordo"`. Install using `inputs.discordo.homeModules.default` (`.enable, .package, .settings TOML`).
 - Windows (Scoop):
 
 ```sh
