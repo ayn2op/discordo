@@ -3,4 +3,11 @@ discordo*
 # Visual Studio Code
 .vscode/
 
+# nix stuff
 result
+result-*
+.direnv
+
+# each developer can decide whether to use .envrc locally or not
+.envrc
+

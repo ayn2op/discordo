@@ -1,40 +1,46 @@
-{ buildGo122Module
+{ buildGoModule
 , lib
 , makeWrapper
 , xsel
 , wl-clipboard
-, guiSupport ? true
-, xorgClipboardSupport ? guiSupport
-, waylandClipboardSupport ? guiSupport
+
+, xorgClipboardSupport ? true
+, waylandClipboardSupport ? true
 }:
 let
   anyClipboardSupport = xorgClipboardSupport || waylandClipboardSupport;
 in
-buildGo122Module {
+buildGoModule {
   pname = "discordo";
-  version = "unstable-2024-04-28";
+  version = "git";
 
-  src = ./..;
-  vendorHash = "sha256-hSrGN3NHPpp5601l4KcmNHVYOGWfLjFeWWr9g11nM3I=";
-  # doCheck = false;
+  src = let fs = lib.fileset; in fs.toSource {
+    root = ../.;
+    fileset = fs.unions [
+      ../go.mod
+      ../go.sum
+      ../main.go
+      ../cmd
+      ../internal
+    ];
+  };
+
+  vendorHash = "sha256-gEwTpt/NPN1+YpTBmW8F34UotowrOcA0mfFgBdVFiTA=";
 
   nativeBuildInputs = lib.optional anyClipboardSupport makeWrapper;
 
-  postInstall =
-    let
-      clipboardPkgs =
-        lib.optional xorgClipboardSupport xsel
-        ++ lib.optional waylandClipboardSupport wl-clipboard;
-    in
-    lib.optionalString anyClipboardSupport ''
-      wrapProgram $out/bin/discordo \
-        --prefix PATH : ${lib.makeBinPath clipboardPkgs}
-    '';
+  postInstall = lib.optionalString xorgClipboardSupport ''
+    wrapProgram $out/bin/discordo \
+      --prefix PATH : ${lib.makeBinPath [ xsel ]}
+  '' + lib.optionalString waylandClipboardSupport ''
+    wrapProgram $out/bin/discordo \
+      --prefix PATH : ${lib.makeBinPath [ wl-clipboard ]}
+  '';
 
   meta = {
     description = "A lightweight, secure, and feature-rich Discord terminal client";
     homepage = "https://github.com/ayn2op/discordo";
-    license = lib.licenses.mit;
+    license = lib.licenses.gpl3;
     maintainers = [ lib.maintainers.arian-d ];
     mainProgram = "discordo";
   };

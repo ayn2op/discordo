@@ -5,29 +5,32 @@
 
   outputs = { self, nixpkgs, ... }:
     let
-
-      supportedSystems = [
+      systems = [
         "x86_64-linux"
         "aarch64-linux"
         "x86_64-darwin"
         "aarch64-darwin"
       ];
-
-      forSupportedSystems = f:
-        builtins.listToAttrs (builtins.map
-          (system:
-            {
-              name = system;
-              value = f system (import nixpkgs { inherit system; });
-            })
-          supportedSystems);
-
+      forAllSystems = f:
+        nixpkgs.lib.genAttrs systems
+          (system: f {
+            inherit system;
+            pkgs = nixpkgs.legacyPackages.${system};
+            packages' = self.packages.${system};
+          });
     in
     {
-      packages = forSupportedSystems (system: pkgs: {
-        default = pkgs.callPackage ./nix/package.nix { };
+      packages = forAllSystems ({ pkgs, packages', ... }: {
+        default = packages'.discordo;
+        discordo = pkgs.callPackage ./nix/package.nix { };
       });
-      homeManagerModules.default = import ./nix/hm-module.nix self;
+      homeModules = {
+        default = self.homeModules.discordo;
+        discordo = import ./nix/module-hm.nix self;
+      };
+      devShells.default = forAllSystems ({ pkgs, packages', ... }: pkgs.mkShell {
+        inputsFrom = [ packages'.discordo ];
+      });
     };
 }
   
