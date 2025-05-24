@@ -56,7 +56,8 @@ func Run() error {
 		}
 	}
 
-	cfg, err := config.Load()
+	configPath := flag.String("config", config.DefaultPath(), "path to the configuration file")
+	cfg, err := config.Load(*configPath)
 	if err != nil {
 		return err
 	}
