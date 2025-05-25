@@ -14,5 +14,5 @@
     ];
   };
 
-  vendorHash = "sha256-gEwTpt/NPN1+YpTBmW8F34UotowrOcA0mfFgBdVFiTA=";
+  vendorHash = "sha256-Q9ROPLRP8HSx4P30bSdX30qB2Q1oERz+gZ7Tb23oXbI=";
 }
