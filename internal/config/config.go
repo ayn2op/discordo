@@ -93,15 +93,18 @@ func defaultConfig() *Config {
 	}
 }
 
-// Reads the configuration file and parses it.
-func Load() (*Config, error) {
+func DefaultPath() string {
 	path, err := os.UserConfigDir()
 	if err != nil {
 		slog.Info("user configuration directory path cannot be determined; falling back to the current directory path")
 		path = "."
 	}
 
-	path = filepath.Join(path, consts.Name, fileName)
+	return filepath.Join(path, consts.Name, fileName)
+}
+
+// Reads the configuration file and parses it.
+func Load(path string) (*Config, error) {
 	f, err := os.Open(path)
 
 	cfg := defaultConfig()
