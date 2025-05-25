@@ -74,7 +74,9 @@ func Load(path string) (*Config, error) {
 	f, err := os.Open(path)
 
 	var cfg *Config
-	toml.NewDecoder(bytes.NewReader(defaultCfg)).Decode(&cfg)
+	if err := toml.Unmarshal(defaultCfg, &cfg); err != nil {
+		return nil, err
+	}
 
 	if os.IsNotExist(err) {
 		slog.Info("the configuration file does not exist, falling back to the default configuration", "path", path, "err", err)
