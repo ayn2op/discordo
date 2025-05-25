@@ -1,4 +1,3 @@
-
 # Enable mouse controls
 mouse = true
 
@@ -32,7 +31,43 @@ browser = "Chrome"
 browser_version = "133.0.0.0"
 user_agent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
 
-# Global shortcuts
+# ==== Global shortcuts ====
+#
+# Ctrl+G: Focus Guilds Tree
+# Ctrl+T: Focus Messages Text
+# Ctrl+P: Focus Message Input
+# Ctrl+B: Toggle Guilds Tree (sidebar)
+# Esc:Reset message selection or close the channel selection popup.
+# Ctrl+C: Quit the application.
+# Ctrl+D: Log out and remove the authentication token from keyring (requires re-login upon restart).
+# 
+# ==== Navigation ====
+# 
+# k: Select Previous (any context except input)
+# j: Select Next  (any context except input)
+# g: Select First (any context except input)
+# G: Select Last (any context except input)
+# 
+# ==== Guilds Tree ====
+# 
+# Enter: Select the currently highlighted text-based channel or expand a guild or channel.
+# 
+# ==== Message Text ====
+# 
+# s: Select the message reference (reply) of the selected channel.
+# p: Select the pinned message.
+# r: Reply to the selected message.
+# R: Reply (with mention) to the selected message.
+# d: Delete the selected message.
+# y: Yank (copy) the selected message's content.
+# o: Open the selected message's attachments in the default browser application.
+# 
+# ==== Message Input ====
+# 
+# Alt+Enter: Insert a new line to the current text.
+# Enter: Send the message.
+# Ctrl+E: Open message input in your default `$EDITOR`.
+# Esc: Remove existing text or cancel reply.
 [keys]
 focus_guilds_tree = "Ctrl+G"
 focus_messages_text = "Ctrl+T"
@@ -94,7 +129,7 @@ enabled = true
 # [top, left, right, bottom]
 padding = [0, 0, 1, 1]
 color = "default"
-active_color = "white"
+active_color = "green"
 preset = "round"
 
 [theme.guilds_tree]

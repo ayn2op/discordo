@@ -53,46 +53,6 @@ go build .
 
 2. Enter your email and password and click on the "Login" button to continue.
 
-## Keymaps
-
-### Global
-
-- `Ctrl+G`: Focus Guilds Tree
-- `Ctrl+T`: Focus Messages Text
-- `Ctrl+P`: Focus Message Input
-- `Ctrl+B`: Toggle Guilds Tree (sidebar)
-- `Esc`: Reset message selection or close the channel selection popup.
-- `Ctrl+C`: Quit the application.
-- `Ctrl+D`: Log out and remove the authentication token from keyring (requires re-login upon restart).
-
-#### Navigation
-
-- `k`: Select Previous (any context except input)
-- `j`: Select Next  (any context except input)
-- `g`: Select First (any context except input)
-- `G`: Select Last (any context except input)
-
-### Guilds Tree
-
-- `Enter`: Select the currently highlighted text-based channel or expand a guild or channel.
-
-### Message Text
-
-- `s`: Select the message reference (reply) of the selected channel.
-- `p`: Select the pinned message.
-- `r`: Reply to the selected message.
-- `R`: Reply (with mention) to the selected message.
-- `d`: Delete the selected message.
-- `y`: Yank (copy) the selected message's content.
-- `o`: Open the selected message's attachments in the default browser application.
-
-### Message Input
-
-- `Alt+Enter`: Insert a new line to the current text.
-- `Enter`: Send the message.
-- `Ctrl+E`: Open message input in your default `$EDITOR`.
-- `Esc`: Remove existing text or cancel reply.
-
 ## Configuration
 
 The configuration file allows you to configure and customize the behavior, keybindings, and theme of the application.
