@@ -1,0 +1,118 @@
+
+# Enable mouse controls
+mouse = true
+
+# "default" means use $EDITOR.
+editor = "default"
+
+hide_blocked_users = true
+show_attachment_links = true
+messages_limit = 50
+markdown_enabled = true
+
+# Timestamps uses Go timestamp format
+# See: https://gosamples.dev/date-time-format-cheatsheet
+[timestamps]
+enabled = true
+format = "3:04PM"
+
+[notifications]
+enabled = true
+duration = 500
+[notifications.sound]
+enabled = true
+only_on_ping = true
+
+# How Discord sees us.
+# status: "online", "idle", "dnd" (Do Not Disturb), "" (invisible),
+# note: does not seem to work
+[identify]
+status = "online"
+browser = "Chrome"
+browser_version = "133.0.0.0"
+user_agent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
+
+# Global shortcuts
+[keys]
+focus_guilds_tree = "Ctrl+G"
+focus_messages_text = "Ctrl+T"
+focus_message_input = "Ctrl+P"
+toggle_guilds_tree = "Ctrl+B"
+quit = "Ctrl+C"
+# Quit and delete token from keyring
+logout = "Ctrl+D"
+
+# While focusing on the guilds tree
+[keys.guilds_tree]
+select_previous = "Rune[k]"
+select_next = "Rune[j]"
+select_first = "Rune[g]"
+select_last = "Rune[G]"
+select_current = "Enter"
+yank_id = "Rune[i]"
+collapse_parent_node = "Rune[-]"
+move_to_parent_node = "Rune[p]"
+
+# While focusing on the sent messages
+[keys.messages_text]
+select_previous = "Rune[k]"
+select_next = "Rune[j]"
+select_first = "Rune[g]"
+select_last = "Rune[G]"
+select_reply = "Rune[s]"
+reply = "Rune[r]"
+reply_mention = "Rune[R]"
+cancel = "Esc"
+delete = "Rune[d]"
+open = "Rune[o]"
+# copy message content/url/id
+yank_content = "Rune[y]"
+yank_url = "Rune[u]"
+yank_id = "Rune[i]"
+
+# While typing a message
+[keys.message_input]
+send = "Enter"
+# Open the editor
+editor = "Ctrl+E"
+# Clear the entire message
+cancel = "Eac"
+
+# Applies to all
+[theme]
+background_color = "default"
+
+[theme.title]
+# Titles of non-focused gadgets
+color = "default"
+# Title of the focused gadget
+active_color = "green"
+align = "left"
+
+[theme.border]
+enabled = true
+# [top, left, right, bottom]
+padding = [0, 0, 1, 1]
+color = "default"
+active_color = "white"
+preset = "round"
+
+[theme.guilds_tree]
+auto_expand_folders = true
+# Give tree-like shape
+graphics = true
+private_channel_color = "white"
+guild_color = "white"
+channel_color = "white"
+
+[theme.messages_text]
+# Set to false to show messages with usernames instead of nicknames
+show_user_nicks = true
+show_user_colors = true
+reply_indicator = ">"
+forwarded_indicator = "<"
+author_color = "aqua"
+content_color = "white"
+emoji_color = "green"
+link_color = "blue"
+attachment_color = "yellow"

@@ -101,7 +101,7 @@ The configuration file allows you to configure and customize the behavior, keybi
 - Darwin: `$HOME/Library/Application Support/discordo/config.toml`
 - Windows: `%AppData%/discordo/config.toml`
 
-[The default configuration can be found here](./internal/config/config.go).
+[The default configuration can be found here](./internal/config/config.toml).
 
 ## FAQ
 
