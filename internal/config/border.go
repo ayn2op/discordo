@@ -19,6 +19,8 @@ func (p *BorderPreset) UnmarshalTOML(v any) error {
 		*p = borderPresetThick()
 	case "round":
 		*p = borderPresetRound()
+	case "light":
+		*p = borderPresetLight()
 	case "hidden":
 		*p = BorderPreset{
 			Horizontal:  ' ',
@@ -63,5 +65,16 @@ func borderPresetRound() BorderPreset {
 		TopRight:    tview.BoxDrawingsLightArcDownAndLeft,
 		BottomLeft:  tview.BoxDrawingsLightArcUpAndRight,
 		BottomRight: tview.BoxDrawingsLightArcUpAndLeft,
+	}
+}
+
+func borderPresetLight() BorderPreset {
+	return BorderPreset{
+		Horizontal:  tview.BoxDrawingsLightHorizontal,
+		Vertical:    tview.BoxDrawingsLightVertical,
+		TopLeft:     tview.BoxDrawingsLightDownAndRight,
+		TopRight:    tview.BoxDrawingsLightDownAndLeft,
+		BottomLeft:  tview.BoxDrawingsLightUpAndRight,
+		BottomRight: tview.BoxDrawingsLightUpAndLeft,
 	}
 }
