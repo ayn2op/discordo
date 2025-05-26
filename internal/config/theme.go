@@ -58,7 +58,7 @@ type (
 		ShowNicknames      bool `toml:"show_user_nicks"`
 		ShowUsernameColors bool `toml:"show_user_colors"`
 
-		ReplyIndicator string `toml:"reply_indicator"`
+		ReplyIndicator     string `toml:"reply_indicator"`
 		ForwardedIndicator string `toml:"forwarded_indicator"`
 
 		AuthorColor     string `toml:"author_color"`

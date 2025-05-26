@@ -211,15 +211,15 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 			return
 		}
 
-	        sort.Slice(cs, func(a, b int) bool {
-	                msgID := func(ch discord.Channel) discord.MessageID {
-	         	    if ch.LastMessageID.IsValid() {
-	                	return ch.LastMessageID
-	            	    }
-	            	    return discord.MessageID(ch.ID)
-	               }
-	               return msgID(cs[a]) > msgID(cs[b])
-	        })
+		sort.Slice(cs, func(a, b int) bool {
+			msgID := func(ch discord.Channel) discord.MessageID {
+				if ch.LastMessageID.IsValid() {
+					return ch.LastMessageID
+				}
+				return discord.MessageID(ch.ID)
+			}
+			return msgID(cs[a]) > msgID(cs[b])
+		})
 
 		for _, c := range cs {
 			gt.createChannelNode(n, c)
