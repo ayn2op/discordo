@@ -4,7 +4,6 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/ayn2op/discordo/internal/consts"
@@ -56,42 +55,8 @@ type (
 	}
 )
 
-func defaultConfig() *Config {
-	return &Config{
-		Mouse:  true,
-		Editor: "default",
-
-		HideBlockedUsers:    true,
-		ShowAttachmentLinks: true,
-		MessagesLimit:       50,
-
-		MarkdownEnabled: true,
-
-		Timestamps: Timestamps{
-			Enabled: true,
-			Format:  time.Kitchen,
-		},
-
-		Identify: Identify{
-			Status:         discord.OnlineStatus,
-			Browser:        consts.Browser,
-			BrowserVersion: consts.BrowserVersion,
-			UserAgent:      consts.UserAgent,
-		},
-
-		Notifications: Notifications{
-			Enabled:  true,
-			Duration: 500,
-			Sound: Sound{
-				Enabled:    true,
-				OnlyOnPing: true,
-			},
-		},
-
-		Keys:  defaultKeys(),
-		Theme: defaultTheme(),
-	}
-}
+// go:embed config.toml
+var defaultCfg []byte
 
 func DefaultPath() string {
 	path, err := os.UserConfigDir()
@@ -107,9 +72,14 @@ func DefaultPath() string {
 func Load(path string) (*Config, error) {
 	f, err := os.Open(path)
 
-	cfg := defaultConfig()
+	var cfg *Config
+	if err := toml.Unmarshal(defaultCfg, &cfg); err != nil {
+		return nil, err
+	}
+
 	if os.IsNotExist(err) {
 		slog.Info("the configuration file does not exist, falling back to the default configuration", "path", path, "err", err)
+		handleDefaults(cfg)
 		return cfg, nil
 	}
 
@@ -122,5 +92,18 @@ func Load(path string) (*Config, error) {
 		return nil, err
 	}
 
+	handleDefaults(cfg)
 	return cfg, nil
+}
+
+func handleDefaults(cfg *Config) {
+	if cfg.Identify.Browser == "default" {
+		cfg.Identify.Browser = consts.Browser
+	}
+	if cfg.Identify.BrowserVersion == "default" {
+		cfg.Identify.BrowserVersion = consts.BrowserVersion
+	}
+	if cfg.Identify.UserAgent == "default" {
+		cfg.Identify.UserAgent = consts.UserAgent
+	}
 }
