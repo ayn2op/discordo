@@ -20,6 +20,11 @@ var (
 
 func Run() error {
 	logLevel := flag.String("log-level", "info", "log level")
+	logFormat := flag.String("log-format", "text", "log format")
+	token := flag.String("token", "", "authentication token")
+	configPath := flag.String("config", config.DefaultPath(), "path to the configuration file")
+	flag.Parse()
+
 	var level slog.Level
 	switch *logLevel {
 	case "debug":
@@ -33,7 +38,6 @@ func Run() error {
 		level = slog.LevelError
 	}
 
-	logFormat := flag.String("log-format", "text", "log format")
 	var format logger.Format
 	switch *logFormat {
 	case "text":
@@ -46,7 +50,6 @@ func Run() error {
 		return err
 	}
 
-	token := flag.String("token", "", "authentication token")
 	tok := *token
 	if tok == "" {
 		var err error
@@ -56,7 +59,7 @@ func Run() error {
 		}
 	}
 
-	cfg, err := config.Load()
+	cfg, err := config.Load(*configPath)
 	if err != nil {
 		return err
 	}
