@@ -79,6 +79,7 @@ func Load(path string) (*Config, error) {
 
 	if os.IsNotExist(err) {
 		slog.Info("the configuration file does not exist, falling back to the default configuration", "path", path, "err", err)
+		handleDefaults(cfg)
 		return cfg, nil
 	}
 
@@ -91,5 +92,18 @@ func Load(path string) (*Config, error) {
 		return nil, err
 	}
 
+	handleDefaults(cfg)
 	return cfg, nil
+}
+
+func handleDefaults(cfg *Config) {
+	if cfg.Identify.Browser == "default" {
+		cfg.Identify.Browser = consts.Browser
+	}
+	if cfg.Identify.BrowserVersion == "default" {
+		cfg.Identify.BrowserVersion = consts.BrowserVersion
+	}
+	if cfg.Identify.UserAgent == "default" {
+		cfg.Identify.UserAgent = consts.UserAgent
+	}
 }

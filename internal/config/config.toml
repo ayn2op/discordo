@@ -27,9 +27,9 @@ only_on_ping = true
 # note: does not seem to work
 [identify]
 status = "online"
-browser = "Chrome"
-browser_version = "133.0.0.0"
-user_agent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
+browser = "default"
+browser_version = "default"
+user_agent = "default"
 
 # Global shortcuts
 # Esc: Reset message selection or close the channel selection popup.
@@ -70,7 +70,8 @@ reply = "Rune[r]"
 reply_mention = "Rune[R]"
 cancel = "Esc"
 delete = "Rune[d]"
-# Open the selected message's attachments in the default browser application.
+# Open the selected message's attachments or hyperlinks in the message
+# using the default browser application.
 open = "Rune[o]"
 # Yank (copy) the selected message's content/url/id.
 yank_content = "Rune[y]"
@@ -92,15 +93,15 @@ cancel = "Esc"
 background_color = "default"
 
 [theme.title]
-# Titles of non-focused gadgets
+# Title color of non-focused widgets
 color = "default"
-# Title of the focused gadget
+# Title color of the focused widget
 active_color = "green"
 align = "left"
 
 [theme.border]
 enabled = true
-# [top, left, right, bottom]
+# [top, bottom, left, right]
 padding = [0, 0, 1, 1]
 color = "default"
 active_color = "green"
