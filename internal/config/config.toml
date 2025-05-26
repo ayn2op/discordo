@@ -85,7 +85,7 @@ send = "Enter"
 # Open message input in your editor.
 editor = "Ctrl+E"
 # Remove existing text or cancel reply.
-cancel = "Eac"
+cancel = "Esc"
 
 # Applies to all
 [theme]
