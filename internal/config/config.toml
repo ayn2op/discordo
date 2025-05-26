@@ -1,0 +1,128 @@
+# Enable mouse controls
+mouse = true
+
+# "default" means use $EDITOR.
+editor = "default"
+
+hide_blocked_users = true
+show_attachment_links = true
+messages_limit = 50
+markdown_enabled = true
+
+# Timestamps uses Go timestamp format
+# See: https://gosamples.dev/date-time-format-cheatsheet
+[timestamps]
+enabled = true
+format = "3:04PM"
+
+[notifications]
+enabled = true
+duration = 500
+[notifications.sound]
+enabled = true
+only_on_ping = true
+
+# How Discord sees us.
+# status: "online", "idle", "dnd" (Do Not Disturb), "" (invisible),
+# note: does not seem to work
+[identify]
+status = "online"
+browser = "default"
+browser_version = "default"
+user_agent = "default"
+
+# Global shortcuts
+# Esc: Reset message selection or close the channel selection popup.
+[keys]
+focus_guilds_tree = "Ctrl+G"
+focus_messages_text = "Ctrl+T"
+focus_message_input = "Ctrl+P"
+# Hide/show the guilds tree
+toggle_guilds_tree = "Ctrl+B"
+quit = "Ctrl+C"
+# Log out and remove the authentication token from keyring.
+# Requires re-login upon restart.
+logout = "Ctrl+D"
+
+# Only while focusing on the guilds tree
+[keys.guilds_tree]
+select_previous = "Rune[k]"
+select_next = "Rune[j]"
+select_first = "Rune[g]"
+select_last = "Rune[G]"
+# Select the currently highlighted text-based channel or expand a guild or channel.
+select_current = "Enter"
+yank_id = "Rune[i]"
+collapse_parent_node = "Rune[-]"
+move_to_parent_node = "Rune[p]"
+
+# Only while focusing on sent messages
+[keys.messages_text]
+select_previous = "Rune[k]"
+select_next = "Rune[j]"
+select_first = "Rune[g]"
+select_last = "Rune[G]"
+# Select the message reference (reply) of the selected channel.
+select_reply = "Rune[s]"
+# Reply to the selected message.
+reply = "Rune[r]"
+# Reply (with mention) to the selected message.
+reply_mention = "Rune[R]"
+cancel = "Esc"
+delete = "Rune[d]"
+# Open the selected message's attachments or hyperlinks in the message
+# using the default browser application.
+open = "Rune[o]"
+# Yank (copy) the selected message's content/url/id.
+yank_content = "Rune[y]"
+yank_url = "Rune[u]"
+yank_id = "Rune[i]"
+
+# Only while typing a message
+# Alt+Enter: Insert a new line to the current text.
+[keys.message_input]
+# Send the message.
+send = "Enter"
+# Open message input in your editor.
+editor = "Ctrl+E"
+# Remove existing text or cancel reply.
+cancel = "Esc"
+
+# Applies to all
+[theme]
+background_color = "default"
+
+[theme.title]
+# Title color of non-focused widgets
+color = "default"
+# Title color of the focused widget
+active_color = "green"
+align = "left"
+
+[theme.border]
+enabled = true
+# [top, bottom, left, right]
+padding = [0, 0, 1, 1]
+color = "default"
+active_color = "green"
+preset = "round"
+
+[theme.guilds_tree]
+auto_expand_folders = true
+# Give tree-like shape
+graphics = true
+private_channel_color = "white"
+guild_color = "white"
+channel_color = "white"
+
+[theme.messages_text]
+# Set to false to show messages with usernames instead of nicknames
+show_user_nicks = true
+show_user_colors = true
+reply_indicator = ">"
+forwarded_indicator = "<"
+author_color = "aqua"
+content_color = "white"
+emoji_color = "green"
+link_color = "blue"
+attachment_color = "yellow"
