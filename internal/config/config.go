@@ -55,7 +55,7 @@ type (
 	}
 )
 
-// go:embed config.toml
+//go:embed config.toml
 var defaultCfg []byte
 
 func DefaultPath() string {
