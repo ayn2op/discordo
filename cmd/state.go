@@ -38,13 +38,16 @@ func openState(token string) error {
 		State: ningen.New(token),
 	}
 
+	// We don't use presences, don't use our valuable bandwidth
+	discordState.MemberState.RequestPresences = false
+
 	// Handlers
 	discordState.AddHandler(discordState.onReady)
 	discordState.AddHandler(discordState.onMessageCreate)
 	discordState.AddHandler(discordState.onMessageDelete)
 
-	discordState.AddHandler(func(_ *gateway.GuildMembersChunkEvent) {
-		app.messagesText.setFetchingChunk(false)
+	discordState.AddHandler(func(event *gateway.GuildMembersChunkEvent) {
+		app.messagesText.setFetchingChunk(false, uint(len(event.Members)))
 	})
 
 	discordState.AddHandler(func(event *ws.RawEvent) {
@@ -125,7 +128,6 @@ func (s *state) onMessageDelete(msg *gateway.MessageDeleteEvent) {
 	if app.guildsTree.selectedChannelID == msg.ChannelID {
 		app.messagesText.selectedMessageID = 0
 		app.messagesText.Highlight()
-		app.messagesText.Clear()
 
 		app.messagesText.drawMsgs(msg.ChannelID)
 	}

@@ -82,12 +82,13 @@ yank_id = "Rune[i]"
 # Only while typing a message
 # Alt+Enter: Insert a new line to the current text.
 [keys.message_input]
-# Send the message.
 send = "Enter"
 # Open message input in your editor.
 editor = "Ctrl+E"
 # Remove existing text or cancel reply.
 cancel = "Esc"
+# Complete usernames when mentioning
+tab_complete = "Tab"
 
 # Applies to all
 [theme]
@@ -120,10 +121,17 @@ channel_color = "white"
 # Set to false to show messages with usernames instead of nicknames
 show_user_nicks = true
 show_user_colors = true
+
 reply_indicator = ">"
 forwarded_indicator = "<"
+
 author_style = { foreground = "aqua" }
 mention_style = { foreground = "blue" }
 emoji_style = { foreground = "green" }
 url_style = { foreground = "blue" }
 attachment_style = { foreground = "yellow" }
+
+[theme.candidates]
+show_user_colors = true
+# Max number of visible candidates
+limit = 10
