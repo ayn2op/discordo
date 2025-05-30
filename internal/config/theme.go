@@ -58,6 +58,8 @@ type (
 		ShowNicknames      bool `toml:"show_user_nicks"`
 		ShowUsernameColors bool `toml:"show_user_colors"`
 
+		CandidateListLimit int  `toml:"candidate_list_limit"`
+
 		ReplyIndicator     string `toml:"reply_indicator"`
 		ForwardedIndicator string `toml:"forwarded_indicator"`
 

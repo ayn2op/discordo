@@ -47,8 +47,9 @@ type (
 	}
 
 	MessageInputKeys struct {
-		Send   string `toml:"send"`
-		Editor string `toml:"editor"`
-		Cancel string `toml:"cancel"`
+		Send        string `toml:"send"`
+		Editor      string `toml:"editor"`
+		Cancel      string `toml:"cancel"`
+		TabComplete string `toml:"tab_complete"`
 	}
 )

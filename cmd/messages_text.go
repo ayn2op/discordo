@@ -28,9 +28,11 @@ import (
 
 type MessagesText struct {
 	*tview.TextView
-	cfg               *config.Config
-	app               *tview.Application
-	selectedMessageID discord.MessageID
+	cfg                   *config.Config
+	app                   *tview.Application
+	selectedMessageID     discord.MessageID
+	lastMessageIsInternal bool
+	clearInternals        bool
 
 	fetchingMembers struct {
 		mu    sync.Mutex
@@ -84,13 +86,17 @@ func (mt *MessagesText) drawMsgs(cID discord.ChannelID) {
 		}
 	}
 
+	mt.Clear()
+
 	for _, m := range slices.Backward(ms) {
-		app.messagesText.createMsg(m)
+		mt.createMsg(m)
 	}
 }
 
 func (mt *MessagesText) reset() {
 	mt.selectedMessageID = 0
+	mt.lastMessageIsInternal = false
+	mt.clearInternals = false
 	app.messageInput.replyMessageID = 0
 
 	mt.SetTitle("")
@@ -109,7 +115,32 @@ func (mt *MessagesText) endRegion() {
 	fmt.Fprint(mt, `[""]`)
 }
 
+func (mt *MessagesText) displayInternalMsg(failure bool, f string, a ...any){
+	// Internal messages are non-selectable, they don't have a region
+	if mt.lastMessageIsInternal == false {
+		fmt.Fprint(mt, "-----------")
+		mt.lastMessageIsInternal = true
+	}
+	if failure {
+		fmt.Fprint(mt, "\n[red::i]")
+		fmt.Fprintf(mt, f, a...)
+		fmt.Fprint(mt, "[-::-]")
+	} else {
+		fmt.Fprint(mt, "\n")
+		fmt.Fprintf(mt, f, a...)
+	}
+}
+
 func (mt *MessagesText) createMsg(msg discord.Message) {
+	if mt.lastMessageIsInternal {
+		mt.lastMessageIsInternal = false
+		if mt.clearInternals {
+			mt.clearInternals = false
+			mt.drawMsgs(msg.ChannelID)
+			return
+		}
+		fmt.Fprint(mt, "\n-----------\n")
+	}
 	mt.startRegion(msg.ID)
 	defer mt.endRegion()
 
@@ -458,7 +489,7 @@ func extractURLs(content string) []string {
 func (mt *MessagesText) showUrlSelector(urls []string, attachments []discord.Attachment) {
 	done := func() {
 		app.pages.RemovePage("list").SwitchToPage("flex")
-		app.SetFocus(app.messagesText)
+		app.SetFocus(mt)
 	}
 
 	list := tview.NewList().
@@ -579,7 +610,7 @@ func (mt *MessagesText) delete() {
 	mt.Clear()
 
 	for _, m := range slices.Backward(ms) {
-		app.messagesText.createMsg(m)
+		mt.createMsg(m)
 	}
 }
 

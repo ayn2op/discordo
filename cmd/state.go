@@ -109,7 +109,6 @@ func (s *State) onMessageDelete(m *gateway.MessageDeleteEvent) {
 	if app.guildsTree.selectedChannelID == m.ChannelID {
 		app.messagesText.selectedMessageID = 0
 		app.messagesText.Highlight()
-		app.messagesText.Clear()
 
 		app.messagesText.drawMsgs(m.ChannelID)
 	}
