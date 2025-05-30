@@ -87,6 +87,7 @@ type (
 		Border       BorderTheme       `toml:"border"`
 		GuildsTree   GuildsTreeTheme   `toml:"guilds_tree"`
 		MessagesText MessagesTextTheme `toml:"messages_text"`
+		Candidates   CandidatesTheme   `toml:"candidates"`
 	}
 
 	GuildsTreeTheme struct {
@@ -110,5 +111,11 @@ type (
 		EmojiColor      string `toml:"emoji_color"`
 		LinkColor       string `toml:"link_color"`
 		AttachmentColor string `toml:"attachment_color"`
+	}
+
+	CandidatesTheme struct {
+		ShowUsernameColors bool `toml:"show_user_colors"`
+
+		ListLimit int `toml:"limit"`
 	}
 )

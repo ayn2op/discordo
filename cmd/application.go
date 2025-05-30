@@ -32,9 +32,9 @@ func newApp(cfg *config.Config) *application {
 
 		pages:        tview.NewPages(),
 		flex:         tview.NewFlex(),
-		guildsTree:   newGuildsTree(app, cfg),
-		messagesText: newMessagesText(app, cfg),
-		messageInput: newMessageInput(app, cfg),
+		guildsTree:   newGuildsTree(cfg),
+		messagesText: newMessagesText(cfg),
+		messageInput: newMessageInput(cfg),
 	}
 
 	a.EnableMouse(cfg.Mouse)
@@ -91,6 +91,7 @@ func (a *application) init() {
 	a.flex.AddItem(a.guildsTree, 0, 1, true)
 	a.flex.AddItem(right, 0, 4, false)
 	a.pages.AddAndSwitchToPage("flex", a.flex, true)
+	a.pages.AddPage("candidates", a.messageInput.candidates, false, false)
 }
 
 func (app *application) onInputCapture(event *tcell.EventKey) *tcell.EventKey {

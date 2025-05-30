@@ -28,22 +28,21 @@ import (
 
 type messagesText struct {
 	*tview.TextView
-	cfg               *config.Config
-	app               *tview.Application
-	selectedMessageID discord.MessageID
+	cfg                   *config.Config
+	selectedMessageID     discord.MessageID
 
 	fetchingMembers struct {
 		mu    sync.Mutex
 		value bool
+		count uint
 		done  chan struct{}
 	}
 }
 
-func newMessagesText(app *tview.Application, cfg *config.Config) *messagesText {
+func newMessagesText(cfg *config.Config) *messagesText {
 	mt := &messagesText{
 		TextView: tview.NewTextView(),
 		cfg:      cfg,
-		app:      app,
 	}
 
 	mt.Box = ui.NewConfiguredBox(mt.Box, &cfg.Theme)
@@ -84,8 +83,10 @@ func (mt *messagesText) drawMsgs(cID discord.ChannelID) {
 		}
 	}
 
+	mt.Clear()
+
 	for _, m := range slices.Backward(ms) {
-		app.messagesText.createMsg(m)
+		mt.createMsg(m)
 	}
 }
 
@@ -454,7 +455,7 @@ func extractURLs(content string) []string {
 func (mt *messagesText) showUrlSelector(urls []string, attachments []discord.Attachment) {
 	done := func() {
 		app.pages.RemovePage("list").SwitchToPage("flex")
-		app.SetFocus(app.messagesText)
+		app.SetFocus(mt)
 	}
 
 	list := tview.NewList().
@@ -524,7 +525,7 @@ func (mt *messagesText) reply(mention bool) {
 	title += mt.authorName(msg.Author, msg.GuildID)
 	app.messageInput.SetTitle(title)
 	app.messageInput.replyMessageID = mt.selectedMessageID
-	mt.app.SetFocus(app.messageInput)
+	app.SetFocus(app.messageInput)
 }
 
 func (mt *messagesText) delete() {
@@ -569,7 +570,7 @@ func (mt *messagesText) delete() {
 	mt.Clear()
 
 	for _, m := range slices.Backward(ms) {
-		app.messagesText.createMsg(m)
+		mt.createMsg(m)
 	}
 }
 
@@ -591,12 +592,12 @@ func (mt *messagesText) requestGuildMembers(gID discord.GuildID, ms []discord.Me
 			return
 		}
 
-		mt.setFetchingChunk(true)
+		mt.setFetchingChunk(true, 0)
 		mt.waitForChunkEvent()
 	}
 }
 
-func (mt *messagesText) setFetchingChunk(value bool) {
+func (mt *messagesText) setFetchingChunk(value bool, count uint) {
 	mt.fetchingMembers.mu.Lock()
 	defer mt.fetchingMembers.mu.Unlock()
 
@@ -609,21 +610,19 @@ func (mt *messagesText) setFetchingChunk(value bool) {
 	if value {
 		mt.fetchingMembers.done = make(chan struct{})
 	} else {
+		mt.fetchingMembers.count = count
 		close(mt.fetchingMembers.done)
 	}
 }
 
-func (mt *messagesText) waitForChunkEvent() {
+func (mt *messagesText) waitForChunkEvent() uint {
 	mt.fetchingMembers.mu.Lock()
 	if !mt.fetchingMembers.value {
 		mt.fetchingMembers.mu.Unlock()
-		return
+		return 0
 	}
 	mt.fetchingMembers.mu.Unlock()
 
-	select {
-	case <-mt.fetchingMembers.done:
-	default:
-		<-mt.fetchingMembers.done
-	}
+	<-mt.fetchingMembers.done
+	return mt.fetchingMembers.count
 }
