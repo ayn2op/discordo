@@ -1,83 +1,46 @@
-// This is not a real cache system, it only remembers what is the time
-// the item has been cerated at, the returned chunked member count,
-// and at what time it has been accessed.
 // Used by MessageInput.searchMember to not overflow the gateway with redundent
 // search requests.
 package cache
 
 import (
 	"sync"
-	"time"
 )
 
 type Cache struct {
 	items sync.Map
-	close chan struct{}
-}
-
-type item struct {
-	lastAccessed int64
-	creationTime int64
-	memberCount  uint
 }
 
 func NewCache() *Cache {
-	cache := &Cache {
-		items: sync.Map{},
-		close: make(chan struct{}),
-	}
-
-	go func() {
-		ticker := time.NewTicker(1 * time.Minute)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ticker.C:
-				now := time.Now().Unix()
-				lastMinute := now + 60
-				last5Minutes := now + 60*5
-				cache.items.Range(func(key any, val any) bool {
-					i := val.(item)
-					if lastMinute > i.lastAccessed ||
-					   last5Minutes > i.creationTime {
-						cache.items.Delete(key.(string))
-					}
-					return true
-				})
-			case <-cache.close:
-				return
-			}
-		}
-	}()
-
-	return cache
+	return &Cache{ items: sync.Map{} }
 }
 
-func (c *Cache) Create(key string, memberCount uint) {
-	c.items.Store(key, item{
-		lastAccessed: time.Now().Unix(),
-		creationTime: time.Now().Unix(),
-		memberCount:  memberCount,
-	})
+func (c *Cache) Create(query string, value uint) {
+	c.items.Store(query, value)
 }
 
-func (c *Cache) Exists(key string) (ok bool) {
-	if i, ok := c.items.Load(key); ok {
-		c.items.Store(key, item{
-			lastAccessed: time.Now().Unix(),
-			creationTime: i.(item).creationTime,
-			memberCount:  i.(item).memberCount,
-		})
-	}
+func (c *Cache) Exists(query string) (ok bool) {
+	_, ok = c.items.Load(query)
 	return
 }
 
-func (c *Cache) GetMemberCount(key string) uint {
-	i, _ := c.items.Load(key)
-	return i.(item).memberCount
+func (c *Cache) Get(query string) uint {
+	i, _ := c.items.Load(query)
+	return i.(uint)
 }
 
-func (c *Cache) Close() {
-	c.close <- struct{}{}
-	c.items = sync.Map{}
+// Invalidate is only needed when a member leaves and the search query reaches
+// the search limit.
+// "aa", "ab", "ac", ..., "ay" // where length is longer than the limit
+// if "ay" leaves, then "az" would not be loaded becaue it would not be
+// returned by the search results because of the search limit
+func (c *Cache) Invalidate(name string, limit uint) {
+	for name != "" {
+		if c.Exists(name) && c.Get(name) >= limit {
+			for name != "" {
+				c.items.Delete(name)
+				name = name[:len(name)-1]
+			}
+		}
+		name = name[:len(name)-1]
+	}
 }
