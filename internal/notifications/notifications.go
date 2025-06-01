@@ -16,7 +16,7 @@ import (
 	"github.com/diamondburned/ningen/v3/discordmd"
 )
 
-func HandleIncomingMessage(s ningen.State, m *gateway.MessageCreateEvent, cfg *config.Config) error {
+func HandleIncomingMessage(s *ningen.State, m *gateway.MessageCreateEvent, cfg *config.Config) error {
 	// Only display notification if enabled and unmuted
 	if !cfg.Notifications.Enabled || s.MessageMentions(&m.Message) == 0 || cfg.Identify.Status == discord.DoNotDisturbStatus {
 		return nil

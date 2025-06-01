@@ -119,10 +119,12 @@ func (a *application) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 func (a *application) onFlexInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case a.cfg.Keys.FocusGuildsTree:
-		a.SetFocus(a.guildsTree)
+		app.pages.HidePage("candidates")
+		app.SetFocus(app.guildsTree)
 		return nil
 	case a.cfg.Keys.FocusMessagesText:
-		a.SetFocus(a.messagesText)
+		app.pages.HidePage("candidates")
+		app.SetFocus(app.messagesText)
 		return nil
 	case a.cfg.Keys.FocusMessageInput:
 		a.SetFocus(a.messageInput)

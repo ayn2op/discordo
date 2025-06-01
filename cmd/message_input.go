@@ -8,7 +8,9 @@ import (
 	"regexp"
 	"time"
 	"slices"
+	"fmt"
 
+	"github.com/sahilm/fuzzy"
 	"github.com/atotto/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/consts"
@@ -16,6 +18,7 @@ import (
 	"github.com/ayn2op/discordo/internal/cache"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/diamondburned/ningen/v3/discordmd"
 	"github.com/gdamore/tcell/v2"
@@ -34,6 +37,8 @@ type messageInput struct {
 	isTabCompleting bool
 	lastSearch      time.Time
 }
+
+type memberList []discord.Member
 
 func newMessageInput(cfg *config.Config) *messageInput {
 	mi := &messageInput{
@@ -58,7 +63,7 @@ func newMessageInput(cfg *config.Config) *messageInput {
 	mi.candidates.Box = ui.NewConfiguredBox(mi.candidates.Box, &mi.cfg.Theme)
 	mi.candidates.SetTitle("Mention")
 	mi.candidates.
-		SetSecondaryTextColor(tcell.ColorWhite).
+		ShowSecondaryText(false).
 		SetSelectedStyle(tcell.StyleDefault.
 			Background(tcell.ColorWhite).
 			Foreground(tcell.ColorBlack)).
@@ -69,7 +74,7 @@ func newMessageInput(cfg *config.Config) *messageInput {
 			}
 			return event
 		})
-
+	mi.candidates.SetRect(0, 0, 3, 3)
 	return mi
 }
 
@@ -300,7 +305,7 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 
 	if !isAuto && mi.candidates.GetItemCount() != 0 {
 		_, name = mi.candidates.GetItemText(0)
-		mi.Replace(pos, posEnd, "@" + strings.TrimPrefix(name, "  ") + " ")
+		mi.Replace(pos, posEnd, "@" + name + " ")
 		mi.stopTabCompletion()
 		return
 	}
@@ -318,20 +323,25 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 				continue
 			}
 			shown[m.Author.Username] = true
-			if mi.addCandidate(gID, m.Author) {
-				break
+			if mem, ok := discordState.Cabinet.Member(gID, m.Author.ID); ok == nil {
+				if mi.addCandidate(gID, mem) {
+					break
+				}
 			}
 		}
 	} else {
-		name = strings.ToLower(name)
 		mi.searchMember(gID, name)
 		mi.candidates.Clear()
-		discordState.MemberStore.Each(gID, func (m *discord.Member) bool {
-			if strings.HasPrefix(strings.ToLower(m.User.Username), name) {
-				return mi.addCandidate(gID, m.User)
+		mems, _ := discordState.Cabinet.Members(gID)
+		res := fuzzy.FindFrom(name, memberList(mems))
+		if len(res) > mi.cfg.Theme.Candidates.ListLimit {
+			res = res[:mi.cfg.Theme.Candidates.ListLimit]
+		}
+		for _, r := range res {
+			if mi.addCandidate(gID, &mems[r.Index]) {
+				break
 			}
-			return false
-		})
+		}
 	}
 
 	if mi.candidates.GetItemCount() == 0 {
@@ -341,26 +351,28 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 	mi.choose(min(col, len(left)), pos, posEnd)
 }
 
+func (m memberList) String(i int) string { return m[i].Nick + m[i].User.DisplayName + m[i].User.Tag() }
+func (m memberList) Len() int { return len(m) }
+
 func (mi *messageInput) searchMember(gID discord.GuildID, name string) {
-	key := gID.String() + "\n" + name
+	key := gID.String() + " " + name
 	if mi.cache.Exists(key) {
 		return
 	}
 	// If searching for "ab" returns less than SearchLimit,
 	// then "abc" would not return anything new because we already searched
-	// everything starting with "a". This is false if a new member joins.
-	// Which is rare on servers with members <SearchLimit (aka with only 1
-	// request we techincally can load all members into the cabinet)
-	// TODO: Invalidate the cache if a new member joins.
+	// everything starting with "ab". This will still be true even if a new
+	// member joins because arikawa loads new members into the state.
 	if k := key[:len(key)-1]; mi.cache.Exists(k) {
-		if c := mi.cache.GetMemberCount(k);
+		if c := mi.cache.Get(k);
 		   c < discordState.MemberState.SearchLimit {
 			mi.cache.Create(key, c)
+			return
 		}
 	}
 	// Rate limit on our side because we can't distinguish between a
 	// successful search and SearchMember not doing anything becuase of its
-	// internal rate limit
+	// internal rate limit that we can't detect
 	if mi.lastSearch.Add(discordState.MemberState.SearchFrequency).After(time.Now()) {
 		return
 	}
@@ -383,13 +395,14 @@ func (mi *messageInput) choose(col, pos, posEnd int) {
 	l := mi.candidates
 	x, _, _, _ := mi.GetInnerRect()
 	_, y, w, _ := mi.GetRect()
-	h := min(l.GetItemCount(), mi.cfg.Theme.Candidates.ListLimit)
+	_, _, _, maxH := app.messagesText.GetRect()
+	h := min(l.GetItemCount(), maxH-5)
 	// Don't add the top padding because it is automatically added by tview
 	h += mi.cfg.Theme.Border.Padding[1]
 	if col - 1 > w - 22 {
-		l.SetRect(x + w - 22, y - h*2 - 2, 20, h*2 + 2)
+		l.SetRect(x + w - 22, y - h - 2, 20, h + 2)
 	} else {
-		l.SetRect(x + col - 1, y - h*2 - 2, 20, h*2 + 2)
+		l.SetRect(x + col - 1, y - h - 2, 20, h + 2)
 	}
 	l.SetSelectedFunc(func (_ int, _, username string, _ rune) {
 		mi.Replace(pos, posEnd, "@" + username[2:] + " ")
@@ -399,16 +412,33 @@ func (mi *messageInput) choose(col, pos, posEnd int) {
 	app.SetFocus(mi)
 }
 
-func (mi *messageInput) addCandidate(gID discord.GuildID, user discord.User) bool {
-	mainText := user.DisplayOrUsername()
-	secondaryText := "  " + user.Username
-	c, ok := discordState.MemberColor(gID, user.ID)
-	if mi.cfg.Theme.Candidates.ShowUsernameColors && ok {
-		mainText = "[" + c.String() + "]" + tview.Escape(mainText) + "[-]"
+func (mi *messageInput) addCandidate(gID discord.GuildID, m *discord.Member) bool {
+	var text string
+	dname := m.User.DisplayName
+	// this is WAY faster than the old discordState.MemberColor
+	if !mi.cfg.Theme.Candidates.ShowUsernameColors {
+		goto NO_COLOR
 	}
-	mainText = "- " + mainText
-	mi.candidates.AddItem(mainText, secondaryText, 0, nil)
-	return mi.candidates.GetItemCount() > 50
+	if c, ok := state.MemberColor(m, func(id discord.RoleID) *discord.Role {
+		r, _ := discordState.Cabinet.Role(gID, id)
+		return r
+	}); ok {
+		if dname != "" {
+			text = fmt.Sprintf("[%s]%s[-] (%s)", c.String(), tview.Escape(dname), m.User.Username)
+		} else {
+			text = fmt.Sprintf("[%s]%s[-]", c.String(), m.User.Username)
+		}
+		goto END
+	}
+	NO_COLOR:
+	if dname != "" {
+		text = fmt.Sprintf("%s (%s)", tview.Escape(dname), m.User.Username)
+	} else {
+		text = m.User.Username
+	}
+	END:
+	mi.candidates.AddItem(text, m.User.Username, 0, nil)
+	return mi.candidates.GetItemCount() > mi.cfg.Theme.Candidates.ListLimit
 }
 
 func (mi *messageInput) stopTabCompletion() {
