@@ -19,15 +19,15 @@ import (
 
 const tmpFilePattern = consts.Name + "_*.md"
 
-type MessageInput struct {
+type messageInput struct {
 	*tview.TextArea
 	cfg            *config.Config
 	app            *tview.Application
 	replyMessageID discord.MessageID
 }
 
-func newMessageInput(app *tview.Application, cfg *config.Config) *MessageInput {
-	mi := &MessageInput{
+func newMessageInput(app *tview.Application, cfg *config.Config) *messageInput {
+	mi := &messageInput{
 		TextArea: tview.NewTextArea(),
 		cfg:      cfg,
 		app:      app,
@@ -48,13 +48,13 @@ func newMessageInput(app *tview.Application, cfg *config.Config) *MessageInput {
 	return mi
 }
 
-func (mi *MessageInput) reset() {
+func (mi *messageInput) reset() {
 	mi.replyMessageID = 0
 	mi.SetTitle("")
 	mi.SetText("", true)
 }
 
-func (mi *MessageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
+func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case mi.cfg.Keys.MessageInput.Send:
 		mi.send()
@@ -70,7 +70,7 @@ func (mi *MessageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	return event
 }
 
-func (mi *MessageInput) send() {
+func (mi *messageInput) send() {
 	if !app.guildsTree.selectedChannelID.IsValid() {
 		return
 	}
@@ -105,7 +105,7 @@ func (mi *MessageInput) send() {
 	app.messagesText.ScrollToEnd()
 }
 
-func (mi *MessageInput) editor() {
+func (mi *messageInput) editor() {
 	e := mi.cfg.Editor
 	if e == "default" {
 		e = os.Getenv("EDITOR")

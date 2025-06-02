@@ -1,5 +1,7 @@
 discordo*
 
+.golangci*
+
 # Visual Studio Code
 .vscode/
 

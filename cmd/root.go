@@ -14,8 +14,8 @@ import (
 )
 
 var (
-	discordState *State
-	app          *App
+	discordState *state
+	app          *application
 )
 
 func Run() error {

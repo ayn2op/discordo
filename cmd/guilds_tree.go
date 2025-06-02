@@ -15,15 +15,15 @@ import (
 	"github.com/rivo/tview"
 )
 
-type GuildsTree struct {
+type guildsTree struct {
 	*tview.TreeView
 	cfg               *config.Config
 	app               *tview.Application
 	selectedChannelID discord.ChannelID
 }
 
-func newGuildsTree(app *tview.Application, cfg *config.Config) *GuildsTree {
-	gt := &GuildsTree{
+func newGuildsTree(app *tview.Application, cfg *config.Config) *guildsTree {
+	gt := &guildsTree{
 		TreeView: tview.NewTreeView(),
 		cfg:      cfg,
 		app:      app,
@@ -42,7 +42,7 @@ func newGuildsTree(app *tview.Application, cfg *config.Config) *GuildsTree {
 	return gt
 }
 
-func (gt *GuildsTree) createFolderNode(folder gateway.GuildFolder) {
+func (gt *guildsTree) createFolderNode(folder gateway.GuildFolder) {
 	var name string
 	if folder.Name == "" {
 		name = "Folder"
@@ -66,14 +66,14 @@ func (gt *GuildsTree) createFolderNode(folder gateway.GuildFolder) {
 	}
 }
 
-func (gt *GuildsTree) createGuildNode(n *tview.TreeNode, g discord.Guild) {
+func (gt *guildsTree) createGuildNode(n *tview.TreeNode, g discord.Guild) {
 	guildNode := tview.NewTreeNode(g.Name)
 	guildNode.SetReference(g.ID)
 	guildNode.SetColor(tcell.GetColor(gt.cfg.Theme.GuildsTree.GuildColor))
 	n.AddChild(guildNode)
 }
 
-func (gt *GuildsTree) channelToString(c discord.Channel) string {
+func (gt *guildsTree) channelToString(c discord.Channel) string {
 	switch c.Type {
 	case discord.DirectMessage, discord.GroupDM:
 		if c.Name != "" {
@@ -102,7 +102,7 @@ func (gt *GuildsTree) channelToString(c discord.Channel) string {
 	}
 }
 
-func (gt *GuildsTree) createChannelNode(n *tview.TreeNode, c discord.Channel) *tview.TreeNode {
+func (gt *guildsTree) createChannelNode(n *tview.TreeNode, c discord.Channel) *tview.TreeNode {
 	if c.Type != discord.DirectMessage && c.Type != discord.GroupDM {
 		ps, err := discordState.Permissions(c.ID, discordState.Ready().User.ID)
 		if err != nil {
@@ -122,7 +122,7 @@ func (gt *GuildsTree) createChannelNode(n *tview.TreeNode, c discord.Channel) *t
 	return channelNode
 }
 
-func (gt *GuildsTree) createChannelNodes(n *tview.TreeNode, cs []discord.Channel) {
+func (gt *guildsTree) createChannelNodes(n *tview.TreeNode, cs []discord.Channel) {
 	var orphanChs []discord.Channel
 	for _, ch := range cs {
 		if ch.Type != discord.GuildCategory && !ch.ParentID.IsValid() {
@@ -165,7 +165,7 @@ PARENT_CHANNELS:
 	}
 }
 
-func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
+func (gt *guildsTree) onSelected(n *tview.TreeNode) {
 	gt.selectedChannelID = 0
 
 	app.messagesText.reset()
@@ -227,7 +227,7 @@ func (gt *GuildsTree) onSelected(n *tview.TreeNode) {
 	}
 }
 
-func (gt *GuildsTree) collapseParentNode(node *tview.TreeNode) {
+func (gt *guildsTree) collapseParentNode(node *tview.TreeNode) {
 	gt.
 		GetRoot().
 		Walk(func(n, parent *tview.TreeNode) bool {
@@ -241,7 +241,7 @@ func (gt *GuildsTree) collapseParentNode(node *tview.TreeNode) {
 		})
 }
 
-func (gt *GuildsTree) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
+func (gt *guildsTree) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case gt.cfg.Keys.GuildsTree.CollapseParentNode:
 		gt.collapseParentNode(gt.GetCurrentNode())

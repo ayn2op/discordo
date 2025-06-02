@@ -11,21 +11,21 @@ import (
 	"github.com/zalando/go-keyring"
 )
 
-type App struct {
+type application struct {
 	*tview.Application
 
 	cfg *config.Config
 
 	pages        *tview.Pages
 	flex         *tview.Flex
-	guildsTree   *GuildsTree
-	messagesText *MessagesText
-	messageInput *MessageInput
+	guildsTree   *guildsTree
+	messagesText *messagesText
+	messageInput *messageInput
 }
 
-func newApp(cfg *config.Config) *App {
+func newApp(cfg *config.Config) *application {
 	app := tview.NewApplication()
-	a := &App{
+	a := &application{
 		Application: app,
 
 		cfg: cfg,
@@ -43,7 +43,7 @@ func newApp(cfg *config.Config) *App {
 	return a
 }
 
-func (app *App) show(token string) error {
+func (app *application) show(token string) error {
 	if token == "" {
 		loginForm := login.NewForm(app.cfg, app.Application, func(token string) {
 			if err := app.show(token); err != nil {
@@ -65,7 +65,7 @@ func (app *App) show(token string) error {
 	return nil
 }
 
-func (app *App) run(token string) error {
+func (app *application) run(token string) error {
 	if err := app.show(token); err != nil {
 		return err
 	}
@@ -73,13 +73,13 @@ func (app *App) run(token string) error {
 	return app.Run()
 }
 
-func (a *App) clearPages() {
+func (a *application) clearPages() {
 	for _, name := range a.pages.GetPageNames(false) {
 		a.pages.RemovePage(name)
 	}
 }
 
-func (a *App) init() {
+func (a *application) init() {
 	a.clearPages()
 	a.flex.Clear()
 
@@ -93,7 +93,7 @@ func (a *App) init() {
 	a.pages.AddAndSwitchToPage("flex", a.flex, true)
 }
 
-func (app *App) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
+func (app *application) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case app.cfg.Keys.Quit:
 		if discordState != nil {
@@ -111,7 +111,7 @@ func (app *App) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	return event
 }
 
-func (app *App) onFlexInputCapture(event *tcell.EventKey) *tcell.EventKey {
+func (app *application) onFlexInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case app.cfg.Keys.FocusGuildsTree:
 		app.SetFocus(app.guildsTree)

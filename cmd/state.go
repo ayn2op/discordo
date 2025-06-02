@@ -15,7 +15,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-type State struct {
+type state struct {
 	*ningen.State
 }
 
@@ -34,7 +34,7 @@ func openState(token string) error {
 		Status: app.cfg.Identify.Status,
 	}
 
-	discordState = &State{
+	discordState = &state{
 		State: ningen.New(token),
 	}
 
@@ -68,7 +68,7 @@ func openState(token string) error {
 	return discordState.Open(context.TODO())
 }
 
-func (s *State) onRequest(r httpdriver.Request) error {
+func (s *state) onRequest(r httpdriver.Request) error {
 	req, ok := r.(*httpdriver.DefaultRequest)
 	if ok {
 		slog.Debug("new HTTP request", "method", req.Method, "url", req.URL)
@@ -77,7 +77,7 @@ func (s *State) onRequest(r httpdriver.Request) error {
 	return nil
 }
 
-func (s *State) onReady(r *gateway.ReadyEvent) {
+func (s *state) onReady(r *gateway.ReadyEvent) {
 	root := app.guildsTree.GetRoot()
 	root.ClearChildren()
 
@@ -110,7 +110,7 @@ func (s *State) onReady(r *gateway.ReadyEvent) {
 	app.SetFocus(app.guildsTree)
 }
 
-func (s *State) onMessageCreate(m *gateway.MessageCreateEvent) {
+func (s *state) onMessageCreate(m *gateway.MessageCreateEvent) {
 	if app.guildsTree.selectedChannelID.IsValid() &&
 		app.guildsTree.selectedChannelID == m.ChannelID {
 		app.messagesText.createMsg(m.Message)
@@ -121,7 +121,7 @@ func (s *State) onMessageCreate(m *gateway.MessageCreateEvent) {
 	}
 }
 
-func (s *State) onMessageDelete(m *gateway.MessageDeleteEvent) {
+func (s *state) onMessageDelete(m *gateway.MessageDeleteEvent) {
 	if app.guildsTree.selectedChannelID == m.ChannelID {
 		app.messagesText.selectedMessageID = 0
 		app.messagesText.Highlight()
