@@ -39,8 +39,9 @@ func (r *renderer) Render(w io.Writer, source []byte, n ast.Node) error {
 			io.WriteString(w, "\n")
 
 			if entering {
-				for i := range n.Lines().Len() {
-					line := n.Lines().At(i)
+				lines := n.Lines()
+				for i := range lines.Len() {
+					line := lines.At(i)
 					io.WriteString(w, "| ")
 					w.Write(line.Value(source))
 				}

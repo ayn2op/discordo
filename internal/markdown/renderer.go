@@ -64,8 +64,9 @@ func (r *renderer) renderFencedCodeBlock(w io.Writer, n *ast.FencedCodeBlock, en
 
 	if entering {
 		// body
-		for i := range n.Lines().Len() {
-			line := n.Lines().At(i)
+		lines := n.Lines()
+		for i := range lines.Len() {
+			line := lines.At(i)
 			io.WriteString(w, "| ")
 			w.Write(line.Value(source))
 		}

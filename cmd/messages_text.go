@@ -317,23 +317,19 @@ func (mt *MessagesText) _select(name string) {
 		// If no message is currently selected, select the latest message.
 		if len(mt.GetHighlights()) == 0 {
 			mt.selectedMessageID = ms[0].ID
+		} else if msgIdx < len(ms)-1 {
+			mt.selectedMessageID = ms[msgIdx+1].ID
 		} else {
-			if msgIdx < len(ms)-1 {
-				mt.selectedMessageID = ms[msgIdx+1].ID
-			} else {
-				return
-			}
+			return
 		}
 	case mt.cfg.Keys.MessagesText.SelectNext:
 		// If no message is currently selected, select the latest message.
 		if len(mt.GetHighlights()) == 0 {
 			mt.selectedMessageID = ms[0].ID
+		} else if msgIdx > 0 {
+			mt.selectedMessageID = ms[msgIdx-1].ID
 		} else {
-			if msgIdx > 0 {
-				mt.selectedMessageID = ms[msgIdx-1].ID
-			} else {
-				return
-			}
+			return
 		}
 	case mt.cfg.Keys.MessagesText.SelectFirst:
 		mt.selectedMessageID = ms[len(ms)-1].ID
@@ -498,10 +494,10 @@ func (mt *MessagesText) showUrlSelector(urls []string, attachments []discord.Att
 		})
 	}
 
-	for i, url := range urls {
-		urlCopy := url
-		list.AddItem(url, "", rune('1'+i), func() {
-			go openURL(urlCopy)
+	for i, u := range urls {
+		url := u
+		list.AddItem(u, "", rune('1'+i), func() {
+			go openURL(url)
 			done()
 		})
 	}
