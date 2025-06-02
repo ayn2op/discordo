@@ -27,6 +27,7 @@ import (
 )
 
 const tmpFilePattern = consts.Name + "_*.md"
+var mentionRegex *regexp.Regexp = regexp.MustCompile("@[a-zA-Z0-9._]+")
 
 type messageInput struct {
 	*tview.TextArea
@@ -262,8 +263,7 @@ func processText(src []byte) string {
 }
 
 func expandMentions(src []byte) []byte {
-	rx := regexp.MustCompile("@[a-zA-Z0-9._]+")
-	return rx.ReplaceAllFunc(src, func(in []byte) (out []byte) {
+	return mentionRegex.ReplaceAllFunc(src, func(in []byte) (out []byte) {
 		out = in
 		name := strings.ToLower(string(in[1:]))
 		discordState.MemberStore.Each(app.guildsTree.selectedGuildID, func (m *discord.Member) bool {
