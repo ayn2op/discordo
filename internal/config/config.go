@@ -62,7 +62,9 @@ var defaultCfg []byte
 func DefaultPath() string {
 	path, err := os.UserConfigDir()
 	if err != nil {
-		slog.Info("user configuration directory path cannot be determined; falling back to the current directory path")
+		slog.Info(
+			"user configuration directory path cannot be determined; falling back to the current directory path",
+		)
 		path = "."
 	}
 
@@ -79,7 +81,13 @@ func Load(path string) (*Config, error) {
 	}
 
 	if os.IsNotExist(err) {
-		slog.Info("the configuration file does not exist, falling back to the default configuration", "path", path, "err", err)
+		slog.Info(
+			"the configuration file does not exist, falling back to the default configuration",
+			"path",
+			path,
+			"err",
+			err,
+		)
 		handleDefaults(cfg)
 		return cfg, nil
 	}
