@@ -262,9 +262,9 @@ func (mt *MessagesText) selectedMsgIndex() (int, error) {
 		return -1, err
 	}
 
-	for idx, m := range ms {
-		for m.ID == mt.selectedMessageID {
-			return idx, nil
+	for i, m := range ms {
+		if m.ID == mt.selectedMessageID {
+			return i, nil
 		}
 	}
 
@@ -306,7 +306,7 @@ func (mt *MessagesText) _select(name string) {
 		return
 	}
 
-	messageIdx, err := mt.selectedMsgIndex()
+	msgIdx, err := mt.selectedMsgIndex()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
 		return
@@ -318,8 +318,8 @@ func (mt *MessagesText) _select(name string) {
 		if len(mt.GetHighlights()) == 0 {
 			mt.selectedMessageID = ms[0].ID
 		} else {
-			if messageIdx < len(ms)-1 {
-				mt.selectedMessageID = ms[messageIdx+1].ID
+			if msgIdx < len(ms)-1 {
+				mt.selectedMessageID = ms[msgIdx+1].ID
 			} else {
 				return
 			}
@@ -329,8 +329,8 @@ func (mt *MessagesText) _select(name string) {
 		if len(mt.GetHighlights()) == 0 {
 			mt.selectedMessageID = ms[0].ID
 		} else {
-			if messageIdx > 0 {
-				mt.selectedMessageID = ms[messageIdx-1].ID
+			if msgIdx > 0 {
+				mt.selectedMessageID = ms[msgIdx-1].ID
 			} else {
 				return
 			}
@@ -344,7 +344,7 @@ func (mt *MessagesText) _select(name string) {
 			return
 		}
 
-		if ref := ms[messageIdx].ReferencedMessage; ref != nil {
+		if ref := ms[msgIdx].ReferencedMessage; ref != nil {
 			for _, m := range ms {
 				if ref.ID == m.ID {
 					mt.selectedMessageID = m.ID
