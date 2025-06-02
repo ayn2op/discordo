@@ -116,10 +116,10 @@ func (mi *MessageInput) editor() {
 		slog.Error("failed to create tmp file", "err", err)
 		return
 	}
-	_, _ = f.WriteString(mi.GetText())
-	f.Close()
-
+	defer f.Close()
 	defer os.Remove(f.Name())
+
+	_, _ = f.WriteString(mi.GetText())
 
 	cmd := exec.Command(e, f.Name())
 	cmd.Stdin = os.Stdin
