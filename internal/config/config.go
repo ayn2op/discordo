@@ -41,11 +41,10 @@ type (
 		Mouse  bool   `toml:"mouse"`
 		Editor string `toml:"editor"`
 
+		Markdown            bool  `toml:"markdown"`
 		HideBlockedUsers    bool  `toml:"hide_blocked_users"`
 		ShowAttachmentLinks bool  `toml:"show_attachment_links"`
 		MessagesLimit       uint8 `toml:"messages_limit"`
-
-		MarkdownEnabled bool `toml:"markdown_enabled"`
 
 		Timestamps    Timestamps    `toml:"timestamps"`
 		Identify      Identify      `toml:"identify"`

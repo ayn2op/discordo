@@ -7,7 +7,8 @@ editor = "default"
 hide_blocked_users = true
 show_attachment_links = true
 messages_limit = 50
-markdown_enabled = true
+# Whether to parse and render markdown in messages or not.
+markdown = true
 
 # Timestamps uses Go timestamp format
 # See: https://gosamples.dev/date-time-format-cheatsheet
