@@ -48,7 +48,15 @@ func openState(token string) error {
 	})
 
 	discordState.AddHandler(func(event *ws.RawEvent) {
-		slog.Debug("new raw event", "code", event.OriginalCode, "type", event.OriginalType, "data", event.Raw)
+		slog.Debug(
+			"new raw event",
+			"code",
+			event.OriginalCode,
+			"type",
+			event.OriginalType,
+			"data",
+			event.Raw,
+		)
 	})
 
 	discordState.StateLog = func(err error) {
@@ -81,7 +89,14 @@ func (s *State) onReady(r *gateway.ReadyEvent) {
 		if folder.ID == 0 && len(folder.GuildIDs) == 1 {
 			g, err := discordState.Cabinet.Guild(folder.GuildIDs[0])
 			if err != nil {
-				slog.Error("failed to get guild from state", "guild_id", folder.GuildIDs[0], "err", err)
+				slog.Error(
+					"failed to get guild from state",
+					"guild_id",
+					folder.GuildIDs[0],
+					"err",
+					err,
+				)
+
 				continue
 			}
 
@@ -96,7 +111,8 @@ func (s *State) onReady(r *gateway.ReadyEvent) {
 }
 
 func (s *State) onMessageCreate(m *gateway.MessageCreateEvent) {
-	if app.guildsTree.selectedChannelID.IsValid() && app.guildsTree.selectedChannelID == m.ChannelID {
+	if app.guildsTree.selectedChannelID.IsValid() &&
+		app.guildsTree.selectedChannelID == m.ChannelID {
 		app.messagesText.createMsg(m.Message)
 	}
 
