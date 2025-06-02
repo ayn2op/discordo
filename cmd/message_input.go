@@ -106,22 +106,22 @@ func (mi *messageInput) send() {
 }
 
 func (mi *messageInput) editor() {
-	e := mi.cfg.Editor
-	if e == "default" {
-		e = os.Getenv("EDITOR")
+	editor := mi.cfg.Editor
+	if editor == "" {
+		return
 	}
 
-	f, err := os.CreateTemp("", tmpFilePattern)
+	file, err := os.CreateTemp("", tmpFilePattern)
 	if err != nil {
 		slog.Error("failed to create tmp file", "err", err)
 		return
 	}
-	defer f.Close()
-	defer os.Remove(f.Name())
+	defer file.Close()
+	defer os.Remove(file.Name())
 
-	_, _ = f.WriteString(mi.GetText())
+	_, _ = file.WriteString(mi.GetText())
 
-	cmd := exec.Command(e, f.Name())
+	cmd := exec.Command(editor, file.Name())
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -134,9 +134,9 @@ func (mi *messageInput) editor() {
 		}
 	})
 
-	msg, err := os.ReadFile(f.Name())
+	msg, err := os.ReadFile(file.Name())
 	if err != nil {
-		slog.Error("failed to read tmp file", "name", f.Name(), "err", err)
+		slog.Error("failed to read tmp file", "name", file.Name(), "err", err)
 		return
 	}
 

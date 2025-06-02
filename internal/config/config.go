@@ -2,6 +2,7 @@ package config
 
 import (
 	_ "embed"
+	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -70,13 +71,13 @@ func DefaultPath() string {
 	return filepath.Join(path, consts.Name, fileName)
 }
 
-// Reads the configuration file and parses it.
+// Load reads the configuration file and parses it.
 func Load(path string) (*Config, error) {
-	f, err := os.Open(path)
+	file, err := os.Open(path)
 
 	var cfg *Config
 	if err := toml.Unmarshal(defaultCfg, &cfg); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to unmarshal default config: %w", err)
 	}
 
 	if os.IsNotExist(err) {
@@ -92,12 +93,12 @@ func Load(path string) (*Config, error) {
 	}
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to open config file: %w", err)
 	}
-	defer f.Close()
+	defer file.Close()
 
-	if _, err := toml.NewDecoder(f).Decode(&cfg); err != nil {
-		return nil, err
+	if _, err := toml.NewDecoder(file).Decode(&cfg); err != nil {
+		return nil, fmt.Errorf("failed to decode config: %w", err)
 	}
 
 	handleDefaults(cfg)
@@ -105,12 +106,18 @@ func Load(path string) (*Config, error) {
 }
 
 func handleDefaults(cfg *Config) {
+	if cfg.Editor == "default" {
+		cfg.Editor = os.Getenv("EDITOR")
+	}
+
 	if cfg.Identify.Browser == "default" {
 		cfg.Identify.Browser = consts.Browser
 	}
+
 	if cfg.Identify.BrowserVersion == "default" {
 		cfg.Identify.BrowserVersion = consts.BrowserVersion
 	}
+
 	if cfg.Identify.UserAgent == "default" {
 		cfg.Identify.UserAgent = consts.UserAgent
 	}
