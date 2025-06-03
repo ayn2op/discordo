@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ayn2op/discordo/internal/consts"
+	"tui/internal/consts"
 )
 
 type Format int

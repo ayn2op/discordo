@@ -4,12 +4,12 @@ import (
 	"errors"
 	"log/slog"
 
-	"github.com/ayn2op/discordo/internal/config"
-	"github.com/ayn2op/discordo/internal/consts"
-	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/rivo/tview"
 	"github.com/zalando/go-keyring"
+	"tui/internal/config"
+	"tui/internal/consts"
+	"tui/internal/ui"
 )
 
 type DoneFn = func(token string)

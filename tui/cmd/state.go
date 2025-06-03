@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"runtime"
 
-	"github.com/ayn2op/discordo/internal/notifications"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/httputil/httpdriver"
@@ -13,6 +12,7 @@ import (
 	"github.com/diamondburned/ningen/v3"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	"tui/internal/notifications"
 )
 
 type state struct {

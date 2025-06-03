@@ -3,12 +3,12 @@ package cmd
 import (
 	"log/slog"
 
-	"github.com/ayn2op/discordo/internal/config"
-	"github.com/ayn2op/discordo/internal/consts"
-	"github.com/ayn2op/discordo/internal/login"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/zalando/go-keyring"
+	"tui/internal/config"
+	"tui/internal/consts"
+	"tui/internal/login"
 )
 
 type application struct {
