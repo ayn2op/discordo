@@ -17,6 +17,7 @@ type (
 		GuildsTree   GuildsTreeKeys   `toml:"guilds_tree"`
 		MessagesText MessagesTextKeys `toml:"messages_text"`
 		MessageInput MessageInputKeys `toml:"message_input"`
+		Autocomplete AutocompleteKeys `toml:"autocomplete"`
 
 		Logout string `toml:"logout"`
 		Quit   string `toml:"quit"`
@@ -51,5 +52,10 @@ type (
 		Editor      string `toml:"editor"`
 		Cancel      string `toml:"cancel"`
 		TabComplete string `toml:"tab_complete"`
+	}
+
+	AutocompleteKeys struct {
+		Up   string `toml:"up"`
+		Down string `toml:"down"`
 	}
 )

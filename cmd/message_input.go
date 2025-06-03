@@ -27,13 +27,13 @@ import (
 )
 
 const tmpFilePattern = consts.Name + "_*.md"
-var mentionRegex *regexp.Regexp = regexp.MustCompile("@[a-zA-Z0-9._]+")
+var mentionRegex = regexp.MustCompile("@[a-zA-Z0-9._]+")
 
 type messageInput struct {
 	*tview.TextArea
 	cfg             *config.Config
 	cache           *cache.Cache
-	candidates      *tview.List
+	autocomplete    *tview.List
 	replyMessageID  discord.MessageID
 	isTabCompleting bool
 	lastSearch      time.Time
@@ -43,10 +43,10 @@ type memberList []discord.Member
 
 func newMessageInput(cfg *config.Config) *messageInput {
 	mi := &messageInput{
-		TextArea:   tview.NewTextArea(),
-		cfg:        cfg,
-		cache:      cache.NewCache(),
-		candidates: tview.NewList(),
+		TextArea:     tview.NewTextArea(),
+		cfg:          cfg,
+		cache:        cache.NewCache(),
+		autocomplete: tview.NewList(),
 	}
 
 	mi.Box = ui.NewConfiguredBox(mi.Box, &cfg.Theme)
@@ -61,9 +61,9 @@ func newMessageInput(cfg *config.Config) *messageInput {
 		}).
 		SetInputCapture(mi.onInputCapture)
 
-	mi.candidates.Box = ui.NewConfiguredBox(mi.candidates.Box, &mi.cfg.Theme)
-	mi.candidates.SetTitle("Mention")
-	mi.candidates.
+	mi.autocomplete.Box = ui.NewConfiguredBox(mi.autocomplete.Box, &mi.cfg.Theme)
+	mi.autocomplete.SetTitle("Mention")
+	mi.autocomplete.
 		ShowSecondaryText(false).
 		SetSelectedStyle(tcell.StyleDefault.
 			Background(tcell.ColorWhite).
@@ -75,7 +75,7 @@ func newMessageInput(cfg *config.Config) *messageInput {
 			}
 			return event
 		})
-	mi.candidates.SetRect(0, 0, 3, 3)
+	mi.autocomplete.SetRect(0, 0, 3, 3)
 	return mi
 }
 
@@ -105,7 +105,9 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		}
 		return nil
 	case mi.cfg.Keys.MessageInput.TabComplete:
-		mi.isTabCompleting = true
+		if mi.cfg.AutocompleteLimit > 0 {
+			mi.isTabCompleting = true
+		}
 		go app.QueueUpdateDraw(func(){ mi.tabComplete(false) })
 		return nil
 	case "Rune[@]":
@@ -118,21 +120,28 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		k := event.Key()
 		if (k == tcell.KeyRune && isValidUserRune(event.Rune())) ||
 		    k == tcell.KeyBackspace || k == tcell.KeyBackspace2 {
-			go app.QueueUpdateDraw(func(){ mi.tabComplete(true) })
+			if mi.cfg.AutocompleteLimit > 0 {
+				go app.QueueUpdateDraw(func(){ mi.tabComplete(true) })
+			} else {
+				go app.QueueUpdate(func(){ mi.tabComplete(true) })
+			}
 			return event
 		}
-		c := mi.candidates.GetItemCount()
-		n := event.Name()
-		switch n {
-		case "Down", "Up":
-			if c > 1 {
-				if n == "Down" {
-					c = 1
+		if mi.cfg.AutocompleteLimit > 0 {
+			c := mi.autocomplete.GetItemCount()
+			n := event.Name()
+			switch n {
+			case mi.cfg.Keys.Autocomplete.Down,
+			     mi.cfg.Keys.Autocomplete.Up:
+				if c > 1 {
+					if n == mi.cfg.Keys.Autocomplete.Down {
+						c = 1
+					}
+					mi.autocomplete.SetCurrentItem(c)
 				}
-				mi.candidates.SetCurrentItem(c)
+				app.SetFocus(mi.autocomplete)
+				return nil
 			}
-			app.SetFocus(mi.candidates)
-			return nil
 		}
 		mi.stopTabCompletion()
 	}
@@ -181,6 +190,7 @@ func processText(src []byte) string {
 	canMention := true
 	n := discordmd.Parse(src)
 	var res strings.Builder
+	res.Grow(len(src))
 	ast.Walk(n, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		switch n := n.(type) {
 		case *ast.Heading:
@@ -197,7 +207,7 @@ func processText(src []byte) string {
 				break
 			}
 			if canMention {
-				res.Write(expandMentions(n.Value(src)))
+				res.WriteString(expandMentions(string(n.Value(src))))
 			} else {
 				res.Write(n.Value(src))
 			}
@@ -262,13 +272,13 @@ func processText(src []byte) string {
 	return res.String()
 }
 
-func expandMentions(src []byte) []byte {
-	return mentionRegex.ReplaceAllFunc(src, func(in []byte) (out []byte) {
+func expandMentions(src string) string {
+	return mentionRegex.ReplaceAllStringFunc(src, func(in string) (out string) {
 		out = in
-		name := strings.ToLower(string(in[1:]))
+		name := strings.ToLower(in[1:])
 		discordState.MemberStore.Each(app.guildsTree.selectedGuildID, func (m *discord.Member) bool {
 			if strings.ToLower(m.User.Username) == name {
-				out = []byte("<@" + m.User.ID.String() + ">")
+				out = "<@" + m.User.ID.String() + ">"
 				return true
 			}
 			return false
@@ -303,8 +313,8 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 	}
 	posEnd := pos + len(name)+1
 
-	if !isAuto && mi.candidates.GetItemCount() != 0 {
-		_, name = mi.candidates.GetItemText(0)
+	if !isAuto && mi.autocomplete.GetItemCount() != 0 {
+		_, name = mi.autocomplete.GetItemText(0)
 		mi.Replace(pos, posEnd, "@" + name + " ")
 		mi.stopTabCompletion()
 		return
@@ -317,38 +327,44 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 			return
 		}
 		shown := make(map[string]bool)
-		mi.candidates.Clear()
+		mi.autocomplete.Clear()
 		for _, m := range msgs {
 			if shown[m.Author.Username] {
 				continue
 			}
 			shown[m.Author.Username] = true
-			if mem, ok := discordState.Cabinet.Member(gID, m.Author.ID); ok == nil {
-				if mi.addCandidate(gID, mem) {
+			if mem, err := discordState.Cabinet.Member(gID, m.Author.ID); err == nil {
+				if mi.addAutocompleteItem(gID, mem) {
 					break
 				}
 			}
 		}
 	} else {
 		mi.searchMember(gID, name)
-		mi.candidates.Clear()
+		mi.autocomplete.Clear()
 		mems, _ := discordState.Cabinet.Members(gID)
 		res := fuzzy.FindFrom(name, memberList(mems))
-		if len(res) > mi.cfg.Theme.Candidates.ListLimit {
-			res = res[:mi.cfg.Theme.Candidates.ListLimit]
+		if mi.cfg.AutocompleteLimit != 0 &&
+		   len(res) > int(mi.cfg.AutocompleteLimit) {
+			res = res[:int(mi.cfg.AutocompleteLimit)]
 		}
 		for _, r := range res {
-			if mi.addCandidate(gID, &mems[r.Index]) {
+			if mi.addAutocompleteItem(gID, &mems[r.Index]) {
 				break
 			}
 		}
 	}
 
-	if mi.candidates.GetItemCount() == 0 {
+	if mi.autocomplete.GetItemCount() == 0 {
 		mi.stopTabCompletion()
 		return
 	}
-	mi.choose(min(col, len(left)), pos, posEnd)
+
+	if mi.cfg.AutocompleteLimit == 0 {
+		return
+	}
+
+	mi.choose(col, pos, posEnd)
 }
 
 func (m memberList) String(i int) string { return m[i].Nick + m[i].User.DisplayName + m[i].User.Tag() }
@@ -392,7 +408,7 @@ func isValidUserRune(x rune) bool {
 }
 
 func (mi *messageInput) choose(col, pos, posEnd int) {
-	l := mi.candidates
+	l := mi.autocomplete
 	x, _, _, _ := mi.GetInnerRect()
 	_, y, w, _ := mi.GetRect()
 	_, _, _, maxH := app.messagesText.GetRect()
@@ -408,52 +424,57 @@ func (mi *messageInput) choose(col, pos, posEnd int) {
 		mi.Replace(pos, posEnd, "@" + username[2:] + " ")
 		mi.stopTabCompletion()
 	})
-	app.pages.ShowPage("candidates")
+	app.pages.ShowPage("autocomplete")
 	app.SetFocus(mi)
 }
 
-func (mi *messageInput) addCandidate(gID discord.GuildID, m *discord.Member) bool {
-	var text string
-	dname := m.User.DisplayName
-	// this is WAY faster than the old discordState.MemberColor
-	if !mi.cfg.Theme.Candidates.ShowUsernameColors {
-		goto NO_COLOR
-	}
-	if c, ok := state.MemberColor(m, func(id discord.RoleID) *discord.Role {
-		r, _ := discordState.Cabinet.Role(gID, id)
-		return r
-	}); ok {
-		if dname != "" {
-			text = fmt.Sprintf("[%s]%s[-] (%s)", c.String(), tview.Escape(dname), m.User.Username)
-		} else {
-			text = fmt.Sprintf("[%s]%s[-]", c.String(), m.User.Username)
-		}
-		goto END
-	}
-	NO_COLOR:
-	if dname != "" {
-		text = fmt.Sprintf("%s (%s)", tview.Escape(dname), m.User.Username)
+func (mi *messageInput) addAutocompleteItem(gID discord.GuildID, m *discord.Member) bool {
+	var dname, f string
+	if mi.cfg.Theme.Autocomplete.ShowNicknames && m.Nick != "" {
+		dname = m.Nick
 	} else {
-		text = m.User.Username
+		dname = m.User.DisplayName
 	}
-	END:
-	mi.candidates.AddItem(text, m.User.Username, 0, nil)
-	return mi.candidates.GetItemCount() > mi.cfg.Theme.Candidates.ListLimit
+	if dname != "" {
+		dname = tview.Escape(dname)
+	}
+	username := m.User.Username
+	// this is WAY faster than the old discordState.MemberColor
+	if mi.cfg.Theme.Autocomplete.ShowUsernameColors {
+		if c, ok := state.MemberColor(m, func(id discord.RoleID) *discord.Role {
+			r, _ := discordState.Cabinet.Role(gID, id)
+			return r
+		}); ok {
+			if dname != "" {
+				dname = "[" + c.String() + "]" + dname + "[-]"
+			} else {
+				username = "[" + c.String() + "]" + username + "[-]"
+			}
+		}
+	}
+	if dname != "" {
+		f = "%s (%s)"
+	} else {
+		f = "%s%s" // empty dname
+	}
+	mi.autocomplete.AddItem(fmt.Sprintf(f, dname, username), m.User.Username, 0, nil)
+	limit := mi.cfg.AutocompleteLimit
+	if limit == 0 {
+		limit = 50
+	}
+	return mi.autocomplete.GetItemCount() > int(limit)
 }
 
 func (mi *messageInput) stopTabCompletion() {
-	app.pages.HidePage("candidates")
-	mi.candidates.Clear()
-	app.SetFocus(mi)
-	mi.isTabCompleting = false
+	if mi.cfg.AutocompleteLimit > 0 {
+		app.pages.HidePage("autocomplete")
+		mi.autocomplete.Clear()
+		app.SetFocus(mi)
+		mi.isTabCompleting = false
+	}
 }
 
 func (mi *messageInput) editor() {
-	e := mi.cfg.Editor
-	if e == "default" {
-		e = os.Getenv("EDITOR")
-	}
-
 	file, err := os.CreateTemp("", tmpFilePattern)
 	if err != nil {
 		slog.Error("failed to create tmp file", "err", err)
@@ -464,7 +485,7 @@ func (mi *messageInput) editor() {
 
 	_, _ = file.WriteString(mi.GetText())
 
-	cmd := exec.Command(e, file.Name())
+	cmd := exec.Command(mi.cfg.Editor, file.Name())
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

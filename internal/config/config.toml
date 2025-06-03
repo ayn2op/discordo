@@ -4,11 +4,15 @@ mouse = true
 # "default" means use $EDITOR.
 editor = "default"
 
-hide_blocked_users = true
-show_attachment_links = true
-messages_limit = 50
 # Whether to parse and render markdown in messages or not.
 markdown = true
+hide_blocked_users = true
+show_attachment_links = true
+
+# Use autocomplete_limit = 0 to disable autocompleting mentions
+# Note: tab completion will still work, but it won't show any list.
+autocomplete_limit = 20
+messages_limit = 50
 
 # Timestamps uses Go timestamp format
 # See: https://gosamples.dev/date-time-format-cheatsheet
@@ -90,6 +94,12 @@ cancel = "Esc"
 # Complete usernames when mentioning
 tab_complete = "Tab"
 
+# When typing and there's an autocomplete list visible,
+# pressing these keys will focus on the list instead of the message input.
+[keys.autocomplete]
+up = "Up"
+down = "Down"
+
 # Applies to all
 [theme]
 background_color = "default"
@@ -131,7 +141,6 @@ emoji_style = { foreground = "green" }
 url_style = { foreground = "blue" }
 attachment_style = { foreground = "yellow" }
 
-[theme.candidates]
+[theme.autocomplete]
+show_user_nicks = true
 show_user_colors = true
-# Max number of visible candidates
-limit = 10

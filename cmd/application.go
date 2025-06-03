@@ -95,7 +95,7 @@ func (a *application) init() {
 	a.flex.AddItem(a.guildsTree, 0, 1, true)
 	a.flex.AddItem(right, 0, 4, false)
 	a.pages.AddAndSwitchToPage("flex", a.flex, true)
-	a.pages.AddPage("candidates", a.messageInput.candidates, false, false)
+	app.pages.AddPage("autocomplete", a.messageInput.autocomplete, false, false)
 }
 
 func (a *application) onInputCapture(event *tcell.EventKey) *tcell.EventKey {

@@ -87,7 +87,7 @@ type (
 		Border       BorderTheme       `toml:"border"`
 		GuildsTree   GuildsTreeTheme   `toml:"guilds_tree"`
 		MessagesText MessagesTextTheme `toml:"messages_text"`
-		Candidates   CandidatesTheme   `toml:"candidates"`
+		Autocomplete AutocompleteTheme `toml:"autocomplete"`
 	}
 
 	GuildsTreeTheme struct {
@@ -115,9 +115,8 @@ type (
 		AttachmentStyle StyleWrapper `toml:"attachment_style"`
 	}
 
-	CandidatesTheme struct {
+	AutocompleteTheme struct {
+		ShowNicknames      bool `toml:"show_user_nicks"`
 		ShowUsernameColors bool `toml:"show_user_colors"`
-
-		ListLimit int `toml:"limit"`
 	}
 )
