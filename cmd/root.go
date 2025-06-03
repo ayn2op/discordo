@@ -66,19 +66,19 @@ func Run() error {
 
 	tview.Styles.PrimitiveBackgroundColor = tcell.GetColor(cfg.Theme.BackgroundColor)
 
-	tview.Borders.Horizontal = cfg.Theme.Border.Preset.Horizontal
-	tview.Borders.Vertical = cfg.Theme.Border.Preset.Vertical
-	tview.Borders.TopLeft = cfg.Theme.Border.Preset.TopLeft
-	tview.Borders.TopRight = cfg.Theme.Border.Preset.TopRight
-	tview.Borders.BottomLeft = cfg.Theme.Border.Preset.BottomLeft
-	tview.Borders.BottomRight = cfg.Theme.Border.Preset.BottomRight
+	tview.BordersSet.Horizontal = cfg.Theme.Border.Preset.Horizontal
+	tview.BordersSet.Vertical = cfg.Theme.Border.Preset.Vertical
+	tview.BordersSet.TopLeft = cfg.Theme.Border.Preset.TopLeft
+	tview.BordersSet.TopRight = cfg.Theme.Border.Preset.TopRight
+	tview.BordersSet.BottomLeft = cfg.Theme.Border.Preset.BottomLeft
+	tview.BordersSet.BottomRight = cfg.Theme.Border.Preset.BottomRight
 
-	tview.Borders.HorizontalFocus = tview.Borders.Horizontal
-	tview.Borders.VerticalFocus = tview.Borders.Vertical
-	tview.Borders.TopLeftFocus = tview.Borders.TopLeft
-	tview.Borders.TopRightFocus = tview.Borders.TopRight
-	tview.Borders.BottomLeftFocus = tview.Borders.BottomLeft
-	tview.Borders.BottomRightFocus = tview.Borders.BottomRight
+	tview.BordersSet.HorizontalFocus = tview.BordersSet.Horizontal
+	tview.BordersSet.VerticalFocus = tview.BordersSet.Vertical
+	tview.BordersSet.TopLeftFocus = tview.BordersSet.TopLeft
+	tview.BordersSet.TopRightFocus = tview.BordersSet.TopRight
+	tview.BordersSet.BottomLeftFocus = tview.BordersSet.BottomLeft
+	tview.BordersSet.BottomRightFocus = tview.BordersSet.BottomRight
 
 	app = newApp(cfg)
 	return app.run(tok)

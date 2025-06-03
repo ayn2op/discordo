@@ -462,13 +462,7 @@ func (mt *messagesText) showUrlSelector(urls []string, attachments []discord.Att
 		SetHighlightFullLine(true).
 		ShowSecondaryText(false).
 		SetDoneFunc(done)
-
-	b := mt.cfg.Theme.Border
-	p := b.Padding
-	list.
-		SetBorder(b.Enabled).
-		SetBorderColor(tcell.GetColor(b.Color)).
-		SetBorderPadding(p[0], p[1], p[2], p[3])
+	list.Box = ui.NewConfiguredBox(list.Box, &mt.cfg.Theme)
 
 	list.
 		SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {

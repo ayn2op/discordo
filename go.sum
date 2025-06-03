@@ -25,6 +25,8 @@ github.com/atotto/clipboard v0.1.4 h1:EH0zSVneZPSuFR11BlR9YppQTVDbh5+16AmcJi4g1z
 github.com/atotto/clipboard v0.1.4/go.mod h1:ZY9tmq7sm5xIbd9bOK4onWV4S6X0u6GY7Vn0Yu86PYI=
 github.com/ayn2op/tview v0.0.0-20250603171947-ff81ec6ed099 h1:9i8wZAiqlpnGZufIBy95i3Da2Qar2dBeox6NtINe/FQ=
 github.com/ayn2op/tview v0.0.0-20250603171947-ff81ec6ed099/go.mod h1:PuMMP3J7SfW0jgAc1fdABOHJkoGbQIw3jejRAkl0API=
+github.com/ayn2op/tview v0.0.0-20250603214911-09c86784a7ad h1:CHZg56bCe8yesbr3smGHljQVODCLENWJYFPERX9MSug=
+github.com/ayn2op/tview v0.0.0-20250603214911-09c86784a7ad/go.mod h1:PuMMP3J7SfW0jgAc1fdABOHJkoGbQIw3jejRAkl0API=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
 github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e/go.mod h1:nSuG5e5PlCu98SY8svDHJxuZscDgtXS6KTTbou5AhLI=

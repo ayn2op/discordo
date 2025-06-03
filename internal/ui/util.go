@@ -11,7 +11,6 @@ func NewConfiguredBox(box *tview.Box, cfg *config.Theme) *tview.Box {
 	t := cfg.Title
 	p := b.Padding
 	box.
-		SetBorder(cfg.Border.Enabled).
 		SetBorderColor(tcell.GetColor(b.Color)).
 		SetBorderPadding(p[0], p[1], p[2], p[3]).
 		SetTitleAlign(int(t.Align)).
@@ -23,6 +22,11 @@ func NewConfiguredBox(box *tview.Box, cfg *config.Theme) *tview.Box {
 			box.SetBorderColor(tcell.GetColor(b.Color))
 			box.SetTitleColor(tcell.GetColor(t.Color))
 		})
+
+	if b.Enabled {
+		box.SetBorders(tview.BordersAll)
+	}
+
 	return box
 }
 
