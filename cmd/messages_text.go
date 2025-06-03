@@ -14,11 +14,11 @@ import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/markdown"
 	"github.com/ayn2op/discordo/internal/ui"
+	"github.com/ayn2op/tview"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/ningen/v3/discordmd"
 	"github.com/gdamore/tcell/v2"
-	"github.com/rivo/tview"
 	"github.com/skratchdot/open-golang/open"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/parser"
@@ -99,7 +99,7 @@ func (mt *messagesText) reset() {
 }
 
 // Region tags are square brackets that contain a region ID in double quotes
-// https://pkg.go.dev/github.com/rivo/tview#hdr-Regions_and_Highlights
+// https://pkg.go.dev/github.com/ayn2op/tview#hdr-Regions_and_Highlights
 func (mt *messagesText) startRegion(msgID discord.MessageID) {
 	fmt.Fprintf(mt, `["%s"]`, msgID)
 }

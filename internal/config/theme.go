@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/rivo/tview"
+	"github.com/ayn2op/tview"
 )
 
 type TitleAlign int

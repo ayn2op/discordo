@@ -1,6 +1,6 @@
 package config
 
-import "github.com/rivo/tview"
+import "github.com/ayn2op/tview"
 
 type BorderPreset struct {
 	Horizontal  rune

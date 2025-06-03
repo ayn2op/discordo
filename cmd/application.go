@@ -6,8 +6,8 @@ import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/login"
+	"github.com/ayn2op/tview"
 	"github.com/gdamore/tcell/v2"
-	"github.com/rivo/tview"
 	"github.com/zalando/go-keyring"
 )
 
@@ -104,7 +104,7 @@ func (app *application) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 
 		app.Stop()
 	case "Ctrl+C":
-		// https://github.com/rivo/tview/blob/a64fc48d7654432f71922c8b908280cdb525805c/application.go#L153
+		// https://github.com/ayn2op/tview/blob/a64fc48d7654432f71922c8b908280cdb525805c/application.go#L153
 		return tcell.NewEventKey(tcell.KeyCtrlC, 0, tcell.ModNone)
 	}
 

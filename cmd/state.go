@@ -6,13 +6,13 @@ import (
 	"runtime"
 
 	"github.com/ayn2op/discordo/internal/notifications"
+	"github.com/ayn2op/tview"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/httputil/httpdriver"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/diamondburned/ningen/v3"
 	"github.com/gdamore/tcell/v2"
-	"github.com/rivo/tview"
 )
 
 type state struct {
