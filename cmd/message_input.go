@@ -7,7 +7,6 @@ import (
 	"strings"
 	"regexp"
 	"time"
-	"slices"
 	"fmt"
 
 	"github.com/sahilm/fuzzy"
@@ -16,6 +15,7 @@ import (
 	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/discordo/internal/cache"
+	"github.com/ayn2op/tview"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/state"
@@ -23,7 +23,6 @@ import (
 	"github.com/diamondburned/ningen/v3/discordmd"
 	"github.com/gdamore/tcell/v2"
 	"github.com/yuin/goldmark/ast"
-	"github.com/rivo/tview"
 )
 
 const tmpFilePattern = consts.Name + "_*.md"
@@ -35,7 +34,6 @@ type messageInput struct {
 	cache           *cache.Cache
 	autocomplete    *tview.List
 	replyMessageID  discord.MessageID
-	isTabCompleting bool
 	lastSearch      time.Time
 }
 
@@ -75,7 +73,7 @@ func newMessageInput(cfg *config.Config) *messageInput {
 			}
 			return event
 		})
-	mi.autocomplete.SetRect(0, 0, 3, 3)
+	mi.autocomplete.SetRect(0, 0, 0, 0)
 	return mi
 }
 
@@ -88,8 +86,9 @@ func (mi *messageInput) reset() {
 func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case mi.cfg.Keys.MessageInput.Send:
-		if mi.isTabCompleting {
+		if app.autocompletePage.GetVisiblity() {
 			mi.tabComplete(false)
+			return nil
 		}
 		mi.send()
 		return nil
@@ -98,7 +97,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		mi.editor()
 		return nil
 	case mi.cfg.Keys.MessageInput.Cancel:
-		if mi.isTabCompleting {
+		if app.autocompletePage.GetVisiblity() {
 			mi.stopTabCompletion()
 		} else {
 			mi.reset()
@@ -106,20 +105,24 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		return nil
 	case mi.cfg.Keys.MessageInput.TabComplete:
 		if mi.cfg.AutocompleteLimit > 0 {
-			mi.isTabCompleting = true
+			app.pages.ShowPage(app.autocompletePage)
 		}
 		go app.QueueUpdateDraw(func(){ mi.tabComplete(false) })
 		return nil
 	case "Rune[@]":
-		mi.isTabCompleting = true
+		app.pages.ShowPage(app.autocompletePage)
 		go app.QueueUpdateDraw(func(){ mi.tabComplete(true) })
 		return event
+	case "Backspace", "Backspace2":
+		if mi.cfg.AutocompleteLimit > 0 {
+			go app.QueueUpdateDraw(func(){ mi.tabComplete(true) })
+		} else {
+			go app.QueueUpdate(func(){ mi.tabComplete(true) })
+		}
 	}
 
-	if mi.isTabCompleting {
-		k := event.Key()
-		if (k == tcell.KeyRune && isValidUserRune(event.Rune())) ||
-		    k == tcell.KeyBackspace || k == tcell.KeyBackspace2 {
+	if app.autocompletePage.GetVisiblity() {
+		if event.Key() == tcell.KeyRune && isValidUserRune(event.Rune()) {
 			if mi.cfg.AutocompleteLimit > 0 {
 				go app.QueueUpdateDraw(func(){ mi.tabComplete(true) })
 			} else {
@@ -288,30 +291,13 @@ func expandMentions(src string) string {
 }
 
 func (mi *messageInput) tabComplete(isAuto bool) {
-	gID := app.guildsTree.selectedGuildID
-	cID := app.guildsTree.selectedChannelID
-	// This is stupid, why can't tview just give us the real textline of
-	// the cursor when wordwrapping??
-	row, col, _, _ := mi.GetCursor()
-	_, _, w, _ := mi.GetInnerRect()
-	lines := strings.SplitN(mi.GetText(), "\n", row+2)
-	oldlineslen := len(lines)
-	for i := range lines {
-		lines = append(lines, tview.WordWrap(lines[i], w)...)
-	}
-	lines = slices.Delete(lines, 0, oldlineslen)
-	lines = slices.Delete(lines, row+1, len(lines))
-	left := strings.TrimRightFunc(lines[row][:col], isValidUserRune)
-	if len(left) == 0 || left[len(left)-1] != '@' {
+	posEnd := mi.GetCursorIndex()
+	name, r := mi.GetWordAt(posEnd, isValidUserRune)
+	if r != '@' {
 		mi.stopTabCompletion()
 		return
 	}
-	name := strings.TrimPrefix(lines[row][:col], left)
-	pos := len(left) + len(strings.Join(lines[:row], "\n")) - (len(lines)-oldlineslen)
-	if row == 0 {
-		pos--
-	}
-	posEnd := pos + len(name)+1
+	pos := posEnd - (len(name)+1)
 
 	if !isAuto && mi.autocomplete.GetItemCount() != 0 {
 		_, name = mi.autocomplete.GetItemText(0)
@@ -319,6 +305,9 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 		mi.stopTabCompletion()
 		return
 	}
+
+	gID := app.guildsTree.selectedGuildID
+	cID := app.guildsTree.selectedChannelID
 
 	// Special case, show recent messages' authors
 	if name == "" {
@@ -364,6 +353,7 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 		return
 	}
 
+	_, col, _, _ := mi.GetCursor()
 	mi.choose(col, pos, posEnd)
 }
 
@@ -421,15 +411,15 @@ func (mi *messageInput) choose(col, pos, posEnd int) {
 		l.SetRect(x + col - 1, y - h - 2, 20, h + 2)
 	}
 	l.SetSelectedFunc(func (_ int, _, username string, _ rune) {
-		mi.Replace(pos, posEnd, "@" + username[2:] + " ")
+		mi.Replace(pos, posEnd, "@" + username + " ")
 		mi.stopTabCompletion()
 	})
-	app.pages.ShowPage("autocomplete")
+	app.pages.ShowPage(app.autocompletePage)
 	app.SetFocus(mi)
 }
 
 func (mi *messageInput) addAutocompleteItem(gID discord.GuildID, m *discord.Member) bool {
-	var dname, f string
+	var text, dname string
 	if mi.cfg.Theme.Autocomplete.ShowNicknames && m.Nick != "" {
 		dname = m.Nick
 	} else {
@@ -453,11 +443,11 @@ func (mi *messageInput) addAutocompleteItem(gID discord.GuildID, m *discord.Memb
 		}
 	}
 	if dname != "" {
-		f = "%s (%s)"
+		text = fmt.Sprintf("%s (%s)", dname, username)
 	} else {
-		f = "%s%s" // empty dname
+		text = username
 	}
-	mi.autocomplete.AddItem(fmt.Sprintf(f, dname, username), m.User.Username, 0, nil)
+	mi.autocomplete.AddItem(text, m.User.Username, 0, nil)
 	limit := mi.cfg.AutocompleteLimit
 	if limit == 0 {
 		limit = 50
@@ -467,10 +457,9 @@ func (mi *messageInput) addAutocompleteItem(gID discord.GuildID, m *discord.Memb
 
 func (mi *messageInput) stopTabCompletion() {
 	if mi.cfg.AutocompleteLimit > 0 {
-		app.pages.HidePage("autocomplete")
+		app.pages.HidePage(app.autocompletePage)
 		mi.autocomplete.Clear()
 		app.SetFocus(mi)
-		mi.isTabCompleting = false
 	}
 }
 

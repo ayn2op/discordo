@@ -21,6 +21,9 @@ type application struct {
 	guildsTree   *guildsTree
 	messagesText *messagesText
 	messageInput *messageInput
+
+	flexPage         *tview.Page
+	autocompletePage *tview.Page
 }
 
 func newApp(cfg *config.Config) *application {
@@ -45,7 +48,7 @@ func newApp(cfg *config.Config) *application {
 
 func (app *application) show(token string) error {
 	if token == "" {
-		loginForm := login.NewForm(app.cfg, app.Application, func(token string) {
+		loginForm := login.NewForm(app.cfg, func(token string) {
 			if err := app.show(token); err != nil {
 				slog.Error("failed to show app", "err", err)
 				return
@@ -74,8 +77,8 @@ func (app *application) run(token string) error {
 }
 
 func (a *application) clearPages() {
-	for _, name := range a.pages.GetPageNames(false) {
-		a.pages.RemovePage(name)
+	for _, p := range a.pages.GetPages() {
+		a.pages.RemovePage(p)
 	}
 }
 
@@ -90,8 +93,8 @@ func (a *application) init() {
 	// The guilds tree is always focused first at start-up.
 	a.flex.AddItem(a.guildsTree, 0, 1, true)
 	a.flex.AddItem(right, 0, 4, false)
-	a.pages.AddAndSwitchToPage("flex", a.flex, true)
-	app.pages.AddPage("autocomplete", a.messageInput.autocomplete, false, false)
+	a.flexPage = a.pages.AddAndSwitchToPage(a.flex, true)
+	a.autocompletePage = a.pages.AddPage(a.messageInput.autocomplete, false, false)
 }
 
 func (app *application) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
@@ -112,21 +115,21 @@ func (app *application) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	return event
 }
 
-func (app *application) onFlexInputCapture(event *tcell.EventKey) *tcell.EventKey {
+func (a *application) onFlexInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
-	case app.cfg.Keys.FocusGuildsTree:
-		app.pages.HidePage("candidates")
-		app.SetFocus(app.guildsTree)
+	case a.cfg.Keys.FocusGuildsTree:
+		a.pages.HidePage(a.autocompletePage)
+		a.SetFocus(app.guildsTree)
 		return nil
-	case app.cfg.Keys.FocusMessagesText:
-		app.pages.HidePage("candidates")
-		app.SetFocus(app.messagesText)
+	case a.cfg.Keys.FocusMessagesText:
+		a.pages.HidePage(a.autocompletePage)
+		a.SetFocus(app.messagesText)
 		return nil
-	case app.cfg.Keys.FocusMessageInput:
-		app.SetFocus(app.messageInput)
+	case a.cfg.Keys.FocusMessageInput:
+		a.SetFocus(app.messageInput)
 		return nil
-	case app.cfg.Keys.Logout:
-		app.Stop()
+	case a.cfg.Keys.Logout:
+		a.Stop()
 
 		if err := keyring.Delete(consts.Name, "token"); err != nil {
 			slog.Error("failed to delete token from keyring", "err", err)
@@ -134,17 +137,17 @@ func (app *application) onFlexInputCapture(event *tcell.EventKey) *tcell.EventKe
 		}
 
 		return nil
-	case app.cfg.Keys.ToggleGuildsTree:
+	case a.cfg.Keys.ToggleGuildsTree:
 		// The guilds tree is visible if the numbers of items is two.
-		if app.flex.GetItemCount() == 2 {
-			app.flex.RemoveItem(app.guildsTree)
+		if a.flex.GetItemCount() == 2 {
+			a.flex.RemoveItem(app.guildsTree)
 
-			if app.guildsTree.HasFocus() {
-				app.SetFocus(app.flex)
+			if a.guildsTree.HasFocus() {
+				a.SetFocus(app.flex)
 			}
 		} else {
-			app.init()
-			app.SetFocus(app.guildsTree)
+			a.init()
+			a.SetFocus(a.guildsTree)
 		}
 
 		return nil
