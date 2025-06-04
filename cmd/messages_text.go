@@ -37,6 +37,8 @@ type messagesText struct {
 		count uint
 		done  chan struct{}
 	}
+
+	urlListPage *tview.Page
 }
 
 func newMessagesText(cfg *config.Config) *messagesText {
@@ -448,7 +450,7 @@ func extractURLs(content string) []string {
 
 func (mt *messagesText) showUrlSelector(urls []string, attachments []discord.Attachment) {
 	done := func() {
-		app.pages.RemovePage("list").SwitchToPage("flex")
+		app.pages.RemovePage(mt.urlListPage).SwitchToPage(app.flexPage)
 		app.SetFocus(mt)
 	}
 
@@ -491,9 +493,8 @@ func (mt *messagesText) showUrlSelector(urls []string, attachments []discord.Att
 		})
 	}
 
-	app.pages.
-		AddAndSwitchToPage("list", ui.Centered(list, 0, 0), true).
-		ShowPage("flex")
+	mt.urlListPage = app.pages.AddAndSwitchToPage(ui.Centered(list, 0, 0), true)
+	app.pages.ShowPage(app.flexPage)
 }
 
 func openURL(url string) {

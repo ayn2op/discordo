@@ -22,6 +22,9 @@ type application struct {
 	guildsTree   *guildsTree
 	messagesText *messagesText
 	messageInput *messageInput
+
+	flexPage         *tview.Page
+	autocompletePage *tview.Page
 }
 
 func newApplication(cfg *config.Config) *application {
@@ -78,8 +81,8 @@ func (a *application) run(token string) error {
 }
 
 func (a *application) clearPages() {
-	for _, name := range a.pages.GetPageNames(false) {
-		a.pages.RemovePage(name)
+	for _, p := range a.pages.GetPages() {
+		a.pages.RemovePage(p)
 	}
 }
 
@@ -94,8 +97,8 @@ func (a *application) init() {
 	// The guilds tree is always focused first at start-up.
 	a.flex.AddItem(a.guildsTree, 0, 1, true)
 	a.flex.AddItem(right, 0, 4, false)
-	a.pages.AddAndSwitchToPage("flex", a.flex, true)
-	app.pages.AddPage("autocomplete", a.messageInput.autocomplete, false, false)
+	a.flexPage = a.pages.AddAndSwitchToPage(a.flex, true)
+	a.autocompletePage = a.pages.AddPage(a.messageInput.autocomplete, false, false)
 }
 
 func (a *application) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
@@ -119,15 +122,15 @@ func (a *application) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 func (a *application) onFlexInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case a.cfg.Keys.FocusGuildsTree:
-		app.pages.HidePage("candidates")
-		app.SetFocus(app.guildsTree)
+		a.pages.HidePage(a.autocompletePage)
+		a.SetFocus(app.guildsTree)
 		return nil
 	case a.cfg.Keys.FocusMessagesText:
-		app.pages.HidePage("candidates")
-		app.SetFocus(app.messagesText)
+		a.pages.HidePage(a.autocompletePage)
+		a.SetFocus(app.messagesText)
 		return nil
 	case a.cfg.Keys.FocusMessageInput:
-		a.SetFocus(a.messageInput)
+		a.SetFocus(app.messageInput)
 		return nil
 	case a.cfg.Keys.Logout:
 		a.Stop()
