@@ -95,6 +95,7 @@ background_color = "default"
 
 [theme.title]
 alignment = "left"
+# style supports foreground and background.
 style = { foreground = "default" }
 active_style = { foreground = "green" }
 
