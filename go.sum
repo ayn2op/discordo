@@ -29,6 +29,12 @@ github.com/ayn2op/tview v0.0.0-20250603214911-09c86784a7ad h1:CHZg56bCe8yesbr3sm
 github.com/ayn2op/tview v0.0.0-20250603214911-09c86784a7ad/go.mod h1:PuMMP3J7SfW0jgAc1fdABOHJkoGbQIw3jejRAkl0API=
 github.com/ayn2op/tview v0.0.0-20250604005524-8552f0de0246 h1:C4r5c5yziN6T/FzQOeF3u/w3v4ljMKYcuyBl/AHBQtw=
 github.com/ayn2op/tview v0.0.0-20250604005524-8552f0de0246/go.mod h1:PuMMP3J7SfW0jgAc1fdABOHJkoGbQIw3jejRAkl0API=
+github.com/ayn2op/tview v0.0.0-20250604012305-921a7dd5946a h1:Gpc6yEJROflSkIcfAPDrZYrzk12qxNaoWaIkAqRI1JA=
+github.com/ayn2op/tview v0.0.0-20250604012305-921a7dd5946a/go.mod h1:PuMMP3J7SfW0jgAc1fdABOHJkoGbQIw3jejRAkl0API=
+github.com/ayn2op/tview v0.0.0-20250604021041-0c2f681c1fe0 h1:vH1ZANNh/0Sj3UEJRFOmVhSz4Z4uQ66F7ijFMGEj/tw=
+github.com/ayn2op/tview v0.0.0-20250604021041-0c2f681c1fe0/go.mod h1:PuMMP3J7SfW0jgAc1fdABOHJkoGbQIw3jejRAkl0API=
+github.com/ayn2op/tview v0.0.0-20250604164208-f35b68433444 h1:0k9W/ygZ7zmXuyzVPFitjcfcBPJoGRbJwa8SHvZXm0s=
+github.com/ayn2op/tview v0.0.0-20250604164208-f35b68433444/go.mod h1:PuMMP3J7SfW0jgAc1fdABOHJkoGbQIw3jejRAkl0API=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
 github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e/go.mod h1:nSuG5e5PlCu98SY8svDHJxuZscDgtXS6KTTbou5AhLI=

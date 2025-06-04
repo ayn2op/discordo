@@ -11,8 +11,9 @@ func NewConfiguredBox(box *tview.Box, cfg *config.Theme) *tview.Box {
 	t := cfg.Title
 	p := b.Padding
 	box.
+		SetBorderSet(b.Set.BorderSet).
 		SetBorderPadding(p[0], p[1], p[2], p[3]).
-		SetTitleAlign(int(t.Align)).
+		SetTitleAlignment(t.Alignment.Alignment).
 		SetFocusFunc(func() {
 			borderColor := tcell.GetColor(b.ActiveColor)
 			box.SetBorderStyle(tcell.StyleDefault.Foreground(borderColor))

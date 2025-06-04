@@ -66,20 +66,6 @@ func Run() error {
 
 	tview.Styles.PrimitiveBackgroundColor = tcell.GetColor(cfg.Theme.BackgroundColor)
 
-	tview.BordersSet.Horizontal = cfg.Theme.Border.Preset.Horizontal
-	tview.BordersSet.Vertical = cfg.Theme.Border.Preset.Vertical
-	tview.BordersSet.TopLeft = cfg.Theme.Border.Preset.TopLeft
-	tview.BordersSet.TopRight = cfg.Theme.Border.Preset.TopRight
-	tview.BordersSet.BottomLeft = cfg.Theme.Border.Preset.BottomLeft
-	tview.BordersSet.BottomRight = cfg.Theme.Border.Preset.BottomRight
-
-	tview.BordersSet.HorizontalFocus = tview.BordersSet.Horizontal
-	tview.BordersSet.VerticalFocus = tview.BordersSet.Vertical
-	tview.BordersSet.TopLeftFocus = tview.BordersSet.TopLeft
-	tview.BordersSet.TopRightFocus = tview.BordersSet.TopRight
-	tview.BordersSet.BottomLeftFocus = tview.BordersSet.BottomLeft
-	tview.BordersSet.BottomRightFocus = tview.BordersSet.BottomRight
-
 	app = newApp(cfg)
 	return app.run(tok)
 }

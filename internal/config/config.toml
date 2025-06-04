@@ -98,15 +98,15 @@ background_color = "default"
 color = "default"
 # Title color of the focused widget
 active_color = "green"
-align = "left"
+alignment = "left"
 
 [theme.border]
 enabled = true
 # [top, bottom, left, right]
 padding = [0, 0, 1, 1]
+set = "round"
 color = "default"
 active_color = "green"
-preset = "round"
 
 [theme.guilds_tree]
 auto_expand_folders = true

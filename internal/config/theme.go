@@ -4,16 +4,33 @@ import (
 	"github.com/ayn2op/tview"
 )
 
-type TitleAlign int
+type BorderSetWrapper struct{ tview.BorderSet }
 
-func (ta *TitleAlign) UnmarshalTOML(v any) error {
+func (bw *BorderSetWrapper) UnmarshalTOML(v any) error {
+	switch v.(string) {
+	case "plain":
+		bw.BorderSet = tview.BorderSetPlain()
+	case "round":
+		bw.BorderSet = tview.BorderSetRound()
+	case "thick":
+		bw.BorderSet = tview.BorderSetThick()
+	case "double":
+		bw.BorderSet = tview.BorderSetDouble()
+	}
+
+	return nil
+}
+
+type AlignmentWrapper struct{ tview.Alignment }
+
+func (aw *AlignmentWrapper) UnmarshalTOML(v any) error {
 	switch v.(string) {
 	case "left":
-		*ta = tview.AlignLeft
+		aw.Alignment = tview.AlignmentLeft
 	case "center":
-		*ta = tview.AlignCenter
+		aw.Alignment = tview.AlignmentCenter
 	case "right":
-		*ta = tview.AlignRight
+		aw.Alignment = tview.AlignmentRight
 	}
 
 	return nil
@@ -21,19 +38,18 @@ func (ta *TitleAlign) UnmarshalTOML(v any) error {
 
 type (
 	BorderTheme struct {
-		Enabled bool   `toml:"enabled"`
-		Padding [4]int `toml:"padding"`
+		Enabled bool             `toml:"enabled"`
+		Padding [4]int           `toml:"padding"`
+		Set     BorderSetWrapper `toml:"set"`
 
 		Color       string `toml:"color"`
 		ActiveColor string `toml:"active_color"`
-
-		Preset BorderPreset `toml:"preset"`
 	}
 
 	TitleTheme struct {
-		Color       string     `toml:"color"`
-		ActiveColor string     `toml:"active_color"`
-		Align       TitleAlign `toml:"align"`
+		Color       string           `toml:"color"`
+		ActiveColor string           `toml:"active_color"`
+		Alignment   AlignmentWrapper `toml:"alignment"`
 	}
 
 	Theme struct {
