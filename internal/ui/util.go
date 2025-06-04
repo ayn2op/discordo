@@ -3,7 +3,6 @@ package ui
 import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/tview"
-	"github.com/gdamore/tcell/v2"
 )
 
 func NewConfiguredBox(box *tview.Box, cfg *config.Theme) *tview.Box {
@@ -11,22 +10,18 @@ func NewConfiguredBox(box *tview.Box, cfg *config.Theme) *tview.Box {
 	t := cfg.Title
 	p := b.Padding
 	box.
+		SetBorderStyle(b.Style.Style).
 		SetBorderSet(b.Set.BorderSet).
 		SetBorderPadding(p[0], p[1], p[2], p[3]).
+		SetTitleStyle(t.Style.Style).
 		SetTitleAlignment(t.Alignment.Alignment).
 		SetFocusFunc(func() {
-			borderColor := tcell.GetColor(b.ActiveColor)
-			box.SetBorderStyle(tcell.StyleDefault.Foreground(borderColor))
-
-			titleColor := tcell.GetColor(t.ActiveColor)
-			box.SetTitleStyle(tcell.StyleDefault.Foreground(titleColor))
+			box.SetBorderStyle(b.ActiveStyle.Style)
+			box.SetTitleStyle(t.ActiveStyle.Style)
 		}).
 		SetBlurFunc(func() {
-			borderColor := tcell.GetColor(b.Color)
-			box.SetBorderStyle(tcell.StyleDefault.Foreground(borderColor))
-
-			titleColor := tcell.GetColor(t.Color)
-			box.SetTitleStyle(tcell.StyleDefault.Foreground(titleColor))
+			box.SetBorderStyle(b.Style.Style)
+			box.SetTitleStyle(t.Style.Style)
 		})
 
 	if b.Enabled {
