@@ -74,6 +74,10 @@ func newMessageInput(cfg *config.Config) *messageInput {
 			return event
 		})
 	mi.autocomplete.SetRect(0, 0, 0, 0)
+	b := mi.autocomplete.GetBorderSet()
+	b.BottomLeft = b.BottomT
+	b.BottomRight = b.BottomT
+	mi.autocomplete.SetBorderSet(b)
 	return mi
 }
 
@@ -86,7 +90,7 @@ func (mi *messageInput) reset() {
 func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case mi.cfg.Keys.MessageInput.Send:
-		if app.autocompletePage.GetVisiblity() {
+		if app.autocompletePage.GetVisible() {
 			mi.tabComplete(false)
 			return nil
 		}
@@ -97,7 +101,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		mi.editor()
 		return nil
 	case mi.cfg.Keys.MessageInput.Cancel:
-		if app.autocompletePage.GetVisiblity() {
+		if app.autocompletePage.GetVisible() {
 			mi.stopTabCompletion()
 		} else {
 			mi.reset()
@@ -121,7 +125,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		}
 	}
 
-	if app.autocompletePage.GetVisiblity() {
+	if app.autocompletePage.GetVisible() {
 		if event.Key() == tcell.KeyRune && isValidUserRune(event.Rune()) {
 			if mi.cfg.AutocompleteLimit > 0 {
 				go app.QueueUpdateDraw(func(){ mi.tabComplete(true) })
