@@ -94,19 +94,17 @@ cancel = "Esc"
 background_color = "default"
 
 [theme.title]
-# Title color of non-focused widgets
-color = "default"
-# Title color of the focused widget
-active_color = "green"
 alignment = "left"
+style = { foreground = "default" }
+active_style = { foreground = "green" }
 
 [theme.border]
 enabled = true
 # [top, bottom, left, right]
 padding = [0, 0, 1, 1]
 set = "round"
-color = "default"
-active_color = "green"
+style = { foreground = "default" }
+active_style = { foreground = "green" }
 
 [theme.guilds_tree]
 auto_expand_folders = true

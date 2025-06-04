@@ -2,6 +2,7 @@ package config
 
 import (
 	"github.com/ayn2op/tview"
+	"github.com/gdamore/tcell/v2"
 )
 
 type BorderSetWrapper struct{ tview.BorderSet }
@@ -36,19 +37,46 @@ func (aw *AlignmentWrapper) UnmarshalTOML(v any) error {
 	return nil
 }
 
+type StyleWrapper struct{ tcell.Style }
+
+func (sw *StyleWrapper) UnmarshalTOML(v any) error {
+	m, ok := v.(map[string]any)
+	if !ok {
+		return nil
+	}
+
+	for k, v := range m {
+		s, ok := v.(string)
+		if !ok {
+			continue
+		}
+
+		switch k {
+		case "foreground":
+			color := tcell.GetColor(s)
+			sw.Style = sw.Foreground(color)
+		case "background":
+			color := tcell.GetColor(s)
+			sw.Style = sw.Background(color)
+		}
+	}
+
+	return nil
+}
+
 type (
 	BorderTheme struct {
 		Enabled bool             `toml:"enabled"`
 		Padding [4]int           `toml:"padding"`
 		Set     BorderSetWrapper `toml:"set"`
 
-		Color       string `toml:"color"`
-		ActiveColor string `toml:"active_color"`
+		Style       StyleWrapper `toml:"style"`
+		ActiveStyle StyleWrapper `toml:"active_style"`
 	}
 
 	TitleTheme struct {
-		Color       string           `toml:"color"`
-		ActiveColor string           `toml:"active_color"`
+		Style       StyleWrapper     `toml:"style"`
+		ActiveStyle StyleWrapper     `toml:"active_style"`
 		Alignment   AlignmentWrapper `toml:"alignment"`
 	}
 
