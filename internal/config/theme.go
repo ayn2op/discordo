@@ -87,6 +87,7 @@ type (
 		Border       BorderTheme       `toml:"border"`
 		GuildsTree   GuildsTreeTheme   `toml:"guilds_tree"`
 		MessagesText MessagesTextTheme `toml:"messages_text"`
+		Autocomplete AutocompleteTheme `toml:"autocomplete"`
 	}
 
 	GuildsTreeTheme struct {
@@ -110,5 +111,10 @@ type (
 		EmojiColor      string `toml:"emoji_color"`
 		LinkColor       string `toml:"link_color"`
 		AttachmentColor string `toml:"attachment_color"`
+	}
+
+	AutocompleteTheme struct {
+		ShowNicknames      bool `toml:"show_user_nicks"`
+		ShowUsernameColors bool `toml:"show_user_colors"`
 	}
 )

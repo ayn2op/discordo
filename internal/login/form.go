@@ -17,16 +17,17 @@ type DoneFn = func(token string)
 type Form struct {
 	*tview.Pages
 	cfg  *config.Config
-	app  *tview.Application
 	form *tview.Form
 	done DoneFn
+
+	formPage *tview.Page
+	errPage  *tview.Page
 }
 
-func NewForm(cfg *config.Config, app *tview.Application, done DoneFn) *Form {
+func NewForm(cfg *config.Config, done DoneFn) *Form {
 	f := &Form{
 		Pages: tview.NewPages(),
 		cfg:   cfg,
-		app:   app,
 		form:  tview.NewForm(),
 		done:  done,
 	}
@@ -36,7 +37,7 @@ func NewForm(cfg *config.Config, app *tview.Application, done DoneFn) *Form {
 		AddPasswordField("Password", "", 0, 0, nil).
 		AddPasswordField("Code (optional)", "", 0, 0, nil).
 		AddButton("Login", f.login)
-	f.AddAndSwitchToPage("form", f.form, true)
+	f.formPage = f.AddAndSwitchToPage(f.form, true)
 	return f
 }
 
@@ -92,9 +93,8 @@ func (f *Form) onError(err error) {
 		SetText(err.Error()).
 		AddButtons([]string{"Close"}).
 		SetDoneFunc(func(_ int, _ string) {
-			f.RemovePage("modal").SwitchToPage("form")
+			f.RemovePage(f.errPage).SwitchToPage(f.formPage)
 		})
-	f.
-		AddAndSwitchToPage("modal", ui.Centered(modal, 0, 0), true).
-		ShowPage("form")
+	f.errPage = f.AddAndSwitchToPage(ui.Centered(modal, 0, 0), true)
+	f.ShowPage(f.formPage)
 }
