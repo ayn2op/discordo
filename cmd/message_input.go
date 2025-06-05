@@ -169,7 +169,7 @@ func (mi *messageInput) send() {
 	// Process mentions (there's no shortcut, just parse the entire message
 	// as markdown and then re-emit the content with proper mentions)
 	data := api.SendMessageData{
-		Content: processText([]byte(text)),
+		Content: processText(app.guildsTree.selectedChannelID, []byte(text)),
 	}
 	if mi.replyMessageID != 0 {
 		data.Reference = &discord.MessageReference{MessageID: mi.replyMessageID}
@@ -193,7 +193,7 @@ func (mi *messageInput) send() {
 	app.messagesText.ScrollToEnd()
 }
 
-func processText(src []byte) string {
+func processText(cID discord.ChannelID, src []byte) string {
 	canMention := true
 	n := discordmd.Parse(src)
 	var res strings.Builder
@@ -214,7 +214,7 @@ func processText(src []byte) string {
 				break
 			}
 			if canMention {
-				res.WriteString(expandMentions(string(n.Value(src))))
+				res.WriteString(expandMentions(cID, string(n.Value(src))))
 			} else {
 				res.Write(n.Value(src))
 			}
@@ -279,13 +279,15 @@ func processText(src []byte) string {
 	return res.String()
 }
 
-func expandMentions(src string) string {
+func expandMentions(cID discord.ChannelID, src string) string {
 	return mentionRegex.ReplaceAllStringFunc(src, func(in string) (out string) {
 		out = in
 		name := strings.ToLower(in[1:])
 		discordState.MemberStore.Each(app.guildsTree.selectedGuildID, func (m *discord.Member) bool {
 			if strings.ToLower(m.User.Username) == name {
-				out = "<@" + m.User.ID.String() + ">"
+				if channelHasUser(cID , m.User.ID) {
+					out = "<@" + m.User.ID.String() + ">"
+				}
 				return true
 			}
 			return false
@@ -335,14 +337,19 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 	} else {
 		mi.searchMember(gID, name)
 		mi.autocomplete.Clear()
-		mems, _ := discordState.Cabinet.Members(gID)
+		mems, err := discordState.Cabinet.Members(gID)
+		if err != nil {
+			slog.Error("fetching members failed", "err", err)
+			return
+		}
 		res := fuzzy.FindFrom(name, memberList(mems))
 		if mi.cfg.AutocompleteLimit != 0 &&
 		   len(res) > int(mi.cfg.AutocompleteLimit) {
 			res = res[:int(mi.cfg.AutocompleteLimit)]
 		}
 		for _, r := range res {
-			if mi.addAutocompleteItem(gID, &mems[r.Index]) {
+			if channelHasUser(cID, mems[r.Index].User.ID) &&
+			   mi.addAutocompleteItem(gID, &mems[r.Index]) {
 				break
 			}
 		}
@@ -363,6 +370,15 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 
 func (m memberList) String(i int) string { return m[i].Nick + m[i].User.DisplayName + m[i].User.Tag() }
 func (m memberList) Len() int { return len(m) }
+
+func channelHasUser(cID discord.ChannelID, id discord.UserID) bool {
+	perms, err := discordState.Permissions(cID, id)
+	if err != nil {
+		slog.Error("can't get permissions", "channel", cID, "user", id)
+		return false
+	}
+	return perms.Has(discord.PermissionViewChannel)
+}
 
 func (mi *messageInput) searchMember(gID discord.GuildID, name string) {
 	key := gID.String() + " " + name
