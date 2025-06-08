@@ -551,22 +551,17 @@ func (mt *messagesText) delete() {
 		return
 	}
 
+	mt.selectedMessageID = 0
+	app.messageInput.replyMessageID = 0
+	mt.Highlight()
+
 	if err := discordState.MessageRemove(app.guildsTree.selectedChannelID, msg.ID); err != nil {
 		slog.Error("failed to delete message", "err", err, "channel_id", app.guildsTree.selectedChannelID, "message_id", msg.ID)
 		return
 	}
 
-	ms, err := discordState.Cabinet.Messages(app.guildsTree.selectedChannelID)
-	if err != nil {
-		slog.Error("failed to delete message", "err", err, "channel_id", app.guildsTree.selectedChannelID)
-		return
-	}
-
-	mt.Clear()
-
-	for _, m := range slices.Backward(ms) {
-		mt.createMsg(m)
-	}
+	// No need to redraw messages after deletion, onMessageDelete will do
+	// its work after the event returns
 }
 
 func (mt *messagesText) requestGuildMembers(gID discord.GuildID, ms []discord.Message) {
