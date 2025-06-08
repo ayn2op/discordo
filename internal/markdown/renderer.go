@@ -3,6 +3,7 @@ package markdown
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/diamondburned/ningen/v3/discordmd"
@@ -34,7 +35,7 @@ func (r *renderer) Render(w io.Writer, source []byte, n ast.Node) error {
 		case *ast.Document:
 		// noop
 		case *ast.Heading:
-			r.renderHeading(w)
+			r.renderHeading(w, n, entering)
 		case *ast.Text:
 			r.renderText(w, n, entering, source)
 		case *ast.FencedCodeBlock:
@@ -56,14 +57,26 @@ func (r *renderer) Render(w io.Writer, source []byte, n ast.Node) error {
 	})
 }
 
-func (r *renderer) renderHeading(w io.Writer) {
-	io.WriteString(w, "\n")
+func (r *renderer) renderHeading(w io.Writer, n *ast.Heading, entering bool) {
+	if entering {
+		io.WriteString(w, strings.Repeat("#", n.Level))
+		io.WriteString(w, " ")
+	} else {
+		io.WriteString(w, "\n")
+	}
 }
 
 func (r *renderer) renderFencedCodeBlock(w io.Writer, n *ast.FencedCodeBlock, entering bool, source []byte) {
 	io.WriteString(w, "\n")
 
 	if entering {
+		// language
+		if l := n.Language(source); l != nil {
+			io.WriteString(w, "|=> ")
+			w.Write(l)
+			io.WriteString(w, "\n")
+		}
+
 		// body
 		lines := n.Lines()
 		for i := range lines.Len() {
