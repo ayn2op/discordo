@@ -5,10 +5,10 @@ go 1.24.3
 require (
 	github.com/BurntSushi/toml v1.5.0
 	github.com/atotto/clipboard v0.1.4
-	github.com/ayn2op/tview v0.0.0-20250604164208-f35b68433444
+	github.com/ayn2op/tview v0.0.0-20250604214506-7f855bbbeea6
 	github.com/deckarep/gosx-notifier v0.0.0-20180201035817-e127226297fb
 	github.com/diamondburned/arikawa/v3 v3.5.0
-	github.com/diamondburned/ningen/v3 v3.0.1-0.20240808103805-f1a24c0da3d8
+	github.com/diamondburned/ningen/v3 v3.0.1-0.20250607192146-d6b46a4689a5
 	github.com/gdamore/tcell/v2 v2.8.1
 	github.com/gen2brain/beeep v0.0.0-20240516210008-9c006672e7f4
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
@@ -34,6 +34,6 @@ require (
 	go4.org v0.0.0-20230225012048-214862532bf5 // indirect
 	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/term v0.32.0 // indirect
-	golang.org/x/text v0.25.0 // indirect
-	golang.org/x/time v0.11.0 // indirect
+	golang.org/x/text v0.26.0 // indirect
+	golang.org/x/time v0.12.0 // indirect
 )
