@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"strings"
 	"regexp"
+	"slices"
 	"time"
 	"fmt"
 
@@ -114,15 +115,18 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		go app.QueueUpdateDraw(func(){ mi.tabComplete(false) })
 		return nil
 	case "Rune[@]":
-		app.pages.ShowPage(app.autocompletePage)
+		if mi.cfg.AutocompleteLimit > 0 {
+			app.pages.ShowPage(app.autocompletePage)
+		}
 		go app.QueueUpdateDraw(func(){ mi.tabComplete(true) })
 		return event
 	case "Backspace", "Backspace2":
-		if mi.cfg.AutocompleteLimit > 0 {
+		if mi.cfg.AutocompleteLimit > 0 && app.autocompletePage.GetVisible() {
 			go app.QueueUpdateDraw(func(){ mi.tabComplete(true) })
 		} else {
 			go app.QueueUpdate(func(){ mi.tabComplete(true) })
 		}
+		return event
 	}
 
 	if app.autocompletePage.GetVisible() {
@@ -167,7 +171,7 @@ func (mi *messageInput) send() {
 	}
 
 	// Process mentions (there's no shortcut, just parse the entire message
-	// as markdown and then re-emit the content with proper mentions)
+	// as markdown and then expand non-code mentions)
 	data := api.SendMessageData{
 		Content: processText(app.guildsTree.selectedChannelID, []byte(text)),
 	}
@@ -194,99 +198,41 @@ func (mi *messageInput) send() {
 }
 
 func processText(cID discord.ChannelID, src []byte) string {
+	// ranges we can expandMentions in them
+	var rngs [][2]int
 	canMention := true
 	n := discordmd.Parse(src)
-	var res strings.Builder
-	res.Grow(len(src))
-	ast.Walk(n, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+        ast.Walk(n, func(n ast.Node, enter bool) (ast.WalkStatus, error) {
 		switch n := n.(type) {
-		case *ast.Heading:
-			if entering {
-				for range n.Level {
-					res.WriteByte('#')
-				}
-				res.WriteByte(' ')
-			} else {
-				res.WriteByte('\n')
+		case *ast.CodeBlock:
+			canMention = !enter
+		case *discordmd.Inline:
+			if (n.Attr & discordmd.AttrMonospace) != 0 {
+				canMention = !enter
 			}
 		case *ast.Text:
-			if entering {
-				break
-			}
 			if canMention {
-				res.WriteString(expandMentions(cID, string(n.Value(src))))
-			} else {
-				res.Write(n.Value(src))
-			}
-			switch {
-			case n.HardLineBreak(): res.WriteByte('\n')
-			case n.SoftLineBreak(): res.WriteByte(' ')
-			}
-
-		case *ast.FencedCodeBlock:
-			canMention = !entering
-			if entering {
-				break
-			}
-			res.WriteString("```")
-			if l := n.Language(src); l != nil {
-				res.Write(l)
-			}
-			res.WriteByte('\n')
-			for i := range n.Lines().Len() {
-				line := n.Lines().At(i)
-				res.Write(line.Value(src))
-			}
-			res.WriteString("```\n")
-
-		case *ast.AutoLink:
-			if entering {
-				break
-			}
-			res.Write(n.URL(src))
-
-		case *ast.Link:
-			if entering {
-				res.WriteByte('[')
-				res.Write(n.Title)
-				res.WriteByte(']')
-				res.WriteByte('(')
-				res.Write(n.Destination)
-				res.WriteByte(')')
-			}
-
-		case *discordmd.Inline:
-			switch n.Attr {
-			case discordmd.AttrBold:          res.WriteString("**")
-			case discordmd.AttrItalics:       res.WriteByte('*')
-			case discordmd.AttrUnderline:     res.WriteString("__")
-			case discordmd.AttrStrikethrough: res.WriteString("~~")
-			case discordmd.AttrSpoiler:       res.WriteString("||")
-			case discordmd.AttrMonospace:
-				canMention = !entering
-				res.WriteByte('`')
-			}
-
-		case *discordmd.Emoji:
-			if entering {
-				res.WriteByte(':')
-				res.WriteString(n.Name)
-				res.WriteByte(':')
+				rngs = append(rngs, [2]int{ n.Segment.Start,
+							    n.Segment.Stop })
 			}
 		}
 		return ast.WalkContinue, nil
-	})
-	return res.String()
+        })
+	for _, rng := range rngs {
+		src = slices.Replace(src, rng[0], rng[1],
+			expandMentions(cID, src[rng[0]:rng[1]])...)
+	}
+	return string(src)
 }
 
-func expandMentions(cID discord.ChannelID, src string) string {
-	return mentionRegex.ReplaceAllStringFunc(src, func(in string) (out string) {
+func expandMentions(cID discord.ChannelID, src []byte) []byte {
+	return mentionRegex.ReplaceAllFunc(src, func(in []byte) (out []byte) {
 		out = in
-		name := strings.ToLower(in[1:])
+		name := strings.ToLower(string(in[1:]))
 		discordState.MemberStore.Each(app.guildsTree.selectedGuildID, func (m *discord.Member) bool {
 			if strings.ToLower(m.User.Username) == name {
 				if channelHasUser(cID , m.User.ID) {
-					out = "<@" + m.User.ID.String() + ">"
+					out = []byte(m.User.ID.Mention())
 				}
 				return true
 			}
