@@ -66,14 +66,7 @@ func newMessageInput(cfg *config.Config) *messageInput {
 		ShowSecondaryText(false).
 		SetSelectedStyle(tcell.StyleDefault.
 			Background(tcell.ColorWhite).
-			Foreground(tcell.ColorBlack)).
-		SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-			if event.Name() == mi.cfg.Keys.MessageInput.Cancel {
-				app.SetFocus(mi)
-				return nil
-			}
-			return event
-		})
+			Foreground(tcell.ColorBlack))
 	mi.autocomplete.SetRect(0, 0, 0, 0)
 	b := mi.autocomplete.GetBorderSet()
 	b.BottomLeft = b.BottomT
@@ -109,54 +102,37 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		}
 		return nil
 	case mi.cfg.Keys.MessageInput.TabComplete:
-		if mi.cfg.AutocompleteLimit > 0 {
-			app.pages.ShowPage(app.autocompletePage)
-		}
 		go app.QueueUpdateDraw(func(){ mi.tabComplete(false) })
 		return nil
-	case "Rune[@]":
-		if mi.cfg.AutocompleteLimit > 0 {
-			app.pages.ShowPage(app.autocompletePage)
-		}
-		go app.QueueUpdateDraw(func(){ mi.tabComplete(true) })
-		return event
-	case "Backspace", "Backspace2":
-		if mi.cfg.AutocompleteLimit > 0 && app.autocompletePage.GetVisible() {
-			go app.QueueUpdateDraw(func(){ mi.tabComplete(true) })
-		} else {
-			go app.QueueUpdate(func(){ mi.tabComplete(true) })
-		}
-		return event
 	}
 
-	if app.autocompletePage.GetVisible() {
-		if event.Key() == tcell.KeyRune && isValidUserRune(event.Rune()) {
-			if mi.cfg.AutocompleteLimit > 0 {
-				go app.QueueUpdateDraw(func(){ mi.tabComplete(true) })
+	if app.autocompletePage.GetVisible() && mi.cfg.AutocompleteLimit > 0 {
+		count := mi.autocomplete.GetItemCount()
+		cur := mi.autocomplete.GetCurrentItem()
+		n := event.Name()
+		switch n {
+		case mi.cfg.Keys.Autocomplete.Down:
+			if cur == count-1 {
+				mi.autocomplete.SetCurrentItem(0)
 			} else {
-				go app.QueueUpdate(func(){ mi.tabComplete(true) })
+				mi.autocomplete.SetCurrentItem(cur+1)
 			}
-			return event
-		}
-		if mi.cfg.AutocompleteLimit > 0 {
-			c := mi.autocomplete.GetItemCount()
-			n := event.Name()
-			switch n {
-			case mi.cfg.Keys.Autocomplete.Down,
-			     mi.cfg.Keys.Autocomplete.Up:
-				if c > 1 {
-					if n == mi.cfg.Keys.Autocomplete.Down {
-						c = 1
-					}
-					mi.autocomplete.SetCurrentItem(c)
-				}
-				app.SetFocus(mi.autocomplete)
-				return nil
+			return nil
+		case mi.cfg.Keys.Autocomplete.Up:
+			if cur == 0 {
+				mi.autocomplete.SetCurrentItem(count-1)
+			} else {
+				mi.autocomplete.SetCurrentItem(cur-1)
 			}
+			return nil
 		}
-		mi.stopTabCompletion()
 	}
 
+	if mi.cfg.AutocompleteLimit > 0 {
+		go app.QueueUpdateDraw(func(){ mi.tabComplete(true) })
+	} else {
+		go app.QueueUpdate(func(){ mi.tabComplete(true) })
+	}
 	return event
 }
 
@@ -243,8 +219,7 @@ func expandMentions(cID discord.ChannelID, src []byte) []byte {
 }
 
 func (mi *messageInput) tabComplete(isAuto bool) {
-	posEnd := mi.GetCursorIndex()
-	name, r := mi.GetWordAt(posEnd, isValidUserRune)
+	posEnd, name, r := mi.GetWordUnderCursor(isValidUserRune)
 	if r != '@' {
 		mi.stopTabCompletion()
 		return
@@ -252,7 +227,7 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 	pos := posEnd - (len(name)+1)
 
 	if !isAuto && mi.autocomplete.GetItemCount() != 0 {
-		_, name = mi.autocomplete.GetItemText(0)
+		_, name = mi.autocomplete.GetItemText(mi.autocomplete.GetCurrentItem())
 		mi.Replace(pos, posEnd, "@" + name + " ")
 		mi.stopTabCompletion()
 		return
@@ -376,10 +351,6 @@ func (mi *messageInput) choose(col, pos, posEnd int) {
 	} else {
 		l.SetRect(x + col - 1, y - h - 2, 20, h + 2)
 	}
-	l.SetSelectedFunc(func (_ int, _, username string, _ rune) {
-		mi.Replace(pos, posEnd, "@" + username + " ")
-		mi.stopTabCompletion()
-	})
 	app.pages.ShowPage(app.autocompletePage)
 	app.SetFocus(mi)
 }
