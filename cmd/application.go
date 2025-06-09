@@ -23,24 +23,23 @@ type application struct {
 	messageInput *messageInput
 }
 
-func newApp(cfg *config.Config) *application {
-	app := tview.NewApplication()
-	a := &application{
-		Application: app,
+func newApplication(cfg *config.Config) *application {
+	app := &application{
+		Application: tview.NewApplication(),
 
 		cfg: cfg,
 
 		pages:        tview.NewPages(),
 		flex:         tview.NewFlex(),
-		guildsTree:   newGuildsTree(app, cfg),
-		messagesText: newMessagesText(app, cfg),
-		messageInput: newMessageInput(app, cfg),
+		guildsTree:   newGuildsTree(cfg),
+		messagesText: newMessagesText(cfg),
+		messageInput: newMessageInput(cfg),
 	}
 
-	a.EnableMouse(cfg.Mouse)
-	a.SetInputCapture(a.onInputCapture)
-	a.flex.SetInputCapture(a.onFlexInputCapture)
-	return a
+	app.EnableMouse(cfg.Mouse)
+	app.SetInputCapture(app.onInputCapture)
+	app.flex.SetInputCapture(app.onFlexInputCapture)
+	return app
 }
 
 func (app *application) show(token string) error {
@@ -73,24 +72,24 @@ func (app *application) run(token string) error {
 	return app.Run()
 }
 
-func (a *application) clearPages() {
-	for _, name := range a.pages.GetPageNames(false) {
-		a.pages.RemovePage(name)
+func (app *application) clearPages() {
+	for _, name := range app.pages.GetPageNames(false) {
+		app.pages.RemovePage(name)
 	}
 }
 
-func (a *application) init() {
-	a.clearPages()
-	a.flex.Clear()
+func (app *application) init() {
+	app.clearPages()
+	app.flex.Clear()
 
 	right := tview.NewFlex()
 	right.SetDirection(tview.FlexRow)
-	right.AddItem(a.messagesText, 0, 1, false)
-	right.AddItem(a.messageInput, 3, 1, false)
+	right.AddItem(app.messagesText, 0, 1, false)
+	right.AddItem(app.messageInput, 3, 1, false)
 	// The guilds tree is always focused first at start-up.
-	a.flex.AddItem(a.guildsTree, 0, 1, true)
-	a.flex.AddItem(right, 0, 4, false)
-	a.pages.AddAndSwitchToPage("flex", a.flex, true)
+	app.flex.AddItem(app.guildsTree, 0, 1, true)
+	app.flex.AddItem(right, 0, 4, false)
+	app.pages.AddAndSwitchToPage("flex", app.flex, true)
 }
 
 func (app *application) onInputCapture(event *tcell.EventKey) *tcell.EventKey {

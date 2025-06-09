@@ -29,7 +29,6 @@ import (
 type messagesText struct {
 	*tview.TextView
 	cfg               *config.Config
-	app               *tview.Application
 	selectedMessageID discord.MessageID
 
 	fetchingMembers struct {
@@ -39,11 +38,10 @@ type messagesText struct {
 	}
 }
 
-func newMessagesText(app *tview.Application, cfg *config.Config) *messagesText {
+func newMessagesText(cfg *config.Config) *messagesText {
 	mt := &messagesText{
 		TextView: tview.NewTextView(),
 		cfg:      cfg,
-		app:      app,
 	}
 
 	mt.Box = ui.NewConfiguredBox(mt.Box, &cfg.Theme)
@@ -524,7 +522,7 @@ func (mt *messagesText) reply(mention bool) {
 	title += mt.authorName(msg.Author, msg.GuildID)
 	app.messageInput.SetTitle(title)
 	app.messageInput.replyMessageID = mt.selectedMessageID
-	mt.app.SetFocus(app.messageInput)
+	app.SetFocus(app.messageInput)
 }
 
 func (mt *messagesText) delete() {

@@ -18,15 +18,13 @@ import (
 type guildsTree struct {
 	*tview.TreeView
 	cfg               *config.Config
-	app               *tview.Application
 	selectedChannelID discord.ChannelID
 }
 
-func newGuildsTree(app *tview.Application, cfg *config.Config) *guildsTree {
+func newGuildsTree(cfg *config.Config) *guildsTree {
 	gt := &guildsTree{
 		TreeView: tview.NewTreeView(),
 		cfg:      cfg,
-		app:      app,
 	}
 
 	gt.Box = ui.NewConfiguredBox(gt.Box, &cfg.Theme)
@@ -203,7 +201,7 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 		app.messagesText.SetTitle(gt.channelToString(*channel))
 
 		gt.selectedChannelID = channel.ID
-		gt.app.SetFocus(app.messageInput)
+		app.SetFocus(app.messageInput)
 	case nil: // Direct messages
 		channels, err := discordState.PrivateChannels()
 		if err != nil {

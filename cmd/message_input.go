@@ -22,15 +22,13 @@ const tmpFilePattern = consts.Name + "_*.md"
 type messageInput struct {
 	*tview.TextArea
 	cfg            *config.Config
-	app            *tview.Application
 	replyMessageID discord.MessageID
 }
 
-func newMessageInput(app *tview.Application, cfg *config.Config) *messageInput {
+func newMessageInput(cfg *config.Config) *messageInput {
 	mi := &messageInput{
 		TextArea: tview.NewTextArea(),
 		cfg:      cfg,
-		app:      app,
 	}
 
 	mi.Box = ui.NewConfiguredBox(mi.Box, &cfg.Theme)
@@ -126,7 +124,7 @@ func (mi *messageInput) editor() {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	mi.app.Suspend(func() {
+	app.Suspend(func() {
 		err := cmd.Run()
 		if err != nil {
 			slog.Error("failed to run command", "args", cmd.Args, "err", err)

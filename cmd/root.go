@@ -66,6 +66,6 @@ func Run() error {
 
 	tview.Styles.PrimitiveBackgroundColor = tcell.GetColor(cfg.Theme.BackgroundColor)
 
-	app = newApp(cfg)
+	app = newApplication(cfg)
 	return app.run(tok)
 }
