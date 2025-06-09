@@ -20,7 +20,6 @@ require (
 require (
 	al.essio.dev/pkg/shellescape v1.6.0 // indirect
 	github.com/danieljoos/wincred v1.2.2 // indirect
-	github.com/delthas/discord-formatting v0.0.0-20220730152124-232054d9d66b // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
 	github.com/go-toast/toast v0.0.0-20190211030409-01e6764cf0a4 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
