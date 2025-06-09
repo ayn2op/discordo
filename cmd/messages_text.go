@@ -72,7 +72,7 @@ func newMessagesText(app *tview.Application, cfg *config.Config) *messagesText {
 }
 
 func (mt *messagesText) drawMsgs(cID discord.ChannelID) {
-	ms, err := discordState.Messages(cID, uint(mt.cfg.MessagesLimit))
+	msgs, err := discordState.Messages(cID, uint(mt.cfg.MessagesLimit))
 	if err != nil {
 		slog.Error("failed to get messages", "err", err, "channel_id", cID)
 		return
@@ -80,11 +80,11 @@ func (mt *messagesText) drawMsgs(cID discord.ChannelID) {
 
 	if app.cfg.Theme.MessagesText.ShowNicknames || app.cfg.Theme.MessagesText.ShowUsernameColors {
 		if ch, _ := discordState.Cabinet.Channel(cID); ch.GuildID.IsValid() {
-			mt.requestGuildMembers(ch.GuildID, ms)
+			mt.requestGuildMembers(ch.GuildID, msgs)
 		}
 	}
 
-	for _, m := range slices.Backward(ms) {
+	for _, m := range slices.Backward(msgs) {
 		app.messagesText.createMsg(m)
 	}
 }
