@@ -100,16 +100,16 @@ func (gt *guildsTree) channelToString(channel discord.Channel) string {
 	}
 }
 
-func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Channel) *tview.TreeNode {
+func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Channel) {
 	if channel.Type != discord.DirectMessage && channel.Type != discord.GroupDM {
 		perms, err := discordState.Permissions(channel.ID, discordState.Ready().User.ID)
 		if err != nil {
 			slog.Error("failed to get permissions", "err", err, "channel_id", channel.ID)
-			return nil
+			return
 		}
 
 		if !perms.Has(discord.PermissionViewChannel) {
-			return nil
+			return
 		}
 	}
 
@@ -117,7 +117,6 @@ func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Ch
 	channelNode.SetReference(channel.ID)
 	channelNode.SetColor(tcell.GetColor(gt.cfg.Theme.GuildsTree.ChannelColor))
 	node.AddChild(channelNode)
-	return channelNode
 }
 
 func (gt *guildsTree) createChannelNodes(node *tview.TreeNode, channels []discord.Channel) {
@@ -262,17 +261,25 @@ func (gt *guildsTree) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		return tcell.NewEventKey(tcell.KeyEnter, 0, tcell.ModNone)
 
 	case gt.cfg.Keys.GuildsTree.YankID:
-		node := gt.GetCurrentNode()
-		if node == nil {
-			return nil
-		}
-
-		// Reference of a tree node in the guilds tree is its ID.
-		// discord.Snowflake (discord.GuildID and discord.ChannelID) have the String method.
-		if id, ok := node.GetReference().(fmt.Stringer); ok {
-			go clipboard.WriteAll(id.String())
-		}
+		gt.yankID()
 	}
 
 	return nil
+}
+
+func (gt *guildsTree) yankID() {
+	node := gt.GetCurrentNode()
+	if node == nil {
+		return
+	}
+
+	// Reference of a tree node in the guilds tree is its ID.
+	// discord.Snowflake (discord.GuildID and discord.ChannelID) have the String method.
+	if id, ok := node.GetReference().(fmt.Stringer); ok {
+		go func() {
+			if err := clipboard.WriteAll(id.String()); err != nil {
+				slog.Error("failed to yank ID from guilds tree to clipboard", "err", err)
+			}
+		}()
+	}
 }

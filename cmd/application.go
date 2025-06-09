@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/ayn2op/discordo/internal/config"
@@ -69,7 +70,11 @@ func (app *application) run(token string) error {
 		return err
 	}
 
-	return app.Run()
+	if err := app.Run(); err != nil {
+		return fmt.Errorf("failed to run application: %w", err)
+	}
+
+	return nil
 }
 
 func (app *application) clearPages() {
