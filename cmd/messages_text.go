@@ -63,6 +63,7 @@ func newMessagesText(cfg *config.Config) *messagesText {
 	markdown.DefaultRenderer.AddOptions(
 		renderer.WithOption("emojiColor", t.MessagesText.EmojiColor),
 		renderer.WithOption("linkColor", t.MessagesText.LinkColor),
+		renderer.WithOption("mentionColor", t.MessagesText.MentionColor),
 		renderer.WithOption("showNicknames", t.MessagesText.ShowNicknames),
 	)
 
