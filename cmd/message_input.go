@@ -8,7 +8,6 @@ import (
 	"regexp"
 	"slices"
 	"time"
-	"fmt"
 
 	"github.com/sahilm/fuzzy"
 	"github.com/atotto/clipboard"
@@ -238,7 +237,7 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 
 	// Special case, show recent messages' authors
 	if name == "" {
-		msgs, err := discordState.MessageStore.Messages(cID)
+		msgs, err := discordState.Cabinet.Messages(cID)
 		if err != nil {
 			return
 		}
@@ -344,7 +343,7 @@ func (mi *messageInput) choose(col, pos, posEnd int) {
 	_, y, w, _ := mi.GetRect()
 	_, _, _, maxH := app.messagesText.GetRect()
 	h := min(l.GetItemCount(), maxH-5)
-	// Don't add the top padding because it is automatically added by tview
+	// Only add the bottom padding, because the top is added by tview
 	h += mi.cfg.Theme.Border.Padding[1]
 	if col - 1 > w - 22 {
 		l.SetRect(x + w - 22, y - h - 2, 20, h + 2)
@@ -356,7 +355,7 @@ func (mi *messageInput) choose(col, pos, posEnd int) {
 }
 
 func (mi *messageInput) addAutocompleteItem(gID discord.GuildID, m *discord.Member) bool {
-	var text, dname string
+	var dname string
 	if mi.cfg.Theme.Autocomplete.ShowNicknames && m.Nick != "" {
 		dname = m.Nick
 	} else {
@@ -366,7 +365,10 @@ func (mi *messageInput) addAutocompleteItem(gID discord.GuildID, m *discord.Memb
 		dname = tview.Escape(dname)
 	}
 	username := m.User.Username
-	// this is WAY faster than the old discordState.MemberColor
+	if username == "" {
+		return false
+	}
+	// this is WAY faster than discordState.MemberColor
 	if mi.cfg.Theme.Autocomplete.ShowUsernameColors {
 		if c, ok := state.MemberColor(m, func(id discord.RoleID) *discord.Role {
 			r, _ := discordState.Cabinet.Role(gID, id)
@@ -379,17 +381,17 @@ func (mi *messageInput) addAutocompleteItem(gID discord.GuildID, m *discord.Memb
 			}
 		}
 	}
+	// The username overwrite in the case of dname == "" is intended
+	if presence, _ := discordState.Cabinet.Presence(gID, m.User.ID);
+	   presence == nil || presence.Status == discord.OfflineStatus {
+		username = "[::d]" + username + "[::D]"
+	}
 	if dname != "" {
-		text = fmt.Sprintf("%s (%s)", dname, username)
+		mi.autocomplete.AddItem(dname + " (" + username + ")", m.User.Username, 0, nil)
 	} else {
-		text = username
+		mi.autocomplete.AddItem(username, m.User.Username, 0, nil)
 	}
-	mi.autocomplete.AddItem(text, m.User.Username, 0, nil)
-	limit := mi.cfg.AutocompleteLimit
-	if limit == 0 {
-		limit = 50
-	}
-	return mi.autocomplete.GetItemCount() > int(limit)
+	return mi.autocomplete.GetItemCount() > int(mi.cfg.AutocompleteLimit)
 }
 
 func (mi *messageInput) stopTabCompletion() {

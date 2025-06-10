@@ -32,9 +32,6 @@ func openState(token string) error {
 
 	discordState = ningen.New(token)
 
-	// We don't use presences, don't use our valuable bandwidth
-	discordState.MemberState.RequestPresences = false
-
 	// Handlers
 	discordState.AddHandler(onReady)
 	discordState.AddHandler(onMessageCreate)
