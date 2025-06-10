@@ -136,7 +136,8 @@ func (r *renderer) renderInline(w io.Writer, n *discordmd.Inline, entering bool)
 
 func (r *renderer) renderMention(w io.Writer, n *discordmd.Mention, entering bool) {
 	if entering {
-		io.WriteString(w, "[::b]")
+		mentionColor := r.config.Options["mentionColor"].(string)
+		_, _ = fmt.Fprintf(w, "[%s::b]", mentionColor)
 
 		switch {
 		case n.Channel != nil:
@@ -151,7 +152,7 @@ func (r *renderer) renderMention(w io.Writer, n *discordmd.Mention, entering boo
 			io.WriteString(w, "@"+n.GuildRole.Name)
 		}
 	} else {
-		io.WriteString(w, "[::B]")
+		io.WriteString(w, "[-::B]")
 	}
 }
 
