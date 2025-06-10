@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/ayn2op/discordo/internal/config"
 	"github.com/diamondburned/ningen/v3/discordmd"
 	"github.com/yuin/goldmark/ast"
 	gmr "github.com/yuin/goldmark/renderer"
@@ -75,20 +76,22 @@ func (r *renderer) renderFencedCodeBlock(w io.Writer, n *ast.FencedCodeBlock, en
 
 func (r *renderer) renderAutoLink(w io.Writer, n *ast.AutoLink, entering bool, source []byte) {
 	if entering {
-		linkColor := r.config.Options["linkColor"].(string)
-		io.WriteString(w, "["+linkColor+"]")
+		theme := r.config.Options["theme"].(config.MessagesTextTheme)
+		fg, bg, _ := theme.URLStyle.Decompose()
+		_, _ = fmt.Fprintf(w, "[%s:%s]", fg, bg)
 		w.Write(n.URL(source))
 	} else {
-		io.WriteString(w, "[-::]")
+		io.WriteString(w, "[-:-]")
 	}
 }
 
 func (r *renderer) renderLink(w io.Writer, n *ast.Link, entering bool) {
 	if entering {
-		linkColor := r.config.Options["linkColor"].(string)
-		io.WriteString(w, fmt.Sprintf("[%s:::%s]", linkColor, n.Destination))
+		theme := r.config.Options["theme"].(config.MessagesTextTheme)
+		fg, bg, _ := theme.URLStyle.Decompose()
+		_, _ = fmt.Fprintf(w, "[%s:%s::%s]", fg, bg, n.Destination)
 	} else {
-		io.WriteString(w, "[-:::-]")
+		io.WriteString(w, "[-:-::-]")
 	}
 }
 
@@ -136,15 +139,17 @@ func (r *renderer) renderInline(w io.Writer, n *discordmd.Inline, entering bool)
 
 func (r *renderer) renderMention(w io.Writer, n *discordmd.Mention, entering bool) {
 	if entering {
-		mentionColor := r.config.Options["mentionColor"].(string)
-		_, _ = fmt.Fprintf(w, "[%s::b]", mentionColor)
+		theme := r.config.Options["theme"].(config.MessagesTextTheme)
+		fg, bg, _ := theme.MentionStyle.Decompose()
+		_, _ = fmt.Fprintf(w, "[%s:%s:b]", fg, bg)
 
 		switch {
 		case n.Channel != nil:
 			io.WriteString(w, "#"+n.Channel.Name)
 		case n.GuildUser != nil:
 			username := n.GuildUser.DisplayOrUsername()
-			if r.config.Options["showNicknames"].(bool) && n.GuildUser.Member != nil && n.GuildUser.Member.Nick != "" {
+			theme := r.config.Options["theme"].(config.MessagesTextTheme)
+			if theme.ShowNicknames && n.GuildUser.Member != nil && n.GuildUser.Member.Nick != "" {
 				username = n.GuildUser.Member.Nick
 			}
 			io.WriteString(w, "@"+username)
@@ -152,16 +157,17 @@ func (r *renderer) renderMention(w io.Writer, n *discordmd.Mention, entering boo
 			io.WriteString(w, "@"+n.GuildRole.Name)
 		}
 	} else {
-		io.WriteString(w, "[-::B]")
+		io.WriteString(w, "[-:-:B]")
 	}
 }
 
 func (r *renderer) renderEmoji(w io.Writer, n *discordmd.Emoji, entering bool) {
 	if entering {
-		emojiColor := r.config.Options["emojiColor"].(string)
-		io.WriteString(w, "["+emojiColor+"]")
+		theme := r.config.Options["theme"].(config.MessagesTextTheme)
+		fg, bg, _ := theme.EmojiStyle.Decompose()
+		fmt.Fprintf(w, "[%s:%s]", fg, bg)
 		io.WriteString(w, ":"+n.Name+":")
 	} else {
-		io.WriteString(w, "[-]")
+		io.WriteString(w, "[-:-]")
 	}
 }

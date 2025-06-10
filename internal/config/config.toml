@@ -121,9 +121,8 @@ show_user_nicks = true
 show_user_colors = true
 reply_indicator = ">"
 forwarded_indicator = "<"
-author_color = "aqua"
-content_color = "white"
-emoji_color = "green"
-link_color = "blue"
-attachment_color = "yellow"
-mention_color = "blue"
+author_style = { foreground = "aqua" }
+mention_style = { foreground = "blue" }
+emoji_style = { foreground = "green" }
+url_style = { foreground = "blue" }
+attachment_style = { foreground = "yellow" }

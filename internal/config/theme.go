@@ -105,11 +105,10 @@ type (
 		ReplyIndicator     string `toml:"reply_indicator"`
 		ForwardedIndicator string `toml:"forwarded_indicator"`
 
-		AuthorColor     string `toml:"author_color"`
-		ContentColor    string `toml:"content_color"`
-		EmojiColor      string `toml:"emoji_color"`
-		LinkColor       string `toml:"link_color"`
-		AttachmentColor string `toml:"attachment_color"`
-		MentionColor    string `toml:"mention_color"`
+		AuthorStyle     StyleWrapper `toml:"author_style"`
+		MentionStyle    StyleWrapper `toml:"mention_style"`
+		EmojiStyle      StyleWrapper `toml:"emoji_style"`
+		URLStyle        StyleWrapper `toml:"url_style"`
+		AttachmentStyle StyleWrapper `toml:"attachment_style"`
 	}
 )

@@ -52,7 +52,6 @@ func newMessagesText(cfg *config.Config) *messagesText {
 		SetRegions(true).
 		SetWordWrap(true).
 		ScrollToEnd().
-		SetTextColor(tcell.GetColor(t.MessagesText.ContentColor)).
 		SetHighlightedFunc(mt.onHighlighted).
 		SetChangedFunc(func() {
 			app.Draw()
@@ -60,13 +59,7 @@ func newMessagesText(cfg *config.Config) *messagesText {
 		SetTitle("Messages").
 		SetInputCapture(mt.onInputCapture)
 
-	markdown.DefaultRenderer.AddOptions(
-		renderer.WithOption("emojiColor", t.MessagesText.EmojiColor),
-		renderer.WithOption("linkColor", t.MessagesText.LinkColor),
-		renderer.WithOption("mentionColor", t.MessagesText.MentionColor),
-		renderer.WithOption("showNicknames", t.MessagesText.ShowNicknames),
-	)
-
+	markdown.DefaultRenderer.AddOptions(renderer.WithOption("theme", t.MessagesText))
 	return mt
 }
 
@@ -132,10 +125,8 @@ func (mt *messagesText) createMsg(msg discord.Message) {
 		}
 	case discord.InlinedReplyMessage:
 		mt.createReplyMsg(msg)
-
 	case discord.ChannelPinnedMessage:
-		fmt.Fprint(mt, "["+mt.cfg.Theme.MessagesText.ContentColor+"]"+msg.Author.Username+" pinned a message"+"[-:-:-]")
-
+		fmt.Fprintf(mt, "%s pinned a message", msg.Author.DisplayOrUsername())
 	default:
 		mt.drawTimestamps(msg.Timestamp)
 		mt.drawAuthor(msg)
@@ -154,8 +145,8 @@ func (mt *messagesText) drawTimestamps(ts discord.Timestamp) {
 
 func (mt *messagesText) drawAuthor(msg discord.Message) {
 	name := mt.authorName(msg.Author, msg.GuildID)
-	color := mt.authorColor(msg.Author, msg.GuildID)
-	fmt.Fprintf(mt, "[%s]%s[-] ", color, name)
+	fg, bg, _ := mt.authorStyle(msg.Author, msg.GuildID).Decompose()
+	_, _ = fmt.Fprintf(mt, "[%s:%s]%s[-] ", fg.String(), bg.String(), name)
 }
 
 func (mt *messagesText) drawContent(msg discord.Message) {
@@ -188,10 +179,12 @@ func (mt *messagesText) createDefaultMsg(msg discord.Message) {
 
 	for _, a := range msg.Attachments {
 		fmt.Fprintln(mt)
+
+		fg, bg, _ := mt.cfg.Theme.MessagesText.AttachmentStyle.Decompose()
 		if mt.cfg.ShowAttachmentLinks {
-			fmt.Fprintf(mt, "[%s][%s]:\n%s[-]", mt.cfg.Theme.MessagesText.AttachmentColor, a.Filename, a.URL)
+			fmt.Fprintf(mt, "[%s:%s][%s]:\n%s[-]", fg, bg, a.Filename, a.URL)
 		} else {
-			fmt.Fprintf(mt, "[%s][%s][-]", mt.cfg.Theme.MessagesText.AttachmentColor, a.Filename)
+			fmt.Fprintf(mt, "[%s:%s][%s][-]", fg, bg, a.Filename)
 		}
 	}
 }
@@ -230,16 +223,16 @@ func (mt *messagesText) createForwardedMsg(msg discord.Message) {
 	fmt.Fprintf(mt, " [::d](%s)[-:-:-] ", mt.formatTimestamp(msg.MessageSnapshots[0].Message.Timestamp))
 }
 
-func (mt *messagesText) authorColor(user discord.User, gID discord.GuildID) string {
-	color := mt.cfg.Theme.MessagesText.AuthorColor
+func (mt *messagesText) authorStyle(user discord.User, gID discord.GuildID) config.StyleWrapper {
+	style := mt.cfg.Theme.MessagesText.AuthorStyle
 	if app.cfg.Theme.MessagesText.ShowUsernameColors && gID.IsValid() {
 		// Use color from highest role in guild
 		if c, ok := discordState.MemberColor(gID, user.ID); ok {
-			color = c.String()
+			style = config.StyleWrapper{Style: tcell.StyleDefault.Foreground(tcell.GetColor(c.String()))}
 		}
 	}
 
-	return color
+	return style
 }
 
 func (mt *messagesText) selectedMsg() (*discord.Message, error) {
