@@ -110,5 +110,6 @@ type (
 		EmojiColor      string `toml:"emoji_color"`
 		LinkColor       string `toml:"link_color"`
 		AttachmentColor string `toml:"attachment_color"`
+		MentionColor    string `toml:"mention_color"`
 	}
 )
