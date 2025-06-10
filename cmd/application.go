@@ -43,70 +43,70 @@ func newApplication(cfg *config.Config) *application {
 	return app
 }
 
-func (app *application) show(token string) error {
+func (a *application) show(token string) error {
 	if token == "" {
-		loginForm := login.NewForm(app.cfg, app.Application, func(token string) {
-			if err := app.show(token); err != nil {
+		loginForm := login.NewForm(a.cfg, a.Application, func(token string) {
+			if err := a.show(token); err != nil {
 				slog.Error("failed to show app", "err", err)
 				return
 			}
 		})
 
-		app.SetRoot(loginForm, true)
+		a.SetRoot(loginForm, true)
 	} else {
 		if err := openState(token); err != nil {
 			return err
 		}
 
-		app.init()
-		app.SetRoot(app.pages, true)
+		a.init()
+		a.SetRoot(a.pages, true)
 	}
 
 	return nil
 }
 
-func (app *application) run(token string) error {
-	if err := app.show(token); err != nil {
+func (a *application) run(token string) error {
+	if err := a.show(token); err != nil {
 		return err
 	}
 
-	if err := app.Run(); err != nil {
+	if err := a.Run(); err != nil {
 		return fmt.Errorf("failed to run application: %w", err)
 	}
 
 	return nil
 }
 
-func (app *application) clearPages() {
-	for _, name := range app.pages.GetPageNames(false) {
-		app.pages.RemovePage(name)
+func (a *application) clearPages() {
+	for _, name := range a.pages.GetPageNames(false) {
+		a.pages.RemovePage(name)
 	}
 }
 
-func (app *application) init() {
-	app.clearPages()
-	app.flex.Clear()
+func (a *application) init() {
+	a.clearPages()
+	a.flex.Clear()
 
 	right := tview.NewFlex()
 	right.SetDirection(tview.FlexRow)
-	right.AddItem(app.messagesText, 0, 1, false)
-	right.AddItem(app.messageInput, 3, 1, false)
+	right.AddItem(a.messagesText, 0, 1, false)
+	right.AddItem(a.messageInput, 3, 1, false)
 	// The guilds tree is always focused first at start-up.
-	app.flex.AddItem(app.guildsTree, 0, 1, true)
-	app.flex.AddItem(right, 0, 4, false)
-	app.pages.AddAndSwitchToPage("flex", app.flex, true)
+	a.flex.AddItem(a.guildsTree, 0, 1, true)
+	a.flex.AddItem(right, 0, 4, false)
+	a.pages.AddAndSwitchToPage("flex", a.flex, true)
 }
 
-func (app *application) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
+func (a *application) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
-	case app.cfg.Keys.Quit:
+	case a.cfg.Keys.Quit:
 		if discordState != nil {
 			if err := discordState.Close(); err != nil {
 				slog.Error("failed to close the session", "err", err)
 			}
 		}
 
-		app.Stop()
+		a.Stop()
 	case "Ctrl+C":
 		// https://github.com/ayn2op/tview/blob/a64fc48d7654432f71922c8b908280cdb525805c/application.go#L153
 		return tcell.NewEventKey(tcell.KeyCtrlC, 0, tcell.ModNone)
@@ -115,19 +115,19 @@ func (app *application) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	return event
 }
 
-func (app *application) onFlexInputCapture(event *tcell.EventKey) *tcell.EventKey {
+func (a *application) onFlexInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
-	case app.cfg.Keys.FocusGuildsTree:
-		app.SetFocus(app.guildsTree)
+	case a.cfg.Keys.FocusGuildsTree:
+		a.SetFocus(a.guildsTree)
 		return nil
-	case app.cfg.Keys.FocusMessagesText:
-		app.SetFocus(app.messagesText)
+	case a.cfg.Keys.FocusMessagesText:
+		a.SetFocus(a.messagesText)
 		return nil
-	case app.cfg.Keys.FocusMessageInput:
-		app.SetFocus(app.messageInput)
+	case a.cfg.Keys.FocusMessageInput:
+		a.SetFocus(a.messageInput)
 		return nil
-	case app.cfg.Keys.Logout:
-		app.Stop()
+	case a.cfg.Keys.Logout:
+		a.Stop()
 
 		if err := keyring.Delete(consts.Name, "token"); err != nil {
 			slog.Error("failed to delete token from keyring", "err", err)
@@ -135,17 +135,17 @@ func (app *application) onFlexInputCapture(event *tcell.EventKey) *tcell.EventKe
 		}
 
 		return nil
-	case app.cfg.Keys.ToggleGuildsTree:
+	case a.cfg.Keys.ToggleGuildsTree:
 		// The guilds tree is visible if the numbers of items is two.
-		if app.flex.GetItemCount() == 2 {
-			app.flex.RemoveItem(app.guildsTree)
+		if a.flex.GetItemCount() == 2 {
+			a.flex.RemoveItem(a.guildsTree)
 
-			if app.guildsTree.HasFocus() {
-				app.SetFocus(app.flex)
+			if a.guildsTree.HasFocus() {
+				a.SetFocus(a.flex)
 			}
 		} else {
-			app.init()
-			app.SetFocus(app.guildsTree)
+			a.init()
+			a.SetFocus(a.guildsTree)
 		}
 
 		return nil
