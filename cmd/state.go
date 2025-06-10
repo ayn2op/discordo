@@ -43,7 +43,7 @@ func openState(token string) error {
 	discordState.AddHandler(discordState.onMessageCreate)
 	discordState.AddHandler(discordState.onMessageDelete)
 
-	discordState.AddHandler(func(event *gateway.GuildMembersChunkEvent) {
+	discordState.AddHandler(func(_ *gateway.GuildMembersChunkEvent) {
 		app.messagesText.setFetchingChunk(false)
 	})
 
@@ -77,7 +77,7 @@ func (s *state) onRequest(r httpdriver.Request) error {
 	return nil
 }
 
-func (s *state) onReady(r *gateway.ReadyEvent) {
+func (s *state) onReady(ready *gateway.ReadyEvent) {
 	root := app.guildsTree.GetRoot()
 	root.ClearChildren()
 
@@ -85,9 +85,9 @@ func (s *state) onReady(r *gateway.ReadyEvent) {
 	dmNode.SetColor(tcell.GetColor(app.cfg.Theme.GuildsTree.PrivateChannelColor))
 	root.AddChild(dmNode)
 
-	for _, folder := range r.UserSettings.GuildFolders {
+	for _, folder := range ready.UserSettings.GuildFolders {
 		if folder.ID == 0 && len(folder.GuildIDs) == 1 {
-			g, err := discordState.Cabinet.Guild(folder.GuildIDs[0])
+			guild, err := discordState.Cabinet.Guild(folder.GuildIDs[0])
 			if err != nil {
 				slog.Error(
 					"failed to get guild from state",
@@ -100,7 +100,7 @@ func (s *state) onReady(r *gateway.ReadyEvent) {
 				continue
 			}
 
-			app.guildsTree.createGuildNode(root, *g)
+			app.guildsTree.createGuildNode(root, *guild)
 		} else {
 			app.guildsTree.createFolderNode(folder)
 		}
@@ -110,23 +110,23 @@ func (s *state) onReady(r *gateway.ReadyEvent) {
 	app.SetFocus(app.guildsTree)
 }
 
-func (s *state) onMessageCreate(m *gateway.MessageCreateEvent) {
+func (s *state) onMessageCreate(msg *gateway.MessageCreateEvent) {
 	if app.guildsTree.selectedChannelID.IsValid() &&
-		app.guildsTree.selectedChannelID == m.ChannelID {
-		app.messagesText.createMsg(m.Message)
+		app.guildsTree.selectedChannelID == msg.ChannelID {
+		app.messagesText.createMsg(msg.Message)
 	}
 
-	if err := notifications.HandleIncomingMessage(*s.State, m, app.cfg); err != nil {
+	if err := notifications.HandleIncomingMessage(*s.State, msg, app.cfg); err != nil {
 		slog.Error("Notification failed", "err", err)
 	}
 }
 
-func (s *state) onMessageDelete(m *gateway.MessageDeleteEvent) {
-	if app.guildsTree.selectedChannelID == m.ChannelID {
+func (s *state) onMessageDelete(msg *gateway.MessageDeleteEvent) {
+	if app.guildsTree.selectedChannelID == msg.ChannelID {
 		app.messagesText.selectedMessageID = 0
 		app.messagesText.Highlight()
 		app.messagesText.Clear()
 
-		app.messagesText.drawMsgs(m.ChannelID)
+		app.messagesText.drawMsgs(msg.ChannelID)
 	}
 }
