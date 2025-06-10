@@ -111,6 +111,7 @@ active_style = { foreground = "green" }
 auto_expand_folders = true
 # Give tree-like shape
 graphics = true
+graphics_color = "default"
 private_channel_color = "white"
 guild_color = "white"
 channel_color = "white"

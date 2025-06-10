@@ -33,6 +33,7 @@ func newGuildsTree(cfg *config.Config) *guildsTree {
 		SetRoot(tview.NewTreeNode("")).
 		SetTopLevel(1).
 		SetGraphics(cfg.Theme.GuildsTree.Graphics).
+		SetGraphicsColor(tcell.GetColor(cfg.Theme.GuildsTree.GraphicsColor)).
 		SetSelectedFunc(gt.onSelected).
 		SetTitle("Guilds").
 		SetInputCapture(gt.onInputCapture)

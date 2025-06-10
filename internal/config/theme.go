@@ -91,7 +91,9 @@ type (
 
 	GuildsTreeTheme struct {
 		AutoExpandFolders bool `toml:"auto_expand_folders"`
-		Graphics          bool `toml:"graphics"`
+
+		Graphics      bool   `toml:"graphics"`
+		GraphicsColor string `toml:"graphics_color"`
 
 		PrivateChannelColor string `toml:"private_channel_color"`
 		GuildColor          string `toml:"guild_color"`
