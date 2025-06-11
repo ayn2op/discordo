@@ -16,13 +16,13 @@ import (
 	"github.com/diamondburned/ningen/v3/discordmd"
 )
 
-func HandleIncomingMessage(s *ningen.State, m *gateway.MessageCreateEvent, cfg *config.Config) error {
+func HandleIncomingMessage(state *ningen.State, msg *gateway.MessageCreateEvent, cfg *config.Config) error {
 	// Only display notification if enabled and unmuted
-	if !cfg.Notifications.Enabled || s.MessageMentions(&m.Message) == 0 || cfg.Identify.Status == discord.DoNotDisturbStatus {
+	if !cfg.Notifications.Enabled || state.MessageMentions(&msg.Message) == 0 || cfg.Identify.Status == discord.DoNotDisturbStatus {
 		return nil
 	}
 
-	ch, err := s.Cabinet.Channel(m.ChannelID)
+	ch, err := state.Cabinet.Channel(msg.ChannelID)
 	if err != nil {
 		return err
 	}
@@ -30,15 +30,15 @@ func HandleIncomingMessage(s *ningen.State, m *gateway.MessageCreateEvent, cfg *
 	isChannelDM := ch.Type == discord.DirectMessage || ch.Type == discord.GroupDM
 	guild := (*discord.Guild)(nil)
 	if !isChannelDM {
-		guild, err = s.Cabinet.Guild(ch.GuildID)
+		guild, err = state.Cabinet.Guild(ch.GuildID)
 		if err != nil {
 			return err
 		}
 	}
 
 	// Render message
-	src := []byte(m.Content)
-	ast := discordmd.ParseWithMessage(src, *s.Cabinet, &m.Message, false)
+	src := []byte(msg.Content)
+	ast := discordmd.ParseWithMessage(src, *state.Cabinet, &msg.Message, false)
 	buff := strings.Builder{}
 	if err := defaultRenderer.Render(&buff, src, ast); err != nil {
 		return err
@@ -46,17 +46,17 @@ func HandleIncomingMessage(s *ningen.State, m *gateway.MessageCreateEvent, cfg *
 
 	// Handle sent files
 	notifContent := buff.String()
-	if m.Content == "" && len(m.Attachments) > 0 {
-		notifContent = "Uploaded " + m.Message.Attachments[0].Filename
+	if msg.Content == "" && len(msg.Attachments) > 0 {
+		notifContent = "Uploaded " + msg.Message.Attachments[0].Filename
 	}
 
-	if m.Author.DisplayOrTag() == "" || notifContent == "" {
+	if msg.Author.DisplayOrTag() == "" || notifContent == "" {
 		return nil
 	}
 
-	notifTitle := m.Author.DisplayOrTag()
+	notifTitle := msg.Author.DisplayOrTag()
 	if guild != nil {
-		member, _ := s.Member(ch.GuildID, m.Author.ID)
+		member, _ := state.Member(ch.GuildID, msg.Author.ID)
 		if member.Nick != "" {
 			notifTitle = member.Nick
 		}
@@ -64,16 +64,16 @@ func HandleIncomingMessage(s *ningen.State, m *gateway.MessageCreateEvent, cfg *
 		notifTitle = notifTitle + " (#" + ch.Name + ", " + guild.Name + ")"
 	}
 
-	hash := m.Author.Avatar
+	hash := msg.Author.Avatar
 	if hash == "" {
 		hash = "default"
 	}
-	imagePath, err := getCachedProfileImage(hash, m.Author.AvatarURLWithType(discord.PNGImage))
+	imagePath, err := getCachedProfileImage(hash, msg.Author.AvatarURLWithType(discord.PNGImage))
 	if err != nil {
 		slog.Error("Failed to retrieve avatar image for notification", "err", err)
 	}
 
-	shouldChime := cfg.Notifications.Sound.Enabled && (!cfg.Notifications.Sound.OnlyOnPing || (isChannelDM || s.MessageMentions(&m.Message) == 3))
+	shouldChime := cfg.Notifications.Sound.Enabled && (!cfg.Notifications.Sound.OnlyOnPing || (isChannelDM || state.MessageMentions(&msg.Message) == 3))
 	if err := sendDesktopNotification(notifTitle, notifContent, imagePath, shouldChime, cfg.Notifications.Duration); err != nil {
 		return err
 	}
