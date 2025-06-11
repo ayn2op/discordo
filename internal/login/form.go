@@ -17,16 +17,14 @@ type DoneFn = func(token string)
 type Form struct {
 	*tview.Pages
 	cfg  *config.Config
-	app  *tview.Application
 	form *tview.Form
 	done DoneFn
 }
 
-func NewForm(cfg *config.Config, app *tview.Application, done DoneFn) *Form {
+func NewForm(cfg *config.Config, done DoneFn) *Form {
 	f := &Form{
 		Pages: tview.NewPages(),
 		cfg:   cfg,
-		app:   app,
 		form:  tview.NewForm(),
 		done:  done,
 	}
