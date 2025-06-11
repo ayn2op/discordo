@@ -248,6 +248,7 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 				continue
 			}
 			shown[m.Author.Username] = true
+			discordState.MemberState.RequestMember(gID, m.Author.ID)
 			if mem, err := discordState.Cabinet.Member(gID, m.Author.ID); err == nil {
 				if mi.addAutocompleteItem(gID, mem) {
 					break
@@ -285,7 +286,7 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 	}
 
 	_, col, _, _ := mi.GetCursor()
-	mi.choose(col, pos, posEnd)
+	mi.showMentionList(col-1)
 }
 
 func (m memberList) String(i int) string { return m[i].Nick + m[i].User.DisplayName + m[i].User.Tag() }
@@ -337,24 +338,42 @@ func isValidUserRune(x rune) bool {
 	        x == '_' || x == '.'
 }
 
-func (mi *messageInput) choose(col, pos, posEnd int) {
+func (mi *messageInput) showMentionList(col int) {
+	borders := 0
+	if mi.cfg.Theme.Border.Enabled {
+		borders = 1
+	}
 	l := mi.autocomplete
 	x, _, _, _ := mi.GetInnerRect()
-	_, y, w, _ := mi.GetRect()
-	_, _, _, maxH := app.messagesText.GetRect()
-	h := min(l.GetItemCount(), maxH-5)
-	// Only add the bottom padding, because the top is added by tview
-	h += mi.cfg.Theme.Border.Padding[1]
-	if col - 1 > w - 22 {
-		l.SetRect(x + w - 22, y - h - 2, 20, h + 2)
-	} else {
-		l.SetRect(x + col - 1, y - h - 2, 20, h + 2)
+	_, y, _, _ := mi.GetRect()
+	_, _, maxW, maxH := app.messagesText.GetInnerRect()
+	if t := int(mi.cfg.Theme.Autocomplete.MaxHeight); t != 0 {
+		maxH = min(maxH, t)
 	}
+	count := l.GetItemCount() + borders
+	h := min(count, maxH) + borders + mi.cfg.Theme.Border.Padding[1]
+	y -= h
+	w := int(mi.cfg.Theme.Autocomplete.MinWidth)
+	if w == 0 {
+		w = maxW
+	} else {
+		for i := 0; i < count-1; i++ {
+			t, _ := mi.autocomplete.GetItemText(i)
+			w = max(w, tview.TaggedStringWidth(t))
+		}
+		w = min(w + borders*2, maxW)
+		x += min(col, maxW - w)
+	}
+	l.SetRect(x, y, w, h)
 	app.pages.ShowPage(app.autocompletePage)
 	app.SetFocus(mi)
 }
 
 func (mi *messageInput) addAutocompleteItem(gID discord.GuildID, m *discord.Member) bool {
+	username := m.User.Username
+	if username == "" {
+		return false
+	}
 	var dname string
 	if mi.cfg.Theme.Autocomplete.ShowNicknames && m.Nick != "" {
 		dname = m.Nick
@@ -363,10 +382,6 @@ func (mi *messageInput) addAutocompleteItem(gID discord.GuildID, m *discord.Memb
 	}
 	if dname != "" {
 		dname = tview.Escape(dname)
-	}
-	username := m.User.Username
-	if username == "" {
-		return false
 	}
 	// this is WAY faster than discordState.MemberColor
 	if mi.cfg.Theme.Autocomplete.ShowUsernameColors {

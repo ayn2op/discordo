@@ -118,5 +118,8 @@ type (
 	AutocompleteTheme struct {
 		ShowNicknames      bool `toml:"show_user_nicks"`
 		ShowUsernameColors bool `toml:"show_user_colors"`
+
+		MinWidth  uint `toml:"min_width"`
+		MaxHeight uint `toml:"max_height"`
 	}
 )
