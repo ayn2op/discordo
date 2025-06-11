@@ -116,7 +116,7 @@ func (s *state) onMessageCreate(msg *gateway.MessageCreateEvent) {
 		app.messagesText.createMsg(msg.Message)
 	}
 
-	if err := notifications.HandleIncomingMessage(*s.State, msg, app.cfg); err != nil {
+	if err := notifications.HandleIncomingMessage(s.State, msg, app.cfg); err != nil {
 		slog.Error("Notification failed", "err", err)
 	}
 }
