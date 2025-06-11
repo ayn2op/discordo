@@ -83,7 +83,7 @@ func (mi *messageInput) reset() {
 func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case mi.cfg.Keys.MessageInput.Send:
-		if app.autocompletePage.GetVisible() {
+		if app.pages.GetVisible(app.autocompletePage) {
 			mi.tabComplete(false)
 			return nil
 		}
@@ -94,7 +94,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		mi.editor()
 		return nil
 	case mi.cfg.Keys.MessageInput.Cancel:
-		if app.autocompletePage.GetVisible() {
+		if app.pages.GetVisible(app.autocompletePage) {
 			mi.stopTabCompletion()
 		} else {
 			mi.reset()
@@ -105,7 +105,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		return nil
 	}
 
-	if app.autocompletePage.GetVisible() && mi.cfg.AutocompleteLimit > 0 {
+	if app.pages.GetVisible(app.autocompletePage) && mi.cfg.AutocompleteLimit > 0 {
 		count := mi.autocomplete.GetItemCount()
 		cur := mi.autocomplete.GetCurrentItem()
 		n := event.Name()

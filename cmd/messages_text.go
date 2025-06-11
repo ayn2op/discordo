@@ -38,7 +38,7 @@ type messagesText struct {
 		done  chan struct{}
 	}
 
-	urlListPage *tview.Page
+	urlListPage tview.Page
 }
 
 func newMessagesText(cfg *config.Config) *messagesText {
@@ -478,18 +478,14 @@ func (mt *messagesText) showUrlSelector(urls []string, attachments []discord.Att
 		})
 
 	for i, a := range attachments {
-		attachment := a
 		list.AddItem(a.Filename, "", rune('a'+i), func() {
-			go openURL(attachment.URL)
-			done()
+			go openURL(a.URL)
 		})
 	}
 
 	for i, u := range urls {
-		url := u
 		list.AddItem(u, "", rune('1'+i), func() {
-			go openURL(url)
-			done()
+			go openURL(u)
 		})
 	}
 

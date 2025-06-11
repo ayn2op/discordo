@@ -23,8 +23,8 @@ type application struct {
 	messagesText *messagesText
 	messageInput *messageInput
 
-	flexPage         *tview.Page
-	autocompletePage *tview.Page
+	flexPage         tview.Page
+	autocompletePage tview.Page
 }
 
 func newApplication(cfg *config.Config) *application {
@@ -80,14 +80,8 @@ func (a *application) run(token string) error {
 	return nil
 }
 
-func (a *application) clearPages() {
-	for _, p := range a.pages.GetPages() {
-		a.pages.RemovePage(p)
-	}
-}
-
 func (a *application) init() {
-	a.clearPages()
+	a.pages.Clear()
 	a.flex.Clear()
 
 	right := tview.NewFlex()

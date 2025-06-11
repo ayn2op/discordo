@@ -20,8 +20,8 @@ type Form struct {
 	form *tview.Form
 	done DoneFn
 
-	formPage *tview.Page
-	errPage  *tview.Page
+	formPage tview.Page
+	errPage  tview.Page
 }
 
 func NewForm(cfg *config.Config, done DoneFn) *Form {
