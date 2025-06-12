@@ -1,24 +1,24 @@
-# Enable mouse controls
+# Whether to enable mouse or not.
 mouse = true
-
-# "default" means use $EDITOR.
+# The program to open when the `keys.message_input.editor` keymap is pressed. Set the value to `"default"` to use `$EDITOR`.
 editor = "default"
 
-hide_blocked_users = true
-show_attachment_links = true
-messages_limit = 50
 # Whether to parse and render markdown in messages or not.
 markdown = true
+hide_blocked_users = true
+show_attachment_links = true
+# The number of messages to fetch when a text-based channel is selected from guilds tree. The minimum and maximum value is 0 and 100, respectively.
+messages_limit = 50
 
-# Timestamps uses Go timestamp format
-# See: https://gosamples.dev/date-time-format-cheatsheet
 [timestamps]
 enabled = true
+# https://pkg.go.dev/time#Layout
 format = "3:04PM"
 
 [notifications]
 enabled = true
-duration = 500
+# The duration of the sound. Set the value to `0` to use default duration. This is only supported on Unix and Windows.
+duration = 0
 [notifications.sound]
 enabled = true
 only_on_ping = true
@@ -38,7 +38,7 @@ user_agent = "default"
 focus_guilds_tree = "Ctrl+G"
 focus_messages_text = "Ctrl+T"
 focus_message_input = "Ctrl+P"
-# Hide/show the guilds tree
+# Hide/show the guilds tree.
 toggle_guilds_tree = "Ctrl+B"
 quit = "Ctrl+C"
 # Log out and remove the authentication token from keyring.
@@ -94,6 +94,7 @@ cancel = "Esc"
 background_color = "default"
 
 [theme.title]
+# The values can be one of the following: `"left"`, `"center"`, and `"right"`.
 alignment = "left"
 # style supports foreground and background.
 style = { foreground = "default" }
@@ -103,7 +104,8 @@ active_style = { foreground = "green" }
 enabled = true
 # [top, bottom, left, right]
 padding = [0, 0, 1, 1]
-set = "round"
+# The values can be one of the following: `"plain"`, `"round"`, `"thick"`, and `"double"`.
+set = "plain"
 style = { foreground = "default" }
 active_style = { foreground = "green" }
 
