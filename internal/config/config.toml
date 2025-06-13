@@ -7,6 +7,11 @@ editor = "default"
 markdown = true
 hide_blocked_users = true
 show_attachment_links = true
+
+# Use autocomplete_limit = 0 to disable autocompleting mentions
+# Note: tab completion will still work, but it won't show any list.
+autocomplete_limit = 20
+
 # The number of messages to fetch when a text-based channel is selected from guilds tree. The minimum and maximum value is 0 and 100, respectively.
 messages_limit = 50
 
@@ -82,12 +87,19 @@ yank_id = "Rune[i]"
 # Only while typing a message
 # Alt+Enter: Insert a new line to the current text.
 [keys.message_input]
-# Send the message.
 send = "Enter"
 # Open message input in your editor.
 editor = "Ctrl+E"
 # Remove existing text or cancel reply.
 cancel = "Esc"
+# Complete usernames when mentioning
+tab_complete = "Tab"
+
+# When typing and there's an autocomplete list visible,
+# pressing these keys will focus on the list instead of the message input.
+[keys.autocomplete]
+up = "Up"
+down = "Down"
 
 # Applies to all
 [theme]
@@ -122,10 +134,25 @@ channel_color = "white"
 # Set to false to show messages with usernames instead of nicknames
 show_user_nicks = true
 show_user_colors = true
+
 reply_indicator = ">"
 forwarded_indicator = "<"
+
 author_style = { foreground = "aqua" }
 mention_style = { foreground = "blue" }
 emoji_style = { foreground = "green" }
 url_style = { foreground = "blue" }
 attachment_style = { foreground = "yellow" }
+
+[theme.autocomplete]
+show_user_nicks = true
+show_user_colors = true
+
+# Note: width and height are capped to the avaliable space
+# Minimum width
+# 0 = make the list as wide as possible
+min_width = 20
+
+# Maximum height
+# 0 = make the list as tall as needed
+max_height = 0
