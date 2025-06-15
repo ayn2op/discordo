@@ -42,7 +42,7 @@ func openState(token string) error {
 	})
 
 	discordState.AddHandler(func(event *gateway.GuildMemberRemoveEvent) {
-		app.messageInput.cache.Invalidate(event.GuildID.String() + " " + event.User.Username, discordState.MemberState.SearchLimit)
+		app.messageInput.cache.Invalidate(event.GuildID.String()+" "+event.User.Username, discordState.MemberState.SearchLimit)
 	})
 
 	discordState.AddHandler(func(event *ws.RawEvent) {

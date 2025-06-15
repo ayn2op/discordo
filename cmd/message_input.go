@@ -4,17 +4,16 @@ import (
 	"log/slog"
 	"os"
 	"os/exec"
-	"strings"
 	"regexp"
 	"slices"
+	"strings"
 	"time"
 
-	"github.com/sahilm/fuzzy"
 	"github.com/atotto/clipboard"
+	"github.com/ayn2op/discordo/internal/cache"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/ui"
-	"github.com/ayn2op/discordo/internal/cache"
 	"github.com/ayn2op/tview"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -22,19 +21,21 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/diamondburned/ningen/v3/discordmd"
 	"github.com/gdamore/tcell/v2"
+	"github.com/sahilm/fuzzy"
 	"github.com/yuin/goldmark/ast"
 )
 
 const tmpFilePattern = consts.Name + "_*.md"
+
 var mentionRegex = regexp.MustCompile("@[a-zA-Z0-9._]+")
 
 type messageInput struct {
 	*tview.TextArea
-	cfg             *config.Config
-	cache           *cache.Cache
-	autocomplete    *tview.List
-	replyMessageID  discord.MessageID
-	lastSearch      time.Time
+	cfg            *config.Config
+	cache          *cache.Cache
+	autocomplete   *tview.List
+	replyMessageID discord.MessageID
+	lastSearch     time.Time
 }
 
 type memberList []discord.Member
@@ -101,7 +102,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		}
 		return nil
 	case mi.cfg.Keys.MessageInput.TabComplete:
-		go app.QueueUpdateDraw(func(){ mi.tabComplete(false) })
+		go app.QueueUpdateDraw(func() { mi.tabComplete(false) })
 		return nil
 	}
 
@@ -114,23 +115,23 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 			if cur == count-1 {
 				mi.autocomplete.SetCurrentItem(0)
 			} else {
-				mi.autocomplete.SetCurrentItem(cur+1)
+				mi.autocomplete.SetCurrentItem(cur + 1)
 			}
 			return nil
 		case mi.cfg.Keys.Autocomplete.Up:
 			if cur == 0 {
-				mi.autocomplete.SetCurrentItem(count-1)
+				mi.autocomplete.SetCurrentItem(count - 1)
 			} else {
-				mi.autocomplete.SetCurrentItem(cur-1)
+				mi.autocomplete.SetCurrentItem(cur - 1)
 			}
 			return nil
 		}
 	}
 
 	if mi.cfg.AutocompleteLimit > 0 {
-		go app.QueueUpdateDraw(func(){ mi.tabComplete(true) })
+		go app.QueueUpdateDraw(func() { mi.tabComplete(true) })
 	} else {
-		go app.QueueUpdate(func(){ mi.tabComplete(true) })
+		go app.QueueUpdate(func() { mi.tabComplete(true) })
 	}
 	return event
 }
@@ -177,7 +178,7 @@ func processText(cID discord.ChannelID, src []byte) string {
 	var rngs [][2]int
 	canMention := true
 	n := discordmd.Parse(src)
-        ast.Walk(n, func(n ast.Node, enter bool) (ast.WalkStatus, error) {
+	ast.Walk(n, func(n ast.Node, enter bool) (ast.WalkStatus, error) {
 		switch n := n.(type) {
 		case *ast.CodeBlock:
 			canMention = !enter
@@ -187,12 +188,12 @@ func processText(cID discord.ChannelID, src []byte) string {
 			}
 		case *ast.Text:
 			if canMention {
-				rngs = append(rngs, [2]int{ n.Segment.Start,
-							    n.Segment.Stop })
+				rngs = append(rngs, [2]int{n.Segment.Start,
+					n.Segment.Stop})
 			}
 		}
 		return ast.WalkContinue, nil
-        })
+	})
 	for _, rng := range rngs {
 		src = slices.Replace(src, rng[0], rng[1],
 			expandMentions(cID, src[rng[0]:rng[1]])...)
@@ -204,9 +205,9 @@ func expandMentions(cID discord.ChannelID, src []byte) []byte {
 	return mentionRegex.ReplaceAllFunc(src, func(in []byte) (out []byte) {
 		out = in
 		name := strings.ToLower(string(in[1:]))
-		discordState.MemberStore.Each(app.guildsTree.selectedGuildID, func (m *discord.Member) bool {
+		discordState.MemberStore.Each(app.guildsTree.selectedGuildID, func(m *discord.Member) bool {
 			if strings.ToLower(m.User.Username) == name {
-				if channelHasUser(cID , m.User.ID) {
+				if channelHasUser(cID, m.User.ID) {
 					out = []byte(m.User.ID.Mention())
 				}
 				return true
@@ -223,11 +224,11 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 		mi.stopTabCompletion()
 		return
 	}
-	pos := posEnd - (len(name)+1)
+	pos := posEnd - (len(name) + 1)
 
 	if !isAuto && mi.autocomplete.GetItemCount() != 0 {
 		_, name = mi.autocomplete.GetItemText(mi.autocomplete.GetCurrentItem())
-		mi.Replace(pos, posEnd, "@" + name + " ")
+		mi.Replace(pos, posEnd, "@"+name+" ")
 		mi.stopTabCompletion()
 		return
 	}
@@ -265,12 +266,12 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 		}
 		res := fuzzy.FindFrom(name, memberList(mems))
 		if mi.cfg.AutocompleteLimit != 0 &&
-		   len(res) > int(mi.cfg.AutocompleteLimit) {
+			len(res) > int(mi.cfg.AutocompleteLimit) {
 			res = res[:int(mi.cfg.AutocompleteLimit)]
 		}
 		for _, r := range res {
 			if channelHasUser(cID, mems[r.Index].User.ID) &&
-			   mi.addAutocompleteItem(gID, &mems[r.Index]) {
+				mi.addAutocompleteItem(gID, &mems[r.Index]) {
 				break
 			}
 		}
@@ -286,11 +287,11 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 	}
 
 	_, col, _, _ := mi.GetCursor()
-	mi.showMentionList(col-1)
+	mi.showMentionList(col - 1)
 }
 
 func (m memberList) String(i int) string { return m[i].Nick + m[i].User.DisplayName + m[i].User.Tag() }
-func (m memberList) Len() int { return len(m) }
+func (m memberList) Len() int            { return len(m) }
 
 func channelHasUser(cID discord.ChannelID, id discord.UserID) bool {
 	perms, err := discordState.Permissions(cID, id)
@@ -311,8 +312,7 @@ func (mi *messageInput) searchMember(gID discord.GuildID, name string) {
 	// everything starting with "ab". This will still be true even if a new
 	// member joins because arikawa loads new members into the state.
 	if k := key[:len(key)-1]; mi.cache.Exists(k) {
-		if c := mi.cache.Get(k);
-		   c < discordState.MemberState.SearchLimit {
+		if c := mi.cache.Get(k); c < discordState.MemberState.SearchLimit {
 			mi.cache.Create(key, c)
 			return
 		}
@@ -330,12 +330,11 @@ func (mi *messageInput) searchMember(gID discord.GuildID, name string) {
 	mi.cache.Create(key, app.messagesText.waitForChunkEvent())
 }
 
-
 func isValidUserRune(x rune) bool {
 	return (x >= 'a' && x <= 'z') ||
-	       (x >= 'A' && x <= 'Z') ||
-	       (x >= '0' && x <= '9') ||
-	        x == '_' || x == '.'
+		(x >= 'A' && x <= 'Z') ||
+		(x >= '0' && x <= '9') ||
+		x == '_' || x == '.'
 }
 
 func (mi *messageInput) showMentionList(col int) {
@@ -361,8 +360,8 @@ func (mi *messageInput) showMentionList(col int) {
 			t, _ := mi.autocomplete.GetItemText(i)
 			w = max(w, tview.TaggedStringWidth(t))
 		}
-		w = min(w + borders*2, maxW)
-		x += min(col, maxW - w)
+		w = min(w+borders*2, maxW)
+		x += min(col, maxW-w)
 	}
 	l.SetRect(x, y, w, h)
 	app.pages.ShowPage(app.autocompletePage)
@@ -397,12 +396,11 @@ func (mi *messageInput) addAutocompleteItem(gID discord.GuildID, m *discord.Memb
 		}
 	}
 	// The username overwrite in the case of dname == "" is intended
-	if presence, _ := discordState.Cabinet.Presence(gID, m.User.ID);
-	   presence == nil || presence.Status == discord.OfflineStatus {
+	if presence, _ := discordState.Cabinet.Presence(gID, m.User.ID); presence == nil || presence.Status == discord.OfflineStatus {
 		username = "[::d]" + username + "[::D]"
 	}
 	if dname != "" {
-		mi.autocomplete.AddItem(dname + " (" + username + ")", m.User.Username, 0, nil)
+		mi.autocomplete.AddItem(dname+" ("+username+")", m.User.Username, 0, nil)
 	} else {
 		mi.autocomplete.AddItem(username, m.User.Username, 0, nil)
 	}

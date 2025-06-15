@@ -11,7 +11,7 @@ type Cache struct {
 }
 
 func NewCache() *Cache {
-	return &Cache{ items: sync.Map{} }
+	return &Cache{items: sync.Map{}}
 }
 
 func (c *Cache) Create(query string, value uint) {
