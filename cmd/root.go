@@ -9,12 +9,13 @@ import (
 	"github.com/ayn2op/discordo/internal/logger"
 	"github.com/ayn2op/tview"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
+	"github.com/diamondburned/ningen/v3"
 	"github.com/gdamore/tcell/v2"
 	"github.com/zalando/go-keyring"
 )
 
 var (
-	discordState *state
+	discordState *ningen.State
 	app          *application
 )
 

@@ -34,8 +34,11 @@ type messagesText struct {
 	fetchingMembers struct {
 		mu    sync.Mutex
 		value bool
+		count uint
 		done  chan struct{}
 	}
+
+	urlListPage tview.Page
 }
 
 func newMessagesText(cfg *config.Config) *messagesText {
@@ -76,8 +79,10 @@ func (mt *messagesText) drawMsgs(cID discord.ChannelID) {
 		}
 	}
 
+	mt.Clear()
+
 	for _, m := range slices.Backward(msgs) {
-		app.messagesText.createMsg(m)
+		mt.createMsg(m)
 	}
 }
 
@@ -445,8 +450,8 @@ func extractURLs(content string) []string {
 
 func (mt *messagesText) showUrlSelector(urls []string, attachments []discord.Attachment) {
 	done := func() {
-		app.pages.RemovePage("list").SwitchToPage("flex")
-		app.SetFocus(app.messagesText)
+		app.pages.RemovePage(mt.urlListPage).SwitchToPage(app.flexPage)
+		app.SetFocus(mt)
 	}
 
 	list := tview.NewList().
@@ -473,24 +478,19 @@ func (mt *messagesText) showUrlSelector(urls []string, attachments []discord.Att
 		})
 
 	for i, a := range attachments {
-		attachment := a
 		list.AddItem(a.Filename, "", rune('a'+i), func() {
-			go openURL(attachment.URL)
-			done()
+			go openURL(a.URL)
 		})
 	}
 
 	for i, u := range urls {
-		url := u
 		list.AddItem(u, "", rune('1'+i), func() {
-			go openURL(url)
-			done()
+			go openURL(u)
 		})
 	}
 
-	app.pages.
-		AddAndSwitchToPage("list", ui.Centered(list, 0, 0), true).
-		ShowPage("flex")
+	mt.urlListPage = app.pages.AddAndSwitchToPage(ui.Centered(list, 0, 0), true)
+	app.pages.ShowPage(app.flexPage)
 }
 
 func openURL(url string) {
@@ -547,22 +547,17 @@ func (mt *messagesText) delete() {
 		return
 	}
 
+	mt.selectedMessageID = 0
+	app.messageInput.replyMessageID = 0
+	mt.Highlight()
+
 	if err := discordState.MessageRemove(app.guildsTree.selectedChannelID, msg.ID); err != nil {
 		slog.Error("failed to delete message", "err", err, "channel_id", app.guildsTree.selectedChannelID, "message_id", msg.ID)
 		return
 	}
 
-	ms, err := discordState.Cabinet.Messages(app.guildsTree.selectedChannelID)
-	if err != nil {
-		slog.Error("failed to delete message", "err", err, "channel_id", app.guildsTree.selectedChannelID)
-		return
-	}
-
-	mt.Clear()
-
-	for _, m := range slices.Backward(ms) {
-		app.messagesText.createMsg(m)
-	}
+	// No need to redraw messages after deletion, onMessageDelete will do
+	// its work after the event returns
 }
 
 func (mt *messagesText) requestGuildMembers(gID discord.GuildID, ms []discord.Message) {
@@ -583,12 +578,12 @@ func (mt *messagesText) requestGuildMembers(gID discord.GuildID, ms []discord.Me
 			return
 		}
 
-		mt.setFetchingChunk(true)
+		mt.setFetchingChunk(true, 0)
 		mt.waitForChunkEvent()
 	}
 }
 
-func (mt *messagesText) setFetchingChunk(value bool) {
+func (mt *messagesText) setFetchingChunk(value bool, count uint) {
 	mt.fetchingMembers.mu.Lock()
 	defer mt.fetchingMembers.mu.Unlock()
 
@@ -601,21 +596,19 @@ func (mt *messagesText) setFetchingChunk(value bool) {
 	if value {
 		mt.fetchingMembers.done = make(chan struct{})
 	} else {
+		mt.fetchingMembers.count = count
 		close(mt.fetchingMembers.done)
 	}
 }
 
-func (mt *messagesText) waitForChunkEvent() {
+func (mt *messagesText) waitForChunkEvent() uint {
 	mt.fetchingMembers.mu.Lock()
 	if !mt.fetchingMembers.value {
 		mt.fetchingMembers.mu.Unlock()
-		return
+		return 0
 	}
 	mt.fetchingMembers.mu.Unlock()
 
-	select {
-	case <-mt.fetchingMembers.done:
-	default:
-		<-mt.fetchingMembers.done
-	}
+	<-mt.fetchingMembers.done
+	return mt.fetchingMembers.count
 }

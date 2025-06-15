@@ -45,6 +45,9 @@ type (
 		Markdown            bool  `toml:"markdown"`
 		HideBlockedUsers    bool  `toml:"hide_blocked_users"`
 		ShowAttachmentLinks bool  `toml:"show_attachment_links"`
+
+		// Use 0 to disable
+		AutocompleteLimit   uint8 `toml:"autocomplete_limit"`
 		MessagesLimit       uint8 `toml:"messages_limit"`
 
 		Timestamps    Timestamps    `toml:"timestamps"`
