@@ -38,7 +38,7 @@ type messagesText struct {
 		done  chan struct{}
 	}
 
-	urlListPage tview.Page
+	urlListPage int
 }
 
 func newMessagesText(cfg *config.Config) *messagesText {

@@ -23,8 +23,8 @@ type application struct {
 	messagesText *messagesText
 	messageInput *messageInput
 
-	flexPage         tview.Page
-	autocompletePage tview.Page
+	flexPage         int
+	autocompletePage int
 }
 
 func newApplication(cfg *config.Config) *application {
