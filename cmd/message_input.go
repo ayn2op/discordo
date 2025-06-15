@@ -133,6 +133,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	} else {
 		go app.QueueUpdate(func() { mi.tabComplete(true) })
 	}
+
 	return event
 }
 
@@ -205,7 +206,7 @@ func expandMentions(cID discord.ChannelID, src []byte) []byte {
 	return mentionRegex.ReplaceAllFunc(src, func(in []byte) (out []byte) {
 		out = in
 		name := strings.ToLower(string(in[1:]))
-		discordState.MemberStore.Each(app.guildsTree.selectedGuildID, func(m *discord.Member) bool {
+		_ = discordState.MemberStore.Each(app.guildsTree.selectedGuildID, func(m *discord.Member) bool {
 			if strings.ToLower(m.User.Username) == name {
 				if channelHasUser(cID, m.User.ID) {
 					out = []byte(m.User.ID.Mention())
@@ -356,7 +357,7 @@ func (mi *messageInput) showMentionList(col int) {
 	if w == 0 {
 		w = maxW
 	} else {
-		for i := 0; i < count-1; i++ {
+		for i := range count - 1 {
 			t, _ := mi.autocomplete.GetItemText(i)
 			w = max(w, tview.TaggedStringWidth(t))
 		}
