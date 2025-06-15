@@ -15,10 +15,6 @@ import (
 	"github.com/gdamore/tcell/v2"
 )
 
-type state struct {
-	*ningen.State
-}
-
 func openState(token string) error {
 	api.UserAgent = app.cfg.Identify.UserAgent
 	gateway.DefaultIdentity = gateway.IdentifyProperties{
@@ -34,17 +30,19 @@ func openState(token string) error {
 		Status: app.cfg.Identify.Status,
 	}
 
-	discordState = &state{
-		State: ningen.New(token),
-	}
+	discordState = ningen.New(token)
 
 	// Handlers
-	discordState.AddHandler(discordState.onReady)
-	discordState.AddHandler(discordState.onMessageCreate)
-	discordState.AddHandler(discordState.onMessageDelete)
+	discordState.AddHandler(onReady)
+	discordState.AddHandler(onMessageCreate)
+	discordState.AddHandler(onMessageDelete)
 
-	discordState.AddHandler(func(_ *gateway.GuildMembersChunkEvent) {
-		app.messagesText.setFetchingChunk(false)
+	discordState.AddHandler(func(event *gateway.GuildMembersChunkEvent) {
+		app.messagesText.setFetchingChunk(false, uint(len(event.Members)))
+	})
+
+	discordState.AddHandler(func(event *gateway.GuildMemberRemoveEvent) {
+		app.messageInput.cache.Invalidate(event.GuildID.String() + " " + event.User.Username, discordState.MemberState.SearchLimit)
 	})
 
 	discordState.AddHandler(func(event *ws.RawEvent) {
@@ -63,12 +61,12 @@ func openState(token string) error {
 		slog.Error("state log", "err", err)
 	}
 
-	discordState.OnRequest = append(discordState.OnRequest, discordState.onRequest)
+	discordState.OnRequest = append(discordState.OnRequest, onRequest)
 
 	return discordState.Open(context.TODO())
 }
 
-func (s *state) onRequest(r httpdriver.Request) error {
+func onRequest(r httpdriver.Request) error {
 	req, ok := r.(*httpdriver.DefaultRequest)
 	if ok {
 		slog.Debug("new HTTP request", "method", req.Method, "url", req.URL)
@@ -77,7 +75,7 @@ func (s *state) onRequest(r httpdriver.Request) error {
 	return nil
 }
 
-func (s *state) onReady(ready *gateway.ReadyEvent) {
+func onReady(r *gateway.ReadyEvent) {
 	root := app.guildsTree.GetRoot()
 	root.ClearChildren()
 
@@ -85,7 +83,7 @@ func (s *state) onReady(ready *gateway.ReadyEvent) {
 	dmNode.SetColor(tcell.GetColor(app.cfg.Theme.GuildsTree.PrivateChannelColor))
 	root.AddChild(dmNode)
 
-	for _, folder := range ready.UserSettings.GuildFolders {
+	for _, folder := range r.UserSettings.GuildFolders {
 		if folder.ID == 0 && len(folder.GuildIDs) == 1 {
 			guild, err := discordState.Cabinet.Guild(folder.GuildIDs[0])
 			if err != nil {
@@ -110,23 +108,22 @@ func (s *state) onReady(ready *gateway.ReadyEvent) {
 	app.SetFocus(app.guildsTree)
 }
 
-func (s *state) onMessageCreate(msg *gateway.MessageCreateEvent) {
+func onMessageCreate(m *gateway.MessageCreateEvent) {
 	if app.guildsTree.selectedChannelID.IsValid() &&
-		app.guildsTree.selectedChannelID == msg.ChannelID {
-		app.messagesText.createMsg(msg.Message)
+		app.guildsTree.selectedChannelID == m.ChannelID {
+		app.messagesText.createMsg(m.Message)
 	}
 
-	if err := notifications.HandleIncomingMessage(s.State, msg, app.cfg); err != nil {
+	if err := notifications.HandleIncomingMessage(discordState, m, app.cfg); err != nil {
 		slog.Error("Notification failed", "err", err)
 	}
 }
 
-func (s *state) onMessageDelete(msg *gateway.MessageDeleteEvent) {
-	if app.guildsTree.selectedChannelID == msg.ChannelID {
+func onMessageDelete(m *gateway.MessageDeleteEvent) {
+	if app.guildsTree.selectedChannelID == m.ChannelID {
 		app.messagesText.selectedMessageID = 0
 		app.messagesText.Highlight()
 		app.messagesText.Clear()
-
-		app.messagesText.drawMsgs(msg.ChannelID)
+		app.messagesText.drawMsgs(m.ChannelID)
 	}
 }
