@@ -73,12 +73,20 @@ Do this if you get the error:
 
 > failed to get token from keyring: secret not found in keyring
 
-#### MacOS
+#### Windows
 
-Run the following command in a terminal window with `sudo` to create the `token` entry.
+Run the following command in a terminal window. Replace `YOUR_DISCORD_TOKEN` with your authentication token.
 
 ```sh
-security add-generic-password -s discordo -a token -w "DISCORD TOKEN HERE"
+cmdkey /add:discordo /user:token /pass:YOUR_DISCORD_TOKEN
+```
+
+#### MacOS
+
+Run the following command in a terminal window. Replace `YOUR_DISCORD_TOKEN` with your authentication token.
+
+```sh
+security add-generic-password -s discordo -a token -w "YOUR_DISCORD_TOKEN"
 ```
 
 #### Linux
