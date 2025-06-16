@@ -72,7 +72,7 @@ func (mt *messagesText) drawMsgs(cID discord.ChannelID) {
 
 	if app.cfg.Theme.MessagesText.ShowNicknames || app.cfg.Theme.MessagesText.ShowUsernameColors {
 		if ch, _ := discordState.Cabinet.Channel(cID); ch.GuildID.IsValid() {
-			mt.requestGuildMembers(ch.GuildID, msgs)
+			go mt.requestGuildMembers(ch.GuildID, msgs)
 		}
 	}
 
