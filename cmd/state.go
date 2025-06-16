@@ -112,6 +112,7 @@ func onMessageCreate(m *gateway.MessageCreateEvent) {
 	if app.guildsTree.selectedChannelID.IsValid() &&
 		app.guildsTree.selectedChannelID == m.ChannelID {
 		app.messagesText.createMsg(m.Message)
+		app.Draw()
 	}
 
 	if err := notifications.HandleIncomingMessage(discordState, m, app.cfg); err != nil {

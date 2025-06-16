@@ -56,9 +56,6 @@ func newMessagesText(cfg *config.Config) *messagesText {
 		SetWordWrap(true).
 		ScrollToEnd().
 		SetHighlightedFunc(mt.onHighlighted).
-		SetChangedFunc(func() {
-			app.Draw()
-		}).
 		SetTitle("Messages").
 		SetInputCapture(mt.onInputCapture)
 
