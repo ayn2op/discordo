@@ -125,17 +125,3 @@ func handleDefaults(cfg *Config) {
 		cfg.Identify.UserAgent = consts.UserAgent
 	}
 }
-
-func (cfg *Config) GetMemberName(m *discord.Member) string {
-	if cfg.Theme.MessagesText.ShowNicknames && m.Nick != "" {
-		return m.Nick
-	}
-	return cfg.GetUserName(&m.User)
-}
-
-func (cfg *Config) GetUserName(u *discord.User) string {
-	if cfg.Theme.MessagesText.ShowUsernames || u.DisplayName == "" {
-		return u.Username
-	}
-	return u.DisplayName
-}

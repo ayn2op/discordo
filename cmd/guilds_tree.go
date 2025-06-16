@@ -82,7 +82,7 @@ func (gt *guildsTree) channelToString(channel discord.Channel) string {
 
 		recipients := make([]string, len(channel.DMRecipients))
 		for i, r := range channel.DMRecipients {
-			recipients[i] = gt.cfg.GetUserName(&r)
+			recipients[i] = app.messagesText.getName(&r)
 		}
 
 		return strings.Join(recipients, ", ")
