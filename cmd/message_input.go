@@ -106,32 +106,23 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		return nil
 	}
 
-	if app.pages.GetVisible(app.autocompletePage) && mi.cfg.AutocompleteLimit > 0 {
-		count := mi.autocomplete.GetItemCount()
-		cur := mi.autocomplete.GetCurrentItem()
-		n := event.Name()
-		switch n {
-		case mi.cfg.Keys.Autocomplete.Down:
-			if cur == count-1 {
-				mi.autocomplete.SetCurrentItem(0)
-			} else {
-				mi.autocomplete.SetCurrentItem(cur + 1)
-			}
-			return nil
-		case mi.cfg.Keys.Autocomplete.Up:
-			if cur == 0 {
-				mi.autocomplete.SetCurrentItem(count - 1)
-			} else {
-				mi.autocomplete.SetCurrentItem(cur - 1)
-			}
-			return nil
-		}
-	}
-
 	if mi.cfg.AutocompleteLimit > 0 {
+		if app.pages.GetVisible(app.autocompletePage) {
+			count := mi.autocomplete.GetItemCount()
+			cur := mi.autocomplete.GetCurrentItem()
+			switch event.Name() {
+			case mi.cfg.Keys.Autocomplete.Down:
+				mi.autocomplete.SetCurrentItem((cur+1) % count)
+				return nil
+			case mi.cfg.Keys.Autocomplete.Up:
+				if cur == 0 {
+					cur = count
+				}
+				mi.autocomplete.SetCurrentItem(cur - 1)
+				return nil
+			}
+		}
 		go app.QueueUpdateDraw(func() { mi.tabComplete(true) })
-	} else {
-		go app.QueueUpdate(func() { mi.tabComplete(true) })
 	}
 
 	return event
@@ -227,15 +218,34 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 	}
 	pos := posEnd - (len(name) + 1)
 
-	if !isAuto && mi.autocomplete.GetItemCount() != 0 {
+	gID := app.guildsTree.selectedGuildID
+	cID := app.guildsTree.selectedChannelID
+
+	if !isAuto {
+		if mi.cfg.AutocompleteLimit == 0 {
+			mi.searchMember(gID, name)
+			mems, err := discordState.Cabinet.Members(gID)
+			if err != nil {
+				slog.Error("fetching members failed", "err", err)
+				return
+			}
+			res := fuzzy.FindFrom(name, memberList(mems))
+			for _, r := range res {
+				if channelHasUser(cID, mems[r.Index].User.ID) {
+					mi.Replace(pos, posEnd, "@"+mems[r.Index].User.Username+" ")
+					return
+				}
+			}
+			return
+		}
+		if mi.autocomplete.GetItemCount() == 0 {
+			return
+		}
 		_, name = mi.autocomplete.GetItemText(mi.autocomplete.GetCurrentItem())
 		mi.Replace(pos, posEnd, "@"+name+" ")
 		mi.stopTabCompletion()
 		return
 	}
-
-	gID := app.guildsTree.selectedGuildID
-	cID := app.guildsTree.selectedChannelID
 
 	// Special case, show recent messages' authors
 	if name == "" {
@@ -266,8 +276,7 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 			return
 		}
 		res := fuzzy.FindFrom(name, memberList(mems))
-		if mi.cfg.AutocompleteLimit != 0 &&
-			len(res) > int(mi.cfg.AutocompleteLimit) {
+		if len(res) > int(mi.cfg.AutocompleteLimit) {
 			res = res[:int(mi.cfg.AutocompleteLimit)]
 		}
 		for _, r := range res {
@@ -280,10 +289,6 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 
 	if mi.autocomplete.GetItemCount() == 0 {
 		mi.stopTabCompletion()
-		return
-	}
-
-	if mi.cfg.AutocompleteLimit == 0 {
 		return
 	}
 
