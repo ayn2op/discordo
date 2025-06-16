@@ -131,8 +131,10 @@ guild_color = "white"
 channel_color = "white"
 
 [theme.messages_text]
-# Set to false to show messages with usernames instead of nicknames
+# Set to true to prefer server-specific nicknames.
 show_user_nicks = true
+# Set to true to prefer usernames over display names.
+show_usernames = false
 show_user_colors = true
 
 reply_indicator = ">"
@@ -145,7 +147,12 @@ url_style = { foreground = "blue" }
 attachment_style = { foreground = "yellow" }
 
 [theme.autocomplete]
+# Set to true to prefer server-specific nicknames instead of display names.
 show_user_nicks = true
+# Set to true to always show usernames next to nick/display names.
+# Note: if a user did not set a nick/display name, usernames will be shown
+# even with show_usernames = false.
+show_usernames = true
 show_user_colors = true
 
 # Note: width and height are capped to the avaliable space

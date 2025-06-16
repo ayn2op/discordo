@@ -128,7 +128,7 @@ func (mt *messagesText) createMsg(msg discord.Message) {
 	case discord.InlinedReplyMessage:
 		mt.createReplyMsg(msg)
 	case discord.ChannelPinnedMessage:
-		fmt.Fprintf(mt, "%s pinned a message", msg.Author.DisplayOrUsername())
+		fmt.Fprintf(mt, "%s pinned a message", mt.cfg.GetUserName(&msg.Author))
 	default:
 		mt.drawTimestamps(msg.Timestamp)
 		mt.drawAuthor(msg)
@@ -153,8 +153,8 @@ func (mt *messagesText) drawAuthor(msg discord.Message) {
 
 func (mt *messagesText) drawContent(msg discord.Message) {
 	c := []byte(tview.Escape(msg.Content))
-	ast := discordmd.ParseWithMessage(c, *discordState.Cabinet, &msg, false)
 	if app.cfg.Markdown {
+		ast := discordmd.ParseWithMessage(c, *discordState.Cabinet, &msg, false)
 		markdown.DefaultRenderer.Render(mt, c, ast)
 	} else {
 		mt.Write(c) // write the content as is
@@ -206,15 +206,13 @@ func (mt *messagesText) createReplyMsg(msg discord.Message) {
 }
 
 func (mt *messagesText) authorName(user discord.User, gID discord.GuildID) string {
-	name := user.DisplayOrUsername()
 	if app.cfg.Theme.MessagesText.ShowNicknames && gID.IsValid() {
 		// Use guild nickname if present
 		if member, _ := discordState.Cabinet.Member(gID, user.ID); member != nil && member.Nick != "" {
-			name = member.Nick
+			return mt.cfg.GetMemberName(member)
 		}
 	}
-
-	return name
+	return mt.cfg.GetUserName(&user)
 }
 
 func (mt *messagesText) createForwardedMsg(msg discord.Message) {
