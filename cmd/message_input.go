@@ -87,6 +87,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 			mi.tabComplete(false)
 			return nil
 		}
+
 		mi.send()
 		return nil
 	case mi.cfg.Keys.MessageInput.Editor:
@@ -99,6 +100,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		} else {
 			mi.reset()
 		}
+
 		return nil
 	case mi.cfg.Keys.MessageInput.TabComplete:
 		go app.QueueUpdateDraw(func() { mi.tabComplete(false) })
@@ -121,6 +123,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 				return nil
 			}
 		}
+
 		go app.QueueUpdateDraw(func() { mi.tabComplete(true) })
 	}
 
@@ -193,19 +196,19 @@ func processText(cID discord.ChannelID, src []byte) string {
 }
 
 func expandMentions(cID discord.ChannelID, src []byte) []byte {
-	return mentionRegex.ReplaceAllFunc(src, func(in []byte) (out []byte) {
-		out = in
-		name := strings.ToLower(string(in[1:]))
+	return mentionRegex.ReplaceAllFunc(src, func(input []byte) []byte {
+		output := input
+		name := strings.ToLower(string(input[1:]))
 		_ = discordState.MemberStore.Each(app.guildsTree.selectedGuildID, func(m *discord.Member) bool {
-			if strings.ToLower(m.User.Username) == name {
-				if channelHasUser(cID, m.User.ID) {
-					out = []byte(m.User.ID.Mention())
-				}
+			if strings.ToLower(m.User.Username) == name && channelHasUser(cID, m.User.ID) {
+				output = []byte(m.User.ID.Mention())
 				return true
 			}
+
 			return false
 		})
-		return
+
+		return output
 	})
 }
 
