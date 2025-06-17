@@ -168,30 +168,32 @@ func (mi *messageInput) send() {
 }
 
 func processText(cID discord.ChannelID, src []byte) string {
-	// ranges we can expandMentions in them
-	var rngs [][2]int
-	canMention := true
-	n := discordmd.Parse(src)
-	ast.Walk(n, func(n ast.Node, enter bool) (ast.WalkStatus, error) {
-		switch n := n.(type) {
+	var (
+		ranges     [][2]int
+		canMention = true
+	)
+
+	_ = ast.Walk(discordmd.Parse(src), func(node ast.Node, enter bool) (ast.WalkStatus, error) {
+		switch node := node.(type) {
 		case *ast.CodeBlock:
 			canMention = !enter
 		case *discordmd.Inline:
-			if (n.Attr & discordmd.AttrMonospace) != 0 {
+			if (node.Attr & discordmd.AttrMonospace) != 0 {
 				canMention = !enter
 			}
 		case *ast.Text:
 			if canMention {
-				rngs = append(rngs, [2]int{n.Segment.Start,
-					n.Segment.Stop})
+				ranges = append(ranges, [2]int{node.Segment.Start,
+					node.Segment.Stop})
 			}
 		}
 		return ast.WalkContinue, nil
 	})
-	for _, rng := range rngs {
-		src = slices.Replace(src, rng[0], rng[1],
-			expandMentions(cID, src[rng[0]:rng[1]])...)
+
+	for _, rng := range ranges {
+		src = slices.Replace(src, rng[0], rng[1], expandMentions(cID, src[rng[0]:rng[1]])...)
 	}
+
 	return string(src)
 }
 
