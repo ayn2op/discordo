@@ -61,17 +61,16 @@ func newMessageInput(cfg *config.Config) *messageInput {
 		SetInputCapture(mi.onInputCapture)
 
 	mi.autocomplete.Box = ui.NewConfiguredBox(mi.autocomplete.Box, &mi.cfg.Theme)
-	mi.autocomplete.SetTitle("Mention")
 	mi.autocomplete.
 		ShowSecondaryText(false).
-		SetSelectedStyle(tcell.StyleDefault.
-			Background(tcell.ColorWhite).
-			Foreground(tcell.ColorBlack))
-	mi.autocomplete.SetRect(0, 0, 0, 0)
+		SetSelectedStyle(tcell.StyleDefault.Background(tcell.ColorWhite).Foreground(tcell.ColorBlack)).
+		SetTitle("Mentions").
+		SetRect(0, 0, 0, 0)
+
 	b := mi.autocomplete.GetBorderSet()
-	b.BottomLeft = b.BottomT
-	b.BottomRight = b.BottomT
+	b.BottomLeft, b.BottomRight = b.BottomT, b.BottomT
 	mi.autocomplete.SetBorderSet(b)
+
 	return mi
 }
 
@@ -112,7 +111,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 			cur := mi.autocomplete.GetCurrentItem()
 			switch event.Name() {
 			case mi.cfg.Keys.Autocomplete.Down:
-				mi.autocomplete.SetCurrentItem((cur+1) % count)
+				mi.autocomplete.SetCurrentItem((cur + 1) % count)
 				return nil
 			case mi.cfg.Keys.Autocomplete.Up:
 				if cur == 0 {
