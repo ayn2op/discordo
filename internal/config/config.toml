@@ -104,6 +104,10 @@ down = "Down"
 # Applies to all
 [theme]
 background_color = "default"
+# Set to true to prefer server-specific nicknames.
+prefer_nicks = true
+# Set to true to show usernames instead of display names.
+show_usernames = false
 
 [theme.title]
 # The values can be one of the following: `"left"`, `"center"`, and `"right"`.
@@ -131,10 +135,6 @@ guild_color = "white"
 channel_color = "white"
 
 [theme.messages_text]
-# Set to true to prefer server-specific nicknames.
-show_user_nicks = true
-# Set to true to prefer usernames over display names.
-show_usernames = false
 show_user_colors = true
 
 reply_indicator = ">"
@@ -147,7 +147,7 @@ url_style = { foreground = "blue" }
 attachment_style = { foreground = "yellow" }
 
 [theme.autocomplete]
-# Set to true to prefer server-specific nicknames instead of display names.
+# Set to true to show server-specific nicknames instead of display names.
 show_user_nicks = true
 # Set to true to always show usernames next to nick/display names.
 # Note: if a user did not set a nick/display name, usernames will be shown

@@ -49,7 +49,6 @@ func newMessagesText(cfg *config.Config) *messagesText {
 
 	mt.Box = ui.NewConfiguredBox(mt.Box, &cfg.Theme)
 
-	t := cfg.Theme
 	mt.
 		SetDynamicColors(true).
 		SetRegions(true).
@@ -59,7 +58,7 @@ func newMessagesText(cfg *config.Config) *messagesText {
 		SetTitle("Messages").
 		SetInputCapture(mt.onInputCapture)
 
-	markdown.DefaultRenderer.AddOptions(renderer.WithOption("theme", t.MessagesText))
+	markdown.DefaultRenderer.AddOptions(renderer.WithOption("theme", cfg.Theme))
 	return mt
 }
 
@@ -70,7 +69,7 @@ func (mt *messagesText) drawMsgs(cID discord.ChannelID) {
 		return
 	}
 
-	if app.cfg.Theme.MessagesText.ShowNicknames || app.cfg.Theme.MessagesText.ShowUsernameColors {
+	if app.cfg.Theme.PreferNicks || app.cfg.Theme.MessagesText.ShowUsernameColors {
 		if ch, _ := discordState.Cabinet.Channel(cID); ch.GuildID.IsValid() {
 			go mt.requestGuildMembers(ch.GuildID, msgs)
 		}
@@ -206,7 +205,7 @@ func (mt *messagesText) createReplyMsg(msg discord.Message) {
 }
 
 func (mt *messagesText) authorName(user discord.User, gID discord.GuildID) string {
-	if app.cfg.Theme.MessagesText.ShowNicknames && gID.IsValid() {
+	if app.cfg.Theme.PreferNicks && gID.IsValid() {
 		// Use guild nickname if present
 		if member, _ := discordState.Cabinet.Member(gID, user.ID); member != nil && member.Nick != "" {
 			return mt.getMemberName(member)
@@ -216,14 +215,14 @@ func (mt *messagesText) authorName(user discord.User, gID discord.GuildID) strin
 }
 
 func (mt *messagesText) getMemberName(m *discord.Member) string {
-	if mt.cfg.Theme.MessagesText.ShowNicknames && m.Nick != "" {
+	if mt.cfg.Theme.PreferNicks && m.Nick != "" {
 		return m.Nick
 	}
 	return mt.getName(&m.User)
 }
 
 func (mt *messagesText) getName(u *discord.User) string {
-	if mt.cfg.Theme.MessagesText.ShowUsernames || u.DisplayName == "" {
+	if mt.cfg.Theme.ShowUsernames || u.DisplayName == "" {
 		return u.Username
 	}
 	return u.DisplayName

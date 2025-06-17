@@ -89,8 +89,8 @@ func (r *renderer) renderFencedCodeBlock(w io.Writer, n *ast.FencedCodeBlock, en
 
 func (r *renderer) renderAutoLink(w io.Writer, n *ast.AutoLink, entering bool, source []byte) {
 	if entering {
-		theme := r.config.Options["theme"].(config.MessagesTextTheme)
-		fg, bg, _ := theme.URLStyle.Decompose()
+		theme := r.config.Options["theme"].(config.Theme)
+		fg, bg, _ := theme.MessagesText.URLStyle.Decompose()
 		_, _ = fmt.Fprintf(w, "[%s:%s]", fg, bg)
 		w.Write(n.URL(source))
 	} else {
@@ -100,8 +100,8 @@ func (r *renderer) renderAutoLink(w io.Writer, n *ast.AutoLink, entering bool, s
 
 func (r *renderer) renderLink(w io.Writer, n *ast.Link, entering bool) {
 	if entering {
-		theme := r.config.Options["theme"].(config.MessagesTextTheme)
-		fg, bg, _ := theme.URLStyle.Decompose()
+		theme := r.config.Options["theme"].(config.Theme)
+		fg, bg, _ := theme.MessagesText.URLStyle.Decompose()
 		_, _ = fmt.Fprintf(w, "[%s:%s::%s]", fg, bg, n.Destination)
 	} else {
 		io.WriteString(w, "[-:-::-]")
@@ -152,18 +152,23 @@ func (r *renderer) renderInline(w io.Writer, n *discordmd.Inline, entering bool)
 
 func (r *renderer) renderMention(w io.Writer, n *discordmd.Mention, entering bool) {
 	if entering {
-		theme := r.config.Options["theme"].(config.MessagesTextTheme)
-		fg, bg, _ := theme.MentionStyle.Decompose()
+		theme := r.config.Options["theme"].(config.Theme)
+		fg, bg, _ := theme.MessagesText.MentionStyle.Decompose()
 		_, _ = fmt.Fprintf(w, "[%s:%s:b]", fg, bg)
 
 		switch {
 		case n.Channel != nil:
 			io.WriteString(w, "#"+n.Channel.Name)
 		case n.GuildUser != nil:
-			username := n.GuildUser.DisplayOrUsername()
-			theme := r.config.Options["theme"].(config.MessagesTextTheme)
-			if theme.ShowNicknames && n.GuildUser.Member != nil && n.GuildUser.Member.Nick != "" {
+			username := ""
+			if theme.PreferNicks && n.GuildUser.Member != nil && n.GuildUser.Member.Nick != "" {
 				username = n.GuildUser.Member.Nick
+			}
+			if !theme.ShowUsernames && username == "" {
+				username = n.GuildUser.Member.User.DisplayName
+			}
+			if username == "" {
+				username = n.GuildUser.Member.User.Username
 			}
 			io.WriteString(w, "@"+username)
 		case n.GuildRole != nil:
@@ -176,8 +181,8 @@ func (r *renderer) renderMention(w io.Writer, n *discordmd.Mention, entering boo
 
 func (r *renderer) renderEmoji(w io.Writer, n *discordmd.Emoji, entering bool) {
 	if entering {
-		theme := r.config.Options["theme"].(config.MessagesTextTheme)
-		fg, bg, _ := theme.EmojiStyle.Decompose()
+		theme := r.config.Options["theme"].(config.Theme)
+		fg, bg, _ := theme.MessagesText.EmojiStyle.Decompose()
 		fmt.Fprintf(w, "[%s:%s]", fg, bg)
 		io.WriteString(w, ":"+n.Name+":")
 	} else {
