@@ -160,9 +160,7 @@ func (mi *messageInput) send() {
 		}
 	}()
 
-	mi.replyMessageID = 0
 	mi.reset()
-
 	app.messagesText.Highlight()
 	app.messagesText.ScrollToEnd()
 }
