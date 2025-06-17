@@ -110,7 +110,7 @@ func (mt *messagesText) createMsg(msg discord.Message) {
 	if mt.cfg.HideBlockedUsers {
 		isBlocked := discordState.UserIsBlocked(msg.Author.ID)
 		if isBlocked {
-			fmt.Fprintln(mt, "[:red:b]Blocked message[:-:-]")
+			io.WriteString(mt, "[:red:b]Blocked message[:-:-]")
 			return
 		}
 	}
