@@ -13,10 +13,9 @@ import (
 )
 
 type application struct {
-	*tview.Application
-
 	cfg *config.Config
 
+	*tview.Application
 	pages        *tview.Pages
 	flex         *tview.Flex
 	guildsTree   *guildsTree
@@ -29,10 +28,9 @@ type application struct {
 
 func newApplication(cfg *config.Config) *application {
 	app := &application{
-		Application: tview.NewApplication(),
-
 		cfg: cfg,
 
+		Application:  tview.NewApplication(),
 		pages:        tview.NewPages(),
 		flex:         tview.NewFlex(),
 		guildsTree:   newGuildsTree(cfg),
@@ -80,6 +78,16 @@ func (a *application) run(token string) error {
 	return nil
 }
 
+func (a *application) quit() {
+	if discordState != nil {
+		if err := discordState.Close(); err != nil {
+			slog.Error("failed to close the session", "err", err)
+		}
+	}
+
+	a.Stop()
+}
+
 func (a *application) init() {
 	a.pages.Clear()
 	a.flex.Clear()
@@ -98,13 +106,8 @@ func (a *application) init() {
 func (a *application) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case a.cfg.Keys.Quit:
-		if discordState != nil {
-			if err := discordState.Close(); err != nil {
-				slog.Error("failed to close the session", "err", err)
-			}
-		}
-
-		a.Stop()
+		a.quit()
+		return nil
 	case "Ctrl+C":
 		// https://github.com/ayn2op/tview/blob/a64fc48d7654432f71922c8b908280cdb525805c/application.go#L153
 		return tcell.NewEventKey(tcell.KeyCtrlC, 0, tcell.ModNone)
@@ -127,7 +130,7 @@ func (a *application) onFlexInputCapture(event *tcell.EventKey) *tcell.EventKey 
 		a.SetFocus(app.messageInput)
 		return nil
 	case a.cfg.Keys.Logout:
-		a.Stop()
+		a.quit()
 
 		if err := keyring.Delete(consts.Name, "token"); err != nil {
 			slog.Error("failed to delete token from keyring", "err", err)
