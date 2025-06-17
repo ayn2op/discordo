@@ -43,17 +43,13 @@ func newGuildsTree(cfg *config.Config) *guildsTree {
 }
 
 func (gt *guildsTree) createFolderNode(folder gateway.GuildFolder) {
-	var name string
-	if folder.Name == "" {
-		name = "Folder"
-	} else {
+	name := "Folder"
+	if folder.Name != "" {
 		name = fmt.Sprintf("[%s]%s[-]", folder.Color.String(), folder.Name)
 	}
 
-	root := gt.GetRoot()
-	folderNode := tview.NewTreeNode(name)
-	folderNode.SetExpanded(gt.cfg.Theme.GuildsTree.AutoExpandFolders)
-	root.AddChild(folderNode)
+	folderNode := tview.NewTreeNode(name).SetExpanded(gt.cfg.Theme.GuildsTree.AutoExpandFolders)
+	gt.GetRoot().AddChild(folderNode)
 
 	for _, gID := range folder.GuildIDs {
 		guild, err := discordState.Cabinet.Guild(gID)
@@ -86,7 +82,6 @@ func (gt *guildsTree) channelToString(channel discord.Channel) string {
 		}
 
 		return strings.Join(recipients, ", ")
-
 	case discord.GuildText:
 		return "#" + channel.Name
 	case discord.GuildVoice, discord.GuildStageVoice:
@@ -115,9 +110,9 @@ func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Ch
 		}
 	}
 
-	channelNode := tview.NewTreeNode(gt.channelToString(channel))
-	channelNode.SetReference(channel.ID)
-	channelNode.SetColor(tcell.GetColor(gt.cfg.Theme.GuildsTree.ChannelColor))
+	channelNode := tview.NewTreeNode(gt.channelToString(channel)).
+		SetReference(channel.ID).
+		SetColor(tcell.GetColor(gt.cfg.Theme.GuildsTree.ChannelColor))
 	node.AddChild(channelNode)
 }
 
