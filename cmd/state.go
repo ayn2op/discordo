@@ -79,8 +79,7 @@ func onReady(r *gateway.ReadyEvent) {
 	root := app.guildsTree.GetRoot()
 	root.ClearChildren()
 
-	dmNode := tview.NewTreeNode("Direct Messages")
-	dmNode.SetColor(tcell.GetColor(app.cfg.Theme.GuildsTree.PrivateChannelColor))
+	dmNode := tview.NewTreeNode("Direct Messages").SetColor(tcell.GetColor(app.cfg.Theme.GuildsTree.PrivateChannelColor))
 	root.AddChild(dmNode)
 
 	for _, folder := range r.UserSettings.GuildFolders {
