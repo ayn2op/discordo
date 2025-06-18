@@ -17,6 +17,7 @@ import (
 	"github.com/ayn2op/tview"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/ningen/v3/discordmd"
 	"github.com/gdamore/tcell/v2"
 	"github.com/skratchdot/open-golang/open"
@@ -71,7 +72,7 @@ func (mt *messagesText) drawMsgs(cID discord.ChannelID) {
 
 	if app.cfg.Theme.PreferNicks || app.cfg.Theme.MessagesText.ShowUsernameColors {
 		if ch, _ := discordState.Cabinet.Channel(cID); ch.GuildID.IsValid() {
-			go mt.requestGuildMembers(ch.GuildID, msgs)
+			mt.requestGuildMembers(ch.GuildID, msgs)
 		}
 	}
 
@@ -109,7 +110,7 @@ func (mt *messagesText) createMsg(msg discord.Message) {
 	if mt.cfg.HideBlockedUsers {
 		isBlocked := discordState.UserIsBlocked(msg.Author.ID)
 		if isBlocked {
-			fmt.Fprintln(mt, "[:red:b]Blocked message[:-:-]")
+			io.WriteString(mt, "[:red:b]Blocked message[:-:-]")
 			return
 		}
 	}
@@ -127,7 +128,11 @@ func (mt *messagesText) createMsg(msg discord.Message) {
 	case discord.InlinedReplyMessage:
 		mt.createReplyMsg(msg)
 	case discord.ChannelPinnedMessage:
-		fmt.Fprintf(mt, "%s pinned a message", mt.getName(&msg.Author))
+		if mt.cfg.Theme.ShowUsernames || u.DisplayName == "" {
+			fmt.Fprintf(mt, "%s pinned a message", msg.Author.Username)
+		} else {
+			fmt.Fprintf(mt, "%s pinned a message", msg.Author.DisplayName)
+		}
 	default:
 		mt.drawTimestamps(msg.Timestamp)
 		mt.drawAuthor(msg)
@@ -145,8 +150,37 @@ func (mt *messagesText) drawTimestamps(ts discord.Timestamp) {
 }
 
 func (mt *messagesText) drawAuthor(msg discord.Message) {
-	name := mt.authorName(msg.Author, msg.GuildID)
-	fg, bg, _ := mt.authorStyle(msg.Author, msg.GuildID).Decompose()
+	var name string
+	if mt.cfg.Theme.ShowUsernames || msg.Author.DisplayName == "" {
+		name = msg.Author.Username
+	} else {
+		name = msg.Author.DisplayName
+	}
+	style := mt.cfg.Theme.MessagesText.AuthorStyle
+
+	if msg.GuildID.IsValid() {
+		member, err := discordState.Cabinet.Member(msg.GuildID, msg.Author.ID)
+		if err != nil {
+			slog.Error("failed to get member from state", "guild_id", msg.GuildID, "member_id", msg.Author.ID, "err", err)
+			return
+		}
+
+		if app.cfg.Theme.PreferNicks && member.Nick != "" {
+			name = member.Nick
+		}
+
+		if app.cfg.Theme.MessagesText.ShowUsernameColors {
+			if color, ok := state.MemberColor(member, func(id discord.RoleID) *discord.Role {
+				r, _ := discordState.Cabinet.Role(msg.GuildID, id)
+				return r
+			}); ok {
+				c := tcell.GetColor(color.String())
+				style = config.NewStyleWrapper(tcell.StyleDefault.Foreground(c))
+			}
+		}
+	}
+
+	fg, bg, _ := style.Decompose()
 	_, _ = fmt.Fprintf(mt, "[%s:%s]%s[-] ", fg.String(), bg.String(), name)
 }
 
@@ -204,48 +238,12 @@ func (mt *messagesText) createReplyMsg(msg discord.Message) {
 	mt.createDefaultMsg(msg)
 }
 
-func (mt *messagesText) authorName(user discord.User, gID discord.GuildID) string {
-	if app.cfg.Theme.PreferNicks && gID.IsValid() {
-		// Use guild nickname if present
-		if member, _ := discordState.Cabinet.Member(gID, user.ID); member != nil && member.Nick != "" {
-			return mt.getMemberName(member)
-		}
-	}
-	return mt.getName(&user)
-}
-
-func (mt *messagesText) getMemberName(m *discord.Member) string {
-	if mt.cfg.Theme.PreferNicks && m.Nick != "" {
-		return m.Nick
-	}
-	return mt.getName(&m.User)
-}
-
-func (mt *messagesText) getName(u *discord.User) string {
-	if mt.cfg.Theme.ShowUsernames || u.DisplayName == "" {
-		return u.Username
-	}
-	return u.DisplayName
-}
-
 func (mt *messagesText) createForwardedMsg(msg discord.Message) {
 	mt.drawTimestamps(msg.Timestamp)
 	mt.drawAuthor(msg)
 	fmt.Fprintf(mt, "[::d]%s [::-]", mt.cfg.Theme.MessagesText.ForwardedIndicator)
 	mt.drawSnapshotContent(msg.MessageSnapshots[0].Message)
 	fmt.Fprintf(mt, " [::d](%s)[-:-:-] ", mt.formatTimestamp(msg.MessageSnapshots[0].Message.Timestamp))
-}
-
-func (mt *messagesText) authorStyle(user discord.User, gID discord.GuildID) config.StyleWrapper {
-	style := mt.cfg.Theme.MessagesText.AuthorStyle
-	if app.cfg.Theme.MessagesText.ShowUsernameColors && gID.IsValid() {
-		// Use color from highest role in guild
-		if c, ok := discordState.MemberColor(gID, user.ID); ok {
-			style = config.StyleWrapper{Style: tcell.StyleDefault.Foreground(tcell.GetColor(c.String()))}
-		}
-	}
-
-	return style
 }
 
 func (mt *messagesText) selectedMsg() (*discord.Message, error) {
@@ -521,7 +519,21 @@ func (mt *messagesText) reply(mention bool) {
 		return
 	}
 
-	title += mt.authorName(msg.Author, msg.GuildID)
+	name := msg.Author.DisplayOrUsername()
+
+	if msg.GuildID.IsValid() {
+		member, err := discordState.Cabinet.Member(msg.GuildID, msg.Author.ID)
+		if err != nil {
+			slog.Error("failed to get member from state", "guild_id", msg.GuildID, "member_id", msg.Author.ID, "err", err)
+			return
+		}
+
+		if app.cfg.Theme.MessagesText.ShowNicknames && member.Nick != "" {
+			name = member.Nick
+		}
+	}
+
+	title += name
 	app.messageInput.SetTitle(title)
 	app.messageInput.replyMessageID = mt.selectedMessageID
 	app.SetFocus(app.messageInput)

@@ -64,17 +64,16 @@ func newMessageInput(cfg *config.Config) *messageInput {
 		SetInputCapture(mi.onInputCapture)
 
 	mi.autocomplete.Box = ui.NewConfiguredBox(mi.autocomplete.Box, &mi.cfg.Theme)
-	mi.autocomplete.SetTitle("Mention")
 	mi.autocomplete.
 		ShowSecondaryText(false).
-		SetSelectedStyle(tcell.StyleDefault.
-			Background(tcell.ColorWhite).
-			Foreground(tcell.ColorBlack))
-	mi.autocomplete.SetRect(0, 0, 0, 0)
+		SetSelectedStyle(tcell.StyleDefault.Background(tcell.ColorWhite).Foreground(tcell.ColorBlack)).
+		SetTitle("Mentions").
+		SetRect(0, 0, 0, 0)
+
 	b := mi.autocomplete.GetBorderSet()
-	b.BottomLeft = b.BottomT
-	b.BottomRight = b.BottomT
+	b.BottomLeft, b.BottomRight = b.BottomT, b.BottomT
 	mi.autocomplete.SetBorderSet(b)
+
 	return mi
 }
 
@@ -91,6 +90,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 			mi.tabComplete(false)
 			return nil
 		}
+
 		mi.send()
 		return nil
 	case mi.cfg.Keys.MessageInput.Editor:
@@ -103,6 +103,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		} else {
 			mi.reset()
 		}
+
 		return nil
 	case mi.cfg.Keys.MessageInput.TabComplete:
 		go app.QueueUpdateDraw(func() { mi.tabComplete(false) })
@@ -115,7 +116,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 			cur := mi.autocomplete.GetCurrentItem()
 			switch event.Name() {
 			case mi.cfg.Keys.Autocomplete.Down:
-				mi.autocomplete.SetCurrentItem((cur+1) % count)
+				mi.autocomplete.SetCurrentItem((cur + 1) % count)
 				return nil
 			case mi.cfg.Keys.Autocomplete.Up:
 				if cur == 0 {
@@ -125,6 +126,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 				return nil
 			}
 		}
+
 		go app.QueueUpdateDraw(func() { mi.tabComplete(true) })
 	}
 
@@ -161,55 +163,55 @@ func (mi *messageInput) send() {
 		}
 	}()
 
-	mi.replyMessageID = 0
 	mi.reset()
-
 	app.messagesText.Highlight()
 	app.messagesText.ScrollToEnd()
 }
 
 func processText(cID discord.ChannelID, src []byte) string {
-	// ranges we can expandMentions in them
-	var rngs [][2]int
-	canMention := true
-	n := discordmd.Parse(src)
-	ast.Walk(n, func(n ast.Node, enter bool) (ast.WalkStatus, error) {
-		switch n := n.(type) {
+	var (
+		ranges     [][2]int
+		canMention = true
+	)
+
+	_ = ast.Walk(discordmd.Parse(src), func(node ast.Node, enter bool) (ast.WalkStatus, error) {
+		switch node := node.(type) {
 		case *ast.CodeBlock:
 			canMention = !enter
 		case *discordmd.Inline:
-			if (n.Attr & discordmd.AttrMonospace) != 0 {
+			if (node.Attr & discordmd.AttrMonospace) != 0 {
 				canMention = !enter
 			}
 		case *ast.Text:
 			if canMention {
-				rngs = append(rngs, [2]int{n.Segment.Start,
-					n.Segment.Stop})
+				ranges = append(ranges, [2]int{node.Segment.Start,
+					node.Segment.Stop})
 			}
 		}
 		return ast.WalkContinue, nil
 	})
-	for _, rng := range rngs {
-		src = slices.Replace(src, rng[0], rng[1],
-			expandMentions(cID, src[rng[0]:rng[1]])...)
+
+	for _, rng := range ranges {
+		src = slices.Replace(src, rng[0], rng[1], expandMentions(cID, src[rng[0]:rng[1]])...)
 	}
+
 	return string(src)
 }
 
 func expandMentions(cID discord.ChannelID, src []byte) []byte {
-	return mentionRegex.ReplaceAllFunc(src, func(in []byte) (out []byte) {
-		out = in
-		name := strings.ToLower(string(in[1:]))
+	return mentionRegex.ReplaceAllFunc(src, func(input []byte) []byte {
+		output := input
+		name := strings.ToLower(string(input[1:]))
 		_ = discordState.MemberStore.Each(app.guildsTree.selectedGuildID, func(m *discord.Member) bool {
-			if strings.ToLower(m.User.Username) == name {
-				if channelHasUser(cID, m.User.ID) {
-					out = []byte(m.User.ID.Mention())
-				}
+			if strings.ToLower(m.User.Username) == name && channelHasUser(cID, m.User.ID) {
+				output = []byte(m.User.ID.Mention())
 				return true
 			}
+
 			return false
 		})
-		return
+
+		return output
 	})
 }
 
