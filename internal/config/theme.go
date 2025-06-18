@@ -39,6 +39,10 @@ func (aw *AlignmentWrapper) UnmarshalTOML(v any) error {
 
 type StyleWrapper struct{ tcell.Style }
 
+func NewStyleWrapper(style tcell.Style) StyleWrapper {
+	return StyleWrapper{Style: style}
+}
+
 func (sw *StyleWrapper) UnmarshalTOML(v any) error {
 	m, ok := v.(map[string]any)
 	if !ok {
