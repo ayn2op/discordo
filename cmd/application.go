@@ -103,9 +103,7 @@ func (a *application) init() {
 	a.flex.
 		AddItem(a.guildsTree, 0, 1, true).
 		AddItem(right, 0, 4, false)
-	a.pages.
-		AddAndSwitchToPage(flexPageName, a.flex, true).
-		AddPage(mentionsListPageName, a.messageInput.autocomplete, false, false)
+	a.pages.AddAndSwitchToPage(flexPageName, a.flex, true)
 }
 
 func (a *application) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
@@ -124,11 +122,11 @@ func (a *application) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 func (a *application) onFlexInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case a.cfg.Keys.FocusGuildsTree:
-		a.pages.HidePage(mentionsListPageName)
+		a.messageInput.removeMentionsList()
 		a.SetFocus(app.guildsTree)
 		return nil
 	case a.cfg.Keys.FocusMessagesText:
-		a.pages.HidePage(mentionsListPageName)
+		a.messageInput.removeMentionsList()
 		a.SetFocus(app.messagesText)
 		return nil
 	case a.cfg.Keys.FocusMessageInput:

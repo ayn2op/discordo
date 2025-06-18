@@ -371,7 +371,10 @@ func (mi *messageInput) showMentionList(col int) {
 		x += min(col, maxW-w)
 	}
 	l.SetRect(x, y, w, h)
-	app.pages.ShowPage(mentionsListPageName)
+
+	app.pages.
+		AddAndSwitchToPage(mentionsListPageName, l, false).
+		ShowPage(flexPageName)
 	app.SetFocus(mi)
 }
 
@@ -414,10 +417,16 @@ func (mi *messageInput) addAutocompleteItem(gID discord.GuildID, m *discord.Memb
 	return mi.autocomplete.GetItemCount() > int(mi.cfg.AutocompleteLimit)
 }
 
+func (mi *messageInput) removeMentionsList() {
+	app.pages.
+		RemovePage(mentionsListPageName).
+		SwitchToPage(flexPageName)
+}
+
 func (mi *messageInput) stopTabCompletion() {
 	if mi.cfg.AutocompleteLimit > 0 {
-		app.pages.HidePage(mentionsListPageName)
 		mi.autocomplete.Clear()
+		mi.removeMentionsList()
 		app.SetFocus(mi)
 	}
 }
