@@ -6,14 +6,12 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/ningen/v3"
-	"github.com/diamondburned/ningen/v3/discordmd"
 )
 
 func HandleIncomingMessage(state *ningen.State, msg *gateway.MessageCreateEvent, cfg *config.Config) error {
@@ -36,21 +34,13 @@ func HandleIncomingMessage(state *ningen.State, msg *gateway.MessageCreateEvent,
 		}
 	}
 
-	// Render message
-	src := []byte(msg.Content)
-	ast := discordmd.ParseWithMessage(src, *state.Cabinet, &msg.Message, false)
-	buff := strings.Builder{}
-	if err := defaultRenderer.Render(&buff, src, ast); err != nil {
-		return err
-	}
-
 	// Handle sent files
-	notifContent := buff.String()
+	content := msg.Content
 	if msg.Content == "" && len(msg.Attachments) > 0 {
-		notifContent = "Uploaded " + msg.Message.Attachments[0].Filename
+		content = "Uploaded " + msg.Message.Attachments[0].Filename
 	}
 
-	if msg.Author.DisplayOrTag() == "" || notifContent == "" {
+	if msg.Author.DisplayOrTag() == "" || content == "" {
 		return nil
 	}
 
@@ -74,7 +64,7 @@ func HandleIncomingMessage(state *ningen.State, msg *gateway.MessageCreateEvent,
 	}
 
 	shouldChime := cfg.Notifications.Sound.Enabled && (!cfg.Notifications.Sound.OnlyOnPing || (isChannelDM || state.MessageMentions(&msg.Message) == 3))
-	if err := sendDesktopNotification(notifTitle, notifContent, imagePath, shouldChime, cfg.Notifications.Duration); err != nil {
+	if err := sendDesktopNotification(notifTitle, content, imagePath, shouldChime, cfg.Notifications.Duration); err != nil {
 		return err
 	}
 
