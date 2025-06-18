@@ -49,7 +49,6 @@ func newMessageInput(cfg *config.Config) *messageInput {
 	}
 
 	mi.Box = ui.NewConfiguredBox(mi.Box, &cfg.Theme)
-
 	mi.
 		SetTextStyle(tcell.StyleDefault.Background(tcell.GetColor(cfg.Theme.BackgroundColor))).
 		SetClipboard(func(s string) {

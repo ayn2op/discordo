@@ -49,8 +49,6 @@ func newMessagesText(cfg *config.Config) *messagesText {
 	}
 
 	mt.Box = ui.NewConfiguredBox(mt.Box, &cfg.Theme)
-
-	t := cfg.Theme
 	mt.
 		SetDynamicColors(true).
 		SetRegions(true).
@@ -60,7 +58,7 @@ func newMessagesText(cfg *config.Config) *messagesText {
 		SetTitle("Messages").
 		SetInputCapture(mt.onInputCapture)
 
-	markdown.DefaultRenderer.AddOptions(renderer.WithOption("theme", t.MessagesText))
+	markdown.DefaultRenderer.AddOptions(renderer.WithOption("theme", cfg.Theme.MessagesText))
 	return mt
 }
 
