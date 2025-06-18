@@ -3,6 +3,7 @@ package markdown
 import (
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
 	"github.com/ayn2op/discordo/internal/config"
@@ -15,11 +16,14 @@ var DefaultRenderer = newRenderer()
 
 type renderer struct {
 	config *gmr.Config
+
+	listIx     *int
+	listNested int
 }
 
 func newRenderer() *renderer {
 	config := gmr.NewConfig()
-	return &renderer{config}
+	return &renderer{config: config}
 }
 
 // AddOptions implements renderer.Renderer.
@@ -29,56 +33,60 @@ func (r *renderer) AddOptions(opts ...gmr.Option) {
 	}
 }
 
-func (r *renderer) Render(w io.Writer, source []byte, n ast.Node) error {
-	return ast.Walk(n, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
-		switch n := n.(type) {
+func (r *renderer) Render(w io.Writer, source []byte, node ast.Node) error {
+	return ast.Walk(node, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
+		switch node := node.(type) {
 		case *ast.Document:
 		// noop
 		case *ast.Heading:
-			r.renderHeading(w, n, entering)
+			r.renderHeading(w, node, entering)
 		case *ast.Text:
-			r.renderText(w, n, entering, source)
+			r.renderText(w, node, entering, source)
 		case *ast.FencedCodeBlock:
-			r.renderFencedCodeBlock(w, n, entering, source)
+			r.renderFencedCodeBlock(w, node, entering, source)
 		case *ast.AutoLink:
-			r.renderAutoLink(w, n, entering, source)
+			r.renderAutoLink(w, node, entering, source)
 		case *ast.Link:
-			r.renderLink(w, n, entering)
+			r.renderLink(w, node, entering)
+		case *ast.List:
+			r.renderList(w, node, entering)
+		case *ast.ListItem:
+			r.renderListItem(w, entering)
 
 		case *discordmd.Inline:
-			r.renderInline(w, n, entering)
+			r.renderInline(w, node, entering)
 		case *discordmd.Mention:
-			r.renderMention(w, n, entering)
+			r.renderMention(w, node, entering)
 		case *discordmd.Emoji:
-			r.renderEmoji(w, n, entering)
+			r.renderEmoji(w, node, entering)
 		}
 
 		return ast.WalkContinue, nil
 	})
 }
 
-func (r *renderer) renderHeading(w io.Writer, n *ast.Heading, entering bool) {
+func (r *renderer) renderHeading(w io.Writer, node *ast.Heading, entering bool) {
 	if entering {
-		io.WriteString(w, strings.Repeat("#", n.Level))
+		io.WriteString(w, strings.Repeat("#", node.Level))
 		io.WriteString(w, " ")
 	} else {
 		io.WriteString(w, "\n")
 	}
 }
 
-func (r *renderer) renderFencedCodeBlock(w io.Writer, n *ast.FencedCodeBlock, entering bool, source []byte) {
+func (r *renderer) renderFencedCodeBlock(w io.Writer, node *ast.FencedCodeBlock, entering bool, source []byte) {
 	io.WriteString(w, "\n")
 
 	if entering {
 		// language
-		if l := n.Language(source); l != nil {
+		if l := node.Language(source); l != nil {
 			io.WriteString(w, "|=> ")
 			w.Write(l)
 			io.WriteString(w, "\n")
 		}
 
 		// body
-		lines := n.Lines()
+		lines := node.Lines()
 		for i := range lines.Len() {
 			line := lines.At(i)
 			io.WriteString(w, "| ")
@@ -87,42 +95,73 @@ func (r *renderer) renderFencedCodeBlock(w io.Writer, n *ast.FencedCodeBlock, en
 	}
 }
 
-func (r *renderer) renderAutoLink(w io.Writer, n *ast.AutoLink, entering bool, source []byte) {
+func (r *renderer) renderAutoLink(w io.Writer, node *ast.AutoLink, entering bool, source []byte) {
 	if entering {
 		theme := r.config.Options["theme"].(config.MessagesTextTheme)
 		fg, bg, _ := theme.URLStyle.Decompose()
 		_, _ = fmt.Fprintf(w, "[%s:%s]", fg, bg)
-		w.Write(n.URL(source))
+		w.Write(node.URL(source))
 	} else {
 		io.WriteString(w, "[-:-]")
 	}
 }
 
-func (r *renderer) renderLink(w io.Writer, n *ast.Link, entering bool) {
+func (r *renderer) renderLink(w io.Writer, node *ast.Link, entering bool) {
 	if entering {
 		theme := r.config.Options["theme"].(config.MessagesTextTheme)
 		fg, bg, _ := theme.URLStyle.Decompose()
-		_, _ = fmt.Fprintf(w, "[%s:%s::%s]", fg, bg, n.Destination)
+		_, _ = fmt.Fprintf(w, "[%s:%s::%s]", fg, bg, node.Destination)
 	} else {
 		io.WriteString(w, "[-:-::-]")
 	}
 }
 
-func (r *renderer) renderText(w io.Writer, n *ast.Text, entering bool, source []byte) {
+func (r *renderer) renderList(w io.Writer, node *ast.List, entering bool) {
+	if node.IsOrdered() {
+		r.listIx = &node.Start
+	} else {
+		r.listIx = nil
+	}
+
 	if entering {
-		w.Write(n.Segment.Value(source))
+		io.WriteString(w, "\n")
+		r.listNested++
+	} else {
+		r.listNested--
+	}
+}
+
+func (r *renderer) renderListItem(w io.Writer, entering bool) {
+	if entering {
+		io.WriteString(w, strings.Repeat("  ", r.listNested-1))
+
+		if r.listIx != nil {
+			io.WriteString(w, strconv.Itoa(*r.listIx))
+			io.WriteString(w, ". ")
+			*r.listIx++
+		} else {
+			io.WriteString(w, "- ")
+		}
+	} else {
+		io.WriteString(w, "\n")
+	}
+}
+
+func (r *renderer) renderText(w io.Writer, node *ast.Text, entering bool, source []byte) {
+	if entering {
+		w.Write(node.Segment.Value(source))
 		switch {
-		case n.HardLineBreak():
+		case node.HardLineBreak():
 			io.WriteString(w, "\n\n")
-		case n.SoftLineBreak():
+		case node.SoftLineBreak():
 			io.WriteString(w, "\n")
 		}
 	}
 }
 
-func (r *renderer) renderInline(w io.Writer, n *discordmd.Inline, entering bool) {
+func (r *renderer) renderInline(w io.Writer, node *discordmd.Inline, entering bool) {
 	if entering {
-		switch n.Attr {
+		switch node.Attr {
 		case discordmd.AttrBold:
 			io.WriteString(w, "[::b]")
 		case discordmd.AttrItalics:
@@ -135,7 +174,7 @@ func (r *renderer) renderInline(w io.Writer, n *discordmd.Inline, entering bool)
 			io.WriteString(w, "[::r]")
 		}
 	} else {
-		switch n.Attr {
+		switch node.Attr {
 		case discordmd.AttrBold:
 			io.WriteString(w, "[::B]")
 		case discordmd.AttrItalics:
@@ -150,36 +189,36 @@ func (r *renderer) renderInline(w io.Writer, n *discordmd.Inline, entering bool)
 	}
 }
 
-func (r *renderer) renderMention(w io.Writer, n *discordmd.Mention, entering bool) {
+func (r *renderer) renderMention(w io.Writer, node *discordmd.Mention, entering bool) {
 	if entering {
 		theme := r.config.Options["theme"].(config.MessagesTextTheme)
 		fg, bg, _ := theme.MentionStyle.Decompose()
 		_, _ = fmt.Fprintf(w, "[%s:%s:b]", fg, bg)
 
 		switch {
-		case n.Channel != nil:
-			io.WriteString(w, "#"+n.Channel.Name)
-		case n.GuildUser != nil:
-			username := n.GuildUser.DisplayOrUsername()
+		case node.Channel != nil:
+			io.WriteString(w, "#"+node.Channel.Name)
+		case node.GuildUser != nil:
+			username := node.GuildUser.DisplayOrUsername()
 			theme := r.config.Options["theme"].(config.MessagesTextTheme)
-			if theme.ShowNicknames && n.GuildUser.Member != nil && n.GuildUser.Member.Nick != "" {
-				username = n.GuildUser.Member.Nick
+			if theme.ShowNicknames && node.GuildUser.Member != nil && node.GuildUser.Member.Nick != "" {
+				username = node.GuildUser.Member.Nick
 			}
 			io.WriteString(w, "@"+username)
-		case n.GuildRole != nil:
-			io.WriteString(w, "@"+n.GuildRole.Name)
+		case node.GuildRole != nil:
+			io.WriteString(w, "@"+node.GuildRole.Name)
 		}
 	} else {
 		io.WriteString(w, "[-:-:B]")
 	}
 }
 
-func (r *renderer) renderEmoji(w io.Writer, n *discordmd.Emoji, entering bool) {
+func (r *renderer) renderEmoji(w io.Writer, node *discordmd.Emoji, entering bool) {
 	if entering {
 		theme := r.config.Options["theme"].(config.MessagesTextTheme)
 		fg, bg, _ := theme.EmojiStyle.Decompose()
 		fmt.Fprintf(w, "[%s:%s]", fg, bg)
-		io.WriteString(w, ":"+n.Name+":")
+		io.WriteString(w, ":"+node.Name+":")
 	} else {
 		io.WriteString(w, "[-:-]")
 	}
