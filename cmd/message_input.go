@@ -82,7 +82,7 @@ func (mi *messageInput) reset() {
 func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case mi.cfg.Keys.MessageInput.Send:
-		if app.pages.GetVisible(app.autocompletePage) {
+		if app.pages.GetVisibile(mentionsListPageName) {
 			mi.tabComplete(false)
 			return nil
 		}
@@ -94,7 +94,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		mi.editor()
 		return nil
 	case mi.cfg.Keys.MessageInput.Cancel:
-		if app.pages.GetVisible(app.autocompletePage) {
+		if app.pages.GetVisibile(mentionsListPageName) {
 			mi.stopTabCompletion()
 		} else {
 			mi.reset()
@@ -107,7 +107,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	}
 
 	if mi.cfg.AutocompleteLimit > 0 {
-		if app.pages.GetVisible(app.autocompletePage) {
+		if app.pages.GetVisibile(mentionsListPageName) {
 			count := mi.autocomplete.GetItemCount()
 			cur := mi.autocomplete.GetCurrentItem()
 			switch event.Name() {
@@ -371,7 +371,7 @@ func (mi *messageInput) showMentionList(col int) {
 		x += min(col, maxW-w)
 	}
 	l.SetRect(x, y, w, h)
-	app.pages.ShowPage(app.autocompletePage)
+	app.pages.ShowPage(mentionsListPageName)
 	app.SetFocus(mi)
 }
 
@@ -416,7 +416,7 @@ func (mi *messageInput) addAutocompleteItem(gID discord.GuildID, m *discord.Memb
 
 func (mi *messageInput) stopTabCompletion() {
 	if mi.cfg.AutocompleteLimit > 0 {
-		app.pages.HidePage(app.autocompletePage)
+		app.pages.HidePage(mentionsListPageName)
 		mi.autocomplete.Clear()
 		app.SetFocus(mi)
 	}

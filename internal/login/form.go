@@ -12,6 +12,11 @@ import (
 	"github.com/zalando/go-keyring"
 )
 
+const (
+	formPageName  = "form"
+	errorPageName = "error"
+)
+
 type DoneFn = func(token string)
 
 type Form struct {
@@ -19,9 +24,6 @@ type Form struct {
 	cfg  *config.Config
 	form *tview.Form
 	done DoneFn
-
-	formPage int
-	errPage  int
 }
 
 func NewForm(cfg *config.Config, done DoneFn) *Form {
@@ -37,7 +39,7 @@ func NewForm(cfg *config.Config, done DoneFn) *Form {
 		AddPasswordField("Password", "", 0, 0, nil).
 		AddPasswordField("Code (optional)", "", 0, 0, nil).
 		AddButton("Login", f.login)
-	f.formPage = f.AddAndSwitchToPage(f.form, true)
+	f.AddAndSwitchToPage(formPageName, f.form, true)
 	return f
 }
 
@@ -93,8 +95,11 @@ func (f *Form) onError(err error) {
 		SetText(err.Error()).
 		AddButtons([]string{"Close"}).
 		SetDoneFunc(func(_ int, _ string) {
-			f.RemovePage(f.errPage).SwitchToPage(f.formPage)
+			f.
+				RemovePage(errorPageName).
+				SwitchToPage(formPageName)
 		})
-	f.errPage = f.AddAndSwitchToPage(ui.Centered(modal, 0, 0), true)
-	f.ShowPage(f.formPage)
+	f.
+		AddAndSwitchToPage(errorPageName, ui.Centered(modal, 0, 0), true).
+		ShowPage(formPageName)
 }

@@ -12,6 +12,12 @@ import (
 	"github.com/zalando/go-keyring"
 )
 
+const (
+	flexPageName            = "flex"
+	mentionsListPageName    = "mentionsList"
+	attachmentsListPageName = "attachmentsList"
+)
+
 type application struct {
 	cfg *config.Config
 
@@ -21,9 +27,6 @@ type application struct {
 	guildsTree   *guildsTree
 	messagesText *messagesText
 	messageInput *messageInput
-
-	flexPage         int
-	autocompletePage int
 }
 
 func newApplication(cfg *config.Config) *application {
@@ -89,18 +92,20 @@ func (a *application) quit() {
 }
 
 func (a *application) init() {
-	a.pages.Clear()
+	a.pages.ClearPages()
 	a.flex.Clear()
 
-	right := tview.NewFlex()
-	right.SetDirection(tview.FlexRow)
-	right.AddItem(a.messagesText, 0, 1, false)
-	right.AddItem(a.messageInput, 3, 1, false)
+	right := tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(a.messagesText, 0, 1, false).
+		AddItem(a.messageInput, 3, 1, false)
 	// The guilds tree is always focused first at start-up.
-	a.flex.AddItem(a.guildsTree, 0, 1, true)
-	a.flex.AddItem(right, 0, 4, false)
-	a.flexPage = a.pages.AddAndSwitchToPage(a.flex, true)
-	a.autocompletePage = a.pages.AddPage(a.messageInput.autocomplete, false, false)
+	a.flex.
+		AddItem(a.guildsTree, 0, 1, true).
+		AddItem(right, 0, 4, false)
+	a.pages.
+		AddAndSwitchToPage(flexPageName, a.flex, true).
+		AddPage(mentionsListPageName, a.messageInput.autocomplete, false, false)
 }
 
 func (a *application) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
@@ -119,11 +124,11 @@ func (a *application) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 func (a *application) onFlexInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case a.cfg.Keys.FocusGuildsTree:
-		a.pages.HidePage(a.autocompletePage)
+		a.pages.HidePage(mentionsListPageName)
 		a.SetFocus(app.guildsTree)
 		return nil
 	case a.cfg.Keys.FocusMessagesText:
-		a.pages.HidePage(a.autocompletePage)
+		a.pages.HidePage(mentionsListPageName)
 		a.SetFocus(app.messagesText)
 		return nil
 	case a.cfg.Keys.FocusMessageInput:
