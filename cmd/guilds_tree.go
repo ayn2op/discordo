@@ -193,8 +193,9 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 		}
 
 		app.messagesText.drawMsgs(channel.ID)
-		app.messagesText.ScrollToEnd()
-		app.messagesText.SetTitle(gt.channelToString(*channel))
+		app.messagesText.
+			ScrollToEnd().
+			SetTitle(gt.channelToString(*channel))
 
 		gt.selectedChannelID = channel.ID
 		gt.selectedGuildID = channel.GuildID
