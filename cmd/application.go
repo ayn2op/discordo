@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"log/slog"
 
 	"github.com/ayn2op/discordo/internal/config"
@@ -47,38 +46,24 @@ func newApplication(cfg *config.Config) *application {
 	return app
 }
 
-func (a *application) show(token string) error {
+func (a *application) run(token string) error {
 	if token == "" {
 		loginForm := login.NewForm(a.cfg, func(token string) {
-			if err := a.show(token); err != nil {
+			if err := a.run(token); err != nil {
 				slog.Error("failed to show app", "err", err)
 				return
 			}
 		})
 
-		a.SetRoot(loginForm, true)
+		return a.SetRoot(loginForm, true).Run()
 	} else {
 		if err := openState(token); err != nil {
 			return err
 		}
 
 		a.init()
-		a.SetRoot(a.pages, true)
+		return a.SetRoot(a.pages, true).Run()
 	}
-
-	return nil
-}
-
-func (a *application) run(token string) error {
-	if err := a.show(token); err != nil {
-		return err
-	}
-
-	if err := a.Run(); err != nil {
-		return fmt.Errorf("failed to run application: %w", err)
-	}
-
-	return nil
 }
 
 func (a *application) quit() {
