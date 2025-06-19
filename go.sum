@@ -25,10 +25,8 @@ github.com/BurntSushi/toml v1.5.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/atotto/clipboard v0.1.4 h1:EH0zSVneZPSuFR11BlR9YppQTVDbh5+16AmcJi4g1z4=
 github.com/atotto/clipboard v0.1.4/go.mod h1:ZY9tmq7sm5xIbd9bOK4onWV4S6X0u6GY7Vn0Yu86PYI=
-github.com/ayn2op/tview v0.0.0-20250615213508-2719974b344b h1:rTaFMJVkVySIJtIJnbE0fT7IcyhNBajPvNVGLAJ3kk4=
-github.com/ayn2op/tview v0.0.0-20250615213508-2719974b344b/go.mod h1:PuMMP3J7SfW0jgAc1fdABOHJkoGbQIw3jejRAkl0API=
-github.com/ayn2op/tview v0.0.0-20250615214508-b6d99d0bd2e0 h1:gmy5w73yKtOeFxSiFP1pERlOVi+9mwA4WIIgg96qzXg=
-github.com/ayn2op/tview v0.0.0-20250615214508-b6d99d0bd2e0/go.mod h1:PuMMP3J7SfW0jgAc1fdABOHJkoGbQIw3jejRAkl0API=
+github.com/ayn2op/tview v0.0.0-20250618224732-91a1a2f06994 h1:heK43Ba0uvQPH2BgJVFiB2G8vIJk1XocvFYCPfOSNhU=
+github.com/ayn2op/tview v0.0.0-20250618224732-91a1a2f06994/go.mod h1:PuMMP3J7SfW0jgAc1fdABOHJkoGbQIw3jejRAkl0API=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
 github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e/go.mod h1:nSuG5e5PlCu98SY8svDHJxuZscDgtXS6KTTbou5AhLI=
@@ -54,8 +52,6 @@ github.com/gdamore/encoding v1.0.1 h1:YzKZckdBL6jVt2Gc+5p82qhrGiqMdG/eNs6Wy0u3Uh
 github.com/gdamore/encoding v1.0.1/go.mod h1:0Z0cMFinngz9kS1QfMjCP8TY7em3bZYeeklsSDPivEo=
 github.com/gdamore/tcell/v2 v2.8.1 h1:KPNxyqclpWpWQlPLx6Xui1pMk8S+7+R37h3g07997NU=
 github.com/gdamore/tcell/v2 v2.8.1/go.mod h1:bj8ori1BG3OYMjmb3IklZVWfZUJ1UBQt9JXrOCOhGWw=
-github.com/gen2brain/beeep v0.11.0 h1:ScADjlllAwqUIdEgosHXRmS0OEBTDtfGvIuLj2G/mlU=
-github.com/gen2brain/beeep v0.11.0/go.mod h1:jQVvuwnLuwOcdctHn/uyh8horSBNJ8uGb9Cn2W4tvoc=
 github.com/gen2brain/beeep v0.11.1 h1:EbSIhrQZFDj1K2fzlMpAYlFOzV8YuNe721A58XcCTYI=
 github.com/gen2brain/beeep v0.11.1/go.mod h1:jQVvuwnLuwOcdctHn/uyh8horSBNJ8uGb9Cn2W4tvoc=
 github.com/go-gl/glfw v0.0.0-20190409004039-e6da0acd62b1/go.mod h1:vR7hzQXu2zJy9AVAgeJqvqgH9Q5CA+iKCZ2gyEVpxRU=
