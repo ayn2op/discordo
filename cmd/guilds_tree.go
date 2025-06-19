@@ -78,7 +78,11 @@ func (gt *guildsTree) channelToString(channel discord.Channel) string {
 
 		recipients := make([]string, len(channel.DMRecipients))
 		for i, r := range channel.DMRecipients {
-			recipients[i] = r.DisplayOrUsername()
+			if gt.cfg.Theme.ShowUsernames || r.DisplayName == "" {
+				recipients[i] = r.Username
+			} else {
+				recipients[i] = r.DisplayName
+			}
 		}
 
 		return strings.Join(recipients, ", ")

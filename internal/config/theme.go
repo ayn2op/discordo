@@ -86,6 +86,8 @@ type (
 
 	Theme struct {
 		BackgroundColor string `toml:"background_color"`
+		PreferNicks     bool `toml:"prefer_nicks"`
+		ShowUsernames   bool `toml:"show_usernames"`
 
 		Title        TitleTheme        `toml:"title"`
 		Border       BorderTheme       `toml:"border"`
@@ -106,7 +108,6 @@ type (
 	}
 
 	MessagesTextTheme struct {
-		ShowNicknames      bool `toml:"show_user_nicks"`
 		ShowUsernameColors bool `toml:"show_user_colors"`
 
 		ReplyIndicator     string `toml:"reply_indicator"`
@@ -121,6 +122,7 @@ type (
 
 	AutocompleteTheme struct {
 		ShowNicknames      bool `toml:"show_user_nicks"`
+		ShowUsernames      bool `toml:"show_usernames"`
 		ShowUsernameColors bool `toml:"show_user_colors"`
 
 		MinWidth  uint `toml:"min_width"`

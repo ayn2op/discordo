@@ -38,7 +38,10 @@ type messageInput struct {
 	lastSearch     time.Time
 }
 
-type memberList []discord.Member
+type memberList struct {
+	cfg *config.Config
+	members []discord.Member
+}
 
 func newMessageInput(cfg *config.Config) *messageInput {
 	mi := &messageInput{
@@ -230,7 +233,10 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 				slog.Error("fetching members failed", "err", err)
 				return
 			}
-			res := fuzzy.FindFrom(name, memberList(mems))
+			res := fuzzy.FindFrom(name, &memberList{
+				cfg: mi.cfg,
+				members: mems,
+			})
 			for _, r := range res {
 				if channelHasUser(cID, mems[r.Index].User.ID) {
 					mi.Replace(pos, posEnd, "@"+mems[r.Index].User.Username+" ")
@@ -276,7 +282,10 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 			slog.Error("fetching members failed", "err", err)
 			return
 		}
-		res := fuzzy.FindFrom(name, memberList(mems))
+		res := fuzzy.FindFrom(name, &memberList{
+			cfg: mi.cfg,
+			members: mems,
+		})
 		if len(res) > int(mi.cfg.AutocompleteLimit) {
 			res = res[:int(mi.cfg.AutocompleteLimit)]
 		}
@@ -297,8 +306,24 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 	mi.showMentionList(col - 1)
 }
 
-func (m memberList) String(i int) string { return m[i].Nick + m[i].User.DisplayName + m[i].User.Tag() }
-func (m memberList) Len() int            { return len(m) }
+func (m *memberList) String(i int) string {
+	res := ""
+	if m.cfg.Theme.Autocomplete.ShowNicknames {
+		res = m.members[i].Nick
+	}
+	if res == "" {
+		if m.members[i].User.DisplayName == "" {
+			return m.members[i].User.Username
+		}
+		res = m.members[i].User.DisplayName
+	}
+	if m.cfg.Theme.Autocomplete.ShowUsernames {
+		return res + " " + m.members[i].User.Username
+	}
+	return res
+}
+
+func (m *memberList) Len() int { return len(m.members) }
 
 func channelHasUser(cID discord.ChannelID, id discord.UserID) bool {
 	perms, err := discordState.Permissions(cID, id)
@@ -410,7 +435,11 @@ func (mi *messageInput) addAutocompleteItem(gID discord.GuildID, m *discord.Memb
 		username = "[::d]" + username + "[::D]"
 	}
 	if dname != "" {
-		mi.autocomplete.AddItem(dname+" ("+username+")", m.User.Username, 0, nil)
+		if mi.cfg.Theme.Autocomplete.ShowUsernames {
+			mi.autocomplete.AddItem(dname+" ("+username+")", m.User.Username, 0, nil)
+		} else {
+			mi.autocomplete.AddItem(dname, m.User.Username, 0, nil)
+		}
 	} else {
 		mi.autocomplete.AddItem(username, m.User.Username, 0, nil)
 	}

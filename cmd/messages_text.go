@@ -47,6 +47,7 @@ func newMessagesText(cfg *config.Config) *messagesText {
 	}
 
 	mt.Box = ui.NewConfiguredBox(mt.Box, &cfg.Theme)
+
 	mt.
 		SetDynamicColors(true).
 		SetRegions(true).
@@ -56,7 +57,7 @@ func newMessagesText(cfg *config.Config) *messagesText {
 		SetTitle("Messages").
 		SetInputCapture(mt.onInputCapture)
 
-	markdown.DefaultRenderer.AddOptions(renderer.WithOption("theme", cfg.Theme.MessagesText))
+	markdown.DefaultRenderer.AddOptions(renderer.WithOption("theme", cfg.Theme))
 	return mt
 }
 
@@ -67,7 +68,7 @@ func (mt *messagesText) drawMsgs(cID discord.ChannelID) {
 		return
 	}
 
-	if app.cfg.Theme.MessagesText.ShowNicknames || app.cfg.Theme.MessagesText.ShowUsernameColors {
+	if app.cfg.Theme.PreferNicks || app.cfg.Theme.MessagesText.ShowUsernameColors {
 		if ch, _ := discordState.Cabinet.Channel(cID); ch.GuildID.IsValid() {
 			mt.requestGuildMembers(ch.GuildID, msgs)
 		}
@@ -125,7 +126,11 @@ func (mt *messagesText) createMsg(msg discord.Message) {
 	case discord.InlinedReplyMessage:
 		mt.createReplyMsg(msg)
 	case discord.ChannelPinnedMessage:
-		fmt.Fprintf(mt, "%s pinned a message", msg.Author.DisplayOrUsername())
+		if mt.cfg.Theme.ShowUsernames || msg.Author.DisplayName == "" {
+			fmt.Fprintf(mt, "%s pinned a message", msg.Author.Username)
+		} else {
+			fmt.Fprintf(mt, "%s pinned a message", msg.Author.DisplayName)
+		}
 	default:
 		mt.drawTimestamps(msg.Timestamp)
 		mt.drawAuthor(msg)
@@ -143,7 +148,12 @@ func (mt *messagesText) drawTimestamps(ts discord.Timestamp) {
 }
 
 func (mt *messagesText) drawAuthor(msg discord.Message) {
-	name := msg.Author.DisplayOrUsername()
+	var name string
+	if mt.cfg.Theme.ShowUsernames || msg.Author.DisplayName == "" {
+		name = msg.Author.Username
+	} else {
+		name = msg.Author.DisplayName
+	}
 	style := mt.cfg.Theme.MessagesText.AuthorStyle
 
 	if msg.GuildID.IsValid() {
@@ -153,16 +163,15 @@ func (mt *messagesText) drawAuthor(msg discord.Message) {
 			return
 		}
 
-		if app.cfg.Theme.MessagesText.ShowNicknames && member.Nick != "" {
+		if app.cfg.Theme.PreferNicks && member.Nick != "" {
 			name = member.Nick
 		}
 
 		if app.cfg.Theme.MessagesText.ShowUsernameColors {
-			color, ok := state.MemberColor(member, func(id discord.RoleID) *discord.Role {
+			if color, ok := state.MemberColor(member, func(id discord.RoleID) *discord.Role {
 				r, _ := discordState.Cabinet.Role(msg.GuildID, id)
 				return r
-			})
-			if ok {
+			}); ok {
 				c := tcell.GetColor(color.String())
 				style = config.NewStyleWrapper(tcell.StyleDefault.Foreground(c))
 			}
@@ -175,8 +184,8 @@ func (mt *messagesText) drawAuthor(msg discord.Message) {
 
 func (mt *messagesText) drawContent(msg discord.Message) {
 	c := []byte(tview.Escape(msg.Content))
-	ast := discordmd.ParseWithMessage(c, *discordState.Cabinet, &msg, false)
 	if app.cfg.Markdown {
+		ast := discordmd.ParseWithMessage(c, *discordState.Cabinet, &msg, false)
 		markdown.DefaultRenderer.Render(mt, c, ast)
 	} else {
 		mt.Write(c) // write the content as is
@@ -518,7 +527,7 @@ func (mt *messagesText) reply(mention bool) {
 			return
 		}
 
-		if app.cfg.Theme.MessagesText.ShowNicknames && member.Nick != "" {
+		if app.cfg.Theme.PreferNicks && member.Nick != "" {
 			name = member.Nick
 		}
 	}
