@@ -48,12 +48,9 @@ func openState(token string) error {
 	discordState.AddHandler(func(event *ws.RawEvent) {
 		slog.Debug(
 			"new raw event",
-			"code",
-			event.OriginalCode,
-			"type",
-			event.OriginalType,
-			"data",
-			event.Raw,
+			"code", event.OriginalCode,
+			"type", event.OriginalType,
+			"data", event.Raw,
 		)
 	})
 

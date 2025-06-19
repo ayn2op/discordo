@@ -40,9 +40,10 @@ func newApplication(cfg *config.Config) *application {
 		messageInput: newMessageInput(cfg),
 	}
 
-	app.EnableMouse(cfg.Mouse)
-	app.SetInputCapture(app.onInputCapture)
 	app.flex.SetInputCapture(app.onFlexInputCapture)
+	app.
+		EnableMouse(cfg.Mouse).
+		SetInputCapture(app.onInputCapture)
 	return app
 }
 
@@ -50,20 +51,19 @@ func (a *application) run(token string) error {
 	if token == "" {
 		loginForm := login.NewForm(a.cfg, func(token string) {
 			if err := a.run(token); err != nil {
-				slog.Error("failed to show app", "err", err)
-				return
+				slog.Error("failed to run application", "err", err)
 			}
 		})
 
 		return a.SetRoot(loginForm, true).Run()
-	} else {
-		if err := openState(token); err != nil {
-			return err
-		}
-
-		a.init()
-		return a.SetRoot(a.pages, true).Run()
 	}
+
+	if err := openState(token); err != nil {
+		return err
+	}
+
+	a.init()
+	return a.SetRoot(a.pages, true).Run()
 }
 
 func (a *application) quit() {
@@ -84,10 +84,12 @@ func (a *application) init() {
 		SetDirection(tview.FlexRow).
 		AddItem(a.messagesText, 0, 1, false).
 		AddItem(a.messageInput, 3, 1, false)
+
 	// The guilds tree is always focused first at start-up.
 	a.flex.
 		AddItem(a.guildsTree, 0, 1, true).
 		AddItem(right, 0, 4, false)
+
 	a.pages.AddAndSwitchToPage(flexPageName, a.flex, true)
 }
 
