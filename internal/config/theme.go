@@ -1,14 +1,25 @@
 package config
 
 import (
+	"errors"
+
 	"github.com/ayn2op/tview"
 	"github.com/gdamore/tcell/v2"
 )
 
+var (
+	errInvalidType = errors.New("invalid type")
+)
+
 type BorderSetWrapper struct{ tview.BorderSet }
 
-func (bw *BorderSetWrapper) UnmarshalTOML(v any) error {
-	switch v.(string) {
+func (bw *BorderSetWrapper) UnmarshalTOML(val any) error {
+	s, ok := val.(string)
+	if !ok {
+		return errInvalidType
+	}
+
+	switch s {
 	case "plain":
 		bw.BorderSet = tview.BorderSetPlain()
 	case "round":
@@ -25,7 +36,12 @@ func (bw *BorderSetWrapper) UnmarshalTOML(v any) error {
 type AlignmentWrapper struct{ tview.Alignment }
 
 func (aw *AlignmentWrapper) UnmarshalTOML(v any) error {
-	switch v.(string) {
+	s, ok := v.(string)
+	if !ok {
+		return errInvalidType
+	}
+
+	switch s {
 	case "left":
 		aw.Alignment = tview.AlignmentLeft
 	case "center":
@@ -46,16 +62,16 @@ func NewStyleWrapper(style tcell.Style) StyleWrapper {
 func (sw *StyleWrapper) UnmarshalTOML(v any) error {
 	m, ok := v.(map[string]any)
 	if !ok {
-		return nil
+		return errInvalidType
 	}
 
-	for k, v := range m {
-		s, ok := v.(string)
+	for key, val := range m {
+		s, ok := val.(string)
 		if !ok {
 			continue
 		}
 
-		switch k {
+		switch key {
 		case "foreground":
 			color := tcell.GetColor(s)
 			sw.Style = sw.Foreground(color)
@@ -69,29 +85,21 @@ func (sw *StyleWrapper) UnmarshalTOML(v any) error {
 }
 
 type (
-	BorderTheme struct {
-		Enabled bool             `toml:"enabled"`
-		Padding [4]int           `toml:"padding"`
-		Set     BorderSetWrapper `toml:"set"`
-
-		Style       StyleWrapper `toml:"style"`
+	ThemeStyle struct {
+		NormalStyle StyleWrapper `toml:"normal_style"`
 		ActiveStyle StyleWrapper `toml:"active_style"`
 	}
 
 	TitleTheme struct {
-		Style       StyleWrapper     `toml:"style"`
-		ActiveStyle StyleWrapper     `toml:"active_style"`
-		Alignment   AlignmentWrapper `toml:"alignment"`
+		ThemeStyle
+		Alignment AlignmentWrapper `toml:"alignment"`
 	}
 
-	Theme struct {
-		BackgroundColor string `toml:"background_color"`
-
-		Title        TitleTheme        `toml:"title"`
-		Border       BorderTheme       `toml:"border"`
-		GuildsTree   GuildsTreeTheme   `toml:"guilds_tree"`
-		MessagesText MessagesTextTheme `toml:"messages_text"`
-		Autocomplete AutocompleteTheme `toml:"autocomplete"`
+	BorderTheme struct {
+		ThemeStyle
+		Enabled bool             `toml:"enabled"`
+		Padding [4]int           `toml:"padding"`
+		Set     BorderSetWrapper `toml:"set"`
 	}
 
 	GuildsTreeTheme struct {
@@ -100,9 +108,9 @@ type (
 		Graphics      bool   `toml:"graphics"`
 		GraphicsColor string `toml:"graphics_color"`
 
-		PrivateChannelColor string `toml:"private_channel_color"`
-		GuildColor          string `toml:"guild_color"`
-		ChannelColor        string `toml:"channel_color"`
+		PrivateChannelStyle StyleWrapper `toml:"private_channel_style"`
+		GuildStyle          StyleWrapper `toml:"guild_style"`
+		ChannelStyle        StyleWrapper `toml:"channel_style"`
 	}
 
 	MessagesTextTheme struct {
@@ -125,5 +133,16 @@ type (
 
 		MinWidth  uint `toml:"min_width"`
 		MaxHeight uint `toml:"max_height"`
+	}
+
+	Theme struct {
+		BackgroundColor string `toml:"background_color"`
+
+		Title  TitleTheme  `toml:"title"`
+		Border BorderTheme `toml:"border"`
+
+		GuildsTree   GuildsTreeTheme   `toml:"guilds_tree"`
+		MessagesText MessagesTextTheme `toml:"messages_text"`
+		Autocomplete AutocompleteTheme `toml:"autocomplete"`
 	}
 )

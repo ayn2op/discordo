@@ -5,32 +5,36 @@ import (
 	"github.com/ayn2op/tview"
 )
 
-func NewConfiguredBox(box *tview.Box, cfg *config.Theme) *tview.Box {
-	b := cfg.Border
-	t := cfg.Title
-	p := b.Padding
+// ConfigureBox configures the provided box according to the provided theme.
+func ConfigureBox(box *tview.Box, cfg *config.Theme) *tview.Box {
+	border := cfg.Border
+	title := cfg.Title
+	normalBorderStyle, activeBorderStyle := border.NormalStyle.Style, border.ActiveStyle.Style
+	normalTitleStyle, activeTitleStyle := title.NormalStyle.Style, title.ActiveStyle.Style
+	p := border.Padding
 	box.
-		SetBorderStyle(b.Style.Style).
-		SetBorderSet(b.Set.BorderSet).
+		SetBorderStyle(normalBorderStyle).
+		SetBorderSet(border.Set.BorderSet).
 		SetBorderPadding(p[0], p[1], p[2], p[3]).
-		SetTitleStyle(t.Style.Style).
-		SetTitleAlignment(t.Alignment.Alignment).
+		SetTitleStyle(normalTitleStyle).
+		SetTitleAlignment(title.Alignment.Alignment).
 		SetFocusFunc(func() {
-			box.SetBorderStyle(b.ActiveStyle.Style)
-			box.SetTitleStyle(t.ActiveStyle.Style)
+			box.SetBorderStyle(activeBorderStyle)
+			box.SetTitleStyle(activeTitleStyle)
 		}).
 		SetBlurFunc(func() {
-			box.SetBorderStyle(b.Style.Style)
-			box.SetTitleStyle(t.Style.Style)
+			box.SetBorderStyle(normalBorderStyle)
+			box.SetTitleStyle(normalTitleStyle)
 		})
 
-	if b.Enabled {
+	if border.Enabled {
 		box.SetBorders(tview.BordersAll)
 	}
 
 	return box
 }
 
+// Centered creates a new grid with provided primitive aligned in the center.
 func Centered(p tview.Primitive, width, height int) tview.Primitive {
 	return tview.NewGrid().
 		SetColumns(0, width, 0).

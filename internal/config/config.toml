@@ -106,29 +106,28 @@ down = "Down"
 background_color = "default"
 
 [theme.title]
-# The values can be one of the following: `"left"`, `"center"`, and `"right"`.
+# `"left"`, `"center"`, or `"right"`.
 alignment = "left"
-# style supports foreground and background.
-style = { foreground = "default" }
-active_style = { foreground = "green" }
+normal_style = { foreground = "default", background = "default" }
+active_style = { foreground = "green", background = "default" }
 
 [theme.border]
 enabled = true
 # [top, bottom, left, right]
 padding = [0, 0, 1, 1]
-# The values can be one of the following: `"plain"`, `"round"`, `"thick"`, and `"double"`.
+# `"plain"`, `"round"`, `"thick"`, or `"double"`.
 set = "plain"
-style = { foreground = "default" }
-active_style = { foreground = "green" }
+normal_style = { foreground = "default", background = "default" }
+active_style = { foreground = "green", background = "default" }
 
 [theme.guilds_tree]
 auto_expand_folders = true
 # Give tree-like shape
 graphics = true
 graphics_color = "default"
-private_channel_color = "white"
-guild_color = "white"
-channel_color = "white"
+private_channel_style = { foreground = "white", background = "default" }
+guild_style = { foreground = "white", background = "default" }
+channel_style = { foreground = "white", background = "default" }
 
 [theme.messages_text]
 # Set to false to show messages with usernames instead of nicknames
@@ -138,11 +137,11 @@ show_user_colors = true
 reply_indicator = ">"
 forwarded_indicator = "<"
 
-author_style = { foreground = "aqua" }
-mention_style = { foreground = "blue" }
-emoji_style = { foreground = "green" }
-url_style = { foreground = "blue" }
-attachment_style = { foreground = "yellow" }
+author_style = { foreground = "aqua", background = "default" }
+mention_style = { foreground = "blue", background = "default" }
+emoji_style = { foreground = "green", background = "default" }
+url_style = { foreground = "blue", background = "default" }
+attachment_style = { foreground = "yellow", background = "default" }
 
 [theme.autocomplete]
 show_user_nicks = true
