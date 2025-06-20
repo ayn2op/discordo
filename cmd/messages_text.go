@@ -53,6 +53,7 @@ func newMessagesText(cfg *config.Config) *messagesText {
 		SetWordWrap(true).
 		ScrollToEnd().
 		SetHighlightedFunc(mt.onHighlighted).
+		SetTextColor(tcell.ColorDefault).
 		SetTitle("Messages").
 		SetInputCapture(mt.onInputCapture)
 
