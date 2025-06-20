@@ -12,7 +12,6 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/httputil/httpdriver"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/diamondburned/ningen/v3"
-	"github.com/gdamore/tcell/v2"
 )
 
 func openState(token string) error {
@@ -76,7 +75,10 @@ func onReady(r *gateway.ReadyEvent) {
 	root := app.guildsTree.GetRoot()
 	root.ClearChildren()
 
-	dmNode := tview.NewTreeNode("Direct Messages").SetColor(tcell.GetColor(app.cfg.Theme.GuildsTree.PrivateChannelColor))
+	style := app.cfg.Theme.GuildsTree.PrivateChannelStyle.Style
+	dmNode := tview.NewTreeNode("Direct Messages").
+		SetTextStyle(style).
+		SetSelectedTextStyle(style.Reverse(true))
 	root.AddChild(dmNode)
 
 	for _, folder := range r.UserSettings.GuildFolders {

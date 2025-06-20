@@ -46,13 +46,14 @@ func newMessagesText(cfg *config.Config) *messagesText {
 		cfg:      cfg,
 	}
 
-	mt.Box = ui.NewConfiguredBox(mt.Box, &cfg.Theme)
+	mt.Box = ui.ConfigureBox(mt.Box, &cfg.Theme)
 	mt.
 		SetDynamicColors(true).
 		SetRegions(true).
 		SetWordWrap(true).
 		ScrollToEnd().
 		SetHighlightedFunc(mt.onHighlighted).
+		SetTextColor(tcell.ColorDefault).
 		SetTitle("Messages").
 		SetInputCapture(mt.onInputCapture)
 
@@ -454,7 +455,7 @@ func (mt *messagesText) showUrlSelector(urls []string, attachments []discord.Att
 		SetHighlightFullLine(true).
 		ShowSecondaryText(false).
 		SetDoneFunc(done)
-	list.Box = ui.NewConfiguredBox(list.Box, &mt.cfg.Theme)
+	list.Box = ui.ConfigureBox(list.Box, &mt.cfg.Theme)
 
 	list.
 		SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {

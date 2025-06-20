@@ -48,7 +48,7 @@ func newMessageInput(cfg *config.Config) *messageInput {
 		autocomplete: tview.NewList(),
 	}
 
-	mi.Box = ui.NewConfiguredBox(mi.Box, &cfg.Theme)
+	mi.Box = ui.ConfigureBox(mi.Box, &cfg.Theme)
 	mi.
 		SetTextStyle(tcell.StyleDefault.Background(tcell.GetColor(cfg.Theme.BackgroundColor))).
 		SetClipboard(func(s string) {
@@ -59,7 +59,7 @@ func newMessageInput(cfg *config.Config) *messageInput {
 		}).
 		SetInputCapture(mi.onInputCapture)
 
-	mi.autocomplete.Box = ui.NewConfiguredBox(mi.autocomplete.Box, &mi.cfg.Theme)
+	mi.autocomplete.Box = ui.ConfigureBox(mi.autocomplete.Box, &mi.cfg.Theme)
 	mi.autocomplete.
 		ShowSecondaryText(false).
 		SetSelectedStyle(tcell.StyleDefault.Background(tcell.ColorWhite).Foreground(tcell.ColorBlack)).
