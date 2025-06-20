@@ -125,9 +125,9 @@ auto_expand_folders = true
 # Give tree-like shape
 graphics = true
 graphics_color = "default"
-private_channel_style = { foreground = "white", background = "default" }
-guild_style = { foreground = "white", background = "default" }
-channel_style = { foreground = "white", background = "default" }
+private_channel_style = { foreground = "default", background = "default" }
+guild_style = { foreground = "default", background = "default" }
+channel_style = { foreground = "default", background = "default" }
 
 [theme.messages_text]
 # Set to false to show messages with usernames instead of nicknames
