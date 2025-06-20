@@ -106,22 +106,22 @@ func onReady(r *gateway.ReadyEvent) {
 	app.SetFocus(app.guildsTree)
 }
 
-func onMessageCreate(m *gateway.MessageCreateEvent) {
+func onMessageCreate(msg *gateway.MessageCreateEvent) {
 	if app.guildsTree.selectedChannelID.IsValid() &&
-		app.guildsTree.selectedChannelID == m.ChannelID {
-		app.messagesText.createMsg(m.Message)
+		app.guildsTree.selectedChannelID == msg.ChannelID {
+		app.messagesText.createMsg(msg.Message)
 		app.Draw()
 	}
 
-	if err := notifications.HandleIncomingMessage(discordState, m, app.cfg); err != nil {
+	if err := notifications.HandleIncomingMessage(discordState, msg, app.cfg); err != nil {
 		slog.Error("Notification failed", "err", err)
 	}
 }
 
-func onMessageDelete(m *gateway.MessageDeleteEvent) {
-	if app.guildsTree.selectedChannelID == m.ChannelID {
+func onMessageDelete(msg *gateway.MessageDeleteEvent) {
+	if app.guildsTree.selectedChannelID == msg.ChannelID {
 		app.messagesText.reset()
-		app.messagesText.drawMsgs(m.ChannelID)
+		app.messagesText.drawMsgs(msg.ChannelID)
 		app.Draw()
 	}
 }
