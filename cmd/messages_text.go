@@ -74,8 +74,6 @@ func (mt *messagesText) drawMsgs(cID discord.ChannelID) {
 		}
 	}
 
-	mt.Clear()
-
 	for _, m := range slices.Backward(msgs) {
 		mt.createMsg(m)
 	}
@@ -85,9 +83,10 @@ func (mt *messagesText) reset() {
 	mt.selectedMessageID = 0
 	app.messageInput.replyMessageID = 0
 
-	mt.SetTitle("")
-	mt.Clear()
-	mt.Highlight()
+	mt.
+		Clear().
+		Highlight().
+		SetTitle("")
 }
 
 // Region tags are square brackets that contain a region ID in double quotes

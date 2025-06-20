@@ -164,9 +164,6 @@ PARENT_CHANNELS:
 }
 
 func (gt *guildsTree) onSelected(node *tview.TreeNode) {
-	gt.selectedChannelID = 0
-
-	app.messagesText.reset()
 	app.messageInput.reset()
 
 	if len(node.GetChildren()) != 0 {
@@ -196,6 +193,7 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 			return
 		}
 
+		app.messagesText.reset()
 		app.messagesText.drawMsgs(channel.ID)
 		app.messagesText.
 			ScrollToEnd().
