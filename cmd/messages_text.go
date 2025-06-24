@@ -416,7 +416,7 @@ func (mt *messagesText) open() {
 			go openURL(msg.Attachments[0].URL)
 		}
 	} else {
-		mt.showUrlSelector(urls, msg.Attachments)
+		mt.showAttachmentsList(urls, msg.Attachments)
 	}
 }
 
@@ -443,19 +443,15 @@ func extractURLs(content string) []string {
 	return urls
 }
 
-func (mt *messagesText) showUrlSelector(urls []string, attachments []discord.Attachment) {
-	done := func() {
-		app.pages.RemovePage(attachmentsListPageName).SwitchToPage(flexPageName)
-		app.SetFocus(mt)
-	}
-
+func (mt *messagesText) showAttachmentsList(urls []string, attachments []discord.Attachment) {
 	list := tview.NewList().
 		SetWrapAround(true).
 		SetHighlightFullLine(true).
 		ShowSecondaryText(false).
-		SetDoneFunc(done)
-	list.Box = ui.ConfigureBox(list.Box, &mt.cfg.Theme)
-
+		SetDoneFunc(func() {
+			app.pages.RemovePage(attachmentsListPageName).SwitchToPage(flexPageName)
+			app.SetFocus(mt)
+		})
 	list.
 		SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 			switch event.Name() {
@@ -471,6 +467,7 @@ func (mt *messagesText) showUrlSelector(urls []string, attachments []discord.Att
 
 			return event
 		})
+	list.Box = ui.ConfigureBox(list.Box, &mt.cfg.Theme)
 
 	for i, a := range attachments {
 		list.AddItem(a.Filename, "", rune('a'+i), func() {

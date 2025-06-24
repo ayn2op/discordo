@@ -29,7 +29,6 @@ func newGuildsTree(cfg *config.Config) *guildsTree {
 	}
 
 	gt.Box = ui.ConfigureBox(gt.Box, &cfg.Theme)
-
 	gt.
 		SetRoot(tview.NewTreeNode("")).
 		SetTopLevel(1).
