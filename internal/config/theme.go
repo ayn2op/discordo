@@ -66,18 +66,41 @@ func (sw *StyleWrapper) UnmarshalTOML(v any) error {
 	}
 
 	for key, val := range m {
-		s, ok := val.(string)
-		if !ok {
-			continue
-		}
-
 		switch key {
 		case "foreground":
+			s, ok := val.(string)
+			if !ok {
+				continue
+			}
+
 			color := tcell.GetColor(s)
 			sw.Style = sw.Foreground(color)
 		case "background":
+			s, ok := val.(string)
+			if !ok {
+				continue
+			}
+
 			color := tcell.GetColor(s)
 			sw.Style = sw.Background(color)
+		case "attributes":
+			var attrs tcell.AttrMask
+			switch val := val.(type) {
+			case string:
+				attrs |= stringToAttrMask(val)
+			case []any:
+				for _, attr := range val {
+					s, ok := attr.(string)
+					if !ok {
+						continue
+					}
+
+					attrs |= stringToAttrMask(s)
+				}
+
+			}
+
+			sw.Style = sw.Attributes(attrs)
 		}
 	}
 
@@ -146,3 +169,24 @@ type (
 		MentionsList MentionsListTheme `toml:"mentions_list"`
 	}
 )
+
+func stringToAttrMask(s string) tcell.AttrMask {
+	switch s {
+	case "bold":
+		return tcell.AttrBold
+	case "blink":
+		return tcell.AttrBlink
+	case "reverse":
+		return tcell.AttrReverse
+	case "underline":
+		return tcell.AttrUnderline
+	case "dim":
+		return tcell.AttrDim
+	case "italic":
+		return tcell.AttrItalic
+	case "strikethrough":
+		return tcell.AttrStrikeThrough
+	default:
+		return tcell.AttrNone
+	}
+}
