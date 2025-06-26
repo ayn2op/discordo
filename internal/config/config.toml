@@ -100,14 +100,15 @@ up = "Up"
 down = "Down"
 
 # Applies to all
+# style = { foreground = "", background = "", attributes = "" or [""] }
 [theme]
 background_color = "default"
 
 [theme.title]
 # `"left"`, `"center"`, or `"right"`.
 alignment = "left"
-normal_style = { foreground = "default", background = "default" }
-active_style = { foreground = "green", background = "default" }
+normal_style = { attributes = "dim" }
+active_style = { attributes = "bold" }
 
 [theme.border]
 enabled = true
@@ -115,17 +116,17 @@ enabled = true
 padding = [0, 0, 1, 1]
 # `"plain"`, `"round"`, `"thick"`, or `"double"`.
 set = "plain"
-normal_style = { foreground = "default", background = "default" }
-active_style = { foreground = "green", background = "default" }
+normal_style = { attributes =  "dim" }
+active_style = { attributes = "bold" }
 
 [theme.guilds_tree]
 auto_expand_folders = true
 # Give tree-like shape
 graphics = true
-graphics_color = "default"
-private_channel_style = { foreground = "default", background = "default" }
-guild_style = { foreground = "default", background = "default" }
-channel_style = { foreground = "default", background = "default" }
+# graphics_color = "default"
+# private_channel_style = { foreground = "default" }
+# guild_style = { foreground = "default" }
+# channel_style = { foreground = "default" }
 
 [theme.messages_list]
 # Set to false to show messages with usernames instead of nicknames
@@ -135,11 +136,11 @@ show_user_colors = true
 reply_indicator = ">"
 forwarded_indicator = "<"
 
-author_style = { foreground = "aqua", background = "default" }
-mention_style = { foreground = "blue", background = "default" }
-emoji_style = { foreground = "green", background = "default" }
-url_style = { foreground = "blue", background = "default" }
-attachment_style = { foreground = "yellow", background = "default" }
+author_style = { foreground = "aqua" }
+mention_style = { foreground = "blue" }
+emoji_style = { foreground = "green" }
+url_style = { foreground = "blue" }
+attachment_style = { foreground = "yellow" }
 
 [theme.mentions_list]
 show_user_nicks = true
