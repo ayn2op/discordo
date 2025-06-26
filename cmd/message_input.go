@@ -31,9 +31,10 @@ var mentionRegex = regexp.MustCompile("@[a-zA-Z0-9._]+")
 
 type messageInput struct {
 	*tview.TextArea
-	cfg            *config.Config
+	cfg *config.Config
+
 	cache          *cache.Cache
-	autocomplete   *tview.List
+	mentionsList   *tview.List
 	replyMessageID discord.MessageID
 	lastSearch     time.Time
 }
@@ -45,7 +46,7 @@ func newMessageInput(cfg *config.Config) *messageInput {
 		TextArea:     tview.NewTextArea(),
 		cfg:          cfg,
 		cache:        cache.NewCache(),
-		autocomplete: tview.NewList(),
+		mentionsList: tview.NewList(),
 	}
 
 	mi.Box = ui.ConfigureBox(mi.Box, &cfg.Theme)
@@ -59,16 +60,16 @@ func newMessageInput(cfg *config.Config) *messageInput {
 		}).
 		SetInputCapture(mi.onInputCapture)
 
-	mi.autocomplete.Box = ui.ConfigureBox(mi.autocomplete.Box, &mi.cfg.Theme)
-	mi.autocomplete.
+	mi.mentionsList.Box = ui.ConfigureBox(mi.mentionsList.Box, &mi.cfg.Theme)
+	mi.mentionsList.
 		ShowSecondaryText(false).
 		SetSelectedStyle(tcell.StyleDefault.Background(tcell.ColorWhite).Foreground(tcell.ColorBlack)).
 		SetTitle("Mentions").
 		SetRect(0, 0, 0, 0)
 
-	b := mi.autocomplete.GetBorderSet()
+	b := mi.mentionsList.GetBorderSet()
 	b.BottomLeft, b.BottomRight = b.BottomT, b.BottomT
-	mi.autocomplete.SetBorderSet(b)
+	mi.mentionsList.SetBorderSet(b)
 
 	return mi
 }
@@ -108,17 +109,17 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 
 	if mi.cfg.AutocompleteLimit > 0 {
 		if app.pages.GetVisibile(mentionsListPageName) {
-			count := mi.autocomplete.GetItemCount()
-			cur := mi.autocomplete.GetCurrentItem()
+			count := mi.mentionsList.GetItemCount()
+			cur := mi.mentionsList.GetCurrentItem()
 			switch event.Name() {
-			case mi.cfg.Keys.Autocomplete.Down:
-				mi.autocomplete.SetCurrentItem((cur + 1) % count)
+			case mi.cfg.Keys.MentionsList.Down:
+				mi.mentionsList.SetCurrentItem((cur + 1) % count)
 				return nil
-			case mi.cfg.Keys.Autocomplete.Up:
+			case mi.cfg.Keys.MentionsList.Up:
 				if cur == 0 {
 					cur = count
 				}
-				mi.autocomplete.SetCurrentItem(cur - 1)
+				mi.mentionsList.SetCurrentItem(cur - 1)
 				return nil
 			}
 		}
@@ -239,10 +240,10 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 			}
 			return
 		}
-		if mi.autocomplete.GetItemCount() == 0 {
+		if mi.mentionsList.GetItemCount() == 0 {
 			return
 		}
-		_, name = mi.autocomplete.GetItemText(mi.autocomplete.GetCurrentItem())
+		_, name = mi.mentionsList.GetItemText(mi.mentionsList.GetCurrentItem())
 		mi.Replace(pos, posEnd, "@"+name+" ")
 		mi.stopTabCompletion()
 		return
@@ -255,7 +256,7 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 			return
 		}
 		shown := make(map[string]bool)
-		mi.autocomplete.Clear()
+		mi.mentionsList.Clear()
 		for _, m := range msgs {
 			if shown[m.Author.Username] {
 				continue
@@ -270,7 +271,7 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 		}
 	} else {
 		mi.searchMember(gID, name)
-		mi.autocomplete.Clear()
+		mi.mentionsList.Clear()
 		mems, err := discordState.Cabinet.Members(gID)
 		if err != nil {
 			slog.Error("fetching members failed", "err", err)
@@ -288,7 +289,7 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 		}
 	}
 
-	if mi.autocomplete.GetItemCount() == 0 {
+	if mi.mentionsList.GetItemCount() == 0 {
 		mi.stopTabCompletion()
 		return
 	}
@@ -349,22 +350,22 @@ func (mi *messageInput) showMentionList(col int) {
 	if mi.cfg.Theme.Border.Enabled {
 		borders = 1
 	}
-	l := mi.autocomplete
+	l := mi.mentionsList
 	x, _, _, _ := mi.GetInnerRect()
 	_, y, _, _ := mi.GetRect()
 	_, _, maxW, maxH := app.messagesList.GetInnerRect()
-	if t := int(mi.cfg.Theme.Autocomplete.MaxHeight); t != 0 {
+	if t := int(mi.cfg.Theme.MentionsList.MaxHeight); t != 0 {
 		maxH = min(maxH, t)
 	}
 	count := l.GetItemCount() + borders
 	h := min(count, maxH) + borders + mi.cfg.Theme.Border.Padding[1]
 	y -= h
-	w := int(mi.cfg.Theme.Autocomplete.MinWidth)
+	w := int(mi.cfg.Theme.MentionsList.MinWidth)
 	if w == 0 {
 		w = maxW
 	} else {
 		for i := range count - 1 {
-			t, _ := mi.autocomplete.GetItemText(i)
+			t, _ := mi.mentionsList.GetItemText(i)
 			w = max(w, tview.TaggedStringWidth(t))
 		}
 		w = min(w+borders*2, maxW)
@@ -384,7 +385,7 @@ func (mi *messageInput) addAutocompleteItem(gID discord.GuildID, m *discord.Memb
 		return false
 	}
 	var dname string
-	if mi.cfg.Theme.Autocomplete.ShowNicknames && m.Nick != "" {
+	if mi.cfg.Theme.MentionsList.ShowNicknames && m.Nick != "" {
 		dname = m.Nick
 	} else {
 		dname = m.User.DisplayName
@@ -393,7 +394,7 @@ func (mi *messageInput) addAutocompleteItem(gID discord.GuildID, m *discord.Memb
 		dname = tview.Escape(dname)
 	}
 	// this is WAY faster than discordState.MemberColor
-	if mi.cfg.Theme.Autocomplete.ShowUsernameColors {
+	if mi.cfg.Theme.MentionsList.ShowUsernameColors {
 		if c, ok := state.MemberColor(m, func(id discord.RoleID) *discord.Role {
 			r, _ := discordState.Cabinet.Role(gID, id)
 			return r
@@ -410,11 +411,11 @@ func (mi *messageInput) addAutocompleteItem(gID discord.GuildID, m *discord.Memb
 		username = "[::d]" + username + "[::D]"
 	}
 	if dname != "" {
-		mi.autocomplete.AddItem(dname+" ("+username+")", m.User.Username, 0, nil)
+		mi.mentionsList.AddItem(dname+" ("+username+")", m.User.Username, 0, nil)
 	} else {
-		mi.autocomplete.AddItem(username, m.User.Username, 0, nil)
+		mi.mentionsList.AddItem(username, m.User.Username, 0, nil)
 	}
-	return mi.autocomplete.GetItemCount() > int(mi.cfg.AutocompleteLimit)
+	return mi.mentionsList.GetItemCount() > int(mi.cfg.AutocompleteLimit)
 }
 
 func (mi *messageInput) removeMentionsList() {
@@ -425,7 +426,7 @@ func (mi *messageInput) removeMentionsList() {
 
 func (mi *messageInput) stopTabCompletion() {
 	if mi.cfg.AutocompleteLimit > 0 {
-		mi.autocomplete.Clear()
+		mi.mentionsList.Clear()
 		mi.removeMentionsList()
 		app.SetFocus(mi)
 	}

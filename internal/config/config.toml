@@ -95,9 +95,7 @@ cancel = "Esc"
 # Complete usernames when mentioning
 tab_complete = "Tab"
 
-# When typing and there's an autocomplete list visible,
-# pressing these keys will focus on the list instead of the message input.
-[keys.autocomplete]
+[keys.mentions_list]
 up = "Up"
 down = "Down"
 
@@ -143,7 +141,7 @@ emoji_style = { foreground = "green", background = "default" }
 url_style = { foreground = "blue", background = "default" }
 attachment_style = { foreground = "yellow", background = "default" }
 
-[theme.autocomplete]
+[theme.mentions_list]
 show_user_nicks = true
 show_user_colors = true
 

@@ -127,7 +127,7 @@ type (
 		AttachmentStyle StyleWrapper `toml:"attachment_style"`
 	}
 
-	AutocompleteTheme struct {
+	MentionsListTheme struct {
 		ShowNicknames      bool `toml:"show_user_nicks"`
 		ShowUsernameColors bool `toml:"show_user_colors"`
 
@@ -143,6 +143,6 @@ type (
 
 		GuildsTree   GuildsTreeTheme   `toml:"guilds_tree"`
 		MessagesList MessagesListTheme `toml:"messages_list"`
-		Autocomplete AutocompleteTheme `toml:"autocomplete"`
+		MentionsList MentionsListTheme `toml:"mentions_list"`
 	}
 )
