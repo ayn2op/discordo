@@ -41,7 +41,7 @@ user_agent = "default"
 # Esc: Reset message selection or close the channel selection popup.
 [keys]
 focus_guilds_tree = "Ctrl+G"
-focus_messages_text = "Ctrl+T"
+focus_messages_list = "Ctrl+T"
 focus_message_input = "Ctrl+P"
 # Hide/show the guilds tree.
 toggle_guilds_tree = "Ctrl+B"
@@ -63,7 +63,7 @@ collapse_parent_node = "Rune[-]"
 move_to_parent_node = "Rune[p]"
 
 # Only while focusing on sent messages
-[keys.messages_text]
+[keys.messages_list]
 select_previous = "Rune[k]"
 select_next = "Rune[j]"
 select_first = "Rune[g]"
@@ -129,7 +129,7 @@ private_channel_style = { foreground = "default", background = "default" }
 guild_style = { foreground = "default", background = "default" }
 channel_style = { foreground = "default", background = "default" }
 
-[theme.messages_text]
+[theme.messages_list]
 # Set to false to show messages with usernames instead of nicknames
 show_user_nicks = true
 show_user_colors = true

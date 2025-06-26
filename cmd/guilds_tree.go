@@ -192,9 +192,9 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 			return
 		}
 
-		app.messagesText.reset()
-		app.messagesText.drawMsgs(channel.ID)
-		app.messagesText.
+		app.messagesList.reset()
+		app.messagesList.drawMsgs(channel.ID)
+		app.messagesList.
 			ScrollToEnd().
 			SetTitle(gt.channelToString(*channel))
 

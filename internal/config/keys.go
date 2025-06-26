@@ -10,12 +10,12 @@ type (
 
 	Keys struct {
 		FocusGuildsTree   string `toml:"focus_guilds_tree"`
-		FocusMessagesText string `toml:"focus_messages_text"`
+		FocusMessagesList string `toml:"focus_messages_list"`
 		FocusMessageInput string `toml:"focus_message_input"`
 		ToggleGuildsTree  string `toml:"toggle_guilds_tree"`
 
 		GuildsTree   GuildsTreeKeys   `toml:"guilds_tree"`
-		MessagesText MessagesTextKeys `toml:"messages_text"`
+		MessagesList MessagesListKeys `toml:"messages_list"`
 		MessageInput MessageInputKeys `toml:"message_input"`
 		Autocomplete AutocompleteKeys `toml:"autocomplete"`
 
@@ -32,7 +32,7 @@ type (
 		MoveToParentNode   string `toml:"move_to_parent_node"`
 	}
 
-	MessagesTextKeys struct {
+	MessagesListKeys struct {
 		NavigationKeys
 		SelectReply  string `toml:"select_reply"`
 		Reply        string `toml:"reply"`

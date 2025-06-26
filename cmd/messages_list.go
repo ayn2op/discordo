@@ -27,7 +27,7 @@ import (
 	"github.com/yuin/goldmark/text"
 )
 
-type messagesText struct {
+type messagesList struct {
 	*tview.TextView
 	cfg               *config.Config
 	selectedMessageID discord.MessageID
@@ -40,50 +40,50 @@ type messagesText struct {
 	}
 }
 
-func newMessagesText(cfg *config.Config) *messagesText {
-	mt := &messagesText{
+func newMessagesList(cfg *config.Config) *messagesList {
+	ml := &messagesList{
 		TextView: tview.NewTextView(),
 		cfg:      cfg,
 	}
 
-	mt.Box = ui.ConfigureBox(mt.Box, &cfg.Theme)
-	mt.
+	ml.Box = ui.ConfigureBox(ml.Box, &cfg.Theme)
+	ml.
 		SetDynamicColors(true).
 		SetRegions(true).
 		SetWordWrap(true).
 		ScrollToEnd().
-		SetHighlightedFunc(mt.onHighlighted).
+		SetHighlightedFunc(ml.onHighlighted).
 		SetTextColor(tcell.ColorDefault).
 		SetTitle("Messages").
-		SetInputCapture(mt.onInputCapture)
+		SetInputCapture(ml.onInputCapture)
 
-	markdown.DefaultRenderer.AddOptions(renderer.WithOption("theme", cfg.Theme.MessagesText))
-	return mt
+	markdown.DefaultRenderer.AddOptions(renderer.WithOption("theme", cfg.Theme.MessagesList))
+	return ml
 }
 
-func (mt *messagesText) drawMsgs(cID discord.ChannelID) {
-	msgs, err := discordState.Messages(cID, uint(mt.cfg.MessagesLimit))
+func (ml *messagesList) drawMsgs(cID discord.ChannelID) {
+	msgs, err := discordState.Messages(cID, uint(ml.cfg.MessagesLimit))
 	if err != nil {
 		slog.Error("failed to get messages", "err", err, "channel_id", cID)
 		return
 	}
 
-	if app.cfg.Theme.MessagesText.ShowNicknames || app.cfg.Theme.MessagesText.ShowUsernameColors {
+	if app.cfg.Theme.MessagesList.ShowNicknames || app.cfg.Theme.MessagesList.ShowUsernameColors {
 		if ch, _ := discordState.Cabinet.Channel(cID); ch.GuildID.IsValid() {
-			mt.requestGuildMembers(ch.GuildID, msgs)
+			ml.requestGuildMembers(ch.GuildID, msgs)
 		}
 	}
 
 	for _, m := range slices.Backward(msgs) {
-		mt.createMsg(m)
+		ml.createMsg(m)
 	}
 }
 
-func (mt *messagesText) reset() {
-	mt.selectedMessageID = 0
+func (ml *messagesList) reset() {
+	ml.selectedMessageID = 0
 	app.messageInput.replyMessageID = 0
 
-	mt.
+	ml.
 		Clear().
 		Highlight().
 		SetTitle("")
@@ -91,60 +91,60 @@ func (mt *messagesText) reset() {
 
 // Region tags are square brackets that contain a region ID in double quotes
 // https://pkg.go.dev/github.com/ayn2op/tview#hdr-Regions_and_Highlights
-func (mt *messagesText) startRegion(msgID discord.MessageID) {
-	fmt.Fprintf(mt, `["%s"]`, msgID)
+func (ml *messagesList) startRegion(msgID discord.MessageID) {
+	fmt.Fprintf(ml, `["%s"]`, msgID)
 }
 
 // Tags with no region ID ([""]) don't start new regions. They can therefore be used to mark the end of a region.
-func (mt *messagesText) endRegion() {
-	fmt.Fprint(mt, `[""]`)
+func (ml *messagesList) endRegion() {
+	fmt.Fprint(ml, `[""]`)
 }
 
-func (mt *messagesText) createMsg(msg discord.Message) {
-	mt.startRegion(msg.ID)
-	defer mt.endRegion()
+func (ml *messagesList) createMsg(msg discord.Message) {
+	ml.startRegion(msg.ID)
+	defer ml.endRegion()
 
-	if mt.cfg.HideBlockedUsers {
+	if ml.cfg.HideBlockedUsers {
 		isBlocked := discordState.UserIsBlocked(msg.Author.ID)
 		if isBlocked {
-			io.WriteString(mt, "[:red:b]Blocked message[:-:-]")
+			io.WriteString(ml, "[:red:b]Blocked message[:-:-]")
 			return
 		}
 	}
 
 	// reset
-	io.WriteString(mt, "[-:-:-]")
+	io.WriteString(ml, "[-:-:-]")
 
 	switch msg.Type {
 	case discord.DefaultMessage:
 		if msg.Reference != nil && msg.Reference.Type == discord.MessageReferenceTypeForward {
-			mt.createForwardedMsg(msg)
+			ml.createForwardedMsg(msg)
 		} else {
-			mt.createDefaultMsg(msg)
+			ml.createDefaultMsg(msg)
 		}
 	case discord.InlinedReplyMessage:
-		mt.createReplyMsg(msg)
+		ml.createReplyMsg(msg)
 	case discord.ChannelPinnedMessage:
-		fmt.Fprintf(mt, "%s pinned a message", msg.Author.DisplayOrUsername())
+		fmt.Fprintf(ml, "%s pinned a message", msg.Author.DisplayOrUsername())
 	default:
-		mt.drawTimestamps(msg.Timestamp)
-		mt.drawAuthor(msg)
+		ml.drawTimestamps(msg.Timestamp)
+		ml.drawAuthor(msg)
 	}
 
-	fmt.Fprintln(mt)
+	fmt.Fprintln(ml)
 }
 
-func (mt *messagesText) formatTimestamp(ts discord.Timestamp) string {
-	return ts.Time().In(time.Local).Format(mt.cfg.Timestamps.Format)
+func (ml *messagesList) formatTimestamp(ts discord.Timestamp) string {
+	return ts.Time().In(time.Local).Format(ml.cfg.Timestamps.Format)
 }
 
-func (mt *messagesText) drawTimestamps(ts discord.Timestamp) {
-	fmt.Fprintf(mt, "[::d]%s[::D] ", mt.formatTimestamp(ts))
+func (ml *messagesList) drawTimestamps(ts discord.Timestamp) {
+	fmt.Fprintf(ml, "[::d]%s[::D] ", ml.formatTimestamp(ts))
 }
 
-func (mt *messagesText) drawAuthor(msg discord.Message) {
+func (ml *messagesList) drawAuthor(msg discord.Message) {
 	name := msg.Author.DisplayOrUsername()
-	style := mt.cfg.Theme.MessagesText.AuthorStyle
+	style := ml.cfg.Theme.MessagesList.AuthorStyle
 
 	if msg.GuildID.IsValid() {
 		member, err := discordState.Cabinet.Member(msg.GuildID, msg.Author.ID)
@@ -153,11 +153,11 @@ func (mt *messagesText) drawAuthor(msg discord.Message) {
 			return
 		}
 
-		if app.cfg.Theme.MessagesText.ShowNicknames && member.Nick != "" {
+		if app.cfg.Theme.MessagesList.ShowNicknames && member.Nick != "" {
 			name = member.Nick
 		}
 
-		if app.cfg.Theme.MessagesText.ShowUsernameColors {
+		if app.cfg.Theme.MessagesList.ShowUsernameColors {
 			color, ok := state.MemberColor(member, func(id discord.RoleID) *discord.Role {
 				r, _ := discordState.Cabinet.Role(msg.GuildID, id)
 				return r
@@ -170,77 +170,77 @@ func (mt *messagesText) drawAuthor(msg discord.Message) {
 	}
 
 	fg, bg, _ := style.Decompose()
-	_, _ = fmt.Fprintf(mt, "[%s:%s]%s[-] ", fg.String(), bg.String(), name)
+	_, _ = fmt.Fprintf(ml, "[%s:%s]%s[-] ", fg.String(), bg.String(), name)
 }
 
-func (mt *messagesText) drawContent(msg discord.Message) {
+func (ml *messagesList) drawContent(msg discord.Message) {
 	c := []byte(tview.Escape(msg.Content))
 	ast := discordmd.ParseWithMessage(c, *discordState.Cabinet, &msg, false)
 	if app.cfg.Markdown {
-		markdown.DefaultRenderer.Render(mt, c, ast)
+		markdown.DefaultRenderer.Render(ml, c, ast)
 	} else {
-		mt.Write(c) // write the content as is
+		ml.Write(c) // write the content as is
 	}
 }
 
-func (mt *messagesText) drawSnapshotContent(msg discord.MessageSnapshotMessage) {
+func (ml *messagesList) drawSnapshotContent(msg discord.MessageSnapshotMessage) {
 	c := []byte(tview.Escape(msg.Content))
 	// discordmd doesn't support MessageSnapshotMessage, so we just use write it as is. todo?
-	mt.Write(c)
+	ml.Write(c)
 }
 
-func (mt *messagesText) createDefaultMsg(msg discord.Message) {
-	if mt.cfg.Timestamps.Enabled {
-		mt.drawTimestamps(msg.Timestamp)
+func (ml *messagesList) createDefaultMsg(msg discord.Message) {
+	if ml.cfg.Timestamps.Enabled {
+		ml.drawTimestamps(msg.Timestamp)
 	}
 
-	mt.drawAuthor(msg)
-	mt.drawContent(msg)
+	ml.drawAuthor(msg)
+	ml.drawContent(msg)
 
 	if msg.EditedTimestamp.IsValid() {
-		io.WriteString(mt, " [::d](edited)[::D]")
+		io.WriteString(ml, " [::d](edited)[::D]")
 	}
 
 	for _, a := range msg.Attachments {
-		fmt.Fprintln(mt)
+		fmt.Fprintln(ml)
 
-		fg, bg, _ := mt.cfg.Theme.MessagesText.AttachmentStyle.Decompose()
-		if mt.cfg.ShowAttachmentLinks {
-			fmt.Fprintf(mt, "[%s:%s][%s]:\n%s[-]", fg, bg, a.Filename, a.URL)
+		fg, bg, _ := ml.cfg.Theme.MessagesList.AttachmentStyle.Decompose()
+		if ml.cfg.ShowAttachmentLinks {
+			fmt.Fprintf(ml, "[%s:%s][%s]:\n%s[-]", fg, bg, a.Filename, a.URL)
 		} else {
-			fmt.Fprintf(mt, "[%s:%s][%s][-]", fg, bg, a.Filename)
+			fmt.Fprintf(ml, "[%s:%s][%s][-]", fg, bg, a.Filename)
 		}
 	}
 }
 
-func (mt *messagesText) createReplyMsg(msg discord.Message) {
+func (ml *messagesList) createReplyMsg(msg discord.Message) {
 	// reply
-	fmt.Fprintf(mt, "[::d]%s ", mt.cfg.Theme.MessagesText.ReplyIndicator)
+	fmt.Fprintf(ml, "[::d]%s ", ml.cfg.Theme.MessagesList.ReplyIndicator)
 	if refMsg := msg.ReferencedMessage; refMsg != nil {
 		refMsg.GuildID = msg.GuildID
-		mt.drawAuthor(*refMsg)
-		mt.drawContent(*refMsg)
+		ml.drawAuthor(*refMsg)
+		ml.drawContent(*refMsg)
 	}
 
-	io.WriteString(mt, tview.NewLine)
+	io.WriteString(ml, tview.NewLine)
 	// main
-	mt.createDefaultMsg(msg)
+	ml.createDefaultMsg(msg)
 }
 
-func (mt *messagesText) createForwardedMsg(msg discord.Message) {
-	mt.drawTimestamps(msg.Timestamp)
-	mt.drawAuthor(msg)
-	fmt.Fprintf(mt, "[::d]%s [::-]", mt.cfg.Theme.MessagesText.ForwardedIndicator)
-	mt.drawSnapshotContent(msg.MessageSnapshots[0].Message)
-	fmt.Fprintf(mt, " [::d](%s)[-:-:-] ", mt.formatTimestamp(msg.MessageSnapshots[0].Message.Timestamp))
+func (ml *messagesList) createForwardedMsg(msg discord.Message) {
+	ml.drawTimestamps(msg.Timestamp)
+	ml.drawAuthor(msg)
+	fmt.Fprintf(ml, "[::d]%s [::-]", ml.cfg.Theme.MessagesList.ForwardedIndicator)
+	ml.drawSnapshotContent(msg.MessageSnapshots[0].Message)
+	fmt.Fprintf(ml, " [::d](%s)[-:-:-] ", ml.formatTimestamp(msg.MessageSnapshots[0].Message.Timestamp))
 }
 
-func (mt *messagesText) selectedMsg() (*discord.Message, error) {
-	if !mt.selectedMessageID.IsValid() {
+func (ml *messagesList) selectedMsg() (*discord.Message, error) {
+	if !ml.selectedMessageID.IsValid() {
 		return nil, errors.New("no message is currently selected")
 	}
 
-	msg, err := discordState.Cabinet.Message(app.guildsTree.selectedChannelID, mt.selectedMessageID)
+	msg, err := discordState.Cabinet.Message(app.guildsTree.selectedChannelID, ml.selectedMessageID)
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve selected message: %w", err)
 	}
@@ -248,14 +248,14 @@ func (mt *messagesText) selectedMsg() (*discord.Message, error) {
 	return msg, nil
 }
 
-func (mt *messagesText) selectedMsgIndex() (int, error) {
+func (ml *messagesList) selectedMsgIndex() (int, error) {
 	ms, err := discordState.Cabinet.Messages(app.guildsTree.selectedChannelID)
 	if err != nil {
 		return -1, err
 	}
 
 	for i, m := range ms {
-		if m.ID == mt.selectedMessageID {
+		if m.ID == ml.selectedMessageID {
 			return i, nil
 		}
 	}
@@ -263,89 +263,89 @@ func (mt *messagesText) selectedMsgIndex() (int, error) {
 	return -1, nil
 }
 
-func (mt *messagesText) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
+func (ml *messagesList) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
-	case mt.cfg.Keys.MessagesText.Cancel:
-		mt.selectedMessageID = 0
+	case ml.cfg.Keys.MessagesList.Cancel:
+		ml.selectedMessageID = 0
 		app.messageInput.replyMessageID = 0
-		mt.Highlight()
+		ml.Highlight()
 
-	case mt.cfg.Keys.MessagesText.SelectPrevious, mt.cfg.Keys.MessagesText.SelectNext, mt.cfg.Keys.MessagesText.SelectFirst, mt.cfg.Keys.MessagesText.SelectLast, mt.cfg.Keys.MessagesText.SelectReply:
-		mt._select(event.Name())
-	case mt.cfg.Keys.MessagesText.YankID:
-		mt.yankID()
-	case mt.cfg.Keys.MessagesText.YankContent:
-		mt.yankContent()
-	case mt.cfg.Keys.MessagesText.YankURL:
-		mt.yankURL()
-	case mt.cfg.Keys.MessagesText.Open:
-		mt.open()
-	case mt.cfg.Keys.MessagesText.Reply:
-		mt.reply(false)
-	case mt.cfg.Keys.MessagesText.ReplyMention:
-		mt.reply(true)
-	case mt.cfg.Keys.MessagesText.Delete:
-		mt.delete()
+	case ml.cfg.Keys.MessagesList.SelectPrevious, ml.cfg.Keys.MessagesList.SelectNext, ml.cfg.Keys.MessagesList.SelectFirst, ml.cfg.Keys.MessagesList.SelectLast, ml.cfg.Keys.MessagesList.SelectReply:
+		ml._select(event.Name())
+	case ml.cfg.Keys.MessagesList.YankID:
+		ml.yankID()
+	case ml.cfg.Keys.MessagesList.YankContent:
+		ml.yankContent()
+	case ml.cfg.Keys.MessagesList.YankURL:
+		ml.yankURL()
+	case ml.cfg.Keys.MessagesList.Open:
+		ml.open()
+	case ml.cfg.Keys.MessagesList.Reply:
+		ml.reply(false)
+	case ml.cfg.Keys.MessagesList.ReplyMention:
+		ml.reply(true)
+	case ml.cfg.Keys.MessagesList.Delete:
+		ml.delete()
 	}
 
 	return nil
 }
 
-func (mt *messagesText) _select(name string) {
+func (ml *messagesList) _select(name string) {
 	ms, err := discordState.Cabinet.Messages(app.guildsTree.selectedChannelID)
 	if err != nil {
 		slog.Error("failed to get messages", "err", err, "channel_id", app.guildsTree.selectedChannelID)
 		return
 	}
 
-	msgIdx, err := mt.selectedMsgIndex()
+	msgIdx, err := ml.selectedMsgIndex()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
 		return
 	}
 
 	switch name {
-	case mt.cfg.Keys.MessagesText.SelectPrevious:
+	case ml.cfg.Keys.MessagesList.SelectPrevious:
 		// If no message is currently selected, select the latest message.
-		if len(mt.GetHighlights()) == 0 {
-			mt.selectedMessageID = ms[0].ID
+		if len(ml.GetHighlights()) == 0 {
+			ml.selectedMessageID = ms[0].ID
 		} else if msgIdx < len(ms)-1 {
-			mt.selectedMessageID = ms[msgIdx+1].ID
+			ml.selectedMessageID = ms[msgIdx+1].ID
 		} else {
 			return
 		}
-	case mt.cfg.Keys.MessagesText.SelectNext:
+	case ml.cfg.Keys.MessagesList.SelectNext:
 		// If no message is currently selected, select the latest message.
-		if len(mt.GetHighlights()) == 0 {
-			mt.selectedMessageID = ms[0].ID
+		if len(ml.GetHighlights()) == 0 {
+			ml.selectedMessageID = ms[0].ID
 		} else if msgIdx > 0 {
-			mt.selectedMessageID = ms[msgIdx-1].ID
+			ml.selectedMessageID = ms[msgIdx-1].ID
 		} else {
 			return
 		}
-	case mt.cfg.Keys.MessagesText.SelectFirst:
-		mt.selectedMessageID = ms[len(ms)-1].ID
-	case mt.cfg.Keys.MessagesText.SelectLast:
-		mt.selectedMessageID = ms[0].ID
-	case mt.cfg.Keys.MessagesText.SelectReply:
-		if mt.selectedMessageID == 0 {
+	case ml.cfg.Keys.MessagesList.SelectFirst:
+		ml.selectedMessageID = ms[len(ms)-1].ID
+	case ml.cfg.Keys.MessagesList.SelectLast:
+		ml.selectedMessageID = ms[0].ID
+	case ml.cfg.Keys.MessagesList.SelectReply:
+		if ml.selectedMessageID == 0 {
 			return
 		}
 
 		if ref := ms[msgIdx].ReferencedMessage; ref != nil {
 			for _, m := range ms {
 				if ref.ID == m.ID {
-					mt.selectedMessageID = m.ID
+					ml.selectedMessageID = m.ID
 				}
 			}
 		}
 	}
 
-	mt.Highlight(mt.selectedMessageID.String())
-	mt.ScrollToHighlight()
+	ml.Highlight(ml.selectedMessageID.String())
+	ml.ScrollToHighlight()
 }
 
-func (mt *messagesText) onHighlighted(added, removed, remaining []string) {
+func (ml *messagesList) onHighlighted(added, removed, remaining []string) {
 	if len(added) > 0 {
 		id, err := discord.ParseSnowflake(added[0])
 		if err != nil {
@@ -353,12 +353,12 @@ func (mt *messagesText) onHighlighted(added, removed, remaining []string) {
 			return
 		}
 
-		mt.selectedMessageID = discord.MessageID(id)
+		ml.selectedMessageID = discord.MessageID(id)
 	}
 }
 
-func (mt *messagesText) yankID() {
-	msg, err := mt.selectedMsg()
+func (ml *messagesList) yankID() {
+	msg, err := ml.selectedMsg()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
 		return
@@ -369,8 +369,8 @@ func (mt *messagesText) yankID() {
 	}
 }
 
-func (mt *messagesText) yankContent() {
-	msg, err := mt.selectedMsg()
+func (ml *messagesList) yankContent() {
+	msg, err := ml.selectedMsg()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
 		return
@@ -381,8 +381,8 @@ func (mt *messagesText) yankContent() {
 	}
 }
 
-func (mt *messagesText) yankURL() {
-	msg, err := mt.selectedMsg()
+func (ml *messagesList) yankURL() {
+	msg, err := ml.selectedMsg()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
 		return
@@ -393,8 +393,8 @@ func (mt *messagesText) yankURL() {
 	}
 }
 
-func (mt *messagesText) open() {
-	msg, err := mt.selectedMsg()
+func (ml *messagesList) open() {
+	msg, err := ml.selectedMsg()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
 		return
@@ -416,7 +416,7 @@ func (mt *messagesText) open() {
 			go openURL(msg.Attachments[0].URL)
 		}
 	} else {
-		mt.showAttachmentsList(urls, msg.Attachments)
+		ml.showAttachmentsList(urls, msg.Attachments)
 	}
 }
 
@@ -443,31 +443,31 @@ func extractURLs(content string) []string {
 	return urls
 }
 
-func (mt *messagesText) showAttachmentsList(urls []string, attachments []discord.Attachment) {
+func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord.Attachment) {
 	list := tview.NewList().
 		SetWrapAround(true).
 		SetHighlightFullLine(true).
 		ShowSecondaryText(false).
 		SetDoneFunc(func() {
 			app.pages.RemovePage(attachmentsListPageName).SwitchToPage(flexPageName)
-			app.SetFocus(mt)
+			app.SetFocus(ml)
 		})
 	list.
 		SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 			switch event.Name() {
-			case mt.cfg.Keys.MessagesText.SelectPrevious:
+			case ml.cfg.Keys.MessagesList.SelectPrevious:
 				return tcell.NewEventKey(tcell.KeyUp, 0, tcell.ModNone)
-			case mt.cfg.Keys.MessagesText.SelectNext:
+			case ml.cfg.Keys.MessagesList.SelectNext:
 				return tcell.NewEventKey(tcell.KeyDown, 0, tcell.ModNone)
-			case mt.cfg.Keys.MessagesText.SelectFirst:
+			case ml.cfg.Keys.MessagesList.SelectFirst:
 				return tcell.NewEventKey(tcell.KeyHome, 0, tcell.ModNone)
-			case mt.cfg.Keys.MessagesText.SelectLast:
+			case ml.cfg.Keys.MessagesList.SelectLast:
 				return tcell.NewEventKey(tcell.KeyEnd, 0, tcell.ModNone)
 			}
 
 			return event
 		})
-	list.Box = ui.ConfigureBox(list.Box, &mt.cfg.Theme)
+	list.Box = ui.ConfigureBox(list.Box, &ml.cfg.Theme)
 
 	for i, a := range attachments {
 		list.AddItem(a.Filename, "", rune('a'+i), func() {
@@ -492,7 +492,7 @@ func openURL(url string) {
 	}
 }
 
-func (mt *messagesText) reply(mention bool) {
+func (ml *messagesList) reply(mention bool) {
 	var title string
 	if mention {
 		title += "[@] Replying to "
@@ -500,7 +500,7 @@ func (mt *messagesText) reply(mention bool) {
 		title += "Replying to "
 	}
 
-	msg, err := mt.selectedMsg()
+	msg, err := ml.selectedMsg()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
 		return
@@ -515,19 +515,19 @@ func (mt *messagesText) reply(mention bool) {
 			return
 		}
 
-		if app.cfg.Theme.MessagesText.ShowNicknames && member.Nick != "" {
+		if app.cfg.Theme.MessagesList.ShowNicknames && member.Nick != "" {
 			name = member.Nick
 		}
 	}
 
 	title += name
 	app.messageInput.SetTitle(title)
-	app.messageInput.replyMessageID = mt.selectedMessageID
+	app.messageInput.replyMessageID = ml.selectedMessageID
 	app.SetFocus(app.messageInput)
 }
 
-func (mt *messagesText) delete() {
-	msg, err := mt.selectedMsg()
+func (ml *messagesList) delete() {
+	msg, err := ml.selectedMsg()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
 		return
@@ -554,9 +554,9 @@ func (mt *messagesText) delete() {
 		return
 	}
 
-	mt.selectedMessageID = 0
+	ml.selectedMessageID = 0
 	app.messageInput.replyMessageID = 0
-	mt.Highlight()
+	ml.Highlight()
 
 	if err := discordState.MessageRemove(app.guildsTree.selectedChannelID, msg.ID); err != nil {
 		slog.Error("failed to delete message", "err", err, "channel_id", app.guildsTree.selectedChannelID, "message_id", msg.ID)
@@ -567,7 +567,7 @@ func (mt *messagesText) delete() {
 	// its work after the event returns
 }
 
-func (mt *messagesText) requestGuildMembers(gID discord.GuildID, ms []discord.Message) {
+func (ml *messagesList) requestGuildMembers(gID discord.GuildID, ms []discord.Message) {
 	var usersToFetch []discord.UserID
 	for _, m := range ms {
 		if member, _ := discordState.Cabinet.Member(gID, m.Author.ID); member == nil {
@@ -585,37 +585,37 @@ func (mt *messagesText) requestGuildMembers(gID discord.GuildID, ms []discord.Me
 			return
 		}
 
-		mt.setFetchingChunk(true, 0)
-		mt.waitForChunkEvent()
+		ml.setFetchingChunk(true, 0)
+		ml.waitForChunkEvent()
 	}
 }
 
-func (mt *messagesText) setFetchingChunk(value bool, count uint) {
-	mt.fetchingMembers.mu.Lock()
-	defer mt.fetchingMembers.mu.Unlock()
+func (ml *messagesList) setFetchingChunk(value bool, count uint) {
+	ml.fetchingMembers.mu.Lock()
+	defer ml.fetchingMembers.mu.Unlock()
 
-	if mt.fetchingMembers.value == value {
+	if ml.fetchingMembers.value == value {
 		return
 	}
 
-	mt.fetchingMembers.value = value
+	ml.fetchingMembers.value = value
 
 	if value {
-		mt.fetchingMembers.done = make(chan struct{})
+		ml.fetchingMembers.done = make(chan struct{})
 	} else {
-		mt.fetchingMembers.count = count
-		close(mt.fetchingMembers.done)
+		ml.fetchingMembers.count = count
+		close(ml.fetchingMembers.done)
 	}
 }
 
-func (mt *messagesText) waitForChunkEvent() uint {
-	mt.fetchingMembers.mu.Lock()
-	if !mt.fetchingMembers.value {
-		mt.fetchingMembers.mu.Unlock()
+func (ml *messagesList) waitForChunkEvent() uint {
+	ml.fetchingMembers.mu.Lock()
+	if !ml.fetchingMembers.value {
+		ml.fetchingMembers.mu.Unlock()
 		return 0
 	}
-	mt.fetchingMembers.mu.Unlock()
+	ml.fetchingMembers.mu.Unlock()
 
-	<-mt.fetchingMembers.done
-	return mt.fetchingMembers.count
+	<-ml.fetchingMembers.done
+	return ml.fetchingMembers.count
 }

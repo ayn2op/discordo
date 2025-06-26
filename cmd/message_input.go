@@ -160,8 +160,8 @@ func (mi *messageInput) send() {
 	}()
 
 	mi.reset()
-	app.messagesText.Highlight()
-	app.messagesText.ScrollToEnd()
+	app.messagesList.Highlight()
+	app.messagesList.ScrollToEnd()
 }
 
 func processText(cID discord.ChannelID, src []byte) string {
@@ -331,10 +331,10 @@ func (mi *messageInput) searchMember(gID discord.GuildID, name string) {
 		return
 	}
 	mi.lastSearch = time.Now()
-	app.messagesText.waitForChunkEvent()
-	app.messagesText.setFetchingChunk(true, 0)
+	app.messagesList.waitForChunkEvent()
+	app.messagesList.setFetchingChunk(true, 0)
 	discordState.MemberState.SearchMember(gID, name)
-	mi.cache.Create(key, app.messagesText.waitForChunkEvent())
+	mi.cache.Create(key, app.messagesList.waitForChunkEvent())
 }
 
 func isValidUserRune(x rune) bool {
@@ -352,7 +352,7 @@ func (mi *messageInput) showMentionList(col int) {
 	l := mi.autocomplete
 	x, _, _, _ := mi.GetInnerRect()
 	_, y, _, _ := mi.GetRect()
-	_, _, maxW, maxH := app.messagesText.GetInnerRect()
+	_, _, maxW, maxH := app.messagesList.GetInnerRect()
 	if t := int(mi.cfg.Theme.Autocomplete.MaxHeight); t != 0 {
 		maxH = min(maxH, t)
 	}

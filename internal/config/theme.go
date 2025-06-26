@@ -113,7 +113,7 @@ type (
 		ChannelStyle        StyleWrapper `toml:"channel_style"`
 	}
 
-	MessagesTextTheme struct {
+	MessagesListTheme struct {
 		ShowNicknames      bool `toml:"show_user_nicks"`
 		ShowUsernameColors bool `toml:"show_user_colors"`
 
@@ -142,7 +142,7 @@ type (
 		Border BorderTheme `toml:"border"`
 
 		GuildsTree   GuildsTreeTheme   `toml:"guilds_tree"`
-		MessagesText MessagesTextTheme `toml:"messages_text"`
+		MessagesList MessagesListTheme `toml:"messages_list"`
 		Autocomplete AutocompleteTheme `toml:"autocomplete"`
 	}
 )

@@ -1,3 +1,4 @@
+// Package markdown defines a renderer for tview style tags.
 package markdown
 
 import (
@@ -8,6 +9,7 @@ import (
 
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/diamondburned/ningen/v3/discordmd"
+	"github.com/gdamore/tcell/v2"
 	"github.com/yuin/goldmark/ast"
 	gmr "github.com/yuin/goldmark/renderer"
 )
@@ -34,6 +36,7 @@ func (r *renderer) AddOptions(opts ...gmr.Option) {
 }
 
 func (r *renderer) Render(w io.Writer, source []byte, node ast.Node) error {
+	theme := r.config.Options["theme"].(config.MessagesListTheme)
 	return ast.Walk(node, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
 		switch node := node.(type) {
 		case *ast.Document:
@@ -45,9 +48,9 @@ func (r *renderer) Render(w io.Writer, source []byte, node ast.Node) error {
 		case *ast.FencedCodeBlock:
 			r.renderFencedCodeBlock(w, node, entering, source)
 		case *ast.AutoLink:
-			r.renderAutoLink(w, node, entering, source)
+			r.renderAutoLink(w, node, entering, source, theme.URLStyle.Style)
 		case *ast.Link:
-			r.renderLink(w, node, entering)
+			r.renderLink(w, node, entering, theme.URLStyle.Style)
 		case *ast.List:
 			r.renderList(w, node, entering)
 		case *ast.ListItem:
@@ -56,9 +59,9 @@ func (r *renderer) Render(w io.Writer, source []byte, node ast.Node) error {
 		case *discordmd.Inline:
 			r.renderInline(w, node, entering)
 		case *discordmd.Mention:
-			r.renderMention(w, node, entering)
+			r.renderMention(w, node, entering, theme.ShowNicknames, theme.MentionStyle.Style)
 		case *discordmd.Emoji:
-			r.renderEmoji(w, node, entering)
+			r.renderEmoji(w, node, entering, theme.EmojiStyle.Style)
 		}
 
 		return ast.WalkContinue, nil
@@ -95,10 +98,9 @@ func (r *renderer) renderFencedCodeBlock(w io.Writer, node *ast.FencedCodeBlock,
 	}
 }
 
-func (r *renderer) renderAutoLink(w io.Writer, node *ast.AutoLink, entering bool, source []byte) {
+func (r *renderer) renderAutoLink(w io.Writer, node *ast.AutoLink, entering bool, source []byte, urlStyle tcell.Style) {
 	if entering {
-		theme := r.config.Options["theme"].(config.MessagesTextTheme)
-		fg, bg, _ := theme.URLStyle.Decompose()
+		fg, bg, _ := urlStyle.Decompose()
 		_, _ = fmt.Fprintf(w, "[%s:%s]", fg, bg)
 		w.Write(node.URL(source))
 	} else {
@@ -106,10 +108,9 @@ func (r *renderer) renderAutoLink(w io.Writer, node *ast.AutoLink, entering bool
 	}
 }
 
-func (r *renderer) renderLink(w io.Writer, node *ast.Link, entering bool) {
+func (r *renderer) renderLink(w io.Writer, node *ast.Link, entering bool, urlStyle tcell.Style) {
 	if entering {
-		theme := r.config.Options["theme"].(config.MessagesTextTheme)
-		fg, bg, _ := theme.URLStyle.Decompose()
+		fg, bg, _ := urlStyle.Decompose()
 		_, _ = fmt.Fprintf(w, "[%s:%s::%s]", fg, bg, node.Destination)
 	} else {
 		io.WriteString(w, "[-:-::-]")
@@ -189,10 +190,9 @@ func (r *renderer) renderInline(w io.Writer, node *discordmd.Inline, entering bo
 	}
 }
 
-func (r *renderer) renderMention(w io.Writer, node *discordmd.Mention, entering bool) {
+func (r *renderer) renderMention(w io.Writer, node *discordmd.Mention, entering bool, showNicknames bool, mentionStyle tcell.Style) {
 	if entering {
-		theme := r.config.Options["theme"].(config.MessagesTextTheme)
-		fg, bg, _ := theme.MentionStyle.Decompose()
+		fg, bg, _ := mentionStyle.Decompose()
 		_, _ = fmt.Fprintf(w, "[%s:%s:b]", fg, bg)
 
 		switch {
@@ -200,8 +200,7 @@ func (r *renderer) renderMention(w io.Writer, node *discordmd.Mention, entering 
 			io.WriteString(w, "#"+node.Channel.Name)
 		case node.GuildUser != nil:
 			username := node.GuildUser.DisplayOrUsername()
-			theme := r.config.Options["theme"].(config.MessagesTextTheme)
-			if theme.ShowNicknames && node.GuildUser.Member != nil && node.GuildUser.Member.Nick != "" {
+			if showNicknames && node.GuildUser.Member != nil && node.GuildUser.Member.Nick != "" {
 				username = node.GuildUser.Member.Nick
 			}
 			io.WriteString(w, "@"+username)
@@ -213,10 +212,9 @@ func (r *renderer) renderMention(w io.Writer, node *discordmd.Mention, entering 
 	}
 }
 
-func (r *renderer) renderEmoji(w io.Writer, node *discordmd.Emoji, entering bool) {
+func (r *renderer) renderEmoji(w io.Writer, node *discordmd.Emoji, entering bool, emojiStyle tcell.Style) {
 	if entering {
-		theme := r.config.Options["theme"].(config.MessagesTextTheme)
-		fg, bg, _ := theme.EmojiStyle.Decompose()
+		fg, bg, _ := emojiStyle.Decompose()
 		fmt.Fprintf(w, "[%s:%s]", fg, bg)
 		io.WriteString(w, ":"+node.Name+":")
 	} else {

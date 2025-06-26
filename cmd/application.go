@@ -24,7 +24,7 @@ type application struct {
 	pages        *tview.Pages
 	flex         *tview.Flex
 	guildsTree   *guildsTree
-	messagesText *messagesText
+	messagesList *messagesList
 	messageInput *messageInput
 }
 
@@ -36,7 +36,7 @@ func newApplication(cfg *config.Config) *application {
 		pages:        tview.NewPages(),
 		flex:         tview.NewFlex(),
 		guildsTree:   newGuildsTree(cfg),
-		messagesText: newMessagesText(cfg),
+		messagesList: newMessagesList(cfg),
 		messageInput: newMessageInput(cfg),
 	}
 
@@ -82,7 +82,7 @@ func (a *application) init() {
 
 	right := tview.NewFlex().
 		SetDirection(tview.FlexRow).
-		AddItem(a.messagesText, 0, 1, false).
+		AddItem(a.messagesList, 0, 1, false).
 		AddItem(a.messageInput, 3, 1, false)
 
 	// The guilds tree is always focused first at start-up.
@@ -112,9 +112,9 @@ func (a *application) onFlexInputCapture(event *tcell.EventKey) *tcell.EventKey 
 		a.messageInput.removeMentionsList()
 		a.SetFocus(app.guildsTree)
 		return nil
-	case a.cfg.Keys.FocusMessagesText:
+	case a.cfg.Keys.FocusMessagesList:
 		a.messageInput.removeMentionsList()
-		a.SetFocus(app.messagesText)
+		a.SetFocus(app.messagesList)
 		return nil
 	case a.cfg.Keys.FocusMessageInput:
 		a.SetFocus(app.messageInput)

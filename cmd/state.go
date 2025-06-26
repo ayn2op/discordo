@@ -37,7 +37,7 @@ func openState(token string) error {
 	discordState.AddHandler(onMessageDelete)
 
 	discordState.AddHandler(func(event *gateway.GuildMembersChunkEvent) {
-		app.messagesText.setFetchingChunk(false, uint(len(event.Members)))
+		app.messagesList.setFetchingChunk(false, uint(len(event.Members)))
 	})
 
 	discordState.AddHandler(func(event *gateway.GuildMemberRemoveEvent) {
@@ -109,7 +109,7 @@ func onReady(r *gateway.ReadyEvent) {
 func onMessageCreate(msg *gateway.MessageCreateEvent) {
 	if app.guildsTree.selectedChannelID.IsValid() &&
 		app.guildsTree.selectedChannelID == msg.ChannelID {
-		app.messagesText.createMsg(msg.Message)
+		app.messagesList.createMsg(msg.Message)
 		app.Draw()
 	}
 
@@ -120,8 +120,8 @@ func onMessageCreate(msg *gateway.MessageCreateEvent) {
 
 func onMessageDelete(msg *gateway.MessageDeleteEvent) {
 	if app.guildsTree.selectedChannelID == msg.ChannelID {
-		app.messagesText.reset()
-		app.messagesText.drawMsgs(msg.ChannelID)
+		app.messagesList.reset()
+		app.messagesList.drawMsgs(msg.ChannelID)
 		app.Draw()
 	}
 }
