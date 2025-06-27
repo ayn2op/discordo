@@ -20,12 +20,16 @@ type guildsTree struct {
 	cfg               *config.Config
 	selectedChannelID discord.ChannelID
 	selectedGuildID   discord.GuildID
+	unreadChannels    map[discord.ChannelID]bool
+	lastSeenMessages  map[discord.ChannelID]discord.MessageID
 }
 
 func newGuildsTree(cfg *config.Config) *guildsTree {
 	gt := &guildsTree{
-		TreeView: tview.NewTreeView(),
-		cfg:      cfg,
+		TreeView:         tview.NewTreeView(),
+		cfg:              cfg,
+		unreadChannels:   make(map[discord.ChannelID]bool),
+		lastSeenMessages: make(map[discord.ChannelID]discord.MessageID),
 	}
 
 	gt.Box = ui.ConfigureBox(gt.Box, &cfg.Theme)
@@ -70,32 +74,74 @@ func (gt *guildsTree) createGuildNode(n *tview.TreeNode, g discord.Guild) {
 	n.AddChild(guildNode)
 }
 
+func (gt *guildsTree) markChannelUnread(channelID discord.ChannelID) {
+	gt.unreadChannels[channelID] = true
+}
+
+func (gt *guildsTree) markChannelRead(channelID discord.ChannelID) {
+	delete(gt.unreadChannels, channelID)
+	
+	channel, err := discordState.Cabinet.Channel(channelID)
+	if err == nil && channel.LastMessageID.IsValid() {
+		gt.lastSeenMessages[channelID] = channel.LastMessageID
+	}
+}
+
+func (gt *guildsTree) hasUnreadMessages(channelID discord.ChannelID) bool {
+	return gt.unreadChannels[channelID]
+}
+
+func (gt *guildsTree) checkForExistingUnread(channelID discord.ChannelID) {
+	// For now, don't try to detect existing unread messages
+	// Only track new messages that arrive after app startup
+	// This prevents false positives where all channels appear unread
+}
+
+func (gt *guildsTree) refreshChannelDisplay(channelID discord.ChannelID) {
+	gt.GetRoot().Walk(func(node, _ *tview.TreeNode) bool {
+		if node.GetReference() == channelID {
+			channel, err := discordState.Cabinet.Channel(channelID)
+			if err != nil {
+				return true
+			}
+			node.SetText(gt.channelToString(*channel))
+			return false
+		}
+		return true
+	})
+}
+
 func (gt *guildsTree) channelToString(channel discord.Channel) string {
+	var name string
 	switch channel.Type {
 	case discord.DirectMessage, discord.GroupDM:
 		if channel.Name != "" {
-			return channel.Name
+			name = channel.Name
+		} else {
+			recipients := make([]string, len(channel.DMRecipients))
+			for i, r := range channel.DMRecipients {
+				recipients[i] = r.DisplayOrUsername()
+			}
+			name = strings.Join(recipients, ", ")
 		}
-
-		recipients := make([]string, len(channel.DMRecipients))
-		for i, r := range channel.DMRecipients {
-			recipients[i] = r.DisplayOrUsername()
-		}
-
-		return strings.Join(recipients, ", ")
 	case discord.GuildText:
-		return "#" + channel.Name
+		name = "#" + channel.Name
 	case discord.GuildVoice, discord.GuildStageVoice:
-		return "v-" + channel.Name
+		name = "v-" + channel.Name
 	case discord.GuildAnnouncement:
-		return "a-" + channel.Name
+		name = "a-" + channel.Name
 	case discord.GuildStore:
-		return "s-" + channel.Name
+		name = "s-" + channel.Name
 	case discord.GuildForum:
-		return "f-" + channel.Name
+		name = "f-" + channel.Name
 	default:
-		return channel.Name
+		name = channel.Name
 	}
+
+	if gt.hasUnreadMessages(channel.ID) {
+		return fmt.Sprintf("%s [red]●[-]", name)
+	}
+	return name
 }
 
 func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Channel) {
@@ -110,6 +156,8 @@ func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Ch
 			return
 		}
 	}
+
+	gt.checkForExistingUnread(channel.ID)
 
 	style := gt.cfg.Theme.GuildsTree.ChannelStyle.Style
 	channelNode := tview.NewTreeNode(gt.channelToString(channel)).
@@ -191,6 +239,9 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 			slog.Error("failed to get channel", "channel_id", ref)
 			return
 		}
+
+		gt.markChannelRead(channel.ID)
+		gt.refreshChannelDisplay(channel.ID)
 
 		app.messagesList.reset()
 		app.messagesList.drawMsgs(channel.ID)

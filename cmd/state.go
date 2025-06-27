@@ -111,6 +111,12 @@ func onMessageCreate(msg *gateway.MessageCreateEvent) {
 		app.guildsTree.selectedChannelID == msg.ChannelID {
 		app.messagesList.createMsg(msg.Message)
 		app.Draw()
+	} else {
+		if msg.Author.ID != discordState.Ready().User.ID {
+			app.guildsTree.markChannelUnread(msg.ChannelID)
+			app.guildsTree.refreshChannelDisplay(msg.ChannelID)
+			app.Draw()
+		}
 	}
 
 	if err := notifications.HandleIncomingMessage(discordState, msg, app.cfg); err != nil {
