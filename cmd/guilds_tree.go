@@ -5,13 +5,16 @@ import (
 	"log/slog"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/atotto/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
+	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/ningen/v3"
 	"github.com/gdamore/tcell/v2"
 )
 
@@ -70,32 +73,124 @@ func (gt *guildsTree) createGuildNode(n *tview.TreeNode, g discord.Guild) {
 	n.AddChild(guildNode)
 }
 
+
+
+
+func (gt *guildsTree) refreshChannelDisplay(channelID discord.ChannelID) {
+	gt.GetRoot().Walk(func(node, _ *tview.TreeNode) bool {
+		if node.GetReference() == channelID {
+			channel, err := discordState.Cabinet.Channel(channelID)
+			if err != nil {
+				return true
+			}
+			node.SetText(gt.getChannelDisplayName(*channel))
+			return false
+		}
+		return true
+	})
+}
+
 func (gt *guildsTree) channelToString(channel discord.Channel) string {
+	var name string
 	switch channel.Type {
 	case discord.DirectMessage, discord.GroupDM:
 		if channel.Name != "" {
-			return channel.Name
+			name = channel.Name
+		} else {
+			recipients := make([]string, len(channel.DMRecipients))
+			for i, r := range channel.DMRecipients {
+				recipients[i] = r.DisplayOrUsername()
+			}
+			name = strings.Join(recipients, ", ")
 		}
-
-		recipients := make([]string, len(channel.DMRecipients))
-		for i, r := range channel.DMRecipients {
-			recipients[i] = r.DisplayOrUsername()
-		}
-
-		return strings.Join(recipients, ", ")
 	case discord.GuildText:
-		return "#" + channel.Name
+		name = "#" + channel.Name
 	case discord.GuildVoice, discord.GuildStageVoice:
-		return "v-" + channel.Name
+		name = "v-" + channel.Name
 	case discord.GuildAnnouncement:
-		return "a-" + channel.Name
+		name = "a-" + channel.Name
 	case discord.GuildStore:
-		return "s-" + channel.Name
+		name = "s-" + channel.Name
 	case discord.GuildForum:
-		return "f-" + channel.Name
+		name = "f-" + channel.Name
 	default:
-		return channel.Name
+		name = channel.Name
 	}
+
+	return name
+}
+
+// getChannelDisplayName returns the channel name with appropriate unread indicators
+func (gt *guildsTree) getChannelDisplayName(channel discord.Channel) string {
+	name := gt.channelToString(channel)
+	
+	// Check for unread state using ningen
+	if discordState != nil {
+		opts := ningen.UnreadOpts{
+			IncludeMutedCategories: true,
+		}
+		
+		indication := discordState.ChannelIsUnread(channel.ID, opts)
+		switch indication {
+		case ningen.ChannelMentioned:
+			return fmt.Sprintf("%s @", name)
+		case ningen.ChannelUnread:
+			return fmt.Sprintf("%s ●", name)
+		}
+	}
+	
+	return name
+}
+
+// markChannelAsRead marks a channel as read using Discord's API
+func (gt *guildsTree) markChannelAsRead(channelID discord.ChannelID) {
+	if discordState == nil {
+		return
+	}
+	
+	// Get the latest message ID for this channel to mark as read
+	msgs, err := discordState.Cabinet.Messages(channelID)
+	if err != nil || len(msgs) == 0 {
+		// If no messages, try to get the last message ID from the channel
+		channel, err := discordState.Cabinet.Channel(channelID)
+		if err != nil || !channel.LastMessageID.IsValid() {
+			slog.Debug("no messages to mark as read", "channel_id", channelID)
+			return
+		}
+		// Use the channel's last message ID
+		go gt.ackChannelWithRefresh(channelID, channel.LastMessageID)
+		return
+	}
+	
+	// Use the most recent message ID
+	latestMsgID := msgs[0].ID
+	go gt.ackChannelWithRefresh(channelID, latestMsgID)
+}
+
+// ackChannelWithRefresh sends the acknowledgment to Discord's API and refreshes the display
+func (gt *guildsTree) ackChannelWithRefresh(channelID discord.ChannelID, messageID discord.MessageID) {
+	if discordState == nil {
+		return
+	}
+	
+	// Use arikawa's API to acknowledge the channel
+	ack := &api.Ack{}
+	err := discordState.Ack(channelID, messageID, ack)
+	if err != nil {
+		slog.Debug("failed to acknowledge channel", "channel_id", channelID, "message_id", messageID, "err", err)
+		return
+	}
+	
+	slog.Debug("marked channel as read", "channel_id", channelID, "message_id", messageID)
+	
+	// Refresh the display after successful acknowledgment with a small delay
+	// to allow ningen to process the read state change
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		app.QueueUpdateDraw(func() {
+			gt.refreshChannelDisplay(channelID)
+		})
+	}()
 }
 
 func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Channel) {
@@ -111,8 +206,11 @@ func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Ch
 		}
 	}
 
+
 	style := gt.cfg.Theme.GuildsTree.ChannelStyle.Style
-	channelNode := tview.NewTreeNode(gt.channelToString(channel)).
+	displayName := gt.getChannelDisplayName(channel)
+	
+	channelNode := tview.NewTreeNode(displayName).
 		SetReference(channel.ID).
 		SetTextStyle(style).
 		SetSelectedTextStyle(style.Reverse(true))
@@ -191,6 +289,13 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 			slog.Error("failed to get channel", "channel_id", ref)
 			return
 		}
+
+		// Mark channel as read when selected
+		gt.markChannelAsRead(channel.ID)
+		
+		// Optimistic UI update - assume it will succeed and refresh immediately
+		// The API call will refresh again after completion to ensure accuracy
+		gt.refreshChannelDisplay(channel.ID)
 
 		app.messagesList.reset()
 		app.messagesList.drawMsgs(channel.ID)
@@ -283,3 +388,4 @@ func (gt *guildsTree) yankID() {
 		}()
 	}
 }
+
