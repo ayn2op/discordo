@@ -5,13 +5,16 @@ import (
 	"log/slog"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/atotto/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
+	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/ningen/v3"
 	"github.com/gdamore/tcell/v2"
 )
 
@@ -20,16 +23,12 @@ type guildsTree struct {
 	cfg               *config.Config
 	selectedChannelID discord.ChannelID
 	selectedGuildID   discord.GuildID
-	unreadChannels    map[discord.ChannelID]bool
-	lastSeenMessages  map[discord.ChannelID]discord.MessageID
 }
 
 func newGuildsTree(cfg *config.Config) *guildsTree {
 	gt := &guildsTree{
-		TreeView:         tview.NewTreeView(),
-		cfg:              cfg,
-		unreadChannels:   make(map[discord.ChannelID]bool),
-		lastSeenMessages: make(map[discord.ChannelID]discord.MessageID),
+		TreeView: tview.NewTreeView(),
+		cfg:      cfg,
 	}
 
 	gt.Box = ui.ConfigureBox(gt.Box, &cfg.Theme)
@@ -74,28 +73,8 @@ func (gt *guildsTree) createGuildNode(n *tview.TreeNode, g discord.Guild) {
 	n.AddChild(guildNode)
 }
 
-func (gt *guildsTree) markChannelUnread(channelID discord.ChannelID) {
-	gt.unreadChannels[channelID] = true
-}
 
-func (gt *guildsTree) markChannelRead(channelID discord.ChannelID) {
-	delete(gt.unreadChannels, channelID)
-	
-	channel, err := discordState.Cabinet.Channel(channelID)
-	if err == nil && channel.LastMessageID.IsValid() {
-		gt.lastSeenMessages[channelID] = channel.LastMessageID
-	}
-}
 
-func (gt *guildsTree) hasUnreadMessages(channelID discord.ChannelID) bool {
-	return gt.unreadChannels[channelID]
-}
-
-func (gt *guildsTree) checkForExistingUnread(channelID discord.ChannelID) {
-	// For now, don't try to detect existing unread messages
-	// Only track new messages that arrive after app startup
-	// This prevents false positives where all channels appear unread
-}
 
 func (gt *guildsTree) refreshChannelDisplay(channelID discord.ChannelID) {
 	gt.GetRoot().Walk(func(node, _ *tview.TreeNode) bool {
@@ -104,7 +83,7 @@ func (gt *guildsTree) refreshChannelDisplay(channelID discord.ChannelID) {
 			if err != nil {
 				return true
 			}
-			node.SetText(gt.channelToString(*channel))
+			node.SetText(gt.getChannelDisplayName(*channel))
 			return false
 		}
 		return true
@@ -138,10 +117,80 @@ func (gt *guildsTree) channelToString(channel discord.Channel) string {
 		name = channel.Name
 	}
 
-	if gt.hasUnreadMessages(channel.ID) {
-		return fmt.Sprintf("%s [red]●[-]", name)
-	}
 	return name
+}
+
+// getChannelDisplayName returns the channel name with appropriate unread indicators
+func (gt *guildsTree) getChannelDisplayName(channel discord.Channel) string {
+	name := gt.channelToString(channel)
+	
+	// Check for unread state using ningen
+	if discordState != nil {
+		opts := ningen.UnreadOpts{
+			IncludeMutedCategories: true,
+		}
+		
+		indication := discordState.ChannelIsUnread(channel.ID, opts)
+		switch indication {
+		case ningen.ChannelMentioned:
+			return fmt.Sprintf("%s @", name)
+		case ningen.ChannelUnread:
+			return fmt.Sprintf("%s ●", name)
+		}
+	}
+	
+	return name
+}
+
+// markChannelAsRead marks a channel as read using Discord's API
+func (gt *guildsTree) markChannelAsRead(channelID discord.ChannelID) {
+	if discordState == nil {
+		return
+	}
+	
+	// Get the latest message ID for this channel to mark as read
+	msgs, err := discordState.Cabinet.Messages(channelID)
+	if err != nil || len(msgs) == 0 {
+		// If no messages, try to get the last message ID from the channel
+		channel, err := discordState.Cabinet.Channel(channelID)
+		if err != nil || !channel.LastMessageID.IsValid() {
+			slog.Debug("no messages to mark as read", "channel_id", channelID)
+			return
+		}
+		// Use the channel's last message ID
+		go gt.ackChannelWithRefresh(channelID, channel.LastMessageID)
+		return
+	}
+	
+	// Use the most recent message ID
+	latestMsgID := msgs[0].ID
+	go gt.ackChannelWithRefresh(channelID, latestMsgID)
+}
+
+// ackChannelWithRefresh sends the acknowledgment to Discord's API and refreshes the display
+func (gt *guildsTree) ackChannelWithRefresh(channelID discord.ChannelID, messageID discord.MessageID) {
+	if discordState == nil {
+		return
+	}
+	
+	// Use arikawa's API to acknowledge the channel
+	ack := &api.Ack{}
+	err := discordState.Ack(channelID, messageID, ack)
+	if err != nil {
+		slog.Debug("failed to acknowledge channel", "channel_id", channelID, "message_id", messageID, "err", err)
+		return
+	}
+	
+	slog.Debug("marked channel as read", "channel_id", channelID, "message_id", messageID)
+	
+	// Refresh the display after successful acknowledgment with a small delay
+	// to allow ningen to process the read state change
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		app.QueueUpdateDraw(func() {
+			gt.refreshChannelDisplay(channelID)
+		})
+	}()
 }
 
 func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Channel) {
@@ -157,10 +206,11 @@ func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Ch
 		}
 	}
 
-	gt.checkForExistingUnread(channel.ID)
 
 	style := gt.cfg.Theme.GuildsTree.ChannelStyle.Style
-	channelNode := tview.NewTreeNode(gt.channelToString(channel)).
+	displayName := gt.getChannelDisplayName(channel)
+	
+	channelNode := tview.NewTreeNode(displayName).
 		SetReference(channel.ID).
 		SetTextStyle(style).
 		SetSelectedTextStyle(style.Reverse(true))
@@ -240,7 +290,11 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 			return
 		}
 
-		gt.markChannelRead(channel.ID)
+		// Mark channel as read when selected
+		gt.markChannelAsRead(channel.ID)
+		
+		// Optimistic UI update - assume it will succeed and refresh immediately
+		// The API call will refresh again after completion to ensure accuracy
 		gt.refreshChannelDisplay(channel.ID)
 
 		app.messagesList.reset()
@@ -334,3 +388,4 @@ func (gt *guildsTree) yankID() {
 		}()
 	}
 }
+

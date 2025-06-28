@@ -113,7 +113,6 @@ func onMessageCreate(msg *gateway.MessageCreateEvent) {
 		app.Draw()
 	} else {
 		if msg.Author.ID != discordState.Ready().User.ID {
-			app.guildsTree.markChannelUnread(msg.ChannelID)
 			app.guildsTree.refreshChannelDisplay(msg.ChannelID)
 			app.Draw()
 		}
