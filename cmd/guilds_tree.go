@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/atotto/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
@@ -120,11 +119,9 @@ func (gt *guildsTree) channelToString(channel discord.Channel) string {
 	return name
 }
 
-// getChannelDisplayName returns the channel name with appropriate unread indicators
 func (gt *guildsTree) getChannelDisplayName(channel discord.Channel) string {
 	name := gt.channelToString(channel)
 	
-	// Check for unread state using ningen
 	if discordState != nil {
 		opts := ningen.UnreadOpts{
 			IncludeMutedCategories: true,
@@ -142,38 +139,31 @@ func (gt *guildsTree) getChannelDisplayName(channel discord.Channel) string {
 	return name
 }
 
-// markChannelAsRead marks a channel as read using Discord's API
 func (gt *guildsTree) markChannelAsRead(channelID discord.ChannelID) {
 	if discordState == nil {
 		return
 	}
 	
-	// Get the latest message ID for this channel to mark as read
 	msgs, err := discordState.Cabinet.Messages(channelID)
 	if err != nil || len(msgs) == 0 {
-		// If no messages, try to get the last message ID from the channel
 		channel, err := discordState.Cabinet.Channel(channelID)
 		if err != nil || !channel.LastMessageID.IsValid() {
 			slog.Debug("no messages to mark as read", "channel_id", channelID)
 			return
 		}
-		// Use the channel's last message ID
-		go gt.ackChannelWithRefresh(channelID, channel.LastMessageID)
+		go gt.ackChannel(channelID, channel.LastMessageID)
 		return
 	}
 	
-	// Use the most recent message ID
 	latestMsgID := msgs[0].ID
-	go gt.ackChannelWithRefresh(channelID, latestMsgID)
+	go gt.ackChannel(channelID, latestMsgID)
 }
 
-// ackChannelWithRefresh sends the acknowledgment to Discord's API and refreshes the display
-func (gt *guildsTree) ackChannelWithRefresh(channelID discord.ChannelID, messageID discord.MessageID) {
+func (gt *guildsTree) ackChannel(channelID discord.ChannelID, messageID discord.MessageID) {
 	if discordState == nil {
 		return
 	}
 	
-	// Use arikawa's API to acknowledge the channel
 	ack := &api.Ack{}
 	err := discordState.Ack(channelID, messageID, ack)
 	if err != nil {
@@ -182,15 +172,6 @@ func (gt *guildsTree) ackChannelWithRefresh(channelID discord.ChannelID, message
 	}
 	
 	slog.Debug("marked channel as read", "channel_id", channelID, "message_id", messageID)
-	
-	// Refresh the display after successful acknowledgment with a small delay
-	// to allow ningen to process the read state change
-	go func() {
-		time.Sleep(100 * time.Millisecond)
-		app.QueueUpdateDraw(func() {
-			gt.refreshChannelDisplay(channelID)
-		})
-	}()
 }
 
 func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Channel) {
