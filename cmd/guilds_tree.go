@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/atotto/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
@@ -174,6 +175,131 @@ func (gt *guildsTree) ackChannel(channelID discord.ChannelID, messageID discord.
 	slog.Debug("marked channel as read", "channel_id", channelID, "message_id", messageID)
 }
 
+
+func (gt *guildsTree) findUnreadChannelsAcrossAllGuilds() []discord.ChannelID {
+	if discordState == nil {
+		return nil
+	}
+
+	var mentionedChannels []discord.ChannelID
+	var unreadChannels []discord.ChannelID
+	opts := ningen.UnreadOpts{
+		IncludeMutedCategories: true,
+	}
+	
+	gt.GetRoot().Walk(func(node, _ *tview.TreeNode) bool {
+		if guildID, ok := node.GetReference().(discord.GuildID); ok {
+			channels, err := discordState.Cabinet.Channels(guildID)
+			if err != nil {
+				return true
+			}
+			
+			for _, channel := range channels {
+				indication := discordState.ChannelIsUnread(channel.ID, opts)
+				if indication == ningen.ChannelMentioned {
+					mentionedChannels = append(mentionedChannels, channel.ID)
+				} else if indication == ningen.ChannelUnread {
+					unreadChannels = append(unreadChannels, channel.ID)
+				}
+			}
+		}
+		return true
+	})
+	
+	return append(mentionedChannels, unreadChannels...)
+}
+
+
+func (gt *guildsTree) jumpToUnreadChannel(direction int) {
+	unreadChannels := gt.findUnreadChannelsAcrossAllGuilds()
+	
+	if len(unreadChannels) == 0 {
+		gt.SetTitle("Guilds (no unread)")
+		go func() {
+			time.Sleep(1500 * time.Millisecond)
+			gt.SetTitle("Guilds")
+		}()
+		return 
+	}
+
+	currentNode := gt.GetCurrentNode()
+	var currentChannelID discord.ChannelID
+	if currentNode != nil {
+		if channelID, ok := currentNode.GetReference().(discord.ChannelID); ok {
+			currentChannelID = channelID
+		}
+	}
+
+	currentIndex := -1
+	for i, channelID := range unreadChannels {
+		if channelID == currentChannelID {
+			currentIndex = i
+			break
+		}
+	}
+
+	var targetChannelID discord.ChannelID
+	if currentIndex == -1 {
+		targetChannelID = unreadChannels[0]
+	} else {
+		var targetIndex int
+		if direction > 0 {
+			targetIndex = (currentIndex + 1) % len(unreadChannels)
+		} else {
+			targetIndex = (currentIndex - 1 + len(unreadChannels)) % len(unreadChannels)
+		}
+		targetChannelID = unreadChannels[targetIndex]
+	}
+
+	gt.expandGuildAndSelectChannel(targetChannelID)
+}
+
+func (gt *guildsTree) expandGuildAndSelectChannel(targetChannelID discord.ChannelID) {
+	found := false
+	gt.GetRoot().Walk(func(node, _ *tview.TreeNode) bool {
+		if channelID, ok := node.GetReference().(discord.ChannelID); ok && channelID == targetChannelID {
+			gt.SetCurrentNode(node)
+			gt.onSelected(node)
+			found = true
+			return false // Stop walking
+		}
+		return true
+	})
+	
+	if found {
+		return
+	}
+	
+	channel, err := discordState.Cabinet.Channel(targetChannelID)
+	if err != nil {
+		return
+	}
+	
+	gt.GetRoot().Walk(func(node, _ *tview.TreeNode) bool {
+		if guildID, ok := node.GetReference().(discord.GuildID); ok && guildID == channel.GuildID {
+			if !node.IsExpanded() {
+				node.SetExpanded(true)
+			}
+			
+			gt.onSelected(node)
+			
+			time.Sleep(50 * time.Millisecond)
+			
+			gt.GetRoot().Walk(func(innerNode, _ *tview.TreeNode) bool {
+				if channelID, ok := innerNode.GetReference().(discord.ChannelID); ok && channelID == targetChannelID {
+					gt.SetCurrentNode(innerNode)
+					gt.onSelected(innerNode)
+					return false
+				}
+				return true
+			})
+			
+			return false
+		}
+		return true
+	})
+}
+
 func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Channel) {
 	if channel.Type != discord.DirectMessage && channel.Type != discord.GroupDM {
 		perms, err := discordState.Permissions(channel.ID, discordState.Ready().User.ID)
@@ -271,11 +397,8 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 			return
 		}
 
-		// Mark channel as read when selected
 		gt.markChannelAsRead(channel.ID)
 		
-		// Optimistic UI update - assume it will succeed and refresh immediately
-		// The API call will refresh again after completion to ensure accuracy
 		gt.refreshChannelDisplay(channel.ID)
 
 		app.messagesList.reset()
@@ -348,6 +471,13 @@ func (gt *guildsTree) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 
 	case gt.cfg.Keys.GuildsTree.YankID:
 		gt.yankID()
+
+	case gt.cfg.Keys.GuildsTree.NextUnread:
+		gt.jumpToUnreadChannel(1) // direction = 1 for next
+		return nil
+	case gt.cfg.Keys.GuildsTree.PreviousUnread:
+		gt.jumpToUnreadChannel(-1) // direction = -1 for previous
+		return nil
 	}
 
 	return nil
@@ -359,8 +489,6 @@ func (gt *guildsTree) yankID() {
 		return
 	}
 
-	// Reference of a tree node in the guilds tree is its ID.
-	// discord.Snowflake (discord.GuildID and discord.ChannelID) have the String method.
 	if id, ok := node.GetReference().(fmt.Stringer); ok {
 		go func() {
 			if err := clipboard.WriteAll(id.String()); err != nil {

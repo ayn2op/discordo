@@ -61,6 +61,9 @@ select_current = "Enter"
 yank_id = "Rune[i]"
 collapse_parent_node = "Rune[-]"
 move_to_parent_node = "Rune[p]"
+# Jump to next/previous unread channel (extends the j/k navigation pattern)
+next_unread = "Rune[J]"
+previous_unread = "Rune[K]"
 
 # Only while focusing on sent messages
 [keys.messages_list]
