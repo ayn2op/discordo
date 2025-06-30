@@ -206,6 +206,18 @@ func (gt *guildsTree) findUnreadChannelsAcrossAllGuilds() []discord.ChannelID {
 		return true
 	})
 	
+	privateChannels, err := discordState.Cabinet.PrivateChannels()
+	if err == nil {
+		for _, channel := range privateChannels {
+			indication := discordState.ChannelIsUnread(channel.ID, opts)
+			if indication == ningen.ChannelMentioned {
+				mentionedChannels = append(mentionedChannels, channel.ID)
+			} else if indication == ningen.ChannelUnread {
+				unreadChannels = append(unreadChannels, channel.ID)
+			}
+		}
+	}
+	
 	return append(mentionedChannels, unreadChannels...)
 }
 
@@ -214,7 +226,7 @@ func (gt *guildsTree) jumpToUnreadChannel(direction int) {
 	unreadChannels := gt.findUnreadChannelsAcrossAllGuilds()
 	
 	if len(unreadChannels) == 0 {
-		gt.SetTitle("Guilds (no unread)")
+		gt.SetTitle("Guilds (no unread messages)")
 		go func() {
 			time.Sleep(1500 * time.Millisecond)
 			gt.SetTitle("Guilds")
@@ -259,7 +271,7 @@ func (gt *guildsTree) expandGuildAndSelectChannel(targetChannelID discord.Channe
 	gt.GetRoot().Walk(func(node, _ *tview.TreeNode) bool {
 		if channelID, ok := node.GetReference().(discord.ChannelID); ok && channelID == targetChannelID {
 			gt.SetCurrentNode(node)
-			gt.onSelected(node)
+			// Don't call gt.onSelected(node) - just highlight without reading
 			found = true
 			return false // Stop walking
 		}
@@ -272,6 +284,31 @@ func (gt *guildsTree) expandGuildAndSelectChannel(targetChannelID discord.Channe
 	
 	channel, err := discordState.Cabinet.Channel(targetChannelID)
 	if err != nil {
+		return
+	}
+	
+	if !channel.GuildID.IsValid() {
+		gt.GetRoot().Walk(func(node, _ *tview.TreeNode) bool {
+			if node.GetReference() == nil && strings.Contains(strings.ToLower(node.GetText()), "direct") {
+				if !node.IsExpanded() {
+					node.SetExpanded(true)
+				}
+				gt.onSelected(node)
+				
+				time.Sleep(50 * time.Millisecond)
+				
+				gt.GetRoot().Walk(func(innerNode, _ *tview.TreeNode) bool {
+					if channelID, ok := innerNode.GetReference().(discord.ChannelID); ok && channelID == targetChannelID {
+						gt.SetCurrentNode(innerNode)
+						return false // Stop walking
+					}
+					return true
+				})
+				
+				return false // Stop walking
+			}
+			return true
+		})
 		return
 	}
 	
@@ -288,7 +325,6 @@ func (gt *guildsTree) expandGuildAndSelectChannel(targetChannelID discord.Channe
 			gt.GetRoot().Walk(func(innerNode, _ *tview.TreeNode) bool {
 				if channelID, ok := innerNode.GetReference().(discord.ChannelID); ok && channelID == targetChannelID {
 					gt.SetCurrentNode(innerNode)
-					gt.onSelected(innerNode)
 					return false
 				}
 				return true
