@@ -52,8 +52,13 @@ func (f *Form) login() {
 
 	// Create an API client without an authentication token.
 	client := api.NewClient("")
-	// Spoof the user agent of a web browser.
-	client.UserAgent = f.cfg.Identify.UserAgent
+	props, err := consts.GetIdentifyProperties()
+	if err != nil {
+		f.onError(err)
+		return
+	}
+
+	client.UserAgent = props.BrowserUserAgent
 
 	resp, err := client.Login(email, password)
 	if err != nil {
