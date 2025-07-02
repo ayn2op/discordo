@@ -123,11 +123,6 @@ func (gt *guildsTree) channelToString(channel discord.Channel) string {
 func (gt *guildsTree) getChannelDisplayName(channel discord.Channel) string {
 	name := gt.channelToString(channel)
 	
-	if discordState != nil {
-		opts := ningen.UnreadOpts{
-			IncludeMutedCategories: true,
-		}
-		
 		indication := discordState.ChannelIsUnread(channel.ID, opts)
 		switch indication {
 		case ningen.ChannelMentioned:
@@ -141,9 +136,6 @@ func (gt *guildsTree) getChannelDisplayName(channel discord.Channel) string {
 }
 
 func (gt *guildsTree) markChannelAsRead(channelID discord.ChannelID) {
-	if discordState == nil {
-		return
-	}
 	
 	msgs, err := discordState.Cabinet.Messages(channelID)
 	if err != nil || len(msgs) == 0 {
@@ -177,9 +169,6 @@ func (gt *guildsTree) ackChannel(channelID discord.ChannelID, messageID discord.
 
 
 func (gt *guildsTree) findUnreadChannelsAcrossAllGuilds() []discord.ChannelID {
-	if discordState == nil {
-		return nil
-	}
 
 	var mentionedChannels []discord.ChannelID
 	var unreadChannels []discord.ChannelID
@@ -525,6 +514,8 @@ func (gt *guildsTree) yankID() {
 		return
 	}
 
+	// Reference of a tree node in the guilds tree is its ID.
+	// discord.Snowflake (discord.GuildID and discord.ChannelID) have the String method.
 	if id, ok := node.GetReference().(fmt.Stringer); ok {
 		go func() {
 			if err := clipboard.WriteAll(id.String()); err != nil {
