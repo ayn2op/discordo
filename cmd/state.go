@@ -2,29 +2,86 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
-	"runtime"
+	"net/http"
 
 	"github.com/ayn2op/discordo/internal/notifications"
 	"github.com/ayn2op/tview"
 	"github.com/diamondburned/arikawa/v3/api"
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/httputil/httpdriver"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/diamondburned/ningen/v3"
 )
 
-func openState(token string) error {
-	api.UserAgent = app.cfg.Identify.UserAgent
-	gateway.DefaultIdentity = gateway.IdentifyProperties{
-		OS:     runtime.GOOS,
-		Device: "",
+const identifyPropertiesURL = "https://cordapi.dolfi.es/api/v2/properties/web"
 
-		Browser:          app.cfg.Identify.Browser,
-		BrowserVersion:   app.cfg.Identify.BrowserVersion,
-		BrowserUserAgent: app.cfg.Identify.UserAgent,
+type (
+	ClientIdentidyProperties struct {
+		Type           string `json:"type"`
+		BuildNumber    int    `json:"build_number"`
+		BuildHash      string `json:"build_hash"`
+		ReleaseChannel string `json:"release_channel"`
 	}
 
+	OSBrowserIdentifyProperties struct {
+		Type    string `json:"type"`
+		Version string `json:"version"`
+	}
+
+	BrowserIdentifyProperties struct {
+		Type      string                      `json:"type"`
+		UserAgent string                      `json:"user_agent"`
+		Version   string                      `json:"version"`
+		OS        OSBrowserIdentifyProperties `json:"os"`
+	}
+
+	IdentifyProperties struct {
+		Client  ClientIdentidyProperties  `json:"client"`
+		Browser BrowserIdentifyProperties `json:"browser"`
+	}
+)
+
+func getIdentifyProperties() (*gateway.IdentifyProperties, error) {
+	resp, err := http.Get(identifyPropertiesURL)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var props IdentifyProperties
+	if err := json.NewDecoder(resp.Body).Decode(&props); err != nil {
+		return nil, err
+	}
+
+	return &gateway.IdentifyProperties{
+		Device: "",
+
+		Browser:          props.Browser.Type,
+		BrowserUserAgent: props.Browser.UserAgent,
+		BrowserVersion:   props.Browser.Version,
+
+		OS:        props.Browser.OS.Type,
+		OSVersion: props.Browser.OS.Version,
+
+		ClientBuildNumber: props.Client.BuildNumber,
+		ReleaseChannel:    props.Client.ReleaseChannel,
+
+		SystemLocale:  discord.EnglishUS,
+		HasClientMods: false,
+	}, nil
+}
+
+func openState(token string) error {
+	props, err := getIdentifyProperties()
+	if err != nil {
+		return err
+	}
+
+	api.UserAgent = props.BrowserUserAgent
+	gateway.DefaultIdentity = *props
 	gateway.DefaultPresence = &gateway.UpdatePresenceCommand{
 		Status: app.cfg.Identify.Status,
 	}
