@@ -15,13 +15,9 @@ import (
 )
 
 func openState(token string) error {
-	props, err := consts.GetIdentifyProperties()
-	if err != nil {
-		return err
-	}
-
+	props := consts.GetIdentifyProps()
 	api.UserAgent = props.BrowserUserAgent
-	gateway.DefaultIdentity = *props
+	gateway.DefaultIdentity = props
 	gateway.DefaultPresence = &gateway.UpdatePresenceCommand{
 		Status: app.cfg.Identify.Status,
 	}

@@ -10,12 +10,32 @@ import (
 
 const Name = "discordo"
 
-const identifyPropertiesURL = "https://cordapi.dolfi.es/api/v2/properties/web"
+const (
+	identifyPropertiesURL = "https://cordapi.dolfi.es/api/v2/properties/web"
+	loginURL              = "https://discord.com/login"
+)
 
-func GetIdentifyProperties() (*gateway.IdentifyProperties, error) {
+var defaultIdentifyProps = gateway.IdentifyProperties{
+	Device: "",
+
+	Browser:          "Chrome",
+	BrowserUserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+	BrowserVersion:   "138.0.0.0",
+
+	OS:        "Windows",
+	OSVersion: "10",
+
+	ClientBuildNumber: 415522,
+	ReleaseChannel:    "stable",
+
+	SystemLocale:  discord.EnglishUS,
+	HasClientMods: false,
+}
+
+func GetIdentifyProps() gateway.IdentifyProperties {
 	resp, err := http.Get(identifyPropertiesURL)
 	if err != nil {
-		return nil, err
+		return defaultIdentifyProps
 	}
 	defer resp.Body.Close()
 
@@ -37,12 +57,11 @@ func GetIdentifyProperties() (*gateway.IdentifyProperties, error) {
 			} `json:"os"`
 		} `json:"browser"`
 	}
-
 	if err := json.NewDecoder(resp.Body).Decode(&props); err != nil {
-		return nil, err
+		return defaultIdentifyProps
 	}
 
-	return &gateway.IdentifyProperties{
+	return gateway.IdentifyProperties{
 		Device: "",
 
 		Browser:          props.Browser.Type,
@@ -57,5 +76,5 @@ func GetIdentifyProperties() (*gateway.IdentifyProperties, error) {
 
 		SystemLocale:  discord.EnglishUS,
 		HasClientMods: false,
-	}, nil
+	}
 }
