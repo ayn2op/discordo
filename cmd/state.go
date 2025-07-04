@@ -3,8 +3,8 @@ package cmd
 import (
 	"context"
 	"log/slog"
-	"runtime"
 
+	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/notifications"
 	"github.com/ayn2op/tview"
 	"github.com/diamondburned/arikawa/v3/api"
@@ -16,16 +16,9 @@ import (
 )
 
 func openState(token string) error {
-	api.UserAgent = app.cfg.Identify.UserAgent
-	gateway.DefaultIdentity = gateway.IdentifyProperties{
-		OS:     runtime.GOOS,
-		Device: "",
-
-		Browser:          app.cfg.Identify.Browser,
-		BrowserVersion:   app.cfg.Identify.BrowserVersion,
-		BrowserUserAgent: app.cfg.Identify.UserAgent,
-	}
-
+	props := consts.GetIdentifyProps()
+	api.UserAgent = props.BrowserUserAgent
+	gateway.DefaultIdentity = props
 	gateway.DefaultPresence = &gateway.UpdatePresenceCommand{
 		Status: app.cfg.Identify.Status,
 	}
