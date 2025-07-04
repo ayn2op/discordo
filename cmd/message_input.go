@@ -264,7 +264,7 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 			shown[m.Author.Username] = true
 			discordState.MemberState.RequestMember(gID, m.Author.ID)
 			if mem, err := discordState.Cabinet.Member(gID, m.Author.ID); err == nil {
-				if mi.addAutocompleteItem(gID, mem) {
+				if mi.addMentionItem(gID, mem) {
 					break
 				}
 			}
@@ -283,7 +283,7 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 		}
 		for _, r := range res {
 			if channelHasUser(cID, mems[r.Index].User.ID) &&
-				mi.addAutocompleteItem(gID, &mems[r.Index]) {
+				mi.addMentionItem(gID, &mems[r.Index]) {
 				break
 			}
 		}
@@ -379,42 +379,48 @@ func (mi *messageInput) showMentionList(col int) {
 	app.SetFocus(mi)
 }
 
-func (mi *messageInput) addAutocompleteItem(gID discord.GuildID, m *discord.Member) bool {
+func (mi *messageInput) addMentionItem(gID discord.GuildID, m *discord.Member) bool {
 	username := m.User.Username
 	if username == "" {
 		return false
 	}
-	var dname string
-	if mi.cfg.Theme.MentionsList.ShowNicknames && m.Nick != "" {
+	dname := ""
+	if mi.cfg.Theme.MentionsList.PreferNicknames {
 		dname = m.Nick
-	} else {
+	}
+	if dname == "" {
 		dname = m.User.DisplayName
 	}
 	if dname != "" {
 		dname = tview.Escape(dname)
 	}
 	// this is WAY faster than discordState.MemberColor
-	if mi.cfg.Theme.MentionsList.ShowUsernameColors {
+	if mi.cfg.Theme.MentionsList.ShowUserColors {
 		if c, ok := state.MemberColor(m, func(id discord.RoleID) *discord.Role {
 			r, _ := discordState.Cabinet.Role(gID, id)
 			return r
 		}); ok {
 			if dname != "" {
-				dname = "[" + c.String() + "]" + dname + "[-]"
+				dname = "[" + c.String() + "]" + dname + "[-:]"
 			} else {
-				username = "[" + c.String() + "]" + username + "[-]"
+				username = "[" + c.String() + "]" + username + "[-:]"
 			}
 		}
 	}
-	// The username overwrite in the case of dname == "" is intended
 	if presence, _ := discordState.Cabinet.Presence(gID, m.User.ID); presence == nil || presence.Status == discord.OfflineStatus {
-		username = "[::d]" + username + "[::D]"
+		if mi.cfg.Theme.MentionsList.ShowUsernames || dname == "" {
+			username = "[::d]" + username + "[::D]"
+		} else {
+			dname = "[::d]" + dname + "[::D]"
+		}
 	}
 	if dname != "" {
-		mi.mentionsList.AddItem(dname+" ("+username+")", m.User.Username, 0, nil)
-	} else {
-		mi.mentionsList.AddItem(username, m.User.Username, 0, nil)
+		if mi.cfg.Theme.MentionsList.ShowUsernames {
+			dname += " (" + username + ")"
+		}
+		username = dname
 	}
+	mi.mentionsList.AddItem(username, m.User.Username, 0, nil)
 	return mi.mentionsList.GetItemCount() > int(mi.cfg.AutocompleteLimit)
 }
 

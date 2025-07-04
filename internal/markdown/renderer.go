@@ -36,7 +36,7 @@ func (r *renderer) AddOptions(opts ...gmr.Option) {
 }
 
 func (r *renderer) Render(w io.Writer, source []byte, node ast.Node) error {
-	theme := r.config.Options["theme"].(config.MessagesListTheme)
+	theme := r.config.Options["theme"].(config.Theme)
 	return ast.Walk(node, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
 		switch node := node.(type) {
 		case *ast.Document:
@@ -48,9 +48,9 @@ func (r *renderer) Render(w io.Writer, source []byte, node ast.Node) error {
 		case *ast.FencedCodeBlock:
 			r.renderFencedCodeBlock(w, node, entering, source)
 		case *ast.AutoLink:
-			r.renderAutoLink(w, node, entering, source, theme.URLStyle.Style)
+			r.renderAutoLink(w, node, entering, source, theme.MessagesList.URLStyle.Style)
 		case *ast.Link:
-			r.renderLink(w, node, entering, theme.URLStyle.Style)
+			r.renderLink(w, node, entering, theme.MessagesList.URLStyle.Style)
 		case *ast.List:
 			r.renderList(w, node, entering)
 		case *ast.ListItem:
@@ -59,9 +59,9 @@ func (r *renderer) Render(w io.Writer, source []byte, node ast.Node) error {
 		case *discordmd.Inline:
 			r.renderInline(w, node, entering)
 		case *discordmd.Mention:
-			r.renderMention(w, node, entering, theme.ShowNicknames, theme.MentionStyle.Style)
+			r.renderMention(w, node, entering, theme.PreferNicknames, theme.PreferDisplayNames, theme.MessagesList.MentionStyle.Style)
 		case *discordmd.Emoji:
-			r.renderEmoji(w, node, entering, theme.EmojiStyle.Style)
+			r.renderEmoji(w, node, entering, theme.MessagesList.EmojiStyle.Style)
 		}
 
 		return ast.WalkContinue, nil
@@ -190,18 +190,24 @@ func (r *renderer) renderInline(w io.Writer, node *discordmd.Inline, entering bo
 	}
 }
 
-func (r *renderer) renderMention(w io.Writer, node *discordmd.Mention, entering bool, showNicknames bool, mentionStyle tcell.Style) {
+func (r *renderer) renderMention(w io.Writer, node *discordmd.Mention, entering, preferNicknames, preferDisplayNames bool, style tcell.Style) {
 	if entering {
-		fg, bg, _ := mentionStyle.Decompose()
+		fg, bg, _ := style.Decompose()
 		_, _ = fmt.Fprintf(w, "[%s:%s:b]", fg, bg)
 
 		switch {
 		case node.Channel != nil:
 			io.WriteString(w, "#"+node.Channel.Name)
 		case node.GuildUser != nil:
-			username := node.GuildUser.DisplayOrUsername()
-			if showNicknames && node.GuildUser.Member != nil && node.GuildUser.Member.Nick != "" {
+			username := ""
+			if preferNicknames && node.GuildUser.Member != nil {
 				username = node.GuildUser.Member.Nick
+			}
+			if username == "" && !preferDisplayNames {
+				username = node.GuildUser.DisplayName
+			}
+			if username == "" {
+				username = node.GuildUser.Username
 			}
 			io.WriteString(w, "@"+username)
 		case node.GuildRole != nil:

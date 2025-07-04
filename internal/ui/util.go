@@ -3,6 +3,7 @@ package ui
 import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/tview"
+	"github.com/diamondburned/arikawa/v3/discord"
 )
 
 // ConfigureBox configures the provided box according to the provided theme.
@@ -40,4 +41,21 @@ func Centered(p tview.Primitive, width, height int) tview.Primitive {
 		SetColumns(0, width, 0).
 		SetRows(0, height, 0).
 		AddItem(p, 1, 1, 1, 1, 0, 0, true)
+}
+
+func PreferredMemberName(m *discord.Member, theme config.Theme) string {
+	if theme.PreferNicknames && m.Nick != "" {
+		return m.Nick
+	}
+	if theme.PreferDisplayNames && m.User.DisplayName != "" {
+		return m.User.DisplayName
+	}
+	return m.User.Username
+}
+
+func PreferredName(u discord.User, theme config.Theme) string {
+	if theme.PreferDisplayNames && u.DisplayName != "" {
+		return u.DisplayName
+	}
+	return u.Username
 }
