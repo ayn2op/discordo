@@ -7,7 +7,7 @@ require (
 	github.com/atotto/clipboard v0.1.4
 	github.com/ayn2op/tview v0.0.0-20250618224732-91a1a2f06994
 	github.com/deckarep/gosx-notifier v0.0.0-20180201035817-e127226297fb
-	github.com/diamondburned/arikawa/v3 v3.5.1-0.20250620082652-9d8f454bf68f
+	github.com/diamondburned/arikawa/v3 v3.5.1-0.20250702014048-91c175a8e0e4
 	github.com/diamondburned/ningen/v3 v3.0.1-0.20250607192146-d6b46a4689a5
 	github.com/gdamore/tcell/v2 v2.8.1
 	github.com/gen2brain/beeep v0.11.1
