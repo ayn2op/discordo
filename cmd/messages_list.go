@@ -535,16 +535,12 @@ func (ml *messagesList) delete() {
 
 	clientID := discordState.Ready().User.ID
 	if msg.GuildID.IsValid() {
-		ps, err := discordState.Permissions(app.guildsTree.selectedChannelID, discordState.Ready().User.ID)
+		perms, err := discordState.Permissions(app.guildsTree.selectedChannelID, clientID)
 		if err != nil {
 			return
 		}
 
-		if msg.Author.ID != clientID && !ps.Has(discord.PermissionManageMessages) {
-			return
-		}
-	} else {
-		if msg.Author.ID != clientID {
+		if msg.Author.ID != clientID && !perms.Has(discord.PermissionManageMessages) {
 			return
 		}
 	}
