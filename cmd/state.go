@@ -12,6 +12,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/httputil/httpdriver"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/diamondburned/ningen/v3"
+	"github.com/diamondburned/ningen/v3/states/read"
 )
 
 func openState(token string) error {
@@ -24,7 +25,6 @@ func openState(token string) error {
 
 	discordState = ningen.New(token)
 
-	// Handlers
 	discordState.AddHandler(onReady)
 	discordState.AddHandler(onMessageCreate)
 	discordState.AddHandler(onMessageDelete)
@@ -44,6 +44,12 @@ func openState(token string) error {
 			"type", event.OriginalType,
 			"data", event.Raw,
 		)
+	})
+
+	discordState.AddHandler(func(event *read.UpdateEvent) {
+		app.QueueUpdateDraw(func() {
+			app.guildsTree.refreshChannelDisplay(event.ReadState.ChannelID)
+		})
 	})
 
 	discordState.StateLog = func(err error) {
@@ -104,6 +110,23 @@ func onMessageCreate(msg *gateway.MessageCreateEvent) {
 		app.guildsTree.selectedChannelID == msg.ChannelID {
 		app.messagesList.createMsg(msg.Message)
 		app.Draw()
+	} else {
+		if msg.Author.ID != discordState.Ready().User.ID {
+			mentions := 0
+			if msg.MentionEveryone {
+				mentions = 1
+			} else {
+				userID := discordState.Ready().User.ID
+				for _, mention := range msg.Mentions {
+					if mention.ID == userID {
+						mentions = 1
+						break
+					}
+				}
+			}
+			discordState.ReadState.MarkUnread(msg.ChannelID, msg.ID, mentions)
+			app.Draw()
+		}
 	}
 
 	if err := notifications.HandleIncomingMessage(discordState, msg, app.cfg); err != nil {
