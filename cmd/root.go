@@ -40,17 +40,16 @@ var (
 				level = slog.LevelError
 			}
 
-			if err := logger.Load(level); err != nil {
+			logPath, _ := flags.GetString("log-path")
+			if err := logger.Load(logPath, level); err != nil {
 				return fmt.Errorf("failed to load logger: %w", err)
 			}
 
-			configPath, _ := flags.GetString("config")
+			configPath, _ := flags.GetString("config-path")
 			cfg, err := config.Load(configPath)
 			if err != nil {
 				return fmt.Errorf("failed to load config: %w", err)
 			}
-
-			tview.Styles.PrimitiveBackgroundColor = tcell.GetColor(cfg.Theme.BackgroundColor)
 
 			token, _ := flags.GetString("token")
 			if token == "" {
@@ -60,6 +59,7 @@ var (
 				}
 			}
 
+			tview.Styles.PrimitiveBackgroundColor = tcell.GetColor(cfg.Theme.BackgroundColor)
 			app = newApplication(cfg)
 			return app.run(token)
 		},
@@ -71,6 +71,7 @@ var (
 func init() {
 	flags := rootCmd.Flags()
 	flags.StringP("token", "t", "", "authentication token")
-	flags.StringP("config", "c", config.DefaultPath(), "path of the configuration file")
+	flags.String("config-path", config.DefaultPath(), "path of the configuration file")
+	flags.String("log-path", logger.DefaultPath(), "path of the log file")
 	flags.String("log-level", "info", "log level")
 }
