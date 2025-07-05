@@ -15,9 +15,11 @@ import (
 	"github.com/ayn2op/discordo/internal/markdown"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
+	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
+	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/diamondburned/ningen/v3/discordmd"
 	"github.com/gdamore/tcell/v2"
 	"github.com/skratchdot/open-golang/open"
@@ -81,8 +83,6 @@ func (ml *messagesList) drawMsgs(cID discord.ChannelID) {
 
 func (ml *messagesList) reset() {
 	ml.selectedMessageID = 0
-	app.messageInput.replyMessageID = 0
-
 	ml.
 		Clear().
 		Highlight().
@@ -267,7 +267,6 @@ func (ml *messagesList) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case ml.cfg.Keys.MessagesList.Cancel:
 		ml.selectedMessageID = 0
-		app.messageInput.replyMessageID = 0
 		ml.Highlight()
 
 	case ml.cfg.Keys.MessagesList.SelectPrevious, ml.cfg.Keys.MessagesList.SelectNext, ml.cfg.Keys.MessagesList.SelectFirst, ml.cfg.Keys.MessagesList.SelectLast, ml.cfg.Keys.MessagesList.SelectReply:
@@ -493,13 +492,6 @@ func openURL(url string) {
 }
 
 func (ml *messagesList) reply(mention bool) {
-	var title string
-	if mention {
-		title += "[@] Replying to "
-	} else {
-		title += "Replying to "
-	}
-
 	msg, err := ml.selectedMsg()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
@@ -507,7 +499,6 @@ func (ml *messagesList) reply(mention bool) {
 	}
 
 	name := msg.Author.DisplayOrUsername()
-
 	if msg.GuildID.IsValid() {
 		member, err := discordState.Cabinet.Member(msg.GuildID, msg.Author.ID)
 		if err != nil {
@@ -520,9 +511,18 @@ func (ml *messagesList) reply(mention bool) {
 		}
 	}
 
-	title += name
-	app.messageInput.SetTitle(title)
-	app.messageInput.replyMessageID = ml.selectedMessageID
+	data := app.messageInput.sendMessageData
+	data.Reference = &discord.MessageReference{MessageID: ml.selectedMessageID}
+	data.AllowedMentions = &api.AllowedMentions{RepliedUser: option.False}
+
+	title := "Replying to "
+	if mention {
+		title = "[@] Replying to "
+		data.AllowedMentions.RepliedUser = option.True
+	}
+
+	app.messageInput.sendMessageData = data
+	app.messageInput.SetTitle(title + name)
 	app.SetFocus(app.messageInput)
 }
 
@@ -555,7 +555,6 @@ func (ml *messagesList) delete() {
 	}
 
 	ml.selectedMessageID = 0
-	app.messageInput.replyMessageID = 0
 	ml.Highlight()
 
 	if err := discordState.MessageRemove(app.guildsTree.selectedChannelID, msg.ID); err != nil {

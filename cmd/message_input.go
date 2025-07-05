@@ -1,9 +1,12 @@
 package cmd
 
 import (
+	"bufio"
+	"bytes"
 	"log/slog"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
@@ -18,7 +21,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/state"
-	"github.com/diamondburned/arikawa/v3/utils/json/option"
+	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 	"github.com/diamondburned/ningen/v3/discordmd"
 	"github.com/gdamore/tcell/v2"
 	"github.com/sahilm/fuzzy"
@@ -33,20 +36,22 @@ type messageInput struct {
 	*tview.TextArea
 	cfg *config.Config
 
-	cache          *cache.Cache
-	mentionsList   *tview.List
-	replyMessageID discord.MessageID
-	lastSearch     time.Time
+	sendMessageData *api.SendMessageData
+
+	cache        *cache.Cache
+	mentionsList *tview.List
+	lastSearch   time.Time
 }
 
 type memberList []discord.Member
 
 func newMessageInput(cfg *config.Config) *messageInput {
 	mi := &messageInput{
-		TextArea:     tview.NewTextArea(),
-		cfg:          cfg,
-		cache:        cache.NewCache(),
-		mentionsList: tview.NewList(),
+		TextArea:        tview.NewTextArea(),
+		cfg:             cfg,
+		cache:           cache.NewCache(),
+		mentionsList:    tview.NewList(),
+		sendMessageData: &api.SendMessageData{},
 	}
 
 	mi.Box = ui.ConfigureBox(mi.Box, &cfg.Theme)
@@ -75,7 +80,7 @@ func newMessageInput(cfg *config.Config) *messageInput {
 }
 
 func (mi *messageInput) reset() {
-	mi.replyMessageID = 0
+	mi.sendMessageData = &api.SendMessageData{}
 	mi.SetTitle("")
 	mi.SetText("", true)
 }
@@ -90,10 +95,16 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 
 		mi.send()
 		return nil
-	case mi.cfg.Keys.MessageInput.Editor:
+
+	case mi.cfg.Keys.MessageInput.OpenEditor:
 		mi.stopTabCompletion()
-		mi.editor()
+		mi.openEditor()
 		return nil
+	case mi.cfg.Keys.MessageInput.OpenFilePicker:
+		mi.stopTabCompletion()
+		mi.openFilePicker()
+		return nil
+
 	case mi.cfg.Keys.MessageInput.Cancel:
 		if app.pages.GetVisibile(mentionsListPageName) {
 			mi.stopTabCompletion()
@@ -135,27 +146,13 @@ func (mi *messageInput) send() {
 		return
 	}
 
-	text := strings.TrimSpace(mi.GetText())
-	if text == "" {
-		return
-	}
-
-	// Process mentions (there's no shortcut, just parse the entire message
-	// as markdown and then expand non-code mentions)
-	data := api.SendMessageData{
-		Content: processText(app.guildsTree.selectedChannelID, []byte(text)),
-	}
-	if mi.replyMessageID != 0 {
-		data.Reference = &discord.MessageReference{MessageID: mi.replyMessageID}
-		data.AllowedMentions = &api.AllowedMentions{RepliedUser: option.False}
-
-		if strings.HasPrefix(mi.GetTitle(), "[@]") {
-			data.AllowedMentions.RepliedUser = option.True
-		}
+	data := mi.sendMessageData
+	if text := strings.TrimSpace(mi.GetText()); text != "" {
+		data.Content = processText(app.guildsTree.selectedChannelID, []byte(text))
 	}
 
 	go func() {
-		if _, err := discordState.SendMessageComplex(app.guildsTree.selectedChannelID, data); err != nil {
+		if _, err := discordState.SendMessageComplex(app.guildsTree.selectedChannelID, *data); err != nil {
 			slog.Error("failed to send message in channel", "channel_id", app.guildsTree.selectedChannelID, "err", err)
 		}
 	}()
@@ -432,7 +429,47 @@ func (mi *messageInput) stopTabCompletion() {
 	}
 }
 
-func (mi *messageInput) editor() {
+func (mi *messageInput) openFilePicker() {
+	fields := strings.Fields(mi.cfg.FilePicker)
+	if len(fields) == 0 {
+		slog.Error("file picker not set in config")
+		return
+	}
+
+	name, args := fields[0], fields[1:]
+	cmd := exec.Command(name, args...)
+	cmd.Stdin = os.Stdin
+	cmd.Stderr = os.Stderr
+
+	var output bytes.Buffer
+	cmd.Stdout = &output
+
+	app.Suspend(func() {
+		err := cmd.Run()
+		if err != nil {
+			slog.Error("failed to run command", "args", cmd.Args, "err", err)
+			return
+		}
+	})
+
+	scanner := bufio.NewScanner(&output)
+	for scanner.Scan() {
+		path := scanner.Text()
+		if path == "" {
+			continue
+		}
+
+		file, err := os.Open(path)
+		if err != nil {
+			continue
+		}
+
+		name := filepath.Base(path)
+		mi.sendMessageData.Files = append(mi.sendMessageData.Files, sendpart.File{Name: name, Reader: file})
+	}
+}
+
+func (mi *messageInput) openEditor() {
 	file, err := os.CreateTemp("", tmpFilePattern)
 	if err != nil {
 		slog.Error("failed to create tmp file", "err", err)
