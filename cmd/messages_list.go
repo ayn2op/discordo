@@ -576,7 +576,7 @@ func (ml *messagesList) requestGuildMembers(gID discord.GuildID, ms []discord.Me
 	}
 
 	if usersToFetch != nil {
-		err := discordState.Gateway().Send(context.Background(), &gateway.RequestGuildMembersCommand{
+		err := discordState.SendGateway(context.TODO(), &gateway.RequestGuildMembersCommand{
 			GuildIDs: []discord.GuildID{gID},
 			UserIDs:  slices.Compact(usersToFetch),
 		})
