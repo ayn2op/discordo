@@ -40,16 +40,7 @@ var (
 				level = slog.LevelError
 			}
 
-			logFormat, _ := flags.GetString("log-format")
-			var format logger.Format
-			switch logFormat {
-			case "text":
-				format = logger.FormatText
-			case "json":
-				format = logger.FormatJson
-			}
-
-			if err := logger.Load(format, level); err != nil {
+			if err := logger.Load(level); err != nil {
 				return fmt.Errorf("failed to load logger: %w", err)
 			}
 
@@ -81,7 +72,5 @@ func init() {
 	flags := rootCmd.Flags()
 	flags.StringP("token", "t", "", "authentication token")
 	flags.StringP("config", "c", config.DefaultPath(), "path of the configuration file")
-
 	flags.String("log-level", "info", "log level")
-	flags.String("log-format", "text", "log format")
 }
