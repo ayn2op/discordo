@@ -150,9 +150,9 @@ type (
 	}
 
 	MentionsListTheme struct {
-		PreferNicknames bool   `toml:"prefer_nicknames"`
-		ShowUsernames   bool   `toml:"show_usernames"`
-		ShowUserColors  bool   `toml:"show_user_colors"`
+		PreferNicknames bool `toml:"prefer_nicknames"`
+		ShowUsernames   bool `toml:"show_usernames"`
+		ShowUserColors  bool `toml:"show_user_colors"`
 
 		MinWidth  uint `toml:"min_width"`
 		MaxHeight uint `toml:"max_height"`
@@ -161,7 +161,7 @@ type (
 	Theme struct {
 		PreferNicknames    bool   `toml:"prefer_nicknames"`
 		PreferDisplayNames bool   `toml:"prefer_display_names"`
-		BackgroundColor string `toml:"background_color"`
+		BackgroundColor    string `toml:"background_color"`
 
 		Title  TitleTheme  `toml:"title"`
 		Border BorderTheme `toml:"border"`
