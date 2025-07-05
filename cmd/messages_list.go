@@ -533,22 +533,18 @@ func (ml *messagesList) delete() {
 
 	clientID := discordState.Ready().User.ID
 	if msg.GuildID.IsValid() {
-		ps, err := discordState.Permissions(app.guildsTree.selectedChannelID, discordState.Ready().User.ID)
+		perms, err := discordState.Permissions(app.guildsTree.selectedChannelID, clientID)
 		if err != nil {
 			return
 		}
 
-		if msg.Author.ID != clientID && !ps.Has(discord.PermissionManageMessages) {
-			return
-		}
-	} else {
-		if msg.Author.ID != clientID {
+		if msg.Author.ID != clientID && !perms.Has(discord.PermissionManageMessages) {
 			return
 		}
 	}
 
 	if err := discordState.DeleteMessage(app.guildsTree.selectedChannelID, msg.ID, ""); err != nil {
-		slog.Error("failed to delete message", "err", err, "channel_id", app.guildsTree.selectedChannelID, "message_id", msg.ID)
+		slog.Error("failed to delete message", "channel_id", app.guildsTree.selectedChannelID, "message_id", msg.ID, "err", err)
 		return
 	}
 
@@ -557,7 +553,7 @@ func (ml *messagesList) delete() {
 	ml.Highlight()
 
 	if err := discordState.MessageRemove(app.guildsTree.selectedChannelID, msg.ID); err != nil {
-		slog.Error("failed to delete message", "err", err, "channel_id", app.guildsTree.selectedChannelID, "message_id", msg.ID)
+		slog.Error("failed to delete message", "channel_id", app.guildsTree.selectedChannelID, "message_id", msg.ID, "err", err)
 		return
 	}
 
@@ -574,12 +570,12 @@ func (ml *messagesList) requestGuildMembers(gID discord.GuildID, ms []discord.Me
 	}
 
 	if usersToFetch != nil {
-		err := discordState.Gateway().Send(context.Background(), &gateway.RequestGuildMembersCommand{
+		err := discordState.SendGateway(context.TODO(), &gateway.RequestGuildMembersCommand{
 			GuildIDs: []discord.GuildID{gID},
 			UserIDs:  slices.Compact(usersToFetch),
 		})
 		if err != nil {
-			slog.Error("failed to request guild members", "err", err)
+			slog.Error("failed to request guild members", "guild_id", gID, "err", err)
 			return
 		}
 

@@ -21,10 +21,7 @@ type (
 	}
 
 	Identify struct {
-		Status         discord.Status `toml:"status"`
-		Browser        string         `toml:"browser"`
-		BrowserVersion string         `toml:"browser_version"`
-		UserAgent      string         `toml:"user_agent"`
+		Status discord.Status `toml:"status"`
 	}
 
 	Notifications struct {
@@ -91,37 +88,20 @@ func Load(path string) (*Config, error) {
 			"err",
 			err,
 		)
-		handleDefaults(cfg)
-		return cfg, nil
+	} else {
+		if err != nil {
+			return nil, fmt.Errorf("failed to open config file: %w", err)
+		}
+		defer file.Close()
+
+		if _, err := toml.NewDecoder(file).Decode(&cfg); err != nil {
+			return nil, fmt.Errorf("failed to decode config: %w", err)
+		}
 	}
 
-	if err != nil {
-		return nil, fmt.Errorf("failed to open config file: %w", err)
-	}
-	defer file.Close()
-
-	if _, err := toml.NewDecoder(file).Decode(&cfg); err != nil {
-		return nil, fmt.Errorf("failed to decode config: %w", err)
-	}
-
-	handleDefaults(cfg)
-	return cfg, nil
-}
-
-func handleDefaults(cfg *Config) {
 	if cfg.Editor == "default" {
 		cfg.Editor = os.Getenv("EDITOR")
 	}
 
-	if cfg.Identify.Browser == "default" {
-		cfg.Identify.Browser = consts.Browser
-	}
-
-	if cfg.Identify.BrowserVersion == "default" {
-		cfg.Identify.BrowserVersion = consts.BrowserVersion
-	}
-
-	if cfg.Identify.UserAgent == "default" {
-		cfg.Identify.UserAgent = consts.UserAgent
-	}
+	return cfg, nil
 }
