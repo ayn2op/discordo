@@ -550,7 +550,7 @@ func (ml *messagesList) delete() {
 	}
 
 	if err := discordState.DeleteMessage(app.guildsTree.selectedChannelID, msg.ID, ""); err != nil {
-		slog.Error("failed to delete message", "err", err, "channel_id", app.guildsTree.selectedChannelID, "message_id", msg.ID)
+		slog.Error("failed to delete message", "channel_id", app.guildsTree.selectedChannelID, "message_id", msg.ID, "err", err)
 		return
 	}
 
@@ -559,7 +559,7 @@ func (ml *messagesList) delete() {
 	ml.Highlight()
 
 	if err := discordState.MessageRemove(app.guildsTree.selectedChannelID, msg.ID); err != nil {
-		slog.Error("failed to delete message", "err", err, "channel_id", app.guildsTree.selectedChannelID, "message_id", msg.ID)
+		slog.Error("failed to delete message", "channel_id", app.guildsTree.selectedChannelID, "message_id", msg.ID, "err", err)
 		return
 	}
 
@@ -581,7 +581,7 @@ func (ml *messagesList) requestGuildMembers(gID discord.GuildID, ms []discord.Me
 			UserIDs:  slices.Compact(usersToFetch),
 		})
 		if err != nil {
-			slog.Error("failed to request guild members", "err", err)
+			slog.Error("failed to request guild members", "guild_id", gID, "err", err)
 			return
 		}
 
