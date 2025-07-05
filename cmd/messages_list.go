@@ -57,7 +57,7 @@ func newMessagesList(cfg *config.Config) *messagesList {
 		SetTitle("Messages").
 		SetInputCapture(ml.onInputCapture)
 
-	markdown.DefaultRenderer.AddOptions(renderer.WithOption("theme", cfg.Theme.MessagesList))
+	markdown.DefaultRenderer.AddOptions(renderer.WithOption("theme", cfg.Theme))
 	return ml
 }
 
@@ -68,7 +68,7 @@ func (ml *messagesList) drawMsgs(cID discord.ChannelID) {
 		return
 	}
 
-	if app.cfg.Theme.MessagesList.ShowNicknames || app.cfg.Theme.MessagesList.ShowUsernameColors {
+	if app.cfg.Theme.PreferNicknames || app.cfg.Theme.MessagesList.ShowUserColors {
 		if ch, _ := discordState.Cabinet.Channel(cID); ch.GuildID.IsValid() {
 			ml.requestGuildMembers(ch.GuildID, msgs)
 		}
@@ -143,7 +143,7 @@ func (ml *messagesList) drawTimestamps(ts discord.Timestamp) {
 }
 
 func (ml *messagesList) drawAuthor(msg discord.Message) {
-	name := msg.Author.DisplayOrUsername()
+	name := ""
 	style := ml.cfg.Theme.MessagesList.AuthorStyle
 
 	if msg.GuildID.IsValid() {
@@ -153,11 +153,9 @@ func (ml *messagesList) drawAuthor(msg discord.Message) {
 			return
 		}
 
-		if app.cfg.Theme.MessagesList.ShowNicknames && member.Nick != "" {
-			name = member.Nick
-		}
+		name = ui.PreferredMemberName(member, ml.cfg.Theme)
 
-		if app.cfg.Theme.MessagesList.ShowUsernameColors {
+		if app.cfg.Theme.MessagesList.ShowUserColors {
 			color, ok := state.MemberColor(member, func(id discord.RoleID) *discord.Role {
 				r, _ := discordState.Cabinet.Role(msg.GuildID, id)
 				return r
@@ -167,6 +165,8 @@ func (ml *messagesList) drawAuthor(msg discord.Message) {
 				style = config.NewStyleWrapper(tcell.StyleDefault.Foreground(c))
 			}
 		}
+	} else {
+		name = ui.PreferredName(msg.Author, ml.cfg.Theme)
 	}
 
 	fg, bg, _ := style.Decompose()
@@ -506,18 +506,16 @@ func (ml *messagesList) reply(mention bool) {
 		return
 	}
 
-	name := msg.Author.DisplayOrUsername()
-
+	name := ""
 	if msg.GuildID.IsValid() {
 		member, err := discordState.Cabinet.Member(msg.GuildID, msg.Author.ID)
 		if err != nil {
 			slog.Error("failed to get member from state", "guild_id", msg.GuildID, "member_id", msg.Author.ID, "err", err)
 			return
 		}
-
-		if app.cfg.Theme.MessagesList.ShowNicknames && member.Nick != "" {
-			name = member.Nick
-		}
+		name = ui.PreferredMemberName(member, ml.cfg.Theme)
+	} else {
+		name = ui.PreferredName(msg.Author, ml.cfg.Theme)
 	}
 
 	title += name
