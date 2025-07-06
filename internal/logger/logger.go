@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -8,47 +9,33 @@ import (
 	"github.com/ayn2op/discordo/internal/consts"
 )
 
-type Format int
+const fileName = "logs.txt"
 
-const (
-	FormatText Format = iota
-	FormatJson
-)
-
-// Opens the log file and configures default logger.
-func Load(format Format, level slog.Level) error {
+func DefaultPath() string {
 	path, err := os.UserCacheDir()
 	if err != nil {
+		slog.Info(
+			"user cache directory path cannot be determined; falling back to the current directory path",
+		)
+		path = "."
+	}
+
+	return filepath.Join(path, consts.Name, fileName)
+}
+
+// Load opens the log file and configures default logger.
+func Load(path string, level slog.Level) error {
+	if err := os.MkdirAll(filepath.Dir(path), os.ModePerm); err != nil {
 		return err
 	}
 
-	path = filepath.Join(path, consts.Name)
-	if err := os.MkdirAll(path, os.ModePerm); err != nil {
-		return err
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("failed to open log file: %w", err)
 	}
 
 	opts := &slog.HandlerOptions{AddSource: true, Level: level}
-
-	var h slog.Handler
-	switch format {
-	case FormatText:
-		path := filepath.Join(path, "logs.txt")
-		file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, os.ModePerm)
-		if err != nil {
-			return err
-		}
-
-		h = slog.NewTextHandler(file, opts)
-	case FormatJson:
-		path := filepath.Join(path, "logs.jsonl")
-		file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, os.ModePerm)
-		if err != nil {
-			return err
-		}
-
-		h = slog.NewJSONHandler(file, opts)
-	}
-
-	slog.SetDefault(slog.New(h))
+	handler := slog.NewTextHandler(file, opts)
+	slog.SetDefault(slog.New(handler))
 	return nil
 }

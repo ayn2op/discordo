@@ -97,12 +97,13 @@ func (gt *guildsTree) channelToString(channel discord.Channel) string {
 		if channel.Name != "" {
 			name = channel.Name
 		} else {
-			recipients := make([]string, len(channel.DMRecipients))
-			for i, r := range channel.DMRecipients {
-				recipients[i] = r.DisplayOrUsername()
-			}
+      recipients := make([]string, len(channel.DMRecipients))
+		  for i, r := range channel.DMRecipients {
+			  recipients[i] = ui.PreferredName(r, gt.cfg.Theme)
+      }
+      
 			name = strings.Join(recipients, ", ")
-		}
+    }
 	case discord.GuildText:
 		name = "#" + channel.Name
 	case discord.GuildVoice, discord.GuildStageVoice:
