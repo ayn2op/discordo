@@ -49,9 +49,11 @@ type (
 
 	MessageInputKeys struct {
 		Send        string `toml:"send"`
-		Editor      string `toml:"editor"`
 		Cancel      string `toml:"cancel"`
 		TabComplete string `toml:"tab_complete"`
+
+		OpenEditor     string `toml:"open_editor"`
+		OpenFilePicker string `toml:"open_file_picker"`
 	}
 
 	MentionsListKeys struct {
