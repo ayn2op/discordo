@@ -88,12 +88,12 @@ yank_id = "Rune[i]"
 # Alt+Enter: Insert a new line to the current text.
 [keys.message_input]
 send = "Enter"
-# Open message input in your editor.
-editor = "Ctrl+E"
 # Remove existing text or cancel reply.
 cancel = "Esc"
 # Complete usernames when mentioning
 tab_complete = "Tab"
+open_editor = "Ctrl+E"
+open_file_picker = "Ctrl+\\"
 
 [keys.mentions_list]
 up = "Up"

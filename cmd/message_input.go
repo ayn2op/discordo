@@ -1,9 +1,12 @@
 package cmd
 
 import (
+	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
@@ -18,9 +21,10 @@ import (
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/state"
-	"github.com/diamondburned/arikawa/v3/utils/json/option"
+	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 	"github.com/diamondburned/ningen/v3/discordmd"
 	"github.com/gdamore/tcell/v2"
+	"github.com/ncruces/zenity"
 	"github.com/sahilm/fuzzy"
 	"github.com/yuin/goldmark/ast"
 )
@@ -33,20 +37,22 @@ type messageInput struct {
 	*tview.TextArea
 	cfg *config.Config
 
-	cache          *cache.Cache
-	mentionsList   *tview.List
-	replyMessageID discord.MessageID
-	lastSearch     time.Time
+	sendMessageData *api.SendMessageData
+	cache           *cache.Cache
+	mentionsList    *tview.List
+	lastSearch      time.Time
 }
 
 type memberList []discord.Member
 
 func newMessageInput(cfg *config.Config) *messageInput {
 	mi := &messageInput{
-		TextArea:     tview.NewTextArea(),
-		cfg:          cfg,
-		cache:        cache.NewCache(),
-		mentionsList: tview.NewList(),
+		TextArea: tview.NewTextArea(),
+		cfg:      cfg,
+
+		sendMessageData: &api.SendMessageData{},
+		cache:           cache.NewCache(),
+		mentionsList:    tview.NewList(),
 	}
 
 	mi.Box = ui.ConfigureBox(mi.Box, &cfg.Theme)
@@ -75,7 +81,7 @@ func newMessageInput(cfg *config.Config) *messageInput {
 }
 
 func (mi *messageInput) reset() {
-	mi.replyMessageID = 0
+	mi.sendMessageData = &api.SendMessageData{}
 	mi.SetTitle("")
 	mi.SetText("", true)
 }
@@ -90,9 +96,13 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 
 		mi.send()
 		return nil
-	case mi.cfg.Keys.MessageInput.Editor:
+	case mi.cfg.Keys.MessageInput.OpenEditor:
 		mi.stopTabCompletion()
 		mi.editor()
+		return nil
+	case mi.cfg.Keys.MessageInput.OpenFilePicker:
+		mi.stopTabCompletion()
+		mi.openFilePicker()
 		return nil
 	case mi.cfg.Keys.MessageInput.Cancel:
 		if app.pages.GetVisibile(mentionsListPageName) {
@@ -135,30 +145,21 @@ func (mi *messageInput) send() {
 		return
 	}
 
-	text := strings.TrimSpace(mi.GetText())
-	if text == "" {
-		return
+	data := mi.sendMessageData
+	if text := strings.TrimSpace(mi.GetText()); text != "" {
+		data.Content = processText(app.guildsTree.selectedChannelID, []byte(text))
 	}
 
-	// Process mentions (there's no shortcut, just parse the entire message
-	// as markdown and then expand non-code mentions)
-	data := api.SendMessageData{
-		Content: processText(app.guildsTree.selectedChannelID, []byte(text)),
+	if _, err := discordState.SendMessageComplex(app.guildsTree.selectedChannelID, *data); err != nil {
+		slog.Error("failed to send message in channel", "channel_id", app.guildsTree.selectedChannelID, "err", err)
 	}
-	if mi.replyMessageID != 0 {
-		data.Reference = &discord.MessageReference{MessageID: mi.replyMessageID}
-		data.AllowedMentions = &api.AllowedMentions{RepliedUser: option.False}
 
-		if strings.HasPrefix(mi.GetTitle(), "[@]") {
-			data.AllowedMentions.RepliedUser = option.True
+	// Close the attached files after sending the message.
+	for _, file := range mi.sendMessageData.Files {
+		if closer, ok := file.Reader.(io.Closer); ok {
+			_ = closer.Close()
 		}
 	}
-
-	go func() {
-		if _, err := discordState.SendMessageComplex(app.guildsTree.selectedChannelID, data); err != nil {
-			slog.Error("failed to send message in channel", "channel_id", app.guildsTree.selectedChannelID, "err", err)
-		}
-	}()
 
 	mi.reset()
 	app.messagesList.Highlight()
@@ -469,4 +470,39 @@ func (mi *messageInput) editor() {
 	}
 
 	mi.SetText(strings.TrimSpace(string(msg)), true)
+}
+
+func (mi *messageInput) addTitle(s string) {
+	title := mi.GetTitle()
+	if title != "" {
+		title += " | "
+	}
+
+	mi.SetTitle(title + s)
+}
+
+func (mi *messageInput) openFilePicker() {
+	if !app.guildsTree.selectedChannelID.IsValid() {
+		return
+	}
+
+	paths, err := zenity.SelectFileMultiple()
+	if err != nil {
+		slog.Error("failed to open file dialog", "err", err)
+		return
+	}
+
+	for _, path := range paths {
+		file, err := os.Open(path)
+		if err != nil {
+			slog.Error("failed to open file", "path", path, "err", err)
+			continue
+		}
+
+		name := filepath.Base(path)
+		mi.sendMessageData.Files = append(mi.sendMessageData.Files, sendpart.File{Name: name, Reader: file})
+
+		title := fmt.Sprintf("Attached %s", name)
+		mi.addTitle(title)
+	}
 }
