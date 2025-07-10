@@ -36,10 +36,8 @@ type (
 	}
 
 	Config struct {
-		Mouse bool `toml:"mouse"`
-
-		Editor     string `toml:"editor"`
-		FilePicker string `toml:"file_picker"`
+		Mouse  bool   `toml:"mouse"`
+		Editor string `toml:"editor"`
 
 		Markdown            bool `toml:"markdown"`
 		HideBlockedUsers    bool `toml:"hide_blocked_users"`

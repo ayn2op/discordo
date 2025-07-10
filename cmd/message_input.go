@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"bufio"
-	"bytes"
 	"fmt"
 	"io"
 	"log/slog"
@@ -26,6 +24,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 	"github.com/diamondburned/ningen/v3/discordmd"
 	"github.com/gdamore/tcell/v2"
+	"github.com/ncruces/zenity"
 	"github.com/sahilm/fuzzy"
 	"github.com/yuin/goldmark/ast"
 )
@@ -451,30 +450,13 @@ func (mi *messageInput) openFilePicker() {
 		return
 	}
 
-	fields := strings.Fields(mi.cfg.FilePicker)
-	if len(fields) == 0 {
-		slog.Error("file_picker not set in config")
+	paths, err := zenity.SelectFileMultiple()
+	if err != nil {
+		slog.Error("failed to open file dialog", "err", err)
 		return
 	}
 
-	name, args := fields[0], fields[1:]
-	cmd := exec.Command(name, args...)
-	cmd.Stdin = os.Stdin
-	cmd.Stderr = os.Stderr
-
-	var output bytes.Buffer
-	cmd.Stdout = &output
-
-	app.Suspend(func() {
-		if err := cmd.Run(); err != nil {
-			slog.Error("failed to run command", "name", name, "args", cmd.Args, "err", err)
-			return
-		}
-	})
-
-	scanner := bufio.NewScanner(&output)
-	for scanner.Scan() {
-		path := scanner.Text()
+	for _, path := range paths {
 		file, err := os.Open(path)
 		if err != nil {
 			slog.Error("failed to open file", "path", path, "err", err)
