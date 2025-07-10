@@ -439,6 +439,10 @@ func (mi *messageInput) addTitle(s string) {
 }
 
 func (mi *messageInput) openFilePicker() {
+	if !app.guildsTree.selectedChannelID.IsValid() {
+		return
+	}
+
 	args := []string{"--multi"}
 	opts, err := fzf.ParseOptions(true, args)
 	if err != nil {
