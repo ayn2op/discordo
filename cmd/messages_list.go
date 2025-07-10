@@ -206,9 +206,9 @@ func (ml *messagesList) createDefaultMsg(msg discord.Message) {
 
 		fg, bg, _ := ml.cfg.Theme.MessagesList.AttachmentStyle.Decompose()
 		if ml.cfg.ShowAttachmentLinks {
-			fmt.Fprintf(ml, "[%s:%s][%s]:\n%s[-]", fg, bg, a.Filename, a.URL)
+			fmt.Fprintf(ml, "[%s:%s]%s:\n%s[-:-]", fg, bg, a.Filename, a.URL)
 		} else {
-			fmt.Fprintf(ml, "[%s:%s][%s][-]", fg, bg, a.Filename)
+			fmt.Fprintf(ml, "[%s:%s]%s[-:-]", fg, bg, a.Filename)
 		}
 	}
 }
