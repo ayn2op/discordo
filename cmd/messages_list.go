@@ -522,7 +522,7 @@ func (ml *messagesList) reply(mention bool) {
 	}
 
 	app.messageInput.sendMessageData = data
-	app.messageInput.SetTitle(title + name)
+	app.messageInput.addTitle(title + name)
 	app.SetFocus(app.messageInput)
 }
 

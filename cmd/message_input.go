@@ -1,8 +1,7 @@
 package cmd
 
 import (
-	"bufio"
-	"bytes"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -24,6 +23,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 	"github.com/diamondburned/ningen/v3/discordmd"
 	"github.com/gdamore/tcell/v2"
+	fzf "github.com/junegunn/fzf/src"
 	"github.com/sahilm/fuzzy"
 	"github.com/yuin/goldmark/ast"
 )
@@ -429,44 +429,66 @@ func (mi *messageInput) stopTabCompletion() {
 	}
 }
 
+func (mi *messageInput) addTitle(s string) {
+	title := mi.GetTitle()
+	if title != "" {
+		title += " | "
+	}
+
+	mi.SetTitle(title + s)
+}
+
 func (mi *messageInput) openFilePicker() {
-	fields := strings.Fields(mi.cfg.FilePicker)
-	if len(fields) == 0 {
-		slog.Error("file picker not set in config")
+	args := []string{"--multi"}
+	opts, err := fzf.ParseOptions(true, args)
+	if err != nil {
+		slog.Error("failed to parse options", "args", args, "err", err)
 		return
 	}
 
-	name, args := fields[0], fields[1:]
-	cmd := exec.Command(name, args...)
-	cmd.Stdin = os.Stdin
-	cmd.Stderr = os.Stderr
+	inputCh := make(chan string)
+	opts.Input = inputCh
 
-	var output bytes.Buffer
-	cmd.Stdout = &output
+	go func() {
+		defer close(inputCh)
+
+		entries, err := os.ReadDir(".")
+		if err != nil {
+			slog.Error("failed to read directory", "err", err)
+			return
+		}
+
+		for _, entry := range entries {
+			if !entry.IsDir() {
+				inputCh <- entry.Name()
+			}
+		}
+	}()
+
+	outputCh := make(chan string)
+	opts.Output = outputCh
+
+	go func() {
+		for path := range outputCh {
+			file, err := os.Open(path)
+			if err != nil {
+				slog.Error("failed to open file", "path", path, "err", err)
+				continue
+			}
+
+			name := filepath.Base(path)
+			mi.sendMessageData.Files = append(mi.sendMessageData.Files, sendpart.File{Name: name, Reader: file})
+
+			title := fmt.Sprintf("Attached %s", name)
+			mi.addTitle(title)
+		}
+	}()
 
 	app.Suspend(func() {
-		err := cmd.Run()
-		if err != nil {
-			slog.Error("failed to run command", "args", cmd.Args, "err", err)
+		if _, err := fzf.Run(opts); err != nil {
 			return
 		}
 	})
-
-	scanner := bufio.NewScanner(&output)
-	for scanner.Scan() {
-		path := scanner.Text()
-		if path == "" {
-			continue
-		}
-
-		file, err := os.Open(path)
-		if err != nil {
-			continue
-		}
-
-		name := filepath.Base(path)
-		mi.sendMessageData.Files = append(mi.sendMessageData.Files, sendpart.File{Name: name, Reader: file})
-	}
 }
 
 func (mi *messageInput) openEditor() {

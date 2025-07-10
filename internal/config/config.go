@@ -38,8 +38,8 @@ type (
 	Config struct {
 		Mouse bool `toml:"mouse"`
 
-		Editor     string `toml:"editor"`
-		FilePicker string `toml:"file_picker"`
+		Editor  string   `toml:"editor"`
+		FzfArgs []string `toml:"fzf_args"`
 
 		Markdown            bool `toml:"markdown"`
 		HideBlockedUsers    bool `toml:"hide_blocked_users"`

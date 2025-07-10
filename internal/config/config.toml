@@ -3,8 +3,8 @@ mouse = true
 
 # The program to open when the `keys.message_input.open_editor` keymap is pressed. Set the value to `"default"` to use `$EDITOR`.
 editor = "default"
-# The program to open when the `keys.message_input.open_file_picker` is pressed. "-p -" prints the selection to stdout.
-file_picker = "nnn -p -"
+# The arguments to pass to file picker (fzf).
+fzf_args = ["--multi"]
 
 # Whether to parse and render markdown in messages or not.
 markdown = true
