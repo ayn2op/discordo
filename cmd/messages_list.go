@@ -71,8 +71,14 @@ func (ml *messagesList) drawMsgs(cID discord.ChannelID) {
 	}
 
 	if app.cfg.Theme.MessagesList.ShowNicknames || app.cfg.Theme.MessagesList.ShowUsernameColors {
-		if ch, _ := discordState.Cabinet.Channel(cID); ch.GuildID.IsValid() {
-			ml.requestGuildMembers(ch.GuildID, msgs)
+		channel, err := discordState.Cabinet.Channel(cID)
+		if err != nil {
+			slog.Error("failed to get channel from state", "channel_id", cID, "err", err)
+			return
+		}
+
+		if guildID := channel.GuildID; guildID.IsValid() {
+			ml.requestGuildMembers(guildID, msgs)
 		}
 	}
 
