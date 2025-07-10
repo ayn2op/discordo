@@ -110,14 +110,14 @@ func (a *application) onFlexInputCapture(event *tcell.EventKey) *tcell.EventKey 
 	switch event.Name() {
 	case a.cfg.Keys.FocusGuildsTree:
 		a.messageInput.removeMentionsList()
-		a.SetFocus(app.guildsTree)
+		a.SetFocus(a.guildsTree)
 		return nil
 	case a.cfg.Keys.FocusMessagesList:
 		a.messageInput.removeMentionsList()
-		a.SetFocus(app.messagesList)
+		a.SetFocus(a.messagesList)
 		return nil
 	case a.cfg.Keys.FocusMessageInput:
-		a.SetFocus(app.messageInput)
+		a.SetFocus(a.messageInput)
 		return nil
 	case a.cfg.Keys.Logout:
 		a.quit()
