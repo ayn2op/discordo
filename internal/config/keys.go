@@ -30,6 +30,9 @@ type (
 
 		CollapseParentNode string `toml:"collapse_parent_node"`
 		MoveToParentNode   string `toml:"move_to_parent_node"`
+
+		NextUnread     string `toml:"next_unread"`
+		PreviousUnread string `toml:"previous_unread"`
 	}
 
 	MessagesListKeys struct {
