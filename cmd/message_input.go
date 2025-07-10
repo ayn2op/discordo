@@ -1,7 +1,10 @@
 package cmd
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -23,7 +26,6 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 	"github.com/diamondburned/ningen/v3/discordmd"
 	"github.com/gdamore/tcell/v2"
-	fzf "github.com/junegunn/fzf/src"
 	"github.com/sahilm/fuzzy"
 	"github.com/yuin/goldmark/ast"
 )
@@ -151,11 +153,17 @@ func (mi *messageInput) send() {
 		data.Content = processText(app.guildsTree.selectedChannelID, []byte(text))
 	}
 
-	go func() {
-		if _, err := discordState.SendMessageComplex(app.guildsTree.selectedChannelID, *data); err != nil {
-			slog.Error("failed to send message in channel", "channel_id", app.guildsTree.selectedChannelID, "err", err)
+	if _, err := discordState.SendMessageComplex(app.guildsTree.selectedChannelID, *data); err != nil {
+		slog.Error("failed to send message in channel", "channel_id", app.guildsTree.selectedChannelID, "err", err)
+		return
+	}
+
+	// Close the attached files after sending the message.
+	for _, file := range mi.sendMessageData.Files {
+		if closer, ok := file.Reader.(io.Closer); ok {
+			_ = closer.Close()
 		}
-	}()
+	}
 
 	mi.reset()
 	app.messagesList.Highlight()
@@ -443,56 +451,42 @@ func (mi *messageInput) openFilePicker() {
 		return
 	}
 
-	args := []string{"--multi"}
-	opts, err := fzf.ParseOptions(true, args)
-	if err != nil {
-		slog.Error("failed to parse options", "args", args, "err", err)
+	fields := strings.Fields(mi.cfg.FilePicker)
+	if len(fields) == 0 {
+		slog.Error("file_picker not set in config")
 		return
 	}
 
-	inputCh := make(chan string)
-	opts.Input = inputCh
+	name, args := fields[0], fields[1:]
+	cmd := exec.Command(name, args...)
+	cmd.Stdin = os.Stdin
+	cmd.Stderr = os.Stderr
 
-	go func() {
-		defer close(inputCh)
-
-		entries, err := os.ReadDir(".")
-		if err != nil {
-			slog.Error("failed to read directory", "err", err)
-			return
-		}
-
-		for _, entry := range entries {
-			if !entry.IsDir() {
-				inputCh <- entry.Name()
-			}
-		}
-	}()
-
-	outputCh := make(chan string)
-	opts.Output = outputCh
-
-	go func() {
-		for path := range outputCh {
-			file, err := os.Open(path)
-			if err != nil {
-				slog.Error("failed to open file", "path", path, "err", err)
-				continue
-			}
-
-			name := filepath.Base(path)
-			mi.sendMessageData.Files = append(mi.sendMessageData.Files, sendpart.File{Name: name, Reader: file})
-
-			title := fmt.Sprintf("Attached %s", name)
-			mi.addTitle(title)
-		}
-	}()
+	var output bytes.Buffer
+	cmd.Stdout = &output
 
 	app.Suspend(func() {
-		if _, err := fzf.Run(opts); err != nil {
+		if err := cmd.Run(); err != nil {
+			slog.Error("failed to run command", "name", name, "args", cmd.Args, "err", err)
 			return
 		}
 	})
+
+	scanner := bufio.NewScanner(&output)
+	for scanner.Scan() {
+		path := scanner.Text()
+		file, err := os.Open(path)
+		if err != nil {
+			slog.Error("failed to open file", "path", path, "err", err)
+			continue
+		}
+
+		name := filepath.Base(path)
+		mi.sendMessageData.Files = append(mi.sendMessageData.Files, sendpart.File{Name: name, Reader: file})
+
+		title := fmt.Sprintf("Attached %s", name)
+		mi.addTitle(title)
+	}
 }
 
 func (mi *messageInput) openEditor() {
