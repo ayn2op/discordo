@@ -20,15 +20,15 @@ func HandleIncomingMessage(state *ningen.State, msg *gateway.MessageCreateEvent,
 		return nil
 	}
 
-	ch, err := state.Cabinet.Channel(msg.ChannelID)
+	channel, err := state.Cabinet.Channel(msg.ChannelID)
 	if err != nil {
 		return err
 	}
 
-	isChannelDM := ch.Type == discord.DirectMessage || ch.Type == discord.GroupDM
+	isChannelDM := channel.Type == discord.DirectMessage || channel.Type == discord.GroupDM
 	guild := (*discord.Guild)(nil)
 	if !isChannelDM {
-		guild, err = state.Cabinet.Guild(ch.GuildID)
+		guild, err = state.Cabinet.Guild(channel.GuildID)
 		if err != nil {
 			return err
 		}
@@ -46,12 +46,12 @@ func HandleIncomingMessage(state *ningen.State, msg *gateway.MessageCreateEvent,
 
 	notifTitle := msg.Author.DisplayOrTag()
 	if guild != nil {
-		member, _ := state.Member(ch.GuildID, msg.Author.ID)
+		member, _ := state.Member(channel.GuildID, msg.Author.ID)
 		if member.Nick != "" {
 			notifTitle = member.Nick
 		}
 
-		notifTitle = notifTitle + " (#" + ch.Name + ", " + guild.Name + ")"
+		notifTitle = notifTitle + " (#" + channel.Name + ", " + guild.Name + ")"
 	}
 
 	hash := msg.Author.Avatar
