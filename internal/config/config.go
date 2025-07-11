@@ -63,7 +63,7 @@ func DefaultPath() string {
 	path, err := os.UserConfigDir()
 	if err != nil {
 		slog.Info(
-			"user configuration directory path cannot be determined; falling back to the current directory path",
+			"user config directory path cannot be determined; falling back to the current directory path",
 		)
 		path = "."
 	}
@@ -73,35 +73,35 @@ func DefaultPath() string {
 
 // Load reads the configuration file and parses it.
 func Load(path string) (*Config, error) {
-	file, err := os.Open(path)
-
-	var cfg *Config
+	var cfg Config
 	if err := toml.Unmarshal(defaultCfg, &cfg); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal default config: %w", err)
 	}
 
+	file, err := os.Open(path)
 	if os.IsNotExist(err) {
 		slog.Info(
-			"the configuration file does not exist, falling back to the default configuration",
+			"config file does not exist, falling back to the default config",
 			"path",
 			path,
 			"err",
 			err,
 		)
-	} else {
-		if err != nil {
-			return nil, fmt.Errorf("failed to open config file: %w", err)
-		}
-		defer file.Close()
+		return &cfg, nil
+	}
 
-		if _, err := toml.NewDecoder(file).Decode(&cfg); err != nil {
-			return nil, fmt.Errorf("failed to decode config: %w", err)
-		}
+	if err != nil {
+		return nil, fmt.Errorf("failed to open config file: %w", err)
+	}
+	defer file.Close()
+
+	if _, err := toml.NewDecoder(file).Decode(&cfg); err != nil {
+		return nil, fmt.Errorf("failed to decode config: %w", err)
 	}
 
 	if cfg.Editor == "default" {
 		cfg.Editor = os.Getenv("EDITOR")
 	}
 
-	return cfg, nil
+	return &cfg, nil
 }
