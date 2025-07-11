@@ -381,47 +381,25 @@ func (mi *messageInput) showMentionList(col int) {
 }
 
 func (mi *messageInput) addMentionItem(gID discord.GuildID, m *discord.Member) bool {
-	username := m.User.Username
-	if username == "" {
-		return false
+	name := m.User.DisplayOrUsername()
+	if m != nil && m.Nick != "" {
+		name = m.Nick
 	}
-	dname := ""
-	if mi.cfg.Theme.MentionsList.PreferNicknames {
-		dname = m.Nick
-	}
-	if dname == "" {
-		dname = m.User.DisplayName
-	}
-	if dname != "" {
-		dname = tview.Escape(dname)
-	}
+
 	// this is WAY faster than discordState.MemberColor
-	if mi.cfg.Theme.MentionsList.ShowUserColors {
-		if c, ok := state.MemberColor(m, func(id discord.RoleID) *discord.Role {
-			r, _ := discordState.Cabinet.Role(gID, id)
-			return r
-		}); ok {
-			if dname != "" {
-				dname = "[" + c.String() + "]" + dname + "[-:]"
-			} else {
-				username = "[" + c.String() + "]" + username + "[-:]"
-			}
-		}
+	color, ok := state.MemberColor(m, func(id discord.RoleID) *discord.Role {
+		r, _ := discordState.Cabinet.Role(gID, id)
+		return r
+	})
+	if ok {
+		name = fmt.Sprintf("[%s]%s[-]", color, name)
 	}
+
 	if presence, _ := discordState.Cabinet.Presence(gID, m.User.ID); presence == nil || presence.Status == discord.OfflineStatus {
-		if mi.cfg.Theme.MentionsList.ShowUsernames || dname == "" {
-			username = "[::d]" + username + "[::D]"
-		} else {
-			dname = "[::d]" + dname + "[::D]"
-		}
+		name = fmt.Sprintf("[::d]%s[::D]", name)
 	}
-	if dname != "" {
-		if mi.cfg.Theme.MentionsList.ShowUsernames {
-			dname += " (" + username + ")"
-		}
-		username = dname
-	}
-	mi.mentionsList.AddItem(username, m.User.Username, 0, nil)
+
+	mi.mentionsList.AddItem(name, m.User.Username, 0, nil)
 	return mi.mentionsList.GetItemCount() > int(mi.cfg.AutocompleteLimit)
 }
 

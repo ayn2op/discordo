@@ -59,7 +59,7 @@ func (r *renderer) Render(w io.Writer, source []byte, node ast.Node) error {
 		case *discordmd.Inline:
 			r.renderInline(w, node, entering)
 		case *discordmd.Mention:
-			r.renderMention(w, node, entering, theme.PreferNicknames, theme.PreferDisplayNames, theme.MessagesList.MentionStyle.Style)
+			r.renderMention(w, node, entering, theme.MessagesList.MentionStyle.Style)
 		case *discordmd.Emoji:
 			r.renderEmoji(w, node, entering, theme.MessagesList.EmojiStyle.Style)
 		}
@@ -190,7 +190,7 @@ func (r *renderer) renderInline(w io.Writer, node *discordmd.Inline, entering bo
 	}
 }
 
-func (r *renderer) renderMention(w io.Writer, node *discordmd.Mention, entering, preferNicknames, preferDisplayNames bool, style tcell.Style) {
+func (r *renderer) renderMention(w io.Writer, node *discordmd.Mention, entering bool, style tcell.Style) {
 	if entering {
 		fg, bg, _ := style.Decompose()
 		_, _ = fmt.Fprintf(w, "[%s:%s:b]", fg, bg)
@@ -199,17 +199,12 @@ func (r *renderer) renderMention(w io.Writer, node *discordmd.Mention, entering,
 		case node.Channel != nil:
 			io.WriteString(w, "#"+node.Channel.Name)
 		case node.GuildUser != nil:
-			username := ""
-			if preferNicknames && node.GuildUser.Member != nil {
-				username = node.GuildUser.Member.Nick
+			name := node.GuildUser.DisplayOrUsername()
+			if member := node.GuildUser.Member; member != nil && member.Nick != "" {
+				name = member.Nick
 			}
-			if username == "" && !preferDisplayNames {
-				username = node.GuildUser.DisplayName
-			}
-			if username == "" {
-				username = node.GuildUser.Username
-			}
-			io.WriteString(w, "@"+username)
+
+			io.WriteString(w, "@"+name)
 		case node.GuildRole != nil:
 			io.WriteString(w, "@"+node.GuildRole.Name)
 		}

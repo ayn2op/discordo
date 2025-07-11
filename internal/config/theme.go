@@ -126,10 +126,9 @@ type (
 	}
 
 	GuildsTreeTheme struct {
-		AutoExpandFolders bool `toml:"auto_expand_folders"`
-
-		Graphics      bool   `toml:"graphics"`
-		GraphicsColor string `toml:"graphics_color"`
+		AutoExpandFolders bool   `toml:"auto_expand_folders"`
+		Graphics          bool   `toml:"graphics"`
+		GraphicsColor     string `toml:"graphics_color"`
 
 		PrivateChannelStyle StyleWrapper `toml:"private_channel_style"`
 		GuildStyle          StyleWrapper `toml:"guild_style"`
@@ -137,38 +136,27 @@ type (
 	}
 
 	MessagesListTheme struct {
-		ShowUserColors bool `toml:"show_user_colors"`
-
-		ReplyIndicator     string `toml:"reply_indicator"`
-		ForwardedIndicator string `toml:"forwarded_indicator"`
-
-		AuthorStyle     StyleWrapper `toml:"author_style"`
-		MentionStyle    StyleWrapper `toml:"mention_style"`
-		EmojiStyle      StyleWrapper `toml:"emoji_style"`
-		URLStyle        StyleWrapper `toml:"url_style"`
-		AttachmentStyle StyleWrapper `toml:"attachment_style"`
+		ReplyIndicator     string       `toml:"reply_indicator"`
+		ForwardedIndicator string       `toml:"forwarded_indicator"`
+		AuthorStyle        StyleWrapper `toml:"author_style"`
+		MentionStyle       StyleWrapper `toml:"mention_style"`
+		EmojiStyle         StyleWrapper `toml:"emoji_style"`
+		URLStyle           StyleWrapper `toml:"url_style"`
+		AttachmentStyle    StyleWrapper `toml:"attachment_style"`
 	}
 
 	MentionsListTheme struct {
-		PreferNicknames bool `toml:"prefer_nicknames"`
-		ShowUsernames   bool `toml:"show_usernames"`
-		ShowUserColors  bool `toml:"show_user_colors"`
-
 		MinWidth  uint `toml:"min_width"`
 		MaxHeight uint `toml:"max_height"`
 	}
 
 	Theme struct {
-		PreferNicknames    bool   `toml:"prefer_nicknames"`
-		PreferDisplayNames bool   `toml:"prefer_display_names"`
-		BackgroundColor    string `toml:"background_color"`
-
-		Title  TitleTheme  `toml:"title"`
-		Border BorderTheme `toml:"border"`
-
-		GuildsTree   GuildsTreeTheme   `toml:"guilds_tree"`
-		MessagesList MessagesListTheme `toml:"messages_list"`
-		MentionsList MentionsListTheme `toml:"mentions_list"`
+		BackgroundColor string            `toml:"background_color"`
+		Title           TitleTheme        `toml:"title"`
+		Border          BorderTheme       `toml:"border"`
+		GuildsTree      GuildsTreeTheme   `toml:"guilds_tree"`
+		MessagesList    MessagesListTheme `toml:"messages_list"`
+		MentionsList    MentionsListTheme `toml:"mentions_list"`
 	}
 )
 

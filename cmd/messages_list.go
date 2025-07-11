@@ -70,10 +70,14 @@ func (ml *messagesList) drawMsgs(cID discord.ChannelID) {
 		return
 	}
 
-	if app.cfg.Theme.PreferNicknames || app.cfg.Theme.MessagesList.ShowUserColors {
-		if ch, _ := discordState.Cabinet.Channel(cID); ch.GuildID.IsValid() {
-			ml.requestGuildMembers(ch.GuildID, msgs)
-		}
+	channel, err := discordState.Cabinet.Channel(cID)
+	if err != nil {
+		slog.Error("failed to get channel from state", "channel_id", cID, "err", err)
+		return
+	}
+
+	if guildID := channel.GuildID; guildID.IsValid() {
+		ml.requestGuildMembers(guildID, msgs)
 	}
 
 	for _, m := range slices.Backward(msgs) {
@@ -143,9 +147,8 @@ func (ml *messagesList) drawTimestamps(ts discord.Timestamp) {
 }
 
 func (ml *messagesList) drawAuthor(msg discord.Message) {
-	name := ""
 	style := ml.cfg.Theme.MessagesList.AuthorStyle
-
+	name := msg.Author.DisplayOrUsername()
 	if msg.GuildID.IsValid() {
 		member, err := discordState.Cabinet.Member(msg.GuildID, msg.Author.ID)
 		if err != nil {
@@ -153,20 +156,18 @@ func (ml *messagesList) drawAuthor(msg discord.Message) {
 			return
 		}
 
-		name = ui.PreferredMemberName(member, ml.cfg.Theme)
-
-		if app.cfg.Theme.MessagesList.ShowUserColors {
-			color, ok := state.MemberColor(member, func(id discord.RoleID) *discord.Role {
-				r, _ := discordState.Cabinet.Role(msg.GuildID, id)
-				return r
-			})
-			if ok {
-				c := tcell.GetColor(color.String())
-				style = config.NewStyleWrapper(tcell.StyleDefault.Foreground(c))
-			}
+		if member.Nick != "" {
+			name = member.Nick
 		}
-	} else {
-		name = ui.PreferredName(msg.Author, ml.cfg.Theme)
+
+		color, ok := state.MemberColor(member, func(id discord.RoleID) *discord.Role {
+			r, _ := discordState.Cabinet.Role(msg.GuildID, id)
+			return r
+		})
+		if ok {
+			c := tcell.GetColor(color.String())
+			style = config.NewStyleWrapper(tcell.StyleDefault.Foreground(c))
+		}
 	}
 
 	fg, bg, _ := style.Decompose()
@@ -498,16 +499,17 @@ func (ml *messagesList) reply(mention bool) {
 		return
 	}
 
-	name := ""
+	name := msg.Author.DisplayOrUsername()
 	if msg.GuildID.IsValid() {
 		member, err := discordState.Cabinet.Member(msg.GuildID, msg.Author.ID)
 		if err != nil {
 			slog.Error("failed to get member from state", "guild_id", msg.GuildID, "member_id", msg.Author.ID, "err", err)
 			return
 		}
-		name = ui.PreferredMemberName(member, ml.cfg.Theme)
-	} else {
-		name = ui.PreferredName(msg.Author, ml.cfg.Theme)
+
+		if member.Nick != "" {
+			name = member.Nick
+		}
 	}
 
 	data := app.messageInput.sendMessageData

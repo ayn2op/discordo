@@ -102,44 +102,32 @@ down = "Down"
 # Applies to all
 # style = { foreground = "", background = "", attributes = "" or [""] }
 [theme]
-# prefer_nicknames will show nicknames if possible
-# This has higher priority than prefer_display_names.
-prefer_nicknames = true
-# prefer_display_names will show display names if possible.
-# This has lower priority than prefer_nicknames.
-prefer_display_names = false
 background_color = "default"
 
 [theme.title]
-# `"left"`, `"center"`, or `"right"`.
-alignment = "left"
+alignment = "left"                     # `"left"`, `"center"`, or `"right"`.
 normal_style = { attributes = "dim" }
 active_style = { attributes = "bold" }
 
 [theme.border]
 enabled = true
-# [top, bottom, left, right]
-padding = [0, 0, 1, 1]
-# `"plain"`, `"round"`, `"thick"`, or `"double"`.
-set = "plain"
-normal_style = { attributes =  "dim" }
+padding = [0, 0, 1, 1]                 # [top, bottom, left, right]
+set = "plain"                          # `"plain"`, `"round"`, `"thick"`, or `"double"`.
+normal_style = { attributes = "dim" }
 active_style = { attributes = "bold" }
 
 [theme.guilds_tree]
 auto_expand_folders = true
 # Give tree-like shape
 graphics = true
-# graphics_color = "default"
-# private_channel_style = { foreground = "default" }
-# guild_style = { foreground = "default" }
-# channel_style = { foreground = "default" }
+graphics_color = "default"
+private_channel_style = { foreground = "default" }
+guild_style = { foreground = "default" }
+channel_style = { foreground = "default" }
 
 [theme.messages_list]
-show_user_colors = true
-
 reply_indicator = ">"
 forwarded_indicator = "<"
-
 author_style = { foreground = "aqua" }
 mention_style = { foreground = "blue" }
 emoji_style = { foreground = "green" }
@@ -147,19 +135,10 @@ url_style = { foreground = "blue" }
 attachment_style = { foreground = "yellow" }
 
 [theme.mentions_list]
-# prefer_nicknames will show the user's nickname instead of displayname (if
-# the user has one).
-prefer_nicknames = true
-# Show usernames next to display/nickname (username will always be shown if the
-# user did not set a display/nickname in their profile).
-show_usernames = true
-show_user_colors = true
-
 # Note: width and height are capped to the avaliable space
 # Minimum width
 # 0 = make the list as wide as possible
 min_width = 20
-
 # Maximum height
 # 0 = make the list as tall as needed
 max_height = 0
