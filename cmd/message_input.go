@@ -381,8 +381,12 @@ func (mi *messageInput) showMentionList(col int) {
 }
 
 func (mi *messageInput) addMentionItem(gID discord.GuildID, m *discord.Member) bool {
+	if m == nil {
+		return false
+	}
+
 	name := m.User.DisplayOrUsername()
-	if m != nil && m.Nick != "" {
+	if m.Nick != "" {
 		name = m.Nick
 	}
 
@@ -395,7 +399,12 @@ func (mi *messageInput) addMentionItem(gID discord.GuildID, m *discord.Member) b
 		name = fmt.Sprintf("[%s]%s[-]", color, name)
 	}
 
-	if presence, _ := discordState.Cabinet.Presence(gID, m.User.ID); presence == nil || presence.Status == discord.OfflineStatus {
+	presence, err := discordState.Cabinet.Presence(gID, m.User.ID)
+	if err != nil {
+		slog.Info("failed to get presence from state", "guild_id", gID, "user_id", m.User.ID, "err", err)
+	}
+
+	if presence != nil && presence.Status == discord.OfflineStatus {
 		name = fmt.Sprintf("[::d]%s[::D]", name)
 	}
 
