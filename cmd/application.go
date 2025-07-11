@@ -106,18 +106,31 @@ func (a *application) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	return event
 }
 
+func (a *application) toggleGuildsTree() {
+	// The guilds tree is visible if the numbers of items is two.
+	if a.flex.GetItemCount() == 2 {
+		a.flex.RemoveItem(a.guildsTree)
+		if a.guildsTree.HasFocus() {
+			a.SetFocus(a.flex)
+		}
+	} else {
+		a.init()
+		a.SetFocus(a.guildsTree)
+	}
+}
+
 func (a *application) onFlexInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case a.cfg.Keys.FocusGuildsTree:
 		a.messageInput.removeMentionsList()
-		a.SetFocus(app.guildsTree)
+		a.SetFocus(a.guildsTree)
 		return nil
 	case a.cfg.Keys.FocusMessagesList:
 		a.messageInput.removeMentionsList()
-		a.SetFocus(app.messagesList)
+		a.SetFocus(a.messagesList)
 		return nil
 	case a.cfg.Keys.FocusMessageInput:
-		a.SetFocus(app.messageInput)
+		a.SetFocus(a.messageInput)
 		return nil
 	case a.cfg.Keys.Logout:
 		a.quit()
@@ -129,18 +142,7 @@ func (a *application) onFlexInputCapture(event *tcell.EventKey) *tcell.EventKey 
 
 		return nil
 	case a.cfg.Keys.ToggleGuildsTree:
-		// The guilds tree is visible if the numbers of items is two.
-		if a.flex.GetItemCount() == 2 {
-			a.flex.RemoveItem(a.guildsTree)
-
-			if a.guildsTree.HasFocus() {
-				a.SetFocus(a.flex)
-			}
-		} else {
-			a.init()
-			a.SetFocus(a.guildsTree)
-		}
-
+		a.toggleGuildsTree()
 		return nil
 	}
 
