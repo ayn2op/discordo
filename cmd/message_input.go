@@ -215,7 +215,9 @@ func expandMentions(cID discord.ChannelID, src []byte) []byte {
 }
 
 func (mi *messageInput) tabComplete(isAuto bool) {
-	posEnd, name, r := mi.GetWordUnderCursor(isValidUserRune)
+	posEnd, name, r := mi.GetWordUnderCursor(func(r rune) bool {
+		return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '.'
+	})
 	if r != '@' {
 		mi.stopTabCompletion()
 		return
@@ -338,10 +340,6 @@ func (mi *messageInput) searchMember(gID discord.GuildID, name string) {
 	app.messagesList.setFetchingChunk(true, 0)
 	discordState.MemberState.SearchMember(gID, name)
 	mi.cache.Create(key, app.messagesList.waitForChunkEvent())
-}
-
-func isValidUserRune(x rune) bool {
-	return unicode.IsLetter(x) || unicode.IsDigit(x) || x == '_' || x == '.'
 }
 
 func (mi *messageInput) showMentionList(col int) {
