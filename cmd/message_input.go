@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/atotto/clipboard"
 	"github.com/ayn2op/discordo/internal/cache"
@@ -340,10 +341,7 @@ func (mi *messageInput) searchMember(gID discord.GuildID, name string) {
 }
 
 func isValidUserRune(x rune) bool {
-	return (x >= 'a' && x <= 'z') ||
-		(x >= 'A' && x <= 'Z') ||
-		(x >= '0' && x <= '9') ||
-		x == '_' || x == '.'
+	return unicode.IsLetter(x) || unicode.IsDigit(x) || x == '_' || x == '.'
 }
 
 func (mi *messageInput) showMentionList(col int) {
