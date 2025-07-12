@@ -72,6 +72,7 @@ func onRequest(props gateway.IdentifyProperties) httputil.RequestOption {
 		header := make(http.Header)
 		// https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers
 		header.Set("Accept", "*/*")
+		header.Set("Accept-Language", "en-US,en;q=0.7")
 		header.Set("Origin", "https://discord.com")
 		header.Set("Referer", "https://discord.com/channels/@me")
 		header.Set("Sec-Fetch-Dest", "empty")
