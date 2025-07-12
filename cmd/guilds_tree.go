@@ -44,7 +44,7 @@ func newGuildsTree(cfg *config.Config) *guildsTree {
 func (gt *guildsTree) createFolderNode(folder gateway.GuildFolder) {
 	name := "Folder"
 	if folder.Name != "" {
-		name = fmt.Sprintf("[%s]%s[-]", folder.Color.String(), folder.Name)
+		name = fmt.Sprintf("[%s]%s[-]", folder.Color, folder.Name)
 	}
 
 	folderNode := tview.NewTreeNode(name).SetExpanded(gt.cfg.Theme.GuildsTree.AutoExpandFolders)
