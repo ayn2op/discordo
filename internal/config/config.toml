@@ -115,8 +115,8 @@ padding = [0, 0, 1, 1]                 # [top, bottom, left, right]
 normal_style = { attributes = "dim" }
 active_style = { attributes = "bold" }
 # `"hidden"`, `"plain"`, `"round"`, `"thick"`, or `"double"`.
-normal_set = "hidden"
-active_set = "round"
+normal_set = "plain"
+active_set = "thick"
 
 [theme.guilds_tree]
 auto_expand_folders = true
