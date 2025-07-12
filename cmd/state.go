@@ -65,14 +65,15 @@ func onRequest(r httpdriver.Request) error {
 }
 
 func onReady(r *gateway.ReadyEvent) {
-	root := app.guildsTree.GetRoot()
-	root.ClearChildren()
-
 	style := app.cfg.Theme.GuildsTree.PrivateChannelStyle.Style
 	dmNode := tview.NewTreeNode("Direct Messages").
 		SetTextStyle(style).
 		SetSelectedTextStyle(style.Reverse(true))
-	root.AddChild(dmNode)
+
+	root := app.guildsTree.
+		GetRoot().
+		ClearChildren().
+		AddChild(dmNode)
 
 	for _, folder := range r.UserSettings.GuildFolders {
 		if folder.ID == 0 && len(folder.GuildIDs) == 1 {
@@ -85,7 +86,6 @@ func onReady(r *gateway.ReadyEvent) {
 					"err",
 					err,
 				)
-
 				continue
 			}
 
