@@ -112,9 +112,11 @@ active_style = { attributes = "bold" }
 [theme.border]
 enabled = true
 padding = [0, 0, 1, 1]                 # [top, bottom, left, right]
-set = "plain"                          # `"plain"`, `"round"`, `"thick"`, or `"double"`.
 normal_style = { attributes = "dim" }
 active_style = { attributes = "bold" }
+# `"hidden"`, `"plain"`, `"round"`, `"thick"`, or `"double"`.
+normal_set = "hidden"
+active_set = "round"
 
 [theme.guilds_tree]
 auto_expand_folders = true

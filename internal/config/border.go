@@ -10,9 +10,11 @@ type (
 
 	BorderTheme struct {
 		ThemeStyle
-		Enabled bool             `toml:"enabled"`
-		Padding [4]int           `toml:"padding"`
-		Set     BorderSetWrapper `toml:"set"`
+		Enabled bool   `toml:"enabled"`
+		Padding [4]int `toml:"padding"`
+
+		NormalSet BorderSetWrapper `toml:"normal_set"`
+		ActiveSet BorderSetWrapper `toml:"active_set"`
 	}
 )
 
@@ -25,6 +27,8 @@ func (bw *BorderSetWrapper) UnmarshalTOML(val any) error {
 	}
 
 	switch s {
+	case "hidden":
+		bw.BorderSet = tview.BorderSetHidden()
 	case "plain":
 		bw.BorderSet = tview.BorderSetPlain()
 	case "round":
