@@ -2,13 +2,17 @@ package cmd
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"log/slog"
+	"net/http"
 
 	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/notifications"
 	"github.com/ayn2op/tview"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/diamondburned/arikawa/v3/utils/httputil/httpdriver"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/diamondburned/ningen/v3"
@@ -50,18 +54,40 @@ func openState(token string) error {
 		slog.Error("state log", "err", err)
 	}
 
-	discordState.OnRequest = append(discordState.OnRequest, onRequest)
+	discordState.OnRequest = append(discordState.OnRequest, onRequest(props))
 
 	return discordState.Open(context.TODO())
 }
 
-func onRequest(r httpdriver.Request) error {
-	req, ok := r.(*httpdriver.DefaultRequest)
-	if ok {
-		slog.Debug("new HTTP request", "method", req.Method, "url", req.URL)
+func onRequest(props gateway.IdentifyProperties) httputil.RequestOption {
+	rawProps, err := json.Marshal(props)
+	if err != nil {
+		slog.Error("failed to marshal identify props", "props", props)
+		return nil
 	}
 
-	return nil
+	propsHeader := base64.StdEncoding.EncodeToString(rawProps)
+
+	return func(r httpdriver.Request) error {
+		header := make(http.Header)
+		// https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers
+		header.Set("Accept", "*/*")
+		header.Set("Origin", "https://discord.com")
+		header.Set("Referer", "https://discord.com/channels/@me")
+		header.Set("Sec-Fetch-Dest", "empty")
+		header.Set("Sec-Fetch-Mode", "cors")
+		header.Set("Sec-Fetch-Site", "same-origin")
+		header.Set("X-Debug-Options", "bugReporterEnabled")
+		header.Set("X-Discord-Locale", string(props.SystemLocale))
+		header.Set("X-Super-Properties", propsHeader)
+		r.AddHeader(header)
+
+		if req, ok := r.(*httpdriver.DefaultRequest); ok {
+			slog.Debug("new HTTP request", "method", req.Method, "url", req.URL)
+		}
+
+		return nil
+	}
 }
 
 func onReady(r *gateway.ReadyEvent) {
