@@ -29,6 +29,7 @@ func openState(token string) error {
 	discordState = ningen.New(token)
 
 	// Handlers
+	discordState.AddHandler(onRaw)
 	discordState.AddHandler(onReady)
 	discordState.AddHandler(onMessageCreate)
 	discordState.AddHandler(onMessageDelete)
@@ -41,54 +42,50 @@ func openState(token string) error {
 		app.messageInput.cache.Invalidate(event.GuildID.String()+" "+event.User.Username, discordState.MemberState.SearchLimit)
 	})
 
-	discordState.AddHandler(func(event *ws.RawEvent) {
-		slog.Debug(
-			"new raw event",
-			"code", event.OriginalCode,
-			"type", event.OriginalType,
-			"data", event.Raw,
-		)
-	})
-
 	discordState.StateLog = func(err error) {
 		slog.Error("state log", "err", err)
 	}
 
-	discordState.OnRequest = append(discordState.OnRequest, onRequest(props))
-
+	discordState.OnRequest = append(discordState.OnRequest, httputil.WithHeaders(getHeaders(props)), onRequest)
 	return discordState.Open(context.TODO())
 }
 
-func onRequest(props gateway.IdentifyProperties) httputil.RequestOption {
-	rawProps, err := json.Marshal(props)
-	if err != nil {
-		slog.Error("failed to marshal identify props", "props", props)
-		return nil
-	}
+func getHeaders(props gateway.IdentifyProperties) http.Header {
+	header := make(http.Header)
 
-	propsHeader := base64.StdEncoding.EncodeToString(rawProps)
-
-	return func(r httpdriver.Request) error {
-		header := make(http.Header)
-		// https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers
-		header.Set("Accept", "*/*")
-		header.Set("Accept-Language", "en-US,en;q=0.7")
-		header.Set("Origin", "https://discord.com")
-		header.Set("Referer", "https://discord.com/channels/@me")
-		header.Set("Sec-Fetch-Dest", "empty")
-		header.Set("Sec-Fetch-Mode", "cors")
-		header.Set("Sec-Fetch-Site", "same-origin")
-		header.Set("X-Debug-Options", "bugReporterEnabled")
-		header.Set("X-Discord-Locale", string(props.SystemLocale))
+	if rawProps, err := json.Marshal(props); err == nil {
+		propsHeader := base64.StdEncoding.EncodeToString(rawProps)
 		header.Set("X-Super-Properties", propsHeader)
-		r.AddHeader(header)
-
-		if req, ok := r.(*httpdriver.DefaultRequest); ok {
-			slog.Debug("new HTTP request", "method", req.Method, "url", req.URL)
-		}
-
-		return nil
 	}
+
+	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers
+	header.Set("Accept", "*/*")
+	header.Set("Accept-Language", "en-US,en;q=0.7")
+	header.Set("Origin", "https://discord.com")
+	header.Set("Referer", "https://discord.com/channels/@me")
+	header.Set("Sec-Fetch-Dest", "empty")
+	header.Set("Sec-Fetch-Mode", "cors")
+	header.Set("Sec-Fetch-Site", "same-origin")
+	header.Set("X-Debug-Options", "bugReporterEnabled")
+	header.Set("X-Discord-Locale", string(props.SystemLocale))
+	return header
+}
+
+func onRequest(r httpdriver.Request) error {
+	if req, ok := r.(*httpdriver.DefaultRequest); ok {
+		slog.Debug("new HTTP request", "method", req.Method, "url", req.URL)
+	}
+
+	return nil
+}
+
+func onRaw(event *ws.RawEvent) {
+	slog.Debug(
+		"new raw event",
+		"code", event.OriginalCode,
+		"type", event.OriginalType,
+		"data", event.Raw,
+	)
 }
 
 func onReady(r *gateway.ReadyEvent) {
