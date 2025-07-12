@@ -34,7 +34,7 @@ func Load(path string, level slog.Level) error {
 		return fmt.Errorf("failed to open log file: %w", err)
 	}
 
-	opts := &slog.HandlerOptions{AddSource: true, Level: level}
+	opts := &slog.HandlerOptions{Level: level}
 	handler := slog.NewTextHandler(file, opts)
 	slog.SetDefault(slog.New(handler))
 	return nil
