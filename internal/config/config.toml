@@ -92,6 +92,7 @@ send = "Enter"
 cancel = "Esc"
 # Complete usernames when mentioning
 tab_complete = "Tab"
+
 open_editor = "Ctrl+E"
 open_file_picker = "Ctrl+\\"
 
@@ -101,15 +102,18 @@ down = "Down"
 
 # style = { foreground = "", background = "", attributes = "" or [""] }
 [theme.title]
-alignment = "left"                     # `"left"`, `"center"`, or `"right"`.
+alignment = "left" # `"left"`, `"center"`, or `"right"`.
+
 normal_style = { attributes = "dim" }
 active_style = { attributes = "bold" }
 
 [theme.border]
 enabled = true
-padding = [0, 0, 1, 1]                 # [top, bottom, left, right]
+padding = [0, 0, 1, 1] # [top, bottom, left, right]
+
 normal_style = { attributes = "dim" }
 active_style = { attributes = "bold" }
+
 # `"hidden"`, `"plain"`, `"round"`, `"thick"`, or `"double"`.
 normal_set = "plain"
 active_set = "thick"
@@ -119,6 +123,7 @@ auto_expand_folders = true
 # Give tree-like shape
 graphics = true
 graphics_color = "default"
+
 private_channel_style = { foreground = "default" }
 guild_style = { foreground = "default" }
 channel_style = { foreground = "default" }
@@ -126,6 +131,7 @@ channel_style = { foreground = "default" }
 [theme.messages_list]
 reply_indicator = ">"
 forwarded_indicator = "<"
+
 author_style = { foreground = "aqua" }
 mention_style = { foreground = "blue" }
 emoji_style = { foreground = "green" }
