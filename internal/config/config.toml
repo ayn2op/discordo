@@ -105,18 +105,18 @@ down = "Down"
 alignment = "left" # `"left"`, `"center"`, or `"right"`.
 
 normal_style = { attributes = "dim" }
-active_style = { attributes = "bold" }
+active_style = { foreground = "green", attributes = "bold" }
 
 [theme.border]
 enabled = true
 padding = [0, 0, 1, 1] # [top, bottom, left, right]
 
 normal_style = { attributes = "dim" }
-active_style = { attributes = "bold" }
+active_style = { foreground = "green", attributes = "bold" }
 
 # `"hidden"`, `"plain"`, `"round"`, `"thick"`, or `"double"`.
-normal_set = "plain"
-active_set = "thick"
+normal_set = "round"
+active_set = "round"
 
 [theme.guilds_tree]
 auto_expand_folders = true
