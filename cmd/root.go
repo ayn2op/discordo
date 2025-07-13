@@ -11,7 +11,6 @@ import (
 	"github.com/ayn2op/tview"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/diamondburned/ningen/v3"
-	"github.com/gdamore/tcell/v2"
 	"github.com/spf13/cobra"
 	"github.com/zalando/go-keyring"
 )
@@ -59,7 +58,7 @@ var (
 				}
 			}
 
-			tview.Styles.PrimitiveBackgroundColor = tcell.GetColor(cfg.Theme.BackgroundColor)
+			tview.Styles = tview.Theme{}
 			app = newApplication(cfg)
 			return app.run(token)
 		},

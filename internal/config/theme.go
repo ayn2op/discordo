@@ -115,12 +115,11 @@ type (
 	}
 
 	Theme struct {
-		BackgroundColor string            `toml:"background_color"`
-		Title           TitleTheme        `toml:"title"`
-		Border          BorderTheme       `toml:"border"`
-		GuildsTree      GuildsTreeTheme   `toml:"guilds_tree"`
-		MessagesList    MessagesListTheme `toml:"messages_list"`
-		MentionsList    MentionsListTheme `toml:"mentions_list"`
+		Title        TitleTheme        `toml:"title"`
+		Border       BorderTheme       `toml:"border"`
+		GuildsTree   GuildsTreeTheme   `toml:"guilds_tree"`
+		MessagesList MessagesListTheme `toml:"messages_list"`
+		MentionsList MentionsListTheme `toml:"mentions_list"`
 	}
 )
 

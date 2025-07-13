@@ -55,7 +55,6 @@ func newMessagesList(cfg *config.Config) *messagesList {
 		SetWordWrap(true).
 		ScrollToEnd().
 		SetHighlightedFunc(ml.onHighlighted).
-		SetTextColor(tcell.ColorDefault).
 		SetTitle("Messages").
 		SetInputCapture(ml.onInputCapture)
 

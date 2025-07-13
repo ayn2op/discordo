@@ -99,11 +99,7 @@ open_file_picker = "Ctrl+\\"
 up = "Up"
 down = "Down"
 
-# Applies to all
 # style = { foreground = "", background = "", attributes = "" or [""] }
-[theme]
-background_color = "default"
-
 [theme.title]
 alignment = "left"                     # `"left"`, `"center"`, or `"right"`.
 normal_style = { attributes = "dim" }
