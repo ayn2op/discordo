@@ -5,7 +5,7 @@ go 1.24.4
 require (
 	github.com/BurntSushi/toml v1.5.0
 	github.com/atotto/clipboard v0.1.4
-	github.com/ayn2op/tview v0.0.0-20250713001733-14dcf667392e
+	github.com/ayn2op/tview v0.0.0-20250713004132-44f363ecbbe5
 	github.com/deckarep/gosx-notifier v0.0.0-20180201035817-e127226297fb
 	github.com/diamondburned/arikawa/v3 v3.5.1-0.20250703053218-19d9c3f2e011
 	github.com/diamondburned/ningen/v3 v3.0.1-0.20250703054403-e5dc4cf15e84
