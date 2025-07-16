@@ -65,8 +65,7 @@ func (gt *guildsTree) createGuildNode(n *tview.TreeNode, g discord.Guild) {
 	style := gt.cfg.Theme.GuildsTree.GuildStyle.Style
 	guildNode := tview.NewTreeNode(g.Name).
 		SetReference(g.ID).
-		SetTextStyle(style).
-		SetSelectedTextStyle(style.Reverse(true))
+		SetTextStyle(style)
 	n.AddChild(guildNode)
 }
 
@@ -114,8 +113,7 @@ func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Ch
 	style := gt.cfg.Theme.GuildsTree.ChannelStyle.Style
 	channelNode := tview.NewTreeNode(gt.channelToString(channel)).
 		SetReference(channel.ID).
-		SetTextStyle(style).
-		SetSelectedTextStyle(style.Reverse(true))
+		SetTextStyle(style)
 	node.AddChild(channelNode)
 }
 
