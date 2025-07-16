@@ -46,7 +46,12 @@ func HandleIncomingMessage(state *ningen.State, msg *gateway.MessageCreateEvent,
 
 	notifTitle := msg.Author.DisplayOrTag()
 	if guild != nil {
-		member, _ := state.Member(channel.GuildID, msg.Author.ID)
+		member, err := state.Member(channel.GuildID, msg.Author.ID)
+
+		if err != nil {
+			return err
+		}
+
 		if member.Nick != "" {
 			notifTitle = member.Nick
 		}
