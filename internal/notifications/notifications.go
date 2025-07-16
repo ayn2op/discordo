@@ -46,8 +46,7 @@ func HandleIncomingMessage(state *ningen.State, msg *gateway.MessageCreateEvent,
 
 	notifTitle := msg.Author.DisplayOrTag()
 	if guild != nil {
-		member, err := state.Member(channel.GuildID, msg.Author.ID)
-
+		member, err := state.Cabinet.Member(channel.GuildID, msg.Author.ID)
 		if err != nil {
 			return err
 		}
