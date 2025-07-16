@@ -14,61 +14,59 @@ import (
 	"github.com/diamondburned/ningen/v3"
 )
 
-func HandleIncomingMessage(state *ningen.State, msg *gateway.MessageCreateEvent, cfg *config.Config) error {
+func HandleIncomingMessage(state *ningen.State, message *gateway.MessageCreateEvent, cfg *config.Config) error {
 	// Only display notification if enabled and unmuted
-	if !cfg.Notifications.Enabled || state.MessageMentions(&msg.Message) == 0 || cfg.Identify.Status == discord.DoNotDisturbStatus {
+	if !cfg.Notifications.Enabled || state.MessageMentions(&message.Message) == 0 || cfg.Identify.Status == discord.DoNotDisturbStatus {
 		return nil
 	}
 
-	channel, err := state.Cabinet.Channel(msg.ChannelID)
-	if err != nil {
-		return err
+	content := message.Content
+	// If the message has multiple attachments, the filename of the first attachment is used.
+	if content == "" && len(message.Attachments) > 0 {
+		content = "Uploaded " + message.Attachments[0].Filename
 	}
 
-	isChannelDM := channel.Type == discord.DirectMessage || channel.Type == discord.GroupDM
-	guild := (*discord.Guild)(nil)
-	if !isChannelDM {
-		guild, err = state.Cabinet.Guild(channel.GuildID)
+	if content == "" {
+		return nil
+	}
+
+	// (discord.Message).GuildID is included in the gateway.MessageCreateEvent struct.
+	title := message.Author.DisplayOrUsername()
+	if guildID := message.GuildID; guildID.IsValid() {
+		guild, err := state.Cabinet.Guild(guildID)
 		if err != nil {
 			return err
 		}
-	}
 
-	// Handle sent files
-	content := msg.Content
-	if msg.Content == "" && len(msg.Attachments) > 0 {
-		content = "Uploaded " + msg.Message.Attachments[0].Filename
-	}
+		channel, err := state.Cabinet.Channel(message.ChannelID)
+		if err != nil {
+			return err
+		}
 
-	if msg.Author.DisplayOrTag() == "" || content == "" {
-		return nil
-	}
-
-	notifTitle := msg.Author.DisplayOrTag()
-	if guild != nil {
-		member, err := state.Cabinet.Member(channel.GuildID, msg.Author.ID)
+		member, err := state.Cabinet.Member(guildID, message.Author.ID)
 		if err != nil {
 			return err
 		}
 
 		if member.Nick != "" {
-			notifTitle = member.Nick
+			title = member.Nick
 		}
 
-		notifTitle = notifTitle + " (#" + channel.Name + ", " + guild.Name + ")"
+		title += " (#" + channel.Name + ", " + guild.Name + ")"
 	}
 
-	hash := msg.Author.Avatar
+	hash := message.Author.Avatar
 	if hash == "" {
 		hash = "default"
 	}
-	imagePath, err := getCachedProfileImage(hash, msg.Author.AvatarURLWithType(discord.PNGImage))
+
+	imagePath, err := getCachedProfileImage(hash, message.Author.AvatarURLWithType(discord.PNGImage))
 	if err != nil {
 		slog.Error("Failed to retrieve avatar image for notification", "err", err)
 	}
 
-	shouldChime := cfg.Notifications.Sound.Enabled && (!cfg.Notifications.Sound.OnlyOnPing || (isChannelDM || state.MessageMentions(&msg.Message) == 3))
-	if err := sendDesktopNotification(notifTitle, content, imagePath, shouldChime, cfg.Notifications.Duration); err != nil {
+	shouldChime := cfg.Notifications.Sound.Enabled && (!cfg.Notifications.Sound.OnlyOnPing || (!message.GuildID.IsValid() || state.MessageMentions(&message.Message) == 3))
+	if err := sendDesktopNotification(title, content, imagePath, shouldChime, cfg.Notifications.Duration); err != nil {
 		return err
 	}
 
