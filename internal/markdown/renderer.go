@@ -161,32 +161,29 @@ func (r *renderer) renderText(w io.Writer, node *ast.Text, entering bool, source
 }
 
 func (r *renderer) renderInline(w io.Writer, node *discordmd.Inline, entering bool) {
+	var start, end string
 	if entering {
 		switch node.Attr {
 		case discordmd.AttrBold:
-			io.WriteString(w, "[::b]")
+			start = "[::b]"
+			end = "[::B]"
 		case discordmd.AttrItalics:
-			io.WriteString(w, "[::i]")
+			start = "[::i]"
+			end = "[::I]"
 		case discordmd.AttrUnderline:
-			io.WriteString(w, "[::u]")
+			start = "[::u]"
+			end = "[::U]"
 		case discordmd.AttrStrikethrough:
-			io.WriteString(w, "[::s]")
+			start = "[::s]"
+			end = "[::S]"
 		case discordmd.AttrMonospace:
-			io.WriteString(w, "[::r]")
+			start = "[::r]"
+			end = "[::R]"
 		}
+
+		io.WriteString(w, start)
 	} else {
-		switch node.Attr {
-		case discordmd.AttrBold:
-			io.WriteString(w, "[::B]")
-		case discordmd.AttrItalics:
-			io.WriteString(w, "[::I]")
-		case discordmd.AttrUnderline:
-			io.WriteString(w, "[::U]")
-		case discordmd.AttrStrikethrough:
-			io.WriteString(w, "[::S]")
-		case discordmd.AttrMonospace:
-			io.WriteString(w, "[::R]")
-		}
+		io.WriteString(w, end)
 	}
 }
 
