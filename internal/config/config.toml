@@ -128,7 +128,6 @@ graphics_color = "default"
 reply_indicator = ">"
 forwarded_indicator = "<"
 
-author_style = { foreground = "aqua" }
 mention_style = { foreground = "blue" }
 emoji_style = { foreground = "green" }
 url_style = { foreground = "blue" }

@@ -146,8 +146,8 @@ func (ml *messagesList) drawTimestamps(ts discord.Timestamp) {
 }
 
 func (ml *messagesList) drawAuthor(msg discord.Message) {
-	style := ml.cfg.Theme.MessagesList.AuthorStyle
 	name := msg.Author.DisplayOrUsername()
+	foreground := tcell.ColorDefault
 	if msg.GuildID.IsValid() {
 		member, err := discordState.Cabinet.Member(msg.GuildID, msg.Author.ID)
 		if err != nil {
@@ -164,13 +164,11 @@ func (ml *messagesList) drawAuthor(msg discord.Message) {
 			return r
 		})
 		if ok {
-			c := tcell.GetColor(color.String())
-			style = config.NewStyleWrapper(tcell.StyleDefault.Foreground(c))
+			foreground = tcell.GetColor(color.String())
 		}
 	}
 
-	fg, bg, _ := style.Decompose()
-	_, _ = fmt.Fprintf(ml, "[%s:%s]%s[-] ", fg.String(), bg.String(), name)
+	fmt.Fprintf(ml, "[%s::b]%s[-::B] ", foreground, name)
 }
 
 func (ml *messagesList) drawContent(msg discord.Message) {
