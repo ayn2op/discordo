@@ -33,6 +33,7 @@ func openState(token string) error {
 	discordState.AddHandler(onRaw)
 	discordState.AddHandler(onReady)
 	discordState.AddHandler(onMessageCreate)
+	discordState.AddHandler(onMessageUpdate)
 	discordState.AddHandler(onMessageDelete)
 	discordState.AddHandler(onReadUpdate)
 
@@ -158,21 +159,27 @@ func onReady(r *gateway.ReadyEvent) {
 	app.Draw()
 }
 
-func onMessageCreate(msg *gateway.MessageCreateEvent) {
-	if app.guildsTree.selectedChannelID == msg.ChannelID {
-		app.messagesList.createMsg(msg.Message)
+func onMessageCreate(message *gateway.MessageCreateEvent) {
+	if app.guildsTree.selectedChannelID == message.ChannelID {
+		app.messagesList.createMsg(message.Message)
 		app.Draw()
 	}
 
-	if err := notifications.HandleIncomingMessage(discordState, msg, app.cfg); err != nil {
+	if err := notifications.HandleIncomingMessage(discordState, message, app.cfg); err != nil {
 		slog.Error("Notification failed", "err", err)
 	}
 }
 
-func onMessageDelete(msg *gateway.MessageDeleteEvent) {
-	if app.guildsTree.selectedChannelID == msg.ChannelID {
+func onMessageUpdate(message *gateway.MessageUpdateEvent) {
+	if app.guildsTree.selectedChannelID == message.ChannelID {
+		onMessageDelete(&gateway.MessageDeleteEvent{ID: message.ID, ChannelID: message.ChannelID, GuildID: message.GuildID})
+	}
+}
+
+func onMessageDelete(message *gateway.MessageDeleteEvent) {
+	if app.guildsTree.selectedChannelID == message.ChannelID {
 		app.messagesList.reset()
-		app.messagesList.drawMsgs(msg.ChannelID)
+		app.messagesList.drawMsgs(message.ChannelID)
 		app.Draw()
 	}
 }
