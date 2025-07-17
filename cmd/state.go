@@ -115,8 +115,7 @@ func onReadUpdate(event *read.UpdateEvent) {
 	if guildNode != nil {
 		guildNode.Walk(func(node, parent *tview.TreeNode) bool {
 			if node.GetReference() == event.ChannelID {
-				indication := discordState.ChannelIsUnread(event.ChannelID, ningen.UnreadOpts{})
-				node.SetTextStyle(app.guildsTree.unreadStyle(indication))
+				node.SetTextStyle(app.guildsTree.getChannelNodeStyle(event.ChannelID))
 				return false
 			}
 
