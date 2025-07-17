@@ -12,6 +12,7 @@ import (
 	"github.com/ayn2op/tview"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/ningen/v3"
 	"github.com/gdamore/tcell/v2"
 )
 
@@ -61,11 +62,35 @@ func (gt *guildsTree) createFolderNode(folder gateway.GuildFolder) {
 	}
 }
 
-func (gt *guildsTree) createGuildNode(n *tview.TreeNode, g discord.Guild) {
-	style := gt.cfg.Theme.GuildsTree.GuildStyle.Style
-	guildNode := tview.NewTreeNode(g.Name).
-		SetReference(g.ID).
-		SetTextStyle(style)
+func (gt *guildsTree) unreadStyle(indication ningen.UnreadIndication) tcell.Style {
+	var style tcell.Style
+	switch indication {
+	case ningen.ChannelRead:
+		style = style.Dim(true)
+	case ningen.ChannelMentioned:
+		style = style.Underline(true)
+		fallthrough
+	case ningen.ChannelUnread:
+		style = style.Bold(true)
+	}
+
+	return style
+}
+
+func (gt *guildsTree) getGuildNodeStyle(guildID discord.GuildID) tcell.Style {
+	indication := discordState.GuildIsUnread(guildID, ningen.GuildUnreadOpts{UnreadOpts: ningen.UnreadOpts{IncludeMutedCategories: true}})
+	return gt.unreadStyle(indication)
+}
+
+func (gt *guildsTree) getChannelNodeStyle(channelID discord.ChannelID) tcell.Style {
+	indication := discordState.ChannelIsUnread(channelID, ningen.UnreadOpts{IncludeMutedCategories: true})
+	return gt.unreadStyle(indication)
+}
+
+func (gt *guildsTree) createGuildNode(n *tview.TreeNode, guild discord.Guild) {
+	guildNode := tview.NewTreeNode(guild.Name).
+		SetReference(guild.ID).
+		SetTextStyle(gt.getGuildNodeStyle(guild.ID))
 	n.AddChild(guildNode)
 }
 
@@ -110,10 +135,9 @@ func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Ch
 		}
 	}
 
-	style := gt.cfg.Theme.GuildsTree.ChannelStyle.Style
 	channelNode := tview.NewTreeNode(gt.channelToString(channel)).
 		SetReference(channel.ID).
-		SetTextStyle(style)
+		SetTextStyle(gt.getChannelNodeStyle(channel.ID))
 	node.AddChild(channelNode)
 }
 
@@ -189,6 +213,8 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 			slog.Error("failed to get channel", "channel_id", ref)
 			return
 		}
+
+		go discordState.ReadState.MarkRead(channel.ID, channel.LastMessageID)
 
 		app.messagesList.reset()
 		app.messagesList.drawMsgs(channel.ID)

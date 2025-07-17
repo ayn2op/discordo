@@ -124,10 +124,6 @@ auto_expand_folders = true
 graphics = true
 graphics_color = "default"
 
-private_channel_style = { foreground = "default" }
-guild_style = { foreground = "default" }
-channel_style = { foreground = "default" }
-
 [theme.messages_list]
 reply_indicator = ">"
 forwarded_indicator = "<"

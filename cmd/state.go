@@ -16,6 +16,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/httputil/httpdriver"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/diamondburned/ningen/v3"
+	"github.com/diamondburned/ningen/v3/states/read"
 )
 
 func openState(token string) error {
@@ -33,6 +34,7 @@ func openState(token string) error {
 	discordState.AddHandler(onReady)
 	discordState.AddHandler(onMessageCreate)
 	discordState.AddHandler(onMessageDelete)
+	discordState.AddHandler(onReadUpdate)
 
 	discordState.AddHandler(func(event *gateway.GuildMembersChunkEvent) {
 		app.messagesList.setFetchingChunk(false, uint(len(event.Members)))
@@ -88,12 +90,44 @@ func onRaw(event *ws.RawEvent) {
 	)
 }
 
-func onReady(r *gateway.ReadyEvent) {
-	style := app.cfg.Theme.GuildsTree.PrivateChannelStyle.Style
-	dmNode := tview.NewTreeNode("Direct Messages").
-		SetTextStyle(style).
-		SetSelectedTextStyle(style.Reverse(true))
+func onReadUpdate(event *read.UpdateEvent) {
+	var guildNode *tview.TreeNode
+	app.guildsTree.
+		GetRoot().
+		Walk(func(node, parent *tview.TreeNode) bool {
+			switch node.GetReference() {
+			case event.GuildID:
+				node.SetTextStyle(app.guildsTree.getGuildNodeStyle(event.GuildID))
+				guildNode = node
+				return false
+			case event.ChannelID:
+				// private channel
+				if !event.GuildID.IsValid() {
+					style := app.guildsTree.getChannelNodeStyle(event.ChannelID)
+					node.SetTextStyle(style)
+					return false
+				}
+			}
 
+			return true
+		})
+
+	if guildNode != nil {
+		guildNode.Walk(func(node, parent *tview.TreeNode) bool {
+			if node.GetReference() == event.ChannelID {
+				node.SetTextStyle(app.guildsTree.getChannelNodeStyle(event.ChannelID))
+				return false
+			}
+
+			return true
+		})
+	}
+
+	app.Draw()
+}
+
+func onReady(r *gateway.ReadyEvent) {
+	dmNode := tview.NewTreeNode("Direct Messages")
 	root := app.guildsTree.
 		GetRoot().
 		ClearChildren().
@@ -121,6 +155,7 @@ func onReady(r *gateway.ReadyEvent) {
 
 	app.guildsTree.SetCurrentNode(root)
 	app.SetFocus(app.guildsTree)
+	app.Draw()
 }
 
 func onMessageCreate(msg *gateway.MessageCreateEvent) {

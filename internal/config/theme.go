@@ -93,10 +93,6 @@ type (
 		AutoExpandFolders bool   `toml:"auto_expand_folders"`
 		Graphics          bool   `toml:"graphics"`
 		GraphicsColor     string `toml:"graphics_color"`
-
-		PrivateChannelStyle StyleWrapper `toml:"private_channel_style"`
-		GuildStyle          StyleWrapper `toml:"guild_style"`
-		ChannelStyle        StyleWrapper `toml:"channel_style"`
 	}
 
 	MessagesListTheme struct {
