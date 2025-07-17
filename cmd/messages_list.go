@@ -220,6 +220,8 @@ func (ml *messagesList) createReplyMsg(msg discord.Message) {
 		refMsg.GuildID = msg.GuildID
 		ml.drawAuthor(*refMsg)
 		ml.drawContent(*refMsg)
+	} else {
+		io.WriteString(ml, "Original message was deleted")
 	}
 
 	io.WriteString(ml, tview.NewLine)
