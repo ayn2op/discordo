@@ -5,7 +5,7 @@ go 1.24.4
 require (
 	github.com/BurntSushi/toml v1.5.0
 	github.com/atotto/clipboard v0.1.4
-	github.com/ayn2op/tview v0.0.0-20250716183101-b72c589da3fc
+	github.com/ayn2op/tview v0.0.0-20250720032506-63f04e47b15d
 	github.com/deckarep/gosx-notifier v0.0.0-20180201035817-e127226297fb
 	github.com/diamondburned/arikawa/v3 v3.5.1-0.20250703053218-19d9c3f2e011
 	github.com/diamondburned/ningen/v3 v3.0.1-0.20250703054403-e5dc4cf15e84
@@ -42,7 +42,7 @@ require (
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/sergeymakinen/go-bmp v1.0.0 // indirect
 	github.com/sergeymakinen/go-ico v1.0.0-beta.0 // indirect
-	github.com/spf13/pflag v1.0.6 // indirect
+	github.com/spf13/pflag v1.0.7 // indirect
 	github.com/tadvi/systray v0.0.0-20190226123456-11a2b8fa57af // indirect
 	github.com/twmb/murmur3 v1.1.8 // indirect
 	go4.org v0.0.0-20230225012048-214862532bf5 // indirect

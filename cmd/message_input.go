@@ -229,15 +229,17 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 	if !isAuto {
 		if mi.cfg.AutocompleteLimit == 0 {
 			mi.searchMember(gID, name)
-			mems, err := discordState.Cabinet.Members(gID)
+
+			members, err := discordState.Cabinet.Members(gID)
 			if err != nil {
-				slog.Error("fetching members failed", "err", err)
+				slog.Error("failed to get members from state", "guild_id", gID, "err", err)
 				return
 			}
-			res := fuzzy.FindFrom(name, memberList(mems))
+
+			res := fuzzy.FindFrom(name, memberList(members))
 			for _, r := range res {
-				if channelHasUser(cID, mems[r.Index].User.ID) {
-					mi.Replace(pos, posEnd, "@"+mems[r.Index].User.Username+" ")
+				if channelHasUser(cID, members[r.Index].User.ID) {
+					mi.Replace(pos, posEnd, "@"+members[r.Index].User.Username+" ")
 					return
 				}
 			}
@@ -364,9 +366,11 @@ func (mi *messageInput) showMentionList(col int) {
 			t, _ := mi.mentionsList.GetItemText(i)
 			w = max(w, tview.TaggedStringWidth(t))
 		}
+
 		w = min(w+borders*2, maxW)
 		x += min(col, maxW-w)
 	}
+
 	l.SetRect(x, y, w, h)
 
 	app.pages.
