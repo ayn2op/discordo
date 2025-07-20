@@ -102,7 +102,7 @@ func (r *renderer) renderFencedCodeBlock(w io.Writer, node *ast.FencedCodeBlock,
 func (r *renderer) renderAutoLink(w io.Writer, node *ast.AutoLink, entering bool, source []byte, urlStyle tcell.Style) {
 	if entering {
 		fg, bg, _ := urlStyle.Decompose()
-		_, _ = fmt.Fprintf(w, "[%s:%s]", fg, bg)
+		fmt.Fprintf(w, "[%s:%s]", fg, bg)
 		w.Write(node.URL(source))
 	} else {
 		io.WriteString(w, "[-:-]")
@@ -112,7 +112,7 @@ func (r *renderer) renderAutoLink(w io.Writer, node *ast.AutoLink, entering bool
 func (r *renderer) renderLink(w io.Writer, node *ast.Link, entering bool, urlStyle tcell.Style) {
 	if entering {
 		fg, bg, _ := urlStyle.Decompose()
-		_, _ = fmt.Fprintf(w, "[%s:%s::%s]", fg, bg, node.Destination)
+		fmt.Fprintf(w, "[%s:%s::%s]", fg, bg, node.Destination)
 	} else {
 		io.WriteString(w, "[-:-::-]")
 	}
@@ -191,7 +191,7 @@ func (r *renderer) renderInline(w io.Writer, node *discordmd.Inline, entering bo
 func (r *renderer) renderMention(w io.Writer, node *discordmd.Mention, entering bool, style tcell.Style) {
 	if entering {
 		fg, bg, _ := style.Decompose()
-		_, _ = fmt.Fprintf(w, "[%s:%s:b]", fg, bg)
+		fmt.Fprintf(w, "[%s:%s:b]", fg, bg)
 
 		switch {
 		case node.Channel != nil:

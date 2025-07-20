@@ -59,7 +59,7 @@ func newMessageInput(cfg *config.Config) *messageInput {
 	mi.Box = ui.ConfigureBox(mi.Box, &cfg.Theme)
 	mi.
 		SetClipboard(func(s string) {
-			_ = clipboard.WriteAll(s)
+			clipboard.WriteAll(s)
 		}, func() string {
 			text, _ := clipboard.ReadAll()
 			return text
@@ -157,7 +157,7 @@ func (mi *messageInput) send() {
 	// Close the attached files after sending the message.
 	for _, file := range mi.sendMessageData.Files {
 		if closer, ok := file.Reader.(io.Closer); ok {
-			_ = closer.Close()
+			closer.Close()
 		}
 	}
 
@@ -172,7 +172,7 @@ func processText(cID discord.ChannelID, src []byte) string {
 		canMention = true
 	)
 
-	_ = ast.Walk(discordmd.Parse(src), func(node ast.Node, enter bool) (ast.WalkStatus, error) {
+	ast.Walk(discordmd.Parse(src), func(node ast.Node, enter bool) (ast.WalkStatus, error) {
 		switch node := node.(type) {
 		case *ast.CodeBlock:
 			canMention = !enter
@@ -200,7 +200,7 @@ func expandMentions(cID discord.ChannelID, src []byte) []byte {
 	return mentionRegex.ReplaceAllFunc(src, func(input []byte) []byte {
 		output := input
 		name := strings.ToLower(string(input[1:]))
-		_ = discordState.MemberStore.Each(app.guildsTree.selectedGuildID, func(m *discord.Member) bool {
+		discordState.MemberStore.Each(app.guildsTree.selectedGuildID, func(m *discord.Member) bool {
 			if strings.ToLower(m.User.Username) == name && channelHasUser(cID, m.User.ID) {
 				output = []byte(m.User.ID.Mention())
 				return true
@@ -430,7 +430,7 @@ func (mi *messageInput) editor() {
 	defer file.Close()
 	defer os.Remove(file.Name())
 
-	_, _ = file.WriteString(mi.GetText())
+	file.WriteString(mi.GetText())
 
 	cmd := exec.Command(mi.cfg.Editor, file.Name())
 	cmd.Stdin = os.Stdin
