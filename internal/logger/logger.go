@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/ayn2op/discordo/internal/consts"
+	"github.com/lmittmann/tint"
 )
 
 const fileName = "logs.txt"
@@ -34,8 +35,8 @@ func Load(path string, level slog.Level) error {
 		return fmt.Errorf("failed to open log file: %w", err)
 	}
 
-	opts := &slog.HandlerOptions{Level: level}
-	handler := slog.NewTextHandler(file, opts)
+	opts := &tint.Options{Level: level}
+	handler := tint.NewHandler(file, opts)
 	slog.SetDefault(slog.New(handler))
 	return nil
 }

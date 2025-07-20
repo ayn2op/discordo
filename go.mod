@@ -11,6 +11,7 @@ require (
 	github.com/diamondburned/ningen/v3 v3.0.1-0.20250703054403-e5dc4cf15e84
 	github.com/gdamore/tcell/v2 v2.8.1
 	github.com/gen2brain/beeep v0.11.1
+	github.com/lmittmann/tint v1.1.2
 	github.com/ncruces/zenity v0.10.14
 	github.com/sahilm/fuzzy v0.1.1
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
