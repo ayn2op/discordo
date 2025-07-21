@@ -19,12 +19,12 @@ func NewModel() Model {
 		form: huh.NewForm(huh.NewGroup(
 			huh.NewInput().
 				Key("id").
-				Placeholder("Email or Phone Number").
+				Title("Email or Phone Number").
 				Validate(huh.ValidateNotEmpty()),
 
 			huh.NewInput().
 				Key("password").
-				Placeholder("Password").
+				Title("Password").
 				EchoMode(huh.EchoModePassword).
 				Validate(huh.ValidateNotEmpty()),
 		)),
