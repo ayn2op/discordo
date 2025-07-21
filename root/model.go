@@ -35,7 +35,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case loginMsg:
 		m.root = login.NewModel()
 		return m, m.root.Init()
-	case tokenMsg:
+	case login.TokenMsg:
 		m.root = home.NewModel(string(msg))
 		return m, m.root.Init()
 
@@ -59,7 +59,6 @@ func (m Model) View() string {
 
 type (
 	loginMsg struct{}
-	tokenMsg string
 )
 
 func checkToken() tea.Msg {
@@ -68,5 +67,5 @@ func checkToken() tea.Msg {
 		return loginMsg{}
 	}
 
-	return tokenMsg(token)
+	return login.TokenMsg(token)
 }
