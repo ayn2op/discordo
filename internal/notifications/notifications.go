@@ -16,7 +16,7 @@ import (
 
 func HandleIncomingMessage(state *ningen.State, msg *gateway.MessageCreateEvent, cfg *config.Config) error {
 	// Only display notification if enabled and unmuted
-	if !cfg.Notifications.Enabled || state.MessageMentions(&msg.Message) == 0 || cfg.Identify.Status == discord.DoNotDisturbStatus {
+	if !cfg.Notifications.Enabled || state.MessageMentions(&msg.Message) == 0 || cfg.Status == discord.DoNotDisturbStatus {
 		return nil
 	}
 
