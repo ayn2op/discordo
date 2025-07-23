@@ -1,6 +1,8 @@
 package notifications
 
 import (
+	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -20,55 +22,54 @@ func HandleIncomingMessage(state *ningen.State, msg *gateway.MessageCreateEvent,
 		return nil
 	}
 
-	channel, err := state.Cabinet.Channel(msg.ChannelID)
-	if err != nil {
-		return err
-	}
-
-	isChannelDM := channel.Type == discord.DirectMessage || channel.Type == discord.GroupDM
-	guild := (*discord.Guild)(nil)
-	if !isChannelDM {
-		guild, err = state.Cabinet.Guild(channel.GuildID)
-		if err != nil {
-			return err
-		}
-	}
-
 	// Handle sent files
 	content := msg.Content
 	if msg.Content == "" && len(msg.Attachments) > 0 {
 		content = "Uploaded " + msg.Message.Attachments[0].Filename
 	}
 
-	if msg.Author.DisplayOrTag() == "" || content == "" {
+	if content == "" {
 		return nil
 	}
 
-	notifTitle := msg.Author.DisplayOrTag()
-	if guild != nil {
-		member, err := state.Cabinet.Member(channel.GuildID, msg.Author.ID)
+	title := msg.Author.DisplayOrUsername()
+
+	channel, err := state.Cabinet.Channel(msg.ChannelID)
+	if err != nil {
+		return fmt.Errorf("failed to get channel from state: %w", err)
+	}
+
+	if channel.GuildID.IsValid() {
+		guild, err := state.Cabinet.Guild(channel.GuildID)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to get guild from state: %w", err)
 		}
 
-		if member.Nick != "" {
-			notifTitle = member.Nick
+		member, err := state.Cabinet.Member(guild.ID, msg.Author.ID)
+		if err != nil {
+			slog.Info("failed to get member from state", "err", err, "guild_id", channel.GuildID, "user_id", msg.Author.ID)
+		} else {
+			if member.Nick != "" {
+				title = member.Nick
+			}
 		}
 
-		notifTitle = notifTitle + " (#" + channel.Name + ", " + guild.Name + ")"
+		title += " (#" + channel.Name + ", " + guild.Name + ")"
 	}
 
 	hash := msg.Author.Avatar
 	if hash == "" {
 		hash = "default"
 	}
+
 	imagePath, err := getCachedProfileImage(hash, msg.Author.AvatarURLWithType(discord.PNGImage))
 	if err != nil {
-		slog.Error("Failed to retrieve avatar image for notification", "err", err)
+		slog.Info("failed to get profile image from cache for notification", "err", err, "hash", hash)
 	}
 
+	isChannelDM := channel.Type == discord.DirectMessage || channel.Type == discord.GroupDM
 	shouldChime := cfg.Notifications.Sound.Enabled && (!cfg.Notifications.Sound.OnlyOnPing || (isChannelDM || state.MessageMentions(&msg.Message) == 3))
-	if err := sendDesktopNotification(notifTitle, content, imagePath, shouldChime, cfg.Notifications.Duration); err != nil {
+	if err := sendDesktopNotification(title, content, imagePath, shouldChime, cfg.Notifications.Duration); err != nil {
 		return err
 	}
 
