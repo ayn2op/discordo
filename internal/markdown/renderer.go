@@ -166,20 +166,15 @@ func (r *renderer) renderInline(w io.Writer, node *discordmd.Inline, entering bo
 	if entering {
 		switch node.Attr {
 		case discordmd.AttrBold:
-			start = "[::b]"
-			end = "[::B]"
+			start, end = "[::b]", "[::B]"
 		case discordmd.AttrItalics:
-			start = "[::i]"
-			end = "[::I]"
+			start, end = "[::i]", "[::I]"
 		case discordmd.AttrUnderline:
-			start = "[::u]"
-			end = "[::U]"
+			start, end = "[::u]", "[::U]"
 		case discordmd.AttrStrikethrough:
-			start = "[::s]"
-			end = "[::S]"
+			start, end = "[::s]", "[::S]"
 		case discordmd.AttrMonospace:
-			start = "[::r]"
-			end = "[::R]"
+			start, end = "[::r]", "[::R]"
 		}
 
 		io.WriteString(w, start)
