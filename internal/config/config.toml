@@ -3,6 +3,9 @@ mouse = true
 # The program to open when the `keys.message_input.editor` keymap is pressed. Set the value to `"default"` to use `$EDITOR`.
 editor = "default"
 
+# "default" (unknown), "online", "dnd", "idle", "invisible", "offline"
+status = "default"
+
 # Whether to parse and render markdown in messages or not.
 markdown = true
 hide_blocked_users = true
@@ -27,15 +30,6 @@ duration = 0
 [notifications.sound]
 enabled = true
 only_on_ping = true
-
-# How Discord sees us.
-# status: "online", "idle", "dnd" (Do Not Disturb), "" (invisible),
-# note: does not seem to work
-[identify]
-status = "online"
-browser = "default"
-browser_version = "default"
-user_agent = "default"
 
 # Global shortcuts
 # Esc: Reset message selection or close the channel selection popup.

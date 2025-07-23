@@ -28,6 +28,8 @@ type (
 		SelectCurrent string `toml:"select_current"`
 		YankID        string `toml:"yank_id"`
 
+		CollapseAll        string `toml:"collapse_all"`
+		ExpandAll          string `toml:"expand_all"`
 		CollapseParentNode string `toml:"collapse_parent_node"`
 		MoveToParentNode   string `toml:"move_to_parent_node"`
 	}

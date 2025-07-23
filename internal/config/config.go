@@ -21,7 +21,6 @@ type (
 	}
 
 	Identify struct {
-		Status discord.Status `toml:"status"`
 	}
 
 	Notifications struct {
@@ -38,6 +37,8 @@ type (
 	Config struct {
 		Mouse  bool   `toml:"mouse"`
 		Editor string `toml:"editor"`
+
+		Status discord.Status `toml:"status"`
 
 		Markdown            bool `toml:"markdown"`
 		HideBlockedUsers    bool `toml:"hide_blocked_users"`
@@ -87,20 +88,24 @@ func Load(path string) (*Config, error) {
 			"err",
 			err,
 		)
-		return &cfg, nil
+	} else {
+		if err != nil {
+			return nil, fmt.Errorf("failed to open config file: %w", err)
+		}
+		defer file.Close()
+
+		if _, err := toml.NewDecoder(file).Decode(&cfg); err != nil {
+			return nil, fmt.Errorf("failed to decode config: %w", err)
+		}
 	}
 
-	if err != nil {
-		return nil, fmt.Errorf("failed to open config file: %w", err)
-	}
-	defer file.Close()
-
-	if _, err := toml.NewDecoder(file).Decode(&cfg); err != nil {
-		return nil, fmt.Errorf("failed to decode config: %w", err)
-	}
-
+	// set defaults
 	if cfg.Editor == "default" {
 		cfg.Editor = os.Getenv("EDITOR")
+	}
+
+	if cfg.Status == "default" {
+		cfg.Status = ""
 	}
 
 	return &cfg, nil
