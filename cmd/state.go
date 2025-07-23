@@ -24,7 +24,7 @@ func openState(token string) error {
 	api.UserAgent = props.BrowserUserAgent
 	gateway.DefaultIdentity = props
 	gateway.DefaultPresence = &gateway.UpdatePresenceCommand{
-		Status: app.cfg.Identify.Status,
+		Status: app.cfg.Status,
 	}
 
 	discordState = ningen.New(token)
