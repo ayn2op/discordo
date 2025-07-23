@@ -216,8 +216,18 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 
 		go discordState.ReadState.MarkRead(channel.ID, channel.LastMessageID)
 
+		messages, err := discordState.Messages(channel.ID, uint(gt.cfg.MessagesLimit))
+		if err != nil {
+			slog.Error("failed to get messages", "err", err, "channel_id", channel.ID, "limit", gt.cfg.MessagesLimit)
+			return
+		}
+
+		if guildID := channel.GuildID; guildID.IsValid() {
+			app.messagesList.requestGuildMembers(guildID, messages)
+		}
+
 		app.messagesList.reset()
-		app.messagesList.drawMsgs(channel.ID)
+		app.messagesList.drawMsgs(messages)
 		app.messagesList.
 			ScrollToEnd().
 			SetTitle(gt.channelToString(*channel))

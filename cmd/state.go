@@ -178,8 +178,14 @@ func onMessageUpdate(message *gateway.MessageUpdateEvent) {
 
 func onMessageDelete(message *gateway.MessageDeleteEvent) {
 	if app.guildsTree.selectedChannelID == message.ChannelID {
+		messages, err := discordState.Cabinet.Messages(message.ChannelID)
+		if err != nil {
+			slog.Error("failed to get messages from state", "err", err, "channel_id", message.ChannelID)
+			return
+		}
+
 		app.messagesList.reset()
-		app.messagesList.drawMsgs(message.ChannelID)
+		app.messagesList.drawMsgs(messages)
 		app.Draw()
 	}
 }

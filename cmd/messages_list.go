@@ -62,24 +62,8 @@ func newMessagesList(cfg *config.Config) *messagesList {
 	return ml
 }
 
-func (ml *messagesList) drawMsgs(cID discord.ChannelID) {
-	msgs, err := discordState.Messages(cID, uint(ml.cfg.MessagesLimit))
-	if err != nil {
-		slog.Error("failed to get messages", "err", err, "channel_id", cID)
-		return
-	}
-
-	channel, err := discordState.Cabinet.Channel(cID)
-	if err != nil {
-		slog.Error("failed to get channel from state", "channel_id", cID, "err", err)
-		return
-	}
-
-	if guildID := channel.GuildID; guildID.IsValid() {
-		ml.requestGuildMembers(guildID, msgs)
-	}
-
-	for _, m := range slices.Backward(msgs) {
+func (ml *messagesList) drawMsgs(messages []discord.Message) {
+	for _, m := range slices.Backward(messages) {
 		ml.createMsg(m)
 	}
 }
