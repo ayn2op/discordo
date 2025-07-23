@@ -136,19 +136,18 @@ func (ml *messagesList) drawAuthor(msg discord.Message) {
 		member, err := discordState.Cabinet.Member(msg.GuildID, msg.Author.ID)
 		if err != nil {
 			slog.Error("failed to get member from state", "guild_id", msg.GuildID, "member_id", msg.Author.ID, "err", err)
-			return
-		}
+		} else {
+			if member.Nick != "" {
+				name = member.Nick
+			}
 
-		if member.Nick != "" {
-			name = member.Nick
-		}
-
-		color, ok := state.MemberColor(member, func(id discord.RoleID) *discord.Role {
-			r, _ := discordState.Cabinet.Role(msg.GuildID, id)
-			return r
-		})
-		if ok {
-			foreground = tcell.GetColor(color.String())
+			color, ok := state.MemberColor(member, func(id discord.RoleID) *discord.Role {
+				r, _ := discordState.Cabinet.Role(msg.GuildID, id)
+				return r
+			})
+			if ok {
+				foreground = tcell.GetColor(color.String())
+			}
 		}
 	}
 
