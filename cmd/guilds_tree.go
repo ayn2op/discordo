@@ -227,7 +227,7 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 		}
 
 		app.messagesList.reset()
-		app.messagesList.drawMsgs(messages)
+		app.messagesList.drawMessages(messages)
 		app.messagesList.
 			ScrollToEnd().
 			SetTitle(gt.channelToString(*channel))

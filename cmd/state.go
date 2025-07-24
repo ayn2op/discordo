@@ -161,7 +161,7 @@ func onReady(r *gateway.ReadyEvent) {
 
 func onMessageCreate(message *gateway.MessageCreateEvent) {
 	if app.guildsTree.selectedChannelID == message.ChannelID {
-		app.messagesList.createMsg(message.Message)
+		app.messagesList.drawMessage(message.Message)
 		app.Draw()
 	}
 
@@ -185,7 +185,7 @@ func onMessageDelete(message *gateway.MessageDeleteEvent) {
 		}
 
 		app.messagesList.reset()
-		app.messagesList.drawMsgs(messages)
+		app.messagesList.drawMessages(messages)
 		app.Draw()
 	}
 }
