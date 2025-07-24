@@ -44,13 +44,8 @@ func HandleIncomingMessage(state *ningen.State, msg *gateway.MessageCreateEvent,
 			return fmt.Errorf("failed to get guild from state: %w", err)
 		}
 
-		member, err := state.Cabinet.Member(guild.ID, msg.Author.ID)
-		if err != nil {
-			slog.Info("failed to get member from state", "err", err, "guild_id", channel.GuildID, "user_id", msg.Author.ID)
-		} else {
-			if member.Nick != "" {
-				title = member.Nick
-			}
+		if member := msg.Member; member != nil && member.Nick != "" {
+			title = member.Nick
 		}
 
 		title += " (#" + channel.Name + ", " + guild.Name + ")"

@@ -16,7 +16,7 @@ require (
 	github.com/sahilm/fuzzy v0.1.1
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/spf13/cobra v1.9.1
-	github.com/yuin/goldmark v1.7.12
+	github.com/yuin/goldmark v1.7.13
 	github.com/zalando/go-keyring v0.2.6
 )
 
