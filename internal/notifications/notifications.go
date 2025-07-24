@@ -1,7 +1,6 @@
 package notifications
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"log/slog"
