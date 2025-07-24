@@ -1,5 +1,4 @@
-// Used by MessageInput.searchMember to not overflow the gateway with redundent
-// search requests.
+// Package cache is used for completion to not overflow the gateway with redundant search requests.
 package cache
 
 import (
