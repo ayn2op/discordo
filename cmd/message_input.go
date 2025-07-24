@@ -330,12 +330,12 @@ func (mi *messageInput) searchMember(gID discord.GuildID, name string) {
 			return
 		}
 	}
-	// Rate limit on our side because we can't distinguish between a
-	// successful search and SearchMember not doing anything becuase of its
-	// internal rate limit that we can't detect
+
+	// Rate limit on our side because we can't distinguish between a successful search and SearchMember not doing anything because of its internal rate limit that we can't detect
 	if mi.lastSearch.Add(discordState.MemberState.SearchFrequency).After(time.Now()) {
 		return
 	}
+
 	mi.lastSearch = time.Now()
 	app.messagesList.waitForChunkEvent()
 	app.messagesList.setFetchingChunk(true, 0)
