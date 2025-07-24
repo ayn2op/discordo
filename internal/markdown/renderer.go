@@ -162,8 +162,7 @@ func (r *renderer) renderText(w io.Writer, node *ast.Text, entering bool, source
 }
 
 func (r *renderer) renderInline(w io.Writer, node *discordmd.Inline, entering bool) {
-	var start, end string
-	if entering {
+	if start, end := "", ""; entering {
 		switch node.Attr {
 		case discordmd.AttrBold:
 			start, end = "[::b]", "[::B]"
