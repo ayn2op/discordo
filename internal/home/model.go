@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/ayn2op/discordo/guildstree"
+	"github.com/ayn2op/discordo/internal/guildstree"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/ningen/v3"

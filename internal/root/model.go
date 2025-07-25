@@ -1,8 +1,8 @@
 package root
 
 import (
-	"github.com/ayn2op/discordo/home"
-	"github.com/ayn2op/discordo/login"
+	"github.com/ayn2op/discordo/internal/home"
+	"github.com/ayn2op/discordo/internal/login"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/zalando/go-keyring"
 )

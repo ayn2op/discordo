@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/ayn2op/discordo/root"
+	"github.com/ayn2op/discordo/internal/root"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
