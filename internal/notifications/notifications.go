@@ -16,8 +16,9 @@ import (
 )
 
 func Notify(state *ningen.State, msg *gateway.MessageCreateEvent, cfg *config.Config) error {
+	mentions := state.MessageMentions(&msg.Message)
 	// Only display notification if enabled and unmuted
-	if !cfg.Notifications.Enabled || state.MessageMentions(&msg.Message) == 0 || cfg.Status == discord.DoNotDisturbStatus {
+	if !cfg.Notifications.Enabled || mentions == 0 || cfg.Status == discord.DoNotDisturbStatus {
 		return nil
 	}
 
@@ -62,7 +63,7 @@ func Notify(state *ningen.State, msg *gateway.MessageCreateEvent, cfg *config.Co
 	}
 
 	isChannelDM := channel.Type == discord.DirectMessage || channel.Type == discord.GroupDM
-	shouldChime := cfg.Notifications.Sound.Enabled && (!cfg.Notifications.Sound.OnlyOnPing || (isChannelDM || state.MessageMentions(&msg.Message) == 3))
+	shouldChime := cfg.Notifications.Sound.Enabled && (!cfg.Notifications.Sound.OnlyOnPing || (isChannelDM || mentions.Has(ningen.MessageMentions|ningen.MessageNotifies)))
 	if err := sendDesktopNotification(title, content, imagePath, shouldChime, cfg.Notifications.Duration); err != nil {
 		return err
 	}
