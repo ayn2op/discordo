@@ -165,7 +165,7 @@ func onMessageCreate(message *gateway.MessageCreateEvent) {
 		app.Draw()
 	}
 
-	if err := notifications.HandleIncomingMessage(discordState, message, app.cfg); err != nil {
+	if err := notifications.Notify(discordState, message, app.cfg); err != nil {
 		slog.Error("Notification failed", "err", err)
 	}
 }
