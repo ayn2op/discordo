@@ -160,22 +160,8 @@ func (r *renderer) renderText(w io.Writer, node *ast.Text, entering bool, source
 		}
 	}
 }
-
 func (r *renderer) renderInline(w io.Writer, node *discordmd.Inline, entering bool) {
-	if start, end := "", ""; entering {
-		switch node.Attr {
-		case discordmd.AttrBold:
-			start, end = "[::b]", "[::B]"
-		case discordmd.AttrItalics:
-			start, end = "[::i]", "[::I]"
-		case discordmd.AttrUnderline:
-			start, end = "[::u]", "[::U]"
-		case discordmd.AttrStrikethrough:
-			start, end = "[::s]", "[::S]"
-		case discordmd.AttrMonospace:
-			start, end = "[::r]", "[::R]"
-		}
-
+	if start, end := attrToTag(node.Attr); entering && start != "" {
 		io.WriteString(w, start)
 	} else {
 		io.WriteString(w, end)
@@ -212,5 +198,22 @@ func (r *renderer) renderEmoji(w io.Writer, node *discordmd.Emoji, entering bool
 		io.WriteString(w, ":"+node.Name+":")
 	} else {
 		io.WriteString(w, "[-:-]")
+	}
+}
+
+func attrToTag(attr discordmd.Attribute) (string, string) {
+	switch attr {
+	case discordmd.AttrBold:
+		return "[::b]", "[::B]"
+	case discordmd.AttrItalics:
+		return "[::i]", "[::I]"
+	case discordmd.AttrUnderline:
+		return "[::u]", "[::U]"
+	case discordmd.AttrStrikethrough:
+		return "[::s]", "[::S]"
+	case discordmd.AttrMonospace:
+		return "[::r]", "[::R]"
+	default:
+		return "", ""
 	}
 }
