@@ -48,16 +48,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					log.Fatal(err)
 				}
 
-				m.guildstree.AddGuild(nil, *guild)
+				m.guildstree.AddGuild(*guild)
 			} else {
 				m.guildstree.AddFolder(folder)
 			}
 		}
 	}
 
-	var cmd tea.Cmd
-	m.guildstree, cmd = m.guildstree.Update(msg)
-	return m, tea.Batch(m.listen, cmd)
+	return m, m.listen
 }
 
 func (m Model) View() string {
