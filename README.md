@@ -23,6 +23,7 @@ You can download and install a [prebuilt binary here](https://nightly.link/ayn2o
 ### Package managers
 
 - Arch Linux: `yay -S discordo-git`
+- Gentoo (available on the guru repos as a live ebuild): `sudo emerge net-im/discordo`
 - FreeBSD: `pkg install discordo` or via the ports system `make -C /usr/ports/net-im/discordo install clean`.
 - Nix (NixOS, home-manager)
   - Downstream nixpkgs installation: Add `pkgs.discordo` to `environment.systemPackages` or `home.packages`.
