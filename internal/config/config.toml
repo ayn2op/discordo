@@ -36,7 +36,7 @@ only_on_ping = true
 [keys]
 focus_guilds_tree = "Ctrl+G"
 focus_messages_list = "Ctrl+T"
-focus_message_input = "Ctrl+P"
+focus_message_input = "Ctrl+Space"
 # Hide/show the guilds tree.
 toggle_guilds_tree = "Ctrl+B"
 quit = "Ctrl+C"
@@ -91,8 +91,8 @@ open_editor = "Ctrl+E"
 open_file_picker = "Ctrl+\\"
 
 [keys.mentions_list]
-up = "Up"
-down = "Down"
+up = "Ctrl+P"
+down = "Ctrl+N"
 
 # style = { foreground = "", background = "", attributes = "" or [""] }
 [theme.title]
