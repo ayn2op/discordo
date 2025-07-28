@@ -142,15 +142,10 @@ func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Ch
 }
 
 func (gt *guildsTree) createChannelNodes(node *tview.TreeNode, channels []discord.Channel) {
-	var orphanChs []discord.Channel
-	for _, ch := range channels {
-		if ch.Type != discord.GuildCategory && !ch.ParentID.IsValid() {
-			orphanChs = append(orphanChs, ch)
+	for _, channel := range channels {
+		if channel.Type != discord.GuildCategory && !channel.ParentID.IsValid() {
+			gt.createChannelNode(node, channel)
 		}
-	}
-
-	for _, c := range orphanChs {
-		gt.createChannelNode(node, c)
 	}
 
 PARENT_CHANNELS:
