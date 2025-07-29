@@ -482,11 +482,10 @@ func (ml *messagesList) reply(mention bool) {
 		member, err := discordState.Cabinet.Member(msg.GuildID, msg.Author.ID)
 		if err != nil {
 			slog.Error("failed to get member from state", "guild_id", msg.GuildID, "member_id", msg.Author.ID, "err", err)
-			return
-		}
-
-		if member.Nick != "" {
-			name = member.Nick
+		} else {
+			if member.Nick != "" {
+				name = member.Nick
+			}
 		}
 	}
 
