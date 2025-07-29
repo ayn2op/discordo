@@ -17,7 +17,8 @@ jobs:
           go-version: stable
           
       - name: Install libx11-dev
-        run: apt install libx11-dev
+        if: runner.os == 'Linux'
+        run: sudo apt install libx11-dev
 
       - name: Build
         run: go build -ldflags "-s -w" .
