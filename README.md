@@ -44,10 +44,12 @@ cd discordo
 go build .
 ```
 
-### Linux clipboard support
+### Wayland clipboard support
 
-- `xclip` or `xsel` for X11 (`apt install xclip`)
-- `wl-clipboard` for Wayland (`apt install wl-clipboard`)
+`x11-dev` is required for X11 clipboard compatibility:
+
+- Ubuntu: `sudo apt install xwayland`
+- Arch Linux: `pacman -S xorg-xwayland`
 
 ## Usage
 
