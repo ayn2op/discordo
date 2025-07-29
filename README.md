@@ -23,7 +23,7 @@ You can download and install a [prebuilt binary here](https://nightly.link/ayn2o
 ### Package managers
 
 - Arch Linux: `yay -S discordo-git`
-- Gentoo (available on the guru repos as a live ebuild): `sudo emerge net-im/discordo`
+- Gentoo (available on the guru repos as a live ebuild): `emerge net-im/discordo`
 - FreeBSD: `pkg install discordo` or via the ports system `make -C /usr/ports/net-im/discordo install clean`.
 - Nix (NixOS, home-manager)
   - Downstream nixpkgs installation: Add `pkgs.discordo` to `environment.systemPackages` or `home.packages`.
@@ -48,7 +48,7 @@ go build .
 
 `x11-dev` is required for X11 clipboard compatibility:
 
-- Ubuntu: `sudo apt install xwayland`
+- Ubuntu: `apt install xwayland`
 - Arch Linux: `pacman -S xorg-xwayland`
 
 ## Usage
