@@ -81,6 +81,8 @@ yank_id = "Rune[i]"
 # Only while typing a message
 # Alt+Enter: Insert a new line to the current text.
 [keys.message_input]
+# paste from clipboard (supports both text and images)
+paste = "Ctrl+V"
 send = "Enter"
 # Remove existing text or cancel reply.
 cancel = "Esc"

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"log/slog"
@@ -13,7 +14,6 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/atotto/clipboard"
 	"github.com/ayn2op/discordo/internal/cache"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/consts"
@@ -28,6 +28,7 @@ import (
 	"github.com/ncruces/zenity"
 	"github.com/sahilm/fuzzy"
 	"github.com/yuin/goldmark/ast"
+	"golang.design/x/clipboard"
 )
 
 const tmpFilePattern = consts.Name + "_*.md"
@@ -56,15 +57,20 @@ func newMessageInput(cfg *config.Config) *messageInput {
 		mentionsList:    tview.NewList(),
 	}
 
+	if err := clipboard.Init(); err != nil {
+		slog.Warn("failed to init clipboard", "err", err)
+	} else {
+		mi.
+			SetClipboard(func(s string) {
+				clipboard.Write(clipboard.FmtText, []byte(s))
+			}, func() string {
+				data := clipboard.Read(clipboard.FmtText)
+				return string(data)
+			})
+	}
+
 	mi.Box = ui.ConfigureBox(mi.Box, &cfg.Theme)
-	mi.
-		SetClipboard(func(s string) {
-			clipboard.WriteAll(s)
-		}, func() string {
-			text, _ := clipboard.ReadAll()
-			return text
-		}).
-		SetInputCapture(mi.onInputCapture)
+	mi.SetInputCapture(mi.onInputCapture)
 
 	mi.mentionsList.Box = ui.ConfigureBox(mi.mentionsList.Box, &mi.cfg.Theme)
 	mi.mentionsList.
@@ -88,6 +94,10 @@ func (mi *messageInput) reset() {
 
 func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
+	case mi.cfg.Keys.MessageInput.Paste:
+		mi.paste()
+		return tcell.NewEventKey(tcell.KeyCtrlV, 0, tcell.ModNone)
+
 	case mi.cfg.Keys.MessageInput.Send:
 		if app.pages.GetVisibile(mentionsListPageName) {
 			mi.tabComplete(false)
@@ -138,6 +148,13 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	}
 
 	return event
+}
+
+func (mi *messageInput) paste() {
+	if data := clipboard.Read(clipboard.FmtImage); data != nil {
+		name := "clipboard.png"
+		mi.attach(name, sendpart.File{Name: name, Reader: bytes.NewReader(data)})
+	}
 }
 
 func (mi *messageInput) send() {
@@ -486,9 +503,11 @@ func (mi *messageInput) openFilePicker() {
 		}
 
 		name := filepath.Base(path)
-		mi.sendMessageData.Files = append(mi.sendMessageData.Files, sendpart.File{Name: name, Reader: file})
-
-		title := fmt.Sprintf("Attached %s", name)
-		mi.addTitle(title)
+		mi.attach(name, sendpart.File{Name: name, Reader: file})
 	}
+}
+
+func (mi *messageInput) attach(name string, file sendpart.File) {
+	mi.sendMessageData.Files = append(mi.sendMessageData.Files, file)
+	mi.addTitle("Attached " + name)
 }

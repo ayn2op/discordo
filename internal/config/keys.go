@@ -50,6 +50,7 @@ type (
 	}
 
 	MessageInputKeys struct {
+		Paste       string `toml:"paste"`
 		Send        string `toml:"send"`
 		Cancel      string `toml:"cancel"`
 		TabComplete string `toml:"tab_complete"`
