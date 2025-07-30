@@ -16,9 +16,12 @@ import (
 )
 
 func Notify(state *ningen.State, msg *gateway.MessageCreateEvent, cfg *config.Config) error {
+	if !cfg.Notifications.Enabled || cfg.Status == discord.DoNotDisturbStatus {
+		return nil
+	}
+
 	mentions := state.MessageMentions(&msg.Message)
-	// Only display notification if enabled and unmuted
-	if !cfg.Notifications.Enabled || mentions == 0 || cfg.Status == discord.DoNotDisturbStatus {
+	if mentions == 0 {
 		return nil
 	}
 
@@ -87,11 +90,11 @@ func getCachedProfileImage(avatarHash discord.Hash, url string) (string, error) 
 		return path, nil
 	}
 
-	image, err := os.Create(path)
+	file, err := os.Create(path)
 	if err != nil {
 		return "", err
 	}
-	defer image.Close()
+	defer file.Close()
 
 	resp, err := http.Get(url)
 	if err != nil {
@@ -99,7 +102,7 @@ func getCachedProfileImage(avatarHash discord.Hash, url string) (string, error) 
 	}
 	defer resp.Body.Close()
 
-	if _, err := io.Copy(image, resp.Body); err != nil {
+	if _, err := io.Copy(file, resp.Body); err != nil {
 		return "", err
 	}
 
