@@ -10,10 +10,7 @@ import (
 
 const Name = "discordo"
 
-const (
-	identifyPropertiesURL = "https://cordapi.dolfi.es/api/v2/properties/web"
-	loginURL              = "https://discord.com/login"
-)
+const identifyPropertiesURL = "https://cordapi.dolfi.es/api/v2/properties/web"
 
 var defaultIdentifyProps = gateway.IdentifyProperties{
 	Device: "",
