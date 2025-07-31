@@ -64,7 +64,8 @@ func DefaultPath() string {
 	path, err := os.UserConfigDir()
 	if err != nil {
 		slog.Info(
-			"user config directory path cannot be determined; falling back to the current directory path",
+			"user config dir cannot be determined; falling back to the current dir",
+			"err", err,
 		)
 		path = "."
 	}
