@@ -123,16 +123,8 @@ func (gt *guildsTree) channelToString(channel discord.Channel) string {
 }
 
 func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Channel) {
-	if channel.Type != discord.DirectMessage && channel.Type != discord.GroupDM {
-		perms, err := discordState.Permissions(channel.ID, discordState.Ready().User.ID)
-		if err != nil {
-			slog.Error("failed to get permissions", "err", err, "channel_id", channel.ID)
-			return
-		}
-
-		if !perms.Has(discord.PermissionViewChannel) {
-			return
-		}
+	if channel.Type != discord.DirectMessage && channel.Type != discord.GroupDM && !discordState.HasPermissions(channel.ID, discord.PermissionViewChannel) {
+		return
 	}
 
 	channelNode := tview.NewTreeNode(gt.channelToString(channel)).
@@ -226,6 +218,7 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 		app.messagesList.
 			ScrollToEnd().
 			SetTitle(gt.channelToString(*channel))
+		app.messageInput.SetDisabled(!discordState.HasPermissions(channel.ID, discord.PermissionSendMessages))
 
 		gt.selectedChannelID = channel.ID
 		gt.selectedGuildID = channel.GuildID
