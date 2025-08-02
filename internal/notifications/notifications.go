@@ -75,12 +75,7 @@ func Notify(state *ningen.State, msg *gateway.MessageCreateEvent, cfg *config.Co
 }
 
 func getCachedProfileImage(avatarHash discord.Hash, url string) (string, error) {
-	path, err := os.UserCacheDir()
-	if err != nil {
-		return "", err
-	}
-
-	path = filepath.Join(path, consts.Name, "assets")
+	path := filepath.Join(consts.CacheDir(), "avatars")
 	if err := os.MkdirAll(path, os.ModePerm); err != nil {
 		return "", err
 	}

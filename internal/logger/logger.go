@@ -13,15 +13,7 @@ import (
 const fileName = "logs.txt"
 
 func DefaultPath() string {
-	path, err := os.UserCacheDir()
-	if err != nil {
-		slog.Info(
-			"user cache directory path cannot be determined; falling back to the current directory path",
-		)
-		path = "."
-	}
-
-	return filepath.Join(path, consts.Name, fileName)
+	return filepath.Join(consts.CacheDir(), fileName)
 }
 
 // Load opens the log file and configures default logger.
