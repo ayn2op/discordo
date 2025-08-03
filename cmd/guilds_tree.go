@@ -94,40 +94,12 @@ func (gt *guildsTree) createGuildNode(n *tview.TreeNode, guild discord.Guild) {
 	n.AddChild(guildNode)
 }
 
-func (gt *guildsTree) channelToString(channel discord.Channel) string {
-	switch channel.Type {
-	case discord.DirectMessage, discord.GroupDM:
-		if channel.Name != "" {
-			return channel.Name
-		}
-
-		recipients := make([]string, len(channel.DMRecipients))
-		for i, r := range channel.DMRecipients {
-			recipients[i] = r.DisplayOrUsername()
-		}
-
-		return strings.Join(recipients, ", ")
-	case discord.GuildText:
-		return "#" + channel.Name
-	case discord.GuildVoice, discord.GuildStageVoice:
-		return "v-" + channel.Name
-	case discord.GuildAnnouncement:
-		return "a-" + channel.Name
-	case discord.GuildStore:
-		return "s-" + channel.Name
-	case discord.GuildForum:
-		return "f-" + channel.Name
-	default:
-		return channel.Name
-	}
-}
-
 func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Channel) {
 	if channel.Type != discord.DirectMessage && channel.Type != discord.GroupDM && !discordState.HasPermissions(channel.ID, discord.PermissionViewChannel) {
 		return
 	}
 
-	channelNode := tview.NewTreeNode(gt.channelToString(channel)).
+	channelNode := tview.NewTreeNode(ui.ChannelToString(channel)).
 		SetReference(channel.ID).
 		SetTextStyle(gt.getChannelNodeStyle(channel.ID))
 	node.AddChild(channelNode)
@@ -214,10 +186,9 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 		}
 
 		app.messagesList.reset()
+		app.messagesList.setTitle(*channel)
 		app.messagesList.drawMessages(messages)
-		app.messagesList.
-			ScrollToEnd().
-			SetTitle(gt.channelToString(*channel))
+		app.messagesList.ScrollToEnd()
 		app.messageInput.SetDisabled(!discordState.HasPermissions(channel.ID, discord.PermissionSendMessages))
 
 		gt.selectedChannelID = channel.ID

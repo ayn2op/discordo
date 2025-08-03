@@ -70,6 +70,15 @@ func (ml *messagesList) reset() {
 		SetTitle("")
 }
 
+func (ml *messagesList) setTitle(channel discord.Channel) {
+	title := ui.ChannelToString(channel)
+	if topic := channel.Topic; topic != "" {
+		title += " - " + topic
+	}
+
+	app.messagesList.SetTitle(title)
+}
+
 func (ml *messagesList) drawMessages(messages []discord.Message) {
 	for _, m := range slices.Backward(messages) {
 		ml.drawMessage(m)

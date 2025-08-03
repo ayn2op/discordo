@@ -1,8 +1,11 @@
 package ui
 
 import (
+	"strings"
+
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/tview"
+	"github.com/diamondburned/arikawa/discord"
 )
 
 // ConfigureBox configures the provided box according to the provided theme.
@@ -45,4 +48,32 @@ func Centered(p tview.Primitive, width, height int) tview.Primitive {
 		SetColumns(0, width, 0).
 		SetRows(0, height, 0).
 		AddItem(p, 1, 1, 1, 1, 0, 0, true)
+}
+
+func ChannelToString(channel discord.Channel) string {
+	switch channel.Type {
+	case discord.DirectMessage, discord.GroupDM:
+		if channel.Name != "" {
+			return channel.Name
+		}
+
+		recipients := make([]string, len(channel.DMRecipients))
+		for i, r := range channel.DMRecipients {
+			recipients[i] = r.DisplayOrUsername()
+		}
+
+		return strings.Join(recipients, ", ")
+	case discord.GuildText:
+		return "#" + channel.Name
+	case discord.GuildVoice, discord.GuildStageVoice:
+		return "v-" + channel.Name
+	case discord.GuildAnnouncement:
+		return "a-" + channel.Name
+	case discord.GuildStore:
+		return "s-" + channel.Name
+	case discord.GuildForum:
+		return "f-" + channel.Name
+	default:
+		return channel.Name
+	}
 }
