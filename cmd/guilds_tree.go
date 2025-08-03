@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log/slog"
 	"sort"
-	"strings"
 
 	"github.com/atotto/clipboard"
 	"github.com/ayn2op/discordo/internal/config"

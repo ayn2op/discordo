@@ -5,7 +5,7 @@ import (
 
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/tview"
-	"github.com/diamondburned/arikawa/discord"
+	"github.com/diamondburned/arikawa/v3/discord"
 )
 
 // ConfigureBox configures the provided box according to the provided theme.
