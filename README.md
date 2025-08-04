@@ -107,7 +107,7 @@ export $(gnome-keyring-daemon --start)
 3. Run the following command to create the `token` entry.
 
 ```sh
-secret-tool store service discordo username token
+secret-tool store --label="Discord Token" service discordo username token
 ```
 
 4. When it prompts for the password, paste your token, and hit enter to confirm.
