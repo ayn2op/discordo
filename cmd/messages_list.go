@@ -6,12 +6,17 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net/http"
+	"os"
+	"path/filepath"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/atotto/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/markdown"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
@@ -398,9 +403,14 @@ func (ml *messagesList) open() {
 
 	if len(urls)+len(msg.Attachments) == 1 {
 		if len(urls) == 1 {
-			go openURL(urls[0])
+			go ml.openURL(urls[0])
 		} else {
-			go openURL(msg.Attachments[0].URL)
+			attachment := msg.Attachments[0]
+			if strings.HasPrefix(attachment.ContentType, "image/") {
+				go ml.openAttachment(msg.Attachments[0])
+			} else {
+				go ml.openURL(attachment.URL)
+			}
 		}
 	} else {
 		ml.showAttachmentsList(urls, msg.Attachments)
@@ -458,13 +468,17 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 
 	for i, a := range attachments {
 		list.AddItem(a.Filename, "", rune('a'+i), func() {
-			go openURL(a.URL)
+			if strings.HasPrefix(a.ContentType, "image/") {
+				go ml.openAttachment(a)
+			} else {
+				go ml.openURL(a.URL)
+			}
 		})
 	}
 
 	for i, u := range urls {
 		list.AddItem(u, "", rune('1'+i), func() {
-			go openURL(u)
+			go ml.openURL(u)
 		})
 	}
 
@@ -473,7 +487,39 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 		ShowPage(flexPageName)
 }
 
-func openURL(url string) {
+func (ml *messagesList) openAttachment(attachment discord.Attachment) {
+	resp, err := http.Get(attachment.URL)
+	if err != nil {
+		slog.Error("failed to fetch the attachment", "err", err, "url", attachment.URL)
+	}
+	defer resp.Body.Close()
+
+	path := filepath.Join(consts.CacheDir(), "attachments")
+	if err := os.MkdirAll(path, os.ModePerm); err != nil {
+		slog.Error("failed to create attachments dir", "err", err, "path", path)
+		return
+	}
+
+	path = filepath.Join(path, attachment.Filename)
+	file, err := os.Create(path)
+	if err != nil {
+		slog.Error("failed to create attachment file", "err", err, "path", path)
+		return
+	}
+	defer file.Close()
+
+	if _, err := io.Copy(file, resp.Body); err != nil {
+		slog.Error("failed to copy attachment to file", "err", err)
+		return
+	}
+
+	if err := open.Start(path); err != nil {
+		slog.Error("failed to open attachment file", "err", err, "path", path)
+		return
+	}
+}
+
+func (ml *messagesList) openURL(url string) {
 	if err := open.Start(url); err != nil {
 		slog.Error("failed to open URL", "err", err, "url", url)
 	}
