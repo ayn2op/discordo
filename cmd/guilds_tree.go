@@ -188,7 +188,9 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 		app.messagesList.setTitle(*channel)
 		app.messagesList.drawMessages(messages)
 		app.messagesList.ScrollToEnd()
-		app.messageInput.SetDisabled(!discordState.HasPermissions(channel.ID, discord.PermissionSendMessages))
+
+		hasPerm := channel.Type != discord.DirectMessage && channel.Type != discord.GroupDM && !discordState.HasPermissions(channel.ID, discord.PermissionSendMessages)
+		app.messageInput.SetDisabled(hasPerm)
 
 		gt.selectedChannelID = channel.ID
 		gt.selectedGuildID = channel.GuildID
