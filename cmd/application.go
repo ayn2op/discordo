@@ -15,6 +15,7 @@ const (
 	flexPageName            = "flex"
 	mentionsListPageName    = "mentionsList"
 	attachmentsListPageName = "attachmentsList"
+	filePickerPageName		= "filePicker"
 )
 
 type application struct {
