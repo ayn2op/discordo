@@ -55,9 +55,11 @@ go build .
 
 1. Run the `discordo` executable with no arguments.
 
-> If you are logging in using an authentication token, provide the `token` command-line flag to the executable (eg: `--token "OTI2MDU5NTQxNDE2Nzc5ODA2.Yc2KKA.2iZ-5JxgxG-9Ub8GHzBSn-NJjNg"`). The token is stored securely in the default OS-specific keyring.
+> If you are logging in using an authentication token, provide the `token` command-line flag to the executable (eg: `--token "OTI2MDU5NTQxNDE2Nzc5ODA2.Yc2KKA.2iZ-5JxgxG-9Ub8GHzBSn-NJjNg"`). The token is stored securely in the default OS-specific keyring. If you are logged in through a browser session, you can find the token in the **Network** tab by inspecting the value of the **Authorization** header in an XHR request.
 
 2. Enter your email and password and click on the "Login" button to continue.
+
+If you see empty windows after logging in, try clicking on the first item in the left pane. This will expand your direct message chats. If you don't see the servers, group them into a single folder. To do this in the regular Discord app, drag and drop one server onto another.
 
 ## Configuration
 
