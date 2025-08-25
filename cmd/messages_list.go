@@ -14,7 +14,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/atotto/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/markdown"
@@ -32,6 +31,7 @@ import (
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer"
 	"github.com/yuin/goldmark/text"
+	"golang.design/x/clipboard"
 )
 
 type messagesList struct {
@@ -356,9 +356,7 @@ func (ml *messagesList) yankID() {
 		return
 	}
 
-	if err := clipboard.WriteAll(msg.ID.String()); err != nil {
-		slog.Error("failed to write to clipboard", "err", err)
-	}
+	go clipboard.Write(clipboard.FmtText, []byte(msg.ID.String()))
 }
 
 func (ml *messagesList) yankContent() {
@@ -368,9 +366,7 @@ func (ml *messagesList) yankContent() {
 		return
 	}
 
-	if err = clipboard.WriteAll(msg.Content); err != nil {
-		slog.Error("failed to write to clipboard", "err", err)
-	}
+	go clipboard.Write(clipboard.FmtText, []byte(msg.Content))
 }
 
 func (ml *messagesList) yankURL() {
@@ -380,9 +376,7 @@ func (ml *messagesList) yankURL() {
 		return
 	}
 
-	if err = clipboard.WriteAll(msg.URL()); err != nil {
-		slog.Error("failed to write to clipboard", "err", err)
-	}
+	go clipboard.Write(clipboard.FmtText, []byte(msg.URL()))
 }
 
 func (ml *messagesList) open() {
