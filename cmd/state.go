@@ -21,7 +21,12 @@ import (
 
 func openState(token string) error {
 	props := consts.GetIdentifyProps()
-	api.UserAgent = props.BrowserUserAgent
+	if browserUserAgent, ok := props["browser_user_agent"]; ok {
+		if val, ok := browserUserAgent.(string); ok {
+			api.UserAgent = val
+		}
+	}
+
 	gateway.DefaultIdentity = props
 	gateway.DefaultPresence = &gateway.UpdatePresenceCommand{
 		Status: app.cfg.Status,
@@ -56,10 +61,22 @@ func openState(token string) error {
 func getHeaders(props gateway.IdentifyProperties) http.Header {
 	header := make(http.Header)
 
+	// These properties are only sent when identifying with the gateway and are not included in the X-Super-Properties header.
+	delete(props, "is_fast_connect")
+	delete(props, "gateway_connect_reasons")
+
 	if rawProps, err := json.Marshal(props); err == nil {
 		propsHeader := base64.StdEncoding.EncodeToString(rawProps)
 		header.Set("X-Super-Properties", propsHeader)
 	}
+
+	if systemLocale, ok := props["system_locale"]; ok {
+		if val, ok := systemLocale.(string); ok {
+			header.Set("X-Discord-Locale", string(val))
+		}
+	}
+
+	header.Set("X-Debug-Options", "bugReporterEnabled")
 
 	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers
 	header.Set("Accept", "*/*")
@@ -69,8 +86,7 @@ func getHeaders(props gateway.IdentifyProperties) http.Header {
 	header.Set("Sec-Fetch-Dest", "empty")
 	header.Set("Sec-Fetch-Mode", "cors")
 	header.Set("Sec-Fetch-Site", "same-origin")
-	header.Set("X-Debug-Options", "bugReporterEnabled")
-	header.Set("X-Discord-Locale", string(props.SystemLocale))
+
 	return header
 }
 
