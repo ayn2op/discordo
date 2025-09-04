@@ -115,6 +115,10 @@ func (ml *messagesList) drawMessage(message discord.Message) {
 		} else {
 			ml.drawDefaultMessage(message)
 		}
+	case discord.GuildMemberJoinMessage:
+		ml.drawTimestamps(message.Timestamp)
+		ml.drawAuthor(message)
+		fmt.Fprint(ml, "joined the server.")
 	case discord.InlinedReplyMessage:
 		ml.drawReplyMessage(message)
 	case discord.ChannelPinnedMessage:
