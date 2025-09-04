@@ -6,7 +6,7 @@ require (
 	github.com/BurntSushi/toml v1.5.0
 	github.com/ayn2op/tview v0.0.0-20250720032506-63f04e47b15d
 	github.com/deckarep/gosx-notifier v0.0.0-20180201035817-e127226297fb
-	github.com/diamondburned/arikawa/v3 v3.5.1-0.20250904015950-e93079e2de19
+	github.com/diamondburned/arikawa/v3 v3.6.0
 	github.com/diamondburned/ningen/v3 v3.0.1-0.20250703054403-e5dc4cf15e84
 	github.com/gdamore/tcell/v2 v2.9.0
 	github.com/gen2brain/beeep v0.11.1
