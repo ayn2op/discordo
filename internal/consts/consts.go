@@ -3,12 +3,14 @@ package consts
 import (
 	"encoding/json"
 	"log/slog"
+	"maps"
 	"net/http"
 	"os"
 	"path/filepath"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/google/uuid"
 )
 
 const Name = "discordo"
@@ -16,20 +18,50 @@ const Name = "discordo"
 const identifyPropertiesURL = "https://cordapi.dolfi.es/api/v2/properties/web"
 
 var defaultIdentifyProps = gateway.IdentifyProperties{
-	Device: "",
+	gateway.IdentifyDevice: "",
 
-	Browser:          "Chrome",
-	BrowserUserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
-	BrowserVersion:   "138.0.0.0",
+	gateway.IdentifyBrowser: "Chrome",
+	"browser_version":       "140.0.0.0",
+	"browser_user_agent":    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
 
-	OS:        "Windows",
-	OSVersion: "10",
+	gateway.IdentifyOS: "Windows",
+	"os_version":       "10",
 
-	ClientBuildNumber: 415522,
-	ReleaseChannel:    "stable",
+	"client_build_number": 439729,
+	"client_event_source": nil,
+	"client_launch_id":    uuid.NewString(),
+	"client_app_state":    "focused",
 
-	SystemLocale:  discord.EnglishUS,
-	HasClientMods: false,
+	"launch_signature":        uuid.NewString(),
+	"system_locale":           discord.EnglishUS,
+	"release_channel":         "stable",
+	"has_client_mods":         false,
+	"is_fast_connect":         false,
+	"gateway_connect_reasons": "AppSkeleton",
+
+	"referrer":                 "",
+	"referrer_current":         "",
+	"referring_domain":         "",
+	"referring_domain_current": "",
+}
+
+type Properties struct {
+	Client struct {
+		Type           string `json:"type"`
+		BuildNumber    int    `json:"build_number"`
+		BuildHash      string `json:"build_hash"`
+		ReleaseChannel string `json:"release_channel"`
+	} `json:"client"`
+
+	Browser struct {
+		Type      string `json:"type"`
+		UserAgent string `json:"user_agent"`
+		Version   string `json:"version"`
+		OS        struct {
+			Type    string `json:"type"`
+			Version string `json:"version"`
+		} `json:"os"`
+	} `json:"browser"`
 }
 
 func GetIdentifyProps() gateway.IdentifyProperties {
@@ -39,44 +71,22 @@ func GetIdentifyProps() gateway.IdentifyProperties {
 	}
 	defer resp.Body.Close()
 
-	var props struct {
-		Client struct {
-			Type           string `json:"type"`
-			BuildNumber    int    `json:"build_number"`
-			BuildHash      string `json:"build_hash"`
-			ReleaseChannel string `json:"release_channel"`
-		} `json:"client"`
-
-		Browser struct {
-			Type      string `json:"type"`
-			UserAgent string `json:"user_agent"`
-			Version   string `json:"version"`
-			OS        struct {
-				Type    string `json:"type"`
-				Version string `json:"version"`
-			} `json:"os"`
-		} `json:"browser"`
-	}
+	var props Properties
 	if err := json.NewDecoder(resp.Body).Decode(&props); err != nil {
 		return defaultIdentifyProps
 	}
 
-	return gateway.IdentifyProperties{
-		Device: "",
+	p := maps.Clone(defaultIdentifyProps)
+	p[gateway.IdentifyBrowser] = props.Browser.Type
+	p["browser_version"] = props.Browser.Version
+	p["browser_user_agent"] = props.Browser.UserAgent
 
-		Browser:          props.Browser.Type,
-		BrowserUserAgent: props.Browser.UserAgent,
-		BrowserVersion:   props.Browser.Version,
+	p[gateway.IdentifyOS] = props.Browser.OS.Type
+	p["os_version"] = props.Browser.OS.Version
 
-		OS:        props.Browser.OS.Type,
-		OSVersion: props.Browser.OS.Version,
-
-		ClientBuildNumber: props.Client.BuildNumber,
-		ReleaseChannel:    props.Client.ReleaseChannel,
-
-		SystemLocale:  discord.EnglishUS,
-		HasClientMods: false,
-	}
+	p["release_channel"] = props.Client.ReleaseChannel
+	p["client_build_number"] = props.Client.BuildNumber
+	return p
 }
 
 var cacheDir string

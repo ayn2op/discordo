@@ -53,7 +53,11 @@ func (f *Form) login() {
 	// Create an API client without an authentication token.
 	client := api.NewClient("")
 	props := consts.GetIdentifyProps()
-	client.UserAgent = props.BrowserUserAgent
+	if browserUserAgent, ok := props["browser_user_agent"]; ok {
+		if val, ok := browserUserAgent.(string); ok {
+			api.UserAgent = val
+		}
+	}
 
 	resp, err := client.Login(email, password)
 	if err != nil {

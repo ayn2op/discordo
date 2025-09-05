@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"sort"
 
-	"github.com/atotto/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
@@ -13,6 +12,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/ningen/v3"
 	"github.com/gdamore/tcell/v2"
+	"golang.design/x/clipboard"
 )
 
 type guildsTree struct {
@@ -270,10 +270,6 @@ func (gt *guildsTree) yankID() {
 	// Reference of a tree node in the guilds tree is its ID.
 	// discord.Snowflake (discord.GuildID and discord.ChannelID) have the String method.
 	if id, ok := node.GetReference().(fmt.Stringer); ok {
-		go func() {
-			if err := clipboard.WriteAll(id.String()); err != nil {
-				slog.Error("failed to yank ID from guilds tree to clipboard", "err", err)
-			}
-		}()
+		go clipboard.Write(clipboard.FmtText, []byte(id.String()))
 	}
 }
