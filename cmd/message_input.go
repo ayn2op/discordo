@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
+	"sort"
 	"strings"
 	"time"
 	"unicode"
@@ -25,7 +26,6 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 	"github.com/diamondburned/ningen/v3/discordmd"
 	"github.com/gdamore/tcell/v2"
-	"github.com/ncruces/zenity"
 	"github.com/sahilm/fuzzy"
 	"github.com/yuin/goldmark/ast"
 	"golang.design/x/clipboard"
@@ -112,7 +112,11 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		return nil
 	case mi.cfg.Keys.MessageInput.OpenFilePicker:
 		mi.stopTabCompletion()
-		mi.openFilePicker()
+		home, err := os.UserHomeDir()
+		if err != nil {
+			slog.Error("Failed to read Home Dir", "home", home, "err", err)
+		}
+		mi.openFilePicker(home)
 		return nil
 	case mi.cfg.Keys.MessageInput.Cancel:
 		if app.pages.GetVisibile(mentionsListPageName) {
@@ -484,27 +488,130 @@ func (mi *messageInput) addTitle(s string) {
 	mi.SetTitle(title + s)
 }
 
-func (mi *messageInput) openFilePicker() {
+func (mi *messageInput) openFilePicker(startPath string) {
 	if !app.guildsTree.selectedChannelID.IsValid() {
 		return
 	}
 
-	paths, err := zenity.SelectFileMultiple()
+	list := tview.NewList().
+		SetWrapAround(true).
+		SetHighlightFullLine(true).
+		ShowSecondaryText(false).
+		SetDoneFunc(func() {
+			app.pages.RemovePage(filePickerPageName).SwitchToPage(flexPageName)
+			app.SetFocus(mi)
+		})
+
+	searchBar := tview.NewInputField().
+		SetLabel("/")
+	searchBar.SetDoneFunc(func(key tcell.Key) {
+		switch key {
+		case tcell.KeyEnter:
+			app.SetFocus(list)
+		case tcell.KeyEscape:
+			searchBar.SetText("")
+			app.SetFocus(list)
+		}
+	})
+
+	files, err := os.ReadDir(startPath)
 	if err != nil {
-		slog.Error("failed to open file dialog", "err", err)
-		return
+		slog.Error("Failed to read Dir", "dir", startPath, "err", err)
 	}
 
-	for _, path := range paths {
-		file, err := os.Open(path)
-		if err != nil {
-			slog.Error("failed to open file", "path", path, "err", err)
-			continue
+	// sort dir first because......why not?
+	sort.Slice(files, func(i, j int) bool {
+		dirI, dirJ := files[i].IsDir(), files[j].IsDir()
+		if dirI != dirJ {
+			return dirI
+		}
+		return files[i].Name() < files[j].Name()
+	})
+
+	entries := make([]string, len(files))
+	for i, e := range files {
+		entries[i] = e.Name()
+	}
+
+	updateList := func(filter string) {
+		list.Clear()
+
+		parentDir := filepath.Dir(startPath)
+		if parentDir != startPath && filter == "" {
+			list.AddItem("[::b]..[::-]", "", 0, func() {
+				mi.openFilePicker(parentDir)
+			})
 		}
 
-		name := filepath.Base(path)
-		mi.attach(name, sendpart.File{Name: name, Reader: file})
+		var visibleFiles []int
+		if filter == "" {
+			visibleFiles = make([]int, len(files))
+			for i := range files {
+				visibleFiles[i] = i
+			}
+		} else {
+			matches := fuzzy.Find(filter, entries)
+			visibleFiles = make([]int, len(matches))
+			for i, m := range matches {
+				visibleFiles[i] = m.Index
+			}
+		}
+
+		for _, index := range visibleFiles {
+			e := files[index]
+			fullpath := filepath.Join(startPath, e.Name())
+			name := e.Name()
+
+			if e.IsDir() {
+				list.AddItem("[::b]"+name+"[::-]", "", 0, func() {
+					mi.openFilePicker(fullpath)
+				})
+			} else {
+				list.AddItem(name, "", 0, func() {
+					file, err := os.Open(fullpath)
+					if err != nil {
+						slog.Error("Failed to open file", "file", file, "path", fullpath)
+					}
+					mi.attach(name, sendpart.File{Name: name, Reader: file})
+				})
+			}
+		}
 	}
+
+	searchBar.SetChangedFunc(func(text string) {
+		updateList(text)
+	})
+
+	updateList("")
+
+	flex := tview.NewFlex().SetDirection(tview.FlexRow).
+		AddItem(list, 0, 1, true).
+		AddItem(searchBar, 3, 0, false)
+
+	ui.ConfigureBox(list.Box, &mi.cfg.Theme)
+	ui.ConfigureBox(searchBar.Box, &mi.cfg.Theme)
+
+	list.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
+		switch ev.Name() {
+		case "Rune[/]":
+			app.SetFocus(searchBar)
+			return nil
+		case mi.cfg.Keys.MessagesList.SelectPrevious:
+			return tcell.NewEventKey(tcell.KeyUp, 0, tcell.ModNone)
+		case mi.cfg.Keys.MessagesList.SelectNext:
+			return tcell.NewEventKey(tcell.KeyDown, 0, tcell.ModNone)
+		case mi.cfg.Keys.MessagesList.SelectFirst:
+			return tcell.NewEventKey(tcell.KeyHome, 0, tcell.ModNone)
+		case mi.cfg.Keys.MessagesList.SelectLast:
+			return tcell.NewEventKey(tcell.KeyEnd, 0, tcell.ModNone)
+		}
+		return ev
+	})
+
+	app.pages.
+		RemovePage(filePickerPageName).
+		AddAndSwitchToPage(filePickerPageName, ui.Centered(flex, 40, 25), true).
+		ShowPage(flexPageName)
 }
 
 func (mi *messageInput) attach(name string, file sendpart.File) {
