@@ -502,6 +502,8 @@ func (mi *messageInput) openFilePicker(startPath string) {
 			app.SetFocus(mi)
 		})
 
+	list.SetTitle("File Picker")
+
 	searchBar := tview.NewInputField().
 		SetLabel("/")
 	searchBar.SetDoneFunc(func(key tcell.Key) {
