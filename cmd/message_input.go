@@ -114,7 +114,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		mi.stopTabCompletion()
 		home, err := os.UserHomeDir()
 		if err != nil {
-			slog.Error("Failed to read Home Dir", "home", home, "err", err)
+			slog.Error("failed to get user home dir", "err", err)
 		}
 		mi.openFilePicker(home)
 		return nil
