@@ -133,17 +133,12 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 
 	if mi.cfg.AutocompleteLimit > 0 {
 		if app.pages.GetVisibile(mentionsListPageName) {
-			count := mi.mentionsList.GetItemCount()
-			cur := mi.mentionsList.GetCurrentItem()
 			switch event.Name() {
-			case mi.cfg.Keys.MentionsList.Down:
-				mi.mentionsList.SetCurrentItem((cur + 1) % count)
-				return nil
 			case mi.cfg.Keys.MentionsList.Up:
-				if cur == 0 {
-					cur = count
-				}
-				mi.mentionsList.SetCurrentItem(cur - 1)
+				mi.mentionsList.InputHandler()(tcell.NewEventKey(tcell.KeyUp, 0, tcell.ModNone), nil)
+				return nil
+			case mi.cfg.Keys.MentionsList.Down:
+				mi.mentionsList.InputHandler()(tcell.NewEventKey(tcell.KeyDown, 0, tcell.ModNone), nil)
 				return nil
 			}
 		}
