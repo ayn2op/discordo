@@ -10,13 +10,13 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest, macos-13]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: stable
           
-      - name: Install libx11-dev
+      - name: Install libx11-dev for clipboard support
         if: runner.os == 'Linux'
         run: sudo apt install libx11-dev
 
