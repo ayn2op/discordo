@@ -20,9 +20,6 @@ type (
 		Format  string `toml:"format"`
 	}
 
-	Identify struct {
-	}
-
 	Notifications struct {
 		Enabled  bool  `toml:"enabled"`
 		Duration int   `toml:"duration"`
@@ -49,7 +46,6 @@ type (
 		MessagesLimit     uint8 `toml:"messages_limit"`
 
 		Timestamps    Timestamps    `toml:"timestamps"`
-		Identify      Identify      `toml:"identify"`
 		Notifications Notifications `toml:"notifications"`
 
 		Keys  Keys  `toml:"keys"`
