@@ -71,6 +71,10 @@ func GetIdentifyProps() gateway.IdentifyProperties {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return defaultIdentifyProps
+	}
+
 	var props Properties
 	if err := json.NewDecoder(resp.Body).Decode(&props); err != nil {
 		return defaultIdentifyProps
