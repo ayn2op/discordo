@@ -80,8 +80,8 @@ func getHeaders(props gateway.IdentifyProperties) http.Header {
 
 	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers
 	header.Set("Accept", "*/*")
-	header.Set("Accept-Encoding", "gzip, deflate, br")
-	header.Set("Accept-Language", "en-US,en;q=0.7")
+	header.Set("Accept-Encoding", "gzip, deflate, br, zstd")
+	header.Set("Accept-Language", "en-US,en;q=0.9")
 	header.Set("Origin", "https://discord.com")
 	header.Set("Priority", "u=0, i")
 	header.Set("Referer", "https://discord.com/channels/@me")
