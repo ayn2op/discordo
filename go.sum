@@ -45,6 +45,8 @@ github.com/diamondburned/arikawa/v3 v3.6.0 h1:8sno6tO9F1TEkg1ChHfjuVX41a+uv3opcf
 github.com/diamondburned/arikawa/v3 v3.6.0/go.mod h1:thocAM2X8lRDHuEZR5vWYaT4w+tb/vOKa1qm+r0gs5A=
 github.com/diamondburned/ningen/v3 v3.0.1-0.20250703054403-e5dc4cf15e84 h1:O/6NA4fQimjVNuT5F02kodPT2cz9Ltq2U96vxKYL0oA=
 github.com/diamondburned/ningen/v3 v3.0.1-0.20250703054403-e5dc4cf15e84/go.mod h1:UU1lud9g/GBl2+CZ8nPCe3Qk1U6fABEP1fk1sUzo7w0=
+github.com/diamondburned/ningen/v3 v3.0.1-0.20250920191746-98fbd92e134d h1:wS6HWl86RFItw38sUSdXlulj0VarV4G+9Rlv8j+p3oQ=
+github.com/diamondburned/ningen/v3 v3.0.1-0.20250920191746-98fbd92e134d/go.mod h1:9PWnJlArEASrZQI89KQiBJBYOEDcsDyfhFcxRTL8eO4=
 github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/protoc-gen-validate v0.1.0/go.mod h1:iSmxcyjqTsJpI2R4NaDN7+kN2VEUnK/pcBlmesArF7c=
 github.com/esiqveland/notify v0.13.3 h1:QCMw6o1n+6rl+oLUfg8P1IIDSFsDEb2WlXvVvIJbI/o=

@@ -7,7 +7,7 @@ require (
 	github.com/ayn2op/tview v0.0.0-20250720032506-63f04e47b15d
 	github.com/deckarep/gosx-notifier v0.0.0-20180201035817-e127226297fb
 	github.com/diamondburned/arikawa/v3 v3.6.0
-	github.com/diamondburned/ningen/v3 v3.0.1-0.20250703054403-e5dc4cf15e84
+	github.com/diamondburned/ningen/v3 v3.0.1-0.20250920191746-98fbd92e134d
 	github.com/gdamore/tcell/v2 v2.9.0
 	github.com/gen2brain/beeep v0.11.1
 	github.com/google/uuid v1.6.0
