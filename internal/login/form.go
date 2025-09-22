@@ -6,6 +6,7 @@ import (
 
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/consts"
+	"github.com/ayn2op/discordo/internal/http"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
 	"github.com/diamondburned/arikawa/v3/api"
@@ -52,7 +53,7 @@ func (f *Form) login() {
 
 	// Create an API client without an authentication token.
 	client := api.NewClient("")
-	props := consts.GetIdentifyProps()
+	props := http.IdentifyProperties()
 	if browserUserAgent, ok := props["browser_user_agent"]; ok {
 		if val, ok := browserUserAgent.(string); ok {
 			api.UserAgent = val

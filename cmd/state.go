@@ -2,16 +2,17 @@ package cmd
 
 import (
 	"context"
-	"encoding/base64"
-	"encoding/json"
 	"log/slog"
-	"net/http"
 
-	"github.com/ayn2op/discordo/internal/consts"
+	"github.com/ayn2op/discordo/internal/http"
 	"github.com/ayn2op/discordo/internal/notifications"
 	"github.com/ayn2op/tview"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/arikawa/v3/session"
+	"github.com/diamondburned/arikawa/v3/state"
+	"github.com/diamondburned/arikawa/v3/state/store/defaultstore"
+	"github.com/diamondburned/arikawa/v3/utils/handler"
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/diamondburned/arikawa/v3/utils/httputil/httpdriver"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
@@ -20,19 +21,20 @@ import (
 )
 
 func openState(token string) error {
-	props := consts.GetIdentifyProps()
-	if browserUserAgent, ok := props["browser_user_agent"]; ok {
-		if val, ok := browserUserAgent.(string); ok {
-			api.UserAgent = val
-		}
-	}
+	identifyProps := http.IdentifyProperties()
 
-	gateway.DefaultIdentity = props
+	api.UserAgent = http.BrowserUserAgent
+	gateway.DefaultIdentity = identifyProps
 	gateway.DefaultPresence = &gateway.UpdatePresenceCommand{
 		Status: app.cfg.Status,
 	}
 
-	discordState = ningen.New(token)
+	id := gateway.DefaultIdentifier(token)
+	id.Compress = false
+
+	session := session.NewCustom(id, http.NewClient(token), handler.New())
+	state := state.NewFromSession(session, defaultstore.New())
+	discordState = ningen.FromState(state)
 
 	// Handlers
 	discordState.AddHandler(onRaw)
@@ -54,42 +56,8 @@ func openState(token string) error {
 		slog.Error("state log", "err", err)
 	}
 
-	discordState.OnRequest = append(discordState.OnRequest, httputil.WithHeaders(getHeaders(props)), onRequest)
+	discordState.OnRequest = append(discordState.OnRequest, httputil.WithHeaders(http.Headers()), onRequest)
 	return discordState.Open(context.TODO())
-}
-
-func getHeaders(props gateway.IdentifyProperties) http.Header {
-	header := make(http.Header)
-
-	// These properties are only sent when identifying with the gateway and are not included in the X-Super-Properties header.
-	delete(props, "is_fast_connect")
-	delete(props, "gateway_connect_reasons")
-
-	if rawProps, err := json.Marshal(props); err == nil {
-		propsHeader := base64.StdEncoding.EncodeToString(rawProps)
-		header.Set("X-Super-Properties", propsHeader)
-	}
-
-	if systemLocale, ok := props["system_locale"]; ok {
-		if val, ok := systemLocale.(string); ok {
-			header.Set("X-Discord-Locale", string(val))
-		}
-	}
-
-	header.Set("X-Debug-Options", "bugReporterEnabled")
-
-	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers
-	header.Set("Accept", "*/*")
-	header.Set("Accept-Encoding", "gzip, deflate, br, zstd")
-	header.Set("Accept-Language", "en-US,en;q=0.9")
-	header.Set("Origin", "https://discord.com")
-	header.Set("Priority", "u=0, i")
-	header.Set("Referer", "https://discord.com/channels/@me")
-	header.Set("Sec-Fetch-Dest", "empty")
-	header.Set("Sec-Fetch-Mode", "cors")
-	header.Set("Sec-Fetch-Site", "same-origin")
-
-	return header
 }
 
 func onRequest(r httpdriver.Request) error {
