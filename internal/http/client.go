@@ -9,9 +9,8 @@ import (
 )
 
 func NewClient(token string) *api.Client {
-	httpClient := httputil.NewClient()
 	stdClient := http.DefaultClient
 	stdClient.Transport = NewTransport()
-	httpClient.Client = httpdriver.WrapClient(*stdClient)
+	httpClient := httputil.NewClientWithDriver(httpdriver.WrapClient(*stdClient))
 	return api.NewCustomClient(token, httpClient)
 }
