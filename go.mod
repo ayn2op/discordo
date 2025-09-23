@@ -7,11 +7,12 @@ require (
 	github.com/andybalholm/brotli v1.2.0
 	github.com/ayn2op/tview v0.0.0-20250720032506-63f04e47b15d
 	github.com/deckarep/gosx-notifier v0.0.0-20180201035817-e127226297fb
-	github.com/diamondburned/arikawa/v3 v3.6.0
+	github.com/diamondburned/arikawa/v3 v3.6.1-0.20250923014154-374d28cbf6b1
 	github.com/diamondburned/ningen/v3 v3.0.1-0.20250920191746-98fbd92e134d
 	github.com/gdamore/tcell/v2 v2.9.0
 	github.com/gen2brain/beeep v0.11.1
 	github.com/google/uuid v1.6.0
+	github.com/klauspost/compress v1.18.0
 	github.com/lmittmann/tint v1.1.2
 	github.com/ncruces/zenity v0.10.14
 	github.com/sahilm/fuzzy v0.1.1
@@ -46,6 +47,7 @@ require (
 	github.com/tadvi/systray v0.0.0-20190226123456-11a2b8fa57af // indirect
 	github.com/twmb/murmur3 v1.1.8 // indirect
 	go4.org v0.0.0-20230225012048-214862532bf5 // indirect
+	golang.org/x/crypto v0.42.0 // indirect
 	golang.org/x/exp/shiny v0.0.0-20250911091902-df9299821621 // indirect
 	golang.org/x/image v0.31.0 // indirect
 	golang.org/x/mobile v0.0.0-20250911085028-6912353760cf // indirect

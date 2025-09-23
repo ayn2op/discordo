@@ -1,11 +1,12 @@
 package http
 
 import (
-	"compress/gzip"
 	"io"
 	"net/http"
 
 	"github.com/andybalholm/brotli"
+	"github.com/klauspost/compress/gzip"
+	"github.com/klauspost/compress/zstd"
 )
 
 type Transport struct {
@@ -32,6 +33,15 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 			return nil, err
 		}
 
+		resp.Header.Del("Content-Encoding")
+	case "zstd":
+		decoder, err := zstd.NewReader(resp.Body)
+		if err != nil {
+			resp.Body.Close()
+			return nil, err
+		}
+
+		resp.Body = io.NopCloser(decoder)
 		resp.Header.Del("Content-Encoding")
 	case "br":
 		resp.Body = io.NopCloser(brotli.NewReader(resp.Body))
