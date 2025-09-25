@@ -28,7 +28,7 @@ func Notify(state *ningen.State, msg *gateway.MessageCreateEvent, cfg *config.Co
 	// Handle sent files
 	content := msg.Content
 	if msg.Content == "" && len(msg.Attachments) > 0 {
-		content = "Uploaded " + msg.Message.Attachments[0].Filename
+		content = "Uploaded " + msg.Attachments[0].Filename
 	}
 
 	if content == "" {

@@ -6,14 +6,14 @@ import (
 	gosxnotifier "github.com/deckarep/gosx-notifier"
 )
 
-func sendDesktopNotification(title string, body string, image string, playSound bool, _ int) error {
-	notify := gosxnotifier.NewNotification(body)
-	notify.Title = title
-	notify.ContentImage = image
+func sendDesktopNotification(title string, message string, image string, playSound bool, _ int) error {
+	n := gosxnotifier.NewNotification(message)
+	n.Title = title
+	n.ContentImage = image
 
 	if playSound {
-		notify.Sound = gosxnotifier.Default
+		n.Sound = gosxnotifier.Default
 	}
 
-	return notify.Push()
+	return n.Push()
 }
