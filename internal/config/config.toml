@@ -70,6 +70,7 @@ reply = "Rune[r]"
 reply_mention = "Rune[R]"
 cancel = "Esc"
 delete = "Rune[d]"
+delete_confirmation = true
 # Open the selected message's attachments or hyperlinks in the message
 # using the default browser application.
 open = "Rune[o]"

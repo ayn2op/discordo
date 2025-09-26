@@ -40,9 +40,10 @@ type (
 		Reply        string `toml:"reply"`
 		ReplyMention string `toml:"reply_mention"`
 
-		Cancel string `toml:"cancel"`
-		Delete string `toml:"delete"`
-		Open   string `toml:"open"`
+		Cancel             string `toml:"cancel"`
+		Delete             string `toml:"delete"`
+		DeleteConfirmation bool   `toml:"delete_confirmation"`
+		Open               string `toml:"open"`
 
 		YankContent string `toml:"yank_content"`
 		YankURL     string `toml:"yank_url"`

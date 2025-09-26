@@ -281,7 +281,7 @@ func (ml *messagesList) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	case ml.cfg.Keys.MessagesList.ReplyMention:
 		ml.reply(true)
 	case ml.cfg.Keys.MessagesList.Delete:
-		ml.delete()
+		ml.confirm_delete(ml.cfg.Keys.MessagesList.DeleteConfirmation)
 	}
 
 	return nil
@@ -555,6 +555,18 @@ func (ml *messagesList) reply(mention bool) {
 	app.messageInput.sendMessageData = data
 	app.messageInput.addTitle(title + name)
 	app.SetFocus(app.messageInput)
+}
+
+func (ml *messagesList) confirm_delete(deleteConfirmation bool) {
+	if deleteConfirmation {
+		app.showModal("Are you sure you want to delete this message?", []string{"Yes", "No"}, func(label string) {
+			if label == "Yes" {
+				ml.delete()
+			}
+		})
+	} else {
+		ml.delete()
+	}
 }
 
 func (ml *messagesList) delete() {
