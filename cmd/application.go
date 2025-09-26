@@ -16,7 +16,7 @@ const (
 	flexPageName            = "flex"
 	mentionsListPageName    = "mentionsList"
 	attachmentsListPageName = "attachmentsList"
-	confirmModalPageName    = "confirmModal"
+	modalPageName           = "Modal"
 )
 
 type application struct {
@@ -161,7 +161,7 @@ func (a *application) showModal(prompt string, buttons []string, onDone func(lab
 		SetText(prompt).
 		AddButtons(buttons).
 		SetDoneFunc(func(_ int, buttonLabel string) {
-			a.pages.RemovePage(confirmModalPageName).SwitchToPage(flexPageName)
+			a.pages.RemovePage(modalPageName).SwitchToPage(flexPageName)
 			a.SetFocus(previousFocus)
 
 			if onDone != nil {
@@ -170,6 +170,6 @@ func (a *application) showModal(prompt string, buttons []string, onDone func(lab
 		})
 
 	a.pages.
-		AddAndSwitchToPage(confirmModalPageName, ui.Centered(modal, 40, 10), true).
+		AddAndSwitchToPage(modalPageName, ui.Centered(modal, 40, 10), true).
 		ShowPage(flexPageName)
 }
