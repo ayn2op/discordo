@@ -170,6 +170,6 @@ func (a *application) showConfirmModal(prompt string, buttons []string, onDone f
 		})
 
 	a.pages.
-		AddAndSwitchToPage(confirmModalPageName, ui.Centered(modal, 40, 10), true).
+		AddAndSwitchToPage(confirmModalPageName, ui.Centered(modal, 0, 0), true).
 		ShowPage(flexPageName)
 }
