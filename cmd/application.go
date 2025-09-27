@@ -6,6 +6,7 @@ import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/login"
+	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
 	"github.com/gdamore/tcell/v2"
 	"github.com/zalando/go-keyring"
@@ -15,6 +16,7 @@ const (
 	flexPageName            = "flex"
 	mentionsListPageName    = "mentionsList"
 	attachmentsListPageName = "attachmentsList"
+	confirmModalPageName    = "confirmModal"
 )
 
 type application struct {
@@ -150,4 +152,24 @@ func (a *application) onFlexInputCapture(event *tcell.EventKey) *tcell.EventKey 
 	}
 
 	return event
+}
+
+func (a *application) showConfirmModal(prompt string, buttons []string, onDone func(label string)) {
+	previousFocus := a.GetFocus()
+
+	modal := tview.NewModal().
+		SetText(prompt).
+		AddButtons(buttons).
+		SetDoneFunc(func(_ int, buttonLabel string) {
+			a.pages.RemovePage(confirmModalPageName).SwitchToPage(flexPageName)
+			a.SetFocus(previousFocus)
+
+			if onDone != nil {
+				onDone(buttonLabel)
+			}
+		})
+
+	a.pages.
+		AddAndSwitchToPage(confirmModalPageName, ui.Centered(modal, 40, 10), true).
+		ShowPage(flexPageName)
 }
