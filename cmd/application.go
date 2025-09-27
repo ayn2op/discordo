@@ -16,7 +16,7 @@ const (
 	flexPageName            = "flex"
 	mentionsListPageName    = "mentionsList"
 	attachmentsListPageName = "attachmentsList"
-	modalPageName           = "Modal"
+	confirmModalPageName    = "confirmModal"
 )
 
 type application struct {
@@ -154,14 +154,14 @@ func (a *application) onFlexInputCapture(event *tcell.EventKey) *tcell.EventKey 
 	return event
 }
 
-func (a *application) showModal(prompt string, buttons []string, onDone func(label string)) {
+func (a *application) showConfirmModal(prompt string, buttons []string, onDone func(label string)) {
 	previousFocus := a.GetFocus()
 
 	modal := tview.NewModal().
 		SetText(prompt).
 		AddButtons(buttons).
 		SetDoneFunc(func(_ int, buttonLabel string) {
-			a.pages.RemovePage(modalPageName).SwitchToPage(flexPageName)
+			a.pages.RemovePage(confirmModalPageName).SwitchToPage(flexPageName)
 			a.SetFocus(previousFocus)
 
 			if onDone != nil {
@@ -170,6 +170,6 @@ func (a *application) showModal(prompt string, buttons []string, onDone func(lab
 		})
 
 	a.pages.
-		AddAndSwitchToPage(modalPageName, ui.Centered(modal, 40, 10), true).
+		AddAndSwitchToPage(confirmModalPageName, ui.Centered(modal, 40, 10), true).
 		ShowPage(flexPageName)
 }
