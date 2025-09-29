@@ -79,7 +79,7 @@ func (a *application) quit() {
 }
 
 func (a *application) init() {
-	a.pages.ClearPages()
+	a.pages.Clear()
 	a.flex.Clear()
 
 	right := tview.NewFlex().

@@ -29,6 +29,8 @@ github.com/andybalholm/brotli v1.2.0 h1:ukwgCxwYrmACq68yiUqwIWnGY0cTPox/M94sVwTo
 github.com/andybalholm/brotli v1.2.0/go.mod h1:rzTDkvFWvIrjDXZHkuS16NPggd91W3kUSvPlQ1pLaKY=
 github.com/ayn2op/tview v0.0.0-20250928171107-48f688315a93 h1:4g4dYQ4pFnK+oekEOM4Vs7atHXTcKRW9rTghvc9xOBU=
 github.com/ayn2op/tview v0.0.0-20250928171107-48f688315a93/go.mod h1:xqhotzuhTSxSudyNSHJfpD6S5C7+FFVv+JzJ8YaFNK4=
+github.com/ayn2op/tview v0.0.0-20250929022929-402992ca515f h1:ZHyPECVunPIGx4kLcIYT58x1WSCn2ounz4jV1YVT3vo=
+github.com/ayn2op/tview v0.0.0-20250929022929-402992ca515f/go.mod h1:xqhotzuhTSxSudyNSHJfpD6S5C7+FFVv+JzJ8YaFNK4=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
 github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e/go.mod h1:nSuG5e5PlCu98SY8svDHJxuZscDgtXS6KTTbou5AhLI=

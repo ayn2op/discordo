@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/BurntSushi/toml v1.5.0
 	github.com/andybalholm/brotli v1.2.0
-	github.com/ayn2op/tview v0.0.0-20250928171107-48f688315a93
+	github.com/ayn2op/tview v0.0.0-20250929022929-402992ca515f
 	github.com/deckarep/gosx-notifier v0.0.0-20180201035817-e127226297fb
 	github.com/diamondburned/arikawa/v3 v3.6.1-0.20250923014154-374d28cbf6b1
 	github.com/diamondburned/ningen/v3 v3.0.1-0.20250920191746-98fbd92e134d
