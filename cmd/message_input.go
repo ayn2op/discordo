@@ -180,6 +180,8 @@ func (mi *messageInput) send() {
 		if _, err := discordState.EditMessageComplex(m.ChannelID, m.ID, data); err != nil {
 			slog.Error("failed to edit message", "err", err)
 		}
+
+		mi.edit = false
 	} else {
 		data := mi.sendMessageData
 		data.Content = text
