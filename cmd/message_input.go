@@ -89,6 +89,7 @@ func newMessageInput(cfg *config.Config) *messageInput {
 }
 
 func (mi *messageInput) reset() {
+	mi.edit = false
 	mi.sendMessageData = &api.SendMessageData{}
 	mi.SetTitle("")
 	mi.SetText("", true)
