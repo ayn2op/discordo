@@ -568,6 +568,12 @@ func (ml *messagesList) edit() {
 		return
 	}
 
+	clientID := discordState.Ready().User.ID
+	if message.Author.ID != clientID {
+		slog.Error("failed to edit message; not the author", "channel_id", message.ChannelID, "message_id", message.ID)
+		return
+	}
+
 	app.messageInput.SetTitle("Editing")
 	app.messageInput.edit = true
 	app.messageInput.SetText(message.Content, true)
