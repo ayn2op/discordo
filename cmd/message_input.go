@@ -22,6 +22,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/state"
+	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 	"github.com/diamondburned/ningen/v3/discordmd"
 	"github.com/gdamore/tcell/v2"
@@ -39,6 +40,7 @@ type messageInput struct {
 	*tview.TextArea
 	cfg *config.Config
 
+	edit            bool
 	sendMessageData *api.SendMessageData
 	cache           *cache.Cache
 	mentionsList    *tview.List
@@ -157,13 +159,33 @@ func (mi *messageInput) send() {
 		return
 	}
 
-	data := mi.sendMessageData
-	if text := strings.TrimSpace(mi.GetText()); text != "" {
-		data.Content = processText(app.guildsTree.selectedChannelID, []byte(text))
+	text := strings.TrimSpace(mi.GetText())
+	if text == "" {
+		return
 	}
 
-	if _, err := discordState.SendMessageComplex(app.guildsTree.selectedChannelID, *data); err != nil {
-		slog.Error("failed to send message in channel", "channel_id", app.guildsTree.selectedChannelID, "err", err)
+	text = processText(app.guildsTree.selectedChannelID, []byte(text))
+	if text == "" {
+		return
+	}
+
+	if mi.edit {
+		m, err := app.messagesList.selectedMessage()
+		if err != nil {
+			slog.Error("failed to get selected message", "err", err)
+			return
+		}
+
+		data := api.EditMessageData{Content: option.NewNullableString(text)}
+		if _, err := discordState.EditMessageComplex(m.ChannelID, m.ID, data); err != nil {
+			slog.Error("failed to edit message", "err", err)
+		}
+	} else {
+		data := mi.sendMessageData
+		data.Content = text
+		if _, err := discordState.SendMessageComplex(app.guildsTree.selectedChannelID, *data); err != nil {
+			slog.Error("failed to send message in channel", "channel_id", app.guildsTree.selectedChannelID, "err", err)
+		}
 	}
 
 	// Close the attached files after sending the message.

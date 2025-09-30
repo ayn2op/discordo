@@ -15,29 +15,29 @@ import (
 	"github.com/diamondburned/ningen/v3"
 )
 
-func Notify(state *ningen.State, msg *gateway.MessageCreateEvent, cfg *config.Config) error {
+func Notify(state *ningen.State, message *gateway.MessageCreateEvent, cfg *config.Config) error {
 	if !cfg.Notifications.Enabled || cfg.Status == discord.DoNotDisturbStatus {
 		return nil
 	}
 
-	mentions := state.MessageMentions(&msg.Message)
+	mentions := state.MessageMentions(&message.Message)
 	if mentions == 0 {
 		return nil
 	}
 
 	// Handle sent files
-	content := msg.Content
-	if msg.Content == "" && len(msg.Attachments) > 0 {
-		content = "Uploaded " + msg.Attachments[0].Filename
+	content := message.Content
+	if message.Content == "" && len(message.Attachments) > 0 {
+		content = "Uploaded " + message.Attachments[0].Filename
 	}
 
 	if content == "" {
 		return nil
 	}
 
-	title := msg.Author.DisplayOrUsername()
+	title := message.Author.DisplayOrUsername()
 
-	channel, err := state.Cabinet.Channel(msg.ChannelID)
+	channel, err := state.Cabinet.Channel(message.ChannelID)
 	if err != nil {
 		return fmt.Errorf("failed to get channel from state: %w", err)
 	}
@@ -48,19 +48,19 @@ func Notify(state *ningen.State, msg *gateway.MessageCreateEvent, cfg *config.Co
 			return fmt.Errorf("failed to get guild from state: %w", err)
 		}
 
-		if member := msg.Member; member != nil && member.Nick != "" {
+		if member := message.Member; member != nil && member.Nick != "" {
 			title = member.Nick
 		}
 
 		title += " (#" + channel.Name + ", " + guild.Name + ")"
 	}
 
-	hash := msg.Author.Avatar
+	hash := message.Author.Avatar
 	if hash == "" {
 		hash = "default"
 	}
 
-	imagePath, err := getCachedProfileImage(hash, msg.Author.AvatarURLWithType(discord.PNGImage))
+	imagePath, err := getCachedProfileImage(hash, message.Author.AvatarURLWithType(discord.PNGImage))
 	if err != nil {
 		slog.Info("failed to get profile image from cache for notification", "err", err, "hash", hash)
 	}

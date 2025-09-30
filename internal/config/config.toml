@@ -69,6 +69,7 @@ reply = "Rune[r]"
 # Reply (with mention) to the selected message.
 reply_mention = "Rune[R]"
 cancel = "Esc"
+edit = "Rune[e]"
 delete = "Rune[D]"
 delete_confirm = "Rune[d]"
 # Open the selected message's attachments or hyperlinks in the message

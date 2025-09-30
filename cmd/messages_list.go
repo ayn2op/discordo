@@ -81,7 +81,7 @@ func (ml *messagesList) setTitle(channel discord.Channel) {
 		title += " - " + topic
 	}
 
-	app.messagesList.SetTitle(title)
+	ml.SetTitle(title)
 }
 
 func (ml *messagesList) drawMessages(messages []discord.Message) {
@@ -139,20 +139,20 @@ func (ml *messagesList) drawTimestamps(ts discord.Timestamp) {
 	fmt.Fprintf(ml, "[::d]%s[::D] ", ml.formatTimestamp(ts))
 }
 
-func (ml *messagesList) drawAuthor(msg discord.Message) {
-	name := msg.Author.DisplayOrUsername()
+func (ml *messagesList) drawAuthor(message discord.Message) {
+	name := message.Author.DisplayOrUsername()
 	foreground := tcell.ColorDefault
-	if msg.GuildID.IsValid() {
-		member, err := discordState.Cabinet.Member(msg.GuildID, msg.Author.ID)
+	if message.GuildID.IsValid() {
+		member, err := discordState.Cabinet.Member(message.GuildID, message.Author.ID)
 		if err != nil {
-			slog.Error("failed to get member from state", "guild_id", msg.GuildID, "member_id", msg.Author.ID, "err", err)
+			slog.Error("failed to get member from state", "guild_id", message.GuildID, "member_id", message.Author.ID, "err", err)
 		} else {
 			if member.Nick != "" {
 				name = member.Nick
 			}
 
 			color, ok := state.MemberColor(member, func(id discord.RoleID) *discord.Role {
-				r, _ := discordState.Cabinet.Role(msg.GuildID, id)
+				r, _ := discordState.Cabinet.Role(message.GuildID, id)
 				return r
 			})
 			if ok {
@@ -164,10 +164,10 @@ func (ml *messagesList) drawAuthor(msg discord.Message) {
 	fmt.Fprintf(ml, "[%s::b]%s[-::B] ", foreground, name)
 }
 
-func (ml *messagesList) drawContent(msg discord.Message) {
-	c := []byte(tview.Escape(msg.Content))
+func (ml *messagesList) drawContent(message discord.Message) {
+	c := []byte(tview.Escape(message.Content))
 	if app.cfg.Markdown {
-		ast := discordmd.ParseWithMessage(c, *discordState.Cabinet, &msg, false)
+		ast := discordmd.ParseWithMessage(c, *discordState.Cabinet, &message, false)
 		markdown.DefaultRenderer.Render(ml, c, ast)
 	} else {
 		ml.Write(c) // write the content as is
@@ -215,10 +215,10 @@ func (ml *messagesList) drawForwardedMessage(message discord.Message) {
 func (ml *messagesList) drawReplyMessage(message discord.Message) {
 	// reply
 	fmt.Fprintf(ml, "[::d]%s ", ml.cfg.Theme.MessagesList.ReplyIndicator)
-	if refMsg := message.ReferencedMessage; refMsg != nil {
-		refMsg.GuildID = message.GuildID
-		ml.drawAuthor(*refMsg)
-		ml.drawContent(*refMsg)
+	if m := message.ReferencedMessage; m != nil {
+		m.GuildID = message.GuildID
+		ml.drawAuthor(*m)
+		ml.drawContent(*m)
 	} else {
 		io.WriteString(ml, "Original message was deleted")
 	}
@@ -232,20 +232,20 @@ func (ml *messagesList) drawPinnedMessage(message discord.Message) {
 	fmt.Fprintf(ml, "%s pinned a message", message.Author.DisplayOrUsername())
 }
 
-func (ml *messagesList) selectedMsg() (*discord.Message, error) {
+func (ml *messagesList) selectedMessage() (*discord.Message, error) {
 	if !ml.selectedMessageID.IsValid() {
 		return nil, errors.New("no message is currently selected")
 	}
 
-	msg, err := discordState.Cabinet.Message(app.guildsTree.selectedChannelID, ml.selectedMessageID)
+	m, err := discordState.Cabinet.Message(app.guildsTree.selectedChannelID, ml.selectedMessageID)
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve selected message: %w", err)
 	}
 
-	return msg, nil
+	return m, nil
 }
 
-func (ml *messagesList) selectedMsgIndex() (int, error) {
+func (ml *messagesList) selectedMessageIndex() (int, error) {
 	ms, err := discordState.Cabinet.Messages(app.guildsTree.selectedChannelID)
 	if err != nil {
 		return -1, err
@@ -280,11 +280,14 @@ func (ml *messagesList) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		ml.reply(false)
 	case ml.cfg.Keys.MessagesList.ReplyMention:
 		ml.reply(true)
+	case ml.cfg.Keys.MessagesList.Edit:
+		ml.edit()
 	case ml.cfg.Keys.MessagesList.Delete:
 		ml.delete()
 	case ml.cfg.Keys.MessagesList.DeleteConfirm:
 		ml.confirmDelete()
 	}
+
 	return nil
 }
 
@@ -295,7 +298,7 @@ func (ml *messagesList) _select(name string) {
 		return
 	}
 
-	msgIdx, err := ml.selectedMsgIndex()
+	msgIdx, err := ml.selectedMessageIndex()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
 		return
@@ -355,7 +358,7 @@ func (ml *messagesList) onHighlighted(added, removed, remaining []string) {
 }
 
 func (ml *messagesList) yankID() {
-	msg, err := ml.selectedMsg()
+	msg, err := ml.selectedMessage()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
 		return
@@ -365,7 +368,7 @@ func (ml *messagesList) yankID() {
 }
 
 func (ml *messagesList) yankContent() {
-	msg, err := ml.selectedMsg()
+	msg, err := ml.selectedMessage()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
 		return
@@ -375,7 +378,7 @@ func (ml *messagesList) yankContent() {
 }
 
 func (ml *messagesList) yankURL() {
-	msg, err := ml.selectedMsg()
+	msg, err := ml.selectedMessage()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
 		return
@@ -385,7 +388,7 @@ func (ml *messagesList) yankURL() {
 }
 
 func (ml *messagesList) open() {
-	msg, err := ml.selectedMsg()
+	msg, err := ml.selectedMessage()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
 		return
@@ -525,7 +528,7 @@ func (ml *messagesList) openURL(url string) {
 }
 
 func (ml *messagesList) reply(mention bool) {
-	msg, err := ml.selectedMsg()
+	msg, err := ml.selectedMessage()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
 		return
@@ -558,6 +561,19 @@ func (ml *messagesList) reply(mention bool) {
 	app.SetFocus(app.messageInput)
 }
 
+func (ml *messagesList) edit() {
+	message, err := ml.selectedMessage()
+	if err != nil {
+		slog.Error("failed to get selected message", "err", err)
+		return
+	}
+
+	app.messageInput.SetTitle("Editing")
+	app.messageInput.edit = true
+	app.messageInput.SetText(message.Content, true)
+	app.SetFocus(app.messageInput)
+}
+
 func (ml *messagesList) confirmDelete() {
 	onChoice := func(choice string) {
 		if choice == "Yes" {
@@ -573,7 +589,7 @@ func (ml *messagesList) confirmDelete() {
 }
 
 func (ml *messagesList) delete() {
-	msg, err := ml.selectedMsg()
+	msg, err := ml.selectedMessage()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
 		return
