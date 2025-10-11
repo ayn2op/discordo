@@ -568,8 +568,13 @@ func (ml *messagesList) edit() {
 		return
 	}
 
-	clientID := discordState.Ready().User.ID
-	if message.Author.ID != clientID {
+	me, err := discordState.Cabinet.Me()
+	if err != nil {
+		slog.Error("failed to get client user (me)", "err", err)
+		return
+	}
+
+	if message.Author.ID != me.ID {
 		slog.Error("failed to edit message; not the author", "channel_id", message.ChannelID, "message_id", message.ID)
 		return
 	}
@@ -602,8 +607,13 @@ func (ml *messagesList) delete() {
 	}
 
 	if msg.GuildID.IsValid() {
-		clientID := discordState.Ready().User.ID
-		if msg.Author.ID != clientID && !discordState.HasPermissions(msg.ChannelID, discord.PermissionManageMessages) {
+		me, err := discordState.Cabinet.Me()
+		if err != nil {
+			slog.Error("failed to get client user (me)", "err", err)
+			return
+		}
+
+		if msg.Author.ID != me.ID && !discordState.HasPermissions(msg.ChannelID, discord.PermissionManageMessages) {
 			slog.Error("failed to delete message; missing relevant permissions", "channel_id", msg.ChannelID, "message_id", msg.ID)
 			return
 		}
