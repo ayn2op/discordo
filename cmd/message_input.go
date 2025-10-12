@@ -236,9 +236,9 @@ func processText(cID discord.ChannelID, src []byte) string {
 func expandMentions(cID discord.ChannelID, src []byte) []byte {
 	return mentionRegex.ReplaceAllFunc(src, func(input []byte) []byte {
 		output := input
-		name := strings.ToLower(string(input[1:]))
+		name := string(input[1:])
 		discordState.MemberStore.Each(app.guildsTree.selectedGuildID, func(m *discord.Member) bool {
-			if strings.ToLower(m.User.Username) == name && channelHasUser(cID, m.User.ID) {
+			if strings.EqualFold(m.User.Username, name) && channelHasUser(cID, m.User.ID) {
 				output = []byte(m.User.ID.Mention())
 				return true
 			}
