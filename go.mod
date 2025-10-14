@@ -45,6 +45,7 @@ require (
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/sergeymakinen/go-bmp v1.0.0 // indirect
 	github.com/sergeymakinen/go-ico v1.0.0-beta.0 // indirect
+	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e // indirect
 	github.com/tadvi/systray v0.0.0-20190226123456-11a2b8fa57af // indirect
 	github.com/twmb/murmur3 v1.1.8 // indirect
 	go4.org v0.0.0-20230225012048-214862532bf5 // indirect
