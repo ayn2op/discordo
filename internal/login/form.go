@@ -11,6 +11,7 @@ import (
 	"github.com/ayn2op/tview"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/zalando/go-keyring"
+	"golang.design/x/clipboard"
 )
 
 const (
@@ -96,13 +97,18 @@ func (f *Form) login() {
 func (f *Form) onError(err error) {
 	slog.Error("failed to login", "err", err)
 
+	message := err.Error()
 	modal := tview.NewModal().
-		SetText(err.Error()).
-		AddButtons([]string{"Close"}).
-		SetDoneFunc(func(_ int, _ string) {
-			f.
-				RemovePage(errorPageName).
-				SwitchToPage(formPageName)
+		SetText(message).
+		AddButtons([]string{"Copy", "Close"}).
+		SetDoneFunc(func(buttonIndex int, _ string) {
+			if buttonIndex == 0 {
+				go clipboard.Write(clipboard.FmtText, []byte(message))
+			} else {
+				f.
+					RemovePage(errorPageName).
+					SwitchToPage(formPageName)
+			}
 		})
 	f.
 		AddAndSwitchToPage(errorPageName, ui.Centered(modal, 0, 0), true).
