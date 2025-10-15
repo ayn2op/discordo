@@ -21,12 +21,15 @@ import (
 	apphttp "github.com/ayn2op/discordo/internal/http"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
+	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/gdamore/tcell/v2"
 	"github.com/gorilla/websocket"
 	"github.com/skip2/go-qrcode"
 )
 
 const gatewayURL = "wss://remote-auth-gateway.discord.gg/?v=2"
+
+var remoteAuthLogin = api.EndpointMe + "/remote-auth/login"
 
 type qrLogin struct {
 	*tview.TextView
@@ -387,7 +390,7 @@ func exchangeTicket(ctx context.Context, ticket string, fingerprint string, priv
 	if ticket == "" {
 		return "", errors.New("empty ticket")
 	}
-	url := "https://discord.com/api/v9/users/@me/remote-auth/login"
+	url := remoteAuthLogin
 	body := map[string]string{"ticket": ticket}
 	raw, err := json.Marshal(body)
 	if err != nil {
