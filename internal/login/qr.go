@@ -104,6 +104,12 @@ func (q *qrLogin) stop() {
 	}
 }
 
+func (q *qrLogin) setText(s string) {
+	q.app.QueueUpdateDraw(func() {
+		q.SetText(q.centerText(s))
+	})
+}
+
 func (q *qrLogin) writeJSON(data any) error {
 	return q.conn.WriteJSON(data)
 }
@@ -158,7 +164,7 @@ func (q *qrLogin) run(ctx context.Context) {
 	headers.Set("User-Agent", apphttp.BrowserUserAgent)
 	headers.Set("Origin", "https://discord.com")
 
-	setText("Connecting to Remote Auth Gateway...\n\n[::d]Press Esc to cancel[-]")
+	q.setText("Connecting to Remote Auth Gateway...\n\n[::d]Press Esc to cancel[-]")
 
 	dialer := websocket.Dialer{
 		Proxy:             stdhttp.ProxyFromEnvironment,
@@ -217,7 +223,7 @@ func (q *qrLogin) run(ctx context.Context) {
 				Op string `json:"op"`
 			}
 			if err := json.Unmarshal(data, &opOnly); err != nil {
-				setText("[red]Bad JSON:[-] " + err.Error())
+				q.setText("[red]Bad JSON:[-] " + err.Error())
 				q.fail(err)
 				return
 			}
@@ -226,7 +232,7 @@ func (q *qrLogin) run(ctx context.Context) {
 			case "hello":
 				var h raHello
 				if err := json.Unmarshal(data, &h); err != nil {
-					setText("[red]Hello decode failed:[-] " + err.Error())
+					q.setText("[red]Hello decode failed:[-] " + err.Error())
 					q.fail(err)
 					return
 				}
@@ -243,44 +249,44 @@ func (q *qrLogin) run(ctx context.Context) {
 						}
 					}()
 				}
-				setText("Connected. Handshaking...\n\n[::d]Press Esc to cancel[-]")
+				q.setText("Connected. Handshaking...\n\n[::d]Press Esc to cancel[-]")
 				if err := q.writeJSON(map[string]any{
 					"op":                 "init",
 					"encoded_public_key": encodedPublicKey,
 				}); err != nil {
-					setText("[red]Init send failed:[-] " + err.Error())
+					q.setText("[red]Init send failed:[-] " + err.Error())
 					q.fail(err)
 					return
 				}
 			case "nonce_proof":
 				var n raNonceProof
 				if err := json.Unmarshal(data, &n); err != nil {
-					setText("[red]Nonce decode failed:[-] " + err.Error())
+					q.setText("[red]Nonce decode failed:[-] " + err.Error())
 					q.fail(err)
 					return
 				}
 				enc, err := base64.StdEncoding.DecodeString(n.EncryptedNonce)
 				if err != nil {
-					setText("[red]Nonce b64 decode failed:[-] " + err.Error())
+					q.setText("[red]Nonce b64 decode failed:[-] " + err.Error())
 					q.fail(err)
 					return
 				}
 				pt, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, q.privKey, enc, nil)
 				if err != nil {
-					setText("[red]Nonce decrypt failed:[-] " + err.Error())
+					q.setText("[red]Nonce decrypt failed:[-] " + err.Error())
 					q.fail(err)
 					return
 				}
 				nonce := base64.RawURLEncoding.EncodeToString(pt)
 				if err := q.writeJSON(map[string]any{"op": "nonce_proof", "nonce": nonce}); err != nil {
-					setText("[red]Nonce send failed:[-] " + err.Error())
+					q.setText("[red]Nonce send failed:[-] " + err.Error())
 					q.fail(err)
 					return
 				}
 			case "pending_remote_init":
 				var p raPendingInit
 				if err := json.Unmarshal(data, &p); err != nil {
-					setText("[red]Init decode failed:[-] " + err.Error())
+					q.setText("[red]Init decode failed:[-] " + err.Error())
 					q.fail(err)
 					return
 				}
@@ -288,28 +294,28 @@ func (q *qrLogin) run(ctx context.Context) {
 				content := "https://discord.com/ra/" + p.Fingerprint
 				ascii, err := renderQR(content)
 				if err != nil {
-					setText("[red]QR render failed:[-] " + err.Error())
+					q.setText("[red]QR render failed:[-] " + err.Error())
 					q.fail(err)
 					return
 				}
-				setText(ascii + "\n\n[::b]Scan with Discord mobile app[::-]\n\n[::d]Press Esc to cancel[-]")
+				q.setText(ascii + "\n\n[::b]Scan with Discord mobile app[::-]\n\n[::d]Press Esc to cancel[-]")
 			case "heartbeat_ack":
 			case "pending_ticket":
 				var t raPendingTicket
 				if err := json.Unmarshal(data, &t); err != nil {
-					setText("[red]Ticket decode failed:[-] " + err.Error())
+					q.setText("[red]Ticket decode failed:[-] " + err.Error())
 					q.fail(err)
 					return
 				}
 				payload, err := base64.StdEncoding.DecodeString(t.EncryptedUserPayload)
 				if err != nil {
-					setText("[red]Ticket payload b64 failed:[-] " + err.Error())
+					q.setText("[red]Ticket payload b64 failed:[-] " + err.Error())
 					q.fail(err)
 					return
 				}
 				pt, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, q.privKey, payload, nil)
 				if err != nil {
-					setText("[red]Ticket payload decrypt failed:[-] " + err.Error())
+					q.setText("[red]Ticket payload decrypt failed:[-] " + err.Error())
 					q.fail(err)
 					return
 				}
@@ -320,28 +326,28 @@ func (q *qrLogin) run(ctx context.Context) {
 					username = parts[3]
 				}
 				if discriminator == "" && username == "" {
-					setText("Scan received.\n\nWaiting for approval on mobile...\n\n[::d]Press Esc to cancel[-]")
+					q.setText("Scan received.\n\nWaiting for approval on mobile...\n\n[::d]Press Esc to cancel[-]")
 				} else {
-					setText("Logging in as [::b]" + username + "[#]" + discriminator + "[::-]\n\nConfirm on mobile...\n\n[::d]Press Esc to cancel[-]")
+					q.setText("Logging in as [::b]" + username + "[#]" + discriminator + "[::-]\n\nConfirm on mobile...\n\n[::d]Press Esc to cancel[-]")
 				}
 			case "pending_login":
 				var p raPendingLogin
 				if err := json.Unmarshal(data, &p); err != nil {
-					setText("[red]Login decode failed:[-] " + err.Error())
+					q.setText("[red]Login decode failed:[-] " + err.Error())
 					q.fail(err)
 					return
 				}
-				setText("Authenticating...\n\n[::d]Please wait[-]")
+				q.setText("Authenticating...\n\n[::d]Please wait[-]")
 				token, err := exchangeTicket(ctx, p.Ticket, q.fingerprint, q.privKey)
 				if err != nil {
-					setText("[red]Ticket exchange failed:[-] " + err.Error())
+					q.setText("[red]Ticket exchange failed:[-] " + err.Error())
 					q.fail(err)
 					return
 				}
 				q.success(token)
 				return
 			case "cancel":
-				setText("Login canceled on mobile")
+				q.setText("Login canceled on mobile")
 				if q.done != nil {
 					q.done("", nil)
 				}
