@@ -29,13 +29,12 @@ import (
 
 const gatewayURL = "wss://remote-auth-gateway.discord.gg/?v=2"
 
-var remoteAuthLogin = api.EndpointMe + "/remote-auth/login"
+var endpointRemoteAuthLogin = api.EndpointMe + "/remote-auth/login"
 
 type qrLogin struct {
 	*tview.TextView
 	app         *tview.Application
 	cfg         *config.Config
-	view        *tview.TextView
 	done        func(token string, err error)
 	conn        *websocket.Conn
 	privKey     *rsa.PrivateKey
@@ -44,43 +43,39 @@ type qrLogin struct {
 }
 
 func newQRLogin(app *tview.Application, cfg *config.Config, done func(token string, err error)) *qrLogin {
-	view := tview.NewTextView().
+	q := &qrLogin{
+		TextView: tview.NewTextView(),
+		app:      app,
+		cfg:      cfg,
+		done:     done,
+	}
+	q.Box = ui.ConfigureBox(q.Box, &cfg.Theme)
+
+	q.
 		SetDynamicColors(true).
 		SetScrollable(true).
 		SetWrap(false).
-		SetTextAlign(tview.AlignmentCenter)
-	view.Box = ui.ConfigureBox(view.Box, &cfg.Theme)
-	view.SetTitle("Login with QR")
-
-	q := &qrLogin{
-		app:  app,
-		cfg:  cfg,
-		view: view,
-		done: done,
-	}
-	q.TextView = view
-
-	view.SetChangedFunc(func() {
-		q.app.QueueUpdateDraw(func() {})
-	})
-
-	view.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
-		if ev.Key() == tcell.KeyEsc {
-			q.stop()
-			if q.done != nil {
-				q.done("", nil)
+		SetTextAlign(tview.AlignmentCenter).
+		SetChangedFunc(func() {
+			q.app.QueueUpdateDraw(func() {})
+		}).
+		SetTitle("Login with QR").
+		SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
+			if ev.Key() == tcell.KeyEsc {
+				q.stop()
+				if q.done != nil {
+					q.done("", nil)
+				}
+				return nil
 			}
-			return nil
-		}
-		return ev
-	})
+			return ev
+		})
 
 	return q
 }
 
-
 func (q *qrLogin) centerText(s string) string {
-	_, _, _, height := q.view.GetInnerRect()
+	_, _, _, height := q.GetInnerRect()
 	if height == 0 {
 		height = 40
 	}
@@ -114,8 +109,8 @@ func (q *qrLogin) writeJSON(data any) error {
 }
 
 type raHello struct {
-	TimeoutMs         int    `json:"timeout_ms"`
-	HeartbeatInterval int    `json:"heartbeat_interval"`
+	TimeoutMs         int `json:"timeout_ms"`
+	HeartbeatInterval int `json:"heartbeat_interval"`
 }
 
 type raNonceProof struct {
@@ -139,7 +134,7 @@ func (q *qrLogin) run(ctx context.Context) {
 
 	setText := func(s string) {
 		q.app.QueueUpdateDraw(func() {
-			q.view.SetText(q.centerText(s))
+			q.SetText(q.centerText(s))
 		})
 	}
 
@@ -395,7 +390,7 @@ func exchangeTicket(ctx context.Context, ticket string, fingerprint string, priv
 	if err != nil {
 		return "", err
 	}
-	req, err := stdhttp.NewRequestWithContext(ctx, stdhttp.MethodPost, remoteAuthLogin, bytes.NewReader(raw))
+	req, err := stdhttp.NewRequestWithContext(ctx, stdhttp.MethodPost, endpointRemoteAuthLogin, bytes.NewReader(raw))
 	if err != nil {
 		return "", err
 	}
