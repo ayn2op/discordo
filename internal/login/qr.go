@@ -26,6 +26,8 @@ import (
 	"github.com/skip2/go-qrcode"
 )
 
+const gatewayURL = "wss://remote-auth-gateway.discord.gg/?v=2"
+
 type qrLogin struct {
 	*tview.Flex
 	app         *tview.Application
@@ -171,8 +173,7 @@ func (q *qrLogin) run(ctx context.Context) {
 		EnableCompression: true,
 	}
 
-	wsURL := "wss://remote-auth-gateway.discord.gg/?v=2"
-	conn, resp, err := dialer.DialContext(ctx, wsURL, headers)
+	conn, resp, err := dialer.DialContext(ctx, gatewayURL, headers)
 	if err != nil {
 		var body []byte
 		if resp != nil && resp.Body != nil {
