@@ -406,11 +406,7 @@ func exchangeTicket(ctx context.Context, ticket string, fingerprint string, priv
 		return "", err
 	}
 
-	for k, vv := range apphttp.Headers() {
-		for _, v := range vv {
-			req.Header.Add(k, v)
-		}
-	}
+	req.Header = apphttp.Headers()
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", apphttp.BrowserUserAgent)
 	if fingerprint != "" {
