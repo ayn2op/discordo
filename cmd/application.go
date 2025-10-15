@@ -51,7 +51,7 @@ func newApplication(cfg *config.Config) *application {
 
 func (a *application) run(token string) error {
 	if token == "" {
-		loginForm := login.NewForm(a.cfg, func(token string) {
+		loginForm := login.NewForm(a.Application, a.cfg, func(token string) {
 			if err := a.run(token); err != nil {
 				slog.Error("failed to run application", "err", err)
 			}

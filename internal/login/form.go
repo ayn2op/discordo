@@ -17,20 +17,23 @@ import (
 const (
 	formPageName  = "form"
 	errorPageName = "error"
+	qrPageName    = "qr"
 )
 
 type DoneFn = func(token string)
 
 type Form struct {
 	*tview.Pages
+	app  *tview.Application
 	cfg  *config.Config
 	form *tview.Form
 	done DoneFn
 }
 
-func NewForm(cfg *config.Config, done DoneFn) *Form {
+func NewForm(app *tview.Application, cfg *config.Config, done DoneFn) *Form {
 	f := &Form{
 		Pages: tview.NewPages(),
+		app:   app,
 		cfg:   cfg,
 		form:  tview.NewForm(),
 		done:  done,
@@ -40,7 +43,8 @@ func NewForm(cfg *config.Config, done DoneFn) *Form {
 		AddInputField("Email", "", 0, nil, nil).
 		AddPasswordField("Password", "", 0, 0, nil).
 		AddPasswordField("Code (optional)", "", 0, 0, nil).
-		AddButton("Login", f.login)
+		AddButton("Login", f.login).
+		AddButton("Login with QR", f.loginWithQR)
 	f.AddAndSwitchToPage(formPageName, f.form, true)
 	return f
 }
@@ -113,4 +117,27 @@ func (f *Form) onError(err error) {
 	f.
 		AddAndSwitchToPage(errorPageName, ui.Centered(modal, 0, 0), true).
 		ShowPage(formPageName)
+}
+
+func (f *Form) loginWithQR() {
+	qr := newQRLogin(f.app, f.cfg, func(token string, err error) {
+		if err != nil {
+			f.onError(err)
+			return
+		}
+
+		if token == "" {
+			f.RemovePage(qrPageName).SwitchToPage(formPageName)
+			return
+		}
+
+		go keyring.Set(consts.Name, "token", token)
+		f.RemovePage(qrPageName)
+		if f.done != nil {
+			f.done(token)
+		}
+	})
+
+	f.AddAndSwitchToPage(qrPageName, qr, true)
+	qr.start()
 }
