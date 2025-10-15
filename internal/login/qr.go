@@ -106,6 +106,10 @@ func (q *qrLogin) stop() {
 	}
 }
 
+func (q *qrLogin) writeJSON(data any) error {
+	return q.conn.WriteJSON(data)
+}
+
 type raHello struct {
 	TimeoutMs         int    `json:"timeout_ms"`
 	HeartbeatInterval int    `json:"heartbeat_interval"`
@@ -179,10 +183,6 @@ func (q *qrLogin) run(ctx context.Context) {
 	}
 	q.conn = conn
 
-	write := func(v any) error {
-		return q.conn.WriteJSON(v)
-	}
-
 	readCh := make(chan []byte, 1)
 	readErr := make(chan error, 1)
 	go func() {
@@ -240,13 +240,13 @@ func (q *qrLogin) run(ctx context.Context) {
 							case <-ctx.Done():
 								return
 							case <-heartbeatTicker.C:
-								_ = write(map[string]any{"op": "heartbeat"})
+								_ = q.writeJSON(map[string]any{"op": "heartbeat"})
 							}
 						}
 					}()
 				}
 				setText("Connected. Handshaking...\n\n[::d]Press Esc to cancel[-]")
-				if err := write(map[string]any{
+				if err := q.writeJSON(map[string]any{
 					"op":                 "init",
 					"encoded_public_key": encodedPublicKey,
 				}); err != nil {
@@ -274,7 +274,7 @@ func (q *qrLogin) run(ctx context.Context) {
 					return
 				}
 				nonce := base64.RawURLEncoding.EncodeToString(pt)
-				if err := write(map[string]any{"op": "nonce_proof", "nonce": nonce}); err != nil {
+				if err := q.writeJSON(map[string]any{"op": "nonce_proof", "nonce": nonce}); err != nil {
 					setText("[red]Nonce send failed:[-] " + err.Error())
 					q.fail(err)
 					return
