@@ -420,34 +420,26 @@ func exchangeTicket(ctx context.Context, ticket string, fingerprint string, priv
 		return "", fmt.Errorf("remote-auth login failed: %s: %s", resp.Status, string(b))
 	}
 
-	b, err := io.ReadAll(resp.Body)
+	decoder := json.NewDecoder(resp.Body)
+
+	var out struct {
+		EncryptedToken string `json:"encrypted_token"`
+	}
+	if err := decoder.Decode(&out); err != nil {
+		return "", err
+	}
+	if out.EncryptedToken == "" {
+		return "", fmt.Errorf("no encrypted_token in response")
+	}
+	enc, err := base64.StdEncoding.DecodeString(out.EncryptedToken)
 	if err != nil {
 		return "", err
 	}
-
-	var out struct {
-		Token string `json:"token"`
+	pt, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, priv, enc, nil)
+	if err != nil {
+		return "", err
 	}
-	if json.Unmarshal(b, &out) == nil && out.Token != "" {
-		return out.Token, nil
-	}
-
-	var alt struct {
-		EncryptedToken string `json:"encrypted_token"`
-	}
-	if json.Unmarshal(b, &alt) == nil && alt.EncryptedToken != "" {
-		enc, err := base64.StdEncoding.DecodeString(alt.EncryptedToken)
-		if err != nil {
-			return "", err
-		}
-		pt, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, priv, enc, nil)
-		if err != nil {
-			return "", err
-		}
-		return string(pt), nil
-	}
-
-	return "", fmt.Errorf("no token in response: %s", string(b))
+	return string(pt), nil
 }
 
 func (q *qrLogin) success(token string) {
