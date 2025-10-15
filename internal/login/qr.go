@@ -366,7 +366,7 @@ func renderQR(content string) (string, error) {
 	bm := code.Bitmap()
 	var b strings.Builder
 	for y := 0; y < len(bm); y += 2 {
-		for x := 0; x < len(bm); x++ {
+		for x := range bm[y] {
 			top := bm[y][x]
 			bottom := false
 			if y+1 < len(bm) {
