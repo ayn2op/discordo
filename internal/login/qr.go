@@ -395,7 +395,7 @@ func exchangeTicket(ctx context.Context, ticket string, fingerprint string, priv
 	if err != nil {
 		return "", err
 	}
-	req, err := stdhttp.NewRequestWithContext(ctx, stdhttp.MethodPost, url, bytes.NewReader(raw))
+	req, err := stdhttp.NewRequestWithContext(ctx, stdhttp.MethodPost, remoteAuthLogin, bytes.NewReader(raw))
 	if err != nil {
 		return "", err
 	}
