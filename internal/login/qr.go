@@ -29,7 +29,7 @@ import (
 const gatewayURL = "wss://remote-auth-gateway.discord.gg/?v=2"
 
 type qrLogin struct {
-	*tview.Flex
+	*tview.TextView
 	app         *tview.Application
 	cfg         *config.Config
 	view        *tview.TextView
@@ -49,17 +49,13 @@ func newQRLogin(app *tview.Application, cfg *config.Config, done func(token stri
 	view.Box = ui.ConfigureBox(view.Box, &cfg.Theme)
 	view.SetTitle("Login with QR")
 
-	flex := tview.NewFlex().
-		SetDirection(tview.FlexRow).
-		AddItem(view, 0, 1, true)
-
 	q := &qrLogin{
 		app:  app,
 		cfg:  cfg,
 		view: view,
 		done: done,
 	}
-	q.Flex = flex
+	q.TextView = view
 
 	view.SetChangedFunc(func() {
 		q.app.QueueUpdateDraw(func() {})
