@@ -111,28 +111,23 @@ func (q *qrLogin) stop() {
 }
 
 type raHello struct {
-	Op                string `json:"op"`
 	TimeoutMs         int    `json:"timeout_ms"`
 	HeartbeatInterval int    `json:"heartbeat_interval"`
 }
 
 type raNonceProof struct {
-	Op             string `json:"op"`
 	EncryptedNonce string `json:"encrypted_nonce"`
 }
 
 type raPendingInit struct {
-	Op          string `json:"op"`
 	Fingerprint string `json:"fingerprint"`
 }
 
 type raPendingLogin struct {
-	Op     string `json:"op"`
 	Ticket string `json:"ticket"`
 }
 
 type raPendingTicket struct {
-	Op                   string `json:"op"`
 	EncryptedUserPayload string `json:"encrypted_user_payload"`
 }
 
