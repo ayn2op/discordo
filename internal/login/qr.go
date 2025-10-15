@@ -390,7 +390,6 @@ func exchangeTicket(ctx context.Context, ticket string, fingerprint string, priv
 	if ticket == "" {
 		return "", errors.New("empty ticket")
 	}
-	url := remoteAuthLogin
 	body := map[string]string{"ticket": ticket}
 	raw, err := json.Marshal(body)
 	if err != nil {
