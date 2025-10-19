@@ -78,8 +78,7 @@ func newMessageInput(cfg *config.Config) *messageInput {
 	mi.mentionsList.
 		ShowSecondaryText(false).
 		SetSelectedStyle(tcell.StyleDefault.Background(tcell.ColorWhite).Foreground(tcell.ColorBlack)).
-		SetTitle("Mentions").
-		SetRect(0, 0, 0, 0)
+		SetTitle("Mentions")
 
 	b := mi.mentionsList.GetBorderSet()
 	b.BottomLeft, b.BottomRight = b.BottomT, b.BottomT
@@ -151,7 +150,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 func (mi *messageInput) paste() {
 	if data := clipboard.Read(clipboard.FmtImage); data != nil {
 		name := "clipboard.png"
-		mi.attach(name, sendpart.File{Name: name, Reader: bytes.NewReader(data)})
+		mi.attach(name, bytes.NewReader(data))
 	}
 }
 
@@ -523,11 +522,11 @@ func (mi *messageInput) openFilePicker() {
 		}
 
 		name := filepath.Base(path)
-		mi.attach(name, sendpart.File{Name: name, Reader: file})
+		mi.attach(name, file)
 	}
 }
 
-func (mi *messageInput) attach(name string, file sendpart.File) {
-	mi.sendMessageData.Files = append(mi.sendMessageData.Files, file)
+func (mi *messageInput) attach(name string, reader io.Reader) {
+	mi.sendMessageData.Files = append(mi.sendMessageData.Files, sendpart.File{Name: name, Reader: reader})
 	mi.addTitle("Attached " + name)
 }
