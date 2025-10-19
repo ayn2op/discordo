@@ -210,7 +210,7 @@ func processText(cID discord.ChannelID, src []byte) string {
 
 	ast.Walk(discordmd.Parse(src), func(node ast.Node, enter bool) (ast.WalkStatus, error) {
 		switch node := node.(type) {
-		case *ast.CodeBlock:
+		case *ast.CodeBlock, *ast.FencedCodeBlock:
 			canMention = !enter
 		case *discordmd.Inline:
 			if (node.Attr & discordmd.AttrMonospace) != 0 {
