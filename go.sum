@@ -191,8 +191,8 @@ golang.org/x/exp v0.0.0-20191030013958-a1ab85dbe136/go.mod h1:JXzH8nQsPlswgeRAPE
 golang.org/x/exp v0.0.0-20191129062945-2f5052295587/go.mod h1:2RIsYlXP63K8oxa1u096TMicItID8zy7Y6sNkU49FU4=
 golang.org/x/exp v0.0.0-20191227195350-da58074b4299/go.mod h1:2RIsYlXP63K8oxa1u096TMicItID8zy7Y6sNkU49FU4=
 golang.org/x/exp v0.0.0-20200207192155-f17229e696bd/go.mod h1:J/WKrq2StrnmMY6+EHIKF9dgMWnmCNThgcyBT1FY9mM=
-golang.org/x/exp/shiny v0.0.0-20251009144603-d2f985daa21b h1:lv/t6E0k4z4dh3SBdRosNoyh0NzLB33QXTz9yrszOks=
-golang.org/x/exp/shiny v0.0.0-20251009144603-d2f985daa21b/go.mod h1:QMAAUorQ8fzCK0C6mr4X4XV9BEp7Al6+jlejJvfYKw4=
+golang.org/x/exp/shiny v0.0.0-20251017212417-90e834f514db h1:NmsmaSkEAq6A8r0Q78WxD0IygJNCs6J3uYDgNuPkXYM=
+golang.org/x/exp/shiny v0.0.0-20251017212417-90e834f514db/go.mod h1:QMAAUorQ8fzCK0C6mr4X4XV9BEp7Al6+jlejJvfYKw4=
 golang.org/x/image v0.0.0-20190227222117-0694c2d4d067/go.mod h1:kZ7UVZpmo3dzQBMxlp+ypCbDeSB+sBbTgSJuh5dn5js=
 golang.org/x/image v0.0.0-20190802002840-cff245a6509b/go.mod h1:FeLwcggjj3mMvU+oOTbSwawSJRM1uh48EjtB4UJZlP0=
 golang.org/x/image v0.32.0 h1:6lZQWq75h7L5IWNk0r+SCpUJ6tUVd3v4ZHnbRKLkUDQ=
