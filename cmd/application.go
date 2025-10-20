@@ -42,7 +42,7 @@ func newApplication(cfg *config.Config) *application {
 		messageInput: newMessageInput(cfg),
 	}
 
-	app.flex.SetInputCapture(app.onFlexInputCapture)
+	app.pages.SetInputCapture(app.onPagesInputCapture)
 	app.
 		EnableMouse(cfg.Mouse).
 		SetInputCapture(app.onInputCapture)
@@ -121,7 +121,7 @@ func (a *application) toggleGuildsTree() {
 	}
 }
 
-func (a *application) onFlexInputCapture(event *tcell.EventKey) *tcell.EventKey {
+func (a *application) onPagesInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case a.cfg.Keys.FocusGuildsTree:
 		a.messageInput.removeMentionsList()
