@@ -5,8 +5,7 @@ import (
 	"net/http"
 
 	"github.com/andybalholm/brotli"
-	"github.com/klauspost/compress/gzip"
-	"github.com/klauspost/compress/zstd"
+	"github.com/klauspost/compress/gzhttp"
 )
 
 type Transport struct {
@@ -15,7 +14,7 @@ type Transport struct {
 
 func NewTransport() *Transport {
 	return &Transport{
-		base: http.DefaultTransport,
+		base: gzhttp.Transport(http.DefaultTransport, gzhttp.TransportAlwaysDecompress(true)),
 	}
 }
 
@@ -25,27 +24,12 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 		return nil, err
 	}
 
-	switch resp.Header.Get("Content-Encoding") {
-	case "gzip":
-		resp.Body, err = gzip.NewReader(resp.Body)
-		if err != nil {
-			resp.Body.Close()
-			return nil, err
-		}
-
-		resp.Header.Del("Content-Encoding")
-	case "zstd":
-		decoder, err := zstd.NewReader(resp.Body)
-		if err != nil {
-			resp.Body.Close()
-			return nil, err
-		}
-
-		resp.Body = io.NopCloser(decoder)
-		resp.Header.Del("Content-Encoding")
-	case "br":
+	if resp.Header.Get("Content-Encoding") == "br" {
 		resp.Body = io.NopCloser(brotli.NewReader(resp.Body))
 		resp.Header.Del("Content-Encoding")
+		resp.Header.Del("Content-Length")
+		resp.ContentLength = -1
+		resp.Uncompressed = true
 	}
 
 	return resp, nil
