@@ -30,10 +30,11 @@ func IdentifyProperties() gateway.IdentifyProperties {
 		"browser_version":       BrowserVersion,
 		"browser_user_agent":    BrowserUserAgent,
 
-		"client_build_number": 447677,
-		"client_event_source": nil,
-		"client_launch_id":    uuid.NewString(),
-		"client_app_state":    "focused",
+		"client_build_number":         447677,
+		"client_event_source":         nil,
+		"client_app_state":            "focused",
+		"client_launch_id":            uuid.NewString(),
+		"client_heartbeat_session_id": uuid.NewString(),
 
 		"launch_signature": uuid.NewString(),
 		"system_locale":    Locale,
