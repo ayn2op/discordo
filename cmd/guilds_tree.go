@@ -172,6 +172,35 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 			return
 		}
 
+		// Handle forum channels differently - they contain threads, not direct messages
+		if channel.Type == discord.GuildForum {
+			// Get all channels from the guild - this includes active threads from GuildCreateEvent
+			allChannels, err := discordState.Cabinet.Channels(channel.GuildID)
+			if err != nil {
+				slog.Error("failed to get channels for forum threads", "err", err, "guild_id", channel.GuildID)
+				return
+			}
+
+			// Filter for threads that belong to this forum channel
+			var forumThreads []discord.Channel
+			for _, ch := range allChannels {
+				if ch.ParentID == channel.ID && (ch.Type == discord.GuildPublicThread ||
+					ch.Type == discord.GuildPrivateThread ||
+					ch.Type == discord.GuildAnnouncementThread) {
+					forumThreads = append(forumThreads, ch)
+				}
+			}
+
+			// Add threads as child nodes
+			for _, thread := range forumThreads {
+				gt.createChannelNode(node, thread)
+			}
+
+			// Expand the node to show threads
+			node.SetExpanded(true)
+			return
+		}
+
 		go discordState.ReadState.MarkRead(channel.ID, channel.LastMessageID)
 
 		messages, err := discordState.Messages(channel.ID, uint(gt.cfg.MessagesLimit))
