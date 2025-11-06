@@ -37,6 +37,9 @@ only_on_ping = true
 focus_guilds_tree = "Ctrl+G"
 focus_messages_list = "Ctrl+T"
 focus_message_input = "Ctrl+Space"
+# Cycle focus between the widgets.
+focus_previous = "Ctrl+H"
+focus_next = "Ctrl+L"
 # Hide/show the guilds tree.
 toggle_guilds_tree = "Ctrl+B"
 quit = "Ctrl+C"
