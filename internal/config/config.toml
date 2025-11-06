@@ -38,8 +38,8 @@ focus_guilds_tree = "Ctrl+G"
 focus_messages_list = "Ctrl+T"
 focus_message_input = "Ctrl+Space"
 # Cycle between pages
-focus_cycle_previous = "Ctrl+H"
-focus_cycle_next = "Ctrl+L"
+focus_previous = "Ctrl+H"
+focus_next = "Ctrl+L"
 # Hide/show the guilds tree.
 toggle_guilds_tree = "Ctrl+B"
 quit = "Ctrl+C"

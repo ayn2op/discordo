@@ -137,7 +137,7 @@ func (a *application) onPagesInputCapture(event *tcell.EventKey) *tcell.EventKey
 	case a.cfg.Keys.FocusMessageInput:
 		a.SetFocus(a.messageInput)
 		return nil
-	case a.cfg.Keys.FocusCyclePrevious:
+	case a.cfg.Keys.FocusPrevious:
 		if a.guildsTree.HasFocus() {
 			a.SetFocus(a.messageInput)
 		} else if a.messageInput.HasFocus() {
@@ -150,7 +150,7 @@ func (a *application) onPagesInputCapture(event *tcell.EventKey) *tcell.EventKey
 			}
 		}
 		return nil
-	case a.cfg.Keys.FocusCycleNext:
+	case a.cfg.Keys.FocusNext:
 		if a.guildsTree.HasFocus() {
 			a.SetFocus(a.messagesList)
 		} else if a.messagesList.HasFocus() {
