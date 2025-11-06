@@ -137,6 +137,32 @@ func (a *application) onPagesInputCapture(event *tcell.EventKey) *tcell.EventKey
 	case a.cfg.Keys.FocusMessageInput:
 		a.SetFocus(a.messageInput)
 		return nil
+	case a.cfg.Keys.FocusCyclePrevious:
+		if a.guildsTree.HasFocus() {
+			a.SetFocus(a.messageInput)
+		} else if a.messageInput.HasFocus() {
+			a.SetFocus(a.messagesList)
+		} else {
+			if a.flex.GetItemCount() == 2 {
+				a.SetFocus(a.guildsTree)
+			} else {
+				a.SetFocus(a.messageInput)
+			}
+		}
+		return nil
+	case a.cfg.Keys.FocusCycleNext:
+		if a.guildsTree.HasFocus() {
+			a.SetFocus(a.messagesList)
+		} else if a.messagesList.HasFocus() {
+			a.SetFocus(a.messageInput)
+		} else {
+			if a.flex.GetItemCount() == 2 {
+				a.SetFocus(a.guildsTree)
+			} else {
+				a.SetFocus(a.messagesList)
+			}
+		}
+		return nil
 	case a.cfg.Keys.Logout:
 		a.quit()
 
