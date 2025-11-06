@@ -108,27 +108,11 @@ func (a *application) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	return event
 }
 
-func (a *application) toggleGuildsTree() {
-	// The guilds tree is visible if the number of items is two.
-	if a.flex.GetItemCount() == 2 {
-		a.flex.RemoveItem(a.guildsTree)
-		if a.guildsTree.HasFocus() {
-			a.SetFocus(a.flex)
-		}
-	} else {
-		a.init()
-		a.SetFocus(a.guildsTree)
-	}
-}
-
 func (a *application) onPagesInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case a.cfg.Keys.FocusGuildsTree:
 		a.messageInput.removeMentionsList()
-		// The guilds tree is not hidden if the number of items is two.
-		if a.flex.GetItemCount() == 2 {
-			a.SetFocus(a.guildsTree)
-		}
+		_ = a.focusGuildsTree()
 		return nil
 	case a.cfg.Keys.FocusMessagesList:
 		a.messageInput.removeMentionsList()
@@ -138,32 +122,10 @@ func (a *application) onPagesInputCapture(event *tcell.EventKey) *tcell.EventKey
 		a.SetFocus(a.messageInput)
 		return nil
 	case a.cfg.Keys.FocusPrevious:
-		switch a.GetFocus() {
-		case a.guildsTree:
-			a.SetFocus(a.messageInput)
-		case a.messageInput:
-			a.SetFocus(a.messagesList)
-		default: // Handle both a.messagesList and a.flex as well as other edge cases (if there is).
-			if a.flex.GetItemCount() == 2 {
-				a.SetFocus(a.guildsTree)
-			} else { // If there is no guild tree, the correct previous page is message input.
-				a.SetFocus(a.messageInput)
-			}
-		}
+		a.focusPrevious()
 		return nil
 	case a.cfg.Keys.FocusNext:
-		switch a.GetFocus() {
-		case a.guildsTree:
-			a.SetFocus(a.messagesList)
-		case a.messagesList:
-			a.SetFocus(a.messageInput)
-		default: // Handle both a.messageInput and a.flex as well as other edge cases (if there is).
-			if a.flex.GetItemCount() == 2 {
-				a.SetFocus(a.guildsTree)
-			} else { // If there is no guild tree, the correct next page is message input.
-				a.SetFocus(a.messagesList)
-			}
-		}
+		a.focusNext()
 		return nil
 	case a.cfg.Keys.Logout:
 		a.quit()
@@ -180,6 +142,55 @@ func (a *application) onPagesInputCapture(event *tcell.EventKey) *tcell.EventKey
 	}
 
 	return event
+}
+
+func (a *application) toggleGuildsTree() {
+	// The guilds tree is visible if the number of items is two.
+	if a.flex.GetItemCount() == 2 {
+		a.flex.RemoveItem(a.guildsTree)
+		if a.guildsTree.HasFocus() {
+			a.SetFocus(a.flex)
+		}
+	} else {
+		a.init()
+		a.SetFocus(a.guildsTree)
+	}
+}
+
+func (a *application) focusGuildsTree() bool {
+	// The guilds tree is not hidden if the number of items is two.
+	if a.flex.GetItemCount() == 2 {
+		a.SetFocus(a.guildsTree)
+		return true
+	}
+
+	return false
+}
+
+func (a *application) focusPrevious() {
+	switch a.GetFocus() {
+	case a.guildsTree:
+		a.SetFocus(a.messageInput)
+	case a.messagesList: // Handle both a.messagesList and a.flex as well as other edge cases (if there is).
+		if ok := a.focusGuildsTree(); !ok {
+			a.SetFocus(a.messageInput)
+		}
+	case a.messageInput:
+		a.SetFocus(a.messagesList)
+	}
+}
+
+func (a *application) focusNext() {
+	switch a.GetFocus() {
+	case a.guildsTree:
+		a.SetFocus(a.messagesList)
+	case a.messagesList:
+		a.SetFocus(a.messageInput)
+	case a.messageInput: // Handle both a.messageInput and a.flex as well as other edge cases (if there is).
+		if ok := a.focusGuildsTree(); !ok {
+			a.SetFocus(a.messagesList)
+		}
+	}
 }
 
 func (a *application) showConfirmModal(prompt string, buttons []string, onDone func(label string)) {
