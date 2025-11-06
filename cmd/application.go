@@ -138,27 +138,29 @@ func (a *application) onPagesInputCapture(event *tcell.EventKey) *tcell.EventKey
 		a.SetFocus(a.messageInput)
 		return nil
 	case a.cfg.Keys.FocusPrevious:
-		if a.guildsTree.HasFocus() {
+		switch a.GetFocus() {
+		case a.guildsTree:
 			a.SetFocus(a.messageInput)
-		} else if a.messageInput.HasFocus() {
+		case a.messageInput:
 			a.SetFocus(a.messagesList)
-		} else {
+		default: // Handle both a.messagesList and a.flex as well as other edge cases (if there is).
 			if a.flex.GetItemCount() == 2 {
 				a.SetFocus(a.guildsTree)
-			} else {
+			} else { // If there is no guild tree, the correct previous page is message input.
 				a.SetFocus(a.messageInput)
 			}
 		}
 		return nil
 	case a.cfg.Keys.FocusNext:
-		if a.guildsTree.HasFocus() {
+		switch a.GetFocus() {
+		case a.guildsTree:
 			a.SetFocus(a.messagesList)
-		} else if a.messagesList.HasFocus() {
+		case a.messagesList:
 			a.SetFocus(a.messageInput)
-		} else {
+		default: // Handle both a.messageInput and a.flex as well as other edge cases (if there is).
 			if a.flex.GetItemCount() == 2 {
 				a.SetFocus(a.guildsTree)
-			} else {
+			} else { // If there is no guild tree, the correct next page is message input.
 				a.SetFocus(a.messagesList)
 			}
 		}
