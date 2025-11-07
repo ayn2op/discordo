@@ -5,12 +5,11 @@ import (
 	"log/slog"
 
 	"github.com/ayn2op/discordo/internal/config"
-	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/http"
+	"github.com/ayn2op/discordo/internal/keyring"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
 	"github.com/diamondburned/arikawa/v3/api"
-	"github.com/zalando/go-keyring"
 	"golang.design/x/clipboard"
 )
 
@@ -91,7 +90,7 @@ func (f *Form) login() {
 		return
 	}
 
-	go keyring.Set(consts.Name, "token", resp.Token)
+	go keyring.SetToken(resp.Token)
 
 	if f.done != nil {
 		f.done(resp.Token)
@@ -131,7 +130,8 @@ func (f *Form) loginWithQR() {
 			return
 		}
 
-		go keyring.Set(consts.Name, "token", token)
+		go keyring.SetToken(token)
+
 		f.RemovePage(qrPageName)
 		if f.done != nil {
 			f.done(token)

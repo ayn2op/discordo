@@ -8,12 +8,11 @@ import (
 	"os"
 
 	"github.com/ayn2op/discordo/internal/config"
-	"github.com/ayn2op/discordo/internal/consts"
+	"github.com/ayn2op/discordo/internal/keyring"
 	"github.com/ayn2op/discordo/internal/logger"
 	"github.com/ayn2op/tview"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/diamondburned/ningen/v3"
-	"github.com/zalando/go-keyring"
 )
 
 var (
@@ -54,7 +53,7 @@ func Run() error {
 
 	token := *tokenFlag
 	if token == "" {
-		token, err = keyring.Get(consts.Name, "token")
+		token, err = keyring.GetToken()
 		if err != nil {
 			slog.Info("failed to retrieve token from keyring", "err", err)
 		}
