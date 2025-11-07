@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log/slog"
+	"os"
 
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/consts"
@@ -21,7 +22,9 @@ var (
 )
 
 func Run() error {
-	tokenFlag := flag.String("token", "", "authentication token")
+	tokenEnvVar := os.Getenv("DISCORDO_TOKEN")
+	tokenFlag := flag.String("token", tokenEnvVar, "authentication token")
+
 	configPath := flag.String("config-path", config.DefaultPath(), "path of the configuration file")
 	logPath := flag.String("log-path", logger.DefaultPath(), "path of the log file")
 	logLevel := flag.String("log-level", "info", "log level")
