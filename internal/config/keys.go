@@ -12,6 +12,8 @@ type (
 		FocusGuildsTree   string `toml:"focus_guilds_tree"`
 		FocusMessagesList string `toml:"focus_messages_list"`
 		FocusMessageInput string `toml:"focus_message_input"`
+		FocusPrevious     string `toml:"focus_previous"`
+		FocusNext         string `toml:"focus_next"`
 		ToggleGuildsTree  string `toml:"toggle_guilds_tree"`
 
 		GuildsTree   GuildsTreeKeys   `toml:"guilds_tree"`

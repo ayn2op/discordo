@@ -4,12 +4,11 @@ import (
 	"log/slog"
 
 	"github.com/ayn2op/discordo/internal/config"
-	"github.com/ayn2op/discordo/internal/consts"
+	"github.com/ayn2op/discordo/internal/keyring"
 	"github.com/ayn2op/discordo/internal/login"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
 	"github.com/gdamore/tcell/v2"
-	"github.com/zalando/go-keyring"
 )
 
 const (
@@ -108,6 +107,42 @@ func (a *application) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	return event
 }
 
+func (a *application) onPagesInputCapture(event *tcell.EventKey) *tcell.EventKey {
+	switch event.Name() {
+	case a.cfg.Keys.FocusGuildsTree:
+		a.messageInput.removeMentionsList()
+		_ = a.focusGuildsTree()
+		return nil
+	case a.cfg.Keys.FocusMessagesList:
+		a.messageInput.removeMentionsList()
+		a.SetFocus(a.messagesList)
+		return nil
+	case a.cfg.Keys.FocusMessageInput:
+		a.SetFocus(a.messageInput)
+		return nil
+	case a.cfg.Keys.FocusPrevious:
+		a.focusPrevious()
+		return nil
+	case a.cfg.Keys.FocusNext:
+		a.focusNext()
+		return nil
+	case a.cfg.Keys.Logout:
+		a.quit()
+
+		if err := keyring.DeleteToken(); err != nil {
+			slog.Error("failed to delete token from keyring", "err", err)
+			return nil
+		}
+
+		return nil
+	case a.cfg.Keys.ToggleGuildsTree:
+		a.toggleGuildsTree()
+		return nil
+	}
+
+	return event
+}
+
 func (a *application) toggleGuildsTree() {
 	// The guilds tree is visible if the number of items is two.
 	if a.flex.GetItemCount() == 2 {
@@ -121,37 +156,40 @@ func (a *application) toggleGuildsTree() {
 	}
 }
 
-func (a *application) onPagesInputCapture(event *tcell.EventKey) *tcell.EventKey {
-	switch event.Name() {
-	case a.cfg.Keys.FocusGuildsTree:
-		a.messageInput.removeMentionsList()
-		// The guilds tree is not hidden if the number of items is two.
-		if a.flex.GetItemCount() == 2 {
-			a.SetFocus(a.guildsTree)
-		}
-		return nil
-	case a.cfg.Keys.FocusMessagesList:
-		a.messageInput.removeMentionsList()
-		a.SetFocus(a.messagesList)
-		return nil
-	case a.cfg.Keys.FocusMessageInput:
-		a.SetFocus(a.messageInput)
-		return nil
-	case a.cfg.Keys.Logout:
-		a.quit()
-
-		if err := keyring.Delete(consts.Name, "token"); err != nil {
-			slog.Error("failed to delete token from keyring", "err", err)
-			return nil
-		}
-
-		return nil
-	case a.cfg.Keys.ToggleGuildsTree:
-		a.toggleGuildsTree()
-		return nil
+func (a *application) focusGuildsTree() bool {
+	// The guilds tree is not hidden if the number of items is two.
+	if a.flex.GetItemCount() == 2 {
+		a.SetFocus(a.guildsTree)
+		return true
 	}
 
-	return event
+	return false
+}
+
+func (a *application) focusPrevious() {
+	switch a.GetFocus() {
+	case a.guildsTree:
+		a.SetFocus(a.messageInput)
+	case a.messagesList: // Handle both a.messagesList and a.flex as well as other edge cases (if there is).
+		if ok := a.focusGuildsTree(); !ok {
+			a.SetFocus(a.messageInput)
+		}
+	case a.messageInput:
+		a.SetFocus(a.messagesList)
+	}
+}
+
+func (a *application) focusNext() {
+	switch a.GetFocus() {
+	case a.guildsTree:
+		a.SetFocus(a.messagesList)
+	case a.messagesList:
+		a.SetFocus(a.messageInput)
+	case a.messageInput: // Handle both a.messageInput and a.flex as well as other edge cases (if there is).
+		if ok := a.focusGuildsTree(); !ok {
+			a.SetFocus(a.messagesList)
+		}
+	}
 }
 
 func (a *application) showConfirmModal(prompt string, buttons []string, onDone func(label string)) {
