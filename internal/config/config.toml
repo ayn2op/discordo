@@ -170,6 +170,11 @@ auto_expand_folders = true
 # Give tree-like shape
 graphics = true
 graphics_color = "default"
+folder_items_indentation = 2
+category_indentation = 1
+channel_indentation = 2
+groupdm_indentation = 1
+dm_indentation = 2
 
 [theme.messages_list]
 reply_indicator = ">"
