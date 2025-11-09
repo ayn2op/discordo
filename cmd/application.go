@@ -44,7 +44,8 @@ func newApplication(cfg *config.Config) *application {
 	app.pages.SetInputCapture(app.onPagesInputCapture)
 	app.
 		EnableMouse(cfg.Mouse).
-		SetInputCapture(app.onInputCapture)
+		SetInputCapture(app.onInputCapture).
+		EnablePaste(true)
 	return app
 }
 
