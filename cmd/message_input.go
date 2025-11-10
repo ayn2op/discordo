@@ -73,6 +73,10 @@ func newMessageInput(cfg *config.Config) *messageInput {
 
 	mi.Box = ui.ConfigureBox(mi.Box, &cfg.Theme)
 	mi.SetInputCapture(mi.onInputCapture)
+	mi.
+		SetPlaceholder("Select a channel to start chatting").
+		SetPlaceholderStyle(tcell.StyleDefault.Dim(true)).
+		SetDisabled(true)
 
 	mi.mentionsList.Box = ui.ConfigureBox(mi.mentionsList.Box, &mi.cfg.Theme)
 	mi.mentionsList.
@@ -83,11 +87,6 @@ func newMessageInput(cfg *config.Config) *messageInput {
 	b := mi.mentionsList.GetBorderSet()
 	b.BottomLeft, b.BottomRight = b.BottomT, b.BottomT
 	mi.mentionsList.SetBorderSet(b)
-
-	mi.TextArea.
-		SetPlaceholder("Select a channel to start chatting").
-		SetPlaceholderStyle(tcell.StyleDefault.Dim(true)).
-		SetDisabled(true)
 
 	return mi
 }
