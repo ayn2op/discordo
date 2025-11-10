@@ -194,7 +194,7 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 		if hasNoPerm {
 			app.messageInput.SetPlaceholder("You do not have permission to send messages in this channel.")
 		} else {
-			app.messageInput.SetPlaceholder("Message " + ui.ChannelToString(*channel))
+			app.messageInput.SetPlaceholder("Message...")
 			app.SetFocus(app.messageInput)
 		}
 
