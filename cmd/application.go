@@ -119,7 +119,9 @@ func (a *application) onPagesInputCapture(event *tcell.EventKey) *tcell.EventKey
 		a.SetFocus(a.messagesList)
 		return nil
 	case a.cfg.Keys.FocusMessageInput:
-		a.SetFocus(a.messageInput)
+		if !a.messageInput.GetDisabled() {
+			a.SetFocus(a.messageInput)
+		}
 		return nil
 	case a.cfg.Keys.FocusPrevious:
 		a.focusPrevious()

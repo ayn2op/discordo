@@ -84,6 +84,11 @@ func newMessageInput(cfg *config.Config) *messageInput {
 	b.BottomLeft, b.BottomRight = b.BottomT, b.BottomT
 	mi.mentionsList.SetBorderSet(b)
 
+	mi.TextArea.
+		SetPlaceholder("Select a channel to start chatting").
+		SetPlaceholderStyle(tcell.StyleDefault.Dim(true)).
+		SetDisabled(true)
+
 	return mi
 }
 

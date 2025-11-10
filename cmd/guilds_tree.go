@@ -189,12 +189,17 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 		app.messagesList.drawMessages(messages)
 		app.messagesList.ScrollToEnd()
 
-		hasPerm := channel.Type != discord.DirectMessage && channel.Type != discord.GroupDM && !discordState.HasPermissions(channel.ID, discord.PermissionSendMessages)
-		app.messageInput.SetDisabled(hasPerm)
+		hasNoPerm := channel.Type != discord.DirectMessage && channel.Type != discord.GroupDM && !discordState.HasPermissions(channel.ID, discord.PermissionSendMessages)
+		app.messageInput.SetDisabled(hasNoPerm)
+		if hasNoPerm {
+			app.messageInput.SetPlaceholder("You do not have permission to send messages in this channel.")
+		} else {
+			app.messageInput.SetPlaceholder("Message...")
+			app.SetFocus(app.messageInput)
+		}
 
 		gt.selectedChannelID = channel.ID
 		gt.selectedGuildID = channel.GuildID
-		app.SetFocus(app.messageInput)
 	case nil: // Direct messages
 		channels, err := discordState.PrivateChannels()
 		if err != nil {
