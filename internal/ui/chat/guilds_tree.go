@@ -110,12 +110,16 @@ func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Ch
 }
 
 func (gt *guildsTree) createChannelNodes(node *tview.TreeNode, channels []discord.Channel) {
+	// Category-less channels last so they appear first
 	for _, channel := range channels {
-		if channel.Type != discord.GuildCategory && !channel.ParentID.IsValid() {
-			if cn := gt.createChannelNode(node, channel); cn != nil {
-				cn.SetIndent(gt.cfg.Theme.GuildsTree.ChannelIndent)
-			}
+		if channel.ParentID.IsValid() || channel.Type == discord.GuildCategory {
+			continue
 		}
+		if cn := gt.createChannelNode(node, channel); cn != nil {
+			cn.SetIndent(gt.cfg.Theme.GuildsTree.ChannelIndent)
+		}
+	}
+	for _, channel := range channels {
 		if channel.Type != discord.GuildCategory {
 			continue
 		}
