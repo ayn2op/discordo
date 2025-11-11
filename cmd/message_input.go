@@ -164,18 +164,13 @@ func (mi *messageInput) send() {
 		return
 	}
 
-	text = processText(app.guildsTree.selectedChannelID, []byte(text))
+	text = processMessageText(app.guildsTree.selectedChannelID, []byte(text))
 	if text == "" {
 		return
 	}
 
 	if mi.edit {
-		m, err := app.messagesList.selectedMessage()
-		if err != nil {
-			slog.Error("failed to get selected message", "err", err)
-			return
-		}
-
+		m := app.messagesList.GetHighlightedItem().HoldValue.(discord.Message)
 		data := api.EditMessageData{Content: option.NewNullableString(text)}
 		if _, err := discordState.EditMessageComplex(m.ChannelID, m.ID, data); err != nil {
 			slog.Error("failed to edit message", "err", err)
@@ -198,11 +193,11 @@ func (mi *messageInput) send() {
 	}
 
 	mi.reset()
-	app.messagesList.Highlight()
+	app.messagesList.Highlight(-1)
 	app.messagesList.ScrollToEnd()
 }
 
-func processText(cID discord.ChannelID, src []byte) string {
+func processMessageText(cID discord.ChannelID, src []byte) string {
 	var (
 		ranges     [][2]int
 		canMention = true
