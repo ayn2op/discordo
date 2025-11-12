@@ -112,7 +112,7 @@ func (a *application) onPagesInputCapture(event *tcell.EventKey) *tcell.EventKey
 	switch event.Name() {
 	case a.cfg.Keys.FocusGuildsTree:
 		a.messageInput.removeMentionsList()
-		_ = a.focusGuildsTree()
+		a.focusGuildsTree()
 		return nil
 	case a.cfg.Keys.FocusMessagesList:
 		a.messageInput.removeMentionsList()

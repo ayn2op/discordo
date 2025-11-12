@@ -244,7 +244,7 @@ func (q *qrLogin) run(ctx context.Context) {
 							case <-ctx.Done():
 								return
 							case <-heartbeatTicker.C:
-								_ = q.writeJSON(map[string]any{"op": "heartbeat"})
+								q.writeJSON(map[string]any{"op": "heartbeat"})
 							}
 						}
 					}()
