@@ -3,7 +3,6 @@ package ui
 import (
 	"strconv"
 	"github.com/ayn2op/tview"
-	"github.com/gdamore/tcell/v2"
 )
 
 type ListItem struct {
@@ -28,23 +27,21 @@ func NewMultiLineList() *MultiLineList {
 	}
 }
 
-func (mll *MultiLineList) Draw(screen tcell.Screen) {
+func (mll *MultiLineList) DrawItems() {
 	w := mll.TextView.BatchWriter()
 	w.Clear()
+	lastIdx := len(mll.items)-1
 	for idx, item := range mll.items {
-		w.Write([]byte(`["`))
+		w.Write([]byte{'[', '"'})
 		w.Write([]byte(strconv.Itoa(idx)))
-		w.Write([]byte(`"]`))
+		w.Write([]byte{'"', ']'})
 		w.Write([]byte(item.Text))
-		w.Write([]byte("[\"\"]\n"))
+		w.Write([]byte{'[', '"', '"', ']'})
+		if idx != lastIdx {
+			w.Write([]byte{'\n'})
+		}
 	}
 	w.Close()
-	if mll.highlightedIndex < 0 {
-		mll.TextView.Highlight("")
-	} else {
-		mll.TextView.Highlight(strconv.Itoa(mll.highlightedIndex))
-	}
-	mll.TextView.Draw(screen)
 }
 
 func (mll *MultiLineList) Highlight(i int) *MultiLineList {
@@ -62,6 +59,12 @@ func (mll *MultiLineList) Highlight(i int) *MultiLineList {
 	}
 	if i > 0 && mll.items[i].HighlightFunc != nil {
 		mll.items[i].HighlightFunc(&mll.items[i], true)
+	}
+	if mll.highlightedIndex < 0 {
+		mll.TextView.Highlight("")
+	} else {
+		mll.TextView.Highlight(strconv.Itoa(mll.highlightedIndex))
+		mll.TextView.ScrollToHighlight()
 	}
 	return mll
 }

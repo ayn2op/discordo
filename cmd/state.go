@@ -148,6 +148,7 @@ func onReady(r *gateway.ReadyEvent) {
 func onMessageCreate(message *gateway.MessageCreateEvent) {
 	if app.guildsTree.selectedChannelID == message.ChannelID {
 		app.messagesList.appendMessage(message.Message)
+		app.messagesList.DrawItems()
 		app.Draw()
 	}
 

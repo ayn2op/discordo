@@ -78,6 +78,7 @@ func (ml *messagesList) appendMessages(messages []discord.Message) {
 	for _, m := range slices.Backward(messages) {
 		ml.appendMessage(m)
 	}
+	ml.DrawItems()
 }
 
 func (ml *messagesList) appendMessage(msg discord.Message) {
