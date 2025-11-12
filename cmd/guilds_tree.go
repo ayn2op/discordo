@@ -187,7 +187,7 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 		app.messagesList.reset()
 		app.messagesList.setTitle(*channel)
 		app.messagesList.drawMessages(messages)
-		app.messagesList.ScrollToEnd()
+		// app.messagesList.selectLast()
 
 		hasNoPerm := channel.Type != discord.DirectMessage && channel.Type != discord.GroupDM && !discordState.HasPermissions(channel.ID, discord.PermissionSendMessages)
 		app.messageInput.SetDisabled(hasNoPerm)

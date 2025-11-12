@@ -174,11 +174,12 @@ func (mi *messageInput) send() {
 	}
 
 	if mi.edit {
-		m, err := app.messagesList.selectedMessage()
-		if err != nil {
-			slog.Error("failed to get selected message", "err", err)
-			return
-		}
+		var m discord.Message
+		// m, err := app.messagesList.selectedMessage()
+		// if err != nil {
+		// 	slog.Error("failed to get selected message", "err", err)
+		// 	return
+		// }
 
 		data := api.EditMessageData{Content: option.NewNullableString(text)}
 		if _, err := discordState.EditMessageComplex(m.ChannelID, m.ID, data); err != nil {
@@ -202,8 +203,7 @@ func (mi *messageInput) send() {
 	}
 
 	mi.reset()
-	app.messagesList.Highlight()
-	app.messagesList.ScrollToEnd()
+	// app.messagesList.ScrollBottom()
 }
 
 func processText(cID discord.ChannelID, src []byte) string {
