@@ -29,7 +29,6 @@ import (
 	"github.com/skratchdot/open-golang/open"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/parser"
-	"github.com/yuin/goldmark/renderer"
 	"github.com/yuin/goldmark/text"
 	"golang.design/x/clipboard"
 )
@@ -38,6 +37,8 @@ type messagesList struct {
 	*tview.TextView
 	cfg               *config.Config
 	selectedMessageID discord.MessageID
+
+	renderer *markdown.Renderer
 
 	fetchingMembers struct {
 		mu    sync.Mutex
@@ -51,6 +52,7 @@ func newMessagesList(cfg *config.Config) *messagesList {
 	ml := &messagesList{
 		TextView: tview.NewTextView(),
 		cfg:      cfg,
+		renderer: markdown.NewRenderer(cfg.Theme.MessagesList),
 	}
 
 	ml.Box = ui.ConfigureBox(ml.Box, &cfg.Theme)
@@ -62,8 +64,6 @@ func newMessagesList(cfg *config.Config) *messagesList {
 		SetHighlightedFunc(ml.onHighlighted).
 		SetTitle("Messages").
 		SetInputCapture(ml.onInputCapture)
-
-	markdown.DefaultRenderer.AddOptions(renderer.WithOption("theme", cfg.Theme))
 	return ml
 }
 
@@ -168,7 +168,7 @@ func (ml *messagesList) drawContent(message discord.Message) {
 	c := []byte(tview.Escape(message.Content))
 	if app.cfg.Markdown {
 		ast := discordmd.ParseWithMessage(c, *discordState.Cabinet, &message, false)
-		markdown.DefaultRenderer.Render(ml, c, ast)
+		ml.renderer.Render(ml, c, ast)
 	} else {
 		ml.Write(c) // write the content as is
 	}
