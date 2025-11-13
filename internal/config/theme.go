@@ -136,11 +136,11 @@ type (
 		AutoExpandFolders bool   `toml:"auto_expand_folders"`
 		Graphics          bool   `toml:"graphics"`
 		GraphicsColor     string `toml:"graphics_color"`
-		FolderItemsIndent int   `toml:"folder_items_indentation"`
-		CategoryIndent    int   `toml:"category_indentation"`
-		ChannelIndent     int   `toml:"channel_indentation"`
-		GroupDMIndent     int   `toml:"groupdm_indentation"`
-		DMIndent          int   `toml:"dm_indentation"`
+		FolderItemsIndent int   `toml:"folder_items_indent"`
+		CategoryIndent    int   `toml:"category_indent"`
+		ChannelIndent     int   `toml:"channel_indent"`
+		GroupDMIndent     int   `toml:"groupdm_indent"`
+		DMIndent          int   `toml:"dm_indent"`
 	}
 
 	MessagesListTheme struct {
