@@ -59,7 +59,7 @@ func (gt *guildsTree) createFolderNode(folder gateway.GuildFolder) {
 		}
 
 		gt.createGuildNode(folderNode, *guild).
-			SetIndent(gt.cfg.Theme.GuildsTree.FolderItemsIndent)
+			SetIndent(gt.cfg.Theme.GuildsTree.GuildIndent)
 	}
 }
 
