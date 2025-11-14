@@ -57,7 +57,8 @@ func (gt *guildsTree) createFolderNode(folder gateway.GuildFolder) {
 			continue
 		}
 
-		gt.createGuildNode(folderNode, *guild)
+		gt.createGuildNode(folderNode, *guild).
+			SetIndent(gt.cfg.Theme.GuildsTree.GuildIndent)
 	}
 }
 
@@ -86,57 +87,52 @@ func (gt *guildsTree) getChannelNodeStyle(channelID discord.ChannelID) tcell.Sty
 	return gt.unreadStyle(indication)
 }
 
-func (gt *guildsTree) createGuildNode(n *tview.TreeNode, guild discord.Guild) {
+func (gt *guildsTree) createGuildNode(n *tview.TreeNode, guild discord.Guild) *tview.TreeNode {
 	guildNode := tview.NewTreeNode(guild.Name).
 		SetReference(guild.ID).
-		SetTextStyle(gt.getGuildNodeStyle(guild.ID))
+		SetTextStyle(gt.getGuildNodeStyle(guild.ID)).
+		SetIndent(1)
 	n.AddChild(guildNode)
+	return guildNode
 }
 
-func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Channel) {
+func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Channel) *tview.TreeNode {
 	if channel.Type != discord.DirectMessage && channel.Type != discord.GroupDM && !discordState.HasPermissions(channel.ID, discord.PermissionViewChannel) {
-		return
+		return nil
 	}
 
 	channelNode := tview.NewTreeNode(ui.ChannelToString(channel)).
 		SetReference(channel.ID).
 		SetTextStyle(gt.getChannelNodeStyle(channel.ID))
 	node.AddChild(channelNode)
+	return channelNode
 }
 
 func (gt *guildsTree) createChannelNodes(node *tview.TreeNode, channels []discord.Channel) {
+	// Category-less channels last so they appear first
 	for _, channel := range channels {
-		if channel.Type != discord.GuildCategory && !channel.ParentID.IsValid() {
-			gt.createChannelNode(node, channel)
+		if channel.ParentID.IsValid() || channel.Type == discord.GuildCategory {
+			continue
+		}
+		if cn := gt.createChannelNode(node, channel); cn != nil {
+			cn.SetIndent(gt.cfg.Theme.GuildsTree.ChannelIndent)
 		}
 	}
-
-PARENT_CHANNELS:
 	for _, channel := range channels {
-		if channel.Type == discord.GuildCategory {
-			for _, nested := range channels {
-				if nested.ParentID == channel.ID {
-					gt.createChannelNode(node, channel)
-					continue PARENT_CHANNELS
-				}
+		if channel.Type != discord.GuildCategory {
+			continue
+		}
+		catNode := gt.createChannelNode(node, channel)
+		if catNode == nil {
+			continue
+		}
+		catNode.SetIndent(gt.cfg.Theme.GuildsTree.CategoryIndent)
+		for _, nested := range channels {
+			if nested.ParentID != channel.ID {
+				continue
 			}
-		}
-	}
-
-	for _, channel := range channels {
-		if channel.ParentID.IsValid() {
-			var parent *tview.TreeNode
-			node.Walk(func(node, _ *tview.TreeNode) bool {
-				if node.GetReference() == channel.ParentID {
-					parent = node
-					return false
-				}
-
-				return true
-			})
-
-			if parent != nil {
-				gt.createChannelNode(parent, channel)
+			if cn := gt.createChannelNode(catNode, nested); cn != nil {
+				cn.SetIndent(gt.cfg.Theme.GuildsTree.ChannelIndent)
 			}
 		}
 	}
@@ -218,7 +214,13 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 		})
 
 		for _, c := range channels {
-			gt.createChannelNode(node, c)
+			cn := gt.createChannelNode(node, c)
+			switch c.Type {
+			case discord.DirectMessage:
+				cn.SetIndent(gt.cfg.Theme.GuildsTree.DMIndent)
+			case discord.GroupDM:
+				cn.SetIndent(gt.cfg.Theme.GuildsTree.GroupDMIndent)
+			}
 		}
 	}
 }
