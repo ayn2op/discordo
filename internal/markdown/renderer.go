@@ -10,34 +10,24 @@ import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/tview"
 	"github.com/diamondburned/ningen/v3/discordmd"
-	"github.com/gdamore/tcell/v2"
 	"github.com/yuin/goldmark/ast"
 	gmr "github.com/yuin/goldmark/renderer"
 )
 
-var DefaultRenderer = newRenderer()
-
-type renderer struct {
-	config *gmr.Config
+type Renderer struct {
+	theme config.MessagesListTheme
 
 	listIx     *int
 	listNested int
 }
 
-func newRenderer() *renderer {
-	config := gmr.NewConfig()
-	return &renderer{config: config}
+func NewRenderer(theme config.MessagesListTheme) *Renderer {
+	return &Renderer{theme: theme}
 }
 
-// AddOptions implements renderer.Renderer.
-func (r *renderer) AddOptions(opts ...gmr.Option) {
-	for _, opt := range opts {
-		opt.SetConfig(r.config)
-	}
-}
+func (r *Renderer) AddOptions(opts ...gmr.Option) {}
 
-func (r *renderer) Render(w io.Writer, source []byte, node ast.Node) error {
-	theme := r.config.Options["theme"].(config.Theme)
+func (r *Renderer) Render(w io.Writer, source []byte, node ast.Node) error {
 	return ast.Walk(node, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
 		switch node := node.(type) {
 		case *ast.Document:
@@ -49,9 +39,9 @@ func (r *renderer) Render(w io.Writer, source []byte, node ast.Node) error {
 		case *ast.FencedCodeBlock:
 			r.renderFencedCodeBlock(w, node, entering, source)
 		case *ast.AutoLink:
-			r.renderAutoLink(w, node, entering, source, theme.MessagesList.URLStyle.Style)
+			r.renderAutoLink(w, node, entering, source)
 		case *ast.Link:
-			r.renderLink(w, node, entering, theme.MessagesList.URLStyle.Style)
+			r.renderLink(w, node, entering)
 		case *ast.List:
 			r.renderList(w, node, entering)
 		case *ast.ListItem:
@@ -60,16 +50,16 @@ func (r *renderer) Render(w io.Writer, source []byte, node ast.Node) error {
 		case *discordmd.Inline:
 			r.renderInline(w, node, entering)
 		case *discordmd.Mention:
-			r.renderMention(w, node, entering, theme.MessagesList.MentionStyle.Style)
+			r.renderMention(w, node, entering)
 		case *discordmd.Emoji:
-			r.renderEmoji(w, node, entering, theme.MessagesList.EmojiStyle.Style)
+			r.renderEmoji(w, node, entering)
 		}
 
 		return ast.WalkContinue, nil
 	})
 }
 
-func (r *renderer) renderHeading(w io.Writer, node *ast.Heading, entering bool) {
+func (r *Renderer) renderHeading(w io.Writer, node *ast.Heading, entering bool) {
 	if entering {
 		io.WriteString(w, strings.Repeat("#", node.Level))
 		io.WriteString(w, " ")
@@ -78,7 +68,7 @@ func (r *renderer) renderHeading(w io.Writer, node *ast.Heading, entering bool) 
 	}
 }
 
-func (r *renderer) renderFencedCodeBlock(w io.Writer, node *ast.FencedCodeBlock, entering bool, source []byte) {
+func (r *Renderer) renderFencedCodeBlock(w io.Writer, node *ast.FencedCodeBlock, entering bool, source []byte) {
 	io.WriteString(w, tview.NewLine)
 
 	if entering {
@@ -99,7 +89,9 @@ func (r *renderer) renderFencedCodeBlock(w io.Writer, node *ast.FencedCodeBlock,
 	}
 }
 
-func (r *renderer) renderAutoLink(w io.Writer, node *ast.AutoLink, entering bool, source []byte, urlStyle tcell.Style) {
+func (r *Renderer) renderAutoLink(w io.Writer, node *ast.AutoLink, entering bool, source []byte) {
+	urlStyle := r.theme.URLStyle
+
 	if entering {
 		fg, bg, _ := urlStyle.Decompose()
 		fmt.Fprintf(w, "[%s:%s]", fg, bg)
@@ -109,7 +101,8 @@ func (r *renderer) renderAutoLink(w io.Writer, node *ast.AutoLink, entering bool
 	}
 }
 
-func (r *renderer) renderLink(w io.Writer, node *ast.Link, entering bool, urlStyle tcell.Style) {
+func (r *Renderer) renderLink(w io.Writer, node *ast.Link, entering bool) {
+	urlStyle := r.theme.URLStyle
 	if entering {
 		fg, bg, _ := urlStyle.Decompose()
 		fmt.Fprintf(w, "[%s:%s::%s]", fg, bg, node.Destination)
@@ -118,7 +111,7 @@ func (r *renderer) renderLink(w io.Writer, node *ast.Link, entering bool, urlSty
 	}
 }
 
-func (r *renderer) renderList(w io.Writer, node *ast.List, entering bool) {
+func (r *Renderer) renderList(w io.Writer, node *ast.List, entering bool) {
 	if node.IsOrdered() {
 		r.listIx = &node.Start
 	} else {
@@ -133,7 +126,7 @@ func (r *renderer) renderList(w io.Writer, node *ast.List, entering bool) {
 	}
 }
 
-func (r *renderer) renderListItem(w io.Writer, entering bool) {
+func (r *Renderer) renderListItem(w io.Writer, entering bool) {
 	if entering {
 		io.WriteString(w, strings.Repeat("  ", r.listNested-1))
 
@@ -149,7 +142,7 @@ func (r *renderer) renderListItem(w io.Writer, entering bool) {
 	}
 }
 
-func (r *renderer) renderText(w io.Writer, node *ast.Text, entering bool, source []byte) {
+func (r *Renderer) renderText(w io.Writer, node *ast.Text, entering bool, source []byte) {
 	if entering {
 		w.Write(node.Segment.Value(source))
 		switch {
@@ -160,7 +153,7 @@ func (r *renderer) renderText(w io.Writer, node *ast.Text, entering bool, source
 		}
 	}
 }
-func (r *renderer) renderInline(w io.Writer, node *discordmd.Inline, entering bool) {
+func (r *Renderer) renderInline(w io.Writer, node *discordmd.Inline, entering bool) {
 	if start, end := attrToTag(node.Attr); entering && start != "" {
 		io.WriteString(w, start)
 	} else {
@@ -168,9 +161,10 @@ func (r *renderer) renderInline(w io.Writer, node *discordmd.Inline, entering bo
 	}
 }
 
-func (r *renderer) renderMention(w io.Writer, node *discordmd.Mention, entering bool, style tcell.Style) {
+func (r *Renderer) renderMention(w io.Writer, node *discordmd.Mention, entering bool) {
+	mentionStyle := r.theme.MentionStyle
 	if entering {
-		fg, bg, _ := style.Decompose()
+		fg, bg, _ := mentionStyle.Decompose()
 		fmt.Fprintf(w, "[%s:%s:b]", fg, bg)
 
 		switch {
@@ -191,7 +185,8 @@ func (r *renderer) renderMention(w io.Writer, node *discordmd.Mention, entering 
 	}
 }
 
-func (r *renderer) renderEmoji(w io.Writer, node *discordmd.Emoji, entering bool, emojiStyle tcell.Style) {
+func (r *Renderer) renderEmoji(w io.Writer, node *discordmd.Emoji, entering bool) {
+	emojiStyle := r.theme.EmojiStyle
 	if entering {
 		fg, bg, _ := emojiStyle.Decompose()
 		fmt.Fprintf(w, "[%s:%s]", fg, bg)
