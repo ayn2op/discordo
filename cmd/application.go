@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"log/slog"
+	"bytes"
+	"fmt"
 
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/keyring"
@@ -9,13 +11,14 @@ import (
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
 	"github.com/gdamore/tcell/v2"
+	"golang.design/x/clipboard"
 )
 
 const (
 	flexPageName            = "flex"
 	mentionsListPageName    = "mentionsList"
 	attachmentsListPageName = "attachmentsList"
-	confirmModalPageName    = "confirmModal"
+	ModalPageName           = "Modal"
 )
 
 type application struct {
@@ -131,7 +134,7 @@ func (a *application) onPagesInputCapture(event *tcell.EventKey) *tcell.EventKey
 		a.quit()
 
 		if err := keyring.DeleteToken(); err != nil {
-			slog.Error("failed to delete token from keyring", "err", err)
+			a.onError("Failed to delete token from keyring", err)
 			return nil
 		}
 
@@ -202,22 +205,60 @@ func (a *application) focusNext() {
 	}
 }
 
-func (a *application) showConfirmModal(prompt string, buttons []string, onDone func(label string)) {
+func (a *application) onError(msg string, err error, info ...any) {
+	slog.Error(msg, append(info, []any{"err", err})...)
+	a.showErrorModal(msg, err.Error(), info...)
+}
+
+func (a *application) showModal(title, prompt string, buttons []string, onDone func(label string)) {
 	previousFocus := a.GetFocus()
 
-	modal := tview.NewModal().
+	modal := tview.NewModal()
+	modal.Box = ui.ConfigureBox(modal.Box, &a.cfg.Theme)
+	modal.
 		SetText(prompt).
 		AddButtons(buttons).
 		SetDoneFunc(func(_ int, buttonLabel string) {
-			a.pages.RemovePage(confirmModalPageName).SwitchToPage(flexPageName)
+			a.pages.
+				RemovePage(ModalPageName).
+				SwitchToPage(flexPageName)
 			a.SetFocus(previousFocus)
 
 			if onDone != nil {
 				onDone(buttonLabel)
 			}
-		})
+		}).
+		SetTitle(title).
+		SetTitleAlignment(tview.AlignmentCenter)
 
 	a.pages.
-		AddAndSwitchToPage(confirmModalPageName, ui.Centered(modal, 0, 0), true).
+		AddAndSwitchToPage(ModalPageName, ui.Centered(modal, 0, 0), true).
 		ShowPage(flexPageName)
+	a.SetFocus(modal)
+}
+
+func (a *application) showConfirmModal(prompt string, buttons []string, onDone func(label string)) {
+	a.showModal("", prompt, buttons, onDone)
+}
+
+func (a *application) showErrorModal(msg, err string, info ...any) {
+	a.showModal("[ ERROR ]", msg + "\nReason: " + err, []string{"Copy", "OK"}, func(label string) {
+		if label == "Copy" {
+			res := bytes.Buffer{}
+			res.WriteString(msg)
+			res.WriteString("\nReason: ")
+			res.WriteString(err)
+			for i := 0; i < len(info)-1; i += 2 {
+				res.WriteRune(rune('\n'))
+				res.WriteString(info[i].(string))
+				res.WriteString(": ")
+				res.WriteString(fmt.Sprintf("%#v", info[i+1]))
+			}
+			go clipboard.Write(clipboard.FmtText, res.Bytes())
+		}
+	})
+}
+
+func (a *application) showInfoModal(text string) {
+	a.showModal("[ INFO ]", text, []string{"OK"}, nil)
 }

@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"log/slog"
 	"sort"
 
 	"github.com/ayn2op/discordo/internal/config"
@@ -53,7 +52,7 @@ func (gt *guildsTree) createFolderNode(folder gateway.GuildFolder) {
 	for _, gID := range folder.GuildIDs {
 		guild, err := discordState.Cabinet.Guild(gID)
 		if err != nil {
-			slog.Error("failed to get guild from state", "guild_id", gID, "err", err)
+			app.onError("Failed to get guild from state", err, "guild_id", gID)
 			continue
 		}
 
@@ -156,7 +155,7 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 
 		channels, err := discordState.Cabinet.Channels(ref)
 		if err != nil {
-			slog.Error("failed to get channels", "err", err, "guild_id", ref)
+			app.onError("Failed to get channels", err, "guild_id", ref)
 			return
 		}
 
@@ -168,7 +167,7 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 	case discord.ChannelID:
 		channel, err := discordState.Cabinet.Channel(ref)
 		if err != nil {
-			slog.Error("failed to get channel", "channel_id", ref)
+			app.onError("Failed to get channel", err, "channel_id", ref)
 			return
 		}
 
@@ -176,7 +175,7 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 
 		messages, err := discordState.Messages(channel.ID, uint(gt.cfg.MessagesLimit))
 		if err != nil {
-			slog.Error("failed to get messages", "err", err, "channel_id", channel.ID, "limit", gt.cfg.MessagesLimit)
+			app.onError("Failed to get messages", err, "channel_id", channel.ID, "limit", gt.cfg.MessagesLimit)
 			return
 		}
 
@@ -203,7 +202,7 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 	case nil: // Direct messages
 		channels, err := discordState.PrivateChannels()
 		if err != nil {
-			slog.Error("failed to get private channels", "err", err)
+			app.onError("Failed to get private channels", err)
 			return
 		}
 
