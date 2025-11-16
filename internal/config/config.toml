@@ -33,19 +33,20 @@ only_on_ping = true
 
 # Global shortcuts
 # Esc: Reset message selection or close the channel selection popup.
+# Character (rune) must be enclosed within Rune[x], where x is the character.
 [keys]
-focus_guilds_tree = "Ctrl+G"
-focus_messages_list = "Ctrl+T"
-focus_message_input = "Ctrl+Space"
+focus_guilds_tree = "Ctrl+Rune[g]"
+focus_messages_list = "Ctrl+Rune[t]"
+focus_message_input = "Ctrl+Rune[ ]"
 # Cycle focus between the widgets.
-focus_previous = "Ctrl+H"
-focus_next = "Ctrl+L"
+focus_previous = "Ctrl+Rune[h]"
+focus_next = "Ctrl+Rune[l]"
 # Hide/show the guilds tree.
-toggle_guilds_tree = "Ctrl+B"
-quit = "Ctrl+C"
+toggle_guilds_tree = "Ctrl+Rune[b]"
+quit = "Ctrl+Rune[c]"
 # Log out and remove the authentication token from keyring.
 # Requires re-login upon restart.
-logout = "Ctrl+D"
+logout = "Ctrl+Rune[d]"
 
 # Only while focusing on the guilds tree
 [keys.guilds_tree]
@@ -87,19 +88,19 @@ yank_id = "Rune[i]"
 # Alt+Enter: Insert a new line to the current text.
 [keys.message_input]
 # paste from clipboard (supports both text and images)
-paste = "Ctrl+V"
+paste = "Ctrl+Rune[v]"
 send = "Enter"
 # Remove existing text or cancel reply.
 cancel = "Esc"
 # Complete usernames when mentioning
 tab_complete = "Tab"
 
-open_editor = "Ctrl+E"
-open_file_picker = "Ctrl+\\"
+open_editor = "Ctrl+Rune[e]"
+open_file_picker = "Ctrl+Rune[\\]"
 
 [keys.mentions_list]
-up = "Ctrl+P"
-down = "Ctrl+N"
+up = "Ctrl+Rune[p]"
+down = "Ctrl+Rune[n]"
 
 # style = { foreground = "", background = "", attributes = "" or [""] }
 [theme.title]
