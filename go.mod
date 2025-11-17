@@ -5,7 +5,7 @@ go 1.25.3
 require (
 	github.com/BurntSushi/toml v1.5.0
 	github.com/andybalholm/brotli v1.2.0
-	github.com/ayn2op/tview v0.0.0-20251115190451-2169530aa5ac
+	github.com/ayn2op/tview v0.0.0-20251116022246-85910933646e
 	github.com/deckarep/gosx-notifier v0.0.0-20180201035817-e127226297fb
 	github.com/diamondburned/arikawa/v3 v3.6.1-0.20250928004212-a891a653eb26
 	github.com/diamondburned/ningen/v3 v3.0.1-0.20250920191746-98fbd92e134d
@@ -14,7 +14,6 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/klauspost/compress v1.18.1
-	github.com/lmittmann/tint v1.1.2
 	github.com/ncruces/zenity v0.10.14
 	github.com/sahilm/fuzzy v0.1.1
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
