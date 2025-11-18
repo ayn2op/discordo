@@ -2,17 +2,18 @@
 package cmd
 
 import (
-	"flag"
 	"fmt"
 	"log/slog"
 	"os"
 
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/keyring"
 	"github.com/ayn2op/discordo/internal/logger"
 	"github.com/ayn2op/tview"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/diamondburned/ningen/v3"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -20,46 +21,52 @@ var (
 	app          *application
 )
 
-func Run() error {
-	tokenEnvVar := os.Getenv("DISCORDO_TOKEN")
-	tokenFlag := flag.String("token", tokenEnvVar, "authentication token")
+var (
+	token string
 
-	configPath := flag.String("config-path", config.DefaultPath(), "path of the configuration file")
-	logPath := flag.String("log-path", logger.DefaultPath(), "path of the log file")
-	logLevel := flag.String("log-level", "info", "log level")
-	flag.Parse()
+	configPath string
+	logPath    string
+	logLevel   string
 
-	var level slog.Level
-	switch *logLevel {
-	case "debug":
-		ws.EnableRawEvents = true
-		level = slog.LevelDebug
-	case "info":
-		level = slog.LevelInfo
-	case "warn":
-		level = slog.LevelWarn
-	case "error":
-		level = slog.LevelError
-	}
+	Execute = rootCmd.Execute
+)
 
-	if err := logger.Load(*logPath, level); err != nil {
-		return fmt.Errorf("failed to load logger: %w", err)
-	}
-
-	cfg, err := config.Load(*configPath)
-	if err != nil {
-		return fmt.Errorf("failed to load config: %w", err)
-	}
-
-	token := *tokenFlag
-	if token == "" {
-		token, err = keyring.GetToken()
-		if err != nil {
-			slog.Info("failed to retrieve token from keyring", "err", err)
+var rootCmd = &cobra.Command{
+	Use:   consts.Name,
+	Short: consts.Description,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		level := logger.StringToLevel(logLevel)
+		if level == slog.LevelDebug {
+			ws.EnableRawEvents = true
 		}
-	}
 
-	tview.Styles = tview.Theme{}
-	app = newApplication(cfg)
-	return app.run(token)
+		if err := logger.Load(logPath, level); err != nil {
+			return fmt.Errorf("failed to load logger: %w", err)
+		}
+
+		cfg, err := config.Load(configPath)
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+
+		if token == "" {
+			token, err = keyring.GetToken()
+			if err != nil {
+				slog.Info("failed to retrieve token from keyring", "err", err)
+			}
+		}
+
+		tview.Styles = tview.Theme{}
+		app = newApplication(cfg)
+		return app.run(token)
+	},
+}
+
+func init() {
+	flags := rootCmd.Flags()
+	flags.StringVarP(&token, "token", "t", os.Getenv("DISCORDO_TOKEN"), "authentication token")
+
+	flags.StringVar(&configPath, "config-path", config.DefaultPath(), "path of configuration file")
+	flags.StringVar(&logPath, "log-path", logger.DefaultPath(), "path of log file")
+	flags.StringVar(&logLevel, "log-level", "info", "log level")
 }

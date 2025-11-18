@@ -15,6 +15,19 @@ func DefaultPath() string {
 	return filepath.Join(consts.CacheDir(), fileName)
 }
 
+func StringToLevel(s string) slog.Level {
+	switch s {
+	case "debug":
+		return slog.LevelDebug
+	case "warn":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
+}
+
 // Load opens the log file and configures default logger.
 func Load(path string, level slog.Level) error {
 	if err := os.MkdirAll(filepath.Dir(path), os.ModePerm); err != nil {
