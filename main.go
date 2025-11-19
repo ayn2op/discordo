@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	if err := cmd.Run(); err != nil {
-		slog.Error("failed to run command", "err", err)
+	if err := cmd.Execute(); err != nil {
+		slog.Error("failed to execute command", "err", err)
 	}
 }

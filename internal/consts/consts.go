@@ -6,7 +6,10 @@ import (
 	"path/filepath"
 )
 
-const Name = "discordo"
+const (
+	Name        = "discordo"
+	Description = "A lightweight, secure, and feature-rich Discord terminal (TUI) client."
+)
 
 var cacheDir string
 
