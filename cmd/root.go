@@ -14,7 +14,6 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/diamondburned/ningen/v3"
 	"github.com/spf13/cobra"
-	"github.com/spf13/cobra/doc"
 )
 
 var (
