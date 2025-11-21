@@ -1,35 +1,11 @@
-# Whether to enable mouse or not.
-mouse = true
-# The program to open when the `keys.message_input.editor` keymap is pressed. Set the value to `"default"` to use `$EDITOR`.
-editor = "default"
 
 # "default" (unknown), "online", "dnd", "idle", "invisible", "offline"
 status = "default"
 
-# Whether to parse and render markdown in messages or not.
-markdown = true
-hide_blocked_users = true
-show_attachment_links = true
 
 # Use autocomplete_limit = 0 to disable autocompleting mentions
 # Note: tab completion will still work, but it won't show any list.
 autocomplete_limit = 20
-
-# The number of messages to fetch when a text-based channel is selected from guilds tree. The minimum and maximum value is 0 and 100, respectively.
-messages_limit = 50
-
-[timestamps]
-enabled = true
-# https://pkg.go.dev/time#Layout
-format = "3:04PM"
-
-[notifications]
-enabled = true
-# The duration of the sound. Set the value to `0` to use default duration. This is only supported on Unix and Windows.
-duration = 0
-[notifications.sound]
-enabled = true
-only_on_ping = true
 
 # Global shortcuts
 # Esc: Reset message selection or close the channel selection popup.
@@ -108,37 +84,6 @@ alignment = "left" # `"left"`, `"center"`, or `"right"`.
 normal_style = { attributes = "dim" }
 active_style = { foreground = "green", attributes = "bold" }
 
-[theme.border]
-enabled = true
-padding = [0, 0, 1, 1] # [top, bottom, left, right]
-
-normal_style = { attributes = "dim" }
-active_style = { foreground = "green", attributes = "bold" }
-
 # `"hidden"`, `"plain"`, `"round"`, `"thick"`, or `"double"`.
 normal_set = "round"
 active_set = "round"
-
-[theme.guilds_tree]
-auto_expand_folders = true
-# Give tree-like shape
-graphics = true
-graphics_color = "default"
-
-[theme.messages_list]
-reply_indicator = ">"
-forwarded_indicator = "<"
-
-mention_style = { foreground = "blue" }
-emoji_style = { foreground = "green" }
-url_style = { foreground = "blue" }
-attachment_style = { foreground = "yellow" }
-
-[theme.mentions_list]
-# Note: width and height are capped to the avaliable space
-# Minimum width
-# 0 = make the list as wide as possible
-min_width = 20
-# Maximum height
-# 0 = make the list as tall as needed
-max_height = 0
