@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -60,7 +59,7 @@ func newMessageInput(cfg *config.Config) *messageInput {
 	}
 
 	if err := clipboard.Init(); err != nil {
-		slog.Warn("failed to init clipboard", "err", err)
+		app.onError("Failed to init clipboard", err)
 	} else {
 		mi.
 			SetClipboard(func(s string) {
@@ -176,13 +175,13 @@ func (mi *messageInput) send() {
 	if mi.edit {
 		m, err := app.messagesList.selectedMessage()
 		if err != nil {
-			slog.Error("failed to get selected message", "err", err)
+			app.onError("Failed to get selected message", err)
 			return
 		}
 
 		data := api.EditMessageData{Content: option.NewNullableString(text)}
 		if _, err := discordState.EditMessageComplex(m.ChannelID, m.ID, data); err != nil {
-			slog.Error("failed to edit message", "err", err)
+			app.onError("Failed to edit message", err)
 		}
 
 		mi.edit = false
@@ -190,7 +189,7 @@ func (mi *messageInput) send() {
 		data := mi.sendMessageData
 		data.Content = text
 		if _, err := discordState.SendMessageComplex(app.guildsTree.selectedChannelID, *data); err != nil {
-			slog.Error("failed to send message in channel", "channel_id", app.guildsTree.selectedChannelID, "err", err)
+			app.onError("Failed to send message in channel", err, "channel_id", app.guildsTree.selectedChannelID)
 		}
 	}
 
@@ -272,7 +271,7 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 
 			members, err := discordState.Cabinet.Members(gID)
 			if err != nil {
-				slog.Error("failed to get members from state", "guild_id", gID, "err", err)
+				app.onError("Failed to get members from state", err, "guild_id", gID)
 				return
 			}
 
@@ -319,7 +318,7 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 		mi.mentionsList.Clear()
 		mems, err := discordState.Cabinet.Members(gID)
 		if err != nil {
-			slog.Error("fetching members failed", "err", err)
+			app.onError("Fetching members failed", err)
 			return
 		}
 		res := fuzzy.FindFrom(name, memberList(mems))
@@ -349,7 +348,7 @@ func (m memberList) Len() int            { return len(m) }
 func channelHasUser(cID discord.ChannelID, id discord.UserID) bool {
 	perms, err := discordState.Permissions(cID, id)
 	if err != nil {
-		slog.Error("can't get permissions", "channel", cID, "user", id)
+		app.onError("Can't get permissions", err, "channel", cID, "user", id)
 		return false
 	}
 	return perms.Has(discord.PermissionViewChannel)
@@ -440,7 +439,7 @@ func (mi *messageInput) addMentionItem(gID discord.GuildID, m *discord.Member) b
 
 	presence, err := discordState.Cabinet.Presence(gID, m.User.ID)
 	if err != nil {
-		slog.Info("failed to get presence from state", "guild_id", gID, "user_id", m.User.ID, "err", err)
+		app.onError("Failed to get presence from state", err, "guild_id", gID, "user_id", m.User.ID)
 	}
 
 	if presence != nil && presence.Status == discord.OfflineStatus {
@@ -468,7 +467,7 @@ func (mi *messageInput) stopTabCompletion() {
 func (mi *messageInput) editor() {
 	file, err := os.CreateTemp("", tmpFilePattern)
 	if err != nil {
-		slog.Error("failed to create tmp file", "err", err)
+		app.onError("Failed to create tmp file", err)
 		return
 	}
 	defer file.Close()
@@ -484,14 +483,14 @@ func (mi *messageInput) editor() {
 	app.Suspend(func() {
 		err := cmd.Run()
 		if err != nil {
-			slog.Error("failed to run command", "args", cmd.Args, "err", err)
+			app.onError("Failed to run command", err, "args", cmd.Args)
 			return
 		}
 	})
 
 	msg, err := os.ReadFile(file.Name())
 	if err != nil {
-		slog.Error("failed to read tmp file", "name", file.Name(), "err", err)
+		app.onError("Failed to read tmp file", err, "name", file.Name())
 		return
 	}
 
@@ -514,14 +513,14 @@ func (mi *messageInput) openFilePicker() {
 
 	paths, err := zenity.SelectFileMultiple()
 	if err != nil {
-		slog.Error("failed to open file dialog", "err", err)
+		app.onError("Failed to open file dialog", err)
 		return
 	}
 
 	for _, path := range paths {
 		file, err := os.Open(path)
 		if err != nil {
-			slog.Error("failed to open file", "path", path, "err", err)
+			app.onError("Failed to open file", err, "path", path)
 			continue
 		}
 
