@@ -251,6 +251,10 @@ func (a *application) showErrorModal(msg, err string, info ...any) {
 		for i := 0; i < len(info)-1; i += 2 {
 			fmt.Fprintf(res, "\n%v: %#v", info[i], info[i+1])
 		}
+		// Do as log/slog does. "!BADKEY" for last odd argument.
+		if (len(info) % 2) == 1 {
+			fmt.Fprintf(res, "\n!BADKEY: %#v", info[len(info)-1])
+		}
 		go clipboard.Write(clipboard.FmtText, []byte(res.String()))
 	})
 }
