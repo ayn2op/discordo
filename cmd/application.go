@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"log/slog"
-	"bytes"
+	"strings"
 	"fmt"
 
 	"github.com/ayn2op/discordo/internal/config"
@@ -206,7 +206,7 @@ func (a *application) focusNext() {
 }
 
 func (a *application) onError(msg string, err error, info ...any) {
-	slog.Error(msg, append(info, []any{"err", err})...)
+	slog.Error(msg, append(info, "err", err)...)
 	a.showErrorModal(msg, err.Error(), info...)
 }
 
@@ -220,7 +220,7 @@ func (a *application) showModal(title, prompt string, buttons []string, onDone f
 		AddButtons(buttons).
 		SetDoneFunc(func(_ int, buttonLabel string) {
 			a.pages.
-				RemovePage(ModalPageName).
+				RemovePage(modalPageName).
 				SwitchToPage(flexPageName)
 			a.SetFocus(previousFocus)
 
@@ -232,7 +232,7 @@ func (a *application) showModal(title, prompt string, buttons []string, onDone f
 		SetTitleAlignment(tview.AlignmentCenter)
 
 	a.pages.
-		AddAndSwitchToPage(ModalPageName, ui.Centered(modal, 0, 0), true).
+		AddAndSwitchToPage(modalPageName, ui.Centered(modal, 0, 0), true).
 		ShowPage(flexPageName)
 	a.SetFocus(modal)
 }
@@ -243,19 +243,15 @@ func (a *application) showConfirmModal(prompt string, buttons []string, onDone f
 
 func (a *application) showErrorModal(msg, err string, info ...any) {
 	a.showModal("[ ERROR ]", msg + "\nReason: " + err, []string{"Copy", "OK"}, func(label string) {
-		if label == "Copy" {
-			res := bytes.Buffer{}
-			res.WriteString(msg)
-			res.WriteString("\nReason: ")
-			res.WriteString(err)
-			for i := 0; i < len(info)-1; i += 2 {
-				res.WriteRune(rune('\n'))
-				res.WriteString(info[i].(string))
-				res.WriteString(": ")
-				res.WriteString(fmt.Sprintf("%#v", info[i+1]))
-			}
-			go clipboard.Write(clipboard.FmtText, res.Bytes())
+		if label != "Copy" {
+			return
 		}
+		res := &strings.Builder{}
+		fmt.Fprintf(res, "%s\nReason: %s", msg, err)
+		for i := 0; i < len(info)-1; i += 2 {
+			fmt.Fprintf(res, "\n%v: %#v", info[i], info[i+1])
+		}
+		go clipboard.Write(clipboard.FmtText, []byte(res.String()))
 	})
 }
 
