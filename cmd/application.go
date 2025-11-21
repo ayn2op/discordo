@@ -18,7 +18,7 @@ const (
 	flexPageName            = "flex"
 	mentionsListPageName    = "mentionsList"
 	attachmentsListPageName = "attachmentsList"
-	ModalPageName           = "modalPageName"
+	modalPageName           = "modalPageName"
 )
 
 type application struct {
