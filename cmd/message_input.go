@@ -59,17 +59,13 @@ func newMessageInput(cfg *config.Config) *messageInput {
 		mentionsList:    tview.NewList(),
 	}
 
-	if err := clipboard.Init(); err != nil {
-		slog.Warn("failed to init clipboard", "err", err)
-	} else {
-		mi.
-			SetClipboard(func(s string) {
-				clipboard.Write(clipboard.FmtText, []byte(s))
-			}, func() string {
-				data := clipboard.Read(clipboard.FmtText)
-				return string(data)
-			})
-	}
+	mi.
+		SetClipboard(func(s string) {
+			clipboard.Write(clipboard.FmtText, []byte(s))
+		}, func() string {
+			data := clipboard.Read(clipboard.FmtText)
+			return string(data)
+		})
 
 	mi.Box = ui.ConfigureBox(mi.Box, &cfg.Theme)
 	mi.SetInputCapture(mi.onInputCapture)

@@ -9,6 +9,7 @@ import (
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
 	"github.com/gdamore/tcell/v2"
+	"golang.design/x/clipboard"
 )
 
 const (
@@ -39,6 +40,10 @@ func newApplication(cfg *config.Config) *application {
 		guildsTree:   newGuildsTree(cfg),
 		messagesList: newMessagesList(cfg),
 		messageInput: newMessageInput(cfg),
+	}
+
+	if err := clipboard.Init(); err != nil {
+		slog.Error("failed to init clipboard", "err", err)
 	}
 
 	app.pages.SetInputCapture(app.onPagesInputCapture)
