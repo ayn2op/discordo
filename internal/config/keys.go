@@ -30,8 +30,8 @@ type (
 		SelectCurrent string `toml:"select_current" default:"Enter"`
 
 		YankID             string `toml:"yank_id" default:"Rune[i]"`
-		CollapseParentNode string `toml:"collapse_parent_node"`
-		MoveToParentNode   string `toml:"move_to_parent_node"`
+		CollapseParentNode string `toml:"collapse_parent_node" default:"Rune[-]"`
+		MoveToParentNode   string `toml:"move_to_parent_node" default:"Rune[p]"`
 	}
 
 	MessagesListKeys struct {
