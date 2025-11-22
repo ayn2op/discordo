@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"fmt"
 	"log/slog"
 	"strings"
+	"fmt"
 
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/keyring"
@@ -42,10 +42,6 @@ func newApplication(cfg *config.Config) *application {
 		guildsTree:   newGuildsTree(cfg),
 		messagesList: newMessagesList(cfg),
 		messageInput: newMessageInput(cfg),
-	}
-
-	if err := clipboard.Init(); err != nil {
-		app.onError("Failed to init clipboard", err)
 	}
 
 	app.pages.SetInputCapture(app.onPagesInputCapture)
@@ -246,7 +242,7 @@ func (a *application) showConfirmModal(prompt string, buttons []string, onDone f
 }
 
 func (a *application) showErrorModal(msg, err string, info ...any) {
-	a.showModal("[ ERROR ]", msg+"\nReason: "+err, []string{"Copy", "OK"}, func(label string) {
+	a.showModal("[ ERROR ]", msg + "\nReason: " + err, []string{"Copy", "OK"}, func(label string) {
 		if label != "Copy" {
 			return
 		}
