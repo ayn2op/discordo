@@ -85,61 +85,63 @@ func (ml *messagesList) setTitle(channel discord.Channel) {
 }
 
 func (ml *messagesList) drawMessages(messages []discord.Message) {
+	writer := ml.BatchWriter()
+	defer writer.Close()
 	for _, m := range slices.Backward(messages) {
-		ml.drawMessage(m)
+		ml.drawMessage(writer, m)
 	}
 }
 
-func (ml *messagesList) drawMessage(message discord.Message) {
+func (ml *messagesList) drawMessage(writer io.Writer, message discord.Message) {
 	// Region tags are square brackets that contain a region ID in double quotes
 	// https://pkg.go.dev/github.com/ayn2op/tview#hdr-Regions_and_Highlights
-	fmt.Fprintf(ml, `["%s"]`, message.ID)
-	// Tags with no region ID ([""]) don't start new regions. They can therefore be used to mark the end of a region.
-	defer fmt.Fprint(ml, `[""]`)
+	fmt.Fprintf(writer, `["%s"]`, message.ID)
 
 	if ml.cfg.HideBlockedUsers {
 		isBlocked := discordState.UserIsBlocked(message.Author.ID)
 		if isBlocked {
-			io.WriteString(ml, "[:red:b]Blocked message[:-:-]")
+			io.WriteString(writer, "[:red:b]Blocked message[:-:-]")
 			return
 		}
 	}
 
 	// reset
-	io.WriteString(ml, "[-:-:-]")
+	io.WriteString(writer, "[-:-:-]")
 
 	switch message.Type {
 	case discord.DefaultMessage:
 		if message.Reference != nil && message.Reference.Type == discord.MessageReferenceTypeForward {
-			ml.drawForwardedMessage(message)
+			ml.drawForwardedMessage(writer, message)
 		} else {
-			ml.drawDefaultMessage(message)
+			ml.drawDefaultMessage(writer, message)
 		}
 	case discord.GuildMemberJoinMessage:
-		ml.drawTimestamps(message.Timestamp)
-		ml.drawAuthor(message)
-		fmt.Fprint(ml, "joined the server.")
+		ml.drawTimestamps(writer, message.Timestamp)
+		ml.drawAuthor(writer, message)
+		fmt.Fprint(writer, "joined the server.")
 	case discord.InlinedReplyMessage:
-		ml.drawReplyMessage(message)
+		ml.drawReplyMessage(writer, message)
 	case discord.ChannelPinnedMessage:
-		ml.drawPinnedMessage(message)
+		ml.drawPinnedMessage(writer, message)
 	default:
-		ml.drawTimestamps(message.Timestamp)
-		ml.drawAuthor(message)
+		ml.drawTimestamps(writer, message.Timestamp)
+		ml.drawAuthor(writer, message)
 	}
 
-	fmt.Fprintln(ml)
+	// Tags with no region ID ([""]) don't start new regions. They can therefore be used to mark the end of a region.
+	fmt.Fprint(writer, `[""]`)
+	fmt.Fprintln(writer)
 }
 
 func (ml *messagesList) formatTimestamp(ts discord.Timestamp) string {
 	return ts.Time().In(time.Local).Format(ml.cfg.Timestamps.Format)
 }
 
-func (ml *messagesList) drawTimestamps(ts discord.Timestamp) {
-	fmt.Fprintf(ml, "[::d]%s[::D] ", ml.formatTimestamp(ts))
+func (ml *messagesList) drawTimestamps(w io.Writer, ts discord.Timestamp) {
+	fmt.Fprintf(w, "[::d]%s[::D] ", ml.formatTimestamp(ts))
 }
 
-func (ml *messagesList) drawAuthor(message discord.Message) {
+func (ml *messagesList) drawAuthor(w io.Writer, message discord.Message) {
 	name := message.Author.DisplayOrUsername()
 	foreground := tcell.ColorDefault
 	if message.GuildID.IsValid() {
@@ -161,75 +163,75 @@ func (ml *messagesList) drawAuthor(message discord.Message) {
 		}
 	}
 
-	fmt.Fprintf(ml, "[%s::b]%s[-::B] ", foreground, name)
+	fmt.Fprintf(w, "[%s::b]%s[-::B] ", foreground, name)
 }
 
-func (ml *messagesList) drawContent(message discord.Message) {
+func (ml *messagesList) drawContent(w io.Writer, message discord.Message) {
 	c := []byte(tview.Escape(message.Content))
 	if app.cfg.Markdown {
 		ast := discordmd.ParseWithMessage(c, *discordState.Cabinet, &message, false)
-		ml.renderer.Render(ml, c, ast)
+		ml.renderer.Render(w, c, ast)
 	} else {
-		ml.Write(c) // write the content as is
+		w.Write(c) // write the content as is
 	}
 }
 
-func (ml *messagesList) drawSnapshotContent(message discord.MessageSnapshotMessage) {
+func (ml *messagesList) drawSnapshotContent(w io.Writer, message discord.MessageSnapshotMessage) {
 	c := []byte(tview.Escape(message.Content))
 	// discordmd doesn't support MessageSnapshotMessage, so we just use write it as is. todo?
-	ml.Write(c)
+	w.Write(c)
 }
 
-func (ml *messagesList) drawDefaultMessage(message discord.Message) {
+func (ml *messagesList) drawDefaultMessage(w io.Writer, message discord.Message) {
 	if ml.cfg.Timestamps.Enabled {
-		ml.drawTimestamps(message.Timestamp)
+		ml.drawTimestamps(w, message.Timestamp)
 	}
 
-	ml.drawAuthor(message)
-	ml.drawContent(message)
+	ml.drawAuthor(w, message)
+	ml.drawContent(w, message)
 
 	if message.EditedTimestamp.IsValid() {
-		io.WriteString(ml, " [::d](edited)[::D]")
+		io.WriteString(w, " [::d](edited)[::D]")
 	}
 
 	for _, a := range message.Attachments {
-		fmt.Fprintln(ml)
+		fmt.Fprintln(w)
 
 		fg, bg, _ := ml.cfg.Theme.MessagesList.AttachmentStyle.Decompose()
 		if ml.cfg.ShowAttachmentLinks {
-			fmt.Fprintf(ml, "[%s:%s]%s:\n%s[-:-]", fg, bg, a.Filename, a.URL)
+			fmt.Fprintf(w, "[%s:%s]%s:\n%s[-:-]", fg, bg, a.Filename, a.URL)
 		} else {
-			fmt.Fprintf(ml, "[%s:%s]%s[-:-]", fg, bg, a.Filename)
+			fmt.Fprintf(w, "[%s:%s]%s[-:-]", fg, bg, a.Filename)
 		}
 	}
 }
 
-func (ml *messagesList) drawForwardedMessage(message discord.Message) {
-	ml.drawTimestamps(message.Timestamp)
-	ml.drawAuthor(message)
-	fmt.Fprintf(ml, "[::d]%s [::-]", ml.cfg.Theme.MessagesList.ForwardedIndicator)
-	ml.drawSnapshotContent(message.MessageSnapshots[0].Message)
-	fmt.Fprintf(ml, " [::d](%s)[-:-:-] ", ml.formatTimestamp(message.MessageSnapshots[0].Message.Timestamp))
+func (ml *messagesList) drawForwardedMessage(w io.Writer, message discord.Message) {
+	ml.drawTimestamps(w, message.Timestamp)
+	ml.drawAuthor(w, message)
+	fmt.Fprintf(w, "[::d]%s [::-]", ml.cfg.Theme.MessagesList.ForwardedIndicator)
+	ml.drawSnapshotContent(w, message.MessageSnapshots[0].Message)
+	fmt.Fprintf(w, " [::d](%s)[-:-:-] ", ml.formatTimestamp(message.MessageSnapshots[0].Message.Timestamp))
 }
 
-func (ml *messagesList) drawReplyMessage(message discord.Message) {
+func (ml *messagesList) drawReplyMessage(w io.Writer, message discord.Message) {
 	// reply
-	fmt.Fprintf(ml, "[::d]%s ", ml.cfg.Theme.MessagesList.ReplyIndicator)
+	fmt.Fprintf(w, "[::d]%s ", ml.cfg.Theme.MessagesList.ReplyIndicator)
 	if m := message.ReferencedMessage; m != nil {
 		m.GuildID = message.GuildID
-		ml.drawAuthor(*m)
-		ml.drawContent(*m)
+		ml.drawAuthor(w, *m)
+		ml.drawContent(w, *m)
 	} else {
-		io.WriteString(ml, "Original message was deleted")
+		io.WriteString(w, "Original message was deleted")
 	}
 
-	io.WriteString(ml, tview.NewLine)
+	io.WriteString(w, tview.NewLine)
 	// main
-	ml.drawDefaultMessage(message)
+	ml.drawDefaultMessage(w, message)
 }
 
-func (ml *messagesList) drawPinnedMessage(message discord.Message) {
-	fmt.Fprintf(ml, "%s pinned a message", message.Author.DisplayOrUsername())
+func (ml *messagesList) drawPinnedMessage(w io.Writer, message discord.Message) {
+	fmt.Fprintf(w, "%s pinned a message", message.Author.DisplayOrUsername())
 }
 
 func (ml *messagesList) selectedMessage() (*discord.Message, error) {
