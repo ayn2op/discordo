@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -59,7 +60,7 @@ func newMessageInput(cfg *config.Config) *messageInput {
 	}
 
 	if err := clipboard.Init(); err != nil {
-		app.onError("Failed to init clipboard", err)
+		slog.Warn("failed to init clipboard", "err", err)
 	} else {
 		mi.
 			SetClipboard(func(s string) {
@@ -175,13 +176,13 @@ func (mi *messageInput) send() {
 	if mi.edit {
 		m, err := app.messagesList.selectedMessage()
 		if err != nil {
-			app.onError("Failed to get selected message", err)
+			slog.Error("failed to get selected message", "err", err)
 			return
 		}
 
 		data := api.EditMessageData{Content: option.NewNullableString(text)}
 		if _, err := discordState.EditMessageComplex(m.ChannelID, m.ID, data); err != nil {
-			app.onError("Failed to edit message", err)
+			slog.Error("failed to edit message", "err", err)
 		}
 
 		mi.edit = false
@@ -189,7 +190,7 @@ func (mi *messageInput) send() {
 		data := mi.sendMessageData
 		data.Content = text
 		if _, err := discordState.SendMessageComplex(app.guildsTree.selectedChannelID, *data); err != nil {
-			app.onError("Failed to send message in channel", err, "channel_id", app.guildsTree.selectedChannelID)
+			slog.Error("failed to send message in channel", "channel_id", app.guildsTree.selectedChannelID, "err", err)
 		}
 	}
 
@@ -271,7 +272,7 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 
 			members, err := discordState.Cabinet.Members(gID)
 			if err != nil {
-				app.onError("Failed to get members from state", err, "guild_id", gID)
+				slog.Error("failed to get members from state", "guild_id", gID, "err", err)
 				return
 			}
 
@@ -318,7 +319,7 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 		mi.mentionsList.Clear()
 		mems, err := discordState.Cabinet.Members(gID)
 		if err != nil {
-			app.onError("Fetching members failed", err)
+			slog.Error("fetching members failed", "err", err)
 			return
 		}
 		res := fuzzy.FindFrom(name, memberList(mems))
@@ -348,7 +349,7 @@ func (m memberList) Len() int            { return len(m) }
 func channelHasUser(cID discord.ChannelID, id discord.UserID) bool {
 	perms, err := discordState.Permissions(cID, id)
 	if err != nil {
-		app.onError("Can't get permissions", err, "channel", cID, "user", id)
+		slog.Error("can't get permissions", "channel", cID, "user", id)
 		return false
 	}
 	return perms.Has(discord.PermissionViewChannel)
@@ -439,7 +440,7 @@ func (mi *messageInput) addMentionItem(gID discord.GuildID, m *discord.Member) b
 
 	presence, err := discordState.Cabinet.Presence(gID, m.User.ID)
 	if err != nil {
-		app.onError("Failed to get presence from state", err, "guild_id", gID, "user_id", m.User.ID)
+		slog.Info("failed to get presence from state", "guild_id", gID, "user_id", m.User.ID, "err", err)
 	}
 
 	if presence != nil && presence.Status == discord.OfflineStatus {
@@ -467,7 +468,7 @@ func (mi *messageInput) stopTabCompletion() {
 func (mi *messageInput) editor() {
 	file, err := os.CreateTemp("", tmpFilePattern)
 	if err != nil {
-		app.onError("Failed to create tmp file", err)
+		slog.Error("failed to create tmp file", "err", err)
 		return
 	}
 	defer file.Close()
@@ -483,14 +484,14 @@ func (mi *messageInput) editor() {
 	app.Suspend(func() {
 		err := cmd.Run()
 		if err != nil {
-			app.onError("Failed to run command", err, "args", cmd.Args)
+			slog.Error("failed to run command", "args", cmd.Args, "err", err)
 			return
 		}
 	})
 
 	msg, err := os.ReadFile(file.Name())
 	if err != nil {
-		app.onError("Failed to read tmp file", err, "name", file.Name())
+		slog.Error("failed to read tmp file", "name", file.Name(), "err", err)
 		return
 	}
 
@@ -513,14 +514,14 @@ func (mi *messageInput) openFilePicker() {
 
 	paths, err := zenity.SelectFileMultiple()
 	if err != nil {
-		app.onError("Failed to open file dialog", err)
+		slog.Error("failed to open file dialog", "err", err)
 		return
 	}
 
 	for _, path := range paths {
 		file, err := os.Open(path)
 		if err != nil {
-			app.onError("Failed to open file", err, "path", path)
+			slog.Error("failed to open file", "path", path, "err", err)
 			continue
 		}
 

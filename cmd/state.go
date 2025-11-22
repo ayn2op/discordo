@@ -152,7 +152,7 @@ func onMessageCreate(message *gateway.MessageCreateEvent) {
 	}
 
 	if err := notifications.Notify(discordState, message, app.cfg); err != nil {
-		app.onError("Notification failed", err)
+		slog.Error("Notification failed", "err", err)
 	}
 }
 
@@ -166,7 +166,7 @@ func onMessageDelete(message *gateway.MessageDeleteEvent) {
 	if app.guildsTree.selectedChannelID == message.ChannelID {
 		messages, err := discordState.Cabinet.Messages(message.ChannelID)
 		if err != nil {
-			app.onError("Failed to get messages from state", err, "channel_id", message.ChannelID)
+			slog.Error("failed to get messages from state", "err", err, "channel_id", message.ChannelID)
 			return
 		}
 

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -144,7 +145,7 @@ func (ml *messagesList) drawAuthor(message discord.Message) {
 	if message.GuildID.IsValid() {
 		member, err := discordState.Cabinet.Member(message.GuildID, message.Author.ID)
 		if err != nil {
-			app.onError("Failed to get member from state", err, "guild_id", message.GuildID, "user", message.Author)
+			slog.Error("failed to get member from state", "guild_id", message.GuildID, "member_id", message.Author.ID, "err", err)
 		} else {
 			if member.Nick != "" {
 				name = member.Nick
@@ -293,13 +294,13 @@ func (ml *messagesList) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 func (ml *messagesList) _select(name string) {
 	ms, err := discordState.Cabinet.Messages(app.guildsTree.selectedChannelID)
 	if err != nil {
-		app.onError("Failed to get messages", err, "channel_id", app.guildsTree.selectedChannelID)
+		slog.Error("failed to get messages", "err", err, "channel_id", app.guildsTree.selectedChannelID)
 		return
 	}
 
 	msgIdx, err := ml.selectedMessageIndex()
 	if err != nil {
-		app.onError("Failed to get selected message", err)
+		slog.Error("failed to get selected message", "err", err)
 		return
 	}
 
@@ -348,7 +349,7 @@ func (ml *messagesList) onHighlighted(added, removed, remaining []string) {
 	if len(added) > 0 {
 		id, err := discord.ParseSnowflake(added[0])
 		if err != nil {
-			app.onError("Failed to parse region id as int to use as message id", err)
+			slog.Error("Failed to parse region id as int to use as message id.", "err", err)
 			return
 		}
 
@@ -359,7 +360,7 @@ func (ml *messagesList) onHighlighted(added, removed, remaining []string) {
 func (ml *messagesList) yankID() {
 	msg, err := ml.selectedMessage()
 	if err != nil {
-		app.onError("Failed to get selected message", err)
+		slog.Error("failed to get selected message", "err", err)
 		return
 	}
 
@@ -369,7 +370,7 @@ func (ml *messagesList) yankID() {
 func (ml *messagesList) yankContent() {
 	msg, err := ml.selectedMessage()
 	if err != nil {
-		app.onError("Failed to get selected message", err)
+		slog.Error("failed to get selected message", "err", err)
 		return
 	}
 
@@ -379,7 +380,7 @@ func (ml *messagesList) yankContent() {
 func (ml *messagesList) yankURL() {
 	msg, err := ml.selectedMessage()
 	if err != nil {
-		app.onError("Failed to get selected message", err)
+		slog.Error("failed to get selected message", "err", err)
 		return
 	}
 
@@ -389,7 +390,7 @@ func (ml *messagesList) yankURL() {
 func (ml *messagesList) open() {
 	msg, err := ml.selectedMessage()
 	if err != nil {
-		app.onError("Failed to get selected message", err)
+		slog.Error("failed to get selected message", "err", err)
 		return
 	}
 
@@ -491,45 +492,45 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 func (ml *messagesList) openAttachment(attachment discord.Attachment) {
 	resp, err := http.Get(attachment.URL)
 	if err != nil {
-		app.onError("Failed to fetch the attachment", err, "url", attachment.URL)
+		slog.Error("failed to fetch the attachment", "err", err, "url", attachment.URL)
 	}
 	defer resp.Body.Close()
 
 	path := filepath.Join(consts.CacheDir(), "attachments")
 	if err := os.MkdirAll(path, os.ModePerm); err != nil {
-		app.onError("Failed to create attachments dir", err, "path", path)
+		slog.Error("failed to create attachments dir", "err", err, "path", path)
 		return
 	}
 
 	path = filepath.Join(path, attachment.Filename)
 	file, err := os.Create(path)
 	if err != nil {
-		app.onError("Failed to create attachment file", err, "path", path)
+		slog.Error("failed to create attachment file", "err", err, "path", path)
 		return
 	}
 	defer file.Close()
 
 	if _, err := io.Copy(file, resp.Body); err != nil {
-		app.onError("Failed to copy attachment to file", err)
+		slog.Error("failed to copy attachment to file", "err", err)
 		return
 	}
 
 	if err := open.Start(path); err != nil {
-		app.onError("Failed to open attachment file", err, "path", path)
+		slog.Error("failed to open attachment file", "err", err, "path", path)
 		return
 	}
 }
 
 func (ml *messagesList) openURL(url string) {
 	if err := open.Start(url); err != nil {
-		app.onError("Failed to open URL", err, "url", url)
+		slog.Error("failed to open URL", "err", err, "url", url)
 	}
 }
 
 func (ml *messagesList) reply(mention bool) {
 	msg, err := ml.selectedMessage()
 	if err != nil {
-		app.onError("Failed to get selected message", err)
+		slog.Error("failed to get selected message", "err", err)
 		return
 	}
 
@@ -537,7 +538,7 @@ func (ml *messagesList) reply(mention bool) {
 	if msg.GuildID.IsValid() {
 		member, err := discordState.Cabinet.Member(msg.GuildID, msg.Author.ID)
 		if err != nil {
-			app.onError("Failed to get member from state", err, "guild_id", msg.GuildID, "member_id", msg.Author.ID)
+			slog.Error("failed to get member from state", "guild_id", msg.GuildID, "member_id", msg.Author.ID, "err", err)
 		} else {
 			if member.Nick != "" {
 				name = member.Nick
@@ -563,18 +564,18 @@ func (ml *messagesList) reply(mention bool) {
 func (ml *messagesList) edit() {
 	message, err := ml.selectedMessage()
 	if err != nil {
-		app.onError("Failed to get selected message", err)
+		slog.Error("failed to get selected message", "err", err)
 		return
 	}
 
 	me, err := discordState.Cabinet.Me()
 	if err != nil {
-		app.onError("Failed to get client user (me)", err)
+		slog.Error("failed to get client user (me)", "err", err)
 		return
 	}
 
 	if message.Author.ID != me.ID {
-		app.onError("Failed to edit message", errors.New("You are not the author"), "channel_id", message.ChannelID, "message_id", message.ID)
+		slog.Error("failed to edit message; not the author", "channel_id", message.ChannelID, "message_id", message.ID)
 		return
 	}
 
@@ -601,25 +602,25 @@ func (ml *messagesList) confirmDelete() {
 func (ml *messagesList) delete() {
 	msg, err := ml.selectedMessage()
 	if err != nil {
-		app.onError("Failed to get selected message", err)
+		slog.Error("failed to get selected message", "err", err)
 		return
 	}
 
 	if msg.GuildID.IsValid() {
 		me, err := discordState.Cabinet.Me()
 		if err != nil {
-			app.onError("Failed to get client user (me)", err)
+			slog.Error("failed to get client user (me)", "err", err)
 			return
 		}
 
 		if msg.Author.ID != me.ID && !discordState.HasPermissions(msg.ChannelID, discord.PermissionManageMessages) {
-			app.onError("Failed to delete message", errors.New("Permission denied."), "channel_id", msg.ChannelID, "message_id", msg.ID)
+			slog.Error("failed to delete message; missing relevant permissions", "channel_id", msg.ChannelID, "message_id", msg.ID)
 			return
 		}
 	}
 
 	if err := discordState.DeleteMessage(app.guildsTree.selectedChannelID, msg.ID, ""); err != nil {
-		app.onError("Failed to delete message", err, "channel_id", app.guildsTree.selectedChannelID, "message_id", msg.ID)
+		slog.Error("failed to delete message", "channel_id", app.guildsTree.selectedChannelID, "message_id", msg.ID, "err", err)
 		return
 	}
 
@@ -627,7 +628,7 @@ func (ml *messagesList) delete() {
 	ml.Highlight()
 
 	if err := discordState.MessageRemove(app.guildsTree.selectedChannelID, msg.ID); err != nil {
-		app.onError("Failed to delete message", err, "channel_id", app.guildsTree.selectedChannelID, "message_id", msg.ID)
+		slog.Error("failed to delete message", "channel_id", app.guildsTree.selectedChannelID, "message_id", msg.ID, "err", err)
 		return
 	}
 
@@ -649,7 +650,7 @@ func (ml *messagesList) requestGuildMembers(gID discord.GuildID, ms []discord.Me
 			UserIDs:  slices.Compact(usersToFetch),
 		})
 		if err != nil {
-			app.onError("Failed to request guild members", err, "guild_id", gID)
+			slog.Error("failed to request guild members", "guild_id", gID, "err", err)
 			return
 		}
 
