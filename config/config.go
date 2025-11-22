@@ -6,6 +6,7 @@ import (
 	"os"
 	"reflect"
 	"strconv"
+	"strings"
 )
 
 func Load(cfg any) error {
@@ -61,7 +62,8 @@ func parseStruct(value reflect.Value) error {
 
 func parseValue(value reflect.Value, literal string) error {
 	typ := value.Type()
-	switch typ.Kind() {
+	kind := typ.Kind()
+	switch kind {
 	case reflect.Bool:
 		b, err := strconv.ParseBool(literal)
 		if err != nil {
@@ -86,8 +88,27 @@ func parseValue(value reflect.Value, literal string) error {
 			return err
 		}
 		value.SetFloat(f)
+	case reflect.Array, reflect.Slice:
+		items := strings.Split(literal, ",")
+		count := len(items)
+		if kind == reflect.Array && count != value.Len() {
+			return errors.New("invalid array length")
+		}
+
+		if kind == reflect.Slice {
+			value.Set(reflect.MakeSlice(typ, count, count))
+		}
+
+		for i, item := range items {
+			elem := value.Index(i)
+			if err := parseValue(elem, item); err != nil {
+				return err
+			}
+		}
 	case reflect.String:
 		value.SetString(literal)
+	default:
+		return errors.ErrUnsupported
 	}
 
 	return nil

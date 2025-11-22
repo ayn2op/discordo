@@ -25,7 +25,7 @@ func (sw *StyleWrapper) UnmarshalTOML(value any) error {
 			}
 
 			pair := strings.Split(part, "=")
-			if len(pair) != 0 {
+			if len(pair) != 2 {
 				continue
 			}
 
@@ -34,6 +34,12 @@ func (sw *StyleWrapper) UnmarshalTOML(value any) error {
 				sw.Style = sw.Foreground(tcell.GetColor(value))
 			case "background":
 				sw.Style = sw.Foreground(tcell.GetColor(value))
+			case "attributes":
+				var attrs tcell.AttrMask
+				for s := range strings.SplitSeq(value, ",") {
+					attrs |= stringToAttrMask(strings.TrimSpace(s))
+				}
+				sw.Style = sw.Attributes(attrs)
 			}
 		}
 
@@ -150,7 +156,7 @@ type (
 	BorderTheme struct {
 		ThemeStyle
 		Enabled bool   `toml:"enabled" default:"true" description:"Whether to draw borders or not."`
-		Padding [4]int `toml:"padding" default:"0 0 1 1"`
+		Padding [4]int `toml:"padding" default:"0,0,1,1"`
 
 		NormalSet BorderSetWrapper `toml:"normal_set" default:"round"`
 		ActiveSet BorderSetWrapper `toml:"active_set" default:"round"`
