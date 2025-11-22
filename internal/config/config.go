@@ -11,7 +11,6 @@ import (
 	"github.com/ayn2op/discordo/config"
 	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/diamondburned/arikawa/v3/discord"
-	"github.com/sanity-io/litter"
 )
 
 const fileName = "config.toml"
@@ -94,6 +93,5 @@ func Load(path string) (*Config, error) {
 		}
 	}
 
-	litter.D(cfg)
 	return &cfg, nil
 }
