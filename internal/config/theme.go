@@ -93,6 +93,11 @@ type (
 		AutoExpandFolders bool   `toml:"auto_expand_folders"`
 		Graphics          bool   `toml:"graphics"`
 		GraphicsColor     string `toml:"graphics_color"`
+		GuildIndent       int    `toml:"guild_indent"`
+		CategoryIndent    int    `toml:"category_indent"`
+		ChannelIndent     int    `toml:"channel_indent"`
+		GroupDMIndent     int    `toml:"groupdm_indent"`
+		DMIndent          int    `toml:"dm_indent"`
 	}
 
 	MessagesListTheme struct {

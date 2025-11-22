@@ -124,6 +124,12 @@ auto_expand_folders = true
 # Give tree-like shape
 graphics = true
 graphics_color = "default"
+# Default relative indentation (e.g., a guild from its parent folder)
+guild_indent = 2
+category_indent = 1
+channel_indent = 2
+groupdm_indent = 1
+dm_indent = 2
 
 [theme.messages_list]
 reply_indicator = ">"
