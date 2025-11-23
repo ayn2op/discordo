@@ -224,7 +224,7 @@ func (ml *messagesList) drawReplyMessage(w io.Writer, message discord.Message) {
 		io.WriteString(w, "Original message was deleted")
 	}
 
-	io.WriteString(w, tview.NewLine)
+	io.WriteString(w, "\n")
 	// main
 	ml.drawDefaultMessage(w, message)
 }
