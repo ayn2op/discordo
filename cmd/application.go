@@ -24,6 +24,7 @@ type application struct {
 }
 
 func newApplication(cfg *config.Config) *application {
+	tview.Styles = tview.Theme{}
 	app := &application{
 		Application: tview.NewApplication(),
 		cfg:         cfg,
