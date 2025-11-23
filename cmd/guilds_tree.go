@@ -1,9 +1,10 @@
 package cmd
 
 import (
+	"cmp"
 	"fmt"
 	"log/slog"
-	"sort"
+	"slices"
 
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/ui"
@@ -160,8 +161,8 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 			return
 		}
 
-		sort.Slice(channels, func(i, j int) bool {
-			return channels[i].Position < channels[j].Position
+		slices.SortFunc(channels, func(a, b discord.Channel) int {
+			return cmp.Compare(a.Position, b.Position)
 		})
 
 		gt.createChannelNodes(node, channels)
@@ -207,14 +208,16 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 			return
 		}
 
-		sort.Slice(channels, func(a, b int) bool {
-			msgID := func(ch discord.Channel) discord.MessageID {
-				if ch.LastMessageID.IsValid() {
-					return ch.LastMessageID
-				}
-				return discord.MessageID(ch.ID)
+		msgID := func(ch discord.Channel) discord.MessageID {
+			if ch.LastMessageID.IsValid() {
+				return ch.LastMessageID
 			}
-			return msgID(channels[a]) > msgID(channels[b])
+			return discord.MessageID(ch.ID)
+		}
+
+		slices.SortFunc(channels, func(a, b discord.Channel) int {
+			// Descending order
+			return cmp.Compare(msgID(b), msgID(a))
 		})
 
 		for _, c := range channels {
