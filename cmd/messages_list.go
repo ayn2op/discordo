@@ -129,8 +129,7 @@ func (ml *messagesList) drawMessage(writer io.Writer, message discord.Message) {
 	}
 
 	// Tags with no region ID ([""]) don't start new regions. They can therefore be used to mark the end of a region.
-	fmt.Fprint(writer, `[""]`)
-	fmt.Fprintln(writer)
+	io.WriteString(writer, "[\"\"]\n")
 }
 
 func (ml *messagesList) formatTimestamp(ts discord.Timestamp) string {
