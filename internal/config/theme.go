@@ -33,7 +33,7 @@ func (sw *StyleWrapper) UnmarshalTOML(value any) error {
 			case "foreground":
 				sw.Style = sw.Foreground(tcell.GetColor(value))
 			case "background":
-				sw.Style = sw.Foreground(tcell.GetColor(value))
+				sw.Style = sw.Background(tcell.GetColor(value))
 			case "attributes":
 				var attrs tcell.AttrMask
 				for s := range strings.SplitSeq(value, ",") {
