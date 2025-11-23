@@ -41,22 +41,22 @@ func newApplication(cfg *config.Config) *application {
 }
 
 func (a *application) run(token string) error {
+	var root tview.Primitive
 	if token == "" {
-		loginForm := login.NewForm(a.Application, a.cfg, func(token string) {
+		root = login.NewForm(a.Application, a.cfg, func(token string) {
 			if err := a.run(token); err != nil {
 				slog.Error("failed to run application", "err", err)
 			}
 		})
-
-		return a.SetRoot(loginForm, true).Run()
+	} else {
+		a.chatView = newChatView(a.Application, a.cfg)
+		root = a.chatView
+		if err := openState(token); err != nil {
+			return err
+		}
 	}
 
-	a.chatView = newChatView(a.Application, a.cfg)
-	if err := openState(token); err != nil {
-		return err
-	}
-
-	return a.SetRoot(a.chatView, true).Run()
+	return a.SetRoot(root, true).Run()
 }
 
 func (a *application) quit() {
