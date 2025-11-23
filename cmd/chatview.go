@@ -41,11 +41,11 @@ func newChatView(app *tview.Application, cfg *config.Config) *chatView {
 
 	cv.SetInputCapture(cv.onInputCapture)
 
-	cv.init()
+	cv.buildLayout()
 	return cv
 }
 
-func (cv *chatView) init() {
+func (cv *chatView) buildLayout() {
 	cv.Clear()
 	cv.mainFlex.Clear()
 
@@ -69,7 +69,7 @@ func (cv *chatView) toggleGuildsTree() {
 			cv.app.SetFocus(cv.mainFlex)
 		}
 	} else {
-		cv.init()
+		cv.buildLayout()
 		cv.app.SetFocus(cv.guildsTree)
 	}
 }
