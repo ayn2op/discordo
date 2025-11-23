@@ -101,7 +101,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		return tcell.NewEventKey(tcell.KeyCtrlV, 0, tcell.ModNone)
 
 	case mi.cfg.Keys.MessageInput.Send:
-		if app.pages.GetVisibile(mentionsListPageName) {
+		if app.chatView.GetVisibile(mentionsListPageName) {
 			mi.tabComplete(false)
 			return nil
 		}
@@ -117,7 +117,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		mi.openFilePicker()
 		return nil
 	case mi.cfg.Keys.MessageInput.Cancel:
-		if app.pages.GetVisibile(mentionsListPageName) {
+		if app.chatView.GetVisibile(mentionsListPageName) {
 			mi.stopTabCompletion()
 		} else {
 			mi.reset()
@@ -130,7 +130,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	}
 
 	if mi.cfg.AutocompleteLimit > 0 {
-		if app.pages.GetVisibile(mentionsListPageName) {
+		if app.chatView.GetVisibile(mentionsListPageName) {
 			switch event.Name() {
 			case mi.cfg.Keys.MentionsList.Up:
 				mi.mentionsList.InputHandler()(tcell.NewEventKey(tcell.KeyUp, 0, tcell.ModNone), nil)
@@ -155,7 +155,7 @@ func (mi *messageInput) paste() {
 }
 
 func (mi *messageInput) send() {
-	if !app.guildsTree.selectedChannelID.IsValid() {
+	if !app.chatView.guildsTree.selectedChannelID.IsValid() {
 		return
 	}
 
@@ -164,13 +164,13 @@ func (mi *messageInput) send() {
 		return
 	}
 
-	text = processText(app.guildsTree.selectedChannelID, []byte(text))
+	text = processText(app.chatView.guildsTree.selectedChannelID, []byte(text))
 	if text == "" {
 		return
 	}
 
 	if mi.edit {
-		m, err := app.messagesList.selectedMessage()
+		m, err := app.chatView.messagesList.selectedMessage()
 		if err != nil {
 			slog.Error("failed to get selected message", "err", err)
 			return
@@ -185,8 +185,8 @@ func (mi *messageInput) send() {
 	} else {
 		data := mi.sendMessageData
 		data.Content = text
-		if _, err := discordState.SendMessageComplex(app.guildsTree.selectedChannelID, *data); err != nil {
-			slog.Error("failed to send message in channel", "channel_id", app.guildsTree.selectedChannelID, "err", err)
+		if _, err := discordState.SendMessageComplex(app.chatView.guildsTree.selectedChannelID, *data); err != nil {
+			slog.Error("failed to send message in channel", "channel_id", app.chatView.guildsTree.selectedChannelID, "err", err)
 		}
 	}
 
@@ -198,8 +198,8 @@ func (mi *messageInput) send() {
 	}
 
 	mi.reset()
-	app.messagesList.Highlight()
-	app.messagesList.ScrollToEnd()
+	app.chatView.messagesList.Highlight()
+	app.chatView.messagesList.ScrollToEnd()
 }
 
 func processText(cID discord.ChannelID, src []byte) string {
@@ -236,7 +236,7 @@ func expandMentions(cID discord.ChannelID, src []byte) []byte {
 	return mentionRegex.ReplaceAllFunc(src, func(input []byte) []byte {
 		output := input
 		name := string(input[1:])
-		discordState.MemberStore.Each(app.guildsTree.selectedGuildID, func(m *discord.Member) bool {
+		discordState.MemberStore.Each(app.chatView.guildsTree.selectedGuildID, func(m *discord.Member) bool {
 			if strings.EqualFold(m.User.Username, name) && channelHasUser(cID, m.User.ID) {
 				output = []byte(m.User.ID.Mention())
 				return true
@@ -259,8 +259,8 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 	}
 	pos := posEnd - (len(name) + 1)
 
-	gID := app.guildsTree.selectedGuildID
-	cID := app.guildsTree.selectedChannelID
+	gID := app.chatView.guildsTree.selectedGuildID
+	cID := app.chatView.guildsTree.selectedChannelID
 
 	if !isAuto {
 		if mi.cfg.AutocompleteLimit == 0 {
@@ -373,10 +373,10 @@ func (mi *messageInput) searchMember(gID discord.GuildID, name string) {
 	}
 
 	mi.lastSearch = time.Now()
-	app.messagesList.waitForChunkEvent()
-	app.messagesList.setFetchingChunk(true, 0)
+	app.chatView.messagesList.waitForChunkEvent()
+	app.chatView.messagesList.setFetchingChunk(true, 0)
 	discordState.MemberState.SearchMember(gID, name)
-	mi.cache.Create(key, app.messagesList.waitForChunkEvent())
+	mi.cache.Create(key, app.chatView.messagesList.waitForChunkEvent())
 }
 
 func (mi *messageInput) showMentionList(col int) {
@@ -387,7 +387,7 @@ func (mi *messageInput) showMentionList(col int) {
 	l := mi.mentionsList
 	x, _, _, _ := mi.GetInnerRect()
 	_, y, _, _ := mi.GetRect()
-	_, _, maxW, maxH := app.messagesList.GetInnerRect()
+	_, _, maxW, maxH := app.chatView.messagesList.GetInnerRect()
 	if t := int(mi.cfg.Theme.MentionsList.MaxHeight); t != 0 {
 		maxH = min(maxH, t)
 	}
@@ -409,7 +409,7 @@ func (mi *messageInput) showMentionList(col int) {
 
 	l.SetRect(x, y, w, h)
 
-	app.pages.
+	app.chatView.
 		AddAndSwitchToPage(mentionsListPageName, l, false).
 		ShowPage(flexPageName)
 	app.SetFocus(mi)
@@ -448,7 +448,7 @@ func (mi *messageInput) addMentionItem(gID discord.GuildID, m *discord.Member) b
 }
 
 func (mi *messageInput) removeMentionsList() {
-	app.pages.
+	app.chatView.
 		RemovePage(mentionsListPageName).
 		SwitchToPage(flexPageName)
 }
@@ -504,7 +504,7 @@ func (mi *messageInput) addTitle(s string) {
 }
 
 func (mi *messageInput) openFilePicker() {
-	if !app.guildsTree.selectedChannelID.IsValid() {
+	if !app.chatView.guildsTree.selectedChannelID.IsValid() {
 		return
 	}
 

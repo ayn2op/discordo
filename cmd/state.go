@@ -45,11 +45,11 @@ func openState(token string) error {
 	discordState.AddHandler(onReadUpdate)
 
 	discordState.AddHandler(func(event *gateway.GuildMembersChunkEvent) {
-		app.messagesList.setFetchingChunk(false, uint(len(event.Members)))
+		app.chatView.messagesList.setFetchingChunk(false, uint(len(event.Members)))
 	})
 
 	discordState.AddHandler(func(event *gateway.GuildMemberRemoveEvent) {
-		app.messageInput.cache.Invalidate(event.GuildID.String()+" "+event.User.Username, discordState.MemberState.SearchLimit)
+		app.chatView.messageInput.cache.Invalidate(event.GuildID.String()+" "+event.User.Username, discordState.MemberState.SearchLimit)
 	})
 
 	discordState.StateLog = func(err error) {
@@ -79,18 +79,18 @@ func onRaw(event *ws.RawEvent) {
 
 func onReadUpdate(event *read.UpdateEvent) {
 	var guildNode *tview.TreeNode
-	app.guildsTree.
+	app.chatView.guildsTree.
 		GetRoot().
 		Walk(func(node, parent *tview.TreeNode) bool {
 			switch node.GetReference() {
 			case event.GuildID:
-				node.SetTextStyle(app.guildsTree.getGuildNodeStyle(event.GuildID))
+				node.SetTextStyle(app.chatView.guildsTree.getGuildNodeStyle(event.GuildID))
 				guildNode = node
 				return false
 			case event.ChannelID:
 				// private channel
 				if !event.GuildID.IsValid() {
-					style := app.guildsTree.getChannelNodeStyle(event.ChannelID)
+					style := app.chatView.guildsTree.getChannelNodeStyle(event.ChannelID)
 					node.SetTextStyle(style)
 					return false
 				}
@@ -102,7 +102,7 @@ func onReadUpdate(event *read.UpdateEvent) {
 	if guildNode != nil {
 		guildNode.Walk(func(node, parent *tview.TreeNode) bool {
 			if node.GetReference() == event.ChannelID {
-				node.SetTextStyle(app.guildsTree.getChannelNodeStyle(event.ChannelID))
+				node.SetTextStyle(app.chatView.guildsTree.getChannelNodeStyle(event.ChannelID))
 				return false
 			}
 
@@ -115,7 +115,7 @@ func onReadUpdate(event *read.UpdateEvent) {
 
 func onReady(r *gateway.ReadyEvent) {
 	dmNode := tview.NewTreeNode("Direct Messages")
-	root := app.guildsTree.
+	root := app.chatView.guildsTree.
 		GetRoot().
 		ClearChildren().
 		AddChild(dmNode)
@@ -134,20 +134,20 @@ func onReady(r *gateway.ReadyEvent) {
 				continue
 			}
 
-			app.guildsTree.createGuildNode(root, *guild)
+			app.chatView.guildsTree.createGuildNode(root, *guild)
 		} else {
-			app.guildsTree.createFolderNode(folder)
+			app.chatView.guildsTree.createFolderNode(folder)
 		}
 	}
 
-	app.guildsTree.SetCurrentNode(root)
-	app.SetFocus(app.guildsTree)
+	app.chatView.guildsTree.SetCurrentNode(root)
+	app.SetFocus(app.chatView.guildsTree)
 	app.Draw()
 }
 
 func onMessageCreate(message *gateway.MessageCreateEvent) {
-	if app.guildsTree.selectedChannelID == message.ChannelID {
-		app.messagesList.drawMessage(app.messagesList, message.Message)
+	if app.chatView.guildsTree.selectedChannelID == message.ChannelID {
+		app.chatView.messagesList.drawMessage(app.chatView.messagesList, message.Message)
 		app.Draw()
 	}
 
@@ -157,21 +157,21 @@ func onMessageCreate(message *gateway.MessageCreateEvent) {
 }
 
 func onMessageUpdate(message *gateway.MessageUpdateEvent) {
-	if app.guildsTree.selectedChannelID == message.ChannelID {
+	if app.chatView.guildsTree.selectedChannelID == message.ChannelID {
 		onMessageDelete(&gateway.MessageDeleteEvent{ID: message.ID, ChannelID: message.ChannelID, GuildID: message.GuildID})
 	}
 }
 
 func onMessageDelete(message *gateway.MessageDeleteEvent) {
-	if app.guildsTree.selectedChannelID == message.ChannelID {
+	if app.chatView.guildsTree.selectedChannelID == message.ChannelID {
 		messages, err := discordState.Cabinet.Messages(message.ChannelID)
 		if err != nil {
 			slog.Error("failed to get messages from state", "err", err, "channel_id", message.ChannelID)
 			return
 		}
 
-		app.messagesList.reset()
-		app.messagesList.drawMessages(messages)
+		app.chatView.messagesList.reset()
+		app.chatView.messagesList.drawMessages(messages)
 		app.Draw()
 	}
 }

@@ -143,7 +143,7 @@ PARENT_CHANNELS:
 }
 
 func (gt *guildsTree) onSelected(node *tview.TreeNode) {
-	app.messageInput.reset()
+	app.chatView.messageInput.reset()
 
 	if len(node.GetChildren()) != 0 {
 		node.SetExpanded(!node.IsExpanded())
@@ -181,21 +181,21 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 		}
 
 		if guildID := channel.GuildID; guildID.IsValid() {
-			app.messagesList.requestGuildMembers(guildID, messages)
+			app.chatView.messagesList.requestGuildMembers(guildID, messages)
 		}
 
-		app.messagesList.reset()
-		app.messagesList.setTitle(*channel)
-		app.messagesList.drawMessages(messages)
-		app.messagesList.ScrollToEnd()
+		app.chatView.messagesList.reset()
+		app.chatView.messagesList.setTitle(*channel)
+		app.chatView.messagesList.drawMessages(messages)
+		app.chatView.messagesList.ScrollToEnd()
 
 		hasNoPerm := channel.Type != discord.DirectMessage && channel.Type != discord.GroupDM && !discordState.HasPermissions(channel.ID, discord.PermissionSendMessages)
-		app.messageInput.SetDisabled(hasNoPerm)
+		app.chatView.messageInput.SetDisabled(hasNoPerm)
 		if hasNoPerm {
-			app.messageInput.SetPlaceholder("You do not have permission to send messages in this channel.")
+			app.chatView.messageInput.SetPlaceholder("You do not have permission to send messages in this channel.")
 		} else {
-			app.messageInput.SetPlaceholder("Message...")
-			app.SetFocus(app.messageInput)
+			app.chatView.messageInput.SetPlaceholder("Message...")
+			app.SetFocus(app.chatView.messageInput)
 		}
 
 		gt.selectedChannelID = channel.ID
