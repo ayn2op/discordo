@@ -144,7 +144,9 @@ func (ml *messagesList) drawTimestamps(w io.Writer, ts discord.Timestamp) {
 func (ml *messagesList) drawAuthor(w io.Writer, message discord.Message) {
 	name := message.Author.DisplayOrUsername()
 	foreground := tcell.ColorDefault
-	if message.GuildID.IsValid() {
+
+	// Webhooks do not have nicknames or roles.
+	if message.GuildID.IsValid() && !message.WebhookID.IsValid() {
 		member, err := discordState.Cabinet.Member(message.GuildID, message.Author.ID)
 		if err != nil {
 			slog.Error("failed to get member from state", "guild_id", message.GuildID, "member_id", message.Author.ID, "err", err)
@@ -641,6 +643,11 @@ func (ml *messagesList) delete() {
 func (ml *messagesList) requestGuildMembers(gID discord.GuildID, ms []discord.Message) {
 	var usersToFetch []discord.UserID
 	for _, m := range ms {
+		// Do not fetch member for a webhook message.
+		if m.WebhookID.IsValid() {
+			continue
+		}
+
 		if member, _ := discordState.Cabinet.Member(gID, m.Author.ID); member == nil {
 			usersToFetch = append(usersToFetch, m.Author.ID)
 		}
