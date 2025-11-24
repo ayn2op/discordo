@@ -7,6 +7,7 @@ import (
 	"github.com/ayn2op/discordo/internal/keyring"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/gdamore/tcell/v2"
 )
 
@@ -26,6 +27,9 @@ type chatView struct {
 	guildsTree   *guildsTree
 	messagesList *messagesList
 	messageInput *messageInput
+
+	selectedGuildID   discord.GuildID
+	selectedChannelID discord.ChannelID
 
 	app *tview.Application
 	cfg *config.Config

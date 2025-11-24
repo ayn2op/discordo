@@ -155,7 +155,7 @@ func (mi *messageInput) paste() {
 }
 
 func (mi *messageInput) send() {
-	if !app.chatView.guildsTree.selectedChannelID.IsValid() {
+	if !app.chatView.selectedChannelID.IsValid() {
 		return
 	}
 
@@ -164,7 +164,7 @@ func (mi *messageInput) send() {
 		return
 	}
 
-	text = processText(app.chatView.guildsTree.selectedChannelID, []byte(text))
+	text = processText(app.chatView.selectedChannelID, []byte(text))
 	if text == "" {
 		return
 	}
@@ -185,8 +185,8 @@ func (mi *messageInput) send() {
 	} else {
 		data := mi.sendMessageData
 		data.Content = text
-		if _, err := discordState.SendMessageComplex(app.chatView.guildsTree.selectedChannelID, *data); err != nil {
-			slog.Error("failed to send message in channel", "channel_id", app.chatView.guildsTree.selectedChannelID, "err", err)
+		if _, err := discordState.SendMessageComplex(app.chatView.selectedChannelID, *data); err != nil {
+			slog.Error("failed to send message in channel", "channel_id", app.chatView.selectedChannelID, "err", err)
 		}
 	}
 
@@ -236,7 +236,7 @@ func expandMentions(cID discord.ChannelID, src []byte) []byte {
 	return mentionRegex.ReplaceAllFunc(src, func(input []byte) []byte {
 		output := input
 		name := string(input[1:])
-		discordState.MemberStore.Each(app.chatView.guildsTree.selectedGuildID, func(m *discord.Member) bool {
+		discordState.MemberStore.Each(app.chatView.selectedGuildID, func(m *discord.Member) bool {
 			if strings.EqualFold(m.User.Username, name) && channelHasUser(cID, m.User.ID) {
 				output = []byte(m.User.ID.Mention())
 				return true
@@ -259,8 +259,8 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 	}
 	pos := posEnd - (len(name) + 1)
 
-	gID := app.chatView.guildsTree.selectedGuildID
-	cID := app.chatView.guildsTree.selectedChannelID
+	gID := app.chatView.selectedGuildID
+	cID := app.chatView.selectedChannelID
 
 	if !isAuto {
 		if mi.cfg.AutocompleteLimit == 0 {
@@ -504,7 +504,7 @@ func (mi *messageInput) addTitle(s string) {
 }
 
 func (mi *messageInput) openFilePicker() {
-	if !app.chatView.guildsTree.selectedChannelID.IsValid() {
+	if !app.chatView.selectedChannelID.IsValid() {
 		return
 	}
 

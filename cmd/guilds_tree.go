@@ -18,9 +18,7 @@ import (
 
 type guildsTree struct {
 	*tview.TreeView
-	cfg               *config.Config
-	selectedChannelID discord.ChannelID
-	selectedGuildID   discord.GuildID
+	cfg *config.Config
 }
 
 func newGuildsTree(cfg *config.Config) *guildsTree {
@@ -199,8 +197,8 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 			app.SetFocus(app.chatView.messageInput)
 		}
 
-		gt.selectedChannelID = channel.ID
-		gt.selectedGuildID = channel.GuildID
+		app.chatView.selectedChannelID = channel.ID
+		app.chatView.selectedGuildID = channel.GuildID
 	case nil: // Direct messages
 		channels, err := discordState.PrivateChannels()
 		if err != nil {
