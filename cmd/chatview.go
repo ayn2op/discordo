@@ -10,6 +10,13 @@ import (
 	"github.com/gdamore/tcell/v2"
 )
 
+const (
+	flexPageName            = "flex"
+	mentionsListPageName    = "mentionsList"
+	attachmentsListPageName = "attachmentsList"
+	confirmModalPageName    = "confirmModal"
+)
+
 type chatView struct {
 	*tview.Pages
 

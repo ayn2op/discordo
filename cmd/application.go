@@ -10,13 +10,6 @@ import (
 	"golang.design/x/clipboard"
 )
 
-const (
-	flexPageName            = "flex"
-	mentionsListPageName    = "mentionsList"
-	attachmentsListPageName = "attachmentsList"
-	confirmModalPageName    = "confirmModal"
-)
-
 type application struct {
 	*tview.Application
 	chatView *chatView
