@@ -1,9 +1,10 @@
 package cmd
 
 import (
+	"cmp"
 	"fmt"
 	"log/slog"
-	"sort"
+	"slices"
 
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/ui"
@@ -143,7 +144,7 @@ PARENT_CHANNELS:
 }
 
 func (gt *guildsTree) onSelected(node *tview.TreeNode) {
-	app.messageInput.reset()
+	app.chatView.messageInput.reset()
 
 	if len(node.GetChildren()) != 0 {
 		node.SetExpanded(!node.IsExpanded())
@@ -160,8 +161,8 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 			return
 		}
 
-		sort.Slice(channels, func(i, j int) bool {
-			return channels[i].Position < channels[j].Position
+		slices.SortFunc(channels, func(a, b discord.Channel) int {
+			return cmp.Compare(a.Position, b.Position)
 		})
 
 		gt.createChannelNodes(node, channels)
@@ -181,21 +182,21 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 		}
 
 		if guildID := channel.GuildID; guildID.IsValid() {
-			app.messagesList.requestGuildMembers(guildID, messages)
+			app.chatView.messagesList.requestGuildMembers(guildID, messages)
 		}
 
-		app.messagesList.reset()
-		app.messagesList.setTitle(*channel)
-		app.messagesList.drawMessages(messages)
-		app.messagesList.ScrollToEnd()
+		app.chatView.messagesList.reset()
+		app.chatView.messagesList.setTitle(*channel)
+		app.chatView.messagesList.drawMessages(messages)
+		app.chatView.messagesList.ScrollToEnd()
 
 		hasNoPerm := channel.Type != discord.DirectMessage && channel.Type != discord.GroupDM && !discordState.HasPermissions(channel.ID, discord.PermissionSendMessages)
-		app.messageInput.SetDisabled(hasNoPerm)
+		app.chatView.messageInput.SetDisabled(hasNoPerm)
 		if hasNoPerm {
-			app.messageInput.SetPlaceholder("You do not have permission to send messages in this channel.")
+			app.chatView.messageInput.SetPlaceholder("You do not have permission to send messages in this channel.")
 		} else {
-			app.messageInput.SetPlaceholder("Message...")
-			app.SetFocus(app.messageInput)
+			app.chatView.messageInput.SetPlaceholder("Message...")
+			app.SetFocus(app.chatView.messageInput)
 		}
 
 		gt.selectedChannelID = channel.ID
@@ -207,14 +208,16 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 			return
 		}
 
-		sort.Slice(channels, func(a, b int) bool {
-			msgID := func(ch discord.Channel) discord.MessageID {
-				if ch.LastMessageID.IsValid() {
-					return ch.LastMessageID
-				}
-				return discord.MessageID(ch.ID)
+		msgID := func(ch discord.Channel) discord.MessageID {
+			if ch.LastMessageID.IsValid() {
+				return ch.LastMessageID
 			}
-			return msgID(channels[a]) > msgID(channels[b])
+			return discord.MessageID(ch.ID)
+		}
+
+		slices.SortFunc(channels, func(a, b discord.Channel) int {
+			// Descending order
+			return cmp.Compare(msgID(b), msgID(a))
 		})
 
 		for _, c := range channels {

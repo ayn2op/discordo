@@ -129,8 +129,7 @@ func (ml *messagesList) drawMessage(writer io.Writer, message discord.Message) {
 	}
 
 	// Tags with no region ID ([""]) don't start new regions. They can therefore be used to mark the end of a region.
-	fmt.Fprint(writer, `[""]`)
-	fmt.Fprintln(writer)
+	io.WriteString(writer, "[\"\"]\n")
 }
 
 func (ml *messagesList) formatTimestamp(ts discord.Timestamp) string {
@@ -227,7 +226,7 @@ func (ml *messagesList) drawReplyMessage(w io.Writer, message discord.Message) {
 		io.WriteString(w, "Original message was deleted")
 	}
 
-	io.WriteString(w, tview.NewLine)
+	io.WriteString(w, "\n")
 	// main
 	ml.drawDefaultMessage(w, message)
 }
@@ -241,7 +240,7 @@ func (ml *messagesList) selectedMessage() (*discord.Message, error) {
 		return nil, errors.New("no message is currently selected")
 	}
 
-	m, err := discordState.Cabinet.Message(app.guildsTree.selectedChannelID, ml.selectedMessageID)
+	m, err := discordState.Cabinet.Message(app.chatView.guildsTree.selectedChannelID, ml.selectedMessageID)
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve selected message: %w", err)
 	}
@@ -250,7 +249,7 @@ func (ml *messagesList) selectedMessage() (*discord.Message, error) {
 }
 
 func (ml *messagesList) selectedMessageIndex() (int, error) {
-	ms, err := discordState.Cabinet.Messages(app.guildsTree.selectedChannelID)
+	ms, err := discordState.Cabinet.Messages(app.chatView.guildsTree.selectedChannelID)
 	if err != nil {
 		return -1, err
 	}
@@ -296,9 +295,9 @@ func (ml *messagesList) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 }
 
 func (ml *messagesList) _select(name string) {
-	ms, err := discordState.Cabinet.Messages(app.guildsTree.selectedChannelID)
+	ms, err := discordState.Cabinet.Messages(app.chatView.guildsTree.selectedChannelID)
 	if err != nil {
-		slog.Error("failed to get messages", "err", err, "channel_id", app.guildsTree.selectedChannelID)
+		slog.Error("failed to get messages", "err", err, "channel_id", app.chatView.guildsTree.selectedChannelID)
 		return
 	}
 
@@ -452,7 +451,7 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 		SetHighlightFullLine(true).
 		ShowSecondaryText(false).
 		SetDoneFunc(func() {
-			app.pages.RemovePage(attachmentsListPageName).SwitchToPage(flexPageName)
+			app.chatView.RemovePage(attachmentsListPageName).SwitchToPage(flexPageName)
 			app.SetFocus(ml)
 		})
 	list.
@@ -488,7 +487,7 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 		})
 	}
 
-	app.pages.
+	app.chatView.
 		AddAndSwitchToPage(attachmentsListPageName, ui.Centered(list, 0, 0), true).
 		ShowPage(flexPageName)
 }
@@ -550,7 +549,7 @@ func (ml *messagesList) reply(mention bool) {
 		}
 	}
 
-	data := app.messageInput.sendMessageData
+	data := app.chatView.messageInput.sendMessageData
 	data.Reference = &discord.MessageReference{MessageID: ml.selectedMessageID}
 	data.AllowedMentions = &api.AllowedMentions{RepliedUser: option.False}
 
@@ -560,9 +559,9 @@ func (ml *messagesList) reply(mention bool) {
 		title = "[@] " + title
 	}
 
-	app.messageInput.sendMessageData = data
-	app.messageInput.addTitle(title + name)
-	app.SetFocus(app.messageInput)
+	app.chatView.messageInput.sendMessageData = data
+	app.chatView.messageInput.addTitle(title + name)
+	app.SetFocus(app.chatView.messageInput)
 }
 
 func (ml *messagesList) edit() {
@@ -583,10 +582,10 @@ func (ml *messagesList) edit() {
 		return
 	}
 
-	app.messageInput.SetTitle("Editing")
-	app.messageInput.edit = true
-	app.messageInput.SetText(message.Content, true)
-	app.SetFocus(app.messageInput)
+	app.chatView.messageInput.SetTitle("Editing")
+	app.chatView.messageInput.edit = true
+	app.chatView.messageInput.SetText(message.Content, true)
+	app.SetFocus(app.chatView.messageInput)
 }
 
 func (ml *messagesList) confirmDelete() {
@@ -596,7 +595,7 @@ func (ml *messagesList) confirmDelete() {
 		}
 	}
 
-	app.showConfirmModal(
+	app.chatView.showConfirmModal(
 		"Are you sure you want to delete this message?",
 		[]string{"Yes", "No"},
 		onChoice,
@@ -623,16 +622,16 @@ func (ml *messagesList) delete() {
 		}
 	}
 
-	if err := discordState.DeleteMessage(app.guildsTree.selectedChannelID, msg.ID, ""); err != nil {
-		slog.Error("failed to delete message", "channel_id", app.guildsTree.selectedChannelID, "message_id", msg.ID, "err", err)
+	if err := discordState.DeleteMessage(app.chatView.guildsTree.selectedChannelID, msg.ID, ""); err != nil {
+		slog.Error("failed to delete message", "channel_id", app.chatView.guildsTree.selectedChannelID, "message_id", msg.ID, "err", err)
 		return
 	}
 
 	ml.selectedMessageID = 0
 	ml.Highlight()
 
-	if err := discordState.MessageRemove(app.guildsTree.selectedChannelID, msg.ID); err != nil {
-		slog.Error("failed to delete message", "channel_id", app.guildsTree.selectedChannelID, "message_id", msg.ID, "err", err)
+	if err := discordState.MessageRemove(app.chatView.guildsTree.selectedChannelID, msg.ID); err != nil {
+		slog.Error("failed to delete message", "channel_id", app.chatView.guildsTree.selectedChannelID, "message_id", msg.ID, "err", err)
 		return
 	}
 
