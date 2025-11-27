@@ -58,6 +58,7 @@ func newChatView(app *tview.Application, cfg *config.Config) *chatView {
 
 func (cv *chatView) buildLayout() {
 	cv.Clear()
+	cv.rightFlex.Clear()
 	cv.mainFlex.Clear()
 
 	cv.rightFlex.
