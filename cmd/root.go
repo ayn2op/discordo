@@ -72,7 +72,7 @@ var (
 
 func init() {
 	flags := rootCmd.Flags()
-	flags.StringVar(&token, "token", "", "authentication token")
+	flags.StringVar(&token, "token", "", "authentication token (default: $DISCORDO_TOKEN or keyring)")
 
 	flags.StringVar(&configPath, "config-path", config.DefaultPath(), "path of the configuration file")
 
