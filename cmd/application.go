@@ -35,22 +35,23 @@ func newApplication(cfg *config.Config) *application {
 }
 
 func (a *application) run(token string) error {
-	var root tview.Primitive
 	if token == "" {
-		root = login.NewForm(a.Application, a.cfg, func(token string) {
+		loginForm := login.NewForm(a.Application, a.cfg, func(token string) {
 			if err := a.run(token); err != nil {
 				slog.Error("failed to run application", "err", err)
 			}
 		})
+		a.SetRoot(loginForm, true)
 	} else {
 		a.chatView = newChatView(a.Application, a.cfg)
-		root = a.chatView
 		if err := openState(token); err != nil {
 			return err
 		}
+
+		a.SetRoot(a.chatView, true)
 	}
 
-	return a.SetRoot(root, true).Run()
+	return a.Run()
 }
 
 func (a *application) quit() {
