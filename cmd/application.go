@@ -1,9 +1,7 @@
 package cmd
 
 import (
-	"fmt"
 	"log/slog"
-	"reflect"
 
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/login"
@@ -14,8 +12,9 @@ import (
 
 type application struct {
 	*tview.Application
-	chatView *chatView
-	cfg      *config.Config
+	chatView  *chatView
+	statusBar *statusBar
+	cfg       *config.Config
 }
 
 func newApplication(cfg *config.Config) *application {
@@ -51,7 +50,15 @@ func (a *application) run(token string) error {
 			return err
 		}
 
-		a.SetRoot(a.chatView, true)
+		rootFlex := tview.NewFlex().
+			SetDirection(tview.FlexRow).
+			AddItem(a.chatView, 0, 1, true)
+		if a.cfg.ShowStatusBar {
+			a.statusBar = newStatusBar(a.cfg)
+			rootFlex.AddItem(a.statusBar, 1, 1, false)
+		}
+
+		a.SetRoot(rootFlex, true)
 	}
 
 	return a.Run()
@@ -81,20 +88,8 @@ func (a *application) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 }
 
 func (a *application) onBeforeDraw(screen tcell.Screen) bool {
-	if a.chatView != nil && a.chatView.statusBar != nil {
-		var f = a.GetFocus()
-		switch f {
-		// ideally these are NOT hardcoded rofl
-		case a.chatView.guildsTree:
-			a.chatView.statusBar.setText("k prev j next g first G last RTN select")
-		case a.chatView.messagesList:
-			a.chatView.statusBar.setText("k prev j next g first G last r reply R @reply")
-		case a.chatView.messageInput:
-			a.chatView.statusBar.setText("RTN send ALT-RTN newline ESC clear CTRL-\\ attach")
-		default:
-			// mouse input seems to cause this case, not sure of a solution :(
-			a.chatView.statusBar.setText(fmt.Sprint(reflect.TypeOf(f)))
-		}
+	if a.statusBar != nil {
+		a.statusBar.update(a)
 	}
 	return false
 }

@@ -24,8 +24,6 @@ type chatView struct {
 	mainFlex  *tview.Flex
 	rightFlex *tview.Flex
 
-	statusBar *statusBar
-
 	guildsTree   *guildsTree
 	messagesList *messagesList
 	messageInput *messageInput
@@ -44,18 +42,12 @@ func newChatView(app *tview.Application, cfg *config.Config) *chatView {
 		mainFlex:  tview.NewFlex(),
 		rightFlex: tview.NewFlex(),
 
-		statusBar: nil,
-
 		guildsTree:   newGuildsTree(cfg),
 		messagesList: newMessagesList(cfg),
 		messageInput: newMessageInput(cfg),
 
 		app: app,
 		cfg: cfg,
-	}
-
-	if cv.cfg.ShowStatusBar {
-		cv.statusBar = newStatusBar(cfg)
 	}
 
 	cv.SetInputCapture(cv.onInputCapture)
@@ -73,11 +65,6 @@ func (cv *chatView) buildLayout() {
 		SetDirection(tview.FlexRow).
 		AddItem(cv.messagesList, 0, 1, false).
 		AddItem(cv.messageInput, 3, 1, false)
-
-	if cv.statusBar != nil {
-		cv.rightFlex.AddItem(cv.statusBar, 1, 1, false)
-	}
-
 	// The guilds tree is always focused first at start-up.
 	cv.mainFlex.
 		AddItem(cv.guildsTree, 0, 1, true).
