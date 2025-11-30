@@ -1,9 +1,9 @@
 package cmd
 
 import (
+	"fmt"
 	"log/slog"
 	"reflect"
-	"fmt"
 
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/login"
