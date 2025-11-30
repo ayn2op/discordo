@@ -1,9 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-	"reflect"
-
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
@@ -27,31 +24,49 @@ func newStatusBar(cfg *config.Config) *statusBar {
 		SetBlurFunc(nil).
 		SetFocusFunc(nil)
 	sb.
-		SetRegions(true).
 		SetWrap(false).
-		SetTitle("Status Bar!")
+		SetScrollable(false).
+		SetTitle("")
 
 	return sb
 }
 
+// TODO)) ideally these are NOT hardcoded rofl
 func (sb *statusBar) update(app *application) {
 	if app.chatView != nil {
+		helpString := ""
 		var f = app.GetFocus()
 		switch f {
-		// ideally these are NOT hardcoded rofl
 		case app.chatView.guildsTree:
-			sb.setText("k prev j next g first G last RTN select")
+			helpString += "k prev j next g first G last RTN select"
+			// TODO)) expand/collapse
 		case app.chatView.messagesList:
-			sb.setText("k prev j next g first G last r reply R @reply")
+			helpString += "k prev j next g first G last"
+			msg, err := app.chatView.messagesList.selectedMessage()
+			if err != nil {
+				// noop i think?
+			} else {
+				helpString += " r reply R @reply"
+				urls := ui.ExtractURLs(msg.Content)
+				if len(urls)+len(msg.Attachments) > 0 {
+					helpString += " o open"
+				}
+				if ref := msg.ReferencedMessage; ref != nil {
+					helpString += " s goto OP"
+				}
+				// TODO)) edit/delete own messages, attachments list
+			}
 		case app.chatView.messageInput:
-			sb.setText("RTN send ALT-RTN newline ESC clear CTRL-\\ attach")
+			// TODO))
+			helpString += "RTN send ALT-RTN newline ESC clear CTRL-\\ attach"
 		default:
-			// mouse input seems to cause this case, not sure of a solution :(
-			sb.setText(fmt.Sprint(reflect.TypeOf(f)))
+			// TODO)) mouse input seems to cause this case, not sure of a solution :(
+			helpString += " (mouse controls dont play nice with status bar atm.)"
 		}
+		sb.setText(helpString)
 	}
 }
 
 func (sb *statusBar) setText(t string) {
-	sb.SetTitle(t)
+	sb.SetText(t)
 }
