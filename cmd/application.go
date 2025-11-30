@@ -81,19 +81,19 @@ func (a *application) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 }
 
 func (a *application) onBeforeDraw(screen tcell.Screen) bool {
-	if a.chatView != nil {
+	if a.chatView != nil && a.chatView.statusBar != nil {
 		var f = a.GetFocus()
 		switch f {
-			// ideally these are NOT hardcoded rofl
-			case a.chatView.guildsTree:
-				a.chatView.statusBar.setText("k prev j next g first G last RTN select")
-			case a.chatView.messagesList:
-				a.chatView.statusBar.setText("k prev j next g first G last r reply R @reply")
-			case a.chatView.messageInput:
-				a.chatView.statusBar.setText("RTN send ALT-RTN newline ESC clear CTRL-\\ attach")
-			default:
-				// mouse input seems to cause this case, not sure of a solution :(
-				a.chatView.statusBar.setText(fmt.Sprint(reflect.TypeOf(f)))
+		// ideally these are NOT hardcoded rofl
+		case a.chatView.guildsTree:
+			a.chatView.statusBar.setText("k prev j next g first G last RTN select")
+		case a.chatView.messagesList:
+			a.chatView.statusBar.setText("k prev j next g first G last r reply R @reply")
+		case a.chatView.messageInput:
+			a.chatView.statusBar.setText("RTN send ALT-RTN newline ESC clear CTRL-\\ attach")
+		default:
+			// mouse input seems to cause this case, not sure of a solution :(
+			a.chatView.statusBar.setText(fmt.Sprint(reflect.TypeOf(f)))
 		}
 	}
 	return false
