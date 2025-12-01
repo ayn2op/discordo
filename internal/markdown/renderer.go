@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/ayn2op/discordo/internal/config"
-	"github.com/ayn2op/tview"
 	"github.com/diamondburned/ningen/v3/discordmd"
 	"github.com/yuin/goldmark/ast"
 	gmr "github.com/yuin/goldmark/renderer"
@@ -64,19 +63,19 @@ func (r *Renderer) renderHeading(w io.Writer, node *ast.Heading, entering bool) 
 		io.WriteString(w, strings.Repeat("#", node.Level))
 		io.WriteString(w, " ")
 	} else {
-		io.WriteString(w, tview.NewLine)
+		io.WriteString(w, "\n")
 	}
 }
 
 func (r *Renderer) renderFencedCodeBlock(w io.Writer, node *ast.FencedCodeBlock, entering bool, source []byte) {
-	io.WriteString(w, tview.NewLine)
+	io.WriteString(w, "\n")
 
 	if entering {
 		// language
 		if l := node.Language(source); l != nil {
 			io.WriteString(w, "|=> ")
 			w.Write(l)
-			io.WriteString(w, tview.NewLine)
+			io.WriteString(w, "\n")
 		}
 
 		// body
@@ -119,7 +118,7 @@ func (r *Renderer) renderList(w io.Writer, node *ast.List, entering bool) {
 	}
 
 	if entering {
-		io.WriteString(w, tview.NewLine)
+		io.WriteString(w, "\n")
 		r.listNested++
 	} else {
 		r.listNested--
@@ -138,7 +137,7 @@ func (r *Renderer) renderListItem(w io.Writer, entering bool) {
 			io.WriteString(w, "- ")
 		}
 	} else {
-		io.WriteString(w, tview.NewLine)
+		io.WriteString(w, "\n")
 	}
 }
 
@@ -147,9 +146,9 @@ func (r *Renderer) renderText(w io.Writer, node *ast.Text, entering bool, source
 		w.Write(node.Segment.Value(source))
 		switch {
 		case node.HardLineBreak():
-			io.WriteString(w, strings.Repeat(tview.NewLine, 2))
+			io.WriteString(w, "\n\n")
 		case node.SoftLineBreak():
-			io.WriteString(w, tview.NewLine)
+			io.WriteString(w, "\n")
 		}
 	}
 }

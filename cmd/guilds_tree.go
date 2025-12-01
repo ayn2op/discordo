@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"cmp"
 	"fmt"
-	"sort"
+	"log/slog"
+	"slices"
 
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/ui"
@@ -16,9 +18,7 @@ import (
 
 type guildsTree struct {
 	*tview.TreeView
-	cfg               *config.Config
-	selectedChannelID discord.ChannelID
-	selectedGuildID   discord.GuildID
+	cfg *config.Config
 }
 
 func newGuildsTree(cfg *config.Config) *guildsTree {
@@ -52,7 +52,7 @@ func (gt *guildsTree) createFolderNode(folder gateway.GuildFolder) {
 	for _, gID := range folder.GuildIDs {
 		guild, err := discordState.Cabinet.Guild(gID)
 		if err != nil {
-			app.onError("Failed to get guild from state", err, "guild_id", gID)
+			slog.Error("failed to get guild from state", "guild_id", gID, "err", err)
 			continue
 		}
 
@@ -146,7 +146,7 @@ func (gt *guildsTree) createChannelNodes(node *tview.TreeNode, channels []discor
 }
 
 func (gt *guildsTree) onSelected(node *tview.TreeNode) {
-	app.messageInput.reset()
+	app.chatView.messageInput.reset()
 
 	if len(node.GetChildren()) != 0 {
 		node.SetExpanded(!node.IsExpanded())
@@ -159,19 +159,19 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 
 		channels, err := discordState.Cabinet.Channels(ref)
 		if err != nil {
-			app.onError("Failed to get channels", err, "guild_id", ref)
+			slog.Error("failed to get channels", "err", err, "guild_id", ref)
 			return
 		}
 
-		sort.Slice(channels, func(i, j int) bool {
-			return channels[i].Position < channels[j].Position
+		slices.SortFunc(channels, func(a, b discord.Channel) int {
+			return cmp.Compare(a.Position, b.Position)
 		})
 
 		gt.createChannelNodes(node, channels)
 	case discord.ChannelID:
 		channel, err := discordState.Cabinet.Channel(ref)
 		if err != nil {
-			app.onError("Failed to get channel", err, "channel_id", ref)
+			slog.Error("failed to get channel", "channel_id", ref)
 			return
 		}
 
@@ -179,45 +179,47 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 
 		messages, err := discordState.Messages(channel.ID, uint(gt.cfg.MessagesLimit))
 		if err != nil {
-			app.onError("Failed to get messages", err, "channel_id", channel.ID, "limit", gt.cfg.MessagesLimit)
+			slog.Error("failed to get messages", "err", err, "channel_id", channel.ID, "limit", gt.cfg.MessagesLimit)
 			return
 		}
 
 		if guildID := channel.GuildID; guildID.IsValid() {
-			app.messagesList.requestGuildMembers(guildID, messages)
+			app.chatView.messagesList.requestGuildMembers(guildID, messages)
 		}
 
-		app.messagesList.reset()
-		app.messagesList.setTitle(*channel)
-		app.messagesList.drawMessages(messages)
-		app.messagesList.ScrollToEnd()
+		app.chatView.messagesList.reset()
+		app.chatView.messagesList.setTitle(*channel)
+		app.chatView.messagesList.drawMessages(messages)
+		app.chatView.messagesList.ScrollToEnd()
 
 		hasNoPerm := channel.Type != discord.DirectMessage && channel.Type != discord.GroupDM && !discordState.HasPermissions(channel.ID, discord.PermissionSendMessages)
-		app.messageInput.SetDisabled(hasNoPerm)
+		app.chatView.messageInput.SetDisabled(hasNoPerm)
 		if hasNoPerm {
-			app.messageInput.SetPlaceholder("You do not have permission to send messages in this channel.")
+			app.chatView.messageInput.SetPlaceholder("You do not have permission to send messages in this channel.")
 		} else {
-			app.messageInput.SetPlaceholder("Message...")
-			app.SetFocus(app.messageInput)
+			app.chatView.messageInput.SetPlaceholder("Message...")
+			app.SetFocus(app.chatView.messageInput)
 		}
 
-		gt.selectedChannelID = channel.ID
-		gt.selectedGuildID = channel.GuildID
+		app.chatView.selectedChannelID = channel.ID
+		app.chatView.selectedGuildID = channel.GuildID
 	case nil: // Direct messages
 		channels, err := discordState.PrivateChannels()
 		if err != nil {
-			app.onError("Failed to get private channels", err)
+			slog.Error("failed to get private channels", "err", err)
 			return
 		}
 
-		sort.Slice(channels, func(a, b int) bool {
-			msgID := func(ch discord.Channel) discord.MessageID {
-				if ch.LastMessageID.IsValid() {
-					return ch.LastMessageID
-				}
-				return discord.MessageID(ch.ID)
+		msgID := func(ch discord.Channel) discord.MessageID {
+			if ch.LastMessageID.IsValid() {
+				return ch.LastMessageID
 			}
-			return msgID(channels[a]) > msgID(channels[b])
+			return discord.MessageID(ch.ID)
+		}
+
+		slices.SortFunc(channels, func(a, b discord.Channel) int {
+			// Descending order
+			return cmp.Compare(msgID(b), msgID(a))
 		})
 
 		for _, c := range channels {
