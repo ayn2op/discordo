@@ -113,6 +113,7 @@ func (sb *statusBar) update(app *application) {
 					fmtKeybind(cfg.Keys.MessageInput.Send, "send"),
 					fmtKeybind(cfg.Keys.MessageInput.Cancel, "clear"),
 					fmtKeybind(cfg.Keys.MessageInput.OpenFilePicker, "attach"),
+					fmtKeybind(cfg.Keys.MessageInput.Paste, "paste"),
 				)
 			}
 
