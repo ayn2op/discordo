@@ -160,14 +160,11 @@ func (mi *messageInput) send() {
 	}
 
 	text := strings.TrimSpace(mi.GetText())
-	if text == "" {
+	if text == "" && len(mi.sendMessageData.Files) == 0 {
 		return
 	}
 
 	text = processText(app.chatView.selectedChannelID, []byte(text))
-	if text == "" {
-		return
-	}
 
 	if mi.edit {
 		m, err := app.chatView.messagesList.selectedMessage()

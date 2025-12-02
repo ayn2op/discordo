@@ -36,7 +36,7 @@ only_on_ping = true
 [keys]
 focus_guilds_tree = "Ctrl+G"
 focus_messages_list = "Ctrl+T"
-focus_message_input = "Ctrl+Space"
+focus_message_input = "Ctrl+Rune[ ]"
 # Cycle focus between the widgets.
 focus_previous = "Ctrl+H"
 focus_next = "Ctrl+L"
@@ -95,7 +95,7 @@ cancel = "Esc"
 tab_complete = "Tab"
 
 open_editor = "Ctrl+E"
-open_file_picker = "Ctrl+\\"
+open_file_picker = "Ctrl+Rune[\\]"
 
 [keys.mentions_list]
 up = "Ctrl+P"
