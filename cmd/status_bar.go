@@ -23,7 +23,6 @@ func newStatusBar(cfg *config.Config) *statusBar {
 
 	sb.Box = ui.ConfigureBox(sb.Box, &cfg.Theme)
 	sb.Box.
-		SetTitleAlignment(tview.AlignmentLeft).
 		SetBorders(tview.BordersNone).
 		SetBlurFunc(nil).
 		SetFocusFunc(nil)
