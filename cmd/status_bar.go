@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/ayn2op/discordo/internal/config"
@@ -47,25 +48,28 @@ func (sb *statusBar) update(app *application) {
 		switch f {
 		case app.chatView.guildsTree:
 			keybinds = append(keybinds, fmtNavigationKeybinds(cfg.Keys.GuildsTree.NavigationKeys)...)
-			node := app.chatView.guildsTree.GetCurrentNode()
 
+			node := app.chatView.guildsTree.GetCurrentNode()
 			if node != nil {
-				switch node.GetReference().(type) {
-				case discord.ChannelID:
-					keybinds = append(keybinds,
-						fmtKeybind(cfg.Keys.GuildsTree.SelectCurrent, "select"),
-					)
-				default:
-					if len(node.GetChildren()) == 0 || !node.IsExpanded() {
-						keybinds = append(keybinds,
-							fmtKeybind(cfg.Keys.GuildsTree.SelectCurrent, "expand"),
-						)
+				var label string
+
+				if len(node.GetChildren()) != 0 {
+					if node.IsExpanded() {
+						label = "collapse"
 					} else {
-						keybinds = append(keybinds,
-							fmtKeybind(cfg.Keys.GuildsTree.SelectCurrent, "collapse"),
-						)
+						label = "expand"
+					}
+				} else {
+					switch node.GetReference().(type) {
+					case discord.ChannelID:
+						label = "select"
+					default:
+						label = "expand"
 					}
 				}
+				keybinds = append(keybinds,
+					fmtKeybind(cfg.Keys.GuildsTree.SelectCurrent, label),
+				)
 			}
 
 		case app.chatView.messagesList:
@@ -130,19 +134,39 @@ func (sb *statusBar) update(app *application) {
 	}
 }
 
-// this is seriously ugly and probably not performance friendly
 func fmtKeybind(keybind string, label string) string {
-	key := keybind
-	if strings.HasPrefix(key, "Rune[") {
-		key = fmt.Sprintf("%c", []rune(keybind)[5]) // bro
-	} else {
-		key = strings.Replace(key, "Ctrl+", "^", 1)
-		key = strings.Replace(key, "Alt+", "ALT-", 1)
-		key = strings.Replace(key, "Enter", "CR", 1)
-		key = strings.ToUpper(key)
+	r := regexp.MustCompile(`^(?:(?:(Ctrl)|(Alt)|(Shift))\+){0,3}(?:Rune\[)?(.+?)\]?$`)
+	// = 4 capture groups: Ctrl, Alt, Shift, Key
+	parts := make([]string, 0, 5)
+
+	if matches := r.FindStringSubmatchIndex(keybind); len(matches) == 10 {
+		// matches[0] to matches[1] is the whole match
+		if matches[2] != matches[3] {
+			parts = append(parts, "^") // Ctrl
+		}
+		if matches[4] != matches[5] {
+			parts = append(parts, "ALT-") // Alt
+		}
+		if matches[6] != matches[7] {
+			parts = append(parts, "SHFT-") // Shift
+		}
+		key := string([]byte(keybind)[matches[8]:matches[9]])
+		switch string(key) {
+		case "Enter":
+			parts = append(parts, "CR")
+		case " ":
+			parts = append(parts, "SPACE")
+		default:
+			if matches[9] == matches[8]+1 {
+				parts = append(parts, string(key))
+			} else {
+				parts = append(parts, strings.ToUpper(key))
+			}
+		}
 	}
 
-	return fmt.Sprintf("[::r][::b] %v [::B][::R] %v", key, label)
+	resultString := strings.Join(parts, "")
+	return fmt.Sprintf(KeybindFormat, resultString, label)
 }
 
 func fmtNavigationKeybinds(navigationKeys config.NavigationKeys) []string {
