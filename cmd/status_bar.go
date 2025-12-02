@@ -10,6 +10,9 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 )
 
+const KeybindFormat = "[::r][::b] %s [::B][::R] %s"
+const KeybindSeparator = "  "
+
 type statusBar struct {
 	*tview.TextView
 	cfg *config.Config
@@ -33,14 +36,6 @@ func newStatusBar(cfg *config.Config) *statusBar {
 		SetTitle("")
 
 	return sb
-}
-
-func fmtNavigationKeybinds(navigationKeys config.NavigationKeys) []string {
-	return []string{
-		fmtKeybind(navigationKeys.SelectPrevious, "prev"),
-		fmtKeybind(navigationKeys.SelectNext, "next"),
-		fmtKeybind(navigationKeys.SelectFirst, "first"),
-		fmtKeybind(navigationKeys.SelectLast, "last")}
 }
 
 func (sb *statusBar) update(app *application) {
@@ -131,7 +126,7 @@ func (sb *statusBar) update(app *application) {
 			}
 		}
 
-		sb.setText(strings.Join(keybinds, "  "))
+		sb.SetText(strings.Join(keybinds, KeybindSeparator))
 	}
 }
 
@@ -150,6 +145,10 @@ func fmtKeybind(keybind string, label string) string {
 	return fmt.Sprintf("[::r][::b] %v [::B][::R] %v", key, label)
 }
 
-func (sb *statusBar) setText(t string) {
-	sb.SetText(t)
+func fmtNavigationKeybinds(navigationKeys config.NavigationKeys) []string {
+	return []string{
+		fmtKeybind(navigationKeys.SelectPrevious, "prev"),
+		fmtKeybind(navigationKeys.SelectNext, "next"),
+		fmtKeybind(navigationKeys.SelectFirst, "first"),
+		fmtKeybind(navigationKeys.SelectLast, "last")}
 }
