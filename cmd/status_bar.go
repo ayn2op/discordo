@@ -13,16 +13,22 @@ import (
 
 const KeybindFormat = "[::r][::b] %s [::B][::R] %s"
 const KeybindSeparator = "  "
+const KeybindTomlRegex = `^(?:(?:(Ctrl)|(Alt)|(Shift))\+){0,3}(?:Rune\[)?(.+?)\]?$`
+
+// = 4 capture groups: Ctrl, Alt, Shift, Key
 
 type statusBar struct {
 	*tview.TextView
 	cfg *config.Config
+
+	keybindRegex *regexp.Regexp
 }
 
 func newStatusBar(cfg *config.Config) *statusBar {
 	sb := &statusBar{
-		TextView: tview.NewTextView(),
-		cfg:      cfg,
+		TextView:     tview.NewTextView(),
+		cfg:          cfg,
+		keybindRegex: regexp.MustCompile(KeybindTomlRegex),
 	}
 
 	sb.Box = ui.ConfigureBox(sb.Box, &cfg.Theme)
@@ -33,113 +39,112 @@ func newStatusBar(cfg *config.Config) *statusBar {
 	sb.
 		SetDynamicColors(true).
 		SetWrap(false).
-		SetScrollable(false).
-		SetTitle("")
+		SetScrollable(false)
 
 	return sb
 }
 
-func (sb *statusBar) update(app *application) {
-	if app.chatView != nil {
-		var keybinds []string
-		cfg := app.cfg
+func (sb *statusBar) Update(app *application) {
+	if app.chatView == nil || sb.cfg == nil {
+		return
+	}
+	cfg := sb.cfg
 
-		var f = app.GetFocus()
-		switch f {
-		case app.chatView.guildsTree:
-			keybinds = append(keybinds, fmtNavigationKeybinds(cfg.Keys.GuildsTree.NavigationKeys)...)
+	var buffer []string
 
-			node := app.chatView.guildsTree.GetCurrentNode()
-			if node != nil {
-				var label string
+	var f = app.GetFocus()
+	switch f {
+	case app.chatView.guildsTree:
+		buffer = append(buffer, sb.fmtNavigationKeybinds(cfg.Keys.GuildsTree.NavigationKeys)...)
 
-				if len(node.GetChildren()) != 0 {
-					if node.IsExpanded() {
-						label = "collapse"
-					} else {
-						label = "expand"
-					}
+		node := app.chatView.guildsTree.GetCurrentNode()
+		if node != nil {
+			var label string
+
+			if len(node.GetChildren()) != 0 {
+				if node.IsExpanded() {
+					label = "collapse"
 				} else {
-					switch node.GetReference().(type) {
-					case discord.ChannelID:
-						label = "select"
-					default:
-						label = "expand"
-					}
+					label = "expand"
 				}
-				keybinds = append(keybinds,
-					fmtKeybind(cfg.Keys.GuildsTree.SelectCurrent, label),
-				)
-			}
-
-		case app.chatView.messagesList:
-			keybinds = append(keybinds, fmtNavigationKeybinds(cfg.Keys.MessagesList.NavigationKeys)...)
-			if msg, err := app.chatView.messagesList.selectedMessage(); err == nil {
-				keybinds = append(keybinds,
-					fmtKeybind(cfg.Keys.MessagesList.Reply, "reply"),
-					fmtKeybind(cfg.Keys.MessagesList.ReplyMention, "@reply"),
-				)
-				if len(ui.ExtractURLs(msg.Content))+len(msg.Attachments) > 0 {
-					keybinds = append(keybinds,
-						fmtKeybind(cfg.Keys.MessagesList.Open, "open"),
-					)
-				}
-				if ref := msg.ReferencedMessage; ref != nil {
-					keybinds = append(keybinds,
-						fmtKeybind(cfg.Keys.MessagesList.SelectReply, "goto OP"),
-					)
-				}
-				me, err := discordState.Cabinet.Me()
-				if err == nil && me.ID == msg.Author.ID {
-					keybinds = append(keybinds,
-						fmtKeybind(cfg.Keys.MessagesList.Edit, "edit"),
-						fmtKeybind(cfg.Keys.MessagesList.DeleteConfirm, "delete"),
-					)
-				}
-			}
-
-		case app.chatView.messageInput:
-			if app.chatView.GetVisibile(mentionsListPageName) {
-				keybinds = append(keybinds,
-					fmtKeybind(cfg.Keys.MessageInput.TabComplete, "accept"),
-					fmtKeybind(cfg.Keys.MessageInput.Cancel, "dismiss"),
-					fmtKeybind(cfg.Keys.MentionsList.Up, "up"),
-					fmtKeybind(cfg.Keys.MentionsList.Down, "down"),
-				)
 			} else {
-				keybinds = append(keybinds,
-					fmtKeybind(cfg.Keys.MessageInput.Send, "send"),
-					fmtKeybind(cfg.Keys.MessageInput.Cancel, "clear"),
-					fmtKeybind(cfg.Keys.MessageInput.OpenFilePicker, "attach"),
-					fmtKeybind(cfg.Keys.MessageInput.Paste, "paste"),
+				switch node.GetReference().(type) {
+				case discord.ChannelID:
+					label = "select"
+				default:
+					label = "expand"
+				}
+			}
+			buffer = append(buffer,
+				sb.fmtKeybind(cfg.Keys.GuildsTree.SelectCurrent, label),
+			)
+		}
+
+	case app.chatView.messagesList:
+		buffer = append(buffer, sb.fmtNavigationKeybinds(cfg.Keys.MessagesList.NavigationKeys)...)
+		if msg, err := app.chatView.messagesList.selectedMessage(); err == nil {
+			buffer = append(buffer,
+				sb.fmtKeybind(cfg.Keys.MessagesList.Reply, "reply"),
+				sb.fmtKeybind(cfg.Keys.MessagesList.ReplyMention, "@reply"),
+			)
+			if len(ui.ExtractURLs(msg.Content))+len(msg.Attachments) > 0 {
+				buffer = append(buffer,
+					sb.fmtKeybind(cfg.Keys.MessagesList.Open, "open"),
 				)
 			}
-
-		default:
-			if app.chatView.GetPageCount() > 1 {
-				keybinds = append(keybinds,
-					fmtKeybind("↑→↓←", "navigate"),
-					fmtKeybind("Enter", "confirm"),
-					fmtKeybind("Esc", "cancel"),
+			if ref := msg.ReferencedMessage; ref != nil {
+				buffer = append(buffer,
+					sb.fmtKeybind(cfg.Keys.MessagesList.SelectReply, "goto OP"),
 				)
-			} else {
-				// TODO)) mouse input seems to cause this case, not sure of a solution :(
-				keybinds = append(keybinds,
-					"(status bar not playing nice with mouse input atm.)",
+			}
+			me, err := discordState.Cabinet.Me()
+			if err == nil && me.ID == msg.Author.ID {
+				buffer = append(buffer,
+					sb.fmtKeybind(cfg.Keys.MessagesList.Edit, "edit"),
+					sb.fmtKeybind(cfg.Keys.MessagesList.DeleteConfirm, "delete"),
 				)
 			}
 		}
 
-		sb.SetText(strings.Join(keybinds, KeybindSeparator))
+	case app.chatView.messageInput:
+		if app.chatView.GetVisibile(mentionsListPageName) {
+			buffer = append(buffer,
+				sb.fmtKeybind(cfg.Keys.MessageInput.TabComplete, "accept"),
+				sb.fmtKeybind(cfg.Keys.MessageInput.Cancel, "dismiss"),
+				sb.fmtKeybind(cfg.Keys.MentionsList.Up, "up"),
+				sb.fmtKeybind(cfg.Keys.MentionsList.Down, "down"),
+			)
+		} else {
+			buffer = append(buffer,
+				sb.fmtKeybind(cfg.Keys.MessageInput.Send, "send"),
+				sb.fmtKeybind(cfg.Keys.MessageInput.Cancel, "clear"),
+				sb.fmtKeybind(cfg.Keys.MessageInput.OpenFilePicker, "attach"),
+				sb.fmtKeybind(cfg.Keys.MessageInput.Paste, "paste"),
+			)
+		}
+
+	default:
+		// generic tview keybinds
+		if app.chatView.GetPageCount() > 1 {
+			buffer = append(buffer,
+				sb.fmtKeybind("↑→↓←", "navigate"), // hardcoded @ tview.Modal.AddButtons()
+				sb.fmtKeybind("Enter", "confirm"), // hardcoded @ tview.Button.InputHandler()
+				sb.fmtKeybind("Esc", "cancel"),    // hardcoded @ tview.Button.InputHandler()
+			)
+		} else {
+			// unknown event or mouse controls being difficult
+			return
+		}
+
 	}
+	sb.SetText(strings.Join(buffer, KeybindSeparator))
+
 }
 
-func fmtKeybind(keybind string, label string) string {
-	r := regexp.MustCompile(`^(?:(?:(Ctrl)|(Alt)|(Shift))\+){0,3}(?:Rune\[)?(.+?)\]?$`)
-	// = 4 capture groups: Ctrl, Alt, Shift, Key
+func (sb *statusBar) fmtKeybind(keybind string, label string) string {
 	parts := make([]string, 0, 5)
 
-	if matches := r.FindStringSubmatchIndex(keybind); len(matches) == 10 {
+	if matches := sb.keybindRegex.FindStringSubmatchIndex(keybind); len(matches) == 10 {
 		// matches[0] to matches[1] is the whole match
 		if matches[2] != matches[3] {
 			parts = append(parts, "^") // Ctrl
@@ -169,10 +174,10 @@ func fmtKeybind(keybind string, label string) string {
 	return fmt.Sprintf(KeybindFormat, resultString, label)
 }
 
-func fmtNavigationKeybinds(navigationKeys config.NavigationKeys) []string {
+func (sb *statusBar) fmtNavigationKeybinds(navigationKeys config.NavigationKeys) []string {
 	return []string{
-		fmtKeybind(navigationKeys.SelectPrevious, "prev"),
-		fmtKeybind(navigationKeys.SelectNext, "next"),
-		fmtKeybind(navigationKeys.SelectFirst, "first"),
-		fmtKeybind(navigationKeys.SelectLast, "last")}
+		sb.fmtKeybind(navigationKeys.SelectPrevious, "prev"),
+		sb.fmtKeybind(navigationKeys.SelectNext, "next"),
+		sb.fmtKeybind(navigationKeys.SelectFirst, "first"),
+		sb.fmtKeybind(navigationKeys.SelectLast, "last")}
 }

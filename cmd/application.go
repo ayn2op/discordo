@@ -89,7 +89,7 @@ func (a *application) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 
 func (a *application) onBeforeDraw(screen tcell.Screen) bool {
 	if a.statusBar != nil {
-		a.statusBar.update(a)
+		a.statusBar.Update(a)
 	}
 	return false
 }
