@@ -9,6 +9,7 @@ import (
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/gdamore/tcell/v2"
 )
 
 const KeybindFormat = "[::r][::b] %s [::B][::R] %s"
@@ -35,7 +36,10 @@ func newStatusBar(cfg *config.Config) *statusBar {
 	sb.Box.
 		SetBorders(tview.BordersNone).
 		SetBlurFunc(nil).
-		SetFocusFunc(nil)
+		SetFocusFunc(nil).
+		SetMouseCapture(func(action tview.MouseAction, event *tcell.EventMouse) (tview.MouseAction, *tcell.EventMouse) {
+			return tview.MouseConsumed, nil
+		})
 	sb.
 		SetDynamicColors(true).
 		SetWrap(false).
