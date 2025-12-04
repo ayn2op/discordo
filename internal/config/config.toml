@@ -36,7 +36,7 @@ only_on_ping = true
 [keys]
 focus_guilds_tree = "Ctrl+G"
 focus_messages_list = "Ctrl+T"
-focus_message_input = "Ctrl+Rune[ ]"
+focus_message_input = "Ctrl+P"
 # Cycle focus between the widgets.
 focus_previous = "Ctrl+H"
 focus_next = "Ctrl+L"
