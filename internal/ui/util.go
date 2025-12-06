@@ -6,6 +6,10 @@ import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/tview"
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/ningen/v3/discordmd"
+	"github.com/yuin/goldmark/ast"
+	"github.com/yuin/goldmark/parser"
+	"github.com/yuin/goldmark/text"
 )
 
 // ConfigureBox configures the provided box according to the provided theme.
@@ -76,4 +80,27 @@ func ChannelToString(channel discord.Channel) string {
 	default:
 		return channel.Name
 	}
+}
+
+func ExtractURLs(content string) []string {
+	src := []byte(content)
+	node := parser.NewParser(
+		parser.WithBlockParsers(discordmd.BlockParsers()...),
+		parser.WithInlineParsers(discordmd.InlineParserWithLink()...),
+	).Parse(text.NewReader(src))
+
+	var urls []string
+	ast.Walk(node, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+		if entering {
+			switch n := n.(type) {
+			case *ast.AutoLink:
+				urls = append(urls, string(n.URL(src)))
+			case *ast.Link:
+				urls = append(urls, string(n.Destination))
+			}
+		}
+
+		return ast.WalkContinue, nil
+	})
+	return urls
 }
