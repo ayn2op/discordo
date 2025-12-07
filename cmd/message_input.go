@@ -47,8 +47,6 @@ type messageInput struct {
 	lastSearch      time.Time
 }
 
-type memberList []discord.Member
-
 func newMessageInput(cfg *config.Config) *messageInput {
 	mi := &messageInput{
 		TextArea: tview.NewTextArea(),
@@ -102,7 +100,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 
 	case mi.cfg.Keys.MessageInput.Send:
 		if app.chatView.GetVisibile(mentionsListPageName) {
-			mi.tabComplete(false)
+			mi.tabComplete()
 			return nil
 		}
 
@@ -125,7 +123,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 
 		return nil
 	case mi.cfg.Keys.MessageInput.TabComplete:
-		go app.QueueUpdateDraw(func() { mi.tabComplete(false) })
+		go app.QueueUpdateDraw(func() { mi.tabComplete() })
 		return nil
 	}
 
@@ -141,7 +139,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 			}
 		}
 
-		go app.QueueUpdateDraw(func() { mi.tabComplete(true) })
+		go app.QueueUpdateDraw(func() { mi.tabSuggestion() })
 	}
 
 	return event
@@ -155,7 +153,7 @@ func (mi *messageInput) paste() {
 }
 
 func (mi *messageInput) send() {
-	if !app.chatView.selectedChannelID.IsValid() {
+	if app.chatView.selectedChannel == nil {
 		return
 	}
 
@@ -164,7 +162,7 @@ func (mi *messageInput) send() {
 		return
 	}
 
-	text = processText(app.chatView.selectedChannelID, []byte(text))
+	text = processText(app.chatView.selectedChannel.ID, []byte(text))
 
 	if mi.edit {
 		m, err := app.chatView.messagesList.selectedMessage()
@@ -182,8 +180,8 @@ func (mi *messageInput) send() {
 	} else {
 		data := mi.sendMessageData
 		data.Content = text
-		if _, err := discordState.SendMessageComplex(app.chatView.selectedChannelID, *data); err != nil {
-			slog.Error("failed to send message in channel", "channel_id", app.chatView.selectedChannelID, "err", err)
+		if _, err := discordState.SendMessageComplex(app.chatView.selectedChannel.ID, *data); err != nil {
+			slog.Error("failed to send message in channel", "channel_id", app.chatView.selectedChannel.ID, "err", err)
 		}
 	}
 
@@ -234,8 +232,10 @@ func expandMentions(cID discord.ChannelID, src []byte) []byte {
 		output := input
 		name := string(input[1:])
 		discordState.MemberStore.Each(app.chatView.selectedGuildID, func(m *discord.Member) bool {
-			if strings.EqualFold(m.User.Username, name) && channelHasUser(cID, m.User.ID) {
-				output = []byte(m.User.ID.Mention())
+			if strings.EqualFold(m.User.Username, name) {
+				if channelHasUser(cID, m.User.ID) {
+					output = []byte(m.User.ID.Mention())
+				}
 				return true
 			}
 
@@ -246,7 +246,7 @@ func expandMentions(cID discord.ChannelID, src []byte) []byte {
 	})
 }
 
-func (mi *messageInput) tabComplete(isAuto bool) {
+func (mi *messageInput) tabComplete() {
 	posEnd, name, r := mi.GetWordUnderCursor(func(r rune) bool {
 		return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '.'
 	})
@@ -257,12 +257,16 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 	pos := posEnd - (len(name) + 1)
 
 	gID := app.chatView.selectedGuildID
-	cID := app.chatView.selectedChannelID
 
-	if !isAuto {
-		if mi.cfg.AutocompleteLimit == 0 {
+	if mi.cfg.AutocompleteLimit == 0 {
+		if !gID.IsValid() {
+			users := app.chatView.selectedChannel.DMRecipients
+			res := fuzzy.FindFrom(name, userList(users))
+			if len(res) > 0 {
+				mi.Replace(pos, posEnd, "@"+users[res[0].Index].Username+" ")
+			}
+		} else {
 			mi.searchMember(gID, name)
-
 			members, err := discordState.Cabinet.Members(gID)
 			if err != nil {
 				slog.Error("failed to get members from state", "guild_id", gID, "err", err)
@@ -271,30 +275,62 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 
 			res := fuzzy.FindFrom(name, memberList(members))
 			for _, r := range res {
-				if channelHasUser(cID, members[r.Index].User.ID) {
+				if channelHasUser(app.chatView.selectedChannel.ID, members[r.Index].User.ID) {
 					mi.Replace(pos, posEnd, "@"+members[r.Index].User.Username+" ")
 					return
 				}
 			}
-			return
 		}
-		if mi.mentionsList.GetItemCount() == 0 {
-			return
-		}
-		_, name = mi.mentionsList.GetItemText(mi.mentionsList.GetCurrentItem())
-		mi.Replace(pos, posEnd, "@"+name+" ")
+		return
+	}
+	if mi.mentionsList.GetItemCount() == 0 {
+		return
+	}
+	_, name = mi.mentionsList.GetItemText(mi.mentionsList.GetCurrentItem())
+	mi.Replace(pos, posEnd, "@"+name+" ")
+	mi.stopTabCompletion()
+}
+
+func (mi *messageInput) tabSuggestion() {
+	_, name, r := mi.GetWordUnderCursor(func(r rune) bool {
+		return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '.'
+	})
+	if r != '@' {
 		mi.stopTabCompletion()
 		return
 	}
+	gID := app.chatView.selectedGuildID
+	cID := app.chatView.selectedChannel.ID
+	mi.mentionsList.Clear()
 
-	// Special case, show recent messages' authors
-	if name == "" {
+	/* DMs with recipients, not members */
+	if !gID.IsValid() {
+		if name == "" { // show recent messages' authors
+			msgs, err := discordState.Cabinet.Messages(cID)
+			if err != nil {
+				return
+			}
+			shown := make(map[string]bool)
+			for _, m := range msgs {
+				if shown[m.Author.Username] {
+					continue
+				}
+				shown[m.Author.Username] = true
+				mi.addMentionUser(&m.Author)
+			}
+		} else {
+			users := app.chatView.selectedChannel.DMRecipients
+			res := fuzzy.FindFrom(name, userList(users))
+			for _, r := range res {
+				mi.addMentionUser(&users[r.Index])
+			}
+		}
+	} else if name == "" { // show recent messages' authors
 		msgs, err := discordState.Cabinet.Messages(cID)
 		if err != nil {
 			return
 		}
 		shown := make(map[string]bool)
-		mi.mentionsList.Clear()
 		for _, m := range msgs {
 			if shown[m.Author.Username] {
 				continue
@@ -302,14 +338,13 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 			shown[m.Author.Username] = true
 			discordState.MemberState.RequestMember(gID, m.Author.ID)
 			if mem, err := discordState.Cabinet.Member(gID, m.Author.ID); err == nil {
-				if mi.addMentionItem(gID, mem) {
+				if mi.addMentionMember(gID, mem) {
 					break
 				}
 			}
 		}
 	} else {
 		mi.searchMember(gID, name)
-		mi.mentionsList.Clear()
 		mems, err := discordState.Cabinet.Members(gID)
 		if err != nil {
 			slog.Error("fetching members failed", "err", err)
@@ -321,7 +356,7 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 		}
 		for _, r := range res {
 			if channelHasUser(cID, mems[r.Index].User.ID) &&
-				mi.addMentionItem(gID, &mems[r.Index]) {
+				mi.addMentionMember(gID, &mems[r.Index]) {
 				break
 			}
 		}
@@ -332,12 +367,27 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 		return
 	}
 
-	_, col, _, _ := mi.GetCursor()
-	mi.showMentionList(col - 1)
+	mi.showMentionList()
 }
 
-func (m memberList) String(i int) string { return m[i].Nick + m[i].User.DisplayName + m[i].User.Tag() }
-func (m memberList) Len() int            { return len(m) }
+type memberList []discord.Member
+type userList   []discord.User
+
+func (ml memberList) String(i int) string {
+	return ml[i].Nick + ml[i].User.DisplayName + ml[i].User.Tag()
+}
+
+func (ml memberList) Len() int {
+	return len(ml)
+}
+
+func (ul userList) String(i int) string {
+	return ul[i].DisplayName + ul[i].Tag()
+}
+
+func (ul userList) Len() int {
+	return len(ul)
+}
 
 func channelHasUser(cID discord.ChannelID, id discord.UserID) bool {
 	perms, err := discordState.Permissions(cID, id)
@@ -376,7 +426,7 @@ func (mi *messageInput) searchMember(gID discord.GuildID, name string) {
 	mi.cache.Create(key, app.chatView.messagesList.waitForChunkEvent())
 }
 
-func (mi *messageInput) showMentionList(col int) {
+func (mi *messageInput) showMentionList() {
 	borders := 0
 	if mi.cfg.Theme.Border.Enabled {
 		borders = 1
@@ -401,6 +451,7 @@ func (mi *messageInput) showMentionList(col int) {
 		}
 
 		w = min(w+borders*2, maxW)
+		_, col, _, _ := mi.GetCursor()
 		x += min(col, maxW-w)
 	}
 
@@ -412,7 +463,7 @@ func (mi *messageInput) showMentionList(col int) {
 	app.SetFocus(mi)
 }
 
-func (mi *messageInput) addMentionItem(gID discord.GuildID, m *discord.Member) bool {
+func (mi *messageInput) addMentionMember(gID discord.GuildID, m *discord.Member) bool {
 	if m == nil {
 		return false
 	}
@@ -434,9 +485,7 @@ func (mi *messageInput) addMentionItem(gID discord.GuildID, m *discord.Member) b
 	presence, err := discordState.Cabinet.Presence(gID, m.User.ID)
 	if err != nil {
 		slog.Info("failed to get presence from state", "guild_id", gID, "user_id", m.User.ID, "err", err)
-	}
-
-	if presence != nil && presence.Status == discord.OfflineStatus {
+	} else if presence.Status == discord.OfflineStatus {
 		name = fmt.Sprintf("[::d]%s[::D]", name)
 	}
 
@@ -444,6 +493,24 @@ func (mi *messageInput) addMentionItem(gID discord.GuildID, m *discord.Member) b
 	return mi.mentionsList.GetItemCount() > int(mi.cfg.AutocompleteLimit)
 }
 
+func (mi *messageInput) addMentionUser(user *discord.User) {
+	if user == nil {
+		return
+	}
+
+	name := user.DisplayOrUsername()
+	presence, err := discordState.Cabinet.Presence(discord.NullGuildID, user.ID)
+	if err != nil {
+		slog.Info("failed to get presence from state", "user_id", user.ID, "err", err)
+	} else if presence.Status == discord.OfflineStatus {
+		name = fmt.Sprintf("[::d]%s[::D]", name)
+	}
+
+	mi.mentionsList.AddItem(name, user.Username, 0, nil)
+	return
+}
+
+// used by chatView
 func (mi *messageInput) removeMentionsList() {
 	app.chatView.
 		RemovePage(mentionsListPageName).
@@ -501,7 +568,7 @@ func (mi *messageInput) addTitle(s string) {
 }
 
 func (mi *messageInput) openFilePicker() {
-	if !app.chatView.selectedChannelID.IsValid() {
+	if app.chatView.selectedChannel == nil {
 		return
 	}
 

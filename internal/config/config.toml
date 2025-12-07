@@ -11,8 +11,8 @@ markdown = true
 hide_blocked_users = true
 show_attachment_links = true
 
-# Use autocomplete_limit = 0 to disable autocompleting mentions
-# Note: tab completion will still work, but it won't show any list.
+# Max members to be in the mention autocomplete suggestions list
+# Note: Use autocomplete_limit = 0 to disable.
 autocomplete_limit = 20
 
 # The number of messages to fetch when a text-based channel is selected from guilds tree. The minimum and maximum value is 0 and 100, respectively.
