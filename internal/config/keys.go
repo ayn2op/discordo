@@ -55,7 +55,6 @@ type (
 		Paste       string `toml:"paste"`
 		Send        string `toml:"send"`
 		Cancel      string `toml:"cancel"`
-		Reset       string `toml:"reset"`
 		TabComplete string `toml:"tab_complete"`
 
 		OpenEditor     string `toml:"open_editor"`
