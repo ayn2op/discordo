@@ -25,7 +25,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 	"github.com/diamondburned/ningen/v3/discordmd"
-	"github.com/gdamore/tcell/v2"
+	"github.com/gdamore/tcell/v3"
 	"github.com/ncruces/zenity"
 	"github.com/sahilm/fuzzy"
 	"github.com/yuin/goldmark/ast"
@@ -92,7 +92,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case mi.cfg.Keys.MessageInput.Paste:
 		mi.paste()
-		return tcell.NewEventKey(tcell.KeyCtrlV, 0, tcell.ModNone)
+		return tcell.NewEventKey(tcell.KeyCtrlV, "", tcell.ModNone)
 
 	case mi.cfg.Keys.MessageInput.Send:
 		if app.chatView.GetVisibile(mentionsListPageName) {
@@ -127,10 +127,10 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		if app.chatView.GetVisibile(mentionsListPageName) {
 			switch event.Name() {
 			case mi.cfg.Keys.MentionsList.Up:
-				mi.mentionsList.InputHandler()(tcell.NewEventKey(tcell.KeyUp, 0, tcell.ModNone), nil)
+				mi.mentionsList.InputHandler()(tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone), nil)
 				return nil
 			case mi.cfg.Keys.MentionsList.Down:
-				mi.mentionsList.InputHandler()(tcell.NewEventKey(tcell.KeyDown, 0, tcell.ModNone), nil)
+				mi.mentionsList.InputHandler()(tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone), nil)
 				return nil
 			}
 		}

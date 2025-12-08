@@ -25,7 +25,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/diamondburned/ningen/v3/discordmd"
-	"github.com/gdamore/tcell/v2"
+	"github.com/gdamore/tcell/v3"
 	"github.com/skratchdot/open-golang/open"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/parser"
@@ -198,7 +198,8 @@ func (ml *messagesList) drawDefaultMessage(w io.Writer, message discord.Message)
 	for _, a := range message.Attachments {
 		fmt.Fprintln(w)
 
-		fg, bg, _ := ml.cfg.Theme.MessagesList.AttachmentStyle.Decompose()
+		fg := ml.cfg.Theme.MessagesList.AttachmentStyle.GetForeground()
+		bg := ml.cfg.Theme.MessagesList.AttachmentStyle.GetBackground()
 		if ml.cfg.ShowAttachmentLinks {
 			fmt.Fprintf(w, "[%s:%s]%s:\n%s[-:-]", fg, bg, a.Filename, a.URL)
 		} else {
@@ -458,13 +459,13 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 		SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 			switch event.Name() {
 			case ml.cfg.Keys.MessagesList.SelectPrevious:
-				return tcell.NewEventKey(tcell.KeyUp, 0, tcell.ModNone)
+				return tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone)
 			case ml.cfg.Keys.MessagesList.SelectNext:
-				return tcell.NewEventKey(tcell.KeyDown, 0, tcell.ModNone)
+				return tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone)
 			case ml.cfg.Keys.MessagesList.SelectFirst:
-				return tcell.NewEventKey(tcell.KeyHome, 0, tcell.ModNone)
+				return tcell.NewEventKey(tcell.KeyHome, "", tcell.ModNone)
 			case ml.cfg.Keys.MessagesList.SelectLast:
-				return tcell.NewEventKey(tcell.KeyEnd, 0, tcell.ModNone)
+				return tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone)
 			}
 
 			return event

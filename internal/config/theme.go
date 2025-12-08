@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/ayn2op/tview"
-	"github.com/gdamore/tcell/v2"
+	"github.com/gdamore/tcell/v3"
 )
 
 var errInvalidType = errors.New("invalid type")
@@ -165,8 +165,6 @@ func stringToAttrMask(s string) tcell.AttrMask {
 		return tcell.AttrBlink
 	case "reverse":
 		return tcell.AttrReverse
-	case "underline":
-		return tcell.AttrUnderline
 	case "dim":
 		return tcell.AttrDim
 	case "italic":
