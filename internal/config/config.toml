@@ -89,8 +89,10 @@ yank_id = "Rune[i]"
 # paste from clipboard (supports both text and images)
 paste = "Ctrl+V"
 send = "Enter"
-# Remove existing text or cancel reply.
+# Cancel reply.
 cancel = "Esc"
+# Remove existing text.
+reset = "Ctrl+X"
 # Complete usernames when mentioning
 tab_complete = "Tab"
 

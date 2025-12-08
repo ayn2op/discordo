@@ -113,9 +113,9 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	case mi.cfg.Keys.MessageInput.Cancel:
 		if app.chatView.GetVisibile(mentionsListPageName) {
 			mi.stopTabCompletion()
-		} else {
-			mi.reset()
 		}
+	case mi.cfg.Keys.MessageInput.Reset:
+		mi.reset()
 
 		return nil
 	case mi.cfg.Keys.MessageInput.TabComplete:
