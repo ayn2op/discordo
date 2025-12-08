@@ -51,27 +51,21 @@ type memberList []discord.Member
 
 func newMessageInput(cfg *config.Config) *messageInput {
 	mi := &messageInput{
-		TextArea: tview.NewTextArea(),
-		cfg:      cfg,
-
+		TextArea:        tview.NewTextArea(),
+		cfg:             cfg,
 		sendMessageData: &api.SendMessageData{},
 		cache:           cache.NewCache(),
 		mentionsList:    tview.NewList(),
 	}
-
-	mi.
-		SetClipboard(func(s string) {
-			clipboard.Write(clipboard.FmtText, []byte(s))
-		}, func() string {
-			data := clipboard.Read(clipboard.FmtText)
-			return string(data)
-		})
-
 	mi.Box = ui.ConfigureBox(mi.Box, &cfg.Theme)
 	mi.SetInputCapture(mi.onInputCapture)
 	mi.
 		SetPlaceholder("Select a channel to start chatting").
 		SetPlaceholderStyle(tcell.StyleDefault.Dim(true)).
+		SetClipboard(
+			func(s string) { clipboard.Write(clipboard.FmtText, []byte(s)) },
+			func() string { return string(clipboard.Read(clipboard.FmtText)) },
+		).
 		SetDisabled(true)
 
 	mi.mentionsList.Box = ui.ConfigureBox(mi.mentionsList.Box, &mi.cfg.Theme)
@@ -238,10 +232,8 @@ func expandMentions(cID discord.ChannelID, src []byte) []byte {
 				output = []byte(m.User.ID.Mention())
 				return true
 			}
-
 			return false
 		})
-
 		return output
 	})
 }
@@ -339,10 +331,11 @@ func (mi *messageInput) tabComplete(isAuto bool) {
 func (m memberList) String(i int) string { return m[i].Nick + m[i].User.DisplayName + m[i].User.Tag() }
 func (m memberList) Len() int            { return len(m) }
 
-func channelHasUser(cID discord.ChannelID, id discord.UserID) bool {
-	perms, err := discordState.Permissions(cID, id)
+// channelHasUser checks if a user has permission to view the specified channel
+func channelHasUser(channelID discord.ChannelID, userID discord.UserID) bool {
+	perms, err := discordState.Permissions(channelID, userID)
 	if err != nil {
-		slog.Error("can't get permissions", "channel", cID, "user", id)
+		slog.Error("failed to get permissions", "err", err, "channel", channelID, "user", userID)
 		return false
 	}
 	return perms.Has(discord.PermissionViewChannel)

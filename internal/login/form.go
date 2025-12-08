@@ -39,7 +39,7 @@ func NewForm(app *tview.Application, cfg *config.Config, done DoneFn) *Form {
 	}
 
 	f.form.
-		AddInputField("Email", "", 0, nil, nil).
+		AddInputField("Email", "", 0, nil).
 		AddPasswordField("Password", "", 0, 0, nil).
 		AddPasswordField("Code (optional)", "", 0, 0, nil).
 		AddButton("Login", f.login).

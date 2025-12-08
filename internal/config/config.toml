@@ -36,7 +36,7 @@ only_on_ping = true
 [keys]
 focus_guilds_tree = "Ctrl+G"
 focus_messages_list = "Ctrl+T"
-focus_message_input = "Ctrl+Rune[ ]"
+focus_message_input = "Ctrl+P"
 # Cycle focus between the widgets.
 focus_previous = "Ctrl+H"
 focus_next = "Ctrl+L"
@@ -68,9 +68,9 @@ select_last = "Rune[G]"
 # Select the message reference (reply) of the selected channel.
 select_reply = "Rune[s]"
 # Reply to the selected message.
-reply = "Rune[r]"
+reply = "Rune[R]"
 # Reply (with mention) to the selected message.
-reply_mention = "Rune[R]"
+reply_mention = "Rune[r]"
 cancel = "Esc"
 edit = "Rune[e]"
 delete = "Rune[D]"
