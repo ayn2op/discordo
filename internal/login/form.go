@@ -70,7 +70,7 @@ func (f *Form) login() {
 		return
 	}
 
-	if resp.Token == "" && resp.MFA {
+	if resp.MFA && resp.TOTP {
 		code := f.form.GetFormItem(2).(*tview.InputField).GetText()
 		if code == "" {
 			f.onError(errors.New("code required"))
@@ -83,6 +83,9 @@ func (f *Form) login() {
 			f.onError(err)
 			return
 		}
+	} else {
+		f.onError(errors.New("unsupported mfa type"))
+		return
 	}
 
 	if resp.Token == "" {
