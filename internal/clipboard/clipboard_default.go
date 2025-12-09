@@ -1,7 +1,7 @@
 //go:build !linux
 package clipboard
 
-import designClipb "golang.desgin/x/clipboard"
+import designClipb "golang.design/x/clipboard"
 
 func Init() error {
 	return designClipb.Init()
