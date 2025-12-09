@@ -28,8 +28,7 @@ type chatView struct {
 	messagesList *messagesList
 	messageInput *messageInput
 
-	selectedGuildID   discord.GuildID
-	selectedChannelID discord.ChannelID
+	selectedChannel *discord.Channel
 
 	app *tview.Application
 	cfg *config.Config

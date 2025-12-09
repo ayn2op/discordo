@@ -142,8 +142,6 @@ PARENT_CHANNELS:
 }
 
 func (gt *guildsTree) onSelected(node *tview.TreeNode) {
-	app.chatView.messageInput.reset()
-
 	if len(node.GetChildren()) != 0 {
 		node.SetExpanded(!node.IsExpanded())
 		return
@@ -183,6 +181,8 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 			app.chatView.messagesList.requestGuildMembers(guildID, messages)
 		}
 
+		app.chatView.selectedChannel = channel
+
 		app.chatView.messagesList.reset()
 		app.chatView.messagesList.setTitle(*channel)
 		app.chatView.messagesList.drawMessages(messages)
@@ -197,9 +197,7 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 			app.SetFocus(app.chatView.messageInput)
 		}
 
-		app.chatView.selectedChannelID = channel.ID
-		app.chatView.selectedGuildID = channel.GuildID
-	case nil: // Direct messages
+	case nil: // Direct messages folder
 		channels, err := discordState.PrivateChannels()
 		if err != nil {
 			slog.Error("failed to get private channels", "err", err)

@@ -70,17 +70,23 @@ func (f *Form) login() {
 		return
 	}
 
-	if resp.Token == "" && resp.MFA {
-		code := f.form.GetFormItem(2).(*tview.InputField).GetText()
-		if code == "" {
-			f.onError(errors.New("code required"))
-			return
-		}
+	if resp.MFA {
+		switch {
+		case resp.TOTP:
+			code := f.form.GetFormItem(2).(*tview.InputField).GetText()
+			if code == "" {
+				f.onError(errors.New("code required"))
+				return
+			}
 
-		// Attempt to login using the code.
-		resp, err = client.TOTP(code, resp.Ticket)
-		if err != nil {
-			f.onError(err)
+			// Attempt to login using the code.
+			resp, err = client.TOTP(code, resp.Ticket)
+			if err != nil {
+				f.onError(err)
+				return
+			}
+		default:
+			f.onError(errors.New("unsupported mfa type"))
 			return
 		}
 	}
