@@ -240,7 +240,7 @@ func (ml *messagesList) selectedMessage() (*discord.Message, error) {
 		return nil, errors.New("no message is currently selected")
 	}
 
-	m, err := discordState.Cabinet.Message(app.chatView.selectedChannelID, ml.selectedMessageID)
+	m, err := discordState.Cabinet.Message(app.chatView.selectedChannel.ID, ml.selectedMessageID)
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve selected message: %w", err)
 	}
@@ -249,7 +249,7 @@ func (ml *messagesList) selectedMessage() (*discord.Message, error) {
 }
 
 func (ml *messagesList) selectedMessageIndex() (int, error) {
-	ms, err := discordState.Cabinet.Messages(app.chatView.selectedChannelID)
+	ms, err := discordState.Cabinet.Messages(app.chatView.selectedChannel.ID)
 	if err != nil {
 		return -1, err
 	}
@@ -295,9 +295,9 @@ func (ml *messagesList) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 }
 
 func (ml *messagesList) _select(name string) {
-	ms, err := discordState.Cabinet.Messages(app.chatView.selectedChannelID)
+	ms, err := discordState.Cabinet.Messages(app.chatView.selectedChannel.ID)
 	if err != nil {
-		slog.Error("failed to get messages", "err", err, "channel_id", app.chatView.selectedChannelID)
+		slog.Error("failed to get messages", "err", err, "channel_id", app.chatView.selectedChannel.ID)
 		return
 	}
 
@@ -622,16 +622,16 @@ func (ml *messagesList) delete() {
 		}
 	}
 
-	if err := discordState.DeleteMessage(app.chatView.selectedChannelID, msg.ID, ""); err != nil {
-		slog.Error("failed to delete message", "channel_id", app.chatView.selectedChannelID, "message_id", msg.ID, "err", err)
+	if err := discordState.DeleteMessage(app.chatView.selectedChannel.ID, msg.ID, ""); err != nil {
+		slog.Error("failed to delete message", "channel_id", app.chatView.selectedChannel.ID, "message_id", msg.ID, "err", err)
 		return
 	}
 
 	ml.selectedMessageID = 0
 	ml.Highlight()
 
-	if err := discordState.MessageRemove(app.chatView.selectedChannelID, msg.ID); err != nil {
-		slog.Error("failed to delete message", "channel_id", app.chatView.selectedChannelID, "message_id", msg.ID, "err", err)
+	if err := discordState.MessageRemove(app.chatView.selectedChannel.ID, msg.ID); err != nil {
+		slog.Error("failed to delete message", "channel_id", app.chatView.selectedChannel.ID, "message_id", msg.ID, "err", err)
 		return
 	}
 
