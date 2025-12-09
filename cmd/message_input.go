@@ -310,6 +310,19 @@ func (mi *messageInput) tabSuggestion() {
 	cID := app.chatView.selectedChannel.ID
 	mi.mentionsList.Clear()
 
+	var shown map[string]struct{}
+	var userDone struct{}
+	if name == "" {
+		shown = make(map[string]struct{})
+		// Don't show @me in the list of recent authors
+		me, err := discordState.Cabinet.Me()
+		if err != nil {
+			slog.Error("failed to get client user (me)", "err", err)
+		} else {
+			shown[me.Username] = userDone
+		}
+	}
+
 	// DMs have recipients, not members
 	if !gID.IsValid() {
 		if name == "" { // show recent messages' authors
@@ -317,16 +330,21 @@ func (mi *messageInput) tabSuggestion() {
 			if err != nil {
 				return
 			}
-			shown := make(map[string]bool)
 			for _, m := range msgs {
-				if shown[m.Author.Username] {
+				if _, ok := shown[m.Author.Username]; ok {
 					continue
 				}
-				shown[m.Author.Username] = true
+				shown[m.Author.Username] = userDone
 				mi.addMentionUser(&m.Author)
 			}
 		} else {
 			users := app.chatView.selectedChannel.DMRecipients
+			me, err := discordState.Cabinet.Me()
+			if err != nil {
+				slog.Error("failed to get client user (me)", "err", err)
+			} else {
+				users = append(users, *me)
+			}
 			res := fuzzy.FindFrom(name, userList(users))
 			for _, r := range res {
 				mi.addMentionUser(&users[r.Index])
@@ -337,12 +355,11 @@ func (mi *messageInput) tabSuggestion() {
 		if err != nil {
 			return
 		}
-		shown := make(map[string]bool)
 		for _, m := range msgs {
-			if shown[m.Author.Username] {
+			if _, ok := shown[m.Author.Username]; ok {
 				continue
 			}
-			shown[m.Author.Username] = true
+			shown[m.Author.Username] = userDone
 			discordState.MemberState.RequestMember(gID, m.Author.ID)
 			if mem, err := discordState.Cabinet.Member(gID, m.Author.ID); err == nil {
 				if mi.addMentionMember(gID, mem) {
