@@ -28,7 +28,6 @@ type chatView struct {
 	messagesList *messagesList
 	messageInput *messageInput
 
-	selectedGuildID discord.GuildID
 	selectedChannel *discord.Channel
 
 	app *tview.Application

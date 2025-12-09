@@ -182,7 +182,6 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 		}
 
 		app.chatView.selectedChannel = channel
-		app.chatView.selectedGuildID = channel.GuildID
 
 		app.chatView.messagesList.reset()
 		app.chatView.messagesList.setTitle(*channel)

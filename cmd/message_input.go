@@ -156,7 +156,7 @@ func (mi *messageInput) send() {
 		return
 	}
 
-	text = processText(app.chatView.selectedChannel.ID, []byte(text))
+	text = processText(app.chatView.selectedChannel, []byte(text))
 
 	if mi.edit {
 		m, err := app.chatView.messagesList.selectedMessage()
@@ -191,7 +191,7 @@ func (mi *messageInput) send() {
 	app.chatView.messagesList.ScrollToEnd()
 }
 
-func processText(cID discord.ChannelID, src []byte) string {
+func processText(channel *discord.Channel, src []byte) string {
 	var (
 		ranges     [][2]int
 		canMention = true
@@ -215,19 +215,34 @@ func processText(cID discord.ChannelID, src []byte) string {
 	})
 
 	for _, rng := range ranges {
-		src = slices.Replace(src, rng[0], rng[1], expandMentions(cID, src[rng[0]:rng[1]])...)
+		src = slices.Replace(src, rng[0], rng[1], expandMentions(channel, src[rng[0]:rng[1]])...)
 	}
 
 	return string(src)
 }
 
-func expandMentions(cID discord.ChannelID, src []byte) []byte {
+func expandMentions(c *discord.Channel, src []byte) []byte {
 	return mentionRegex.ReplaceAllFunc(src, func(input []byte) []byte {
 		output := input
 		name := string(input[1:])
-		discordState.MemberStore.Each(app.chatView.selectedGuildID, func(m *discord.Member) bool {
+		if c.Type == discord.DirectMessage || c.Type == discord.GroupDM {
+			for _, user := range c.DMRecipients {
+				if strings.EqualFold(user.Username, name) {
+					return []byte(user.ID.Mention())
+				}
+			}
+			// self ping
+			me, err := discordState.Cabinet.Me()
+			if err != nil {
+				slog.Error("failed to get client user (me)", "err", err)
+			} else if strings.EqualFold(me.Username, name) {
+				return []byte(me.ID.Mention())
+			}
+			return output
+		}
+		discordState.MemberStore.Each(c.GuildID, func(m *discord.Member) bool {
 			if strings.EqualFold(m.User.Username, name) {
-				if channelHasUser(cID, m.User.ID) {
+				if channelHasUser(c.ID, m.User.ID) {
 					output = []byte(m.User.ID.Mention())
 				}
 				return true
@@ -248,7 +263,7 @@ func (mi *messageInput) tabComplete() {
 	}
 	pos := posEnd - (len(name) + 1)
 
-	gID := app.chatView.selectedGuildID
+	gID := app.chatView.selectedChannel.GuildID
 
 	if mi.cfg.AutocompleteLimit == 0 {
 		if !gID.IsValid() {
@@ -291,11 +306,11 @@ func (mi *messageInput) tabSuggestion() {
 		mi.stopTabCompletion()
 		return
 	}
-	gID := app.chatView.selectedGuildID
+	gID := app.chatView.selectedChannel.GuildID
 	cID := app.chatView.selectedChannel.ID
 	mi.mentionsList.Clear()
 
-	/* DMs with recipients, not members */
+	// DMs have recipients, not members
 	if !gID.IsValid() {
 		if name == "" { // show recent messages' authors
 			msgs, err := discordState.Cabinet.Messages(cID)
