@@ -12,7 +12,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/ningen/v3"
-	"github.com/gdamore/tcell/v2"
+	"github.com/gdamore/tcell/v3"
 	"golang.design/x/clipboard"
 )
 
@@ -242,12 +242,12 @@ func (gt *guildsTree) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		gt.collapseParentNode(gt.GetCurrentNode())
 		return nil
 	case gt.cfg.Keys.GuildsTree.MoveToParentNode:
-		return tcell.NewEventKey(tcell.KeyRune, 'K', tcell.ModNone)
+		return tcell.NewEventKey(tcell.KeyRune, "K", tcell.ModNone)
 
 	case gt.cfg.Keys.GuildsTree.SelectPrevious:
-		return tcell.NewEventKey(tcell.KeyUp, 0, tcell.ModNone)
+		return tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone)
 	case gt.cfg.Keys.GuildsTree.SelectNext:
-		return tcell.NewEventKey(tcell.KeyDown, 0, tcell.ModNone)
+		return tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone)
 	case gt.cfg.Keys.GuildsTree.SelectFirst:
 		gt.Move(gt.GetRowCount() * -1)
 		// return tcell.NewEventKey(tcell.KeyHome, 0, tcell.ModNone)
@@ -256,7 +256,7 @@ func (gt *guildsTree) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		// return tcell.NewEventKey(tcell.KeyEnd, 0, tcell.ModNone)
 
 	case gt.cfg.Keys.GuildsTree.SelectCurrent:
-		return tcell.NewEventKey(tcell.KeyEnter, 0, tcell.ModNone)
+		return tcell.NewEventKey(tcell.KeyEnter, "", tcell.ModNone)
 
 	case gt.cfg.Keys.GuildsTree.YankID:
 		gt.yankID()

@@ -6,7 +6,7 @@ import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/login"
 	"github.com/ayn2op/tview"
-	"github.com/gdamore/tcell/v2"
+	"github.com/gdamore/tcell/v3"
 	"golang.design/x/clipboard"
 )
 
@@ -71,7 +71,7 @@ func (a *application) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		return nil
 	case "Ctrl+C":
 		// https://github.com/ayn2op/tview/blob/a64fc48d7654432f71922c8b908280cdb525805c/application.go#L153
-		return tcell.NewEventKey(tcell.KeyCtrlC, 0, tcell.ModNone)
+		return tcell.NewEventKey(tcell.KeyCtrlC, "", tcell.ModNone)
 	}
 
 	return event

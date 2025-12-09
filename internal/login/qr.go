@@ -22,7 +22,7 @@ import (
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
 	"github.com/diamondburned/arikawa/v3/api"
-	"github.com/gdamore/tcell/v2"
+	"github.com/gdamore/tcell/v3"
 	"github.com/gorilla/websocket"
 	"github.com/skip2/go-qrcode"
 )
