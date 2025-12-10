@@ -25,7 +25,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/diamondburned/ningen/v3/discordmd"
-	"github.com/gdamore/tcell/v2"
+	"github.com/gdamore/tcell/v3"
 	"github.com/skratchdot/open-golang/open"
 	"golang.design/x/clipboard"
 )
@@ -195,7 +195,8 @@ func (ml *messagesList) drawDefaultMessage(w io.Writer, message discord.Message)
 	for _, a := range message.Attachments {
 		fmt.Fprintln(w)
 
-		fg, bg, _ := ml.cfg.Theme.MessagesList.AttachmentStyle.Decompose()
+		fg := ml.cfg.Theme.MessagesList.AttachmentStyle.GetForeground()
+		bg := ml.cfg.Theme.MessagesList.AttachmentStyle.GetBackground()
 		if ml.cfg.ShowAttachmentLinks {
 			fmt.Fprintf(w, "[%s:%s]%s:\n%s[-:-]", fg, bg, a.Filename, a.URL)
 		} else {
@@ -237,7 +238,7 @@ func (ml *messagesList) selectedMessage() (*discord.Message, error) {
 		return nil, errors.New("no message is currently selected")
 	}
 
-	m, err := discordState.Cabinet.Message(app.chatView.selectedChannelID, ml.selectedMessageID)
+	m, err := discordState.Cabinet.Message(app.chatView.selectedChannel.ID, ml.selectedMessageID)
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve selected message: %w", err)
 	}
@@ -246,7 +247,7 @@ func (ml *messagesList) selectedMessage() (*discord.Message, error) {
 }
 
 func (ml *messagesList) selectedMessageIndex() (int, error) {
-	ms, err := discordState.Cabinet.Messages(app.chatView.selectedChannelID)
+	ms, err := discordState.Cabinet.Messages(app.chatView.selectedChannel.ID)
 	if err != nil {
 		return -1, err
 	}
@@ -292,9 +293,9 @@ func (ml *messagesList) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 }
 
 func (ml *messagesList) _select(name string) {
-	ms, err := discordState.Cabinet.Messages(app.chatView.selectedChannelID)
+	ms, err := discordState.Cabinet.Messages(app.chatView.selectedChannel.ID)
 	if err != nil {
-		slog.Error("failed to get messages", "err", err, "channel_id", app.chatView.selectedChannelID)
+		slog.Error("failed to get messages", "err", err, "channel_id", app.chatView.selectedChannel.ID)
 		return
 	}
 
@@ -432,13 +433,13 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 		SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 			switch event.Name() {
 			case ml.cfg.Keys.MessagesList.SelectPrevious:
-				return tcell.NewEventKey(tcell.KeyUp, 0, tcell.ModNone)
+				return tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone)
 			case ml.cfg.Keys.MessagesList.SelectNext:
-				return tcell.NewEventKey(tcell.KeyDown, 0, tcell.ModNone)
+				return tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone)
 			case ml.cfg.Keys.MessagesList.SelectFirst:
-				return tcell.NewEventKey(tcell.KeyHome, 0, tcell.ModNone)
+				return tcell.NewEventKey(tcell.KeyHome, "", tcell.ModNone)
 			case ml.cfg.Keys.MessagesList.SelectLast:
-				return tcell.NewEventKey(tcell.KeyEnd, 0, tcell.ModNone)
+				return tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone)
 			}
 
 			return event
@@ -596,16 +597,16 @@ func (ml *messagesList) delete() {
 		}
 	}
 
-	if err := discordState.DeleteMessage(app.chatView.selectedChannelID, msg.ID, ""); err != nil {
-		slog.Error("failed to delete message", "channel_id", app.chatView.selectedChannelID, "message_id", msg.ID, "err", err)
+	if err := discordState.DeleteMessage(app.chatView.selectedChannel.ID, msg.ID, ""); err != nil {
+		slog.Error("failed to delete message", "channel_id", app.chatView.selectedChannel.ID, "message_id", msg.ID, "err", err)
 		return
 	}
 
 	ml.selectedMessageID = 0
 	ml.Highlight()
 
-	if err := discordState.MessageRemove(app.chatView.selectedChannelID, msg.ID); err != nil {
-		slog.Error("failed to delete message", "channel_id", app.chatView.selectedChannelID, "message_id", msg.ID, "err", err)
+	if err := discordState.MessageRemove(app.chatView.selectedChannel.ID, msg.ID); err != nil {
+		slog.Error("failed to delete message", "channel_id", app.chatView.selectedChannel.ID, "message_id", msg.ID, "err", err)
 		return
 	}
 

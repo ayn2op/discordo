@@ -92,7 +92,8 @@ func (r *Renderer) renderAutoLink(w io.Writer, node *ast.AutoLink, entering bool
 	urlStyle := r.theme.URLStyle
 
 	if entering {
-		fg, bg, _ := urlStyle.Decompose()
+		fg := urlStyle.GetForeground()
+		bg := urlStyle.GetBackground()
 		fmt.Fprintf(w, "[%s:%s]", fg, bg)
 		w.Write(node.URL(source))
 	} else {
@@ -103,7 +104,8 @@ func (r *Renderer) renderAutoLink(w io.Writer, node *ast.AutoLink, entering bool
 func (r *Renderer) renderLink(w io.Writer, node *ast.Link, entering bool) {
 	urlStyle := r.theme.URLStyle
 	if entering {
-		fg, bg, _ := urlStyle.Decompose()
+		fg := urlStyle.GetForeground()
+		bg := urlStyle.GetBackground()
 		fmt.Fprintf(w, "[%s:%s::%s]", fg, bg, node.Destination)
 	} else {
 		io.WriteString(w, "[-:-::-]")
@@ -163,7 +165,8 @@ func (r *Renderer) renderInline(w io.Writer, node *discordmd.Inline, entering bo
 func (r *Renderer) renderMention(w io.Writer, node *discordmd.Mention, entering bool) {
 	mentionStyle := r.theme.MentionStyle
 	if entering {
-		fg, bg, _ := mentionStyle.Decompose()
+		fg := mentionStyle.GetForeground()
+		bg := mentionStyle.GetBackground()
 		fmt.Fprintf(w, "[%s:%s:b]", fg, bg)
 
 		switch {
@@ -185,9 +188,10 @@ func (r *Renderer) renderMention(w io.Writer, node *discordmd.Mention, entering 
 }
 
 func (r *Renderer) renderEmoji(w io.Writer, node *discordmd.Emoji, entering bool) {
-	emojiStyle := r.theme.EmojiStyle
 	if entering {
-		fg, bg, _ := emojiStyle.Decompose()
+		emojiStyle := r.theme.EmojiStyle
+		fg := emojiStyle.GetForeground()
+		bg := emojiStyle.GetBackground()
 		fmt.Fprintf(w, "[%s:%s]", fg, bg)
 		io.WriteString(w, ":"+node.Name+":")
 	} else {

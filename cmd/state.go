@@ -146,7 +146,8 @@ func onReady(r *gateway.ReadyEvent) {
 }
 
 func onMessageCreate(message *gateway.MessageCreateEvent) {
-	if app.chatView.selectedChannelID == message.ChannelID {
+	if app.chatView.selectedChannel != nil &&
+	   app.chatView.selectedChannel.ID == message.ChannelID {
 		app.chatView.messagesList.drawMessage(app.chatView.messagesList, message.Message)
 		app.Draw()
 	}
@@ -157,13 +158,15 @@ func onMessageCreate(message *gateway.MessageCreateEvent) {
 }
 
 func onMessageUpdate(message *gateway.MessageUpdateEvent) {
-	if app.chatView.selectedChannelID == message.ChannelID {
+	if app.chatView.selectedChannel != nil &&
+	   app.chatView.selectedChannel.ID == message.ChannelID {
 		onMessageDelete(&gateway.MessageDeleteEvent{ID: message.ID, ChannelID: message.ChannelID, GuildID: message.GuildID})
 	}
 }
 
 func onMessageDelete(message *gateway.MessageDeleteEvent) {
-	if app.chatView.selectedChannelID == message.ChannelID {
+	if app.chatView.selectedChannel != nil &&
+	   app.chatView.selectedChannel.ID == message.ChannelID {
 		messages, err := discordState.Cabinet.Messages(message.ChannelID)
 		if err != nil {
 			slog.Error("failed to get messages from state", "err", err, "channel_id", message.ChannelID)

@@ -13,8 +13,8 @@ show_attachment_links = true
 # Show a status bar on the bottom of the screen with key bindings.
 show_status_bar = false
 
-# Use autocomplete_limit = 0 to disable autocompleting mentions
-# Note: tab completion will still work, but it won't show any list.
+# Max members to be in the mention autocomplete suggestions list
+# Note: Use autocomplete_limit = 0 to disable.
 autocomplete_limit = 20
 
 # The number of messages to fetch when a text-based channel is selected from guilds tree. The minimum and maximum value is 0 and 100, respectively.

@@ -12,7 +12,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/ningen/v3"
-	"github.com/gdamore/tcell/v2"
+	"github.com/gdamore/tcell/v3"
 	"golang.design/x/clipboard"
 )
 
@@ -142,8 +142,6 @@ PARENT_CHANNELS:
 }
 
 func (gt *guildsTree) onSelected(node *tview.TreeNode) {
-	app.chatView.messageInput.reset()
-
 	if len(node.GetChildren()) != 0 {
 		node.SetExpanded(!node.IsExpanded())
 		return
@@ -183,6 +181,8 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 			app.chatView.messagesList.requestGuildMembers(guildID, messages)
 		}
 
+		app.chatView.selectedChannel = channel
+
 		app.chatView.messagesList.reset()
 		app.chatView.messagesList.setTitle(*channel)
 		app.chatView.messagesList.drawMessages(messages)
@@ -197,9 +197,7 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 			app.SetFocus(app.chatView.messageInput)
 		}
 
-		app.chatView.selectedChannelID = channel.ID
-		app.chatView.selectedGuildID = channel.GuildID
-	case nil: // Direct messages
+	case nil: // Direct messages folder
 		channels, err := discordState.PrivateChannels()
 		if err != nil {
 			slog.Error("failed to get private channels", "err", err)
@@ -244,12 +242,12 @@ func (gt *guildsTree) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		gt.collapseParentNode(gt.GetCurrentNode())
 		return nil
 	case gt.cfg.Keys.GuildsTree.MoveToParentNode:
-		return tcell.NewEventKey(tcell.KeyRune, 'K', tcell.ModNone)
+		return tcell.NewEventKey(tcell.KeyRune, "K", tcell.ModNone)
 
 	case gt.cfg.Keys.GuildsTree.SelectPrevious:
-		return tcell.NewEventKey(tcell.KeyUp, 0, tcell.ModNone)
+		return tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone)
 	case gt.cfg.Keys.GuildsTree.SelectNext:
-		return tcell.NewEventKey(tcell.KeyDown, 0, tcell.ModNone)
+		return tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone)
 	case gt.cfg.Keys.GuildsTree.SelectFirst:
 		gt.Move(gt.GetRowCount() * -1)
 		// return tcell.NewEventKey(tcell.KeyHome, 0, tcell.ModNone)
@@ -258,7 +256,7 @@ func (gt *guildsTree) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		// return tcell.NewEventKey(tcell.KeyEnd, 0, tcell.ModNone)
 
 	case gt.cfg.Keys.GuildsTree.SelectCurrent:
-		return tcell.NewEventKey(tcell.KeyEnter, 0, tcell.ModNone)
+		return tcell.NewEventKey(tcell.KeyEnter, "", tcell.ModNone)
 
 	case gt.cfg.Keys.GuildsTree.YankID:
 		gt.yankID()
