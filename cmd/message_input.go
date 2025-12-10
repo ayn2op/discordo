@@ -395,7 +395,7 @@ func (mi *messageInput) tabSuggestion() {
 }
 
 type memberList []discord.Member
-type userList   []discord.User
+type userList []discord.User
 
 func (ml memberList) String(i int) string {
 	return ml[i].Nick + ml[i].User.DisplayName + ml[i].User.Tag()
@@ -532,7 +532,6 @@ func (mi *messageInput) addMentionUser(user *discord.User) {
 	}
 
 	mi.mentionsList.AddItem(name, user.Username, 0, nil)
-	return
 }
 
 // used by chatView
