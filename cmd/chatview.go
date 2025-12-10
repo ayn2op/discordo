@@ -123,7 +123,6 @@ func (cv *chatView) focusNext() {
 		cv.app.SetFocus(cv.messagesList)
 	case cv.messagesList:
 		cv.focusMessageInput()
-		cv.app.SetFocus(cv.messageInput)
 	case cv.messageInput: // Handle both a.messageInput and a.flex as well as other edge cases (if there is).
 		if ok := cv.focusGuildsTree(); !ok {
 			cv.app.SetFocus(cv.messagesList)
