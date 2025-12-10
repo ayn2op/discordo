@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"slices"
 
+	"github.com/ayn2op/discordo/internal/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
@@ -13,7 +14,6 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/ningen/v3"
 	"github.com/gdamore/tcell/v3"
-	"golang.design/x/clipboard"
 )
 
 type guildsTree struct {

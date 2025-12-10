@@ -44,10 +44,7 @@ go build .
 
 ### Wayland clipboard support
 
-`x11-dev` is required for X11 clipboard compatibility:
-
-- Ubuntu: `apt install xwayland`
-- Arch Linux: `pacman -S xorg-xwayland`
+`wl-clipboard` is required for clipboard support.
 
 ## Usage
 
