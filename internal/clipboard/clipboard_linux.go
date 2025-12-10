@@ -11,11 +11,9 @@ import (
 )
 
 var wayland bool
-var inited bool
 
 func Init() error {
 	if _, ok := os.LookupEnv("WAYLAND_DISPLAY"); !ok {
-		inited = true
 		return designClipb.Init()
 	}
 	if _, err := exec.LookPath("wl-copy"); err != nil {
@@ -25,14 +23,10 @@ func Init() error {
 		return err
 	}
 	wayland = true
-	inited = true
 	return nil
 }
 
 func Read(t Format) []byte {
-	if !inited {
-		return nil
-	}
 	if !wayland {
 		return designClipb.Read(designClipb.Format(t))
 	}
@@ -49,9 +43,6 @@ func Read(t Format) []byte {
 }
 
 func Write(t Format, buf []byte) <-chan struct{} {
-	if !inited {
-		return nil
-	}
 	if !wayland {
 		return designClipb.Write(designClipb.Format(t), buf)
 	}
