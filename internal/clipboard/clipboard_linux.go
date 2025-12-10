@@ -1,12 +1,13 @@
 //go:build linux
+
 package clipboard
 
 import (
+	"bytes"
+	designClipb "golang.design/x/clipboard"
 	"log/slog"
 	"os"
 	"os/exec"
-	"bytes"
-	designClipb "golang.design/x/clipboard"
 )
 
 var wayland bool

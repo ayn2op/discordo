@@ -1,4 +1,5 @@
 //go:build !linux
+
 package clipboard
 
 import designClipb "golang.design/x/clipboard"
@@ -14,4 +15,3 @@ func Read(t Format) []byte {
 func Write(t Format, buf []byte) <-chan struct{} {
 	return designClipb.Write(designClipb.Format(t), buf)
 }
-

@@ -6,9 +6,9 @@ import (
 	"log/slog"
 	"slices"
 
+	"github.com/ayn2op/discordo/internal/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/ui"
-	"github.com/ayn2op/discordo/internal/clipboard"
 	"github.com/ayn2op/tview"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
