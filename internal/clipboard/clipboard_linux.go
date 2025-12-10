@@ -20,12 +20,13 @@ func Init() error {
 }
 
 func checkWaylandEnv() bool {
-	if typ := os.Getenv("XDG_SESSION_TYPE"); typ != "wayland" {
-		if _, ok := os.LookupEnv("WAYLAND_DISPLAY"); !ok {
-			return false
-		}
+	if _, ok := os.LookupEnv("WAYLAND_DISPLAY"); !ok {
+		return false
 	}
-	_, err := exec.LookPath("wl-copy")
+	if _, err := exec.LookPath("wl-copy"); err != nil {
+		return false
+	}
+	_, err := exec.LookPath("wl-paste")
 	return err == nil
 }
 
