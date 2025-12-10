@@ -42,7 +42,7 @@ func Read(t Format) []byte {
 	outBuffer := bytes.Buffer{}
 	cmd.Stdout = &outBuffer
 	if err := cmd.Run(); err != nil {
-		slog.Error("failed to write to clipboard", "err", err)
+		slog.Error("failed to read clipboard", "err", err)
 		return nil
 	}
 	return outBuffer.Bytes()
