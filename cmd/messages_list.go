@@ -497,6 +497,7 @@ func (ml *messagesList) openAttachment(attachment discord.Attachment) {
 	resp, err := http.Get(attachment.URL)
 	if err != nil {
 		slog.Error("failed to fetch the attachment", "err", err, "url", attachment.URL)
+		return
 	}
 	defer resp.Body.Close()
 
