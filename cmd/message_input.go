@@ -156,6 +156,15 @@ func (mi *messageInput) send() {
 		return
 	}
 
+	// Close attached files on return
+	defer func() {
+		for _, file := range mi.sendMessageData.Files {
+			if closer, ok := file.Reader.(io.Closer); ok {
+				closer.Close()
+			}
+		}
+	}()
+
 	text = processText(app.chatView.selectedChannel, []byte(text))
 
 	if mi.edit {
@@ -176,13 +185,6 @@ func (mi *messageInput) send() {
 		data.Content = text
 		if _, err := discordState.SendMessageComplex(app.chatView.selectedChannel.ID, *data); err != nil {
 			slog.Error("failed to send message in channel", "channel_id", app.chatView.selectedChannel.ID, "err", err)
-		}
-	}
-
-	// Close the attached files after sending the message.
-	for _, file := range mi.sendMessageData.Files {
-		if closer, ok := file.Reader.(io.Closer); ok {
-			closer.Close()
 		}
 	}
 
