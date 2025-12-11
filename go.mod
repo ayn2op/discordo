@@ -5,12 +5,12 @@ go 1.25.3
 require (
 	github.com/BurntSushi/toml v1.5.0
 	github.com/andybalholm/brotli v1.2.0
-	github.com/ayn2op/tview v0.0.0-20251209001824-25bf5d8d931f
+	github.com/ayn2op/tview v0.0.0-20251211193441-ffdde465071c
 	github.com/deckarep/gosx-notifier v0.0.0-20180201035817-e127226297fb
 	github.com/diamondburned/arikawa/v3 v3.6.1-0.20250928004212-a891a653eb26
 	github.com/diamondburned/ningen/v3 v3.0.1-0.20250920191746-98fbd92e134d
-	github.com/gdamore/tcell/v3 v3.0.2
-	github.com/gen2brain/beeep v0.11.1
+	github.com/gdamore/tcell/v3 v3.0.3
+	github.com/gen2brain/beeep v0.11.2
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/klauspost/compress v1.18.2

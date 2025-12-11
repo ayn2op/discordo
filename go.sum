@@ -31,6 +31,8 @@ github.com/ayn2op/tview v0.0.0-20251208234354-304b7f6e9e9d h1:KajT53WJzVV3CKfxkp
 github.com/ayn2op/tview v0.0.0-20251208234354-304b7f6e9e9d/go.mod h1:w/5UGxmYFBWxiIFw1FEw6myjGhDiahp8J8pUfCUEmlw=
 github.com/ayn2op/tview v0.0.0-20251209001824-25bf5d8d931f h1:d3j0fXFX7oir9wrU7rBg3ciLt22bay8noQzAqv6ZhF0=
 github.com/ayn2op/tview v0.0.0-20251209001824-25bf5d8d931f/go.mod h1:w/5UGxmYFBWxiIFw1FEw6myjGhDiahp8J8pUfCUEmlw=
+github.com/ayn2op/tview v0.0.0-20251211193441-ffdde465071c h1:xzNfaKfGXwP8+0hcKfjmJAcge6DqlZm8I6Juy4WNd6M=
+github.com/ayn2op/tview v0.0.0-20251211193441-ffdde465071c/go.mod h1:yzjlohAPGCo6kHEzHrzKODDNvbdvzGSEzgrfKNxfdiM=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
 github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e/go.mod h1:nSuG5e5PlCu98SY8svDHJxuZscDgtXS6KTTbou5AhLI=
@@ -58,8 +60,12 @@ github.com/gdamore/encoding v1.0.1 h1:YzKZckdBL6jVt2Gc+5p82qhrGiqMdG/eNs6Wy0u3Uh
 github.com/gdamore/encoding v1.0.1/go.mod h1:0Z0cMFinngz9kS1QfMjCP8TY7em3bZYeeklsSDPivEo=
 github.com/gdamore/tcell/v3 v3.0.2 h1:1sM7T9uc/iqQiJCliTBuqGcWAWksI355ejAfkPYHmVs=
 github.com/gdamore/tcell/v3 v3.0.2/go.mod h1:OoJxRXVKR7ROCFzAIUkHHy/7mWTkz9sNfWLhdEsNHVM=
+github.com/gdamore/tcell/v3 v3.0.3 h1:1xsLaoW75MIsZbIClW0lj7DzBq4OBzNufAKHteQP6tE=
+github.com/gdamore/tcell/v3 v3.0.3/go.mod h1:hPfjyFARu5K9vLzjN5TrYAoK/D9dZmqRbQkevGvK7oQ=
 github.com/gen2brain/beeep v0.11.1 h1:EbSIhrQZFDj1K2fzlMpAYlFOzV8YuNe721A58XcCTYI=
 github.com/gen2brain/beeep v0.11.1/go.mod h1:jQVvuwnLuwOcdctHn/uyh8horSBNJ8uGb9Cn2W4tvoc=
+github.com/gen2brain/beeep v0.11.2 h1:+KfiKQBbQCuhfJFPANZuJ+oxsSKAYNe88hIpJuyKWDA=
+github.com/gen2brain/beeep v0.11.2/go.mod h1:jQVvuwnLuwOcdctHn/uyh8horSBNJ8uGb9Cn2W4tvoc=
 github.com/go-gl/glfw v0.0.0-20190409004039-e6da0acd62b1/go.mod h1:vR7hzQXu2zJy9AVAgeJqvqgH9Q5CA+iKCZ2gyEVpxRU=
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20191125211704-12ad95a8df72/go.mod h1:tQ2UAYgL5IevRw8kRxooKSPJfGvJ9fJQFa0TUsXzTg8=
 github.com/go-ole/go-ole v1.3.0 h1:Dt6ye7+vXGIKZ7Xtk4s6/xVdGDQynvom7xCFEdWr6uE=
