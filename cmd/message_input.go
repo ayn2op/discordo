@@ -86,6 +86,12 @@ func (mi *messageInput) reset() {
 	mi.SetText("", true)
 }
 
+func (mi *messageInput) stopReply() {
+	mi.edit = false
+	mi.sendMessageData = &api.SendMessageData{}
+	mi.SetTitle("")
+}
+
 func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case mi.cfg.Keys.MessageInput.Paste:
@@ -112,7 +118,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		if app.chatView.GetVisibile(mentionsListPageName) {
 			mi.stopTabCompletion()
 		} else {
-			mi.reset()
+			mi.stopReply()
 		}
 
 		return nil
