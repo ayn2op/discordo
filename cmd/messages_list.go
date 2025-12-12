@@ -154,12 +154,14 @@ func (ml *messagesList) drawAuthor(w io.Writer, message discord.Message) {
 				name = member.Nick
 			}
 
-			color, ok := state.MemberColor(member, func(id discord.RoleID) *discord.Role {
-				r, _ := discordState.Cabinet.Role(message.GuildID, id)
-				return r
-			})
-			if ok {
-				foreground = tcell.GetColor(color.String())
+			if ml.cfg.ColoredNicknames {
+				color, ok := state.MemberColor(member, func(id discord.RoleID) *discord.Role {
+					r, _ := discordState.Cabinet.Role(message.GuildID, id)
+					return r
+				})
+				if ok {
+					foreground = tcell.GetColor(color.String())
+				}
 			}
 		}
 	}
