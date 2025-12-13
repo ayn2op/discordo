@@ -73,6 +73,8 @@ func ChannelToString(channel discord.Channel) string {
 		return "s-" + channel.Name
 	case discord.GuildForum:
 		return "f-" + channel.Name
+	case discord.GuildPublicThread, discord.GuildPrivateThread, discord.GuildAnnouncementThread:
+		return "t-" + channel.Name
 	default:
 		return channel.Name
 	}
