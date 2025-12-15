@@ -243,7 +243,7 @@ func (ml *messagesList) selectedMessage() (*discord.Message, error) {
 
 	m, err := discordState.Cabinet.Message(app.chatView.selectedChannel.ID, ml.selectedMessageID)
 	if err != nil {
-		return nil, fmt.Errorf("could not retrieve selected message: %w", err)
+		return nil, fmt.Errorf("failed to retrieve selected message: %w", err)
 	}
 
 	return m, nil
@@ -353,7 +353,7 @@ func (ml *messagesList) onHighlighted(added, removed, remaining []string) {
 	if len(added) > 0 {
 		id, err := discord.ParseSnowflake(added[0])
 		if err != nil {
-			slog.Error("Failed to parse region id as int to use as message id.", "err", err)
+			slog.Error("failed to parse region id as int to use as message id", "err", err)
 			return
 		}
 
