@@ -7,13 +7,13 @@ import (
 )
 
 func sendDesktopNotification(title string, message string, image string, playSound bool, _ int) error {
-	n := gosxnotifier.NewNotification(message)
-	n.Title = title
-	n.ContentImage = image
+	notification := gosxnotifier.NewNotification(message)
+	notification.Title = title
+	notification.ContentImage = image
 
 	if playSound {
-		n.Sound = gosxnotifier.Default
+		notification.Sound = gosxnotifier.Default
 	}
 
-	return n.Push()
+	return notification.Push()
 }

@@ -35,7 +35,7 @@ type chatView struct {
 }
 
 func newChatView(app *tview.Application, cfg *config.Config) *chatView {
-	cv := &chatView{
+	chatView := &chatView{
 		Pages: tview.NewPages(),
 
 		mainFlex:  tview.NewFlex(),
@@ -49,10 +49,10 @@ func newChatView(app *tview.Application, cfg *config.Config) *chatView {
 		cfg: cfg,
 	}
 
-	cv.SetInputCapture(cv.onInputCapture)
+	chatView.SetInputCapture(chatView.onInputCapture)
 
-	cv.buildLayout()
-	return cv
+	chatView.buildLayout()
+	return chatView
 }
 
 func (cv *chatView) buildLayout() {
