@@ -200,13 +200,6 @@ func (q *qrLogin) run(ctx context.Context) {
 		}
 	}()
 
-	var heartbeatTicker *time.Ticker
-	defer func() {
-		if heartbeatTicker != nil {
-			heartbeatTicker.Stop()
-		}
-	}()
-
 	for {
 		select {
 		case <-ctx.Done():
@@ -237,8 +230,9 @@ func (q *qrLogin) run(ctx context.Context) {
 					return
 				}
 				if h.HeartbeatInterval > 0 {
-					heartbeatTicker = time.NewTicker(time.Duration(h.HeartbeatInterval) * time.Millisecond)
+					heartbeatTicker := time.NewTicker(time.Duration(h.HeartbeatInterval) * time.Millisecond)
 					go func() {
+						defer heartbeatTicker.Stop()
 						for {
 							select {
 							case <-ctx.Done():
