@@ -222,6 +222,70 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 	}
 }
 
+// selectFirstUnread finds and selects the first unread channel node in the tree.
+func (gt *guildsTree) selectFirstUnread() {
+	root := gt.GetRoot()
+
+	var guildNode *tview.TreeNode
+	foundGuild := false
+	root.Walk(func(node, parent *tview.TreeNode) bool {
+		// it continues walking without this
+		if foundGuild {
+			return false
+		}
+		if guildID, ok := node.GetReference().(discord.GuildID); ok {
+			indication := discordState.GuildIsUnread(guildID, ningen.GuildUnreadOpts{UnreadOpts: ningen.UnreadOpts{IncludeMutedCategories: true}})
+			if indication == ningen.ChannelMentioned || indication == ningen.ChannelUnread {
+				guildNode = node
+				foundGuild = true
+				return false
+			}
+		}
+		return true
+	})
+
+	if guildNode == nil {
+		return
+	}
+
+	guildNode.SetExpanded(true)
+	if len(guildNode.GetChildren()) == 0 {
+		gt.onSelected(guildNode)
+	}
+
+	// Search for first unread channel in the guild
+	var channel *tview.TreeNode
+	var guildPath []*tview.TreeNode
+	var walkGuild func(n *tview.TreeNode, ancestors []*tview.TreeNode) bool
+	walkGuild = func(n *tview.TreeNode, ancestors []*tview.TreeNode) bool {
+		ref := n.GetReference()
+		if id, ok := ref.(discord.ChannelID); ok {
+			indication := discordState.ChannelIsUnread(id, ningen.UnreadOpts{IncludeMutedCategories: true})
+			if indication == ningen.ChannelMentioned || indication == ningen.ChannelUnread {
+				channel = n
+				guildPath = append(ancestors, n)
+				return false
+			}
+		}
+		for _, child := range n.GetChildren() {
+			if !walkGuild(child, append(ancestors, n)) {
+				return false
+			}
+		}
+		return true
+	}
+
+	walkGuild(guildNode, []*tview.TreeNode{guildNode})
+
+	if channel != nil {
+		for _, n := range guildPath[:len(guildPath)-1] {
+			n.SetExpanded(true)
+		}
+		gt.SetCurrentNode(channel)
+		gt.onSelected(channel)
+	}
+}
+
 func (gt *guildsTree) collapseParentNode(node *tview.TreeNode) {
 	gt.
 		GetRoot().
@@ -260,8 +324,9 @@ func (gt *guildsTree) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 
 	case gt.cfg.Keys.GuildsTree.YankID:
 		gt.yankID()
+	case gt.cfg.Keys.GuildsTree.SelectFirstUnread:
+		gt.selectFirstUnread()
 	}
-
 	return nil
 }
 

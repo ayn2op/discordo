@@ -58,6 +58,7 @@ select_current = "Enter"
 yank_id = "Rune[i]"
 collapse_parent_node = "Rune[-]"
 move_to_parent_node = "Rune[p]"
+select_first_unread = "Rune[u]"
 
 # Only while focusing on sent messages
 [keys.messages_list]
