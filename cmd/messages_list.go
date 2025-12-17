@@ -159,7 +159,7 @@ func (ml *messagesList) drawAuthor(w io.Writer, message discord.Message) {
 				return r
 			})
 			if ok {
-				foreground = tcell.GetColor(color.String())
+				foreground = tcell.NewHexColor(int32(color))
 			}
 		}
 	}
