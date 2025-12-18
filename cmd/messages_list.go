@@ -296,6 +296,10 @@ func (ml *messagesList) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 }
 
 func (ml *messagesList) _select(name string) {
+	if app.chatView.selectedChannel == nil {
+		return
+	}
+
 	ms, err := discordState.Cabinet.Messages(app.chatView.selectedChannel.ID)
 	if err != nil {
 		slog.Error("failed to get messages", "err", err, "channel_id", app.chatView.selectedChannel.ID)
