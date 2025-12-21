@@ -194,7 +194,9 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 			app.chatView.messageInput.SetPlaceholder("You do not have permission to send messages in this channel.")
 		} else {
 			app.chatView.messageInput.SetPlaceholder("Message...")
-			app.SetFocus(app.chatView.messageInput)
+			if gt.cfg.AutoFocus {
+				app.SetFocus(app.chatView.messageInput)
+			}
 		}
 
 	case nil: // Direct messages folder
