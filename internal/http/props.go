@@ -52,7 +52,7 @@ func IdentifyProperties() gateway.IdentifyProperties {
 	}
 }
 
-func superProps() (string, error) {
+func getSuperProps() (string, error) {
 	props := IdentifyProperties()
 	delete(props, "is_fast_connect")
 	delete(props, "gateway_connect_reasons")
