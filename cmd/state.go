@@ -150,7 +150,7 @@ func onMessageCreate(message *gateway.MessageCreateEvent) {
 	}
 
 	if err := notifications.Notify(discordState, message, app.cfg); err != nil {
-		slog.Error("Notification failed", "err", err)
+		slog.Error("failed to notify", "err", err, "channel_id", message.ChannelID, "message_id", message.ID)
 	}
 }
 
