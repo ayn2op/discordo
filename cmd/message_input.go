@@ -15,6 +15,7 @@ import (
 	"unicode"
 
 	"github.com/ayn2op/discordo/internal/cache"
+	"github.com/ayn2op/discordo/internal/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/ui"
@@ -29,7 +30,6 @@ import (
 	"github.com/ncruces/zenity"
 	"github.com/sahilm/fuzzy"
 	"github.com/yuin/goldmark/ast"
-	"golang.design/x/clipboard"
 )
 
 const tmpFilePattern = consts.Name + "_*.md"
@@ -156,6 +156,15 @@ func (mi *messageInput) send() {
 		return
 	}
 
+	// Close attached files on return
+	defer func() {
+		for _, file := range mi.sendMessageData.Files {
+			if closer, ok := file.Reader.(io.Closer); ok {
+				closer.Close()
+			}
+		}
+	}()
+
 	text = processText(app.chatView.selectedChannel, []byte(text))
 
 	if mi.edit {
@@ -176,13 +185,6 @@ func (mi *messageInput) send() {
 		data.Content = text
 		if _, err := discordState.SendMessageComplex(app.chatView.selectedChannel.ID, *data); err != nil {
 			slog.Error("failed to send message in channel", "channel_id", app.chatView.selectedChannel.ID, "err", err)
-		}
-	}
-
-	// Close the attached files after sending the message.
-	for _, file := range mi.sendMessageData.Files {
-		if closer, ok := file.Reader.(io.Closer); ok {
-			closer.Close()
 		}
 	}
 
@@ -395,7 +397,7 @@ func (mi *messageInput) tabSuggestion() {
 }
 
 type memberList []discord.Member
-type userList   []discord.User
+type userList []discord.User
 
 func (ml memberList) String(i int) string {
 	return ml[i].Nick + ml[i].User.DisplayName + ml[i].User.Tag()
@@ -532,7 +534,6 @@ func (mi *messageInput) addMentionUser(user *discord.User) {
 	}
 
 	mi.mentionsList.AddItem(name, user.Username, 0, nil)
-	return
 }
 
 // used by chatView

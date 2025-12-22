@@ -12,5 +12,7 @@ func NewClient(token string) *api.Client {
 	stdClient := http.DefaultClient
 	stdClient.Transport = NewTransport()
 	httpClient := httputil.NewClientWithDriver(httpdriver.WrapClient(*stdClient))
-	return api.NewCustomClient(token, httpClient)
+	apiClient := api.NewCustomClient(token, httpClient)
+	apiClient.UserAgent = BrowserUserAgent
+	return apiClient
 }

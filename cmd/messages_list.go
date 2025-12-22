@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ayn2op/discordo/internal/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/markdown"
@@ -27,7 +28,9 @@ import (
 	"github.com/diamondburned/ningen/v3/discordmd"
 	"github.com/gdamore/tcell/v3"
 	"github.com/skratchdot/open-golang/open"
-	"golang.design/x/clipboard"
+	"github.com/yuin/goldmark/ast"
+	"github.com/yuin/goldmark/parser"
+	"github.com/yuin/goldmark/text"
 )
 
 type messagesList struct {
@@ -156,7 +159,7 @@ func (ml *messagesList) drawAuthor(w io.Writer, message discord.Message) {
 				return r
 			})
 			if ok {
-				foreground = tcell.GetColor(color.String())
+				foreground = tcell.NewHexColor(int32(color))
 			}
 		}
 	}
@@ -240,7 +243,7 @@ func (ml *messagesList) selectedMessage() (*discord.Message, error) {
 
 	m, err := discordState.Cabinet.Message(app.chatView.selectedChannel.ID, ml.selectedMessageID)
 	if err != nil {
-		return nil, fmt.Errorf("could not retrieve selected message: %w", err)
+		return nil, fmt.Errorf("failed to retrieve selected message: %w", err)
 	}
 
 	return m, nil
@@ -293,6 +296,10 @@ func (ml *messagesList) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 }
 
 func (ml *messagesList) _select(name string) {
+	if app.chatView.selectedChannel == nil {
+		return
+	}
+
 	ms, err := discordState.Cabinet.Messages(app.chatView.selectedChannel.ID)
 	if err != nil {
 		slog.Error("failed to get messages", "err", err, "channel_id", app.chatView.selectedChannel.ID)
@@ -350,7 +357,7 @@ func (ml *messagesList) onHighlighted(added, removed, remaining []string) {
 	if len(added) > 0 {
 		id, err := discord.ParseSnowflake(added[0])
 		if err != nil {
-			slog.Error("Failed to parse region id as int to use as message id.", "err", err)
+			slog.Error("failed to parse region id as int to use as message id", "err", err)
 			return
 		}
 
@@ -471,6 +478,7 @@ func (ml *messagesList) openAttachment(attachment discord.Attachment) {
 	resp, err := http.Get(attachment.URL)
 	if err != nil {
 		slog.Error("failed to fetch the attachment", "err", err, "url", attachment.URL)
+		return
 	}
 	defer resp.Body.Close()
 
@@ -615,7 +623,7 @@ func (ml *messagesList) delete() {
 }
 
 func (ml *messagesList) requestGuildMembers(gID discord.GuildID, ms []discord.Message) {
-	var usersToFetch []discord.UserID
+	usersToFetch := make([]discord.UserID, 0, len(ms))
 	for _, m := range ms {
 		// Do not fetch member for a webhook message.
 		if m.WebhookID.IsValid() {
@@ -627,7 +635,7 @@ func (ml *messagesList) requestGuildMembers(gID discord.GuildID, ms []discord.Me
 		}
 	}
 
-	if usersToFetch != nil {
+	if len(usersToFetch) > 0 {
 		err := discordState.SendGateway(context.TODO(), &gateway.RequestGuildMembersCommand{
 			GuildIDs: []discord.GuildID{gID},
 			UserIDs:  slices.Compact(usersToFetch),

@@ -35,7 +35,7 @@ type chatView struct {
 }
 
 func newChatView(app *tview.Application, cfg *config.Config) *chatView {
-	cv := &chatView{
+	chatView := &chatView{
 		Pages: tview.NewPages(),
 
 		mainFlex:  tview.NewFlex(),
@@ -49,10 +49,10 @@ func newChatView(app *tview.Application, cfg *config.Config) *chatView {
 		cfg: cfg,
 	}
 
-	cv.SetInputCapture(cv.onInputCapture)
+	chatView.SetInputCapture(chatView.onInputCapture)
 
-	cv.buildLayout()
-	return cv
+	chatView.buildLayout()
+	return chatView
 }
 
 func (cv *chatView) buildLayout() {
@@ -107,7 +107,7 @@ func (cv *chatView) focusMessageInput() bool {
 func (cv *chatView) focusPrevious() {
 	switch cv.app.GetFocus() {
 	case cv.guildsTree:
-		cv.app.SetFocus(cv.messageInput)
+		cv.focusMessageInput()
 	case cv.messagesList: // Handle both a.messagesList and a.flex as well as other edge cases (if there is).
 		if ok := cv.focusGuildsTree(); !ok {
 			cv.app.SetFocus(cv.messageInput)
@@ -122,7 +122,7 @@ func (cv *chatView) focusNext() {
 	case cv.guildsTree:
 		cv.app.SetFocus(cv.messagesList)
 	case cv.messagesList:
-		cv.app.SetFocus(cv.messageInput)
+		cv.focusMessageInput()
 	case cv.messageInput: // Handle both a.messageInput and a.flex as well as other edge cases (if there is).
 		if ok := cv.focusGuildsTree(); !ok {
 			cv.app.SetFocus(cv.messagesList)

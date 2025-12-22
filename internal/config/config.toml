@@ -1,3 +1,7 @@
+# Whether to focus the message input automatically when a channel is selected.
+# Set to false to preview channels without moving focus.
+auto_focus = true
+
 # Whether to enable mouse or not.
 mouse = true
 # The program to open when the `keys.message_input.editor` keymap is pressed. Set the value to `"default"` to use `$EDITOR`.
@@ -38,7 +42,7 @@ only_on_ping = true
 [keys]
 focus_guilds_tree = "Ctrl+G"
 focus_messages_list = "Ctrl+T"
-focus_message_input = "Ctrl+P"
+focus_message_input = "Ctrl+I"
 # Cycle focus between the widgets.
 focus_previous = "Ctrl+H"
 focus_next = "Ctrl+L"

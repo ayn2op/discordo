@@ -19,11 +19,11 @@ func ConfigureBox(box *tview.Box, cfg *config.Theme) *tview.Box {
 	normalBorderStyle, activeBorderStyle := border.NormalStyle.Style, border.ActiveStyle.Style
 	normalBorderSet, activeBorderSet := border.NormalSet.BorderSet, border.ActiveSet.BorderSet
 	normalTitleStyle, activeTitleStyle := title.NormalStyle.Style, title.ActiveStyle.Style
-	p := border.Padding
+	padding := border.Padding
 	box.
 		SetBorderStyle(normalBorderStyle).
 		SetBorderSet(normalBorderSet).
-		SetBorderPadding(p[0], p[1], p[2], p[3]).
+		SetBorderPadding(padding[0], padding[1], padding[2], padding[3]).
 		SetTitleStyle(normalTitleStyle).
 		SetTitleAlignment(title.Alignment.Alignment).
 		SetBlurFunc(func() {
