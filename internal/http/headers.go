@@ -1,6 +1,7 @@
 package http
 
 import (
+	"log/slog"
 	stdHttp "net/http"
 )
 
@@ -20,7 +21,10 @@ func Headers() stdHttp.Header {
 	headers.Set("X-Debug-Options", "bugReporterEnabled")
 	headers.Set("X-Discord-Locale", string(Locale))
 
-	if superProps, err := superProps(); err == nil {
+	superProps, err := getSuperProps()
+	if err != nil {
+		slog.Error("failed to get super props", "err", err)
+	} else {
 		headers.Set("X-Super-Properties", superProps)
 	}
 
