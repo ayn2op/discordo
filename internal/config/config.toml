@@ -130,8 +130,8 @@ graphics = true
 graphics_color = "default"
 
 [theme.messages_list]
-reply_indicator = ">"
-forwarded_indicator = "<"
+reply_indicator = "↳"
+forwarded_indicator = "↱"
 
 mention_style = { foreground = "blue" }
 emoji_style = { foreground = "green" }
