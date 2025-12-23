@@ -14,6 +14,8 @@ status = "default"
 markdown = true
 hide_blocked_users = true
 show_attachment_links = true
+# Show a status bar on the bottom of the screen with key bindings.
+show_status_bar = false
 
 # Max members to be in the mention autocomplete suggestions list
 # Note: Use autocomplete_limit = 0 to disable.

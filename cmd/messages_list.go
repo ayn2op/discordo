@@ -404,7 +404,7 @@ func (ml *messagesList) open() {
 
 	var urls []string
 	if msg.Content != "" {
-		urls = extractURLs(msg.Content)
+		urls = ui.ExtractURLs(msg.Content)
 	}
 
 	if len(urls) == 0 && len(msg.Attachments) == 0 {
@@ -425,29 +425,6 @@ func (ml *messagesList) open() {
 	} else {
 		ml.showAttachmentsList(urls, msg.Attachments)
 	}
-}
-
-func extractURLs(content string) []string {
-	src := []byte(content)
-	node := parser.NewParser(
-		parser.WithBlockParsers(discordmd.BlockParsers()...),
-		parser.WithInlineParsers(discordmd.InlineParserWithLink()...),
-	).Parse(text.NewReader(src))
-
-	var urls []string
-	ast.Walk(node, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
-		if entering {
-			switch n := n.(type) {
-			case *ast.AutoLink:
-				urls = append(urls, string(n.URL(src)))
-			case *ast.Link:
-				urls = append(urls, string(n.Destination))
-			}
-		}
-
-		return ast.WalkContinue, nil
-	})
-	return urls
 }
 
 func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord.Attachment) {
