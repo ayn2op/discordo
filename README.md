@@ -25,10 +25,8 @@ You can download and install a [prebuilt binary here](https://nightly.link/ayn2o
 - Arch Linux: `yay -S discordo-git`
 - Gentoo (available on the guru repos as a live ebuild): `emerge net-im/discordo`
 - FreeBSD: `pkg install discordo` or via the ports system `make -C /usr/ports/net-im/discordo install clean`.
-- Nix (NixOS, home-manager)
-  - Downstream nixpkgs installation: Add `pkgs.discordo` to `environment.systemPackages` or `home.packages`.
-  <!-- Temporary until downstream home-manager module --> 
-  - Upstream flake installation: Add `inputs.discordo.url = "github:ayn2op/discordo"`. Install using `inputs.discordo.homeModules.default` (`.enable, .package, .settings TOML`).
+- Nix: Add `pkgs.discordo` to `environment.systemPackages` or `home.packages`.
+
 - Windows (Scoop):
 
 ```sh
@@ -46,18 +44,36 @@ go build .
 
 ### Wayland clipboard support
 
-`x11-dev` is required for X11 clipboard compatibility:
-
-- Ubuntu: `apt install xwayland`
-- Arch Linux: `pacman -S xorg-xwayland`
+`wl-clipboard` is required for clipboard support.
 
 ## Usage
 
+### Password
+
 1. Run the `discordo` executable with no arguments.
 
-> If you are logging in using an authentication token, provide the `token` command-line flag to the executable (eg: `--token "OTI2MDU5NTQxNDE2Nzc5ODA2.Yc2KKA.2iZ-5JxgxG-9Ub8GHzBSn-NJjNg"`). Alternatively, set the value of the `DISCORDO_TOKEN` environment variable to the authentication token. The token is stored securely in the default OS-specific keyring.
-
 2. Enter your email and password and click on the "Login" button to continue.
+
+### Token
+
+Provide the `token` command-line flag to the executable. 
+
+```sh
+discordo --token "OTI2MDU5NTQxNDE2Nzc5ODA2.Yc2KKA.2iZ-5JxgxG-9Ub8GHzBSn-NJjNg"
+```
+
+Alternatively, set the value of the `DISCORDO_TOKEN` environment variable to the authentication token.
+
+> [!TIP]
+> You can manually set the token to the keyring using the instructions [here](#manually-adding-token-to-keyring).
+
+### QR
+
+1. Run the `discordo` executable with no arguments.
+
+2. Click on the "Login with QR" button.
+
+3. Follow the instructions in the QR Login screen.
 
 ## Configuration
 

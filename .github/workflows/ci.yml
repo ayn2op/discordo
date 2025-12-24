@@ -7,7 +7,7 @@ jobs:
       fail-fast: false
       matrix:
         # https://docs.github.com/en/actions/using-github-hosted-runners
-        os: [ubuntu-latest, windows-latest, macos-latest, macos-13]
+        os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, windows-11-arm, macos-latest, macos-15-intel]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
@@ -21,7 +21,7 @@ jobs:
         run: sudo apt install libx11-dev
 
       - name: Build
-        run: go build -ldflags "-s -w" .
+        run: go build -trimpath -ldflags=-s .
 
       - uses: actions/upload-artifact@v4
         if: ${{ github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}

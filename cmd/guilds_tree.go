@@ -1,25 +1,24 @@
 package cmd
 
 import (
+	"cmp"
 	"fmt"
 	"log/slog"
-	"sort"
+	"slices"
 
+	"github.com/ayn2op/discordo/internal/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/ningen/v3"
-	"github.com/gdamore/tcell/v2"
-	"golang.design/x/clipboard"
+	"github.com/gdamore/tcell/v3"
 )
 
 type guildsTree struct {
 	*tview.TreeView
-	cfg               *config.Config
-	selectedChannelID discord.ChannelID
-	selectedGuildID   discord.GuildID
+	cfg *config.Config
 }
 
 func newGuildsTree(cfg *config.Config) *guildsTree {
@@ -143,8 +142,6 @@ PARENT_CHANNELS:
 }
 
 func (gt *guildsTree) onSelected(node *tview.TreeNode) {
-	app.messageInput.reset()
-
 	if len(node.GetChildren()) != 0 {
 		node.SetExpanded(!node.IsExpanded())
 		return
@@ -160,8 +157,8 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 			return
 		}
 
-		sort.Slice(channels, func(i, j int) bool {
-			return channels[i].Position < channels[j].Position
+		slices.SortFunc(channels, func(a, b discord.Channel) int {
+			return cmp.Compare(a.Position, b.Position)
 		})
 
 		gt.createChannelNodes(node, channels)
@@ -210,35 +207,44 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 		}
 
 		if guildID := channel.GuildID; guildID.IsValid() {
-			app.messagesList.requestGuildMembers(guildID, messages)
+			app.chatView.messagesList.requestGuildMembers(guildID, messages)
 		}
 
-		app.messagesList.reset()
-		app.messagesList.setTitle(*channel)
-		app.messagesList.drawMessages(messages)
-		app.messagesList.ScrollToEnd()
+		app.chatView.selectedChannel = channel
 
-		hasPerm := channel.Type != discord.DirectMessage && channel.Type != discord.GroupDM && !discordState.HasPermissions(channel.ID, discord.PermissionSendMessages)
-		app.messageInput.SetDisabled(hasPerm)
+		app.chatView.messagesList.reset()
+		app.chatView.messagesList.setTitle(*channel)
+		app.chatView.messagesList.drawMessages(messages)
+		app.chatView.messagesList.ScrollToEnd()
 
-		gt.selectedChannelID = channel.ID
-		gt.selectedGuildID = channel.GuildID
-		app.SetFocus(app.messageInput)
-	case nil: // Direct messages
+		hasNoPerm := channel.Type != discord.DirectMessage && channel.Type != discord.GroupDM && !discordState.HasPermissions(channel.ID, discord.PermissionSendMessages)
+		app.chatView.messageInput.SetDisabled(hasNoPerm)
+		if hasNoPerm {
+			app.chatView.messageInput.SetPlaceholder("You do not have permission to send messages in this channel.")
+		} else {
+			app.chatView.messageInput.SetPlaceholder("Message...")
+			if gt.cfg.AutoFocus {
+				app.SetFocus(app.chatView.messageInput)
+			}
+		}
+
+	case nil: // Direct messages folder
 		channels, err := discordState.PrivateChannels()
 		if err != nil {
 			slog.Error("failed to get private channels", "err", err)
 			return
 		}
 
-		sort.Slice(channels, func(a, b int) bool {
-			msgID := func(ch discord.Channel) discord.MessageID {
-				if ch.LastMessageID.IsValid() {
-					return ch.LastMessageID
-				}
-				return discord.MessageID(ch.ID)
+		msgID := func(ch discord.Channel) discord.MessageID {
+			if ch.LastMessageID.IsValid() {
+				return ch.LastMessageID
 			}
-			return msgID(channels[a]) > msgID(channels[b])
+			return discord.MessageID(ch.ID)
+		}
+
+		slices.SortFunc(channels, func(a, b discord.Channel) int {
+			// Descending order
+			return cmp.Compare(msgID(b), msgID(a))
 		})
 
 		for _, c := range channels {
@@ -267,12 +273,12 @@ func (gt *guildsTree) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		gt.collapseParentNode(gt.GetCurrentNode())
 		return nil
 	case gt.cfg.Keys.GuildsTree.MoveToParentNode:
-		return tcell.NewEventKey(tcell.KeyRune, 'K', tcell.ModNone)
+		return tcell.NewEventKey(tcell.KeyRune, "K", tcell.ModNone)
 
 	case gt.cfg.Keys.GuildsTree.SelectPrevious:
-		return tcell.NewEventKey(tcell.KeyUp, 0, tcell.ModNone)
+		return tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone)
 	case gt.cfg.Keys.GuildsTree.SelectNext:
-		return tcell.NewEventKey(tcell.KeyDown, 0, tcell.ModNone)
+		return tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone)
 	case gt.cfg.Keys.GuildsTree.SelectFirst:
 		gt.Move(gt.GetRowCount() * -1)
 		// return tcell.NewEventKey(tcell.KeyHome, 0, tcell.ModNone)
@@ -281,7 +287,7 @@ func (gt *guildsTree) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		// return tcell.NewEventKey(tcell.KeyEnd, 0, tcell.ModNone)
 
 	case gt.cfg.Keys.GuildsTree.SelectCurrent:
-		return tcell.NewEventKey(tcell.KeyEnter, 0, tcell.ModNone)
+		return tcell.NewEventKey(tcell.KeyEnter, "", tcell.ModNone)
 
 	case gt.cfg.Keys.GuildsTree.YankID:
 		gt.yankID()

@@ -1,3 +1,7 @@
+# Whether to focus the message input automatically when a channel is selected.
+# Set to false to preview channels without moving focus.
+auto_focus = true
+
 # Whether to enable mouse or not.
 mouse = true
 # The program to open when the `keys.message_input.editor` keymap is pressed. Set the value to `"default"` to use `$EDITOR`.
@@ -11,8 +15,8 @@ markdown = true
 hide_blocked_users = true
 show_attachment_links = true
 
-# Use autocomplete_limit = 0 to disable autocompleting mentions
-# Note: tab completion will still work, but it won't show any list.
+# Max members to be in the mention autocomplete suggestions list
+# Note: Use autocomplete_limit = 0 to disable.
 autocomplete_limit = 20
 
 # The number of messages to fetch when a text-based channel is selected from guilds tree. The minimum and maximum value is 0 and 100, respectively.
@@ -36,7 +40,7 @@ only_on_ping = true
 [keys]
 focus_guilds_tree = "Ctrl+G"
 focus_messages_list = "Ctrl+T"
-focus_message_input = "Ctrl+Space"
+focus_message_input = "Ctrl+I"
 # Cycle focus between the widgets.
 focus_previous = "Ctrl+H"
 focus_next = "Ctrl+L"
@@ -68,9 +72,9 @@ select_last = "Rune[G]"
 # Select the message reference (reply) of the selected channel.
 select_reply = "Rune[s]"
 # Reply to the selected message.
-reply = "Rune[r]"
+reply = "Rune[R]"
 # Reply (with mention) to the selected message.
-reply_mention = "Rune[R]"
+reply_mention = "Rune[r]"
 cancel = "Esc"
 edit = "Rune[e]"
 delete = "Rune[D]"
@@ -95,7 +99,7 @@ cancel = "Esc"
 tab_complete = "Tab"
 
 open_editor = "Ctrl+E"
-open_file_picker = "Ctrl+\\"
+open_file_picker = "Ctrl+Rune[\\]"
 
 [keys.mentions_list]
 up = "Ctrl+P"
