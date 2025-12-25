@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/ayn2op/discordo/internal/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/login"
 	"github.com/ayn2op/tview"
 	"github.com/gdamore/tcell/v3"
@@ -27,28 +29,42 @@ func newApplication(cfg *config.Config) *application {
 		slog.Error("failed to init clipboard", "err", err)
 	}
 
-	app.
-		EnableMouse(cfg.Mouse).
-		SetInputCapture(app.onInputCapture).
-		EnablePaste(true)
+	app.SetInputCapture(app.onInputCapture)
 	return app
 }
 
 func (a *application) run(token string) error {
+	screen, err := tcell.NewScreen()
+	if err != nil {
+		return fmt.Errorf("failed to create screen: %w", err)
+	}
+
+	if err := screen.Init(); err != nil {
+		return fmt.Errorf("failed to init screen: %w", err)
+	}
+
+	if a.cfg.Mouse {
+		screen.EnableMouse()
+	}
+
+	screen.SetTitle(consts.Name)
+	screen.EnablePaste()
+	screen.EnableFocus()
+	a.SetScreen(screen)
+
 	if token == "" {
 		loginForm := login.NewForm(a.Application, a.cfg, func(token string) {
 			if err := a.run(token); err != nil {
 				slog.Error("failed to run application", "err", err)
 			}
 		})
-		a.SetRoot(loginForm, true)
+		a.SetRoot(loginForm)
 	} else {
 		a.chatView = newChatView(a.Application, a.cfg)
 		if err := openState(token); err != nil {
 			return err
 		}
-
-		a.SetRoot(a.chatView, true)
+		a.SetRoot(a.chatView)
 	}
 
 	return a.Run()
