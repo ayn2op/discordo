@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"log/slog"
 	"os"
@@ -27,6 +26,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 	"github.com/diamondburned/ningen/v3/discordmd"
 	"github.com/gdamore/tcell/v3"
+	tcellColor "github.com/gdamore/tcell/v3/color"
 	"github.com/ncruces/zenity"
 	"github.com/sahilm/fuzzy"
 	"github.com/yuin/goldmark/ast"
@@ -70,6 +70,7 @@ func newMessageInput(cfg *config.Config) *messageInput {
 	mi.mentionsList.
 		ShowSecondaryText(false).
 		SetSelectedStyle(tcell.StyleDefault.Background(tcell.ColorWhite).Foreground(tcell.ColorBlack)).
+		SetUseStyleTags(false, false).
 		SetTitle("Mentions")
 
 	b := mi.mentionsList.GetBorderSet()
@@ -495,6 +496,7 @@ func (mi *messageInput) addMentionMember(gID discord.GuildID, m *discord.Member)
 		return false
 	}
 
+	style := tcell.StyleDefault
 	name := m.User.DisplayOrUsername()
 	if m.Nick != "" {
 		name = m.Nick
@@ -506,17 +508,21 @@ func (mi *messageInput) addMentionMember(gID discord.GuildID, m *discord.Member)
 		return r
 	})
 	if ok {
-		name = fmt.Sprintf("[%s]%s[-]", color, name)
+		r, g, b := color.RGB()
+		style = style.Foreground(tcellColor.NewRGBColor(int32(r), int32(g), int32(b)))
 	}
 
 	presence, err := discordState.Cabinet.Presence(gID, m.User.ID)
 	if err != nil {
 		slog.Info("failed to get presence from state", "guild_id", gID, "user_id", m.User.ID, "err", err)
 	} else if presence.Status == discord.OfflineStatus {
-		name = fmt.Sprintf("[::d]%s[::D]", name)
+		style = style.Dim(true)
 	}
 
 	mi.mentionsList.AddItem(name, m.User.Username, 0, nil)
+	if style != tcell.StyleDefault {
+		mi.mentionsList.SetItemStyle(mi.mentionsList.GetItemCount()-1, style)
+	}
 	return mi.mentionsList.GetItemCount() > int(mi.cfg.AutocompleteLimit)
 }
 
@@ -525,15 +531,19 @@ func (mi *messageInput) addMentionUser(user *discord.User) {
 		return
 	}
 
+	style := tcell.StyleDefault
 	name := user.DisplayOrUsername()
 	presence, err := discordState.Cabinet.Presence(discord.NullGuildID, user.ID)
 	if err != nil {
 		slog.Info("failed to get presence from state", "user_id", user.ID, "err", err)
 	} else if presence.Status == discord.OfflineStatus {
-		name = fmt.Sprintf("[::d]%s[::D]", name)
+		style = style.Dim(true)
 	}
 
 	mi.mentionsList.AddItem(name, user.Username, 0, nil)
+	if style != tcell.StyleDefault {
+		mi.mentionsList.SetItemStyle(mi.mentionsList.GetItemCount()-1, style)
+	}
 }
 
 // used by chatView
