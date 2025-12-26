@@ -28,6 +28,7 @@ type (
 	GuildsTreeKeys struct {
 		NavigationKeys
 		SelectCurrent string `toml:"select_current"`
+		SelectFirstUnread string `toml:"select_first_unread"`
 		YankID        string `toml:"yank_id"`
 
 		CollapseParentNode string `toml:"collapse_parent_node"`
