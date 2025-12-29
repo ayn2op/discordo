@@ -66,16 +66,12 @@ func getSuperProps() (string, error) {
 }
 
 func generateLaunchSignature() string {
-	// Discord sets specific bits of the UUID to denote the detection
-	// of client mods like Vencord. We don't want that.
-	// See:
-	// <https://docs.discord.food/reference#launch-signature>
+	// Discord uses specific UUID bits to detect client modifications.
+	// This mask clears detection bits to avoid identification.
+	// Reference: https://docs.discord.food/reference#launch-signature
 	//
-	// This mask does not include the required 0 bits for a valid UUIDv4
-	// because that's done by google/uuid for us.
-	// See:
-	// <https://github.com/beeper/discordgo/blob/beeper/launchsig.go#L22>
-	// <https://github.com/google/uuid/blob/master/version4.go#L54>
+	// Required version and variant bits for UUIDv4 validity are set by google/uuid.
+	// Reference: https://github.com/google/uuid/blob/master/version4.go#L54
 	mask := [16]byte{
 		0b11111111, 0b01111111, 0b11101111, 0b11101111,
 		0b11110111, 0b11101111, 0b11110111, 0b11111111,
