@@ -10,27 +10,29 @@ import (
 )
 
 const (
+	OS        = "Windows"
+	OSVersion = "10"
+
 	Browser          = "Chrome"
 	BrowserVersion   = "143.0.0.0"
 	BrowserUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " + Browser + "/" + BrowserVersion + " Safari/537.36"
-)
 
-var (
-	Locale = discord.EnglishUS
+	ClientBuildNumber = 482285
+	Locale            = discord.EnglishUS
 )
 
 func IdentifyProperties() gateway.IdentifyProperties {
 	return gateway.IdentifyProperties{
 		gateway.IdentifyDevice: "",
 
-		gateway.IdentifyOS: "Windows",
-		"os_version":       "10",
+		gateway.IdentifyOS: OS,
+		"os_version":       OSVersion,
 
 		gateway.IdentifyBrowser: Browser,
 		"browser_version":       BrowserVersion,
 		"browser_user_agent":    BrowserUserAgent,
 
-		"client_build_number":         482285,
+		"client_build_number":         ClientBuildNumber,
 		"client_event_source":         nil,
 		"client_app_state":            "focused",
 		"client_launch_id":            uuid.NewString(),
