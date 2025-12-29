@@ -11,8 +11,8 @@ import (
 
 const (
 	Browser          = "Chrome"
-	BrowserVersion   = "140.0.0.0"
-	BrowserUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
+	BrowserVersion   = "143.0.0.0"
+	BrowserUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " + Browser + "/" + BrowserVersion + " Safari/537.36"
 )
 
 var (
@@ -30,7 +30,7 @@ func IdentifyProperties() gateway.IdentifyProperties {
 		"browser_version":       BrowserVersion,
 		"browser_user_agent":    BrowserUserAgent,
 
-		"client_build_number":         447677,
+		"client_build_number":         482285,
 		"client_event_source":         nil,
 		"client_app_state":            "focused",
 		"client_launch_id":            uuid.NewString(),
