@@ -36,7 +36,7 @@ func IdentifyProperties() gateway.IdentifyProperties {
 		"client_launch_id":            uuid.NewString(),
 		"client_heartbeat_session_id": uuid.NewString(),
 
-		"launch_signature": newLaunchSignature(),
+		"launch_signature": generateLaunchSignature(),
 		"system_locale":    Locale,
 		"release_channel":  "stable",
 		"has_client_mods":  false,
@@ -65,7 +65,7 @@ func getSuperProps() (string, error) {
 	return base64.StdEncoding.EncodeToString(raw), nil
 }
 
-func newLaunchSignature() string {
+func generateLaunchSignature() string {
 	// Discord sets specific bits of the UUID to denote the detection
 	// of client mods like Vencord. We don't want that.
 	// See <https://docs.discord.food/reference#launch-signature>.
