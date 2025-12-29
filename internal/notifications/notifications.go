@@ -20,6 +20,10 @@ func Notify(state *ningen.State, message *gateway.MessageCreateEvent, cfg *confi
 		return nil
 	}
 
+	if state.ChannelIsMuted(message.ChannelID, ningen.UnreadOpts{IncludeMutedCategories: true}) {
+		return nil
+	}
+
 	mentions := state.MessageMentions(&message.Message)
 	if mentions == 0 {
 		return nil
