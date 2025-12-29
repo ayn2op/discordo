@@ -36,7 +36,7 @@ func IdentifyProperties() gateway.IdentifyProperties {
 		"client_launch_id":            uuid.NewString(),
 		"client_heartbeat_session_id": uuid.NewString(),
 
-		"launch_signature": uuid.NewString(),
+		"launch_signature": generateLaunchSignature(),
 		"system_locale":    Locale,
 		"release_channel":  "stable",
 		"has_client_mods":  false,
@@ -63,4 +63,24 @@ func getSuperProps() (string, error) {
 	}
 
 	return base64.StdEncoding.EncodeToString(raw), nil
+}
+
+func generateLaunchSignature() string {
+	// Discord uses specific UUID bits to detect client modifications.
+	// This mask clears detection bits to avoid identification.
+	// Reference: https://docs.discord.food/reference#launch-signature
+	//
+	// Required version and variant bits for UUIDv4 validity are set by google/uuid.
+	// Reference: https://github.com/google/uuid/blob/master/version4.go#L54
+	mask := [16]byte{
+		0b11111111, 0b01111111, 0b11101111, 0b11101111,
+		0b11110111, 0b11101111, 0b11110111, 0b11111111,
+		0b11011111, 0b01111110, 0b11111111, 0b10111111,
+		0b11111110, 0b11111111, 0b11110111, 0b11111111,
+	}
+	id := uuid.New()
+	for i := range mask {
+		id[i] &= mask[i]
+	}
+	return id.String()
 }
