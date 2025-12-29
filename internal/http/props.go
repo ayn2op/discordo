@@ -83,8 +83,8 @@ func generateLaunchSignature() string {
 		0b11111110, 0b11111111, 0b11110111, 0b11111111,
 	}
 	id := uuid.New()
-	for i, maskByte := range mask {
-		id[i] &= maskByte
+	for i := range mask {
+		id[i] &= mask[i]
 	}
 	return id.String()
 }
