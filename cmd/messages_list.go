@@ -159,7 +159,7 @@ func (ml *messagesList) drawAuthor(w io.Writer, message discord.Message) {
 				return r
 			})
 			if ok {
-				foreground = tcell.GetColor(color.String())
+				foreground = tcell.NewHexColor(int32(color))
 			}
 		}
 	}
@@ -296,6 +296,10 @@ func (ml *messagesList) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 }
 
 func (ml *messagesList) _select(name string) {
+	if app.chatView.selectedChannel == nil {
+		return
+	}
+
 	ms, err := discordState.Cabinet.Messages(app.chatView.selectedChannel.ID)
 	if err != nil {
 		slog.Error("failed to get messages", "err", err, "channel_id", app.chatView.selectedChannel.ID)
@@ -642,7 +646,7 @@ func (ml *messagesList) delete() {
 }
 
 func (ml *messagesList) requestGuildMembers(gID discord.GuildID, ms []discord.Message) {
-	var usersToFetch []discord.UserID
+	usersToFetch := make([]discord.UserID, 0, len(ms))
 	for _, m := range ms {
 		// Do not fetch member for a webhook message.
 		if m.WebhookID.IsValid() {
@@ -654,7 +658,7 @@ func (ml *messagesList) requestGuildMembers(gID discord.GuildID, ms []discord.Me
 		}
 	}
 
-	if usersToFetch != nil {
+	if len(usersToFetch) > 0 {
 		err := discordState.SendGateway(context.TODO(), &gateway.RequestGuildMembersCommand{
 			GuildIDs: []discord.GuildID{gID},
 			UserIDs:  slices.Compact(usersToFetch),

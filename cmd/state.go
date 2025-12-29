@@ -7,7 +7,6 @@ import (
 	"github.com/ayn2op/discordo/internal/http"
 	"github.com/ayn2op/discordo/internal/notifications"
 	"github.com/ayn2op/tview"
-	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/session"
 	"github.com/diamondburned/arikawa/v3/state"
@@ -22,8 +21,6 @@ import (
 
 func openState(token string) error {
 	identifyProps := http.IdentifyProperties()
-
-	api.UserAgent = http.BrowserUserAgent
 	gateway.DefaultIdentity = identifyProps
 	gateway.DefaultPresence = &gateway.UpdatePresenceCommand{
 		Status: app.cfg.Status,
@@ -153,7 +150,7 @@ func onMessageCreate(message *gateway.MessageCreateEvent) {
 	}
 
 	if err := notifications.Notify(discordState, message, app.cfg); err != nil {
-		slog.Error("Notification failed", "err", err)
+		slog.Error("failed to notify", "err", err, "channel_id", message.ChannelID, "message_id", message.ID)
 	}
 }
 

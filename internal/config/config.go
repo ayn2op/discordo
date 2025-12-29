@@ -32,8 +32,9 @@ type (
 	}
 
 	Config struct {
-		Mouse  bool   `toml:"mouse"`
-		Editor string `toml:"editor"`
+		AutoFocus bool   `toml:"auto_focus"`
+		Mouse     bool   `toml:"mouse"`
+		Editor    string `toml:"editor"`
 
 		Status discord.Status `toml:"status"`
 
