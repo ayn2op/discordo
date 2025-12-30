@@ -65,8 +65,7 @@ func Notify(state *ningen.State, message *gateway.MessageCreateEvent, cfg *confi
 		slog.Info("failed to get profile image from cache for notification", "err", err, "hash", hash)
 	}
 
-	isChannelDM := channel.Type == discord.DirectMessage || channel.Type == discord.GroupDM
-	shouldChime := cfg.Notifications.Sound.Enabled && (!cfg.Notifications.Sound.OnlyOnPing || (isChannelDM || mentions.Has(ningen.MessageMentions|ningen.MessageNotifies)))
+	shouldChime := cfg.Notifications.Sound.Enabled && (!cfg.Notifications.Sound.OnlyOnPing || mentions.Has(ningen.MessageMentions|ningen.MessageNotifies))
 	if err := sendDesktopNotification(title, content, imagePath, shouldChime, cfg.Notifications.Duration); err != nil {
 		return err
 	}
