@@ -83,6 +83,7 @@ func (mi *messageInput) reset() {
 	mi.edit = false
 	mi.sendMessageData = &api.SendMessageData{}
 	mi.SetTitle("")
+	mi.SetFooter("")
 	mi.SetText("", true)
 }
 
@@ -584,15 +585,6 @@ func (mi *messageInput) editor() {
 	mi.SetText(strings.TrimSpace(string(msg)), true)
 }
 
-func (mi *messageInput) addTitle(s string) {
-	title := mi.GetTitle()
-	if title != "" {
-		title += " | "
-	}
-
-	mi.SetTitle(title + s)
-}
-
 func (mi *messageInput) openFilePicker() {
 	if app.chatView.selectedChannel == nil {
 		return
@@ -618,5 +610,5 @@ func (mi *messageInput) openFilePicker() {
 
 func (mi *messageInput) attach(name string, reader io.Reader) {
 	mi.sendMessageData.Files = append(mi.sendMessageData.Files, sendpart.File{Name: name, Reader: reader})
-	mi.addTitle("Attached " + name)
+	mi.SetFooter("Attached " + name)
 }

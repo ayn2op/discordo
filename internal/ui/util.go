@@ -11,28 +11,36 @@ import (
 // ConfigureBox configures the provided box according to the provided theme.
 func ConfigureBox(box *tview.Box, cfg *config.Theme) *tview.Box {
 	border := cfg.Border
-	title := cfg.Title
 	normalBorderStyle, activeBorderStyle := border.NormalStyle.Style, border.ActiveStyle.Style
 	normalBorderSet, activeBorderSet := border.NormalSet.BorderSet, border.ActiveSet.BorderSet
+
+	title := cfg.Title
 	normalTitleStyle, activeTitleStyle := title.NormalStyle.Style, title.ActiveStyle.Style
+
+	footer := cfg.Footer
+	normalFooterStyle, activeFooterStyle := footer.NormalStyle.Style, footer.ActiveStyle.Style
+
 	padding := border.Padding
+
 	box.
 		SetBorderStyle(normalBorderStyle).
 		SetBorderSet(normalBorderSet).
 		SetBorderPadding(padding[0], padding[1], padding[2], padding[3]).
 		SetTitleStyle(normalTitleStyle).
 		SetTitleAlignment(title.Alignment.Alignment).
+		SetFooterStyle(normalFooterStyle).
+		SetFooterAlignment(footer.Alignment.Alignment).
 		SetBlurFunc(func() {
 			box.
 				SetBorderStyle(normalBorderStyle).
 				SetBorderSet(normalBorderSet)
-			box.SetTitleStyle(normalTitleStyle)
+			box.SetTitleStyle(normalTitleStyle).SetFooterStyle(normalFooterStyle)
 		}).
 		SetFocusFunc(func() {
 			box.
 				SetBorderStyle(activeBorderStyle).
 				SetBorderSet(activeBorderSet)
-			box.SetTitleStyle(activeTitleStyle)
+			box.SetTitleStyle(activeTitleStyle).SetFooterStyle(activeFooterStyle)
 		})
 
 	if border.Enabled {

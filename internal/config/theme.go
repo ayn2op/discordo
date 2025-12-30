@@ -118,6 +118,11 @@ type (
 		Alignment AlignmentWrapper `toml:"alignment"`
 	}
 
+	FooterTheme struct {
+		ThemeStyle
+		Alignment AlignmentWrapper `toml:"alignment"`
+	}
+
 	BorderTheme struct {
 		ThemeStyle
 		Enabled bool   `toml:"enabled"`
@@ -150,6 +155,7 @@ type (
 
 	Theme struct {
 		Title        TitleTheme        `toml:"title"`
+		Footer       FooterTheme       `toml:"footer"`
 		Border       BorderTheme       `toml:"border"`
 		GuildsTree   GuildsTreeTheme   `toml:"guilds_tree"`
 		MessagesList MessagesListTheme `toml:"messages_list"`

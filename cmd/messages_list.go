@@ -566,7 +566,7 @@ func (ml *messagesList) reply(mention bool) {
 	}
 
 	app.chatView.messageInput.sendMessageData = data
-	app.chatView.messageInput.addTitle(title + name)
+	app.chatView.messageInput.SetTitle(title + name)
 	app.SetFocus(app.chatView.messageInput)
 }
 

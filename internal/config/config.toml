@@ -108,7 +108,11 @@ down = "Ctrl+N"
 # style = { foreground = "", background = "", attributes = "" or [""] }
 [theme.title]
 alignment = "left" # `"left"`, `"center"`, or `"right"`.
+normal_style = { attributes = "dim" }
+active_style = { foreground = "green", attributes = "bold" }
 
+[theme.footer]
+alignment = "left"
 normal_style = { attributes = "dim" }
 active_style = { foreground = "green", attributes = "bold" }
 
