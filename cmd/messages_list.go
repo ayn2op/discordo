@@ -188,6 +188,11 @@ func (ml *messagesList) drawDefaultMessage(w io.Writer, message discord.Message)
 		ml.drawTimestamps(w, message.Timestamp)
 	}
 
+	// Show reply indicator for reply messages
+	if message.ReferencedMessage != nil {
+		fmt.Fprintf(w, "%s ", ml.cfg.Theme.MessagesList.ReplyIndicator)
+	}
+
 	ml.drawAuthor(w, message)
 	ml.drawContent(w, message)
 
@@ -218,11 +223,12 @@ func (ml *messagesList) drawForwardedMessage(w io.Writer, message discord.Messag
 
 func (ml *messagesList) drawReplyMessage(w io.Writer, message discord.Message) {
 	// reply
-	fmt.Fprintf(w, "[::d]%s ", ml.cfg.Theme.MessagesList.ReplyIndicator)
 	if m := message.ReferencedMessage; m != nil {
 		m.GuildID = message.GuildID
+		fmt.Fprintf(w,"[::d]")
 		ml.drawAuthor(w, *m)
 		ml.drawContent(w, *m)
+		fmt.Fprintf(w, "[-:-:-]")
 	} else {
 		io.WriteString(w, "Original message was deleted")
 	}
