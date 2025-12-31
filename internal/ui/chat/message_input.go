@@ -72,7 +72,6 @@ func newMessageInput(cfg *config.Config, chat *ChatView) *messageInput {
 	mi.mentionsList.Box = ui.ConfigureBox(mi.mentionsList.Box, &mi.cfg.Theme)
 	mi.mentionsList.
 		ShowSecondaryText(false).
-		SetSelectedStyle(tcell.StyleDefault.Background(tcell.ColorWhite).Foreground(tcell.ColorBlack)).
 		SetTitle("Mentions")
 
 	b := mi.mentionsList.GetBorderSet()
