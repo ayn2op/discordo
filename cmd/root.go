@@ -6,18 +6,13 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/ayn2op/discordo/internal/app"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/keyring"
 	"github.com/ayn2op/discordo/internal/logger"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
-	"github.com/diamondburned/ningen/v3"
 	"github.com/spf13/cobra"
-)
-
-var (
-	discordState *ningen.State
-	app          *application
 )
 
 var (
@@ -62,8 +57,7 @@ var (
 				}
 			}
 
-			app = newApplication(cfg)
-			return app.run(token)
+			return app.New(cfg).Run(token)
 		},
 	}
 

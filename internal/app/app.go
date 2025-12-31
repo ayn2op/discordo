@@ -1,4 +1,4 @@
-package cmd
+package app
 
 import (
 	"fmt"
@@ -7,33 +7,34 @@ import (
 	"github.com/ayn2op/discordo/internal/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/consts"
-	"github.com/ayn2op/discordo/internal/login"
+	"github.com/ayn2op/discordo/internal/ui/chat"
+	"github.com/ayn2op/discordo/internal/ui/login"
 	"github.com/ayn2op/tview"
 	"github.com/gdamore/tcell/v3"
 )
 
-type application struct {
-	*tview.Application
-	chatView *chatView
+type App struct {
+	inner    *tview.Application
+	chatView *chat.ChatView
 	cfg      *config.Config
 }
 
-func newApplication(cfg *config.Config) *application {
+func New(cfg *config.Config) *App {
 	tview.Styles = tview.Theme{}
-	app := &application{
-		Application: tview.NewApplication(),
-		cfg:         cfg,
+	app := &App{
+		inner: tview.NewApplication(),
+		cfg:   cfg,
 	}
 
 	if err := clipboard.Init(); err != nil {
 		slog.Error("failed to init clipboard", "err", err)
 	}
 
-	app.SetInputCapture(app.onInputCapture)
+	app.inner.SetInputCapture(app.onInputCapture)
 	return app
 }
 
-func (a *application) run(token string) error {
+func (a *App) Run(token string) error {
 	screen, err := tcell.NewScreen()
 	if err != nil {
 		return fmt.Errorf("failed to create screen: %w", err)
@@ -50,44 +51,44 @@ func (a *application) run(token string) error {
 	screen.SetTitle(consts.Name)
 	screen.EnablePaste()
 	screen.EnableFocus()
-	a.SetScreen(screen)
+	a.inner.SetScreen(screen)
 
 	if token == "" {
-		loginForm := login.NewForm(a.Application, a.cfg, func(token string) {
+		loginForm := login.NewForm(a.inner, a.cfg, func(token string) {
 			if err := a.showChatView(token); err != nil {
 				slog.Error("failed to show chat view", "err", err)
 			}
 		})
-		a.SetRoot(loginForm)
+		a.inner.SetRoot(loginForm)
 	} else {
 		if err := a.showChatView(token); err != nil {
 			return err
 		}
 	}
 
-	return a.Run()
+	return a.inner.Run()
 }
 
-func (a *application) showChatView(token string) error {
-	a.chatView = newChatView(a.Application, a.cfg)
-	if err := openState(token); err != nil {
+func (a *App) showChatView(token string) error {
+	a.chatView = chat.NewChatView(a.inner, a.cfg, a.quit)
+	if err := a.chatView.OpenState(token); err != nil {
 		return err
 	}
-	a.SetRoot(a.chatView)
+	a.inner.SetRoot(a.chatView)
 	return nil
 }
 
-func (a *application) quit() {
-	if discordState != nil {
-		if err := discordState.Close(); err != nil {
+func (a *App) quit() {
+	if a.chatView != nil {
+		if err := a.chatView.CloseState(); err != nil {
 			slog.Error("failed to close the session", "err", err)
 		}
 	}
 
-	a.Stop()
+	a.inner.Stop()
 }
 
-func (a *application) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
+func (a *App) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case a.cfg.Keys.Quit:
 		a.quit()

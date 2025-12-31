@@ -1,4 +1,4 @@
-package cmd
+package chat
 
 import (
 	"context"
@@ -36,6 +36,7 @@ import (
 type messagesList struct {
 	*tview.TextView
 	cfg               *config.Config
+	chat              *ChatView
 	selectedMessageID discord.MessageID
 
 	renderer *markdown.Renderer
@@ -48,10 +49,11 @@ type messagesList struct {
 	}
 }
 
-func newMessagesList(cfg *config.Config) *messagesList {
+func newMessagesList(cfg *config.Config, chat *ChatView) *messagesList {
 	ml := &messagesList{
 		TextView: tview.NewTextView(),
 		cfg:      cfg,
+		chat:     chat,
 		renderer: markdown.NewRenderer(cfg.Theme.MessagesList),
 	}
 
@@ -98,7 +100,7 @@ func (ml *messagesList) drawMessage(writer io.Writer, message discord.Message) {
 	fmt.Fprintf(writer, `["%s"]`, message.ID)
 
 	if ml.cfg.HideBlockedUsers {
-		isBlocked := discordState.UserIsBlocked(message.Author.ID)
+		isBlocked := ml.chat.state.UserIsBlocked(message.Author.ID)
 		if isBlocked {
 			io.WriteString(writer, "[:red:b]Blocked message[:-:-]")
 			return
@@ -146,7 +148,7 @@ func (ml *messagesList) drawAuthor(w io.Writer, message discord.Message) {
 
 	// Webhooks do not have nicknames or roles.
 	if message.GuildID.IsValid() && !message.WebhookID.IsValid() {
-		member, err := discordState.Cabinet.Member(message.GuildID, message.Author.ID)
+		member, err := ml.chat.state.Cabinet.Member(message.GuildID, message.Author.ID)
 		if err != nil {
 			slog.Error("failed to get member from state", "guild_id", message.GuildID, "member_id", message.Author.ID, "err", err)
 		} else {
@@ -155,7 +157,7 @@ func (ml *messagesList) drawAuthor(w io.Writer, message discord.Message) {
 			}
 
 			color, ok := state.MemberColor(member, func(id discord.RoleID) *discord.Role {
-				r, _ := discordState.Cabinet.Role(message.GuildID, id)
+				r, _ := ml.chat.state.Cabinet.Role(message.GuildID, id)
 				return r
 			})
 			if ok {
@@ -169,8 +171,8 @@ func (ml *messagesList) drawAuthor(w io.Writer, message discord.Message) {
 
 func (ml *messagesList) drawContent(w io.Writer, message discord.Message) {
 	c := []byte(tview.Escape(message.Content))
-	if app.cfg.Markdown {
-		ast := discordmd.ParseWithMessage(c, *discordState.Cabinet, &message, false)
+	if ml.chat.cfg.Markdown {
+		ast := discordmd.ParseWithMessage(c, *ml.chat.state.Cabinet, &message, false)
 		ml.renderer.Render(w, c, ast)
 	} else {
 		w.Write(c) // write the content as is
@@ -241,7 +243,12 @@ func (ml *messagesList) selectedMessage() (*discord.Message, error) {
 		return nil, errors.New("no message is currently selected")
 	}
 
-	m, err := discordState.Cabinet.Message(app.chatView.selectedChannel.ID, ml.selectedMessageID)
+	selected := ml.chat.SelectedChannel()
+	if selected == nil {
+		return nil, errors.New("no channel is currently selected")
+	}
+
+	m, err := ml.chat.state.Cabinet.Message(selected.ID, ml.selectedMessageID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve selected message: %w", err)
 	}
@@ -250,7 +257,12 @@ func (ml *messagesList) selectedMessage() (*discord.Message, error) {
 }
 
 func (ml *messagesList) selectedMessageIndex() (int, error) {
-	ms, err := discordState.Cabinet.Messages(app.chatView.selectedChannel.ID)
+	selected := ml.chat.SelectedChannel()
+	if selected == nil {
+		return -1, errors.New("no channel is currently selected")
+	}
+
+	ms, err := ml.chat.state.Cabinet.Messages(selected.ID)
 	if err != nil {
 		return -1, err
 	}
@@ -296,13 +308,14 @@ func (ml *messagesList) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 }
 
 func (ml *messagesList) _select(name string) {
-	if app.chatView.selectedChannel == nil {
+	selected := ml.chat.SelectedChannel()
+	if selected == nil {
 		return
 	}
 
-	ms, err := discordState.Cabinet.Messages(app.chatView.selectedChannel.ID)
+	ms, err := ml.chat.state.Cabinet.Messages(selected.ID)
 	if err != nil {
-		slog.Error("failed to get messages", "err", err, "channel_id", app.chatView.selectedChannel.ID)
+		slog.Error("failed to get messages", "err", err, "channel_id", selected.ID)
 		return
 	}
 
@@ -456,8 +469,8 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 		SetHighlightFullLine(true).
 		ShowSecondaryText(false).
 		SetDoneFunc(func() {
-			app.chatView.RemovePage(attachmentsListPageName).SwitchToPage(flexPageName)
-			app.SetFocus(ml)
+			ml.chat.RemovePage(attachmentsListPageName).SwitchToPage(flexPageName)
+			ml.chat.app.SetFocus(ml)
 		})
 	list.
 		SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
@@ -492,7 +505,7 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 		})
 	}
 
-	app.chatView.
+	ml.chat.
 		AddAndSwitchToPage(attachmentsListPageName, ui.Centered(list, 0, 0), true).
 		ShowPage(flexPageName)
 }
@@ -545,7 +558,7 @@ func (ml *messagesList) reply(mention bool) {
 
 	name := msg.Author.DisplayOrUsername()
 	if msg.GuildID.IsValid() {
-		member, err := discordState.Cabinet.Member(msg.GuildID, msg.Author.ID)
+		member, err := ml.chat.state.Cabinet.Member(msg.GuildID, msg.Author.ID)
 		if err != nil {
 			slog.Error("failed to get member from state", "guild_id", msg.GuildID, "member_id", msg.Author.ID, "err", err)
 		} else {
@@ -555,7 +568,7 @@ func (ml *messagesList) reply(mention bool) {
 		}
 	}
 
-	data := app.chatView.messageInput.sendMessageData
+	data := ml.chat.messageInput.sendMessageData
 	data.Reference = &discord.MessageReference{MessageID: ml.selectedMessageID}
 	data.AllowedMentions = &api.AllowedMentions{RepliedUser: option.False}
 
@@ -565,9 +578,9 @@ func (ml *messagesList) reply(mention bool) {
 		title = "[@] " + title
 	}
 
-	app.chatView.messageInput.sendMessageData = data
-	app.chatView.messageInput.SetTitle(title + name)
-	app.SetFocus(app.chatView.messageInput)
+	ml.chat.messageInput.sendMessageData = data
+	ml.chat.messageInput.SetTitle(title + name)
+	ml.chat.app.SetFocus(ml.chat.messageInput)
 }
 
 func (ml *messagesList) edit() {
@@ -577,7 +590,7 @@ func (ml *messagesList) edit() {
 		return
 	}
 
-	me, err := discordState.Cabinet.Me()
+	me, err := ml.chat.state.Cabinet.Me()
 	if err != nil {
 		slog.Error("failed to get client user (me)", "err", err)
 		return
@@ -588,10 +601,10 @@ func (ml *messagesList) edit() {
 		return
 	}
 
-	app.chatView.messageInput.SetTitle("Editing")
-	app.chatView.messageInput.edit = true
-	app.chatView.messageInput.SetText(message.Content, true)
-	app.SetFocus(app.chatView.messageInput)
+	ml.chat.messageInput.SetTitle("Editing")
+	ml.chat.messageInput.edit = true
+	ml.chat.messageInput.SetText(message.Content, true)
+	ml.chat.app.SetFocus(ml.chat.messageInput)
 }
 
 func (ml *messagesList) confirmDelete() {
@@ -601,7 +614,7 @@ func (ml *messagesList) confirmDelete() {
 		}
 	}
 
-	app.chatView.showConfirmModal(
+	ml.chat.showConfirmModal(
 		"Are you sure you want to delete this message?",
 		[]string{"Yes", "No"},
 		onChoice,
@@ -616,28 +629,33 @@ func (ml *messagesList) delete() {
 	}
 
 	if msg.GuildID.IsValid() {
-		me, err := discordState.Cabinet.Me()
+		me, err := ml.chat.state.Cabinet.Me()
 		if err != nil {
 			slog.Error("failed to get client user (me)", "err", err)
 			return
 		}
 
-		if msg.Author.ID != me.ID && !discordState.HasPermissions(msg.ChannelID, discord.PermissionManageMessages) {
+		if msg.Author.ID != me.ID && !ml.chat.state.HasPermissions(msg.ChannelID, discord.PermissionManageMessages) {
 			slog.Error("failed to delete message; missing relevant permissions", "channel_id", msg.ChannelID, "message_id", msg.ID)
 			return
 		}
 	}
 
-	if err := discordState.DeleteMessage(app.chatView.selectedChannel.ID, msg.ID, ""); err != nil {
-		slog.Error("failed to delete message", "channel_id", app.chatView.selectedChannel.ID, "message_id", msg.ID, "err", err)
+	selected := ml.chat.SelectedChannel()
+	if selected == nil {
+		return
+	}
+
+	if err := ml.chat.state.DeleteMessage(selected.ID, msg.ID, ""); err != nil {
+		slog.Error("failed to delete message", "channel_id", selected.ID, "message_id", msg.ID, "err", err)
 		return
 	}
 
 	ml.selectedMessageID = 0
 	ml.Highlight()
 
-	if err := discordState.MessageRemove(app.chatView.selectedChannel.ID, msg.ID); err != nil {
-		slog.Error("failed to delete message", "channel_id", app.chatView.selectedChannel.ID, "message_id", msg.ID, "err", err)
+	if err := ml.chat.state.MessageRemove(selected.ID, msg.ID); err != nil {
+		slog.Error("failed to delete message", "channel_id", selected.ID, "message_id", msg.ID, "err", err)
 		return
 	}
 
@@ -653,13 +671,13 @@ func (ml *messagesList) requestGuildMembers(gID discord.GuildID, ms []discord.Me
 			continue
 		}
 
-		if member, _ := discordState.Cabinet.Member(gID, m.Author.ID); member == nil {
+		if member, _ := ml.chat.state.Cabinet.Member(gID, m.Author.ID); member == nil {
 			usersToFetch = append(usersToFetch, m.Author.ID)
 		}
 	}
 
 	if len(usersToFetch) > 0 {
-		err := discordState.SendGateway(context.TODO(), &gateway.RequestGuildMembersCommand{
+		err := ml.chat.state.SendGateway(context.TODO(), &gateway.RequestGuildMembersCommand{
 			GuildIDs: []discord.GuildID{gID},
 			UserIDs:  slices.Compact(usersToFetch),
 		})
