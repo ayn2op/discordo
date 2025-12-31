@@ -256,26 +256,6 @@ func (ml *messagesList) selectedMessage() (*discord.Message, error) {
 	return m, nil
 }
 
-func (ml *messagesList) selectedMessageIndex() (int, error) {
-	selected := ml.chat.SelectedChannel()
-	if selected == nil {
-		return -1, errors.New("no channel is currently selected")
-	}
-
-	ms, err := ml.chat.state.Cabinet.Messages(selected.ID)
-	if err != nil {
-		return -1, err
-	}
-
-	for i, m := range ms {
-		if m.ID == ml.selectedMessageID {
-			return i, nil
-		}
-	}
-
-	return -1, nil
-}
-
 func (ml *messagesList) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case ml.cfg.Keys.MessagesList.Cancel:
@@ -308,20 +288,25 @@ func (ml *messagesList) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 }
 
 func (ml *messagesList) _select(name string) {
-	selected := ml.chat.SelectedChannel()
-	if selected == nil {
+	selectedChannel := ml.chat.SelectedChannel()
+	if selectedChannel == nil {
 		return
 	}
 
-	ms, err := ml.chat.state.Cabinet.Messages(selected.ID)
+	messages, err := ml.chat.state.Cabinet.Messages(selectedChannel.ID)
 	if err != nil {
-		slog.Error("failed to get messages", "err", err, "channel_id", selected.ID)
+		slog.Error("failed to get messages", "err", err, "channel_id", selectedChannel.ID)
+		return
+	}
+	if len(messages) == 0 {
 		return
 	}
 
-	msgIdx, err := ml.selectedMessageIndex()
-	if err != nil {
-		slog.Error("failed to get selected message", "err", err)
+	messageIdx := slices.IndexFunc(messages, func(m discord.Message) bool {
+		return m.ID == ml.selectedMessageID
+	})
+	// Allow "no highlight yet" to fall through and pick the latest message.
+	if len(ml.GetHighlights()) != 0 && messageIdx == -1 {
 		return
 	}
 
@@ -329,35 +314,36 @@ func (ml *messagesList) _select(name string) {
 	case ml.cfg.Keys.MessagesList.SelectPrevious:
 		// If no message is currently selected, select the latest message.
 		if len(ml.GetHighlights()) == 0 {
-			ml.selectedMessageID = ms[0].ID
-		} else if msgIdx < len(ms)-1 {
-			ml.selectedMessageID = ms[msgIdx+1].ID
+			ml.selectedMessageID = messages[0].ID
+		} else if messageIdx < len(messages)-1 {
+			ml.selectedMessageID = messages[messageIdx+1].ID
 		} else {
 			return
 		}
 	case ml.cfg.Keys.MessagesList.SelectNext:
 		// If no message is currently selected, select the latest message.
 		if len(ml.GetHighlights()) == 0 {
-			ml.selectedMessageID = ms[0].ID
-		} else if msgIdx > 0 {
-			ml.selectedMessageID = ms[msgIdx-1].ID
+			ml.selectedMessageID = messages[0].ID
+		} else if messageIdx > 0 {
+			ml.selectedMessageID = messages[messageIdx-1].ID
 		} else {
 			return
 		}
 	case ml.cfg.Keys.MessagesList.SelectFirst:
-		ml.selectedMessageID = ms[len(ms)-1].ID
+		ml.selectedMessageID = messages[len(messages)-1].ID
 	case ml.cfg.Keys.MessagesList.SelectLast:
-		ml.selectedMessageID = ms[0].ID
+		ml.selectedMessageID = messages[0].ID
 	case ml.cfg.Keys.MessagesList.SelectReply:
 		if ml.selectedMessageID == 0 {
 			return
 		}
 
-		if ref := ms[msgIdx].ReferencedMessage; ref != nil {
-			for _, m := range ms {
-				if ref.ID == m.ID {
-					ml.selectedMessageID = m.ID
-				}
+		if ref := messages[messageIdx].ReferencedMessage; ref != nil {
+			refIdx := slices.IndexFunc(messages, func(m discord.Message) bool {
+				return m.ID == ref.ID
+			})
+			if refIdx != -1 {
+				ml.selectedMessageID = messages[refIdx].ID
 			}
 		}
 	}
