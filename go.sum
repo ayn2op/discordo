@@ -53,8 +53,8 @@ github.com/esiqveland/notify v0.13.3 h1:QCMw6o1n+6rl+oLUfg8P1IIDSFsDEb2WlXvVvIJb
 github.com/esiqveland/notify v0.13.3/go.mod h1:hesw/IRYTO0x99u1JPweAl4+5mwXJibQVUcP0Iu5ORE=
 github.com/gdamore/encoding v1.0.1 h1:YzKZckdBL6jVt2Gc+5p82qhrGiqMdG/eNs6Wy0u3Uhw=
 github.com/gdamore/encoding v1.0.1/go.mod h1:0Z0cMFinngz9kS1QfMjCP8TY7em3bZYeeklsSDPivEo=
-github.com/gdamore/tcell/v3 v3.0.5 h1:odOxRkUnMNFN0+kbx2bW7SxBAVUgAwVCVRwMJ92gzxE=
-github.com/gdamore/tcell/v3 v3.0.5/go.mod h1:hPfjyFARu5K9vLzjN5TrYAoK/D9dZmqRbQkevGvK7oQ=
+github.com/gdamore/tcell/v3 v3.0.6 h1:T9vLs5AcVJWkKvKAQmJ3rv6K3uUvctErb+y4J3igUbI=
+github.com/gdamore/tcell/v3 v3.0.6/go.mod h1:hPfjyFARu5K9vLzjN5TrYAoK/D9dZmqRbQkevGvK7oQ=
 github.com/gen2brain/beeep v0.11.2 h1:+KfiKQBbQCuhfJFPANZuJ+oxsSKAYNe88hIpJuyKWDA=
 github.com/gen2brain/beeep v0.11.2/go.mod h1:jQVvuwnLuwOcdctHn/uyh8horSBNJ8uGb9Cn2W4tvoc=
 github.com/go-gl/glfw v0.0.0-20190409004039-e6da0acd62b1/go.mod h1:vR7hzQXu2zJy9AVAgeJqvqgH9Q5CA+iKCZ2gyEVpxRU=
