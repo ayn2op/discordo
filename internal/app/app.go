@@ -15,7 +15,7 @@ import (
 
 type App struct {
 	inner    *tview.Application
-	chatView *chat.ChatView
+	chatView *chat.View
 	cfg      *config.Config
 }
 
@@ -70,7 +70,7 @@ func (a *App) Run(token string) error {
 }
 
 func (a *App) showChatView(token string) error {
-	a.chatView = chat.NewChatView(a.inner, a.cfg, a.quit)
+	a.chatView = chat.NewView(a.inner, a.cfg, a.quit)
 	if err := a.chatView.OpenState(token); err != nil {
 		return err
 	}

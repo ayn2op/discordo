@@ -16,11 +16,11 @@ import (
 	"github.com/diamondburned/ningen/v3"
 )
 
-func (cv *ChatView) OpenState(token string) error {
+func (v *View) OpenState(token string) error {
 	identifyProps := http.IdentifyProperties()
 	gateway.DefaultIdentity = identifyProps
 	gateway.DefaultPresence = &gateway.UpdatePresenceCommand{
-		Status: cv.cfg.Status,
+		Status: v.cfg.Status,
 	}
 
 	id := gateway.DefaultIdentifier(token)
@@ -28,34 +28,34 @@ func (cv *ChatView) OpenState(token string) error {
 
 	session := session.NewCustom(id, http.NewClient(token), handler.New())
 	state := state.NewFromSession(session, defaultstore.New())
-	cv.state = ningen.FromState(state)
+	v.state = ningen.FromState(state)
 
 	// Handlers
-	cv.state.AddHandler(cv.onRaw)
-	cv.state.AddHandler(cv.onReady)
-	cv.state.AddHandler(cv.onMessageCreate)
-	cv.state.AddHandler(cv.onMessageUpdate)
-	cv.state.AddHandler(cv.onMessageDelete)
-	cv.state.AddHandler(cv.onReadUpdate)
-	cv.state.AddHandler(cv.onGuildMembersChunk)
-	cv.state.AddHandler(cv.onGuildMemberRemove)
+	v.state.AddHandler(v.onRaw)
+	v.state.AddHandler(v.onReady)
+	v.state.AddHandler(v.onMessageCreate)
+	v.state.AddHandler(v.onMessageUpdate)
+	v.state.AddHandler(v.onMessageDelete)
+	v.state.AddHandler(v.onReadUpdate)
+	v.state.AddHandler(v.onGuildMembersChunk)
+	v.state.AddHandler(v.onGuildMemberRemove)
 
-	cv.state.StateLog = func(err error) {
+	v.state.StateLog = func(err error) {
 		slog.Error("state log", "err", err)
 	}
 
-	cv.state.OnRequest = append(cv.state.OnRequest, httputil.WithHeaders(http.Headers()), cv.onRequest)
-	return cv.state.Open(context.TODO())
+	v.state.OnRequest = append(v.state.OnRequest, httputil.WithHeaders(http.Headers()), v.onRequest)
+	return v.state.Open(context.TODO())
 }
 
-func (cv *ChatView) CloseState() error {
-	if cv.state == nil {
+func (v *View) CloseState() error {
+	if v.state == nil {
 		return nil
 	}
-	return cv.state.Close()
+	return v.state.Close()
 }
 
-func (cv *ChatView) onRequest(r httpdriver.Request) error {
+func (v *View) onRequest(r httpdriver.Request) error {
 	if req, ok := r.(*httpdriver.DefaultRequest); ok {
 		slog.Debug("new HTTP request", "method", req.Method, "url", req.URL)
 	}
@@ -63,7 +63,7 @@ func (cv *ChatView) onRequest(r httpdriver.Request) error {
 	return nil
 }
 
-func (cv *ChatView) onRaw(event *ws.RawEvent) {
+func (v *View) onRaw(event *ws.RawEvent) {
 	slog.Debug(
 		"new raw event",
 		"code", event.OriginalCode,
