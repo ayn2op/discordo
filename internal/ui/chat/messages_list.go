@@ -36,7 +36,7 @@ import (
 type messagesList struct {
 	*tview.TextView
 	cfg               *config.Config
-	chatView *View
+	chatView          *View
 	selectedMessageID discord.MessageID
 
 	renderer *markdown.Renderer
@@ -207,6 +207,81 @@ func (ml *messagesList) drawDefaultMessage(w io.Writer, message discord.Message)
 		} else {
 			fmt.Fprintf(w, "[%s:%s]%s[-:-]", fg, bg, a.Filename)
 		}
+	}
+
+	ml.drawEmbeds(w, message.Embeds)
+}
+
+func (ml *messagesList) drawEmbeds(w io.Writer, embeds []discord.Embed) {
+	for _, embed := range embeds {
+		fmt.Fprintln(w)
+		ml.drawEmbed(w, embed)
+	}
+}
+
+func (ml *messagesList) drawEmbed(w io.Writer, embed discord.Embed) {
+	fg := ml.cfg.Theme.MessagesList.EmbedStyle.GetForeground()
+	bg := ml.cfg.Theme.MessagesList.EmbedStyle.GetBackground()
+
+	colorIndicator := "│"
+	embedColor := fg
+	if embed.Color != 0 {
+		embedColor = tcell.NewHexColor(int32(embed.Color))
+	}
+
+	if embed.Author != nil && embed.Author.Name != "" {
+		fmt.Fprintf(w, "[%s]%s[-] [::d]%s[::D]\n", embedColor, colorIndicator, tview.Escape(embed.Author.Name))
+	}
+
+	if embed.Title != "" {
+		title := tview.Escape(embed.Title)
+		if embed.URL != "" {
+			urlFg := ml.cfg.Theme.MessagesList.URLStyle.GetForeground()
+			fmt.Fprintf(w, "[%s]%s[-] [%s::bu]%s[-::-]\n", embedColor, colorIndicator, urlFg, title)
+		} else {
+			fmt.Fprintf(w, "[%s]%s[-] [%s:%s:b]%s[-:-:-]\n", embedColor, colorIndicator, fg, bg, title)
+		}
+	}
+
+	if embed.Description != "" {
+		desc := tview.Escape(embed.Description)
+		lines := strings.Split(desc, "\n")
+		for _, line := range lines {
+			fmt.Fprintf(w, "[%s]%s[-] [%s:%s]%s[-:-]\n", embedColor, colorIndicator, fg, bg, line)
+		}
+	}
+
+	for _, field := range embed.Fields {
+		name := tview.Escape(field.Name)
+		value := tview.Escape(field.Value)
+		fmt.Fprintf(w, "[%s]%s[-] [%s:%s:b]%s[-:-:-]\n", embedColor, colorIndicator, fg, bg, name)
+		lines := strings.Split(value, "\n")
+		for _, line := range lines {
+			fmt.Fprintf(w, "[%s]%s[-] [%s:%s]%s[-:-]\n", embedColor, colorIndicator, fg, bg, line)
+		}
+	}
+
+	if embed.Image != nil && embed.Image.URL != "" {
+		urlFg := ml.cfg.Theme.MessagesList.URLStyle.GetForeground()
+		fmt.Fprintf(w, "[%s]%s[-] [%s::u]%s[-::-]\n", embedColor, colorIndicator, urlFg, embed.Image.URL)
+	}
+
+	if embed.Thumbnail != nil && embed.Thumbnail.URL != "" {
+		urlFg := ml.cfg.Theme.MessagesList.URLStyle.GetForeground()
+		fmt.Fprintf(w, "[%s]%s[-] [%s::u]%s[-::-]\n", embedColor, colorIndicator, urlFg, embed.Thumbnail.URL)
+	}
+
+	if embed.Footer != nil && embed.Footer.Text != "" {
+		footerText := tview.Escape(embed.Footer.Text)
+		if embed.Timestamp.IsValid() {
+			ts := ml.formatTimestamp(embed.Timestamp)
+			fmt.Fprintf(w, "[%s]%s[-] [::d]%s • %s[::D]", embedColor, colorIndicator, footerText, ts)
+		} else {
+			fmt.Fprintf(w, "[%s]%s[-] [::d]%s[::D]", embedColor, colorIndicator, footerText)
+		}
+	} else if embed.Timestamp.IsValid() {
+		ts := ml.formatTimestamp(embed.Timestamp)
+		fmt.Fprintf(w, "[%s]%s[-] [::d]%s[::D]", embedColor, colorIndicator, ts)
 	}
 }
 
