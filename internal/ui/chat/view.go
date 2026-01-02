@@ -7,6 +7,7 @@ import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/keyring"
 	"github.com/ayn2op/discordo/internal/notifications"
+	"github.com/ayn2op/discordo/internal/profile"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -36,9 +37,10 @@ type View struct {
 	selectedChannel   *discord.Channel
 	selectedChannelMu sync.RWMutex
 
-	app   *tview.Application
-	cfg   *config.Config
-	state *ningen.State
+	app          *tview.Application
+	cfg          *config.Config
+	state        *ningen.State
+	profileCache *profile.Cache
 
 	onLogout func()
 }
@@ -279,6 +281,7 @@ func (v *View) onReady(r *gateway.ReadyEvent) {
 func (v *View) onMessageCreate(message *gateway.MessageCreateEvent) {
 	if selected := v.SelectedChannel(); selected != nil && selected.ID == message.ChannelID {
 		v.messagesList.drawMessage(v.messagesList, message.Message)
+		v.messagesList.fetchProfiles([]discord.Message{message.Message})
 		v.app.Draw()
 	}
 

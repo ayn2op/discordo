@@ -18,7 +18,7 @@ import (
 
 type guildsTree struct {
 	*tview.TreeView
-	cfg  *config.Config
+	cfg      *config.Config
 	chatView *View
 }
 
@@ -217,6 +217,7 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 		gt.chatView.messagesList.reset()
 		gt.chatView.messagesList.setTitle(*channel)
 		gt.chatView.messagesList.drawMessages(messages)
+		gt.chatView.messagesList.fetchProfiles(messages)
 		gt.chatView.messagesList.ScrollToEnd()
 
 		hasNoPerm := channel.Type != discord.DirectMessage && channel.Type != discord.GroupDM && !gt.chatView.state.HasPermissions(channel.ID, discord.PermissionSendMessages)

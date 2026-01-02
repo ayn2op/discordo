@@ -36,7 +36,7 @@ import (
 type messagesList struct {
 	*tview.TextView
 	cfg               *config.Config
-	chatView *View
+	chatView          *View
 	selectedMessageID discord.MessageID
 
 	renderer *markdown.Renderer
@@ -166,7 +166,15 @@ func (ml *messagesList) drawAuthor(w io.Writer, message discord.Message) {
 		}
 	}
 
-	fmt.Fprintf(w, "[%s::b]%s[-::B] ", foreground, name)
+	fmt.Fprintf(w, "[%s::b]%s[-::B]", foreground, name)
+
+	if !message.WebhookID.IsValid() && ml.chatView.profileCache != nil {
+		if pronouns, ok := ml.chatView.profileCache.Get(message.Author.ID); ok && pronouns != "" {
+			fmt.Fprintf(w, " [::d](%s)[::D]", pronouns)
+		}
+	}
+
+	io.WriteString(w, " ")
 }
 
 func (ml *messagesList) drawContent(w io.Writer, message discord.Message) {
@@ -705,4 +713,36 @@ func (ml *messagesList) waitForChunkEvent() uint {
 
 	<-ml.fetchingMembers.done
 	return ml.fetchingMembers.count
+}
+
+func (ml *messagesList) fetchProfiles(messages []discord.Message) {
+	if ml.chatView.profileCache == nil {
+		return
+	}
+
+	var userIDs []discord.UserID
+	seen := make(map[discord.UserID]bool)
+	for _, m := range messages {
+		if !m.WebhookID.IsValid() && !seen[m.Author.ID] {
+			seen[m.Author.ID] = true
+			userIDs = append(userIDs, m.Author.ID)
+		}
+	}
+
+	ml.chatView.profileCache.FetchMany(userIDs, func() {
+		ml.chatView.app.QueueUpdateDraw(func() {
+			selected := ml.chatView.SelectedChannel()
+			if selected == nil {
+				return
+			}
+
+			cachedMessages, err := ml.chatView.state.Cabinet.Messages(selected.ID)
+			if err != nil {
+				return
+			}
+
+			ml.Clear()
+			ml.drawMessages(cachedMessages)
+		})
+	})
 }

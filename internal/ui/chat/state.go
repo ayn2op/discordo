@@ -3,8 +3,10 @@ package chat
 import (
 	"context"
 	"log/slog"
+	stdhttp "net/http"
 
 	"github.com/ayn2op/discordo/internal/http"
+	"github.com/ayn2op/discordo/internal/profile"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/session"
 	"github.com/diamondburned/arikawa/v3/state"
@@ -29,6 +31,9 @@ func (v *View) OpenState(token string) error {
 	session := session.NewCustom(id, http.NewClient(token), handler.New())
 	state := state.NewFromSession(session, defaultstore.New())
 	v.state = ningen.FromState(state)
+
+	httpClient := &stdhttp.Client{Transport: http.NewTransport()}
+	v.profileCache = profile.NewCache(httpClient, token)
 
 	// Handlers
 	v.state.AddHandler(v.onRaw)
