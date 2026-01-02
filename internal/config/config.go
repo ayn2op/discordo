@@ -97,14 +97,16 @@ func Load(path string) (*Config, error) {
 		}
 	}
 
-	// set defaults
+	applyDefaults(&cfg)
+	return &cfg, nil
+}
+
+func applyDefaults(cfg *Config) {
 	if cfg.Editor == "default" {
 		cfg.Editor = os.Getenv("EDITOR")
 	}
 
 	if cfg.Status == "default" {
-		cfg.Status = ""
+		cfg.Status = discord.UnknownStatus
 	}
-
-	return &cfg, nil
 }
