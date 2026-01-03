@@ -141,6 +141,7 @@ mention_style = { foreground = "blue" }
 emoji_style = { foreground = "green" }
 url_style = { foreground = "blue" }
 attachment_style = { foreground = "yellow" }
+embed_style = { foreground = "white", attributes = "dim" }
 
 [theme.mentions_list]
 # Note: width and height are capped to the avaliable space

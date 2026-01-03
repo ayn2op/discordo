@@ -18,7 +18,7 @@ import (
 
 type guildsTree struct {
 	*tview.TreeView
-	cfg  *config.Config
+	cfg      *config.Config
 	chatView *View
 }
 

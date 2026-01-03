@@ -39,7 +39,7 @@ var mentionRegex = regexp.MustCompile("@[a-zA-Z0-9._]+")
 
 type messageInput struct {
 	*tview.TextArea
-	cfg  *config.Config
+	cfg      *config.Config
 	chatView *View
 
 	edit            bool
@@ -53,7 +53,7 @@ func newMessageInput(cfg *config.Config, chatView *View) *messageInput {
 	mi := &messageInput{
 		TextArea:        tview.NewTextArea(),
 		cfg:             cfg,
-		chatView: chatView,
+		chatView:        chatView,
 		sendMessageData: &api.SendMessageData{},
 		cache:           cache.NewCache(),
 		mentionsList:    tview.NewList(),
