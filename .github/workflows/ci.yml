@@ -20,6 +20,9 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt install libx11-dev
 
+      - name: Test
+        run: go test -v ./...
+
       - name: Build
         run: go build -trimpath -ldflags=-s .
 

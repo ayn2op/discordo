@@ -13,6 +13,7 @@ require (
 	github.com/diamondburned/ningen/v3 v3.0.1-0.20250920191746-98fbd92e134d
 	github.com/gdamore/tcell/v3 v3.0.6
 	github.com/gen2brain/beeep v0.11.2
+	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/klauspost/compress v1.18.2
