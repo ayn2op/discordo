@@ -39,7 +39,7 @@ var mentionRegex = regexp.MustCompile("@[a-zA-Z0-9._]+")
 
 type messageInput struct {
 	*tview.TextArea
-	cfg  *config.Config
+	cfg      *config.Config
 	chatView *View
 
 	edit            bool
@@ -53,7 +53,7 @@ func newMessageInput(cfg *config.Config, chatView *View) *messageInput {
 	mi := &messageInput{
 		TextArea:        tview.NewTextArea(),
 		cfg:             cfg,
-		chatView: chatView,
+		chatView:        chatView,
 		sendMessageData: &api.SendMessageData{},
 		cache:           cache.NewCache(),
 		mentionsList:    tview.NewList(),
@@ -198,6 +198,16 @@ func (mi *messageInput) send() {
 }
 
 func processText(state *ningen.State, channel *discord.Channel, src []byte) string {
+	// Fast path: no mentions to expand.
+	if bytes.IndexByte(src, '@') == -1 {
+		return string(src)
+	}
+
+	// Fast path: no back ticks (code blocks), so expand mentions directly.
+	if bytes.IndexByte(src, '`') == -1 {
+		return string(expandMentions(state, channel, src))
+	}
+
 	var (
 		ranges     [][2]int
 		canMention = true
