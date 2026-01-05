@@ -36,7 +36,7 @@ import (
 type messagesList struct {
 	*tview.TextView
 	cfg               *config.Config
-	chatView *View
+	chatView          *View
 	selectedMessageID discord.MessageID
 
 	renderer *markdown.Renderer
@@ -649,26 +649,32 @@ func (ml *messagesList) delete() {
 	// its work after the event returns
 }
 
-func (ml *messagesList) requestGuildMembers(gID discord.GuildID, ms []discord.Message) {
-	usersToFetch := make([]discord.UserID, 0, len(ms))
-	for _, m := range ms {
+func (ml *messagesList) requestGuildMembers(guildID discord.GuildID, messages []discord.Message) {
+	usersToFetch := make([]discord.UserID, 0, len(messages))
+	seen := make(map[discord.UserID]struct{}, len(messages))
+
+	for _, message := range messages {
 		// Do not fetch member for a webhook message.
-		if m.WebhookID.IsValid() {
+		if message.WebhookID.IsValid() {
 			continue
 		}
 
-		if member, _ := ml.chatView.state.Cabinet.Member(gID, m.Author.ID); member == nil {
-			usersToFetch = append(usersToFetch, m.Author.ID)
+		if member, _ := ml.chatView.state.Cabinet.Member(guildID, message.Author.ID); member == nil {
+			userID := message.Author.ID
+			if _, ok := seen[userID]; !ok {
+				seen[userID] = struct{}{}
+				usersToFetch = append(usersToFetch, userID)
+			}
 		}
 	}
 
 	if len(usersToFetch) > 0 {
 		err := ml.chatView.state.SendGateway(context.TODO(), &gateway.RequestGuildMembersCommand{
-			GuildIDs: []discord.GuildID{gID},
-			UserIDs:  slices.Compact(usersToFetch),
+			GuildIDs: []discord.GuildID{guildID},
+			UserIDs:  usersToFetch,
 		})
 		if err != nil {
-			slog.Error("failed to request guild members", "guild_id", gID, "err", err)
+			slog.Error("failed to request guild members", "guild_id", guildID, "err", err)
 			return
 		}
 
