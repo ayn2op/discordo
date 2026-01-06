@@ -258,6 +258,15 @@ func (ml *messagesList) selectedMessage() (*discord.Message, error) {
 
 func (ml *messagesList) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
+	case ml.cfg.Keys.MessagesList.ScrollUp:
+		return tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone)
+	case ml.cfg.Keys.MessagesList.ScrollDown:
+		return tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone)
+	case ml.cfg.Keys.MessagesList.ScrollTop:
+		return tcell.NewEventKey(tcell.KeyHome, "", tcell.ModNone)
+	case ml.cfg.Keys.MessagesList.ScrollBottom:
+		return tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone)
+
 	case ml.cfg.Keys.MessagesList.Cancel:
 		ml.selectedMessageID = 0
 		ml.Highlight()

@@ -1,7 +1,7 @@
 package config
 
 type (
-	NavigationKeys struct {
+	SelectionKeys struct {
 		SelectPrevious string `toml:"select_previous"`
 		SelectNext     string `toml:"select_next"`
 		SelectFirst    string `toml:"select_first"`
@@ -26,7 +26,7 @@ type (
 	}
 
 	GuildsTreeKeys struct {
-		NavigationKeys
+		SelectionKeys
 		SelectCurrent string `toml:"select_current"`
 		YankID        string `toml:"yank_id"`
 
@@ -35,7 +35,12 @@ type (
 	}
 
 	MessagesListKeys struct {
-		NavigationKeys
+		SelectionKeys
+		ScrollUp     string `toml:"scroll_up"`
+		ScrollDown   string `toml:"scroll_down"`
+		ScrollTop    string `toml:"scroll_top"`
+		ScrollBottom string `toml:"scroll_bottom"`
+
 		SelectReply  string `toml:"select_reply"`
 		Reply        string `toml:"reply"`
 		ReplyMention string `toml:"reply_mention"`

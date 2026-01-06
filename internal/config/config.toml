@@ -69,6 +69,11 @@ select_previous = "Rune[k]"
 select_next = "Rune[j]"
 select_first = "Rune[g]"
 select_last = "Rune[G]"
+# Scroll the messages list without changing the selection.
+scroll_up = "Rune[K]"
+scroll_down = "Rune[J]"
+scroll_top = "Home"
+scroll_bottom = "End"
 # Select the message reference (reply) of the selected channel.
 select_reply = "Rune[s]"
 # Reply to the selected message.
