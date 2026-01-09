@@ -1,8 +1,10 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/ayn2op/discordo/internal/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
@@ -13,6 +15,25 @@ import (
 	"github.com/ayn2op/tview"
 	"github.com/gdamore/tcell/v3"
 )
+
+var ErrInvalidProtocol = errors.New("invalid image protocol")
+
+func parseProtocolConfig(s string) (media.Protocol, error) {
+	switch strings.ToLower(s) {
+	case "":
+		return media.ProtoAuto, nil
+	case "kitty":
+		return media.ProtoKitty, nil
+	case "sixel":
+		return media.ProtoSixel, nil
+	case "iterm":
+		return media.ProtoIterm, nil
+	case "ascii", "ansi":
+		return media.ProtoAnsi, nil
+	default:
+		return media.ProtoAuto, fmt.Errorf("%w: %q", ErrInvalidProtocol, s)
+	}
+}
 
 type App struct {
 	inner    *tview.Application
@@ -36,18 +57,16 @@ func New(cfg *config.Config) *App {
 }
 
 func (a *App) Run(token string) error {
-	switch a.cfg.ImagePreviews.Type {
-	case "kitty":
-		media.SetProtocol(media.ProtoKitty)
-	case "sixel":
-		media.SetProtocol(media.ProtoSixel)
-	case "iterm":
-		media.SetProtocol(media.ProtoIterm)
-	case "ascii", "ansi":
-		media.SetProtocol(media.ProtoAnsi)
+	proto, err := parseProtocolConfig(a.cfg.ImagePreviews.Type)
+	if err != nil {
+		slog.Warn("Invalid image protocol config, falling back to auto-detection", "configured", a.cfg.ImagePreviews.Type, "err", err)
+	} else if proto == media.ProtoAuto {
+		slog.Debug("No protocol configured, using auto-detection")
+	} else {
+		media.SetProtocol(proto)
 	}
 
-	proto := media.DetectProtocol()
+	proto = media.DetectProtocol()
 	slog.Info("Detected terminal image protocol", "protocol", proto.String())
 
 	screen, err := tcell.NewScreen()
