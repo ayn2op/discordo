@@ -30,83 +30,6 @@ func GetCellSize() (int, int) {
 	return defaultCellWidth, defaultCellHeight
 }
 
-type Protocol int
-
-const (
-	ProtoAuto Protocol = iota
-	ProtoKitty
-	ProtoIterm
-	ProtoSixel
-	ProtoAnsi
-	ProtoFallback
-)
-
-func (p Protocol) String() string {
-	switch p {
-	case ProtoKitty:
-		return "Kitty"
-	case ProtoIterm:
-		return "iTerm2"
-	case ProtoSixel:
-		return "Sixel"
-	case ProtoAnsi:
-		return "ANSI"
-	case ProtoFallback:
-		return "Fallback"
-	default:
-		return "Auto"
-	}
-}
-
-var (
-	protocolMu      sync.RWMutex
-	currentProtocol Protocol
-	protocolOnce    sync.Once
-	forcedProtocol  *Protocol
-)
-
-func SetProtocol(p Protocol) {
-	protocolMu.Lock()
-	defer protocolMu.Unlock()
-	forcedProtocol = &p
-}
-
-func DetectProtocol() Protocol {
-	protocolMu.RLock()
-	if forcedProtocol != nil {
-		p := *forcedProtocol
-		protocolMu.RUnlock()
-		return p
-	}
-	protocolMu.RUnlock()
-
-	protocolOnce.Do(func() {
-		if rasterm.IsKittyCapable() {
-			currentProtocol = ProtoKitty
-			return
-		}
-
-		if rasterm.IsItermCapable() {
-			currentProtocol = ProtoIterm
-			return
-		}
-
-		term := os.Getenv("TERM")
-		if term == "foot" || term == "foot-extra" {
-			currentProtocol = ProtoSixel
-			return
-		}
-
-		if capable, err := rasterm.IsSixelCapable(); err == nil && capable {
-			currentProtocol = ProtoSixel
-			return
-		}
-
-		currentProtocol = ProtoAnsi
-	})
-	return currentProtocol
-}
-
 func DrawImage(imgInfo *ImageInfo, x, y, w, h int, proto Protocol, clipRect image.Rectangle) {
 	img := imgInfo.Image
 	os.Stdout.Write([]byte("\x1b7"))
@@ -211,9 +134,7 @@ func DrawImage(imgInfo *ImageInfo, x, y, w, h int, proto Protocol, clipRect imag
 			const chunkSize = 4096
 			for i := 0; i < len(payload); i += chunkSize {
 				end := i + chunkSize
-				if end > len(payload) {
-					end = len(payload)
-				}
+				end = min(end, len(payload))
 
 				chunk := payload[i:end]
 				mVal := 1
@@ -307,15 +228,14 @@ func DrawImage(imgInfo *ImageInfo, x, y, w, h int, proto Protocol, clipRect imag
 			startY = srcY * fullH / origBounds.Dy()
 		}
 
-		for r := 0; r < h; r++ {
+		for r := 0; r < destH; r++ {
 			termY := destY + r + 1
 			termX := destX + 1
-			buf.WriteString(fmt.Sprintf("\x1b[%d;%dH", termY, termX))
-
+			fmt.Fprintf(&buf, "\x1b[%d;%dH", termY, termX)
 			yTop := startY + r*2
 			yBot := yTop + 1
 
-			for c := 0; c < w; c++ {
+			for c := 0; c < destW; c++ {
 				x := startX + c
 
 				if x >= fullW || yTop >= fullH {
@@ -335,8 +255,8 @@ func DrawImage(imgInfo *ImageInfo, x, y, w, h int, proto Protocol, clipRect imag
 				c1r, c1g, c1b := uint8(r1>>8), uint8(g1>>8), uint8(b1>>8)
 				c2r, c2g, c2b := uint8(r2>>8), uint8(g2>>8), uint8(b2>>8)
 
-				buf.WriteString(fmt.Sprintf("\x1b[38;2;%d;%d;%dm\x1b[48;2;%d;%d;%dm▀\x1b[0m",
-					c1r, c1g, c1b, c2r, c2g, c2b))
+				fmt.Fprintf(&buf, "\x1b[38;2;%d;%d;%dm\x1b[48;2;%d;%d;%dm▀\x1b[0m",
+					c1r, c1g, c1b, c2r, c2g, c2b)
 			}
 		}
 		os.Stdout.Write(buf.Bytes())
@@ -418,13 +338,6 @@ func (m *ImageManager) evictOldestLocked() {
 	}
 }
 
-func (m *ImageManager) Get(id uint32) (*ImageInfo, bool) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	info, ok := m.images[id]
-	return info, ok
-}
-
 func (m *ImageManager) SetImage(id uint32, img image.Image) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -465,13 +378,18 @@ func (m *ImageManager) ClearScreen(screen tcell.Screen) {
 }
 
 func (m *ImageManager) ScanAndDraw(screen tcell.Screen, x, y, w, h int) {
+	_, screenH := screen.Size()
+	clipRect := image.Rect(x, 0, x+w, screenH)
+	m.ScanAndDrawWithClip(screen, x, y, w, h, clipRect)
+}
+
+func (m *ImageManager) ScanAndDrawWithClip(screen tcell.Screen, x, y, w, h int, clipRect image.Rectangle) {
 	proto := DetectProtocol()
 	if proto == ProtoFallback {
 		return
 	}
 
 	screenW, screenH := screen.Size()
-	clipRect := image.Rect(x, 0, x+w, screenH)
 
 	m.mu.RLock()
 	defer m.mu.RUnlock()

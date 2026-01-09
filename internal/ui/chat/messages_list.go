@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -16,6 +17,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/ayn2op/discordo/internal/clipboard"
@@ -37,6 +39,7 @@ import (
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/text"
 	"golang.org/x/image/draw"
+	_ "golang.org/x/image/webp"
 )
 
 type ImageCacheEntry struct {
@@ -46,6 +49,10 @@ type ImageCacheEntry struct {
 	Loaded bool
 	Failed bool
 }
+
+const (
+	maxImageDownloadSize = 25 * 1024 * 1024
+)
 
 var imageHTTPClient = &http.Client{
 	Timeout: 30 * time.Second,
@@ -68,15 +75,31 @@ type messagesList struct {
 
 	imageCache   map[string]ImageCacheEntry
 	imageCacheMu sync.RWMutex
+	imageCtx     context.Context
+	imageCancel  context.CancelFunc
+
+	imageState struct {
+		mu          sync.Mutex
+		lastOffset  int
+		lastBounds  image.Rectangle
+		dirty       atomic.Bool
+		scrolling   atomic.Bool
+		scrollTimer *time.Timer
+		timerGen    uint64
+		imagesDrawn bool
+	}
 }
 
 func newMessagesList(cfg *config.Config, chatView *View) *messagesList {
+	ctx, cancel := context.WithCancel(context.Background())
 	ml := &messagesList{
-		TextView:   tview.NewTextView(),
-		cfg:        cfg,
-		chatView:   chatView,
-		renderer:   markdown.NewRenderer(cfg.Theme.MessagesList),
-		imageCache: make(map[string]ImageCacheEntry),
+		TextView:    tview.NewTextView(),
+		cfg:         cfg,
+		chatView:    chatView,
+		renderer:    markdown.NewRenderer(cfg.Theme.MessagesList),
+		imageCache:  make(map[string]ImageCacheEntry),
+		imageCtx:    ctx,
+		imageCancel: cancel,
 	}
 
 	ml.Box = ui.ConfigureBox(ml.Box, &cfg.Theme)
@@ -101,9 +124,15 @@ func (ml *messagesList) reset() {
 }
 
 func (ml *messagesList) clearImageCache() {
+	if ml.imageCancel != nil {
+		ml.imageCancel()
+	}
+	ml.imageCtx, ml.imageCancel = context.WithCancel(context.Background())
+
 	ml.imageCacheMu.Lock()
 	ml.imageCache = make(map[string]ImageCacheEntry)
 	ml.imageCacheMu.Unlock()
+	ml.imageState.dirty.Store(true)
 	media.GlobalImageManager.ClearAll()
 }
 
@@ -124,8 +153,58 @@ func (ml *messagesList) Draw(screen tcell.Screen) {
 		return
 	}
 
+	currentOffset, _ := ml.GetScrollOffset()
+	currentBounds := image.Rect(x, y, x+w, y+h)
+
+	ml.imageState.mu.Lock()
+	offsetChanged := currentOffset != ml.imageState.lastOffset
+	boundsChanged := currentBounds != ml.imageState.lastBounds
+	needsRedraw := ml.imageState.dirty.Load() || offsetChanged || boundsChanged || !ml.imageState.imagesDrawn
+
+	if offsetChanged {
+		ml.imageState.scrolling.Store(true)
+
+		if ml.imageState.scrollTimer != nil {
+			ml.imageState.scrollTimer.Stop()
+		}
+
+		ml.imageState.timerGen++
+		gen := ml.imageState.timerGen
+
+		ml.imageState.scrollTimer = time.AfterFunc(150*time.Millisecond, func() {
+			ml.imageState.mu.Lock()
+			if ml.imageState.timerGen != gen {
+				ml.imageState.mu.Unlock()
+				return
+			}
+			ml.imageState.mu.Unlock()
+
+			ml.imageState.scrolling.Store(false)
+			ml.imageState.dirty.Store(true)
+			ml.chatView.app.QueueUpdateDraw(func() {})
+		})
+	}
+
+	ml.imageState.lastOffset = currentOffset
+	ml.imageState.lastBounds = currentBounds
+	ml.imageState.mu.Unlock()
+
+	if ml.imageState.scrolling.Load() && proto == media.ProtoSixel {
+		return
+	}
+
+	if !needsRedraw {
+		return
+	}
+
+	ml.imageState.dirty.Store(false)
+
 	media.GlobalImageManager.ClearScreen(screen)
-	media.GlobalImageManager.ScanAndDraw(screen, x, y, w, h)
+	media.GlobalImageManager.ScanAndDrawWithClip(screen, x, y, w, h, currentBounds)
+
+	ml.imageState.mu.Lock()
+	ml.imageState.imagesDrawn = true
+	ml.imageState.mu.Unlock()
 }
 
 func (ml *messagesList) setTitle(channel discord.Channel) {
@@ -290,7 +369,12 @@ func (ml *messagesList) drawDefaultMessage(w io.Writer, message discord.Message)
 }
 
 func (ml *messagesList) downloadImage(url string) {
+	ctx := ml.imageCtx
+
 	markFailed := func() {
+		if ctx.Err() != nil {
+			return
+		}
 		ml.imageCacheMu.Lock()
 		ml.imageCache[url] = ImageCacheEntry{Failed: true}
 		ml.imageCacheMu.Unlock()
@@ -299,8 +383,18 @@ func (ml *messagesList) downloadImage(url string) {
 		})
 	}
 
-	resp, err := imageHTTPClient.Get(url)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
+		slog.Error("failed to create image request", "err", err)
+		markFailed()
+		return
+	}
+
+	resp, err := imageHTTPClient.Do(req)
+	if err != nil {
+		if ctx.Err() != nil {
+			return
+		}
 		slog.Error("failed to download image", "err", err)
 		markFailed()
 		return
@@ -313,7 +407,41 @@ func (ml *messagesList) downloadImage(url string) {
 		return
 	}
 
-	img, _, err := image.Decode(resp.Body)
+	if resp.ContentLength > maxImageDownloadSize {
+		slog.Warn("image too large, skipping", "url", url, "size", resp.ContentLength, "max", maxImageDownloadSize)
+		markFailed()
+		return
+	}
+
+	limitedReader := io.LimitReader(resp.Body, maxImageDownloadSize+1)
+	imageData, err := io.ReadAll(limitedReader)
+	if err != nil {
+		slog.Error("failed to read image data", "err", err)
+		markFailed()
+		return
+	}
+
+	if len(imageData) > maxImageDownloadSize {
+		slog.Warn("image too large, skipping", "url", url, "size", len(imageData), "max", maxImageDownloadSize)
+		markFailed()
+		return
+	}
+
+	imgCfg, _, err := image.DecodeConfig(bytes.NewReader(imageData))
+	if err != nil {
+		slog.Error("failed to decode image config", "err", err)
+		markFailed()
+		return
+	}
+
+	maxPixels := 100 * 1024 * 1024
+	if imgCfg.Width*imgCfg.Height > maxPixels {
+		slog.Warn("image too many pixels", "url", url, "pixels", imgCfg.Width*imgCfg.Height, "max", maxPixels)
+		markFailed()
+		return
+	}
+
+	img, _, err := image.Decode(bytes.NewReader(imageData))
 	if err != nil {
 		slog.Error("failed to decode image", "err", err)
 		markFailed()
@@ -323,45 +451,67 @@ func (ml *messagesList) downloadImage(url string) {
 	cellW, cellH := media.GetCellSize()
 
 	maxW := ml.cfg.ImagePreviews.MaxWidth
-	if maxW <= 0 {
-		maxW = 60
-	}
 	maxH := ml.cfg.ImagePreviews.MaxHeight
-	if maxH <= 0 {
-		maxH = 15
-	}
-
-	targetWPixels := maxW * cellW
 
 	bounds := img.Bounds()
-	scale := float64(targetWPixels) / float64(bounds.Dx())
+	srcW, srcH := bounds.Dx(), bounds.Dy()
+
+	maxWPixels := maxW * cellW
+	maxHPixels := maxH * cellH
+
+	scaleW := float64(maxWPixels) / float64(srcW)
+	scaleH := float64(maxHPixels) / float64(srcH)
+
+	scale := min(scaleW, scaleH)
 	if scale > 1 {
 		scale = 1
 	}
 
-	newW := int(float64(bounds.Dx()) * scale)
-	newH := int(float64(bounds.Dy()) * scale)
+	newW := int(float64(srcW) * scale)
+	newH := int(float64(srcH) * scale)
+
+	if newW < 1 {
+		newW = 1
+	}
+	if newH < 1 {
+		newH = 1
+	}
 
 	dst := image.NewRGBA(image.Rect(0, 0, newW, newH))
 	draw.CatmullRom.Scale(dst, dst.Bounds(), img, bounds, draw.Over, nil)
 
-	h := newH / cellH
-	if h < 1 {
-		h = 1
-	}
-	if h > maxH {
-		h = maxH
-	}
-	w := maxW
+	cellCols := (newW + cellW - 1) / cellW
+	cellRows := (newH + cellH - 1) / cellH
 
-	id := media.GlobalImageManager.Register(url, w, h)
+	if cellCols > maxW {
+		cellCols = maxW
+	}
+	if cellRows > maxH {
+		cellRows = maxH
+	}
+	if cellCols < 1 {
+		cellCols = 1
+	}
+	if cellRows < 1 {
+		cellRows = 1
+	}
+
+	if ctx.Err() != nil {
+		return
+	}
+
+	id := media.GlobalImageManager.Register(url, cellCols, cellRows)
 	media.GlobalImageManager.SetImage(id, dst)
+
+	if ctx.Err() != nil {
+		return
+	}
 
 	ml.imageCacheMu.Lock()
 	ml.imageCache[url] = ImageCacheEntry{
 		ID:     id,
-		Width:  w,
-		Height: h,
+		Width:  cellCols,
+		Height: cellRows,
 		Loaded: true,
 	}
 	ml.imageCacheMu.Unlock()
@@ -385,6 +535,7 @@ func (ml *messagesList) reDraw() {
 	ml.Clear()
 	ml.drawMessages(messages)
 	ml.SetTitle(title)
+	ml.imageState.dirty.Store(true)
 
 	if ml.selectedMessageID.IsValid() {
 		ml.Highlight(ml.selectedMessageID.String())

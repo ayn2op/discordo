@@ -14,6 +14,11 @@ import (
 
 const fileName = "config.toml"
 
+const (
+	DefaultImagePreviewMaxHeight = 10
+	DefaultImagePreviewMaxWidth  = 40
+)
+
 type (
 	Timestamps struct {
 		Enabled bool   `toml:"enabled"`
@@ -116,5 +121,13 @@ func applyDefaults(cfg *Config) {
 
 	if cfg.Status == "default" {
 		cfg.Status = discord.UnknownStatus
+	}
+
+	if cfg.ImagePreviews.MaxHeight <= 0 {
+		cfg.ImagePreviews.MaxHeight = DefaultImagePreviewMaxHeight
+	}
+
+	if cfg.ImagePreviews.MaxWidth <= 0 {
+		cfg.ImagePreviews.MaxWidth = DefaultImagePreviewMaxWidth
 	}
 }
