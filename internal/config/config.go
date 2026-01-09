@@ -31,6 +31,13 @@ type (
 		OnlyOnPing bool `toml:"only_on_ping"`
 	}
 
+	ImagePreviews struct {
+		Enabled   bool   `toml:"enabled"`
+		Type      string `toml:"type"`       // "auto", "ansi", "sixel", "kitty", "iterm"
+		MaxHeight int    `toml:"max_height"` // Maximum rows for inline images
+		MaxWidth  int    `toml:"max_width"`  // Maximum columns (0 = auto)
+	}
+
 	Config struct {
 		AutoFocus bool   `toml:"auto_focus"`
 		Mouse     bool   `toml:"mouse"`
@@ -48,6 +55,7 @@ type (
 
 		Timestamps    Timestamps    `toml:"timestamps"`
 		Notifications Notifications `toml:"notifications"`
+		ImagePreviews ImagePreviews `toml:"image_previews"`
 
 		Keys  Keys  `toml:"keys"`
 		Theme Theme `toml:"theme"`

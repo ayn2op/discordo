@@ -7,6 +7,7 @@ import (
 	"github.com/ayn2op/discordo/internal/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/consts"
+	"github.com/ayn2op/discordo/internal/media"
 	"github.com/ayn2op/discordo/internal/ui/chat"
 	"github.com/ayn2op/discordo/internal/ui/login"
 	"github.com/ayn2op/tview"
@@ -35,6 +36,20 @@ func New(cfg *config.Config) *App {
 }
 
 func (a *App) Run(token string) error {
+	switch a.cfg.ImagePreviews.Type {
+	case "kitty":
+		media.SetProtocol(media.ProtoKitty)
+	case "sixel":
+		media.SetProtocol(media.ProtoSixel)
+	case "iterm":
+		media.SetProtocol(media.ProtoIterm)
+	case "ascii", "ansi":
+		media.SetProtocol(media.ProtoAnsi)
+	}
+
+	proto := media.DetectProtocol()
+	slog.Info("Detected terminal image protocol", "protocol", proto.String())
+
 	screen, err := tcell.NewScreen()
 	if err != nil {
 		return fmt.Errorf("failed to create screen: %w", err)

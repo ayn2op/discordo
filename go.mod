@@ -5,6 +5,7 @@ go 1.25.3
 // replace github.com/ayn2op/tview => ../tview
 
 require (
+	github.com/BourgeoisBear/rasterm v1.1.2
 	github.com/BurntSushi/toml v1.6.0
 	github.com/andybalholm/brotli v1.2.0
 	github.com/ayn2op/tview v0.0.0-20260101010523-86777f12b159
@@ -24,6 +25,8 @@ require (
 	github.com/yuin/goldmark v1.7.13
 	github.com/zalando/go-keyring v0.2.6
 	golang.design/x/clipboard v0.7.1
+	golang.org/x/image v0.34.0
+	golang.org/x/sys v0.39.0
 )
 
 require (
@@ -50,9 +53,7 @@ require (
 	github.com/twmb/murmur3 v1.1.8 // indirect
 	go4.org v0.0.0-20230225012048-214862532bf5 // indirect
 	golang.org/x/exp/shiny v0.0.0-20251219203646-944ab1f22d93 // indirect
-	golang.org/x/image v0.34.0 // indirect
 	golang.org/x/mobile v0.0.0-20251209145715-2553ed8ce294 // indirect
-	golang.org/x/sys v0.39.0 // indirect
 	golang.org/x/term v0.38.0 // indirect
 	golang.org/x/text v0.32.0 // indirect
 	golang.org/x/time v0.14.0 // indirect

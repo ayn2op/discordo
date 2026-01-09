@@ -35,6 +35,18 @@ duration = 0
 enabled = true
 only_on_ping = true
 
+[image_previews]
+# Enable inline image previews in messages
+enabled = false
+# Rendering type: "auto", "ansi", "sixel", "kitty", "iterm"
+# "auto" detects terminal capabilities and uses best available
+# "ansi" uses half-block characters (works everywhere)
+type = "auto"
+# Maximum height in terminal rows (each row = 2 image pixels for half-blocks)
+max_height = 10
+# Maximum width in terminal columns (0 = auto-fit to message area)
+max_width = 40
+
 # Global shortcuts
 # Esc: Reset message selection or close the channel selection popup.
 [keys]

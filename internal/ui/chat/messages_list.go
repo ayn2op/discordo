@@ -4,6 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"image"
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
 	"io"
 	"log/slog"
 	"net/http"
@@ -18,6 +22,7 @@ import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/markdown"
+	"github.com/ayn2op/discordo/internal/media"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
 	"github.com/diamondburned/arikawa/v3/api"
@@ -31,7 +36,20 @@ import (
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/text"
+	"golang.org/x/image/draw"
 )
+
+type ImageCacheEntry struct {
+	ID     uint32
+	Width  int
+	Height int
+	Loaded bool
+	Failed bool
+}
+
+var imageHTTPClient = &http.Client{
+	Timeout: 30 * time.Second,
+}
 
 type messagesList struct {
 	*tview.TextView
@@ -47,14 +65,18 @@ type messagesList struct {
 		count uint
 		done  chan struct{}
 	}
+
+	imageCache   map[string]ImageCacheEntry
+	imageCacheMu sync.RWMutex
 }
 
 func newMessagesList(cfg *config.Config, chatView *View) *messagesList {
 	ml := &messagesList{
-		TextView: tview.NewTextView(),
-		cfg:      cfg,
-		chatView: chatView,
-		renderer: markdown.NewRenderer(cfg.Theme.MessagesList),
+		TextView:   tview.NewTextView(),
+		cfg:        cfg,
+		chatView:   chatView,
+		renderer:   markdown.NewRenderer(cfg.Theme.MessagesList),
+		imageCache: make(map[string]ImageCacheEntry),
 	}
 
 	ml.Box = ui.ConfigureBox(ml.Box, &cfg.Theme)
@@ -71,10 +93,39 @@ func newMessagesList(cfg *config.Config, chatView *View) *messagesList {
 
 func (ml *messagesList) reset() {
 	ml.selectedMessageID = 0
+	ml.clearImageCache()
 	ml.
 		Clear().
 		Highlight().
 		SetTitle("")
+}
+
+func (ml *messagesList) clearImageCache() {
+	ml.imageCacheMu.Lock()
+	ml.imageCache = make(map[string]ImageCacheEntry)
+	ml.imageCacheMu.Unlock()
+	media.GlobalImageManager.ClearAll()
+}
+
+func (ml *messagesList) Draw(screen tcell.Screen) {
+	ml.TextView.Draw(screen)
+
+	if !ml.cfg.ImagePreviews.Enabled {
+		return
+	}
+
+	proto := media.DetectProtocol()
+	if proto == media.ProtoFallback {
+		return
+	}
+
+	x, y, w, h := ml.GetInnerRect()
+	if w <= 0 || h <= 0 {
+		return
+	}
+
+	media.GlobalImageManager.ClearScreen(screen)
+	media.GlobalImageManager.ScanAndDraw(screen, x, y, w, h)
 }
 
 func (ml *messagesList) setTitle(channel discord.Channel) {
@@ -200,6 +251,34 @@ func (ml *messagesList) drawDefaultMessage(w io.Writer, message discord.Message)
 	for _, a := range message.Attachments {
 		fmt.Fprintln(w)
 
+		if ml.cfg.ImagePreviews.Enabled && strings.HasPrefix(a.ContentType, "image/") && media.DetectProtocol() != media.ProtoFallback {
+			ml.imageCacheMu.RLock()
+			entry, ok := ml.imageCache[a.URL]
+			ml.imageCacheMu.RUnlock()
+
+			if ok {
+				if entry.Failed {
+					fg := ml.cfg.Theme.MessagesList.AttachmentStyle.GetForeground()
+					bg := ml.cfg.Theme.MessagesList.AttachmentStyle.GetBackground()
+					fmt.Fprintf(w, "[%s:%s][Failed to load image: %s][-:-]\n", fg, bg, a.Filename)
+				} else if entry.Loaded {
+					fmt.Fprintf(w, "[#%06x] [:-]\n", entry.ID)
+					for r := 1; r < entry.Height; r++ {
+						fmt.Fprintln(w)
+					}
+				} else {
+					fmt.Fprint(w, "[Loading image...]\n")
+				}
+			} else {
+				fmt.Fprint(w, "[Loading image...]\n")
+				ml.imageCacheMu.Lock()
+				ml.imageCache[a.URL] = ImageCacheEntry{Loaded: false}
+				ml.imageCacheMu.Unlock()
+				go ml.downloadImage(a.URL)
+			}
+			continue
+		}
+
 		fg := ml.cfg.Theme.MessagesList.AttachmentStyle.GetForeground()
 		bg := ml.cfg.Theme.MessagesList.AttachmentStyle.GetBackground()
 		if ml.cfg.ShowAttachmentLinks {
@@ -207,6 +286,109 @@ func (ml *messagesList) drawDefaultMessage(w io.Writer, message discord.Message)
 		} else {
 			fmt.Fprintf(w, "[%s:%s]%s[-:-]", fg, bg, a.Filename)
 		}
+	}
+}
+
+func (ml *messagesList) downloadImage(url string) {
+	markFailed := func() {
+		ml.imageCacheMu.Lock()
+		ml.imageCache[url] = ImageCacheEntry{Failed: true}
+		ml.imageCacheMu.Unlock()
+		ml.chatView.app.QueueUpdateDraw(func() {
+			ml.reDraw()
+		})
+	}
+
+	resp, err := imageHTTPClient.Get(url)
+	if err != nil {
+		slog.Error("failed to download image", "err", err)
+		markFailed()
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		slog.Error("failed to download image", "status", resp.StatusCode, "url", url)
+		markFailed()
+		return
+	}
+
+	img, _, err := image.Decode(resp.Body)
+	if err != nil {
+		slog.Error("failed to decode image", "err", err)
+		markFailed()
+		return
+	}
+
+	cellW, cellH := media.GetCellSize()
+
+	maxW := ml.cfg.ImagePreviews.MaxWidth
+	if maxW <= 0 {
+		maxW = 60
+	}
+	maxH := ml.cfg.ImagePreviews.MaxHeight
+	if maxH <= 0 {
+		maxH = 15
+	}
+
+	targetWPixels := maxW * cellW
+
+	bounds := img.Bounds()
+	scale := float64(targetWPixels) / float64(bounds.Dx())
+	if scale > 1 {
+		scale = 1
+	}
+
+	newW := int(float64(bounds.Dx()) * scale)
+	newH := int(float64(bounds.Dy()) * scale)
+
+	dst := image.NewRGBA(image.Rect(0, 0, newW, newH))
+	draw.CatmullRom.Scale(dst, dst.Bounds(), img, bounds, draw.Over, nil)
+
+	h := newH / cellH
+	if h < 1 {
+		h = 1
+	}
+	if h > maxH {
+		h = maxH
+	}
+	w := maxW
+
+	id := media.GlobalImageManager.Register(url, w, h)
+	media.GlobalImageManager.SetImage(id, dst)
+
+	ml.imageCacheMu.Lock()
+	ml.imageCache[url] = ImageCacheEntry{
+		ID:     id,
+		Width:  w,
+		Height: h,
+		Loaded: true,
+	}
+	ml.imageCacheMu.Unlock()
+
+	ml.chatView.app.QueueUpdateDraw(func() {
+		ml.reDraw()
+	})
+}
+
+func (ml *messagesList) reDraw() {
+	selected := ml.chatView.SelectedChannel()
+	if selected == nil {
+		return
+	}
+	messages, err := ml.chatView.state.Cabinet.Messages(selected.ID)
+	if err != nil {
+		return
+	}
+
+	title := ml.GetTitle()
+	ml.Clear()
+	ml.drawMessages(messages)
+	ml.SetTitle(title)
+
+	if ml.selectedMessageID.IsValid() {
+		ml.Highlight(ml.selectedMessageID.String())
+		ml.ScrollToHighlight()
 	}
 }
 
@@ -423,12 +605,7 @@ func (ml *messagesList) open() {
 		if len(urls) == 1 {
 			go ml.openURL(urls[0])
 		} else {
-			attachment := msg.Attachments[0]
-			if strings.HasPrefix(attachment.ContentType, "image/") {
-				go ml.openAttachment(msg.Attachments[0])
-			} else {
-				go ml.openURL(attachment.URL)
-			}
+			go ml.openAttachment(msg.Attachments[0])
 		}
 	} else {
 		ml.showAttachmentsList(urls, msg.Attachments)
@@ -486,11 +663,7 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 
 	for i, a := range attachments {
 		list.AddItem(a.Filename, "", rune('a'+i), func() {
-			if strings.HasPrefix(a.ContentType, "image/") {
-				go ml.openAttachment(a)
-			} else {
-				go ml.openURL(a.URL)
-			}
+			go ml.openAttachment(a)
 		})
 	}
 
