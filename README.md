@@ -48,13 +48,13 @@ go build .
 
 ## Usage
 
-### Password
+### Token (UI)
 
 1. Run the `discordo` executable with no arguments.
 
-2. Enter your email and password and click on the "Login" button to continue.
+2. Enter your token and click on the "Login" button to save it.
 
-### Token
+### Token (CLI)
 
 Provide the `token` command-line flag to the executable. 
 
@@ -63,9 +63,6 @@ discordo --token "OTI2MDU5NTQxNDE2Nzc5ODA2.Yc2KKA.2iZ-5JxgxG-9Ub8GHzBSn-NJjNg"
 ```
 
 Alternatively, set the value of the `DISCORDO_TOKEN` environment variable to the authentication token.
-
-> [!TIP]
-> You can manually set the token to the keyring using the instructions [here](#manually-adding-token-to-keyring).
 
 ### QR
 
@@ -84,49 +81,6 @@ The configuration file allows you to configure and customize the behavior, keybi
 - Windows: `%AppData%/discordo/config.toml`
 
 Discordo uses the default configuration if a configuration file is not found in the aforementioned path; however, the default configuration file is not written to the path. [The default configuration can be found here](./internal/config/config.toml).
-
-## FAQ
-
-### Manually adding token to keyring
-
-Do this if you get the error:
-
-> failed to get token from keyring: secret not found in keyring
-
-#### Windows
-
-Run the following command in a terminal window. Replace `YOUR_DISCORD_TOKEN` with your authentication token.
-
-```sh
-cmdkey /add:discordo /user:token /pass:YOUR_DISCORD_TOKEN
-```
-
-#### MacOS
-
-Run the following command in a terminal window. Replace `YOUR_DISCORD_TOKEN` with your authentication token.
-
-```sh
-security add-generic-password -s discordo -a token -w "YOUR_DISCORD_TOKEN"
-```
-
-#### Linux
-
-1. Start the keyring daemon.
-
-```sh
-eval $(gnome-keyring-daemon --start)
-export $(gnome-keyring-daemon --start)
-```
-
-2. Create the `login` keyring if it does not exist already. See [GNOME/Keyring](https://wiki.archlinux.org/title/GNOME/Keyring) for more information.
-
-3. Run the following command to create the `token` entry.
-
-```sh
-secret-tool store --label="Discord Token" service discordo username token
-```
-
-4. When it prompts for the password, paste your token, and hit enter to confirm.
 
 > [!IMPORTANT]
 > Automated user accounts or "self-bots" are against Discord's Terms of Service. I am not responsible for any loss caused by using "self-bots" or Discordo.
