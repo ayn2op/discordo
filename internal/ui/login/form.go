@@ -5,11 +5,9 @@ import (
 	"log/slog"
 
 	"github.com/ayn2op/discordo/internal/config"
-	"github.com/ayn2op/discordo/internal/http"
 	"github.com/ayn2op/discordo/internal/keyring"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
-	"github.com/diamondburned/arikawa/v3/api"
 	"golang.design/x/clipboard"
 )
 
@@ -39,9 +37,7 @@ func NewForm(app *tview.Application, cfg *config.Config, done DoneFn) *Form {
 	}
 
 	f.form.
-		AddInputField("Email", "", 0, nil).
-		AddPasswordField("Password", "", 0, 0, nil).
-		AddPasswordField("Code (optional)", "", 0, 0, nil).
+		AddPasswordField("Token", "", 0, 0, nil).
 		AddButton("Login", f.login).
 		AddButton("Login with QR", f.loginWithQR)
 	f.AddAndSwitchToPage(formPageName, f.form, true)
@@ -49,57 +45,16 @@ func NewForm(app *tview.Application, cfg *config.Config, done DoneFn) *Form {
 }
 
 func (f *Form) login() {
-	email := f.form.GetFormItem(0).(*tview.InputField).GetText()
-	password := f.form.GetFormItem(1).(*tview.InputField).GetText()
-	if email == "" || password == "" {
+	token := f.form.GetFormItem(0).(*tview.InputField).GetText()
+	if token == "" {
+		f.onError(errors.New("token required"))
 		return
 	}
 
-	// Create an API client without an authentication token.
-	client := api.NewClient("")
-	props := http.IdentifyProperties()
-	if browserUserAgent, ok := props["browser_user_agent"]; ok {
-		if val, ok := browserUserAgent.(string); ok {
-			api.UserAgent = val
-		}
-	}
-
-	resp, err := client.Login(email, password)
-	if err != nil {
-		f.onError(err)
-		return
-	}
-
-	if resp.MFA {
-		switch {
-		case resp.TOTP:
-			code := f.form.GetFormItem(2).(*tview.InputField).GetText()
-			if code == "" {
-				f.onError(errors.New("code required"))
-				return
-			}
-
-			// Attempt to login using the code.
-			resp, err = client.TOTP(code, resp.Ticket)
-			if err != nil {
-				f.onError(err)
-				return
-			}
-		default:
-			f.onError(errors.New("unsupported mfa type"))
-			return
-		}
-	}
-
-	if resp.Token == "" {
-		f.onError(errors.New("missing token"))
-		return
-	}
-
-	go keyring.SetToken(resp.Token)
+	go keyring.SetToken(token)
 
 	if f.done != nil {
-		f.done(resp.Token)
+		f.done(token)
 	}
 }
 
