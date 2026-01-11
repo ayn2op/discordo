@@ -3,6 +3,7 @@ package form
 import (
 	"strings"
 
+	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -11,6 +12,8 @@ import (
 const maxInputWidth = 60
 
 type Model struct {
+	KeyMap KeyMap
+
 	inputs []textinput.Model
 	active int
 	width  int
@@ -30,6 +33,10 @@ func (m *Model) Init() tea.Cmd {
 }
 
 func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
+	if len(m.inputs) == 0 {
+		return m, nil
+	}
+
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
@@ -38,17 +45,12 @@ func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 			m.inputs[i].SetWidth(width)
 		}
 	case tea.KeyMsg:
-		if len(m.inputs) > 0 {
-			switch msg.String() {
-			case "tab":
-				if m.active < len(m.inputs)-1 {
-					m.active++
-				}
-			case "shift+tab":
-				if m.active > 0 {
-					m.active--
-				}
-			}
+		k := msg.Key()
+		switch {
+		case key.Matches(k, m.KeyMap.Previous):
+			m.active = max(m.active-1, 0)
+		case key.Matches(k, m.KeyMap.Next):
+			m.active = min(m.active+1, len(m.inputs)-1)
 		}
 	}
 
@@ -81,6 +83,5 @@ func (m *Model) View() tea.View {
 		lipgloss.Center, lipgloss.Center,
 		form,
 	)
-
 	return tea.NewView(centered)
 }
