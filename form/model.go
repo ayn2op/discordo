@@ -21,7 +21,10 @@ type Model struct {
 }
 
 func NewModel(inputs []textinput.Model) *Model {
-	return &Model{inputs: inputs}
+	return &Model{
+		KeyMap: DefaultKeyMap(),
+		inputs: inputs,
+	}
 }
 
 func (m *Model) Init() tea.Cmd {
