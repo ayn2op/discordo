@@ -6,31 +6,31 @@ import (
 )
 
 type TokenModel struct {
-	input textinput.Model
+	form *FormModel
 }
 
-func newTokenModel() *TokenModel {
+func newTokenModel() TokenModel {
 	input := textinput.New()
 	input.Placeholder = "Token"
 	input.EchoMode = textinput.EchoPassword
-	input.Focus()
-	return &TokenModel{
-		input: input,
+
+	return TokenModel{
+		form: newFormModel([]textinput.Model{input}),
 	}
 }
 
 var _ tea.Model = TokenModel{}
 
 func (m TokenModel) Init() tea.Cmd {
-	return m.input.Focus()
+	return m.form.Init()
 }
 
 func (m TokenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
-	m.input, cmd = m.input.Update(msg)
+	m.form, cmd = m.form.Update(msg)
 	return m, cmd
 }
 
 func (m TokenModel) View() tea.View {
-	return tea.NewView(m.input.View())
+	return m.form.View()
 }

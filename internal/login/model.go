@@ -37,14 +37,14 @@ func (l stackedLayer) Draw(scr tea.Screen, area tea.Rectangle) {
 }
 
 type Model struct {
-	tabs   []tab
+	tabs   []*tab
 	active int
 	keys   keys
 }
 
 func NewModel() Model {
 	return Model{
-		tabs: []tab{
+		tabs: []*tab{
 			{"Token", newTokenModel()},
 			{"Password", newPasswordModel()},
 			{"QR", newQRModel()},
@@ -56,7 +56,11 @@ func NewModel() Model {
 var _ tea.Model = Model{}
 
 func (m Model) Init() tea.Cmd {
-	return nil
+	if m.active >= len(m.tabs) {
+		return nil
+	}
+
+	return m.tabs[m.active].model.Init()
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -66,16 +70,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch {
 		case key.Matches(k, m.keys.Previous):
 			m.active = max(m.active-1, 0)
+			return m, m.tabs[m.active].model.Init()
 		case key.Matches(k, m.keys.Next):
 			m.active = min(m.active+1, len(m.tabs)-1)
+			return m, m.tabs[m.active].model.Init()
 		}
+
 	}
 
 	var cmd tea.Cmd
-	tab := m.tabs[m.active]
-	tab.model, cmd = tab.model.Update(msg)
-	m.tabs[m.active] = tab
-	return m, cmd
+	m.tabs[m.active].model, cmd = m.tabs[m.active].model.Update(msg)
+	return m, tea.Batch(cmd)
 }
 
 func (m Model) View() tea.View {
