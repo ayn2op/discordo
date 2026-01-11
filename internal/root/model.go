@@ -31,8 +31,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 
-	case TokenMsg:
-		if msg.err != nil {
+	case login.TokenMsg:
+		if msg.Err != nil {
 			m.model = login.NewModel(m.cfg)
 		} else {
 			m.model = chat.NewModel(m.cfg, msg.Value)
