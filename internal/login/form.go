@@ -22,8 +22,8 @@ func newFormModel(inputs []textinput.Model) *FormModel {
 }
 
 func (m *FormModel) Init() tea.Cmd {
-	if m.active >= len(m.inputs) {
-		m.active = len(m.inputs) - 1
+	for i := range m.inputs {
+		m.inputs[i].SetValue("")
 	}
 
 	return tea.RequestWindowSize
