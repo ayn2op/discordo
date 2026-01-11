@@ -35,5 +35,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) View() tea.View {
-	return m.tabs.View()
+	view := m.tabs.View()
+	view.WindowTitle = "Login"
+	return view
 }
