@@ -46,10 +46,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Model) View() tea.View {
 	view := tea.NewView("Loading...")
-	view.WindowTitle = consts.Name
 
 	if m.model != nil {
 		view = m.model.View()
+	}
+
+	if view.WindowTitle != "" {
+		view.WindowTitle += " - " + consts.Name
+	} else {
+		view.WindowTitle = consts.Name
 	}
 
 	view.AltScreen = true
