@@ -6,11 +6,12 @@ import (
 )
 
 type Model struct {
-	cfg *config.Config
+	cfg   *config.Config
+	token string
 }
 
-func NewModel(cfg *config.Config) Model {
-	return Model{cfg: cfg}
+func NewModel(cfg *config.Config, token string) Model {
+	return Model{cfg: cfg, token: token}
 }
 
 var _ tea.Model = Model{}
@@ -24,5 +25,5 @@ func (m Model) Update(tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) View() tea.View {
-	return tea.NewView("chat")
+	return tea.NewView(m.token)
 }
