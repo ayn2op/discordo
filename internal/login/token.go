@@ -31,6 +31,10 @@ func newTokenModel() TokenModel {
 	}
 }
 
+func (m TokenModel) Name() string {
+	return "Token"
+}
+
 var _ tea.Model = TokenModel{}
 
 func (m TokenModel) Init() tea.Cmd {

@@ -8,7 +8,7 @@ type Styles struct {
 }
 
 func DefaultStyles() Styles {
-	inactiveTabStyle := lipgloss.NewStyle().Padding(0, 1)
+	inactiveTabStyle := lipgloss.NewStyle().Padding(0, 1).Align(lipgloss.Center)
 	return Styles{
 		InactiveTab: inactiveTabStyle,
 		ActiveTab:   inactiveTabStyle.Background(lipgloss.Blue),

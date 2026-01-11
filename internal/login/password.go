@@ -23,6 +23,10 @@ func newPasswordModel() PasswordModel {
 	}
 }
 
+func (m PasswordModel) Name() string {
+	return "Password"
+}
+
 var _ tea.Model = PasswordModel{}
 
 func (m PasswordModel) Init() tea.Cmd {

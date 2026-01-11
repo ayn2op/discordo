@@ -6,13 +6,12 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
-type Tab struct {
-	Name string
+type Tab interface {
+	// Init() tea.Cmd
+	// Update(msg tea.Msg) (tea.Model, tea.Cmd)
+	// View() string
 	tea.Model
-}
-
-func NewTab(name string, model tea.Model) Tab {
-	return Tab{name, model}
+	Name() string
 }
 
 type Model struct {
@@ -56,12 +55,22 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 	}
 
-	var cmd tea.Cmd
-	m.tabs[m.active].Model, cmd = m.tabs[m.active].Update(msg)
+	var (
+		tabModel tea.Model
+		cmd      tea.Cmd
+	)
+	tabModel, cmd = m.tabs[m.active].Update(msg)
+	if tab, ok := tabModel.(Tab); ok {
+		m.tabs[m.active] = tab
+	}
 	return m, cmd
 }
 
 func (m Model) View() tea.View {
+	if len(m.tabs) == 0 {
+		return tea.NewView("")
+	}
+
 	var contentView tea.View
 	names := make([]string, len(m.tabs))
 	for i, t := range m.tabs {
@@ -73,7 +82,7 @@ func (m Model) View() tea.View {
 			style = m.Styles.InactiveTab
 		}
 
-		names[i] = style.Render(t.Name)
+		names[i] = style.Render(t.Name())
 	}
 
 	row := lipgloss.JoinHorizontal(lipgloss.Top, names...)

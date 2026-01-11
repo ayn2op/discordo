@@ -14,9 +14,8 @@ type Model struct {
 func NewModel(cfg *config.Config) Model {
 	return Model{
 		tabs: tabs.NewModel([]tabs.Tab{
-			tabs.NewTab("Token", newTokenModel()),
-			tabs.NewTab("Password", newPasswordModel()),
-			tabs.NewTab("QR", newQRModel()),
+			newTokenModel(),
+			newPasswordModel(),
 		}),
 		cfg: cfg,
 	}
