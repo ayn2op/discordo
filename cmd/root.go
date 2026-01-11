@@ -21,7 +21,7 @@ func Run() error {
 	flag.StringVar(&logLevel, "log-level", "info", "log level")
 	flag.Parse()
 
-	cfg, err := config.Load(config.DefaultPath())
+	cfg, err := config.Load(configPath)
 	if err != nil {
 		return err
 	}
