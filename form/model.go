@@ -12,7 +12,8 @@ import (
 const maxInputWidth = 60
 
 type Model struct {
-	KeyMap KeyMap
+	KeyMap    KeyMap
+	Submitted bool
 
 	inputs []textinput.Model
 	active int
@@ -54,6 +55,12 @@ func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 			m.active = max(m.active-1, 0)
 		case key.Matches(k, m.KeyMap.Next):
 			m.active = min(m.active+1, len(m.inputs)-1)
+		case key.Matches(k, m.KeyMap.Submit):
+			if m.active == len(m.inputs)-1 {
+				if m.inputs[m.active].Value() != "" {
+					m.Submitted = true
+				}
+			}
 		}
 	}
 

@@ -27,6 +27,10 @@ func (m TokenModel) Init() tea.Cmd {
 }
 
 func (m TokenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if m.form.Submitted {
+		panic("unimplemented")
+	}
+
 	var cmd tea.Cmd
 	m.form, cmd = m.form.Update(msg)
 	return m, cmd
