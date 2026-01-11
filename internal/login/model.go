@@ -22,8 +22,14 @@ type stackedLayer struct {
 }
 
 func (l stackedLayer) Draw(scr tea.Screen, area tea.Rectangle) {
-	headerView := tea.NewView(l.header)
-	headerHeight := lipgloss.Height(l.header)
+	width := area.Max.X - area.Min.X
+	header := l.header
+	if width > 0 && header != "" {
+		header = lipgloss.Place(width, lipgloss.Height(header), lipgloss.Center, lipgloss.Top, header)
+	}
+
+	headerView := tea.NewView(header)
+	headerHeight := lipgloss.Height(header)
 	headerArea := area
 	headerArea.Max.Y = min(area.Min.Y+headerHeight, area.Max.Y)
 	headerView.Content.Draw(scr, headerArea)
