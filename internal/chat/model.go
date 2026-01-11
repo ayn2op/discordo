@@ -1,11 +1,16 @@
 package chat
 
-import tea "charm.land/bubbletea/v2"
+import (
+	tea "charm.land/bubbletea/v2"
+	"github.com/ayn2op/discordo/internal/config"
+)
 
-type Model struct{}
+type Model struct {
+	cfg *config.Config
+}
 
-func NewModel() Model {
-	return Model{}
+func NewModel(cfg *config.Config) Model {
+	return Model{cfg: cfg}
 }
 
 var _ tea.Model = Model{}

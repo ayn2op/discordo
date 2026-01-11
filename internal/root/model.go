@@ -3,16 +3,18 @@ package root
 import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/ayn2op/discordo/internal/chat"
+	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/login"
 )
 
 type Model struct {
 	model tea.Model
+	cfg   *config.Config
 }
 
-func NewModel() Model {
-	return Model{}
+func NewModel(cfg *config.Config) Model {
+	return Model{cfg: cfg}
 }
 
 var _ tea.Model = Model{}
@@ -24,15 +26,16 @@ func (m Model) Init() tea.Cmd {
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if msg.String() == "esc" {
+		switch msg.String() {
+		case m.cfg.Keys.Quit:
 			return m, tea.Quit
 		}
 
 	case tokenMsg:
 		if msg.err != nil {
-			m.model = login.NewModel()
+			m.model = login.NewModel(m.cfg)
 		} else {
-			m.model = chat.NewModel()
+			m.model = chat.NewModel(m.cfg)
 		}
 		return m, m.model.Init()
 	}

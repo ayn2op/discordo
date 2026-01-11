@@ -4,6 +4,7 @@ import (
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/ayn2op/discordo/internal/config"
 )
 
 var (
@@ -46,9 +47,10 @@ type Model struct {
 	tabs   []*tab
 	active int
 	keys   keys
+	cfg    *config.Config
 }
 
-func NewModel() Model {
+func NewModel(cfg *config.Config) Model {
 	return Model{
 		tabs: []*tab{
 			{"Token", newTokenModel()},
@@ -56,6 +58,7 @@ func NewModel() Model {
 			{"QR", newQRModel()},
 		},
 		keys: defaultKeys(),
+		cfg:  cfg,
 	}
 }
 
