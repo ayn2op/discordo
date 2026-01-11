@@ -26,7 +26,12 @@ func Run() error {
 		return err
 	}
 
-	p := tea.NewProgram(root.NewModel(cfg))
+	input, output, err := tea.OpenTTY()
+	if err != nil {
+		return err
+	}
+
+	p := tea.NewProgram(root.NewModel(cfg), tea.WithInput(input), tea.WithOutput(output))
 	_, err = p.Run()
 	return err
 }
