@@ -1,4 +1,4 @@
-package login
+package form
 
 import (
 	"strings"
@@ -8,20 +8,20 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
-type FormModel struct {
+const maxInputWidth = 60
+
+type Model struct {
 	inputs []textinput.Model
 	active int
 	width  int
 	height int
 }
 
-const maxInputWidth = 60
-
-func newFormModel(inputs []textinput.Model) *FormModel {
-	return &FormModel{inputs: inputs}
+func NewModel(inputs []textinput.Model) *Model {
+	return &Model{inputs: inputs}
 }
 
-func (m *FormModel) Init() tea.Cmd {
+func (m *Model) Init() tea.Cmd {
 	for i := range m.inputs {
 		m.inputs[i].SetValue("")
 	}
@@ -29,15 +29,13 @@ func (m *FormModel) Init() tea.Cmd {
 	return tea.RequestWindowSize
 }
 
-func (m *FormModel) Update(msg tea.Msg) (*FormModel, tea.Cmd) {
+func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
 		width := min(msg.Width, maxInputWidth)
-		if width > 0 {
-			for i := range m.inputs {
-				m.inputs[i].SetWidth(width)
-			}
+		for i := range m.inputs {
+			m.inputs[i].SetWidth(width)
 		}
 	case tea.KeyMsg:
 		if len(m.inputs) > 0 {
@@ -71,7 +69,7 @@ func (m *FormModel) Update(msg tea.Msg) (*FormModel, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func (m *FormModel) View() tea.View {
+func (m *Model) View() tea.View {
 	views := make([]string, len(m.inputs))
 	for i, input := range m.inputs {
 		views[i] = input.View()

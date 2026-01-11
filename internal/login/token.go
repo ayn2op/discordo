@@ -3,10 +3,11 @@ package login
 import (
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
+	"github.com/ayn2op/discordo/form"
 )
 
 type TokenModel struct {
-	form *FormModel
+	form *form.Model
 }
 
 func newTokenModel() TokenModel {
@@ -15,7 +16,7 @@ func newTokenModel() TokenModel {
 	input.EchoMode = textinput.EchoPassword
 
 	return TokenModel{
-		form: newFormModel([]textinput.Model{input}),
+		form: form.NewModel([]textinput.Model{input}),
 	}
 }
 
