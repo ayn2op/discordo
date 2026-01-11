@@ -28,6 +28,10 @@ func NewModel(inputs []textinput.Model) *Model {
 	}
 }
 
+func (m *Model) Get(index int) textinput.Model {
+	return m.inputs[index]
+}
+
 func (m *Model) Init() tea.Cmd {
 	for i := range m.inputs {
 		m.inputs[i].SetValue("")
