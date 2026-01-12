@@ -3,7 +3,7 @@ package login
 import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/ayn2op/discordo/internal/config"
-	"github.com/ayn2op/discordo/tabs"
+	"github.com/ayn2op/discordo/pkg/tabs"
 )
 
 type Model struct {

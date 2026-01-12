@@ -3,7 +3,7 @@ package login
 import (
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
-	"github.com/ayn2op/discordo/form"
+	"github.com/ayn2op/discordo/pkg/form"
 )
 
 type PasswordModel struct {
