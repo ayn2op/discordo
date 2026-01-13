@@ -11,7 +11,7 @@ require (
 	github.com/deckarep/gosx-notifier v0.0.0-20180201035817-e127226297fb
 	github.com/diamondburned/arikawa/v3 v3.6.1-0.20250928004212-a891a653eb26
 	github.com/diamondburned/ningen/v3 v3.0.1-0.20250920191746-98fbd92e134d
-	github.com/gdamore/tcell/v3 v3.1.0
+	github.com/gdamore/tcell/v3 v3.1.1
 	github.com/gen2brain/beeep v0.11.2
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0
@@ -48,10 +48,10 @@ require (
 	github.com/sergeymakinen/go-ico v1.0.0 // indirect
 	github.com/tadvi/systray v0.0.0-20190226123456-11a2b8fa57af // indirect
 	github.com/twmb/murmur3 v1.1.8 // indirect
-	go4.org v0.0.0-20230225012048-214862532bf5 // indirect
-	golang.org/x/exp/shiny v0.0.0-20251219203646-944ab1f22d93 // indirect
-	golang.org/x/image v0.34.0 // indirect
-	golang.org/x/mobile v0.0.0-20251209145715-2553ed8ce294 // indirect
+	go4.org v0.0.0-20260112195520-a5071408f32f // indirect
+	golang.org/x/exp/shiny v0.0.0-20260112195511-716be5621a96 // indirect
+	golang.org/x/image v0.35.0 // indirect
+	golang.org/x/mobile v0.0.0-20260112195712-5b9ecdfb8721 // indirect
 	golang.org/x/sys v0.40.0 // indirect
 	golang.org/x/term v0.39.0 // indirect
 	golang.org/x/text v0.33.0 // indirect
