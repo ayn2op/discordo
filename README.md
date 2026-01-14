@@ -48,23 +48,21 @@ go build .
 
 ## Usage
 
-### Token (UI)
+### Token (UI, recommended)
 
 1. Run the `discordo` executable with no arguments.
 
 2. Enter your token and click on the "Login" button to save it.
 
-### Token (CLI)
+### Token (environment variable)
 
-Provide the `token` command-line flag to the executable. 
+Set the value of the `DISCORDO_TOKEN` environment variable to the authentication token to log in with.
 
 ```sh
-discordo --token "OTI2MDU5NTQxNDE2Nzc5ODA2.Yc2KKA.2iZ-5JxgxG-9Ub8GHzBSn-NJjNg"
+DISCORDO_TOKEN="OTI2MDU5NTQxNDE2Nzc5ODA2.Yc2KKA.2iZ-5JxgxG-9Ub8GHzBSn-NJjNg" discordo
 ```
 
-Alternatively, set the value of the `DISCORDO_TOKEN` environment variable to the authentication token.
-
-### QR
+### QR (UI)
 
 1. Run the `discordo` executable with no arguments.
 

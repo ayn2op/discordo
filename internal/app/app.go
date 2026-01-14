@@ -3,10 +3,12 @@ package app
 import (
 	"fmt"
 	"log/slog"
+	"os"
 
 	"github.com/ayn2op/discordo/internal/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/consts"
+	"github.com/ayn2op/discordo/internal/keyring"
 	"github.com/ayn2op/discordo/internal/ui/chat"
 	"github.com/ayn2op/discordo/internal/ui/login"
 	"github.com/ayn2op/tview"
@@ -34,7 +36,16 @@ func New(cfg *config.Config) *App {
 	return app
 }
 
-func (a *App) Run(token string) error {
+func (a *App) Run() error {
+	token := os.Getenv("DISCORDO_TOKEN")
+	if token == "" {
+		t, err := keyring.GetToken()
+		if err != nil {
+			slog.Info("failed to retrieve token from keyring", "err", err)
+		}
+		token = t
+	}
+
 	screen, err := tcell.NewScreen()
 	if err != nil {
 		return fmt.Errorf("failed to create screen: %w", err)
