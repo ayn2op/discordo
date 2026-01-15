@@ -18,7 +18,7 @@ import (
 
 type guildsTree struct {
 	*tview.TreeView
-	cfg  *config.Config
+	cfg      *config.Config
 	chatView *View
 }
 
@@ -213,6 +213,8 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 		}
 
 		gt.chatView.SetSelectedChannel(channel)
+		gt.chatView.clearTypers()
+		gt.chatView.messageInput.stopTypingTimer()
 
 		gt.chatView.messagesList.reset()
 		gt.chatView.messagesList.setTitle(*channel)

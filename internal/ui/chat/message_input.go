@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 	"unicode"
 
@@ -47,6 +48,9 @@ type messageInput struct {
 	cache           *cache.Cache
 	mentionsList    *tview.List
 	lastSearch      time.Time
+
+	typingTimerMu sync.Mutex
+	typingTimer   *time.Timer
 }
 
 func newMessageInput(cfg *config.Config, chatView *View) *messageInput {
@@ -89,6 +93,13 @@ func (mi *messageInput) reset() {
 	mi.SetText("", true)
 }
 
+func (mi *messageInput) stopTypingTimer() {
+	if mi.typingTimer != nil {
+		mi.typingTimer.Stop()
+		mi.typingTimer = nil
+	}
+}
+
 func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case mi.cfg.Keys.MessageInput.Paste:
@@ -122,6 +133,18 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	case mi.cfg.Keys.MessageInput.TabComplete:
 		go mi.chatView.app.QueueUpdateDraw(func() { mi.tabComplete() })
 		return nil
+	default:
+		if mi.cfg.TypingIndicator.Send && mi.typingTimer == nil {
+			mi.typingTimer = time.AfterFunc(typingDuration, func() {
+				mi.typingTimerMu.Lock()
+				mi.typingTimer = nil
+				mi.typingTimerMu.Unlock()
+			})
+
+			if selectedChannel := mi.chatView.SelectedChannel(); selectedChannel != nil {
+				go mi.chatView.state.Typing(selectedChannel.ID)
+			}
+		}
 	}
 
 	if mi.cfg.AutocompleteLimit > 0 {
@@ -192,6 +215,10 @@ func (mi *messageInput) send() {
 		}
 	}
 
+	if mi.typingTimer != nil {
+		mi.typingTimer.Stop()
+		mi.typingTimer = nil
+	}
 	mi.reset()
 	mi.chatView.messagesList.Highlight()
 	mi.chatView.messagesList.ScrollToEnd()

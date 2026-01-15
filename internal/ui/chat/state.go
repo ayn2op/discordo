@@ -40,6 +40,10 @@ func (v *View) OpenState(token string) error {
 	v.state.AddHandler(v.onGuildMembersChunk)
 	v.state.AddHandler(v.onGuildMemberRemove)
 
+	if v.cfg.TypingIndicator.Receive {
+		v.state.AddHandler(v.onTypingStart)
+	}
+
 	v.state.StateLog = func(err error) {
 		slog.Error("state log", "err", err)
 	}
@@ -70,4 +74,27 @@ func (v *View) onRaw(event *ws.RawEvent) {
 		"type", event.OriginalType,
 		// "data", event.Raw,
 	)
+}
+
+func (v *View) onTypingStart(event *gateway.TypingStartEvent) {
+	selectedChannel := v.SelectedChannel()
+	if selectedChannel == nil {
+		return
+	}
+
+	if selectedChannel.ID != event.ChannelID {
+		return
+	}
+
+	me, err := v.state.Cabinet.Me()
+	if err != nil {
+		slog.Error("failed to get me from state", "err", err)
+		return
+	}
+
+	if event.UserID == me.ID {
+		return
+	}
+
+	v.addTyper(event.UserID)
 }

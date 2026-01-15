@@ -31,6 +31,11 @@ type (
 		OnlyOnPing bool `toml:"only_on_ping"`
 	}
 
+	TypingIndicator struct {
+		Send    bool `toml:"send"`
+		Receive bool `toml:"receive"`
+	}
+
 	Config struct {
 		AutoFocus bool   `toml:"auto_focus"`
 		Mouse     bool   `toml:"mouse"`
@@ -46,8 +51,9 @@ type (
 		AutocompleteLimit uint8 `toml:"autocomplete_limit"`
 		MessagesLimit     uint8 `toml:"messages_limit"`
 
-		Timestamps    Timestamps    `toml:"timestamps"`
-		Notifications Notifications `toml:"notifications"`
+		Timestamps      Timestamps      `toml:"timestamps"`
+		Notifications   Notifications   `toml:"notifications"`
+		TypingIndicator TypingIndicator `toml:"typing_indicator"`
 
 		Keys  Keys  `toml:"keys"`
 		Theme Theme `toml:"theme"`

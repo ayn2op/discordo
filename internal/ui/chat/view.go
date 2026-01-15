@@ -1,8 +1,10 @@
 package chat
 
 import (
+	"fmt"
 	"log/slog"
 	"sync"
+	"time"
 
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/keyring"
@@ -15,6 +17,8 @@ import (
 	"github.com/diamondburned/ningen/v3/states/read"
 	"github.com/gdamore/tcell/v3"
 )
+
+const typingDuration = 10 * time.Second
 
 const (
 	flexPageName            = "flex"
@@ -36,6 +40,9 @@ type View struct {
 	selectedChannel   *discord.Channel
 	selectedChannelMu sync.RWMutex
 
+	typersMu sync.RWMutex
+	typers   map[discord.UserID]*time.Timer
+
 	app   *tview.Application
 	cfg   *config.Config
 	state *ningen.State
@@ -49,6 +56,8 @@ func NewView(app *tview.Application, cfg *config.Config, onLogout func()) *View 
 
 		mainFlex:  tview.NewFlex(),
 		rightFlex: tview.NewFlex(),
+
+		typers: make(map[discord.UserID]*time.Timer),
 
 		app:      app,
 		cfg:      cfg,
@@ -277,13 +286,15 @@ func (v *View) onReady(r *gateway.ReadyEvent) {
 }
 
 func (v *View) onMessageCreate(message *gateway.MessageCreateEvent) {
-	if selected := v.SelectedChannel(); selected != nil && selected.ID == message.ChannelID {
+	selectedChannel := v.SelectedChannel()
+	if selectedChannel != nil && selectedChannel.ID == message.ChannelID {
+		v.removeTyper(message.Author.ID)
 		v.messagesList.drawMessage(v.messagesList, message.Message)
 		v.app.Draw()
-	}
-
-	if err := notifications.Notify(v.state, message, v.cfg); err != nil {
-		slog.Error("failed to notify", "err", err, "channel_id", message.ChannelID, "message_id", message.ID)
+	} else {
+		if err := notifications.Notify(v.state, message, v.cfg); err != nil {
+			slog.Error("failed to notify", "err", err, "channel_id", message.ChannelID, "message_id", message.ID)
+		}
 	}
 }
 
@@ -313,4 +324,94 @@ func (v *View) onGuildMembersChunk(event *gateway.GuildMembersChunkEvent) {
 
 func (v *View) onGuildMemberRemove(event *gateway.GuildMemberRemoveEvent) {
 	v.messageInput.cache.Invalidate(event.GuildID.String()+" "+event.User.Username, v.state.MemberState.SearchLimit)
+}
+
+func (v *View) clearTypers() {
+	v.typersMu.Lock()
+	for _, timer := range v.typers {
+		timer.Stop()
+	}
+	clear(v.typers)
+	v.typersMu.Unlock()
+	v.updateFooter()
+}
+
+func (v *View) addTyper(userID discord.UserID) {
+	v.typersMu.Lock()
+	typer, ok := v.typers[userID]
+	if ok {
+		typer.Reset(typingDuration)
+	} else {
+		v.typers[userID] = time.AfterFunc(typingDuration, func() {
+			v.removeTyper(userID)
+		})
+	}
+	v.typersMu.Unlock()
+	v.updateFooter()
+}
+
+func (v *View) removeTyper(userID discord.UserID) {
+	v.typersMu.Lock()
+	if typer, ok := v.typers[userID]; ok {
+		typer.Stop()
+		delete(v.typers, userID)
+	}
+	v.typersMu.Unlock()
+	v.updateFooter()
+}
+
+func (v *View) updateFooter() {
+	selectedChannel := v.SelectedChannel()
+	if selectedChannel == nil {
+		return
+	}
+	guildID := selectedChannel.GuildID
+
+	v.typersMu.RLock()
+	defer v.typersMu.RUnlock()
+
+	var footer string
+	if len(v.typers) > 0 {
+		var names []string
+		for userID := range v.typers {
+			var name string
+			if guildID.IsValid() {
+				member, err := v.state.Cabinet.Member(guildID, userID)
+				if err != nil {
+					slog.Error("failed to get member from state", "err", err, "guild_id", guildID, "user_id", userID)
+					continue
+				}
+
+				if member.Nick != "" {
+					name = member.Nick
+				} else {
+					name = member.User.DisplayOrUsername()
+				}
+			} else {
+				for _, recipient := range selectedChannel.DMRecipients {
+					if recipient.ID == userID {
+						name = recipient.DisplayOrUsername()
+						break
+					}
+				}
+			}
+
+			if name != "" {
+				names = append(names, name)
+			}
+		}
+
+		switch len(names) {
+		case 1:
+			footer = fmt.Sprintf("%s is typing...", names[0])
+		case 2:
+			footer = fmt.Sprintf("%s and %s are typing...", names[0], names[1])
+		case 3:
+			footer = fmt.Sprintf("%s, %s, and %s are typing...", names[0], names[1], names[2])
+		default:
+			footer = "Several people are typing..."
+		}
+	}
+
+	go v.app.QueueUpdateDraw(func() { v.messagesList.SetFooter(footer) })
 }

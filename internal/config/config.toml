@@ -35,6 +35,12 @@ duration = 0
 enabled = true
 only_on_ping = true
 
+[typing_indicator]
+# Whether to send typing status or not.
+send = true
+# Whether to receive typing status or not.
+receive = true
+
 # Global shortcuts
 # Esc: Reset message selection or close the channel selection popup.
 [keys]
