@@ -1,9 +1,0 @@
-time=2026-01-14T10:35:17.794-05:00 level=INFO msg="failed to retrieve token from keyring" err="secret not found in keyring"
-time=2026-01-14T10:35:47.288-05:00 level=DEBUG msg="new raw event" code=10 type=""
-time=2026-01-14T10:35:49.430-05:00 level=DEBUG msg="new raw event" code=0 type=READY
-time=2026-01-14T10:35:49.577-05:00 level=DEBUG msg="new raw event" code=0 type=MESSAGE_CREATE
-time=2026-01-14T10:35:49.577-05:00 level=DEBUG msg="new raw event" code=0 type=SESSIONS_REPLACE
-time=2026-01-14T10:35:52.995-05:00 level=DEBUG msg="new raw event" code=0 type=MESSAGE_UPDATE
-time=2026-01-14T10:35:56.516-05:00 level=DEBUG msg="new raw event" code=0 type=THREAD_LIST_SYNC
-time=2026-01-14T10:35:57.931-05:00 level=DEBUG msg="new HTTP request" method=GET url=https://discord.com/api/v9/channels/1297292231299956791/messages
-time=2026-01-14T10:35:58.479-05:00 level=DEBUG msg="new raw event" code=0 type=GUILD_MEMBERS_CHUNK
