@@ -658,5 +658,10 @@ func (mi *messageInput) openFilePicker() {
 
 func (mi *messageInput) attach(name string, reader io.Reader) {
 	mi.sendMessageData.Files = append(mi.sendMessageData.Files, sendpart.File{Name: name, Reader: reader})
-	mi.SetFooter("Attached " + name)
+
+	var names []string
+	for _, file := range mi.sendMessageData.Files {
+		names = append(names, file.Name)
+	}
+	mi.SetFooter("Attached " + humanJoin(names))
 }
