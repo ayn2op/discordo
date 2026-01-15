@@ -5,6 +5,8 @@ import (
 	"log/slog"
 
 	"github.com/ayn2op/discordo/internal/http"
+	"github.com/ayn2op/discordo/internal/notifications"
+	"github.com/ayn2op/tview"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/session"
 	"github.com/diamondburned/arikawa/v3/state"
@@ -74,6 +76,79 @@ func (v *View) onRaw(event *ws.RawEvent) {
 		"type", event.OriginalType,
 		// "data", event.Raw,
 	)
+}
+
+func (v *View) onReady(r *gateway.ReadyEvent) {
+	dmNode := tview.NewTreeNode("Direct Messages")
+	root := v.guildsTree.
+		GetRoot().
+		ClearChildren().
+		AddChild(dmNode)
+
+	for _, folder := range r.UserSettings.GuildFolders {
+		if folder.ID == 0 && len(folder.GuildIDs) == 1 {
+			guild, err := v.state.Cabinet.Guild(folder.GuildIDs[0])
+			if err != nil {
+				slog.Error(
+					"failed to get guild from state",
+					"guild_id",
+					folder.GuildIDs[0],
+					"err",
+					err,
+				)
+				continue
+			}
+
+			v.guildsTree.createGuildNode(root, *guild)
+		} else {
+			v.guildsTree.createFolderNode(folder)
+		}
+	}
+
+	v.guildsTree.SetCurrentNode(root)
+	v.app.SetFocus(v.guildsTree)
+	v.app.Draw()
+}
+
+func (v *View) onMessageCreate(message *gateway.MessageCreateEvent) {
+	selectedChannel := v.SelectedChannel()
+	if selectedChannel != nil && selectedChannel.ID == message.ChannelID {
+		v.removeTyper(message.Author.ID)
+		v.messagesList.drawMessage(v.messagesList, message.Message)
+		v.app.Draw()
+	} else {
+		if err := notifications.Notify(v.state, message, v.cfg); err != nil {
+			slog.Error("failed to notify", "err", err, "channel_id", message.ChannelID, "message_id", message.ID)
+		}
+	}
+}
+
+func (v *View) onMessageUpdate(message *gateway.MessageUpdateEvent) {
+	if selected := v.SelectedChannel(); selected != nil && selected.ID == message.ChannelID {
+		v.onMessageDelete(&gateway.MessageDeleteEvent{ID: message.ID, ChannelID: message.ChannelID, GuildID: message.GuildID})
+	}
+}
+
+func (v *View) onMessageDelete(message *gateway.MessageDeleteEvent) {
+	if selected := v.SelectedChannel(); selected != nil && selected.ID == message.ChannelID {
+		messages, err := v.state.Cabinet.Messages(message.ChannelID)
+		if err != nil {
+			slog.Error("failed to get messages from state", "err", err, "channel_id", message.ChannelID)
+			return
+		}
+
+		v.messagesList.reset()
+		v.messagesList.drawMessages(messages)
+		v.app.Draw()
+	}
+}
+
+func (v *View) onGuildMembersChunk(event *gateway.GuildMembersChunkEvent) {
+	v.messagesList.setFetchingChunk(false, uint(len(event.Members)))
+}
+
+func (v *View) onGuildMemberRemove(event *gateway.GuildMemberRemoveEvent) {
+	v.messageInput.cache.Invalidate(event.GuildID.String()+" "+event.User.Username, v.state.MemberState.SearchLimit)
 }
 
 func (v *View) onTypingStart(event *gateway.TypingStartEvent) {
