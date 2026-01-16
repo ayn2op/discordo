@@ -34,6 +34,7 @@ type View struct {
 	guildsTree   *guildsTree
 	messagesList *messagesList
 	messageInput *messageInput
+	quickSwitcher *quickSwitcher
 
 	selectedChannel   *discord.Channel
 	selectedChannelMu sync.RWMutex
@@ -64,6 +65,7 @@ func NewView(app *tview.Application, cfg *config.Config, onLogout func()) *View 
 	v.guildsTree = newGuildsTree(cfg, v)
 	v.messagesList = newMessagesList(cfg, v)
 	v.messageInput = newMessageInput(cfg, v)
+	v.quickSwitcher = newQuickSwitcher(v, cfg)
 
 	v.SetInputCapture(v.onInputCapture)
 	v.buildLayout()
@@ -109,6 +111,17 @@ func (v *View) toggleGuildsTree() {
 	} else {
 		v.buildLayout()
 		v.app.SetFocus(v.guildsTree)
+	}
+}
+
+func (v *View) toggleQuickSwitcher() {
+	if v.rightFlex.GetItemCount() == 3 {
+		v.rightFlex.RemoveItem(v.quickSwitcher)
+		v.app.SetFocus(v.messageInput)
+	} else {
+		v.rightFlex.AddItem(v.quickSwitcher, 1, 1, false)
+		v.quickSwitcher.SetText("")
+		v.app.SetFocus(v.quickSwitcher)
 	}
 }
 
@@ -189,6 +202,9 @@ func (v *View) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		return nil
 	case v.cfg.Keys.ToggleGuildsTree:
 		v.toggleGuildsTree()
+		return nil
+	case v.cfg.Keys.OpenQuickSwitcher:
+		v.toggleQuickSwitcher()
 		return nil
 	}
 
