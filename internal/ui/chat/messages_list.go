@@ -47,6 +47,14 @@ type messagesList struct {
 		count uint
 		done  chan struct{}
 	}
+
+	loadingOlderMessages struct {
+		mu    sync.Mutex
+		value bool
+	}
+
+	// Track the message ID we used as "before" in the last fetch to avoid duplicates
+	lastFetchBeforeMessageID discord.MessageID
 }
 
 func newMessagesList(cfg *config.Config, chatView *View) *messagesList {
@@ -62,11 +70,13 @@ func newMessagesList(cfg *config.Config, chatView *View) *messagesList {
 	ml.SetBuilder(ml.buildItem)
 	ml.SetTrackEnd(true)
 	ml.SetInputCapture(ml.onInputCapture)
+	ml.SetMouseCapture(ml.onMouseCapture)
 	return ml
 }
 
 func (ml *messagesList) reset() {
 	ml.messages = nil
+	ml.lastFetchBeforeMessageID = discord.NullMessageID
 	ml.
 		Clear().
 		SetBuilder(ml.buildItem).
@@ -289,13 +299,13 @@ func (ml *messagesList) selectedMessage() (*discord.Message, error) {
 func (ml *messagesList) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case ml.cfg.Keys.MessagesList.ScrollUp:
-		ml.ScrollUp()
+		ml.handleScrollUp()
 		return nil
 	case ml.cfg.Keys.MessagesList.ScrollDown:
 		ml.ScrollDown()
 		return nil
 	case ml.cfg.Keys.MessagesList.ScrollTop:
-		ml.ScrollToStart()
+		ml.handleScrollToStart()
 		return nil
 	case ml.cfg.Keys.MessagesList.ScrollBottom:
 		ml.ScrollToEnd()
@@ -305,7 +315,10 @@ func (ml *messagesList) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		ml.clearSelection()
 		return nil
 
-	case ml.cfg.Keys.MessagesList.SelectPrevious, ml.cfg.Keys.MessagesList.SelectNext, ml.cfg.Keys.MessagesList.SelectFirst, ml.cfg.Keys.MessagesList.SelectLast, ml.cfg.Keys.MessagesList.SelectReply:
+	case ml.cfg.Keys.MessagesList.SelectPrevious:
+		ml.handleSelectPrevious()
+		return nil
+	case ml.cfg.Keys.MessagesList.SelectNext, ml.cfg.Keys.MessagesList.SelectFirst, ml.cfg.Keys.MessagesList.SelectLast, ml.cfg.Keys.MessagesList.SelectReply:
 		ml._select(event.Name())
 		return nil
 	case ml.cfg.Keys.MessagesList.YankID:
@@ -338,6 +351,41 @@ func (ml *messagesList) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	}
 
 	return event
+}
+
+func (ml *messagesList) onMouseCapture(action tview.MouseAction, event *tcell.EventMouse) (tview.MouseAction, *tcell.EventMouse) {
+	// Handle mouse wheel scrolling
+	if action == tview.MouseScrollUp {
+		ml.handleScrollUp()
+		return action, event
+	} else if action == tview.MouseScrollDown {
+		ml.ScrollDown()
+		return action, event
+	}
+	
+	// Let other mouse actions pass through
+	return action, event
+}
+
+func (ml *messagesList) handleSelectPrevious() {
+	// Check if we're at the top before selecting previous
+	cursor := ml.Cursor()
+	slog.Debug("handleSelectPrevious", "cursor", cursor, "message_count", len(ml.messages))
+	
+	// Always check if we should load older messages when moving up
+	if len(ml.messages) > 0 && cursor <= 2 {
+		slog.Debug("handleSelectPrevious: at top, loading older messages", "cursor", cursor)
+		ml.loadOlderMessages()
+	}
+	
+	ml._select(ml.cfg.Keys.MessagesList.SelectPrevious)
+	
+	// Also check after selection in case we're now at the top
+	cursorAfter := ml.Cursor()
+	if len(ml.messages) > 0 && cursorAfter <= 2 {
+		slog.Debug("handleSelectPrevious: at top after selection, loading older messages", "cursor_after", cursorAfter)
+		ml.loadOlderMessages()
+	}
 }
 
 func (ml *messagesList) _select(name string) {
@@ -728,4 +776,187 @@ func (ml *messagesList) waitForChunkEvent() uint {
 
 	<-ml.fetchingMembers.done
 	return ml.fetchingMembers.count
+}
+
+func (ml *messagesList) handleScrollUp() {
+	// Check if we're at or near the top of the list
+	// If we're at the first message (index 0), try to load older messages
+	if len(ml.messages) == 0 {
+		ml.ScrollUp()
+		return
+	}
+
+	// Get current cursor position before scrolling
+	cursorBefore := ml.Cursor()
+	slog.Debug("handleScrollUp", "cursor_before", cursorBefore, "message_count", len(ml.messages))
+	
+	// Perform the scroll
+	ml.ScrollUp()
+	
+	// Get cursor position after scrolling
+	cursorAfter := ml.Cursor()
+	slog.Debug("handleScrollUp", "cursor_after", cursorAfter)
+	
+	// If we're at the top (cursor is 0 or -1), or if cursor didn't change (we're stuck at top), load older messages
+	// We also check if we're near the top (within first 3 messages) to preload
+	if cursorAfter <= 2 || (cursorBefore == cursorAfter && cursorBefore <= 5) {
+		slog.Debug("at or near top, loading older messages", "cursor_before", cursorBefore, "cursor_after", cursorAfter)
+		ml.loadOlderMessages()
+	}
+}
+
+func (ml *messagesList) handleScrollToStart() {
+	ml.ScrollToStart()
+	
+	// After scrolling to start, check if we should load older messages
+	if len(ml.messages) > 0 {
+		cursor := ml.Cursor()
+		slog.Debug("handleScrollToStart", "cursor", cursor, "message_count", len(ml.messages))
+		if cursor <= 2 {
+			slog.Debug("at top after ScrollToStart, loading older messages")
+			ml.loadOlderMessages()
+		}
+	}
+}
+
+func (ml *messagesList) setLoadingOlderMessages(value bool) bool {
+	ml.loadingOlderMessages.mu.Lock()
+	defer ml.loadingOlderMessages.mu.Unlock()
+	
+	if ml.loadingOlderMessages.value == value {
+		return false
+	}
+	
+	ml.loadingOlderMessages.value = value
+	return true
+}
+
+func (ml *messagesList) loadOlderMessages() {
+	// Prevent concurrent loads
+	if !ml.setLoadingOlderMessages(true) {
+		slog.Debug("loadOlderMessages: already loading, skipping")
+		return
+	}
+	defer ml.setLoadingOlderMessages(false)
+
+	selectedChannel := ml.chatView.SelectedChannel()
+	if selectedChannel == nil {
+		slog.Debug("loadOlderMessages: no selected channel")
+		return
+	}
+
+	// If we have no messages, nothing to load
+	if len(ml.messages) == 0 {
+		slog.Debug("loadOlderMessages: no messages to use as reference")
+		return
+	}
+
+	// Get the oldest message ID (first in the list since messages are reversed)
+	oldestMessage := ml.messages[0]
+	
+	// Check if we've already fetched messages using this message ID as "before"
+	// This prevents duplicate fetches if the user scrolls up multiple times quickly
+	if ml.lastFetchBeforeMessageID.IsValid() && ml.lastFetchBeforeMessageID == oldestMessage.ID {
+		slog.Debug("loadOlderMessages: already fetched messages before this ID, skipping", "message_id", oldestMessage.ID)
+		return
+	}
+	
+	// Use a smaller batch size (15 messages) for smoother loading
+	// This is fast enough but not too jarring
+	fetchLimit := uint(15)
+	if uint(ml.cfg.MessagesLimit) < fetchLimit {
+		fetchLimit = uint(ml.cfg.MessagesLimit)
+	}
+	
+	slog.Debug("loadOlderMessages: fetching messages before", "channel_id", selectedChannel.ID, "before_message_id", oldestMessage.ID, "limit", fetchLimit)
+	
+	// Fetch older messages using the oldest message ID as the "before" parameter
+	go func() {
+		// Access the underlying arikawa state from ningen to use the API client
+		// ningen.State embeds *state.State which has a Client field
+		state := ml.chatView.state.State
+		olderMessages, err := state.Client.MessagesBefore(selectedChannel.ID, oldestMessage.ID, fetchLimit)
+		if err != nil {
+			slog.Error("failed to load older messages", "err", err, "channel_id", selectedChannel.ID, "before_message_id", oldestMessage.ID)
+			return
+		}
+
+		slog.Debug("loadOlderMessages: fetched messages", "count", len(olderMessages))
+
+		// If no older messages were returned, we've reached the beginning
+		if len(olderMessages) == 0 {
+			slog.Debug("loadOlderMessages: no older messages found, reached beginning")
+			return
+		}
+
+		// Reverse the older messages to match the order (oldest first)
+		slices.Reverse(olderMessages)
+
+		// Track the message ID we used as "before" in this fetch
+		// This prevents duplicate fetches if the user scrolls up multiple times quickly
+		ml.lastFetchBeforeMessageID = oldestMessage.ID
+		slog.Debug("loadOlderMessages: tracked last fetch before message", "message_id", ml.lastFetchBeforeMessageID)
+
+		// Prepend older messages to the existing list
+		ml.chatView.app.QueueUpdateDraw(func() {
+			// Store current cursor position and the message ID at that position
+			// This helps us maintain the visual position
+			currentCursor := ml.Cursor()
+			var currentMessageID discord.MessageID
+			if currentCursor >= 0 && currentCursor < len(ml.messages) {
+				currentMessageID = ml.messages[currentCursor].ID
+			}
+			
+			// Check for duplicates - only add messages that don't already exist
+			existingMessageIDs := make(map[discord.MessageID]bool, len(ml.messages))
+			for _, msg := range ml.messages {
+				existingMessageIDs[msg.ID] = true
+			}
+			
+			// Filter out messages that already exist
+			newMessages := make([]discord.Message, 0, len(olderMessages))
+			for _, msg := range olderMessages {
+				if !existingMessageIDs[msg.ID] {
+					newMessages = append(newMessages, msg)
+				}
+			}
+			
+			if len(newMessages) == 0 {
+				slog.Debug("loadOlderMessages: all messages already exist, skipping")
+				return
+			}
+			
+			slog.Debug("loadOlderMessages: prepending messages", "old_count", len(ml.messages), "new_messages", len(newMessages), "filtered_out", len(olderMessages)-len(newMessages), "current_cursor", currentCursor)
+			
+			// Temporarily disable track end to prevent jumping to bottom when prepending
+			ml.SetTrackEnd(false)
+			
+			// Prepend new messages
+			ml.messages = append(newMessages, ml.messages...)
+			
+			// Find the same message in the new list and set cursor to maintain position
+			if currentMessageID.IsValid() {
+				for i, msg := range ml.messages {
+					if msg.ID == currentMessageID {
+						ml.SetCursor(i)
+						slog.Debug("loadOlderMessages: maintained cursor position", "old_cursor", currentCursor, "new_cursor", i, "message_id", currentMessageID)
+						break
+					}
+				}
+			} else if currentCursor >= 0 {
+				// Fallback: adjust cursor by the number of new messages
+				newCursor := currentCursor + len(newMessages)
+				ml.SetCursor(newCursor)
+				slog.Debug("loadOlderMessages: adjusted cursor", "old_cursor", currentCursor, "new_cursor", newCursor)
+			}
+			
+			// Re-enable track end (for when new messages arrive at the bottom)
+			ml.SetTrackEnd(true)
+
+			// Request guild members for the new messages if needed
+			if guildID := selectedChannel.GuildID; guildID.IsValid() {
+				ml.requestGuildMembers(guildID, newMessages)
+			}
+		})
+	}()
 }
