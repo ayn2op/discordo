@@ -295,7 +295,7 @@ func (ml *messagesList) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		ml.ScrollDown()
 		return nil
 	case ml.cfg.Keys.MessagesList.ScrollTop:
-		ml.SetCursor(0)
+		ml.ScrollToStart()
 		return nil
 	case ml.cfg.Keys.MessagesList.ScrollBottom:
 		ml.ScrollToEnd()
