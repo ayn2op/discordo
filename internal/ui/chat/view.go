@@ -243,12 +243,8 @@ func (v *View) onReadUpdate(event *read.UpdateEvent) {
 				var found bool
 				dmNode.Walk(func(node, parent *tview.TreeNode) bool {
 					if node.GetReference() == event.ChannelID {
-						node.SetTextStyle(v.guildsTree.getChannelNodeStyle(event.ChannelID))
-						found = true
-						return false
-					}
-					if chID, ok := node.GetReference().(discord.ChannelID); ok && chID == event.ChannelID {
-						node.SetTextStyle(v.guildsTree.getChannelNodeStyle(event.ChannelID))
+						indication := v.getUnreadIndication(event.ChannelID, channel)
+						node.SetTextStyle(v.guildsTree.unreadStyle(indication))
 						found = true
 						return false
 					}
@@ -263,7 +259,8 @@ func (v *View) onReadUpdate(event *read.UpdateEvent) {
 			guildNode.SetTextStyle(v.guildsTree.getGuildNodeStyle(event.GuildID))
 			guildNode.Walk(func(node, parent *tview.TreeNode) bool {
 				if node.GetReference() == event.ChannelID {
-					node.SetTextStyle(v.guildsTree.getChannelNodeStyle(event.ChannelID))
+					indication := v.getUnreadIndication(event.ChannelID, channel)
+					node.SetTextStyle(v.guildsTree.unreadStyle(indication))
 					return false
 				}
 				return true
@@ -362,6 +359,22 @@ func (v *View) updateFooter() {
 	go v.app.QueueUpdateDraw(func() { v.messagesList.SetFooter(footer) })
 }
 
+// getUnreadIndication manually checks unread status using channel.LastMessageID
+// instead of ChannelIsUnread which uses LastMessage() that can return stale data
+func (v *View) getUnreadIndication(channelID discord.ChannelID, channel *discord.Channel) ningen.UnreadIndication {
+	readState := v.state.ReadState.ReadState(channelID)
+	if readState == nil || !readState.LastMessageID.IsValid() {
+		return ningen.ChannelRead
+	}
+	if readState.MentionCount > 0 {
+		return ningen.ChannelMentioned
+	}
+	if readState.LastMessageID < channel.LastMessageID {
+		return ningen.ChannelUnread
+	}
+	return ningen.ChannelRead
+}
+
 func (v *View) refreshChannelNodeStyle(channelID discord.ChannelID) {
 	channel, err := v.state.Cabinet.Channel(channelID)
 	if err != nil {
@@ -392,17 +405,7 @@ func (v *View) refreshChannelNodeStyle(channelID discord.ChannelID) {
 		var found bool
 		dmNode.Walk(func(node, parent *tview.TreeNode) bool {
 			if node.GetReference() == channelID {
-				readState := v.state.ReadState.ReadState(channelID)
-				var indication ningen.UnreadIndication
-				if readState == nil || !readState.LastMessageID.IsValid() {
-					indication = ningen.ChannelRead
-				} else if readState.MentionCount > 0 {
-					indication = ningen.ChannelMentioned
-				} else if readState.LastMessageID < channel.LastMessageID {
-					indication = ningen.ChannelUnread
-				} else {
-					indication = ningen.ChannelRead
-				}
+				indication := v.getUnreadIndication(channelID, channel)
 				node.SetTextStyle(v.guildsTree.unreadStyle(indication))
 				found = true
 				return false
@@ -415,19 +418,7 @@ func (v *View) refreshChannelNodeStyle(channelID discord.ChannelID) {
 	} else if guildNode != nil {
 		guildNode.Walk(func(childNode, _ *tview.TreeNode) bool {
 			if childNode.GetReference() == channelID {
-				readState := v.state.ReadState.ReadState(channelID)
-				var indication ningen.UnreadIndication
-				if readState != nil && readState.LastMessageID.IsValid() {
-					if readState.MentionCount > 0 {
-						indication = ningen.ChannelMentioned
-					} else if readState.LastMessageID < channel.LastMessageID {
-						indication = ningen.ChannelUnread
-					} else {
-						indication = ningen.ChannelRead
-					}
-				} else {
-					indication = v.state.ChannelIsUnread(channelID, ningen.UnreadOpts{IncludeMutedCategories: true})
-				}
+				indication := v.getUnreadIndication(channelID, channel)
 				childNode.SetTextStyle(v.guildsTree.unreadStyle(indication))
 				return false
 			}
