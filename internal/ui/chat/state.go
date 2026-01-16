@@ -3,10 +3,12 @@ package chat
 import (
 	"context"
 	"log/slog"
+	"slices"
 
 	"github.com/ayn2op/discordo/internal/http"
 	"github.com/ayn2op/discordo/internal/notifications"
 	"github.com/ayn2op/tview"
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/session"
 	"github.com/diamondburned/arikawa/v3/state"
@@ -114,8 +116,7 @@ func (v *View) onMessageCreate(message *gateway.MessageCreateEvent) {
 	selectedChannel := v.SelectedChannel()
 	if selectedChannel != nil && selectedChannel.ID == message.ChannelID {
 		v.removeTyper(message.Author.ID)
-		v.messagesList.drawMessage(v.messagesList, message.Message)
-		v.app.Draw()
+		v.messagesList.drawMessage(message.Message)
 	} else {
 		if err := notifications.Notify(v.state, message, v.cfg); err != nil {
 			slog.Error("failed to notify", "err", err, "channel_id", message.ChannelID, "message_id", message.ID)
@@ -125,21 +126,53 @@ func (v *View) onMessageCreate(message *gateway.MessageCreateEvent) {
 
 func (v *View) onMessageUpdate(message *gateway.MessageUpdateEvent) {
 	if selected := v.SelectedChannel(); selected != nil && selected.ID == message.ChannelID {
-		v.onMessageDelete(&gateway.MessageDeleteEvent{ID: message.ID, ChannelID: message.ChannelID, GuildID: message.GuildID})
+		index := slices.IndexFunc(v.messagesList.messages, func(m discord.Message) bool {
+			return m.ID == message.ID
+		})
+		if index < 0 {
+			return
+		}
+
+		v.messagesList.messages[index] = message.Message
 	}
 }
 
 func (v *View) onMessageDelete(message *gateway.MessageDeleteEvent) {
 	if selected := v.SelectedChannel(); selected != nil && selected.ID == message.ChannelID {
-		messages, err := v.state.Cabinet.Messages(message.ChannelID)
-		if err != nil {
-			slog.Error("failed to get messages from state", "err", err, "channel_id", message.ChannelID)
+		prevCursor := v.messagesList.Cursor()
+		deletedIndex := slices.IndexFunc(v.messagesList.messages, func(m discord.Message) bool {
+			return m.ID == message.ID
+		})
+		if deletedIndex < 0 {
 			return
 		}
 
-		v.messagesList.reset()
-		v.messagesList.drawMessages(messages)
-		v.app.Draw()
+		// Drop the deleted message while preserving slice order.
+		v.messagesList.messages = append(
+			v.messagesList.messages[:deletedIndex],
+			v.messagesList.messages[deletedIndex+1:]...,
+		)
+
+		// Keep cursor stable when possible after removal.
+		newCursor := prevCursor
+		if prevCursor == deletedIndex {
+			// Prefer previous item; fall forward if we deleted the first.
+			newCursor = deletedIndex - 1
+			if newCursor < 0 {
+				if deletedIndex < len(v.messagesList.messages) {
+					newCursor = deletedIndex
+				} else {
+					newCursor = -1
+				}
+			}
+		} else if prevCursor > deletedIndex {
+			// Shift back since the list shrank before the cursor.
+			newCursor = prevCursor - 1
+		}
+		if newCursor != prevCursor {
+			// Avoid redundant cursor updates if nothing changed.
+			v.messagesList.SetCursor(newCursor)
+		}
 	}
 }
 
