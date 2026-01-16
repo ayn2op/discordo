@@ -870,14 +870,17 @@ func (ml *messagesList) loadOlderMessages() {
 	
 	slog.Debug("loadOlderMessages: fetching messages before", "channel_id", selectedChannel.ID, "before_message_id", oldestMessage.ID, "limit", fetchLimit)
 	
+	// Capture the channel ID to check if it's still the same when the goroutine completes
+	channelID := selectedChannel.ID
+	
 	// Fetch older messages using the oldest message ID as the "before" parameter
 	go func() {
 		// Access the underlying arikawa state from ningen to use the API client
 		// ningen.State embeds *state.State which has a Client field
 		state := ml.chatView.state.State
-		olderMessages, err := state.Client.MessagesBefore(selectedChannel.ID, oldestMessage.ID, fetchLimit)
+		olderMessages, err := state.Client.MessagesBefore(channelID, oldestMessage.ID, fetchLimit)
 		if err != nil {
-			slog.Error("failed to load older messages", "err", err, "channel_id", selectedChannel.ID, "before_message_id", oldestMessage.ID)
+			slog.Error("failed to load older messages", "err", err, "channel_id", channelID, "before_message_id", oldestMessage.ID)
 			return
 		}
 
@@ -892,13 +895,37 @@ func (ml *messagesList) loadOlderMessages() {
 		// Reverse the older messages to match the order (oldest first)
 		slices.Reverse(olderMessages)
 
-		// Track the message ID we used as "before" in this fetch
-		// This prevents duplicate fetches if the user scrolls up multiple times quickly
-		ml.lastFetchBeforeMessageID = oldestMessage.ID
-		slog.Debug("loadOlderMessages: tracked last fetch before message", "message_id", ml.lastFetchBeforeMessageID)
-
 		// Prepend older messages to the existing list
 		ml.chatView.app.QueueUpdateDraw(func() {
+			// Check if the channel has changed since we started loading
+			currentChannel := ml.chatView.SelectedChannel()
+			var currentChannelID discord.ChannelID
+			if currentChannel != nil {
+				currentChannelID = currentChannel.ID
+			}
+			if currentChannel == nil || currentChannelID != channelID {
+				slog.Debug("loadOlderMessages: channel changed, discarding fetched messages", "original_channel_id", channelID, "current_channel_id", currentChannelID)
+				return
+			}
+			
+			// Verify that the oldest message is still the same (channel hasn't been reset)
+			if len(ml.messages) == 0 {
+				slog.Debug("loadOlderMessages: messages list is empty, channel was reset, discarding fetched messages")
+				return
+			}
+			
+			// Check if the oldest message is still the same one we used as reference
+			currentOldestMessage := ml.messages[0]
+			if currentOldestMessage.ID != oldestMessage.ID {
+				slog.Debug("loadOlderMessages: oldest message changed, discarding fetched messages", "original_oldest_id", oldestMessage.ID, "current_oldest_id", currentOldestMessage.ID)
+				return
+			}
+			
+			// Track the message ID we used as "before" in this fetch
+			// This prevents duplicate fetches if the user scrolls up multiple times quickly
+			ml.lastFetchBeforeMessageID = oldestMessage.ID
+			slog.Debug("loadOlderMessages: tracked last fetch before message", "message_id", ml.lastFetchBeforeMessageID)
+			
 			// Store current cursor position and the message ID at that position
 			// This helps us maintain the visual position
 			currentCursor := ml.Cursor()
@@ -954,7 +981,7 @@ func (ml *messagesList) loadOlderMessages() {
 			ml.SetTrackEnd(true)
 
 			// Request guild members for the new messages if needed
-			if guildID := selectedChannel.GuildID; guildID.IsValid() {
+			if guildID := currentChannel.GuildID; guildID.IsValid() {
 				ml.requestGuildMembers(guildID, newMessages)
 			}
 		})
