@@ -19,7 +19,7 @@ show_attachment_links = true
 # Note: Use autocomplete_limit = 0 to disable.
 autocomplete_limit = 20
 
-# The number of messages to fetch when a text-based channel is selected from guilds tree. The minimum and maximum value is 0 and 100, respectively.
+# The number of messages to fetch when a text-based channel is selected from guilds tree. The minimum and maximum value is 1 and 100, respectively.
 messages_limit = 50
 
 [timestamps]
