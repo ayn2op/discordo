@@ -114,15 +114,34 @@ func (v *View) onReady(r *gateway.ReadyEvent) {
 
 func (v *View) onMessageCreate(message *gateway.MessageCreateEvent) {
 	selectedChannel := v.SelectedChannel()
+	
+	// Always mark as unread if message is not from ourselves
+	me, err := v.state.Cabinet.Me()
+	if err == nil && message.Author.ID != me.ID {
+		var mentions int
+		for _, u := range message.Mentions {
+			if u.ID == me.ID {
+				mentions++
+			}
+		}
+		v.state.ReadState.MarkUnread(message.ChannelID, message.ID, mentions)
+	}
+	
 	if selectedChannel != nil && selectedChannel.ID == message.ChannelID {
 		v.removeTyper(message.Author.ID)
 		v.app.QueueUpdateDraw(func() {
 			v.messagesList.addMessage(message.Message)
 		})
+		v.app.QueueUpdateDraw(func() {
+			v.refreshChannelNodeStyle(message.ChannelID)
+		})
 	} else {
 		if err := notifications.Notify(v.state, message, v.cfg); err != nil {
 			slog.Error("failed to notify", "err", err, "channel_id", message.ChannelID, "message_id", message.ID)
 		}
+		v.app.QueueUpdateDraw(func() {
+			v.refreshChannelNodeStyle(message.ChannelID)
+		})
 	}
 }
 

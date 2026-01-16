@@ -216,39 +216,60 @@ func (v *View) showConfirmModal(prompt string, buttons []string, onDone func(lab
 }
 
 func (v *View) onReadUpdate(event *read.UpdateEvent) {
-	var guildNode *tview.TreeNode
-	v.guildsTree.
-		GetRoot().
-		Walk(func(node, parent *tview.TreeNode) bool {
-			switch node.GetReference() {
-			case event.GuildID:
-				node.SetTextStyle(v.guildsTree.getGuildNodeStyle(event.GuildID))
+	channel, err := v.state.Cabinet.Channel(event.ChannelID)
+	if err != nil {
+		return
+	}
+	
+	isDM := channel.Type == discord.DirectMessage || channel.Type == discord.GroupDM
+	
+	v.app.QueueUpdateDraw(func() {
+		var guildNode *tview.TreeNode
+		var dmNode *tview.TreeNode
+		
+		v.guildsTree.GetRoot().Walk(func(node, parent *tview.TreeNode) bool {
+			if node.GetReference() == event.GuildID {
 				guildNode = node
 				return false
-			case event.ChannelID:
-				// private channel
-				if !event.GuildID.IsValid() {
-					style := v.guildsTree.getChannelNodeStyle(event.ChannelID)
-					node.SetTextStyle(style)
-					return false
+			}
+			if node.GetReference() == nil && node.GetText() == "Direct Messages" {
+				dmNode = node
+			}
+			return true
+		})
+
+		if isDM {
+			if dmNode != nil {
+				var found bool
+				dmNode.Walk(func(node, parent *tview.TreeNode) bool {
+					if node.GetReference() == event.ChannelID {
+						node.SetTextStyle(v.guildsTree.getChannelNodeStyle(event.ChannelID))
+						found = true
+						return false
+					}
+					if chID, ok := node.GetReference().(discord.ChannelID); ok && chID == event.ChannelID {
+						node.SetTextStyle(v.guildsTree.getChannelNodeStyle(event.ChannelID))
+						found = true
+						return false
+					}
+					return true
+				})
+				
+				if !found {
+					v.guildsTree.createChannelNode(dmNode, *channel)
 				}
 			}
-
-			return true
-		})
-
-	if guildNode != nil {
-		guildNode.Walk(func(node, parent *tview.TreeNode) bool {
-			if node.GetReference() == event.ChannelID {
-				node.SetTextStyle(v.guildsTree.getChannelNodeStyle(event.ChannelID))
-				return false
-			}
-
-			return true
-		})
-	}
-
-	v.app.Draw()
+		} else if guildNode != nil {
+			guildNode.SetTextStyle(v.guildsTree.getGuildNodeStyle(event.GuildID))
+			guildNode.Walk(func(node, parent *tview.TreeNode) bool {
+				if node.GetReference() == event.ChannelID {
+					node.SetTextStyle(v.guildsTree.getChannelNodeStyle(event.ChannelID))
+					return false
+				}
+				return true
+			})
+		}
+	})
 }
 
 func (v *View) clearTypers() {
@@ -339,4 +360,78 @@ func (v *View) updateFooter() {
 	}
 
 	go v.app.QueueUpdateDraw(func() { v.messagesList.SetFooter(footer) })
+}
+
+func (v *View) refreshChannelNodeStyle(channelID discord.ChannelID) {
+	channel, err := v.state.Cabinet.Channel(channelID)
+	if err != nil {
+		return
+	}
+	
+	isDM := channel.Type == discord.DirectMessage || channel.Type == discord.GroupDM
+	
+	var dmNode *tview.TreeNode
+	var guildNode *tview.TreeNode
+	
+	v.guildsTree.GetRoot().Walk(func(node, parent *tview.TreeNode) bool {
+		if node.GetReference() == nil && node.GetText() == "Direct Messages" {
+			dmNode = node
+		}
+		if guildID, ok := node.GetReference().(discord.GuildID); ok {
+			if channel.GuildID.IsValid() && guildID == channel.GuildID {
+				guildNode = node
+			}
+		}
+		return true
+	})
+	
+	if isDM {
+		if dmNode == nil {
+			return
+		}
+		var found bool
+		dmNode.Walk(func(node, parent *tview.TreeNode) bool {
+			if node.GetReference() == channelID {
+				readState := v.state.ReadState.ReadState(channelID)
+				var indication ningen.UnreadIndication
+				if readState == nil || !readState.LastMessageID.IsValid() {
+					indication = ningen.ChannelRead
+				} else if readState.MentionCount > 0 {
+					indication = ningen.ChannelMentioned
+				} else if readState.LastMessageID < channel.LastMessageID {
+					indication = ningen.ChannelUnread
+				} else {
+					indication = ningen.ChannelRead
+				}
+				node.SetTextStyle(v.guildsTree.unreadStyle(indication))
+				found = true
+				return false
+			}
+			return true
+		})
+		if !found {
+			v.guildsTree.createChannelNode(dmNode, *channel)
+		}
+	} else if guildNode != nil {
+		guildNode.Walk(func(childNode, _ *tview.TreeNode) bool {
+			if childNode.GetReference() == channelID {
+				readState := v.state.ReadState.ReadState(channelID)
+				var indication ningen.UnreadIndication
+				if readState != nil && readState.LastMessageID.IsValid() {
+					if readState.MentionCount > 0 {
+						indication = ningen.ChannelMentioned
+					} else if readState.LastMessageID < channel.LastMessageID {
+						indication = ningen.ChannelUnread
+					} else {
+						indication = ningen.ChannelRead
+					}
+				} else {
+					indication = v.state.ChannelIsUnread(channelID, ningen.UnreadOpts{IncludeMutedCategories: true})
+				}
+				childNode.SetTextStyle(v.guildsTree.unreadStyle(indication))
+				return false
+			}
+			return true
+		})
+	}
 }
