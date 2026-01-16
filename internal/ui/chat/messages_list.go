@@ -88,8 +88,24 @@ func (ml *messagesList) drawMessages(messages []discord.Message) {
 	slices.Reverse(ml.messages)
 }
 
-func (ml *messagesList) drawMessage(message discord.Message) {
+func (ml *messagesList) addMessage(message discord.Message) {
 	ml.messages = append(ml.messages, message)
+}
+
+func (ml *messagesList) setMessage(index int, message discord.Message) {
+	if index < 0 || index >= len(ml.messages) {
+		return
+	}
+
+	ml.messages[index] = message
+}
+
+func (ml *messagesList) deleteMessage(index int) {
+	if index < 0 || index >= len(ml.messages) {
+		return
+	}
+
+	ml.messages = append(ml.messages[:index], ml.messages[index+1:]...)
 }
 
 func (ml *messagesList) buildItem(index int, cursor int) tview.ScrollListItem {

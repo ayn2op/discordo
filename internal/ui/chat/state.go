@@ -116,7 +116,9 @@ func (v *View) onMessageCreate(message *gateway.MessageCreateEvent) {
 	selectedChannel := v.SelectedChannel()
 	if selectedChannel != nil && selectedChannel.ID == message.ChannelID {
 		v.removeTyper(message.Author.ID)
-		v.messagesList.drawMessage(message.Message)
+		v.app.QueueUpdateDraw(func() {
+			v.messagesList.addMessage(message.Message)
+		})
 	} else {
 		if err := notifications.Notify(v.state, message, v.cfg); err != nil {
 			slog.Error("failed to notify", "err", err, "channel_id", message.ChannelID, "message_id", message.ID)
@@ -133,7 +135,9 @@ func (v *View) onMessageUpdate(message *gateway.MessageUpdateEvent) {
 			return
 		}
 
-		v.messagesList.messages[index] = message.Message
+		v.app.QueueUpdateDraw(func() {
+			v.messagesList.setMessage(index, message.Message)
+		})
 	}
 }
 
@@ -147,11 +151,9 @@ func (v *View) onMessageDelete(message *gateway.MessageDeleteEvent) {
 			return
 		}
 
-		// Drop the deleted message while preserving slice order.
-		v.messagesList.messages = append(
-			v.messagesList.messages[:deletedIndex],
-			v.messagesList.messages[deletedIndex+1:]...,
-		)
+		v.app.QueueUpdateDraw(func() {
+			v.messagesList.deleteMessage(deletedIndex)
+		})
 
 		// Keep cursor stable when possible after removal.
 		newCursor := prevCursor
@@ -171,7 +173,9 @@ func (v *View) onMessageDelete(message *gateway.MessageDeleteEvent) {
 		}
 		if newCursor != prevCursor {
 			// Avoid redundant cursor updates if nothing changed.
-			v.messagesList.SetCursor(newCursor)
+			v.app.QueueUpdateDraw(func() {
+				v.messagesList.SetCursor(newCursor)
+			})
 		}
 	}
 }
