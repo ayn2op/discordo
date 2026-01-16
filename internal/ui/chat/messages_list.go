@@ -34,10 +34,10 @@ import (
 )
 
 type messagesList struct {
-	*tview.TextView
-	cfg               *config.Config
-	chatView          *View
-	selectedMessageID discord.MessageID
+	*tview.ScrollList
+	cfg      *config.Config
+	chatView *View
+	messages []discord.Message
 
 	renderer *markdown.Renderer
 
@@ -51,29 +51,25 @@ type messagesList struct {
 
 func newMessagesList(cfg *config.Config, chatView *View) *messagesList {
 	ml := &messagesList{
-		TextView: tview.NewTextView(),
-		cfg:      cfg,
-		chatView: chatView,
-		renderer: markdown.NewRenderer(cfg.Theme.MessagesList),
+		ScrollList: tview.NewScrollList(),
+		cfg:        cfg,
+		chatView:   chatView,
+		renderer:   markdown.NewRenderer(cfg.Theme.MessagesList),
 	}
 
 	ml.Box = ui.ConfigureBox(ml.Box, &cfg.Theme)
-	ml.
-		SetDynamicColors(true).
-		SetRegions(true).
-		SetWordWrap(true).
-		ScrollToEnd().
-		SetHighlightedFunc(ml.onHighlighted).
-		SetTitle("Messages").
-		SetInputCapture(ml.onInputCapture)
+	ml.SetTitle("Messages")
+	ml.SetBuilder(ml.buildItem)
+	ml.SetTrackEnd(true)
+	ml.SetInputCapture(ml.onInputCapture)
 	return ml
 }
 
 func (ml *messagesList) reset() {
-	ml.selectedMessageID = 0
+	ml.messages = nil
 	ml.
 		Clear().
-		Highlight().
+		SetBuilder(ml.buildItem).
 		SetTitle("")
 }
 
@@ -87,18 +83,60 @@ func (ml *messagesList) setTitle(channel discord.Channel) {
 }
 
 func (ml *messagesList) drawMessages(messages []discord.Message) {
-	writer := ml.BatchWriter()
-	defer writer.Close()
-	for _, m := range slices.Backward(messages) {
-		ml.drawMessage(writer, m)
-	}
+	ml.messages = slices.Grow(ml.messages[:0], len(messages))
+	ml.messages = ml.messages[:len(messages)]
+	copy(ml.messages, messages)
+	slices.Reverse(ml.messages)
 }
 
-func (ml *messagesList) drawMessage(writer io.Writer, message discord.Message) {
-	// Region tags are square brackets that contain a region ID in double quotes
-	// https://pkg.go.dev/github.com/ayn2op/tview#hdr-Regions_and_Highlights
-	fmt.Fprintf(writer, `["%s"]`, message.ID)
+func (ml *messagesList) addMessage(message discord.Message) {
+	ml.messages = append(ml.messages, message)
+}
 
+func (ml *messagesList) setMessage(index int, message discord.Message) {
+	if index < 0 || index >= len(ml.messages) {
+		return
+	}
+
+	ml.messages[index] = message
+}
+
+func (ml *messagesList) deleteMessage(index int) {
+	if index < 0 || index >= len(ml.messages) {
+		return
+	}
+
+	ml.messages = append(ml.messages[:index], ml.messages[index+1:]...)
+}
+
+func (ml *messagesList) clearSelection() {
+	ml.SetCursor(-1)
+}
+
+func (ml *messagesList) buildItem(index int, cursor int) tview.ScrollListItem {
+	if index < 0 || index >= len(ml.messages) {
+		return nil
+	}
+
+	message := ml.messages[index]
+	tv := tview.NewTextView().
+		SetWrap(true).
+		SetWordWrap(true).
+		SetDynamicColors(true).
+		SetText(ml.renderMessage(message))
+	if index == cursor {
+		tv.SetTextStyle(tcell.StyleDefault.Reverse(true))
+	}
+	return tv
+}
+
+func (ml *messagesList) renderMessage(message discord.Message) string {
+	var b strings.Builder
+	ml.writeMessage(&b, message)
+	return b.String()
+}
+
+func (ml *messagesList) writeMessage(writer io.Writer, message discord.Message) {
 	if ml.cfg.HideBlockedUsers {
 		isBlocked := ml.chatView.state.UserIsBlocked(message.Author.ID)
 		if isBlocked {
@@ -129,9 +167,6 @@ func (ml *messagesList) drawMessage(writer io.Writer, message discord.Message) {
 		ml.drawTimestamps(writer, message.Timestamp)
 		ml.drawAuthor(writer, message)
 	}
-
-	// Tags with no region ID ([""]) don't start new regions. They can therefore be used to mark the end of a region.
-	io.WriteString(writer, "[\"\"]\n")
 }
 
 func (ml *messagesList) formatTimestamp(ts discord.Timestamp) string {
@@ -239,138 +274,117 @@ func (ml *messagesList) drawPinnedMessage(w io.Writer, message discord.Message) 
 }
 
 func (ml *messagesList) selectedMessage() (*discord.Message, error) {
-	if !ml.selectedMessageID.IsValid() {
+	if len(ml.messages) == 0 {
+		return nil, errors.New("no messages available")
+	}
+
+	cursor := ml.Cursor()
+	if cursor == -1 || cursor >= len(ml.messages) {
 		return nil, errors.New("no message is currently selected")
 	}
 
-	selected := ml.chatView.SelectedChannel()
-	if selected == nil {
-		return nil, errors.New("no channel is currently selected")
-	}
-
-	m, err := ml.chatView.state.Cabinet.Message(selected.ID, ml.selectedMessageID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve selected message: %w", err)
-	}
-
-	return m, nil
+	return &ml.messages[cursor], nil
 }
 
 func (ml *messagesList) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
 	case ml.cfg.Keys.MessagesList.ScrollUp:
-		return tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone)
+		ml.ScrollUp()
+		return nil
 	case ml.cfg.Keys.MessagesList.ScrollDown:
-		return tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone)
+		ml.ScrollDown()
+		return nil
 	case ml.cfg.Keys.MessagesList.ScrollTop:
-		return tcell.NewEventKey(tcell.KeyHome, "", tcell.ModNone)
+		ml.SetCursor(0)
+		return nil
 	case ml.cfg.Keys.MessagesList.ScrollBottom:
-		return tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone)
+		ml.ScrollToEnd()
+		return nil
 
 	case ml.cfg.Keys.MessagesList.Cancel:
-		ml.selectedMessageID = 0
-		ml.Highlight()
+		ml.clearSelection()
+		return nil
 
 	case ml.cfg.Keys.MessagesList.SelectPrevious, ml.cfg.Keys.MessagesList.SelectNext, ml.cfg.Keys.MessagesList.SelectFirst, ml.cfg.Keys.MessagesList.SelectLast, ml.cfg.Keys.MessagesList.SelectReply:
 		ml._select(event.Name())
+		return nil
 	case ml.cfg.Keys.MessagesList.YankID:
 		ml.yankID()
+		return nil
 	case ml.cfg.Keys.MessagesList.YankContent:
 		ml.yankContent()
+		return nil
 	case ml.cfg.Keys.MessagesList.YankURL:
 		ml.yankURL()
+		return nil
 	case ml.cfg.Keys.MessagesList.Open:
 		ml.open()
+		return nil
 	case ml.cfg.Keys.MessagesList.Reply:
 		ml.reply(false)
+		return nil
 	case ml.cfg.Keys.MessagesList.ReplyMention:
 		ml.reply(true)
+		return nil
 	case ml.cfg.Keys.MessagesList.Edit:
 		ml.edit()
+		return nil
 	case ml.cfg.Keys.MessagesList.Delete:
 		ml.delete()
+		return nil
 	case ml.cfg.Keys.MessagesList.DeleteConfirm:
 		ml.confirmDelete()
+		return nil
 	}
 
-	return nil
+	return event
 }
 
 func (ml *messagesList) _select(name string) {
-	selectedChannel := ml.chatView.SelectedChannel()
-	if selectedChannel == nil {
-		return
-	}
-
-	messages, err := ml.chatView.state.Cabinet.Messages(selectedChannel.ID)
-	if err != nil {
-		slog.Error("failed to get messages", "err", err, "channel_id", selectedChannel.ID)
-		return
-	}
+	messages := ml.messages
 	if len(messages) == 0 {
 		return
 	}
 
-	messageIdx := slices.IndexFunc(messages, func(m discord.Message) bool {
-		return m.ID == ml.selectedMessageID
-	})
-	// Allow "no highlight yet" to fall through and pick the latest message.
-	if len(ml.GetHighlights()) != 0 && messageIdx == -1 {
-		return
-	}
+	cursor := ml.Cursor()
 
 	switch name {
 	case ml.cfg.Keys.MessagesList.SelectPrevious:
-		// If no message is currently selected, select the latest message.
-		if len(ml.GetHighlights()) == 0 {
-			ml.selectedMessageID = messages[0].ID
-		} else if messageIdx < len(messages)-1 {
-			ml.selectedMessageID = messages[messageIdx+1].ID
-		} else {
-			return
+		switch {
+		case cursor == -1:
+			cursor = len(messages) - 1
+		case cursor > 0:
+			cursor--
 		}
 	case ml.cfg.Keys.MessagesList.SelectNext:
-		// If no message is currently selected, select the latest message.
-		if len(ml.GetHighlights()) == 0 {
-			ml.selectedMessageID = messages[0].ID
-		} else if messageIdx > 0 {
-			ml.selectedMessageID = messages[messageIdx-1].ID
-		} else {
-			return
+		switch {
+		case cursor == -1:
+			cursor = len(messages) - 1
+		case cursor < len(messages)-1:
+			cursor++
 		}
 	case ml.cfg.Keys.MessagesList.SelectFirst:
-		ml.selectedMessageID = messages[len(messages)-1].ID
+		cursor = 0
 	case ml.cfg.Keys.MessagesList.SelectLast:
-		ml.selectedMessageID = messages[0].ID
+		cursor = len(messages) - 1
 	case ml.cfg.Keys.MessagesList.SelectReply:
-		if ml.selectedMessageID == 0 {
+		if cursor == -1 || cursor >= len(messages) {
 			return
 		}
 
-		if ref := messages[messageIdx].ReferencedMessage; ref != nil {
+		if ref := messages[cursor].ReferencedMessage; ref != nil {
 			refIdx := slices.IndexFunc(messages, func(m discord.Message) bool {
 				return m.ID == ref.ID
 			})
 			if refIdx != -1 {
-				ml.selectedMessageID = messages[refIdx].ID
+				cursor = refIdx
 			}
-		}
-	}
-
-	ml.Highlight(ml.selectedMessageID.String())
-	ml.ScrollToHighlight()
-}
-
-func (ml *messagesList) onHighlighted(added, removed, remaining []string) {
-	if len(added) > 0 {
-		id, err := discord.ParseSnowflake(added[0])
-		if err != nil {
-			slog.Error("failed to parse region id as int to use as message id", "err", err)
+		} else {
 			return
 		}
-
-		ml.selectedMessageID = discord.MessageID(id)
 	}
+
+	ml.SetCursor(cursor)
 }
 
 func (ml *messagesList) yankID() {
@@ -545,17 +559,17 @@ func (ml *messagesList) openURL(url string) {
 }
 
 func (ml *messagesList) reply(mention bool) {
-	msg, err := ml.selectedMessage()
+	message, err := ml.selectedMessage()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
 		return
 	}
 
-	name := msg.Author.DisplayOrUsername()
-	if msg.GuildID.IsValid() {
-		member, err := ml.chatView.state.Cabinet.Member(msg.GuildID, msg.Author.ID)
+	name := message.Author.DisplayOrUsername()
+	if message.GuildID.IsValid() {
+		member, err := ml.chatView.state.Cabinet.Member(message.GuildID, message.Author.ID)
 		if err != nil {
-			slog.Error("failed to get member from state", "guild_id", msg.GuildID, "member_id", msg.Author.ID, "err", err)
+			slog.Error("failed to get member from state", "guild_id", message.GuildID, "member_id", message.Author.ID, "err", err)
 		} else {
 			if member.Nick != "" {
 				name = member.Nick
@@ -564,7 +578,7 @@ func (ml *messagesList) reply(mention bool) {
 	}
 
 	data := ml.chatView.messageInput.sendMessageData
-	data.Reference = &discord.MessageReference{MessageID: ml.selectedMessageID}
+	data.Reference = &discord.MessageReference{MessageID: message.ID}
 	data.AllowedMentions = &api.AllowedMentions{RepliedUser: option.False}
 
 	title := "Replying to "
@@ -646,16 +660,10 @@ func (ml *messagesList) delete() {
 		return
 	}
 
-	ml.selectedMessageID = 0
-	ml.Highlight()
-
 	if err := ml.chatView.state.MessageRemove(selected.ID, msg.ID); err != nil {
 		slog.Error("failed to delete message", "channel_id", selected.ID, "message_id", msg.ID, "err", err)
 		return
 	}
-
-	// No need to redraw messages after deletion, onMessageDelete will do
-	// its work after the event returns
 }
 
 func (ml *messagesList) requestGuildMembers(guildID discord.GuildID, messages []discord.Message) {
