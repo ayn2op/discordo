@@ -2,6 +2,7 @@ package chat
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -270,12 +271,12 @@ func (ml *messagesList) drawPinnedMessage(w io.Writer, message discord.Message) 
 
 func (ml *messagesList) selectedMessage() (*discord.Message, error) {
 	if len(ml.messages) == 0 {
-		return nil, fmt.Errorf("no messages available")
+		return nil, errors.New("no messages available")
 	}
 
 	cursor := ml.Cursor()
 	if cursor == -1 || cursor >= len(ml.messages) {
-		return nil, fmt.Errorf("no message is currently selected")
+		return nil, errors.New("no message is currently selected")
 	}
 
 	return &ml.messages[cursor], nil
