@@ -158,7 +158,17 @@ func (v *View) focusNext() {
 }
 
 func (v *View) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
-	switch event.Name() {
+	name := event.Name()
+
+	// Ctrl + I and CTRL + M are overwritten to be Tab and Enter respectively 
+	// this is a fix for this
+	if name == "Tab" && v.cfg.Keys.FocusMessageInput == "Ctrl+I" {
+		name = "Ctrl+I"
+	} else if name == "Enter" && v.cfg.Keys.FocusMessageInput == "Ctrl+M" {
+		name = "Ctrl+M"
+	}
+
+	switch name {
 	case v.cfg.Keys.FocusGuildsTree:
 		v.messageInput.removeMentionsList()
 		v.focusGuildsTree()
