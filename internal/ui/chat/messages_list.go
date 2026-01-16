@@ -370,13 +370,15 @@ func (ml *messagesList) _select(name string) {
 			if len(messages) == 0 {
 				return
 			}
-			slices.Reverse(messages)
 
 			if guildID := selectedChannel.GuildID; guildID.IsValid() {
 				ml.requestGuildMembers(guildID, messages)
 			}
 
-			ml.messages = slices.Concat(messages, ml.messages)
+			older := slices.Clone(messages)
+			slices.Reverse(older)
+
+			ml.messages = slices.Concat(older, ml.messages)
 			cursor = len(messages) - 1
 		}
 	case ml.cfg.Keys.MessagesList.SelectNext:
