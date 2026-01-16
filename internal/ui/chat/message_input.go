@@ -220,6 +220,7 @@ func (mi *messageInput) send() {
 		mi.typingTimer = nil
 	}
 	mi.reset()
+	mi.chatView.messagesList.clearSelection()
 	mi.chatView.messagesList.ScrollToEnd()
 }
 

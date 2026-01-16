@@ -109,6 +109,10 @@ func (ml *messagesList) deleteMessage(index int) {
 	ml.messages = append(ml.messages[:index], ml.messages[index+1:]...)
 }
 
+func (ml *messagesList) clearSelection() {
+	ml.SetCursor(-1)
+}
+
 func (ml *messagesList) buildItem(index int, cursor int) tview.ScrollListItem {
 	if index < 0 || index >= len(ml.messages) {
 		return nil
@@ -298,7 +302,7 @@ func (ml *messagesList) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		return nil
 
 	case ml.cfg.Keys.MessagesList.Cancel:
-		ml.SetCursor(-1)
+		ml.clearSelection()
 		return nil
 
 	case ml.cfg.Keys.MessagesList.SelectPrevious, ml.cfg.Keys.MessagesList.SelectNext, ml.cfg.Keys.MessagesList.SelectFirst, ml.cfg.Keys.MessagesList.SelectLast, ml.cfg.Keys.MessagesList.SelectReply:
