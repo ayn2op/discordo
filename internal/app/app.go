@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/ayn2op/discordo/internal/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
@@ -19,6 +21,7 @@ type App struct {
 	inner    *tview.Application
 	chatView *chat.View
 	cfg      *config.Config
+	screen   tcell.Screen
 }
 
 func New(cfg *config.Config) *App {
@@ -63,6 +66,15 @@ func (a *App) Run() error {
 	screen.EnablePaste()
 	screen.EnableFocus()
 	a.inner.SetScreen(screen)
+	a.screen = screen
+
+	// Set up signal handlers to ensure quit always works, even if UI is frozen
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-sigChan
+		a.quit()
+	}()
 
 	if token == "" {
 		loginForm := login.NewForm(a.inner, a.cfg, func(token string) {
@@ -81,7 +93,7 @@ func (a *App) Run() error {
 }
 
 func (a *App) showChatView(token string) error {
-	a.chatView = chat.NewView(a.inner, a.cfg, a.quit)
+	a.chatView = chat.NewView(a.inner, a.cfg, a.quit, a.screen)
 	if err := a.chatView.OpenState(token); err != nil {
 		return err
 	}

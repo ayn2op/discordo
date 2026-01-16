@@ -46,9 +46,14 @@ type View struct {
 	state *ningen.State
 
 	onLogout func()
+
+	screen    tcell.Screen
+	lastWidth int
+	lastHeight int
+	sizeMu    sync.Mutex
 }
 
-func NewView(app *tview.Application, cfg *config.Config, onLogout func()) *View {
+func NewView(app *tview.Application, cfg *config.Config, onLogout func(), screen tcell.Screen) *View {
 	v := &View{
 		Pages: tview.NewPages(),
 
@@ -60,6 +65,7 @@ func NewView(app *tview.Application, cfg *config.Config, onLogout func()) *View 
 		app:      app,
 		cfg:      cfg,
 		onLogout: onLogout,
+		screen:   screen,
 	}
 	v.guildsTree = newGuildsTree(cfg, v)
 	v.messagesList = newMessagesList(cfg, v)
@@ -67,6 +73,10 @@ func NewView(app *tview.Application, cfg *config.Config, onLogout func()) *View 
 
 	v.SetInputCapture(v.onInputCapture)
 	v.buildLayout()
+	
+	// Start a goroutine to periodically check for resize events
+	go v.handleResize()
+	
 	return v
 }
 
@@ -82,21 +92,81 @@ func (v *View) SetSelectedChannel(channel *discord.Channel) {
 	v.selectedChannelMu.Unlock()
 }
 
+const (
+	minTerminalWidth  = 20
+	minTerminalHeight = 5 // Minimum: 1 for guilds tree, 1 for messages, 3 for input
+)
+
 func (v *View) buildLayout() {
 	v.Clear()
 	v.rightFlex.Clear()
 	v.mainFlex.Clear()
 
+	// Default input height
+	var inputHeight int = 3
+	// Note: Screen size will be checked in onBeforeDraw and layout will be rebuilt if needed
+
 	v.rightFlex.
 		SetDirection(tview.FlexRow).
 		AddItem(v.messagesList, 0, 1, false).
-		AddItem(v.messageInput, 3, 1, false)
+		AddItem(v.messageInput, inputHeight, 1, false)
 	// The guilds tree is always focused first at start-up.
 	v.mainFlex.
 		AddItem(v.guildsTree, 0, 1, true).
 		AddItem(v.rightFlex, 0, 4, false)
 
 	v.AddAndSwitchToPage(flexPageName, v.mainFlex, true)
+}
+
+// handleResize periodically checks for terminal resize events and rebuilds layout if needed
+func (v *View) handleResize() {
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+	
+	for range ticker.C {
+		if v.screen == nil {
+			continue
+		}
+		
+		width, height := v.screen.Size()
+		
+		v.sizeMu.Lock()
+		sizeChanged := v.lastWidth != width || v.lastHeight != height
+		if sizeChanged {
+			v.lastWidth = width
+			v.lastHeight = height
+		}
+		v.sizeMu.Unlock()
+		
+		// Rebuild layout on any size change to ensure it stays valid
+		// This prevents the UI from freezing when terminal is resized
+		if sizeChanged {
+			// Adjust input height based on terminal size
+			var inputHeight int = 3
+			if height < minTerminalHeight {
+				// Terminal is smaller than minimum, reduce input height
+				// Reserve 2 lines minimum (1 for guilds, 1 for messages), rest for input
+				inputHeight = max(1, height-2)
+			}
+			
+			// Rebuild layout with adjusted sizes
+			v.app.QueueUpdateDraw(func() {
+				v.rightFlex.Clear()
+				v.mainFlex.Clear()
+				
+				// Preserve focus state
+				hadFocus := v.guildsTree.HasFocus()
+				
+				v.rightFlex.
+					SetDirection(tview.FlexRow).
+					AddItem(v.messagesList, 0, 1, false).
+					AddItem(v.messageInput, inputHeight, 1, false)
+				v.mainFlex.
+					AddItem(v.guildsTree, 0, 1, hadFocus).
+					AddItem(v.rightFlex, 0, 4, false)
+			})
+		}
+	}
 }
 
 func (v *View) toggleGuildsTree() {
