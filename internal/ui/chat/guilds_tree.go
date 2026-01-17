@@ -313,3 +313,99 @@ func (gt *guildsTree) yankID() {
 		go clipboard.Write(clipboard.FmtText, []byte(id.String()))
 	}
 }
+
+func (gt *guildsTree) SelectChannelID(channelID discord.ChannelID) {
+	if gt.chatView.state == nil || gt.chatView.state.Cabinet == nil {
+		return
+	}
+
+	// First, check if the channel node exists
+	var channelNode *tview.TreeNode
+	gt.GetRoot().Walk(func(node, _ *tview.TreeNode) bool {
+		if node.GetReference() == channelID {
+			channelNode = node
+			return false
+		}
+		return true
+	})
+
+	if channelNode != nil {
+		gt.SetCurrentNode(channelNode)
+		gt.onSelected(channelNode)
+		return
+	}
+
+	// If not found, it might be because the guild hasn't been expanded yet.
+	// Find the channel from state to get the GuildID.
+	channel, err := gt.chatView.state.Cabinet.Channel(channelID)
+	if err != nil {
+		slog.Error("failed to get channel", "err", err, "channel_id", channelID)
+		return
+	}
+
+	if !channel.GuildID.IsValid() {
+		// DM or GroupDM. These should be under "Direct Messages" node.
+		var dmNode *tview.TreeNode
+		gt.GetRoot().Walk(func(node, _ *tview.TreeNode) bool {
+			// DM node usually has no reference (nil) and specific text, or we can tag it better.
+			// In onReady, it's created as tview.NewTreeNode("Direct Messages").
+			if node.GetReference() == nil && node.GetText() == "Direct Messages" {
+				dmNode = node
+				return false
+			}
+			return true
+		})
+
+		if dmNode != nil {
+			// Expand/Select DM node to populate
+			gt.onSelected(dmNode)
+			dmNode.SetExpanded(true)
+
+			// Now try to find channel again
+			gt.GetRoot().Walk(func(node, _ *tview.TreeNode) bool {
+				if node.GetReference() == channelID {
+					channelNode = node
+					return false
+				}
+				return true
+			})
+			if channelNode != nil {
+				gt.SetCurrentNode(channelNode)
+				gt.onSelected(channelNode)
+			}
+		}
+		return
+	}
+
+	// It's a guild channel. Find the guild node.
+	var guildNode *tview.TreeNode
+	gt.GetRoot().Walk(func(node, _ *tview.TreeNode) bool {
+		if node.GetReference() == channel.GuildID {
+			guildNode = node
+			return false
+		}
+		return true
+	})
+
+	if guildNode != nil {
+		// Expand guild to populate channels
+		if len(guildNode.GetChildren()) == 0 {
+			gt.onSelected(guildNode)
+		}
+		guildNode.SetExpanded(true)
+
+		// Now find channel node
+		gt.GetRoot().Walk(func(node, _ *tview.TreeNode) bool {
+			if node.GetReference() == channelID {
+				channelNode = node
+				return false
+			}
+			return true
+		})
+
+		if channelNode != nil {
+			gt.SetCurrentNode(channelNode)
+			gt.onSelected(channelNode)
+		}
+	}
+}

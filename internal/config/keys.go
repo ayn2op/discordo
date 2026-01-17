@@ -15,6 +15,7 @@ type (
 		FocusPrevious     string `toml:"focus_previous"`
 		FocusNext         string `toml:"focus_next"`
 		ToggleGuildsTree  string `toml:"toggle_guilds_tree"`
+		OpenQuickSwitcher string `toml:"open_quick_switcher"`
 
 		GuildsTree   GuildsTreeKeys   `toml:"guilds_tree"`
 		MessagesList MessagesListKeys `toml:"messages_list"`

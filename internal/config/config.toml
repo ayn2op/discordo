@@ -52,6 +52,7 @@ focus_previous = "Ctrl+H"
 focus_next = "Ctrl+L"
 # Hide/show the guilds tree.
 toggle_guilds_tree = "Ctrl+B"
+open_quick_switcher = "Ctrl+K"
 quit = "Ctrl+C"
 # Log out and remove the authentication token from keyring.
 # Requires re-login upon restart.
