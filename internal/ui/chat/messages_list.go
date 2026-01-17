@@ -123,7 +123,9 @@ func (ml *messagesList) buildItem(index int, cursor int) tview.ScrollListItem {
 		SetDynamicColors(true).
 		SetText(ml.renderMessage(message))
 	if index == cursor {
-		tv.SetTextStyle(tcell.StyleDefault.Reverse(true))
+		tv.SetTextStyle(ml.cfg.Theme.MessagesList.SelectedMessageStyle.Style)
+	} else {
+		tv.SetTextStyle(ml.cfg.Theme.MessagesList.MessageStyle.Style)
 	}
 	return tv
 }

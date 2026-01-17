@@ -152,6 +152,8 @@ mention_style = { foreground = "blue" }
 emoji_style = { foreground = "green" }
 url_style = { foreground = "blue" }
 attachment_style = { foreground = "yellow" }
+message_style = {}
+selected_message_style = { attributes = "reverse" }
 
 [theme.mentions_list]
 # Note: width and height are capped to the avaliable space
