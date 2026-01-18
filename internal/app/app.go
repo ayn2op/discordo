@@ -64,18 +64,20 @@ func (a *App) Run() error {
 	screen.EnableFocus()
 	a.inner.SetScreen(screen)
 
-	if token == "" {
-		loginForm := login.NewForm(a.inner, a.cfg, func(token string) {
-			if err := a.showChatView(token); err != nil {
-				slog.Error("failed to show chat view", "err", err)
-			}
-		})
-		a.inner.SetRoot(loginForm)
-	} else {
-		if err := a.showChatView(token); err != nil {
-			return err
+	if token != "" {
+		err = a.showChatView(token)
+		if err == nil {
+			return a.inner.Run()
 		}
+
+		slog.Error("failed to show chat view", "err", err)
 	}
+
+	loginForm := login.NewForm(a.inner, a.cfg, a.showChatView)
+	if token != "" {
+		loginForm.ShowError(fmt.Errorf("authentication failed: %w", err))
+	}
+	a.inner.SetRoot(loginForm)
 
 	return a.inner.Run()
 }
