@@ -30,6 +30,8 @@ func newQuickSwitcher(view *View, cfg *config.Config) *quickSwitcher {
 		cfg:  cfg,
 	}
 
+	qs.Flex.Box = ui.ConfigureBox(tview.NewBox(), &cfg.Theme)
+
 	// Create input field
 	qs.inputField = tview.NewInputField()
 	qs.inputField.SetFieldBackgroundColor(tview.Styles.PrimitiveBackgroundColor)
@@ -39,21 +41,8 @@ func newQuickSwitcher(view *View, cfg *config.Config) *quickSwitcher {
 	qs.inputField.SetDoneFunc(qs.onDone)
 	qs.inputField.SetInputCapture(qs.onInputFieldCapture)
 
-	// Create list for autocomplete suggestions with border
+	// Create list for autocomplete suggestions
 	qs.list = tview.NewList()
-	qs.list.Box = ui.ConfigureBox(qs.list.Box, &cfg.Theme)
-	if cfg.Theme.Border.Enabled {
-		qs.list.SetBorders(tview.BordersAll)
-	} else {
-		// Always show border for quick switcher list to distinguish it from chat
-		border := cfg.Theme.Border
-		normalBorderStyle := border.NormalStyle.Style
-		normalBorderSet := border.NormalSet.BorderSet
-		qs.list.Box.
-			SetBorderStyle(normalBorderStyle).
-			SetBorderSet(normalBorderSet).
-			SetBorders(tview.BordersAll)
-	}
 	qs.list.ShowSecondaryText(false)
 	qs.list.SetSelectedFunc(qs.onListSelected)
 	qs.list.SetInputCapture(qs.onListInputCapture)
