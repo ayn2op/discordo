@@ -16,6 +16,7 @@ func NewModel(cfg *config.Config) Model {
 		tabs: tabs.NewModel([]tabs.Tab{
 			newTokenModel(),
 			newPasswordModel(),
+			newQRModel(),
 		}),
 		cfg: cfg,
 	}
