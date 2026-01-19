@@ -23,6 +23,7 @@ const (
 	mentionsListPageName    = "mentionsList"
 	attachmentsListPageName = "attachmentsList"
 	confirmModalPageName    = "confirmModal"
+	quickSwitcherPageName   = "quickSwitcher"
 )
 
 type View struct {
@@ -115,13 +116,28 @@ func (v *View) toggleGuildsTree() {
 }
 
 func (v *View) toggleQuickSwitcher() {
-	if v.rightFlex.GetItemCount() == 3 {
-		v.rightFlex.RemoveItem(v.quickSwitcher)
+	if v.HasPage(quickSwitcherPageName) {
+		// Hide quick switcher
+		v.RemovePage(quickSwitcherPageName).SwitchToPage(flexPageName)
 		v.app.SetFocus(v.messageInput)
 	} else {
-		v.rightFlex.AddItem(v.quickSwitcher, 1, 1, false)
-		v.quickSwitcher.SetText("")
-		v.app.SetFocus(v.quickSwitcher)
+		// Show quick switcher as floating modal
+		previousFocus := v.app.GetFocus()
+		v.quickSwitcher.inputField.SetText("")
+		v.quickSwitcher.list.Clear()
+		v.quickSwitcher.candidates = nil
+		
+		// Create centered modal
+		centered := ui.Centered(v.quickSwitcher, 60, 15)
+		
+		v.
+			AddAndSwitchToPage(quickSwitcherPageName, centered, true).
+			ShowPage(flexPageName)
+		
+		v.app.SetFocus(v.quickSwitcher.inputField)
+		
+		// Store previous focus for restoration (if needed)
+		_ = previousFocus
 	}
 }
 
