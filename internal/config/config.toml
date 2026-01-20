@@ -113,8 +113,10 @@ open_editor = "Ctrl+E"
 open_file_picker = "Ctrl+Rune[\\]"
 
 [keys.mentions_list]
-up = "Ctrl+P"
-down = "Ctrl+N"
+select_previous = "Ctrl+P"
+select_next = "Ctrl+N"
+select_first = "Home"
+select_last = "End"
 
 # style = { foreground = "", background = "", attributes = "" or [""] }
 [theme.title]
