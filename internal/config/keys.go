@@ -8,23 +8,6 @@ type (
 		SelectLast     string `toml:"select_last"`
 	}
 
-	Keys struct {
-		FocusGuildsTree   string `toml:"focus_guilds_tree"`
-		FocusMessagesList string `toml:"focus_messages_list"`
-		FocusMessageInput string `toml:"focus_message_input"`
-		FocusPrevious     string `toml:"focus_previous"`
-		FocusNext         string `toml:"focus_next"`
-		ToggleGuildsTree  string `toml:"toggle_guilds_tree"`
-
-		GuildsTree   GuildsTreeKeys   `toml:"guilds_tree"`
-		MessagesList MessagesListKeys `toml:"messages_list"`
-		MessageInput MessageInputKeys `toml:"message_input"`
-		MentionsList MentionsListKeys `toml:"mentions_list"`
-
-		Logout string `toml:"logout"`
-		Quit   string `toml:"quit"`
-	}
-
 	GuildsTreeKeys struct {
 		SelectionKeys
 		SelectCurrent string `toml:"select_current"`
@@ -67,7 +50,23 @@ type (
 	}
 
 	MentionsListKeys struct {
-		Up   string `toml:"up"`
-		Down string `toml:"down"`
+		SelectionKeys
+	}
+
+	Keys struct {
+		FocusGuildsTree   string `toml:"focus_guilds_tree"`
+		FocusMessagesList string `toml:"focus_messages_list"`
+		FocusMessageInput string `toml:"focus_message_input"`
+		FocusPrevious     string `toml:"focus_previous"`
+		FocusNext         string `toml:"focus_next"`
+		ToggleGuildsTree  string `toml:"toggle_guilds_tree"`
+
+		GuildsTree   GuildsTreeKeys   `toml:"guilds_tree"`
+		MessagesList MessagesListKeys `toml:"messages_list"`
+		MessageInput MessageInputKeys `toml:"message_input"`
+		MentionsList MentionsListKeys `toml:"mentions_list"`
+
+		Logout string `toml:"logout"`
+		Quit   string `toml:"quit"`
 	}
 )
