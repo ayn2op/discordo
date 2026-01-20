@@ -146,6 +146,9 @@ type (
 		EmojiStyle         StyleWrapper `toml:"emoji_style"`
 		URLStyle           StyleWrapper `toml:"url_style"`
 		AttachmentStyle    StyleWrapper `toml:"attachment_style"`
+
+		MessageStyle         StyleWrapper `toml:"message_style"`
+		SelectedMessageStyle StyleWrapper `toml:"selected_message_style"`
 	}
 
 	MentionsListTheme struct {

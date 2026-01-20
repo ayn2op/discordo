@@ -202,9 +202,10 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 
 		go gt.chatView.state.ReadState.MarkRead(channel.ID, channel.LastMessageID)
 
-		messages, err := gt.chatView.state.Messages(channel.ID, uint(gt.cfg.MessagesLimit))
+		limit := gt.cfg.MessagesLimit
+		messages, err := gt.chatView.state.Messages(channel.ID, uint(limit))
 		if err != nil {
-			slog.Error("failed to get messages", "err", err, "channel_id", channel.ID, "limit", gt.cfg.MessagesLimit)
+			slog.Error("failed to get messages", "err", err, "channel_id", channel.ID, "limit", limit)
 			return
 		}
 
@@ -218,7 +219,7 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 
 		gt.chatView.messagesList.reset()
 		gt.chatView.messagesList.setTitle(*channel)
-		gt.chatView.messagesList.drawMessages(messages)
+		gt.chatView.messagesList.setMessages(messages)
 		gt.chatView.messagesList.ScrollToEnd()
 
 		hasNoPerm := channel.Type != discord.DirectMessage && channel.Type != discord.GroupDM && !gt.chatView.state.HasPermissions(channel.ID, discord.PermissionSendMessages)

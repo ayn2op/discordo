@@ -82,10 +82,8 @@ func (ml *messagesList) setTitle(channel discord.Channel) {
 	ml.SetTitle(title)
 }
 
-func (ml *messagesList) drawMessages(messages []discord.Message) {
-	ml.messages = slices.Grow(ml.messages[:0], len(messages))
-	ml.messages = ml.messages[:len(messages)]
-	copy(ml.messages, messages)
+func (ml *messagesList) setMessages(messages []discord.Message) {
+	ml.messages = slices.Clone(messages)
 	slices.Reverse(ml.messages)
 }
 
@@ -125,7 +123,9 @@ func (ml *messagesList) buildItem(index int, cursor int) tview.ScrollListItem {
 		SetDynamicColors(true).
 		SetText(ml.renderMessage(message))
 	if index == cursor {
-		tv.SetTextStyle(tcell.StyleDefault.Reverse(true))
+		tv.SetTextStyle(ml.cfg.Theme.MessagesList.SelectedMessageStyle.Style)
+	} else {
+		tv.SetTextStyle(ml.cfg.Theme.MessagesList.MessageStyle.Style)
 	}
 	return tv
 }
@@ -355,6 +355,33 @@ func (ml *messagesList) _select(name string) {
 			cursor = len(messages) - 1
 		case cursor > 0:
 			cursor--
+		case cursor == 0:
+			selectedChannel := ml.chatView.SelectedChannel()
+			if selectedChannel == nil {
+				return
+			}
+
+			channelID := selectedChannel.ID
+			before := ml.messages[0].ID
+			limit := uint(ml.cfg.MessagesLimit)
+			messages, err := ml.chatView.state.MessagesBefore(channelID, before, limit)
+			if err != nil {
+				slog.Error("failed to fetch older messages", "err", err)
+				return
+			}
+			if len(messages) == 0 {
+				return
+			}
+
+			if guildID := selectedChannel.GuildID; guildID.IsValid() {
+				ml.requestGuildMembers(guildID, messages)
+			}
+
+			older := slices.Clone(messages)
+			slices.Reverse(older)
+
+			ml.messages = slices.Concat(older, ml.messages)
+			cursor = len(messages) - 1
 		}
 	case ml.cfg.Keys.MessagesList.SelectNext:
 		switch {
@@ -379,8 +406,6 @@ func (ml *messagesList) _select(name string) {
 			if refIdx != -1 {
 				cursor = refIdx
 			}
-		} else {
-			return
 		}
 	}
 

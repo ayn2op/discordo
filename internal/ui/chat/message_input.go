@@ -149,12 +149,19 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 
 	if mi.cfg.AutocompleteLimit > 0 {
 		if mi.chatView.GetVisibile(mentionsListPageName) {
+			handler := mi.mentionsList.InputHandler()
 			switch event.Name() {
-			case mi.cfg.Keys.MentionsList.Up:
-				mi.mentionsList.InputHandler()(tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone), nil)
+			case mi.cfg.Keys.MentionsList.SelectPrevious:
+				handler(tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone), nil)
 				return nil
-			case mi.cfg.Keys.MentionsList.Down:
-				mi.mentionsList.InputHandler()(tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone), nil)
+			case mi.cfg.Keys.MentionsList.SelectNext:
+				handler(tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone), nil)
+				return nil
+			case mi.cfg.Keys.MentionsList.SelectFirst:
+				handler(tcell.NewEventKey(tcell.KeyHome, "", tcell.ModNone), nil)
+				return nil
+			case mi.cfg.Keys.MentionsList.SelectLast:
+				handler(tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone), nil)
 				return nil
 			}
 		}

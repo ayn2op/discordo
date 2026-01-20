@@ -19,7 +19,7 @@ show_attachment_links = true
 # Note: Use autocomplete_limit = 0 to disable.
 autocomplete_limit = 20
 
-# The number of messages to fetch when a text-based channel is selected from guilds tree. The minimum and maximum value is 0 and 100, respectively.
+# The number of messages to fetch when a text-based channel is selected from guilds tree. The minimum and maximum value is 1 and 100, respectively.
 messages_limit = 50
 
 [timestamps]
@@ -113,8 +113,10 @@ open_editor = "Ctrl+E"
 open_file_picker = "Ctrl+Rune[\\]"
 
 [keys.mentions_list]
-up = "Ctrl+P"
-down = "Ctrl+N"
+select_previous = "Ctrl+P"
+select_next = "Ctrl+N"
+select_first = "Home"
+select_last = "End"
 
 [keys.picker]
 open = "Ctrl+K"
@@ -159,6 +161,8 @@ mention_style = { foreground = "blue" }
 emoji_style = { foreground = "green" }
 url_style = { foreground = "blue" }
 attachment_style = { foreground = "yellow" }
+message_style = {}
+selected_message_style = { attributes = "reverse" }
 
 [theme.mentions_list]
 # Note: width and height are capped to the avaliable space
