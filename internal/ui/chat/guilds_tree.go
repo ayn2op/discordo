@@ -314,7 +314,7 @@ func (gt *guildsTree) yankID() {
 }
 
 func (gt *guildsTree) SelectChannelID(channelID discord.ChannelID) {
-	if gt.chatView.state == nil || gt.chatView.state.Cabinet == nil {
+	if gt.chatView.state.Cabinet == nil {
 		return
 	}
 

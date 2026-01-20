@@ -15,12 +15,12 @@ type (
 		FocusPrevious     string `toml:"focus_previous"`
 		FocusNext         string `toml:"focus_next"`
 		ToggleGuildsTree  string `toml:"toggle_guilds_tree"`
-		OpenQuickSwitcher string `toml:"open_quick_switcher"`
 
 		GuildsTree   GuildsTreeKeys   `toml:"guilds_tree"`
 		MessagesList MessagesListKeys `toml:"messages_list"`
 		MessageInput MessageInputKeys `toml:"message_input"`
 		MentionsList MentionsListKeys `toml:"mentions_list"`
+		Picker       PickerKeys        `toml:"picker"`
 
 		Logout string `toml:"logout"`
 		Quit   string `toml:"quit"`
@@ -70,5 +70,13 @@ type (
 	MentionsListKeys struct {
 		Up   string `toml:"up"`
 		Down string `toml:"down"`
+	}
+
+	PickerKeys struct {
+		Open    string `toml:"open"`
+		Cancel  string `toml:"cancel"`
+		Up      string `toml:"up"`
+		Down    string `toml:"down"`
+		Confirm string `toml:"confirm"`
 	}
 )

@@ -219,7 +219,7 @@ func (v *View) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	case v.cfg.Keys.ToggleGuildsTree:
 		v.toggleGuildsTree()
 		return nil
-	case v.cfg.Keys.OpenQuickSwitcher:
+	case v.cfg.Keys.Picker.Open:
 		v.toggleQuickSwitcher()
 		return nil
 	}

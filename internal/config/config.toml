@@ -52,7 +52,6 @@ focus_previous = "Ctrl+H"
 focus_next = "Ctrl+L"
 # Hide/show the guilds tree.
 toggle_guilds_tree = "Ctrl+B"
-open_quick_switcher = "Ctrl+K"
 quit = "Ctrl+C"
 # Log out and remove the authentication token from keyring.
 # Requires re-login upon restart.
@@ -116,6 +115,13 @@ open_file_picker = "Ctrl+Rune[\\]"
 [keys.mentions_list]
 up = "Ctrl+P"
 down = "Ctrl+N"
+
+[keys.picker]
+open = "Ctrl+K"
+cancel = "Esc"
+up = "Ctrl+P"
+down = "Ctrl+N"
+confirm = "Enter"
 
 # style = { foreground = "", background = "", attributes = "" or [""] }
 [theme.title]

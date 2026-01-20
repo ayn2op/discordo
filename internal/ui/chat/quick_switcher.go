@@ -30,13 +30,11 @@ func newQuickSwitcher(view *View, cfg *config.Config) *quickSwitcher {
 		cfg:  cfg,
 	}
 
-	qs.Flex.Box = ui.ConfigureBox(tview.NewBox(), &cfg.Theme)
+	qs.Box = ui.ConfigureBox(tview.NewBox(), &cfg.Theme)
 
 	// Create input field
 	qs.inputField = tview.NewInputField()
-	qs.inputField.SetFieldBackgroundColor(tview.Styles.PrimitiveBackgroundColor)
-	qs.inputField.SetFieldTextColor(tview.Styles.PrimaryTextColor)
-	qs.inputField.SetLabel("Jump to: ")
+	qs.inputField.SetLabel("> ")
 	qs.inputField.SetChangedFunc(qs.onInputChanged)
 	qs.inputField.SetDoneFunc(qs.onDone)
 	qs.inputField.SetInputCapture(qs.onInputFieldCapture)
@@ -45,7 +43,6 @@ func newQuickSwitcher(view *View, cfg *config.Config) *quickSwitcher {
 	qs.list = tview.NewList()
 	qs.list.ShowSecondaryText(false)
 	qs.list.SetSelectedFunc(qs.onListSelected)
-	qs.list.SetInputCapture(qs.onListInputCapture)
 
 	// Build layout: input field on top, list below
 	qs.Flex.
@@ -82,9 +79,15 @@ func (qs *quickSwitcher) updateAutocompleteList(currentText string) {
 	var candidates []channelCandidate
 
 	// Guild Channels
-	guilds, _ := qs.view.state.Cabinet.Guilds()
+	guilds, err := qs.view.state.Cabinet.Guilds()
+	if err != nil {
+		return
+	}
 	for _, guild := range guilds {
-		channels, _ := qs.view.state.Cabinet.Channels(guild.ID)
+		channels, err := qs.view.state.Cabinet.Channels(guild.ID)
+		if err != nil {
+			continue
+		}
 		for _, ch := range channels {
 			if ch.Type == discord.GuildText || ch.Type == discord.GuildNews || ch.Type == discord.GuildPublicThread || ch.Type == discord.GuildPrivateThread || ch.Type == discord.GuildAnnouncementThread {
 				candidates = append(candidates, channelCandidate{
@@ -97,7 +100,10 @@ func (qs *quickSwitcher) updateAutocompleteList(currentText string) {
 	}
 
 	// DM Channels
-	privateChannels, _ := qs.view.state.PrivateChannels()
+	privateChannels, err := qs.view.state.PrivateChannels()
+	if err != nil {
+		return
+	}
 	for _, ch := range privateChannels {
 		name := "Direct Message"
 		if len(ch.DMRecipients) > 0 {
@@ -114,12 +120,7 @@ func (qs *quickSwitcher) updateAutocompleteList(currentText string) {
 		})
 	}
 
-	var candidateStrings []string
-	for _, c := range candidates {
-		candidateStrings = append(candidateStrings, c.String())
-	}
-
-	matches := fuzzy.Find(currentText, candidateStrings)
+	matches := fuzzy.FindFrom(currentText, candidateList(candidates))
 	sort.SliceStable(matches, func(i, j int) bool {
 		return matches[i].Score > matches[j].Score
 	})
@@ -141,10 +142,20 @@ func (qs *quickSwitcher) updateAutocompleteList(currentText string) {
 		qs.list.AddItem(text, "", 0, nil)
 	}
 
-	// If there are suggestions, switch focus to list when arrow key is pressed
+	// Reset list selection to first item when candidates are updated
 	if len(qs.candidates) > 0 {
 		qs.list.SetCurrentItem(0)
 	}
+}
+
+type candidateList []channelCandidate
+
+func (cl candidateList) String(i int) string {
+	return cl[i].String()
+}
+
+func (cl candidateList) Len() int {
+	return len(cl)
 }
 
 func (qs *quickSwitcher) onListSelected(index int, mainText, secondaryText string, shortcut rune) {
@@ -155,52 +166,30 @@ func (qs *quickSwitcher) onListSelected(index int, mainText, secondaryText strin
 	}
 }
 
-func (qs *quickSwitcher) onListInputCapture(event *tcell.EventKey) *tcell.EventKey {
-	switch event.Key() {
-	case tcell.KeyEnter:
-		index := qs.list.GetCurrentItem()
-		if index >= 0 && index < len(qs.candidates) {
-			candidate := qs.candidates[index]
-			qs.view.guildsTree.SelectChannelID(candidate.id)
-			qs.view.toggleQuickSwitcher()
-		}
-		return nil
-	case tcell.KeyEscape:
-		qs.view.toggleQuickSwitcher()
-		return nil
-	case tcell.KeyUp:
-		if qs.list.GetCurrentItem() == 0 {
-			// Move focus back to input field
-			qs.view.app.SetFocus(qs.inputField)
+func (qs *quickSwitcher) onInputFieldCapture(event *tcell.EventKey) *tcell.EventKey {
+	if len(qs.candidates) > 0 {
+		switch event.Name() {
+		case qs.cfg.Keys.Picker.Up:
+			qs.list.InputHandler()(tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone), nil)
 			return nil
-		}
-	case tcell.KeyTab:
-		// Tab moves focus between input and list
-		if qs.view.app.GetFocus() == qs.inputField {
-			qs.view.app.SetFocus(qs.list)
+		case qs.cfg.Keys.Picker.Down:
+			qs.list.InputHandler()(tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone), nil)
 			return nil
-		} else if qs.view.app.GetFocus() == qs.list {
-			qs.view.app.SetFocus(qs.inputField)
+		case qs.cfg.Keys.Picker.Confirm:
+			index := qs.list.GetCurrentItem()
+			if index >= 0 && index < len(qs.candidates) {
+				candidate := qs.candidates[index]
+				qs.view.guildsTree.SelectChannelID(candidate.id)
+				qs.view.toggleQuickSwitcher()
+			}
 			return nil
 		}
 	}
-	return event
-}
 
-func (qs *quickSwitcher) onInputFieldCapture(event *tcell.EventKey) *tcell.EventKey {
-	switch event.Key() {
-	case tcell.KeyDown:
-		// Move focus to list if there are suggestions
-		if len(qs.candidates) > 0 {
-			qs.view.app.SetFocus(qs.list)
-			return nil
-		}
-	case tcell.KeyTab:
-		// Move focus to list if there are suggestions
-		if len(qs.candidates) > 0 {
-			qs.view.app.SetFocus(qs.list)
-			return nil
-		}
+	switch event.Name() {
+	case qs.cfg.Keys.Picker.Cancel:
+		qs.view.toggleQuickSwitcher()
+		return nil
 	}
 	return event
 }
@@ -213,18 +202,6 @@ func (qs *quickSwitcher) onDone(key tcell.Key) {
 			candidate := qs.candidates[0]
 			qs.view.guildsTree.SelectChannelID(candidate.id)
 			qs.view.toggleQuickSwitcher()
-		} else {
-			// Try to match exact text
-			text := qs.inputField.GetText()
-			for _, c := range qs.candidates {
-				if c.String() == text {
-					qs.view.guildsTree.SelectChannelID(c.id)
-					qs.view.toggleQuickSwitcher()
-					return
-				}
-			}
 		}
-	case tcell.KeyEscape:
-		qs.view.toggleQuickSwitcher()
 	}
 }
