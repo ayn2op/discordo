@@ -12,7 +12,7 @@ import (
 	"github.com/sahilm/fuzzy"
 )
 
-type quickSwitcher struct {
+type picker struct {
 	*tview.Flex
 	view *View
 	cfg  *config.Config
@@ -23,34 +23,34 @@ type quickSwitcher struct {
 	candidates []channelCandidate
 }
 
-func newQuickSwitcher(view *View, cfg *config.Config) *quickSwitcher {
-	qs := &quickSwitcher{
+func newPicker(view *View, cfg *config.Config) *picker {
+	p := &picker{
 		Flex: tview.NewFlex(),
 		view: view,
 		cfg:  cfg,
 	}
 
-	qs.Box = ui.ConfigureBox(tview.NewBox(), &cfg.Theme)
+	p.Box = ui.ConfigureBox(tview.NewBox(), &cfg.Theme)
 
 	// Create input field
-	qs.inputField = tview.NewInputField()
-	qs.inputField.SetLabel("> ")
-	qs.inputField.SetChangedFunc(qs.onInputChanged)
-	qs.inputField.SetDoneFunc(qs.onDone)
-	qs.inputField.SetInputCapture(qs.onInputFieldCapture)
+	p.inputField = tview.NewInputField()
+	p.inputField.SetLabel("> ")
+	p.inputField.SetChangedFunc(p.onInputChanged)
+	p.inputField.SetDoneFunc(p.onDone)
+	p.inputField.SetInputCapture(p.onInputFieldCapture)
 
 	// Create list for autocomplete suggestions
-	qs.list = tview.NewList()
-	qs.list.ShowSecondaryText(false)
-	qs.list.SetSelectedFunc(qs.onListSelected)
+	p.list = tview.NewList()
+	p.list.ShowSecondaryText(false)
+	p.list.SetSelectedFunc(p.onListSelected)
 
 	// Build layout: input field on top, list below
-	qs.Flex.
+	p.Flex.
 		SetDirection(tview.FlexRow).
-		AddItem(qs.inputField, 1, 0, true).
-		AddItem(qs.list, 0, 1, false)
+		AddItem(p.inputField, 1, 0, true).
+		AddItem(p.list, 0, 1, false)
 
-	return qs
+	return p
 }
 
 type channelCandidate struct {
@@ -66,25 +66,25 @@ func (c channelCandidate) String() string {
 	return c.name
 }
 
-func (qs *quickSwitcher) onInputChanged(text string) {
-	qs.updateAutocompleteList(text)
+func (p *picker) onInputChanged(text string) {
+	p.updateAutocompleteList(text)
 }
 
-func (qs *quickSwitcher) updateAutocompleteList(currentText string) {
-	if qs.view.state == nil || qs.view.state.Cabinet == nil {
-		qs.list.Clear()
+func (p *picker) updateAutocompleteList(currentText string) {
+	if p.view.state == nil || p.view.state.Cabinet == nil {
+		p.list.Clear()
 		return
 	}
 
 	var candidates []channelCandidate
 
 	// Guild Channels
-	guilds, err := qs.view.state.Cabinet.Guilds()
+	guilds, err := p.view.state.Cabinet.Guilds()
 	if err != nil {
 		return
 	}
 	for _, guild := range guilds {
-		channels, err := qs.view.state.Cabinet.Channels(guild.ID)
+		channels, err := p.view.state.Cabinet.Channels(guild.ID)
 		if err != nil {
 			continue
 		}
@@ -100,7 +100,7 @@ func (qs *quickSwitcher) updateAutocompleteList(currentText string) {
 	}
 
 	// DM Channels
-	privateChannels, err := qs.view.state.PrivateChannels()
+	privateChannels, err := p.view.state.PrivateChannels()
 	if err != nil {
 		return
 	}
@@ -125,26 +125,26 @@ func (qs *quickSwitcher) updateAutocompleteList(currentText string) {
 		return matches[i].Score > matches[j].Score
 	})
 
-	qs.candidates = make([]channelCandidate, 0, len(matches))
+	p.candidates = make([]channelCandidate, 0, len(matches))
 	for _, match := range matches {
 		candidate := candidates[match.Index]
-		qs.candidates = append(qs.candidates, candidate)
+		p.candidates = append(p.candidates, candidate)
 	}
 
-	if len(qs.candidates) > 10 {
-		qs.candidates = qs.candidates[:10]
+	if len(p.candidates) > 10 {
+		p.candidates = p.candidates[:10]
 	}
 
 	// Update the list
-	qs.list.Clear()
-	for _, candidate := range qs.candidates {
+	p.list.Clear()
+	for _, candidate := range p.candidates {
 		text := candidate.String()
-		qs.list.AddItem(text, "", 0, nil)
+		p.list.AddItem(text, "", 0, nil)
 	}
 
 	// Reset list selection to first item when candidates are updated
-	if len(qs.candidates) > 0 {
-		qs.list.SetCurrentItem(0)
+	if len(p.candidates) > 0 {
+		p.list.SetCurrentItem(0)
 	}
 }
 
@@ -158,50 +158,50 @@ func (cl candidateList) Len() int {
 	return len(cl)
 }
 
-func (qs *quickSwitcher) onListSelected(index int, mainText, secondaryText string, shortcut rune) {
-	if index >= 0 && index < len(qs.candidates) {
-		candidate := qs.candidates[index]
-		qs.view.guildsTree.SelectChannelID(candidate.id)
-		qs.view.toggleQuickSwitcher()
+func (p *picker) onListSelected(index int, mainText, secondaryText string, shortcut rune) {
+	if index >= 0 && index < len(p.candidates) {
+		candidate := p.candidates[index]
+		p.view.guildsTree.SelectChannelID(candidate.id)
+		p.view.togglePicker()
 	}
 }
 
-func (qs *quickSwitcher) onInputFieldCapture(event *tcell.EventKey) *tcell.EventKey {
-	if len(qs.candidates) > 0 {
+func (p *picker) onInputFieldCapture(event *tcell.EventKey) *tcell.EventKey {
+	if len(p.candidates) > 0 {
 		switch event.Name() {
-		case qs.cfg.Keys.Picker.Up:
-			qs.list.InputHandler()(tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone), nil)
+		case p.cfg.Keys.Picker.Up:
+			p.list.InputHandler()(tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone), nil)
 			return nil
-		case qs.cfg.Keys.Picker.Down:
-			qs.list.InputHandler()(tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone), nil)
+		case p.cfg.Keys.Picker.Down:
+			p.list.InputHandler()(tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone), nil)
 			return nil
-		case qs.cfg.Keys.Picker.Confirm:
-			index := qs.list.GetCurrentItem()
-			if index >= 0 && index < len(qs.candidates) {
-				candidate := qs.candidates[index]
-				qs.view.guildsTree.SelectChannelID(candidate.id)
-				qs.view.toggleQuickSwitcher()
+		case p.cfg.Keys.Picker.Confirm:
+			index := p.list.GetCurrentItem()
+			if index >= 0 && index < len(p.candidates) {
+				candidate := p.candidates[index]
+				p.view.guildsTree.SelectChannelID(candidate.id)
+				p.view.togglePicker()
 			}
 			return nil
 		}
 	}
 
 	switch event.Name() {
-	case qs.cfg.Keys.Picker.Cancel:
-		qs.view.toggleQuickSwitcher()
+	case p.cfg.Keys.Picker.Cancel:
+		p.view.togglePicker()
 		return nil
 	}
 	return event
 }
 
-func (qs *quickSwitcher) onDone(key tcell.Key) {
+func (p *picker) onDone(key tcell.Key) {
 	switch key {
 	case tcell.KeyEnter:
 		// If there are candidates, select the first one
-		if len(qs.candidates) > 0 {
-			candidate := qs.candidates[0]
-			qs.view.guildsTree.SelectChannelID(candidate.id)
-			qs.view.toggleQuickSwitcher()
+		if len(p.candidates) > 0 {
+			candidate := p.candidates[0]
+			p.view.guildsTree.SelectChannelID(candidate.id)
+			p.view.togglePicker()
 		}
 	}
 }

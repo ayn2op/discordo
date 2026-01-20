@@ -23,7 +23,7 @@ const (
 	mentionsListPageName    = "mentionsList"
 	attachmentsListPageName = "attachmentsList"
 	confirmModalPageName    = "confirmModal"
-	quickSwitcherPageName   = "quickSwitcher"
+	pickerPageName          = "picker"
 )
 
 type View struct {
@@ -35,7 +35,7 @@ type View struct {
 	guildsTree   *guildsTree
 	messagesList *messagesList
 	messageInput *messageInput
-	quickSwitcher *quickSwitcher
+	picker       *picker
 
 	selectedChannel   *discord.Channel
 	selectedChannelMu sync.RWMutex
@@ -66,7 +66,7 @@ func NewView(app *tview.Application, cfg *config.Config, onLogout func()) *View 
 	v.guildsTree = newGuildsTree(cfg, v)
 	v.messagesList = newMessagesList(cfg, v)
 	v.messageInput = newMessageInput(cfg, v)
-	v.quickSwitcher = newQuickSwitcher(v, cfg)
+	v.picker = newPicker(v, cfg)
 
 	v.SetInputCapture(v.onInputCapture)
 	v.buildLayout()
@@ -115,26 +115,29 @@ func (v *View) toggleGuildsTree() {
 	}
 }
 
-func (v *View) toggleQuickSwitcher() {
-	if v.HasPage(quickSwitcherPageName) {
-		// Hide quick switcher
-		v.RemovePage(quickSwitcherPageName).SwitchToPage(flexPageName)
+func (v *View) togglePicker() {
+	if v.HasPage(pickerPageName) {
+		// Hide picker
+		v.RemovePage(pickerPageName).SwitchToPage(flexPageName)
 		v.app.SetFocus(v.messageInput)
 	} else {
-		// Show quick switcher as floating modal
+		// Show picker as floating modal
 		previousFocus := v.app.GetFocus()
-		v.quickSwitcher.inputField.SetText("")
-		v.quickSwitcher.list.Clear()
-		v.quickSwitcher.candidates = nil
+		v.picker.inputField.SetText("")
+		v.picker.list.Clear()
+		v.picker.candidates = nil
 		
 		// Create centered modal
-		centered := ui.Centered(v.quickSwitcher, 60, 15)
+		centered := ui.Centered(v.picker, 60, 15)
 		
 		v.
-			AddAndSwitchToPage(quickSwitcherPageName, centered, true).
+			AddAndSwitchToPage(pickerPageName, centered, true).
 			ShowPage(flexPageName)
 		
-		v.app.SetFocus(v.quickSwitcher.inputField)
+		v.app.SetFocus(v.picker.inputField)
+		
+		// Populate the list with channels when picker opens
+		v.picker.updateAutocompleteList("")
 		
 		// Store previous focus for restoration (if needed)
 		_ = previousFocus
@@ -220,7 +223,7 @@ func (v *View) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		v.toggleGuildsTree()
 		return nil
 	case v.cfg.Keys.Picker.Open:
-		v.toggleQuickSwitcher()
+		v.togglePicker()
 		return nil
 	}
 
