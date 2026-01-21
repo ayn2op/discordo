@@ -99,7 +99,7 @@ func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Ch
 		return
 	}
 
-	channelNode := tview.NewTreeNode(ui.ChannelToString(channel)).
+	channelNode := tview.NewTreeNode(ui.ChannelToString(channel, gt.cfg.Icons)).
 		SetReference(channel.ID).
 		SetTextStyle(gt.getChannelNodeStyle(channel.ID))
 	node.AddChild(channelNode)
