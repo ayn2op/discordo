@@ -46,10 +46,12 @@ guild_category = ""
 guild_text = "#"
 guild_voice = "♪ "
 guild_stage_voice = "♪ "
-guild_forum = "≡ "
+guild_announcement_thread = "a-"
+guild_public_thread = "t-"
+guild_private_thread = "t-"
 guild_announcement = "a-"
+guild_forum = "≡ "
 guild_store = "s-"
-guild_thread = "t-"
 
 # Global shortcuts
 # Esc: Reset message selection or close the channel selection popup.
