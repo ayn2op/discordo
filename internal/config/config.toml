@@ -41,6 +41,16 @@ send = true
 # Whether to receive typing status or not.
 receive = true
 
+[icons]
+guild_category = ""
+guild_text = "#"
+guild_voice = "♪ "
+guild_stage_voice = "♪ "
+guild_forum = "≡ "
+guild_announcement = "a-"
+guild_store = "s-"
+guild_thread = "t-"
+
 # Global shortcuts
 # Esc: Reset message selection or close the channel selection popup.
 [keys]

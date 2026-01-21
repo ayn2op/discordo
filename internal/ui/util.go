@@ -58,7 +58,8 @@ func Centered(p tview.Primitive, width, height int) tview.Primitive {
 		AddItem(p, 1, 1, 1, 1, 0, 0, true)
 }
 
-func ChannelToString(channel discord.Channel) string {
+func ChannelToString(channel discord.Channel, icons config.Icons) string {
+	var icon string
 	switch channel.Type {
 	case discord.DirectMessage, discord.GroupDM:
 		if channel.Name != "" {
@@ -71,19 +72,30 @@ func ChannelToString(channel discord.Channel) string {
 		}
 
 		return strings.Join(recipients, ", ")
+
+	case discord.GuildCategory:
+		icon = icons.GuildCategory
 	case discord.GuildText:
-		return "#" + channel.Name
-	case discord.GuildVoice, discord.GuildStageVoice:
-		return "v-" + channel.Name
+		icon = icons.GuildText
+	case discord.GuildVoice:
+		icon = icons.GuildVoice
+	case discord.GuildStageVoice:
+		icon = icons.GuildStageVoice
+
+	case discord.GuildAnnouncementThread:
+		icon = icons.GuildAnnouncementThread
+	case discord.GuildPublicThread:
+		icon = icons.GuildPublicThread
+	case discord.GuildPrivateThread:
+		icon = icons.GuildPrivateThread
+
 	case discord.GuildAnnouncement:
-		return "a-" + channel.Name
-	case discord.GuildStore:
-		return "s-" + channel.Name
+		icon = icons.GuildAnnouncement
 	case discord.GuildForum:
-		return "f-" + channel.Name
-	case discord.GuildPublicThread, discord.GuildPrivateThread, discord.GuildAnnouncementThread:
-		return "t-" + channel.Name
-	default:
-		return channel.Name
+		icon = icons.GuildForum
+	case discord.GuildStore:
+		icon = icons.GuildStore
 	}
+
+	return icon + channel.Name
 }
