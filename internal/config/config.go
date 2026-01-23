@@ -36,6 +36,21 @@ type (
 		Receive bool `toml:"receive"`
 	}
 
+	Icons struct {
+		GuildCategory   string `toml:"guild_category"`
+		GuildText       string `toml:"guild_text"`
+		GuildVoice      string `toml:"guild_voice"`
+		GuildStageVoice string `toml:"guild_stage_voice"`
+
+		GuildAnnouncementThread string `toml:"guild_announcement_thread"`
+		GuildPublicThread       string `toml:"guild_public_thread"`
+		GuildPrivateThread      string `toml:"guild_private_thread"`
+
+		GuildAnnouncement string `toml:"guild_announcement"`
+		GuildForum        string `toml:"guild_forum"`
+		GuildStore        string `toml:"guild_store"`
+	}
+
 	PickerConfig struct {
 		Width  int `toml:"width"`
 		Height int `toml:"height"`
@@ -60,6 +75,8 @@ type (
 		Timestamps      Timestamps      `toml:"timestamps"`
 		Notifications   Notifications   `toml:"notifications"`
 		TypingIndicator TypingIndicator `toml:"typing_indicator"`
+
+		Icons Icons `toml:"icons"`
 
 		Keys  Keys  `toml:"keys"`
 		Theme Theme `toml:"theme"`

@@ -105,7 +105,7 @@ func (cp *channelsPicker) update() {
 
 func (cp *channelsPicker) addChannel(guild *discord.Guild, channel discord.Channel) {
 	var b strings.Builder
-	b.WriteString(ui.ChannelToString(channel))
+	b.WriteString(ui.ChannelToString(channel, cp.chatView.cfg.Icons))
 
 	if guild != nil {
 		b.WriteString(" - ")
