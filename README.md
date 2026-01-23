@@ -4,18 +4,6 @@ Discordo is a lightweight, secure, and feature-rich Discord terminal client. Hea
 
 ![Preview](.github/preview.png)
 
-## Features
-
-- Lightweight
-- Configurable
-- Mouse & clipboard support
-- Attachments
-- Notifications
-- Typing Indicators
-- Message History
-- 2-Factor & QR code authentication
-- Discord-flavored markdown
-
 ## Installation
 
 ### Prebuilt binaries
