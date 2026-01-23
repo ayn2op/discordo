@@ -51,6 +51,11 @@ type (
 		GuildStore        string `toml:"guild_store"`
 	}
 
+	PickerConfig struct {
+		Width  int `toml:"width"`
+		Height int `toml:"height"`
+	}
+
 	Config struct {
 		AutoFocus bool   `toml:"auto_focus"`
 		Mouse     bool   `toml:"mouse"`
@@ -66,6 +71,7 @@ type (
 		AutocompleteLimit uint8 `toml:"autocomplete_limit"`
 		MessagesLimit     uint8 `toml:"messages_limit"`
 
+		Picker          PickerConfig    `toml:"picker"`
 		Timestamps      Timestamps      `toml:"timestamps"`
 		Notifications   Notifications   `toml:"notifications"`
 		TypingIndicator TypingIndicator `toml:"typing_indicator"`

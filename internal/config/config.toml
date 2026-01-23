@@ -22,6 +22,10 @@ autocomplete_limit = 20
 # The number of messages to fetch when a text-based channel is selected from guilds tree. The minimum and maximum value is 1 and 100, respectively.
 messages_limit = 50
 
+[picker]
+width = 60
+height = 20
+
 [timestamps]
 enabled = true
 # https://pkg.go.dev/time#Layout
@@ -68,6 +72,15 @@ quit = "Ctrl+C"
 # Log out and remove the authentication token from keyring.
 # Requires re-login upon restart.
 logout = "Ctrl+D"
+
+[keys.picker]
+toggle = "Ctrl+K"
+cancel = "Esc"
+up = "Ctrl+P"
+down = "Ctrl+N"
+top = "Home"
+bottom = "End"
+select = "Enter"
 
 # Only while focusing on the guilds tree
 [keys.guilds_tree]

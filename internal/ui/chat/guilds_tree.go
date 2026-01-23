@@ -1,10 +1,8 @@
 package chat
 
 import (
-	"cmp"
 	"fmt"
 	"log/slog"
-	"slices"
 
 	"github.com/ayn2op/discordo/internal/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
@@ -15,6 +13,8 @@ import (
 	"github.com/diamondburned/ningen/v3"
 	"github.com/gdamore/tcell/v3"
 )
+
+type dmNode struct{}
 
 type guildsTree struct {
 	*tview.TreeView
@@ -159,15 +159,12 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 			return
 		}
 
-		slices.SortFunc(channels, func(a, b discord.Channel) int {
-			return cmp.Compare(a.Position, b.Position)
-		})
-
+		ui.SortGuildChannels(channels)
 		gt.createChannelNodes(node, channels)
 	case discord.ChannelID:
 		channel, err := gt.chatView.state.Cabinet.Channel(ref)
 		if err != nil {
-			slog.Error("failed to get channel", "channel_id", ref)
+			slog.Error("failed to get channel from state", "channel_id", ref)
 			return
 		}
 
@@ -194,9 +191,6 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 			for _, thread := range forumThreads {
 				gt.createChannelNode(node, thread)
 			}
-
-			// Expand the node to show threads
-			node.SetExpanded(true)
 			return
 		}
 
@@ -232,26 +226,14 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 				gt.chatView.app.SetFocus(gt.chatView.messageInput)
 			}
 		}
-
-	case nil: // Direct messages folder
+	case dmNode: // Direct messages folder
 		channels, err := gt.chatView.state.PrivateChannels()
 		if err != nil {
 			slog.Error("failed to get private channels", "err", err)
 			return
 		}
 
-		msgID := func(ch discord.Channel) discord.MessageID {
-			if ch.LastMessageID.IsValid() {
-				return ch.LastMessageID
-			}
-			return discord.MessageID(ch.ID)
-		}
-
-		slices.SortFunc(channels, func(a, b discord.Channel) int {
-			// Descending order
-			return cmp.Compare(msgID(b), msgID(a))
-		})
-
+		ui.SortPrivateChannels(channels)
 		for _, c := range channels {
 			gt.createChannelNode(node, c)
 		}
@@ -311,5 +293,50 @@ func (gt *guildsTree) yankID() {
 	// discord.Snowflake (discord.GuildID and discord.ChannelID) have the String method.
 	if id, ok := node.GetReference().(fmt.Stringer); ok {
 		go clipboard.Write(clipboard.FmtText, []byte(id.String()))
+	}
+}
+
+func (gt *guildsTree) findNodeByReference(reference any) *tview.TreeNode {
+	var found *tview.TreeNode
+	gt.GetRoot().Walk(func(node, _ *tview.TreeNode) bool {
+		if node.GetReference() == reference {
+			found = node
+			return false
+		}
+
+		return true
+	})
+	return found
+}
+
+func (gt *guildsTree) findNodeByChannelID(channelID discord.ChannelID) *tview.TreeNode {
+	channel, err := gt.chatView.state.Cabinet.Channel(channelID)
+	if err != nil {
+		slog.Error("failed to get channel", "channel_id", channelID, "err", err)
+		return nil
+	}
+
+	var reference any
+	if guildID := channel.GuildID; guildID.IsValid() {
+		reference = guildID
+	} else {
+		reference = dmNode{}
+	}
+	if parentNode := gt.findNodeByReference(reference); parentNode != nil {
+		if len(parentNode.GetChildren()) == 0 {
+			gt.onSelected(parentNode)
+		}
+	}
+
+	node := gt.findNodeByReference(channelID)
+	return node
+}
+
+func (gt *guildsTree) expandPathToNode(node *tview.TreeNode) {
+	if node == nil {
+		return
+	}
+	for _, n := range gt.GetPath(node) {
+		n.Expand()
 	}
 }

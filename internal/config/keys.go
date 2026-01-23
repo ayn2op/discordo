@@ -53,6 +53,20 @@ type (
 		SelectionKeys
 	}
 
+	NavigationKeys struct {
+		Up     string `toml:"up"`
+		Down   string `toml:"down"`
+		Top    string `toml:"top"`
+		Bottom string `toml:"bottom"`
+	}
+
+	PickerKeys struct {
+		Toggle string `toml:"toggle"`
+		Cancel string `toml:"cancel"`
+		NavigationKeys
+		Select string `toml:"select"`
+	}
+
 	Keys struct {
 		FocusGuildsTree   string `toml:"focus_guilds_tree"`
 		FocusMessagesList string `toml:"focus_messages_list"`
@@ -61,6 +75,7 @@ type (
 		FocusNext         string `toml:"focus_next"`
 		ToggleGuildsTree  string `toml:"toggle_guilds_tree"`
 
+		Picker       PickerKeys       `toml:"picker"`
 		GuildsTree   GuildsTreeKeys   `toml:"guilds_tree"`
 		MessagesList MessagesListKeys `toml:"messages_list"`
 		MessageInput MessageInputKeys `toml:"message_input"`

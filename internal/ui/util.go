@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"cmp"
+	"slices"
 	"strings"
 
 	"github.com/ayn2op/discordo/internal/config"
@@ -98,4 +100,24 @@ func ChannelToString(channel discord.Channel, icons config.Icons) string {
 	}
 
 	return icon + channel.Name
+}
+
+func SortGuildChannels(channels []discord.Channel) {
+	slices.SortFunc(channels, func(a, b discord.Channel) int {
+		return cmp.Compare(a.Position, b.Position)
+	})
+}
+
+func SortPrivateChannels(channels []discord.Channel) {
+	slices.SortFunc(channels, func(a, b discord.Channel) int {
+		// Descending order
+		return cmp.Compare(getMessageIDFromChannel(b), getMessageIDFromChannel(a))
+	})
+}
+
+func getMessageIDFromChannel(channel discord.Channel) discord.MessageID {
+	if channel.LastMessageID.IsValid() {
+		return channel.LastMessageID
+	}
+	return discord.MessageID(channel.ID)
 }
