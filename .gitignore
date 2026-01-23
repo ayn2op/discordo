@@ -7,6 +7,7 @@ discordo*
 
 # Nix stuff
 result
+./nix/result
 
 # direnv (devs should have this file locally)
 .direnv/
