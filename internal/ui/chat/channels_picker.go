@@ -65,6 +65,7 @@ func (cp *channelsPicker) onSelected(item picker.Item) {
 		cp.chatView.guildsTree.onSelected(node)
 	}
 	cp.chatView.closePicker()
+	cp.chatView.focusMessageInput()
 }
 
 func (cp *channelsPicker) update() {
