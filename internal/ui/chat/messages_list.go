@@ -74,7 +74,7 @@ func (ml *messagesList) reset() {
 }
 
 func (ml *messagesList) setTitle(channel discord.Channel) {
-	title := ui.ChannelToString(channel, ml.cfg.Icons)
+	title := ui.ChannelToString(channel)
 	if topic := channel.Topic; topic != "" {
 		title += " - " + topic
 	}

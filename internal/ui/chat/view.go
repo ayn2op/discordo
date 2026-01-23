@@ -23,6 +23,7 @@ const (
 	mentionsListPageName    = "mentionsList"
 	attachmentsListPageName = "attachmentsList"
 	confirmModalPageName    = "confirmModal"
+	channelsPickerPageName  = "channelsPicker"
 )
 
 type View struct {
@@ -31,9 +32,10 @@ type View struct {
 	mainFlex  *tview.Flex
 	rightFlex *tview.Flex
 
-	guildsTree   *guildsTree
-	messagesList *messagesList
-	messageInput *messageInput
+	guildsTree     *guildsTree
+	messagesList   *messagesList
+	messageInput   *messageInput
+	channelsPicker *channelsPicker
 
 	selectedChannel   *discord.Channel
 	selectedChannelMu sync.RWMutex
@@ -64,6 +66,8 @@ func NewView(app *tview.Application, cfg *config.Config, onLogout func()) *View 
 	v.guildsTree = newGuildsTree(cfg, v)
 	v.messagesList = newMessagesList(cfg, v)
 	v.messageInput = newMessageInput(cfg, v)
+	v.channelsPicker = newChannelsPicker(cfg, v)
+	v.channelsPicker.SetCancelFunc(v.closePicker)
 
 	v.SetInputCapture(v.onInputCapture)
 	v.buildLayout()
@@ -97,6 +101,24 @@ func (v *View) buildLayout() {
 		AddItem(v.rightFlex, 0, 4, false)
 
 	v.AddAndSwitchToPage(flexPageName, v.mainFlex, true)
+}
+
+func (v *View) togglePicker() {
+	if v.HasPage(channelsPickerPageName) {
+		v.closePicker()
+	} else {
+		v.openPicker()
+	}
+}
+
+func (v *View) openPicker() {
+	v.AddAndSwitchToPage(channelsPickerPageName, ui.Centered(v.channelsPicker, v.cfg.Picker.Width, v.cfg.Picker.Height), true).ShowPage(flexPageName)
+	v.channelsPicker.update()
+}
+
+func (v *View) closePicker() {
+	v.RemovePage(channelsPickerPageName).SwitchToPage(flexPageName)
+	v.channelsPicker.Update()
 }
 
 func (v *View) toggleGuildsTree() {
@@ -189,6 +211,9 @@ func (v *View) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		return nil
 	case v.cfg.Keys.ToggleGuildsTree:
 		v.toggleGuildsTree()
+		return nil
+	case v.cfg.Keys.Picker.Toggle:
+		v.togglePicker()
 		return nil
 	}
 

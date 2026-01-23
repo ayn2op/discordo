@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"cmp"
+	"slices"
 	"strings"
 
 	"github.com/ayn2op/discordo/internal/config"
@@ -58,8 +60,7 @@ func Centered(p tview.Primitive, width, height int) tview.Primitive {
 		AddItem(p, 1, 1, 1, 1, 0, 0, true)
 }
 
-func ChannelToString(channel discord.Channel, icons config.Icons) string {
-	var icon string
+func ChannelToString(channel discord.Channel) string {
 	switch channel.Type {
 	case discord.DirectMessage, discord.GroupDM:
 		if channel.Name != "" {
@@ -72,30 +73,39 @@ func ChannelToString(channel discord.Channel, icons config.Icons) string {
 		}
 
 		return strings.Join(recipients, ", ")
-
-	case discord.GuildCategory:
-		icon = icons.GuildCategory
 	case discord.GuildText:
-		icon = icons.GuildText
-	case discord.GuildVoice:
-		icon = icons.GuildVoice
-	case discord.GuildStageVoice:
-		icon = icons.GuildStageVoice
-
-	case discord.GuildAnnouncementThread:
-		icon = icons.GuildAnnouncementThread
-	case discord.GuildPublicThread:
-		icon = icons.GuildPublicThread
-	case discord.GuildPrivateThread:
-		icon = icons.GuildPrivateThread
-
+		return "#" + channel.Name
+	case discord.GuildVoice, discord.GuildStageVoice:
+		return "v-" + channel.Name
 	case discord.GuildAnnouncement:
-		icon = icons.GuildAnnouncement
-	case discord.GuildForum:
-		icon = icons.GuildForum
+		return "a-" + channel.Name
 	case discord.GuildStore:
-		icon = icons.GuildStore
+		return "s-" + channel.Name
+	case discord.GuildForum:
+		return "f-" + channel.Name
+	case discord.GuildPublicThread, discord.GuildPrivateThread, discord.GuildAnnouncementThread:
+		return "t-" + channel.Name
+	default:
+		return channel.Name
 	}
+}
 
-	return icon + channel.Name
+func SortGuildChannels(channels []discord.Channel) {
+	slices.SortFunc(channels, func(a, b discord.Channel) int {
+		return cmp.Compare(a.Position, b.Position)
+	})
+}
+
+func SortPrivateChannels(channels []discord.Channel) {
+	slices.SortFunc(channels, func(a, b discord.Channel) int {
+		// Descending order
+		return cmp.Compare(getMessageIDFromChannel(b), getMessageIDFromChannel(a))
+	})
+}
+
+func getMessageIDFromChannel(channel discord.Channel) discord.MessageID {
+	if channel.LastMessageID.IsValid() {
+		return channel.LastMessageID
+	}
+	return discord.MessageID(channel.ID)
 }
