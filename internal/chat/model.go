@@ -20,11 +20,11 @@ type Model struct {
 }
 
 func NewModel(cfg *config.Config, token string) Model {
+	state := ningen.New(token)
 	return Model{
-		guilds: guilds.NewModel(),
-
-		cfg:   cfg,
-		state: ningen.New(token),
+		guilds: guilds.NewModel(state),
+		cfg:    cfg,
+		state:  state,
 
 		events: make(chan gateway.Event),
 		errs:   make(chan error),
