@@ -42,7 +42,8 @@ func (m TokenModel) Init() tea.Cmd {
 }
 
 func (m TokenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	if m.form.Submitted {
+	switch msg.(type) {
+	case form.SubmitMsg:
 		token := m.form.Get(0).Value()
 		if err := keyring.SetToken(token); err != nil {
 			return m, tokenMsgCmd("", err)

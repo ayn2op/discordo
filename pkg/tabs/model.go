@@ -15,8 +15,8 @@ type Tab interface {
 }
 
 type Model struct {
-	KeyMap KeyMap
-	Styles Styles
+	Keybinds Keybinds
+	Styles   Styles
 
 	tabs   []Tab
 	active int
@@ -24,9 +24,9 @@ type Model struct {
 
 func NewModel(tabs []Tab) Model {
 	return Model{
-		KeyMap: DefaultKeyMap(),
-		Styles: DefaultStyles(),
-		tabs:   tabs,
+		Keybinds: DefaultKeybinds(),
+		Styles:   DefaultStyles(),
+		tabs:     tabs,
 	}
 }
 
@@ -46,10 +46,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case tea.KeyMsg:
 		k := msg.Key()
 		switch {
-		case key.Matches(k, m.KeyMap.Previous):
+		case key.Matches(k, m.Keybinds.Previous):
 			m.active = max(m.active-1, 0)
 			return m, m.tabs[m.active].Init()
-		case key.Matches(k, m.KeyMap.Next):
+		case key.Matches(k, m.Keybinds.Next):
 			m.active = min(m.active+1, len(m.tabs)-1)
 			return m, m.tabs[m.active].Init()
 		}

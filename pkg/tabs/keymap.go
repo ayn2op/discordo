@@ -2,13 +2,13 @@ package tabs
 
 import "charm.land/bubbles/v2/key"
 
-type KeyMap struct {
+type Keybinds struct {
 	Previous key.Binding
 	Next     key.Binding
 }
 
-func DefaultKeyMap() KeyMap {
-	return KeyMap{
+func DefaultKeybinds() Keybinds {
+	return Keybinds{
 		Previous: key.NewBinding(key.WithKeys("ctrl+p")),
 		Next:     key.NewBinding(key.WithKeys("ctrl+n")),
 	}

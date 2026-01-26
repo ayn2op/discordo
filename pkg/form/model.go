@@ -12,8 +12,7 @@ import (
 const maxInputWidth = 60
 
 type Model struct {
-	KeyMap    KeyMap
-	Submitted bool
+	Keybinds Keybinds
 
 	inputs []textinput.Model
 	active int
@@ -23,7 +22,7 @@ type Model struct {
 
 func NewModel(inputs []textinput.Model) *Model {
 	return &Model{
-		KeyMap: DefaultKeyMap(),
+		Keybinds: DefaultKeybinds(),
 		inputs: inputs,
 	}
 }
@@ -55,14 +54,16 @@ func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 	case tea.KeyMsg:
 		k := msg.Key()
 		switch {
-		case key.Matches(k, m.KeyMap.Previous):
+		case key.Matches(k, m.Keybinds.Previous):
 			m.active = max(m.active-1, 0)
-		case key.Matches(k, m.KeyMap.Next):
+		case key.Matches(k, m.Keybinds.Next):
 			m.active = min(m.active+1, len(m.inputs)-1)
-		case key.Matches(k, m.KeyMap.Submit):
+		case key.Matches(k, m.Keybinds.Submit):
 			if m.active == len(m.inputs)-1 {
-				if m.inputs[m.active].Value() != "" {
-					m.Submitted = true
+				value := m.inputs[m.active].Value()
+				value = strings.TrimSpace(value)
+				if value != "" {
+					return m, submit()
 				}
 			}
 		}
