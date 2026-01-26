@@ -78,8 +78,8 @@ type (
 
 		Icons Icons `toml:"icons"`
 
-		Keys  Keys  `toml:"keys"`
-		Theme Theme `toml:"theme"`
+		Keybinds Keybinds `toml:"keybinds"`
+		Theme    Theme    `toml:"theme"`
 	}
 )
 

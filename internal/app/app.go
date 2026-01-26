@@ -101,7 +101,7 @@ func (a *App) quit() {
 
 func (a *App) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
-	case a.cfg.Keys.Quit:
+	case a.cfg.Keybinds.Quit:
 		a.quit()
 		return nil
 	case "Ctrl+C":

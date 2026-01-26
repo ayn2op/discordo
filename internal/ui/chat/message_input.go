@@ -102,11 +102,11 @@ func (mi *messageInput) stopTypingTimer() {
 
 func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
-	case mi.cfg.Keys.MessageInput.Paste:
+	case mi.cfg.Keybinds.MessageInput.Paste:
 		mi.paste()
 		return tcell.NewEventKey(tcell.KeyCtrlV, "", tcell.ModNone)
 
-	case mi.cfg.Keys.MessageInput.Send:
+	case mi.cfg.Keybinds.MessageInput.Send:
 		if mi.chatView.GetVisibile(mentionsListPageName) {
 			mi.tabComplete()
 			return nil
@@ -114,15 +114,15 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 
 		mi.send()
 		return nil
-	case mi.cfg.Keys.MessageInput.OpenEditor:
+	case mi.cfg.Keybinds.MessageInput.OpenEditor:
 		mi.stopTabCompletion()
 		mi.editor()
 		return nil
-	case mi.cfg.Keys.MessageInput.OpenFilePicker:
+	case mi.cfg.Keybinds.MessageInput.OpenFilePicker:
 		mi.stopTabCompletion()
 		mi.openFilePicker()
 		return nil
-	case mi.cfg.Keys.MessageInput.Cancel:
+	case mi.cfg.Keybinds.MessageInput.Cancel:
 		if mi.chatView.GetVisibile(mentionsListPageName) {
 			mi.stopTabCompletion()
 		} else {
@@ -130,7 +130,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		}
 
 		return nil
-	case mi.cfg.Keys.MessageInput.TabComplete:
+	case mi.cfg.Keybinds.MessageInput.TabComplete:
 		go mi.chatView.app.QueueUpdateDraw(func() { mi.tabComplete() })
 		return nil
 	default:
@@ -151,16 +151,16 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		if mi.chatView.GetVisibile(mentionsListPageName) {
 			handler := mi.mentionsList.InputHandler()
 			switch event.Name() {
-			case mi.cfg.Keys.MentionsList.SelectPrevious:
+			case mi.cfg.Keybinds.MentionsList.Up:
 				handler(tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone), nil)
 				return nil
-			case mi.cfg.Keys.MentionsList.SelectNext:
+			case mi.cfg.Keybinds.MentionsList.Down:
 				handler(tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone), nil)
 				return nil
-			case mi.cfg.Keys.MentionsList.SelectFirst:
+			case mi.cfg.Keybinds.MentionsList.Top:
 				handler(tcell.NewEventKey(tcell.KeyHome, "", tcell.ModNone), nil)
 				return nil
-			case mi.cfg.Keys.MentionsList.SelectLast:
+			case mi.cfg.Keybinds.MentionsList.Bottom:
 				handler(tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone), nil)
 				return nil
 			}

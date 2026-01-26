@@ -256,27 +256,27 @@ func (gt *guildsTree) collapseParentNode(node *tview.TreeNode) {
 
 func (gt *guildsTree) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
-	case gt.cfg.Keys.GuildsTree.CollapseParentNode:
+	case gt.cfg.Keybinds.GuildsTree.CollapseParentNode:
 		gt.collapseParentNode(gt.GetCurrentNode())
 		return nil
-	case gt.cfg.Keys.GuildsTree.MoveToParentNode:
+	case gt.cfg.Keybinds.GuildsTree.MoveToParentNode:
 		return tcell.NewEventKey(tcell.KeyRune, "K", tcell.ModNone)
 
-	case gt.cfg.Keys.GuildsTree.SelectPrevious:
+	case gt.cfg.Keybinds.GuildsTree.Up:
 		return tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone)
-	case gt.cfg.Keys.GuildsTree.SelectNext:
+	case gt.cfg.Keybinds.GuildsTree.Down:
 		return tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone)
-	case gt.cfg.Keys.GuildsTree.SelectFirst:
+	case gt.cfg.Keybinds.GuildsTree.Top:
 		gt.Move(gt.GetRowCount() * -1)
 		// return tcell.NewEventKey(tcell.KeyHome, 0, tcell.ModNone)
-	case gt.cfg.Keys.GuildsTree.SelectLast:
+	case gt.cfg.Keybinds.GuildsTree.Bottom:
 		gt.Move(gt.GetRowCount())
 		// return tcell.NewEventKey(tcell.KeyEnd, 0, tcell.ModNone)
 
-	case gt.cfg.Keys.GuildsTree.SelectCurrent:
+	case gt.cfg.Keybinds.GuildsTree.SelectCurrent:
 		return tcell.NewEventKey(tcell.KeyEnter, "", tcell.ModNone)
 
-	case gt.cfg.Keys.GuildsTree.YankID:
+	case gt.cfg.Keybinds.GuildsTree.YankID:
 		gt.yankID()
 	}
 
