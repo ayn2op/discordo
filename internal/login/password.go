@@ -1,6 +1,8 @@
 package login
 
 import (
+	"strings"
+
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"github.com/ayn2op/discordo/pkg/form"
@@ -34,6 +36,19 @@ func (m PasswordModel) Init() tea.Cmd {
 }
 
 func (m PasswordModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case form.SubmitMsg:
+		// login input + password input
+		if len(msg.Values) < 2 {
+			return m, nil
+		}
+		login := strings.TrimSpace(msg.Values[0])
+		password := strings.TrimSpace(msg.Values[1])
+		if login == "" || password == "" {
+			return m, nil
+		}
+	}
+
 	var cmd tea.Cmd
 	m.form, cmd = m.form.Update(msg)
 	return m, cmd

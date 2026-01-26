@@ -1,6 +1,8 @@
 package login
 
 import (
+	"strings"
+
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"github.com/ayn2op/discordo/internal/keyring"
@@ -42,9 +44,15 @@ func (m TokenModel) Init() tea.Cmd {
 }
 
 func (m TokenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg.(type) {
+	switch msg := msg.(type) {
 	case form.SubmitMsg:
-		token := m.form.Get(0).Value()
+		if len(msg.Values) < 1 {
+			return m, nil
+		}
+		token := strings.TrimSpace(msg.Values[0])
+		if token == "" {
+			return m, nil
+		}
 		if err := keyring.SetToken(token); err != nil {
 			return m, tokenMsgCmd("", err)
 		}

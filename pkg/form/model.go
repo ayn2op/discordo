@@ -23,12 +23,8 @@ type Model struct {
 func NewModel(inputs []textinput.Model) *Model {
 	return &Model{
 		Keybinds: DefaultKeybinds(),
-		inputs: inputs,
+		inputs:   inputs,
 	}
-}
-
-func (m *Model) Get(index int) textinput.Model {
-	return m.inputs[index]
 }
 
 func (m *Model) Init() tea.Cmd {
@@ -60,11 +56,11 @@ func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 			m.active = min(m.active+1, len(m.inputs)-1)
 		case key.Matches(k, m.Keybinds.Submit):
 			if m.active == len(m.inputs)-1 {
-				value := m.inputs[m.active].Value()
-				value = strings.TrimSpace(value)
-				if value != "" {
-					return m, submit()
+				values := make([]string, len(m.inputs))
+				for i, input := range m.inputs {
+					values[i] = input.Value()
 				}
+				return m, submit(values)
 			}
 		}
 	}
