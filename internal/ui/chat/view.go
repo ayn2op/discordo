@@ -181,24 +181,24 @@ func (v *View) focusNext() {
 
 func (v *View) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
-	case v.cfg.Keys.FocusGuildsTree:
+	case v.cfg.Keybinds.FocusGuildsTree:
 		v.messageInput.removeMentionsList()
 		v.focusGuildsTree()
 		return nil
-	case v.cfg.Keys.FocusMessagesList:
+	case v.cfg.Keybinds.FocusMessagesList:
 		v.messageInput.removeMentionsList()
 		v.app.SetFocus(v.messagesList)
 		return nil
-	case v.cfg.Keys.FocusMessageInput:
+	case v.cfg.Keybinds.FocusMessageInput:
 		v.focusMessageInput()
 		return nil
-	case v.cfg.Keys.FocusPrevious:
+	case v.cfg.Keybinds.FocusPrevious:
 		v.focusPrevious()
 		return nil
-	case v.cfg.Keys.FocusNext:
+	case v.cfg.Keybinds.FocusNext:
 		v.focusNext()
 		return nil
-	case v.cfg.Keys.Logout:
+	case v.cfg.Keybinds.Logout:
 		if v.onLogout != nil {
 			v.onLogout()
 		}
@@ -209,10 +209,10 @@ func (v *View) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		}
 
 		return nil
-	case v.cfg.Keys.ToggleGuildsTree:
+	case v.cfg.Keybinds.ToggleGuildsTree:
 		v.toggleGuildsTree()
 		return nil
-	case v.cfg.Keys.Picker.Toggle:
+	case v.cfg.Keybinds.Picker.Toggle:
 		v.togglePicker()
 		return nil
 	}

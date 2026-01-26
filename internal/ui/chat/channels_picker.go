@@ -31,12 +31,12 @@ func newChannelsPicker(cfg *config.Config, chatView *View) *channelsPicker {
 	cp.SetSelectedFunc(cp.onSelected)
 	cp.SetTitle("Channels")
 	cp.SetKeyMap(&picker.KeyMap{
-		Cancel: cfg.Keys.Picker.Cancel,
-		Up:     cfg.Keys.Picker.Up,
-		Down:   cfg.Keys.Picker.Down,
-		Top:    cfg.Keys.Picker.Top,
-		Bottom: cfg.Keys.Picker.Bottom,
-		Select: cfg.Keys.Picker.Select,
+		Cancel: cfg.Keybinds.Picker.Cancel,
+		Up:     cfg.Keybinds.Picker.Up,
+		Down:   cfg.Keybinds.Picker.Down,
+		Top:    cfg.Keybinds.Picker.Top,
+		Bottom: cfg.Keybinds.Picker.Bottom,
+		Select: cfg.Keybinds.Picker.Select,
 	})
 	return cp
 }

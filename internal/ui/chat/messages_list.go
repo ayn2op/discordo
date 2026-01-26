@@ -288,51 +288,51 @@ func (ml *messagesList) selectedMessage() (*discord.Message, error) {
 
 func (ml *messagesList) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
-	case ml.cfg.Keys.MessagesList.ScrollUp:
+	case ml.cfg.Keybinds.MessagesList.ScrollUp:
 		ml.ScrollUp()
 		return nil
-	case ml.cfg.Keys.MessagesList.ScrollDown:
+	case ml.cfg.Keybinds.MessagesList.ScrollDown:
 		ml.ScrollDown()
 		return nil
-	case ml.cfg.Keys.MessagesList.ScrollTop:
+	case ml.cfg.Keybinds.MessagesList.ScrollTop:
 		ml.ScrollToStart()
 		return nil
-	case ml.cfg.Keys.MessagesList.ScrollBottom:
+	case ml.cfg.Keybinds.MessagesList.ScrollBottom:
 		ml.ScrollToEnd()
 		return nil
 
-	case ml.cfg.Keys.MessagesList.Cancel:
+	case ml.cfg.Keybinds.MessagesList.Cancel:
 		ml.clearSelection()
 		return nil
 
-	case ml.cfg.Keys.MessagesList.SelectPrevious, ml.cfg.Keys.MessagesList.SelectNext, ml.cfg.Keys.MessagesList.SelectFirst, ml.cfg.Keys.MessagesList.SelectLast, ml.cfg.Keys.MessagesList.SelectReply:
+	case ml.cfg.Keybinds.MessagesList.SelectDown, ml.cfg.Keybinds.MessagesList.SelectNext, ml.cfg.Keybinds.MessagesList.SelectFirst, ml.cfg.Keybinds.MessagesList.SelectBottom, ml.cfg.Keybinds.MessagesList.SelectReply:
 		ml._select(event.Name())
 		return nil
-	case ml.cfg.Keys.MessagesList.YankID:
+	case ml.cfg.Keybinds.MessagesList.YankID:
 		ml.yankID()
 		return nil
-	case ml.cfg.Keys.MessagesList.YankContent:
+	case ml.cfg.Keybinds.MessagesList.YankContent:
 		ml.yankContent()
 		return nil
-	case ml.cfg.Keys.MessagesList.YankURL:
+	case ml.cfg.Keybinds.MessagesList.YankURL:
 		ml.yankURL()
 		return nil
-	case ml.cfg.Keys.MessagesList.Open:
+	case ml.cfg.Keybinds.MessagesList.Open:
 		ml.open()
 		return nil
-	case ml.cfg.Keys.MessagesList.Reply:
+	case ml.cfg.Keybinds.MessagesList.Reply:
 		ml.reply(false)
 		return nil
-	case ml.cfg.Keys.MessagesList.ReplyMention:
+	case ml.cfg.Keybinds.MessagesList.ReplyMention:
 		ml.reply(true)
 		return nil
-	case ml.cfg.Keys.MessagesList.Edit:
+	case ml.cfg.Keybinds.MessagesList.Edit:
 		ml.edit()
 		return nil
-	case ml.cfg.Keys.MessagesList.Delete:
+	case ml.cfg.Keybinds.MessagesList.Delete:
 		ml.delete()
 		return nil
-	case ml.cfg.Keys.MessagesList.DeleteConfirm:
+	case ml.cfg.Keybinds.MessagesList.DeleteConfirm:
 		ml.confirmDelete()
 		return nil
 	}
@@ -349,7 +349,7 @@ func (ml *messagesList) _select(name string) {
 	cursor := ml.Cursor()
 
 	switch name {
-	case ml.cfg.Keys.MessagesList.SelectPrevious:
+	case ml.cfg.Keybinds.MessagesList.SelectDown:
 		switch {
 		case cursor == -1:
 			cursor = len(messages) - 1
@@ -383,18 +383,18 @@ func (ml *messagesList) _select(name string) {
 			ml.messages = slices.Concat(older, ml.messages)
 			cursor = len(messages) - 1
 		}
-	case ml.cfg.Keys.MessagesList.SelectNext:
+	case ml.cfg.Keybinds.MessagesList.SelectNext:
 		switch {
 		case cursor == -1:
 			cursor = len(messages) - 1
 		case cursor < len(messages)-1:
 			cursor++
 		}
-	case ml.cfg.Keys.MessagesList.SelectFirst:
+	case ml.cfg.Keybinds.MessagesList.SelectFirst:
 		cursor = 0
-	case ml.cfg.Keys.MessagesList.SelectLast:
+	case ml.cfg.Keybinds.MessagesList.SelectBottom:
 		cursor = len(messages) - 1
-	case ml.cfg.Keys.MessagesList.SelectReply:
+	case ml.cfg.Keybinds.MessagesList.SelectReply:
 		if cursor == -1 || cursor >= len(messages) {
 			return
 		}
@@ -509,13 +509,13 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 	list.
 		SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 			switch event.Name() {
-			case ml.cfg.Keys.MessagesList.SelectPrevious:
+			case ml.cfg.Keybinds.MessagesList.SelectDown:
 				return tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone)
-			case ml.cfg.Keys.MessagesList.SelectNext:
+			case ml.cfg.Keybinds.MessagesList.SelectNext:
 				return tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone)
-			case ml.cfg.Keys.MessagesList.SelectFirst:
+			case ml.cfg.Keybinds.MessagesList.SelectFirst:
 				return tcell.NewEventKey(tcell.KeyHome, "", tcell.ModNone)
-			case ml.cfg.Keys.MessagesList.SelectLast:
+			case ml.cfg.Keybinds.MessagesList.SelectBottom:
 				return tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone)
 			}
 

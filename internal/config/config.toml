@@ -4,7 +4,7 @@ auto_focus = true
 
 # Whether to enable mouse or not.
 mouse = true
-# The program to open when the `keys.message_input.editor` keymap is pressed. Set the value to `"default"` to use `$EDITOR`.
+# The program to open when the `message_input.editor` keybind is pressed. Set the value to `"default"` to use `$EDITOR`.
 editor = "default"
 
 # "default" (unknown), "online", "dnd", "idle", "invisible", "offline"
@@ -59,7 +59,7 @@ guild_store = "s-"
 
 # Global shortcuts
 # Esc: Reset message selection or close the channel selection popup.
-[keys]
+[keybinds]
 focus_guilds_tree = "Ctrl+G"
 focus_messages_list = "Ctrl+T"
 focus_message_input = "Ctrl+I"
@@ -73,7 +73,7 @@ quit = "Ctrl+C"
 # Requires re-login upon restart.
 logout = "Ctrl+D"
 
-[keys.picker]
+[keybinds.picker]
 toggle = "Ctrl+K"
 cancel = "Esc"
 up = "Ctrl+P"
@@ -83,7 +83,7 @@ bottom = "End"
 select = "Enter"
 
 # Only while focusing on the guilds tree
-[keys.guilds_tree]
+[keybinds.guilds_tree]
 select_previous = "Rune[k]"
 select_next = "Rune[j]"
 select_first = "Rune[g]"
@@ -95,7 +95,7 @@ collapse_parent_node = "Rune[-]"
 move_to_parent_node = "Rune[p]"
 
 # Only while focusing on sent messages
-[keys.messages_list]
+[keybinds.messages_list]
 select_previous = "Rune[k]"
 select_next = "Rune[j]"
 select_first = "Rune[g]"
@@ -125,7 +125,7 @@ yank_id = "Rune[i]"
 
 # Only while typing a message
 # Alt+Enter: Insert a new line to the current text.
-[keys.message_input]
+[keybinds.message_input]
 # paste from clipboard (supports both text and images)
 paste = "Ctrl+V"
 send = "Enter"
@@ -137,7 +137,7 @@ tab_complete = "Tab"
 open_editor = "Ctrl+E"
 open_file_picker = "Ctrl+Rune[\\]"
 
-[keys.mentions_list]
+[keybinds.mentions_list]
 select_previous = "Ctrl+P"
 select_next = "Ctrl+N"
 select_first = "Home"
