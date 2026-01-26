@@ -17,7 +17,7 @@ type ScrollKeybinds struct {
 type SelectionKeybinds struct {
 	SelectUp     string `toml:"select_up"`
 	SelectDown   string `toml:"select_down"`
-	SelectFirst  string `toml:"select_top"`
+	SelectTop    string `toml:"select_top"`
 	SelectBottom string `toml:"select_bottom"`
 }
 
