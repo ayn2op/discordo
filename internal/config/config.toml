@@ -84,10 +84,10 @@ select = "Enter"
 
 # Only while focusing on the guilds tree
 [keybinds.guilds_tree]
-select_previous = "Rune[k]"
-select_next = "Rune[j]"
-select_first = "Rune[g]"
-select_last = "Rune[G]"
+up = "Rune[k]"
+down = "Rune[j]"
+top = "Rune[g]"
+bottom = "Rune[G]"
 # Select the currently highlighted text-based channel or expand a guild or channel.
 select_current = "Enter"
 yank_id = "Rune[i]"
@@ -96,10 +96,10 @@ move_to_parent_node = "Rune[p]"
 
 # Only while focusing on sent messages
 [keybinds.messages_list]
-select_previous = "Rune[k]"
-select_next = "Rune[j]"
-select_first = "Rune[g]"
-select_last = "Rune[G]"
+select_up = "Rune[k]"
+select_down = "Rune[j]"
+select_top = "Rune[g]"
+select_bottom = "Rune[G]"
 # Scroll the messages list without changing the selection.
 scroll_up = "Rune[K]"
 scroll_down = "Rune[J]"
@@ -138,10 +138,10 @@ open_editor = "Ctrl+E"
 open_file_picker = "Ctrl+Rune[\\]"
 
 [keybinds.mentions_list]
-select_previous = "Ctrl+P"
-select_next = "Ctrl+N"
-select_first = "Home"
-select_last = "End"
+up = "Ctrl+P"
+down = "Ctrl+N"
+top = "Home"
+bottom = "End"
 
 # style = { foreground = "", background = "", attributes = "" or [""] }
 [theme.title]

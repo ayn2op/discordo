@@ -151,13 +151,13 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		if mi.chatView.GetVisibile(mentionsListPageName) {
 			handler := mi.mentionsList.InputHandler()
 			switch event.Name() {
-			case mi.cfg.Keybinds.MentionsList.SelectDown:
+			case mi.cfg.Keybinds.MentionsList.SelectUp:
 				handler(tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone), nil)
 				return nil
-			case mi.cfg.Keybinds.MentionsList.SelectNext:
+			case mi.cfg.Keybinds.MentionsList.SelectDown:
 				handler(tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone), nil)
 				return nil
-			case mi.cfg.Keybinds.MentionsList.SelectFirst:
+			case mi.cfg.Keybinds.MentionsList.SelectTop:
 				handler(tcell.NewEventKey(tcell.KeyHome, "", tcell.ModNone), nil)
 				return nil
 			case mi.cfg.Keybinds.MentionsList.SelectBottom:
