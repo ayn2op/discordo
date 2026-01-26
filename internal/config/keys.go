@@ -1,14 +1,14 @@
 package config
 
 type (
-	SelectionKeys struct {
+	SelectionKeybinds struct {
 		SelectPrevious string `toml:"select_previous"`
 		SelectNext     string `toml:"select_next"`
 		SelectFirst    string `toml:"select_first"`
 		SelectLast     string `toml:"select_last"`
 	}
 
-	Keys struct {
+	Keybinds struct {
 		FocusGuildsTree   string `toml:"focus_guilds_tree"`
 		FocusMessagesList string `toml:"focus_messages_list"`
 		FocusMessageInput string `toml:"focus_message_input"`
@@ -16,17 +16,17 @@ type (
 		FocusNext         string `toml:"focus_next"`
 		ToggleGuildsTree  string `toml:"toggle_guilds_tree"`
 
-		GuildsTree   GuildsTreeKeys   `toml:"guilds_tree"`
-		MessagesList MessagesListKeys `toml:"messages_list"`
-		MessageInput MessageInputKeys `toml:"message_input"`
-		MentionsList MentionsListKeys `toml:"mentions_list"`
+		GuildsTree   GuildsTreeKeybinds   `toml:"guilds_tree"`
+		MessagesList MessagesListKeybinds `toml:"messages_list"`
+		MessageInput MessageInputKeybinds `toml:"message_input"`
+		MentionsList MentionsListKeybinds `toml:"mentions_list"`
 
 		Logout string `toml:"logout"`
 		Quit   string `toml:"quit"`
 	}
 
-	GuildsTreeKeys struct {
-		SelectionKeys
+	GuildsTreeKeybinds struct {
+		SelectionKeybinds
 		SelectCurrent string `toml:"select_current"`
 		YankID        string `toml:"yank_id"`
 
@@ -34,8 +34,8 @@ type (
 		MoveToParentNode   string `toml:"move_to_parent_node"`
 	}
 
-	MessagesListKeys struct {
-		SelectionKeys
+	MessagesListKeybinds struct {
+		SelectionKeybinds
 		ScrollUp     string `toml:"scroll_up"`
 		ScrollDown   string `toml:"scroll_down"`
 		ScrollTop    string `toml:"scroll_top"`
@@ -56,7 +56,7 @@ type (
 		YankID      string `toml:"yank_id"`
 	}
 
-	MessageInputKeys struct {
+	MessageInputKeybinds struct {
 		Paste       string `toml:"paste"`
 		Send        string `toml:"send"`
 		Cancel      string `toml:"cancel"`
@@ -66,7 +66,7 @@ type (
 		OpenFilePicker string `toml:"open_file_picker"`
 	}
 
-	MentionsListKeys struct {
+	MentionsListKeybinds struct {
 		Up   string `toml:"up"`
 		Down string `toml:"down"`
 	}

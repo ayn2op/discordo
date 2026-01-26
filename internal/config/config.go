@@ -49,7 +49,7 @@ type (
 		Timestamps    Timestamps    `toml:"timestamps"`
 		Notifications Notifications `toml:"notifications"`
 
-		Keys  Keys  `toml:"keys"`
+	Keybinds Keybinds `toml:"keybinds"`
 		Theme Theme `toml:"theme"`
 	}
 )
