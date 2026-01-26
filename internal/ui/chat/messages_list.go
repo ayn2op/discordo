@@ -305,7 +305,7 @@ func (ml *messagesList) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		ml.clearSelection()
 		return nil
 
-	case ml.cfg.Keybinds.MessagesList.SelectDown, ml.cfg.Keybinds.MessagesList.SelectNext, ml.cfg.Keybinds.MessagesList.SelectFirst, ml.cfg.Keybinds.MessagesList.SelectBottom, ml.cfg.Keybinds.MessagesList.SelectReply:
+	case ml.cfg.Keybinds.MessagesList.SelectUp, ml.cfg.Keybinds.MessagesList.SelectDown, ml.cfg.Keybinds.MessagesList.SelectTop, ml.cfg.Keybinds.MessagesList.SelectBottom, ml.cfg.Keybinds.MessagesList.SelectReply:
 		ml._select(event.Name())
 		return nil
 	case ml.cfg.Keybinds.MessagesList.YankID:
@@ -349,7 +349,7 @@ func (ml *messagesList) _select(name string) {
 	cursor := ml.Cursor()
 
 	switch name {
-	case ml.cfg.Keybinds.MessagesList.SelectDown:
+	case ml.cfg.Keybinds.MessagesList.SelectUp:
 		switch {
 		case cursor == -1:
 			cursor = len(messages) - 1
@@ -383,14 +383,14 @@ func (ml *messagesList) _select(name string) {
 			ml.messages = slices.Concat(older, ml.messages)
 			cursor = len(messages) - 1
 		}
-	case ml.cfg.Keybinds.MessagesList.SelectNext:
+	case ml.cfg.Keybinds.MessagesList.SelectDown:
 		switch {
 		case cursor == -1:
 			cursor = len(messages) - 1
 		case cursor < len(messages)-1:
 			cursor++
 		}
-	case ml.cfg.Keybinds.MessagesList.SelectFirst:
+	case ml.cfg.Keybinds.MessagesList.SelectTop:
 		cursor = 0
 	case ml.cfg.Keybinds.MessagesList.SelectBottom:
 		cursor = len(messages) - 1
@@ -509,11 +509,11 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 	list.
 		SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 			switch event.Name() {
-			case ml.cfg.Keybinds.MessagesList.SelectDown:
+			case ml.cfg.Keybinds.MessagesList.SelectUp:
 				return tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone)
-			case ml.cfg.Keybinds.MessagesList.SelectNext:
+			case ml.cfg.Keybinds.MessagesList.SelectDown:
 				return tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone)
-			case ml.cfg.Keybinds.MessagesList.SelectFirst:
+			case ml.cfg.Keybinds.MessagesList.SelectTop:
 				return tcell.NewEventKey(tcell.KeyHome, "", tcell.ModNone)
 			case ml.cfg.Keybinds.MessagesList.SelectBottom:
 				return tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone)
