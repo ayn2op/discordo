@@ -67,7 +67,7 @@ type MessageInputKeybinds struct {
 }
 
 type MentionsListKeybinds struct {
-	SelectionKeybinds
+	NavigationKeybinds
 }
 
 type Keybinds struct {
