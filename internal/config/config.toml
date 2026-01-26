@@ -1,0 +1,87 @@
+
+# Global shortcuts
+# Esc: Reset message selection or close the channel selection popup.
+[keybinds]
+focus_guilds_tree = "Ctrl+G"
+focus_messages_list = "Ctrl+T"
+focus_message_input = "Ctrl+I"
+# Cycle focus between the widgets.
+focus_previous = "Ctrl+H"
+focus_next = "Ctrl+L"
+# Hide/show the guilds tree.
+toggle_guilds_tree = "Ctrl+B"
+quit = "Ctrl+C"
+# Log out and remove the authentication token from keyring.
+# Requires re-login upon restart.
+logout = "Ctrl+D"
+
+[keybinds.picker]
+toggle = "Ctrl+K"
+cancel = "Esc"
+up = "Ctrl+P"
+down = "Ctrl+N"
+top = "Home"
+bottom = "End"
+select = "Enter"
+
+# Only while focusing on the guilds tree
+[keybinds.guilds_tree]
+up = "Rune[k]"
+down = "Rune[j]"
+top = "Rune[g]"
+bottom = "Rune[G]"
+# Select the currently highlighted text-based channel or expand a guild or channel.
+select_current = "Enter"
+yank_id = "Rune[i]"
+collapse_parent_node = "Rune[-]"
+move_to_parent_node = "Rune[p]"
+
+# Only while focusing on sent messages
+[keybinds.messages_list]
+select_up = "Rune[k]"
+select_down = "Rune[j]"
+select_top = "Rune[g]"
+select_bottom = "Rune[G]"
+# Scroll the messages list without changing the selection.
+scroll_up = "Rune[K]"
+scroll_down = "Rune[J]"
+scroll_top = "Home"
+scroll_bottom = "End"
+# Select the message reference (reply) of the selected channel.
+select_reply = "Rune[s]"
+# Reply to the selected message.
+reply = "Rune[R]"
+# Reply (with mention) to the selected message.
+reply_mention = "Rune[r]"
+cancel = "Esc"
+edit = "Rune[e]"
+delete = "Rune[D]"
+delete_confirm = "Rune[d]"
+# Open the selected message's attachments or hyperlinks in the message
+# using the default browser application.
+open = "Rune[o]"
+# Yank (copy) the selected message's content/url/id.
+yank_content = "Rune[y]"
+yank_url = "Rune[u]"
+yank_id = "Rune[i]"
+
+# Only while typing a message
+# Alt+Enter: Insert a new line to the current text.
+[keybinds.message_input]
+# paste from clipboard (supports both text and images)
+paste = "Ctrl+V"
+send = "Enter"
+# Remove existing text or cancel reply.
+cancel = "Esc"
+# Complete usernames when mentioning
+tab_complete = "Tab"
+
+open_editor = "Ctrl+E"
+open_file_picker = "Ctrl+Rune[\\]"
+
+[keybinds.mentions_list]
+up = "Ctrl+P"
+down = "Ctrl+N"
+top = "Home"
+bottom = "End"
+
