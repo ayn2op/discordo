@@ -262,14 +262,14 @@ func (gt *guildsTree) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	case gt.cfg.Keybinds.GuildsTree.MoveToParentNode:
 		return tcell.NewEventKey(tcell.KeyRune, "K", tcell.ModNone)
 
-	case gt.cfg.Keybinds.GuildsTree.SelectDown:
+	case gt.cfg.Keybinds.GuildsTree.Up:
 		return tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone)
-	case gt.cfg.Keybinds.GuildsTree.SelectNext:
+	case gt.cfg.Keybinds.GuildsTree.Down:
 		return tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone)
-	case gt.cfg.Keybinds.GuildsTree.SelectFirst:
+	case gt.cfg.Keybinds.GuildsTree.Top:
 		gt.Move(gt.GetRowCount() * -1)
 		// return tcell.NewEventKey(tcell.KeyHome, 0, tcell.ModNone)
-	case gt.cfg.Keybinds.GuildsTree.SelectBottom:
+	case gt.cfg.Keybinds.GuildsTree.Bottom:
 		gt.Move(gt.GetRowCount())
 		// return tcell.NewEventKey(tcell.KeyEnd, 0, tcell.ModNone)
 
