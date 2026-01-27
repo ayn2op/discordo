@@ -22,7 +22,7 @@ type Model struct {
 func NewModel(cfg *config.Config, token string) Model {
 	state := ningen.New(token)
 	return Model{
-		guilds: guilds.NewModel(cfg, state),
+		guilds: guilds.NewModel(),
 		cfg:    cfg,
 		state:  state,
 
