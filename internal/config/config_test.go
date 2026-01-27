@@ -82,7 +82,6 @@ func TestLoad(t *testing.T) {
 		if err := toml.Unmarshal(defaultCfg, &defCfg); err != nil {
 			t.Fatal(err)
 		}
-		applyDefaults(&defCfg)
 
 		if diff := cmp.Diff(defCfg, *cfg, cmpopts.EquateComparable(tcell.Style{})); diff != "" {
 			t.Fatalf("got = -, want = +, diff=%s", diff)
