@@ -58,8 +58,7 @@ func (gt *guildsTree) createFolderNode(folder gateway.GuildFolder) {
 			continue
 		}
 
-		gt.createGuildNode(folderNode, *guild).
-			SetIndent(gt.cfg.Theme.GuildsTree.GuildIndent)
+		gt.createGuildNode(folderNode, *guild)
 	}
 }
 
@@ -88,13 +87,12 @@ func (gt *guildsTree) getChannelNodeStyle(channelID discord.ChannelID) tcell.Sty
 	return gt.unreadStyle(indication)
 }
 
-func (gt *guildsTree) createGuildNode(n *tview.TreeNode, guild discord.Guild) *tview.TreeNode {
+func (gt *guildsTree) createGuildNode(n *tview.TreeNode, guild discord.Guild) {
 	guildNode := tview.NewTreeNode(guild.Name).
 		SetReference(guild.ID).
 		SetTextStyle(gt.getGuildNodeStyle(guild.ID)).
-		SetIndent(1)
+		SetIndent(gt.cfg.Theme.GuildsTree.Indents.Guild)
 	n.AddChild(guildNode)
-	return guildNode
 }
 
 func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Channel) {
@@ -107,11 +105,11 @@ func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Ch
 		SetTextStyle(gt.getChannelNodeStyle(channel.ID))
 	switch channel.Type {
 	case discord.DirectMessage:
-		cn.SetIndent(gt.cfg.Theme.GuildsTree.DMIndent)
+		cn.SetIndent(gt.cfg.Theme.GuildsTree.Indents.DM)
 	case discord.GroupDM:
-		cn.SetIndent(gt.cfg.Theme.GuildsTree.GroupDMIndent)
+		cn.SetIndent(gt.cfg.Theme.GuildsTree.Indents.GroupDM)
 	default:
-		cn.SetIndent(gt.cfg.Theme.GuildsTree.ChannelIndent)
+		cn.SetIndent(gt.cfg.Theme.GuildsTree.Indents.Channel)
 	}
 	node.AddChild(cn)
 }
@@ -120,7 +118,7 @@ func (gt *guildsTree) createCategoryNode(node *tview.TreeNode, channel discord.C
 	cn := tview.NewTreeNode(channel.Name).
 		SetReference(channel.ID).
 		SetTextStyle(gt.getChannelNodeStyle(channel.ID)).
-		SetIndent(gt.cfg.Theme.GuildsTree.CategoryIndent)
+		SetIndent(gt.cfg.Theme.GuildsTree.Indents.Category)
 	node.AddChild(cn)
 	return cn
 }

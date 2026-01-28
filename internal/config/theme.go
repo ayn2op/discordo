@@ -133,14 +133,18 @@ type (
 	}
 
 	GuildsTreeTheme struct {
-		AutoExpandFolders bool   `toml:"auto_expand_folders"`
-		Graphics          bool   `toml:"graphics"`
-		GraphicsColor     string `toml:"graphics_color"`
-		GuildIndent       int    `toml:"guild_indent"`
-		CategoryIndent    int    `toml:"category_indent"`
-		ChannelIndent     int    `toml:"channel_indent"`
-		GroupDMIndent     int    `toml:"groupdm_indent"`
-		DMIndent          int    `toml:"dm_indent"`
+		AutoExpandFolders bool              `toml:"auto_expand_folders"`
+		Graphics          bool              `toml:"graphics"`
+		GraphicsColor     string            `toml:"graphics_color"`
+		Indents           GuildsTreeIndents `toml:"indents"`
+	}
+
+	GuildsTreeIndents struct {
+		Guild    int `toml:"guild"`
+		Category int `toml:"category"`
+		Channel  int `toml:"channel"`
+		GroupDM  int `toml:"groupdm"`
+		DM       int `toml:"dm"`
 	}
 
 	MessagesListTheme struct {
