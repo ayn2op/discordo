@@ -17,6 +17,8 @@ type Model struct {
 
 	tabs   []Tab
 	active int
+
+	width, height int
 }
 
 func NewModel(tabs []Tab) Model {
@@ -28,10 +30,11 @@ func NewModel(tabs []Tab) Model {
 }
 
 func (m Model) Init() tea.Cmd {
+	var cmd tea.Cmd
 	if m.active < len(m.tabs) {
-		return m.tabs[m.active].Init()
+		cmd = m.tabs[m.active].Init()
 	}
-	return nil
+	return tea.Batch(tea.RequestWindowSize, cmd)
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
@@ -40,6 +43,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	}
 
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.width, m.height = msg.Width, msg.Height
+
 	case tea.KeyMsg:
 		k := msg.Key()
 		switch {
@@ -68,13 +74,13 @@ func (m Model) View() tea.View {
 		return tea.NewView("")
 	}
 
-	var activeContent string
+	var content string
 	tabLabels := make([]string, len(m.tabs))
 	for index, tab := range m.tabs {
 		var style lipgloss.Style
 		if index == m.active {
 			style = m.Styles.ActiveTab
-			activeContent = tab.View().Content
+			content = tab.View().Content
 		} else {
 			style = m.Styles.InactiveTab
 		}
@@ -82,12 +88,11 @@ func (m Model) View() tea.View {
 		tabLabels[index] = style.Render(tab.Name())
 	}
 
-	tabRowWidth := lipgloss.Width(activeContent)
 	tabRow := lipgloss.JoinHorizontal(lipgloss.Top, tabLabels...)
 	column := lipgloss.JoinVertical(
 		lipgloss.Top,
-		lipgloss.NewStyle().Width(tabRowWidth).Align(lipgloss.Center).Render(tabRow),
-		activeContent,
+		lipgloss.NewStyle().Width(m.width).Align(lipgloss.Center).Render(tabRow),
+		content,
 	)
 	return tea.NewView(column)
 }
