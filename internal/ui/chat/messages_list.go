@@ -146,7 +146,7 @@ func (ml *messagesList) writeMessage(writer io.Writer, message discord.Message) 
 	}
 
 	// reset
-	io.WriteString(writer, "[-:-:-]")
+	io.WriteString(writer, "[-:-:-:-]")
 
 	switch message.Type {
 	case discord.DefaultMessage:
@@ -205,7 +205,7 @@ func (ml *messagesList) drawAuthor(w io.Writer, message discord.Message) {
 }
 
 func (ml *messagesList) drawContent(w io.Writer, message discord.Message) {
-	c := []byte(tview.Escape(message.Content))
+	c := []byte(message.Content)
 	if ml.chatView.cfg.Markdown {
 		ast := discordmd.ParseWithMessage(c, *ml.chatView.state.Cabinet, &message, false)
 		ml.renderer.Render(w, c, ast)
@@ -243,6 +243,49 @@ func (ml *messagesList) drawDefaultMessage(w io.Writer, message discord.Message)
 			fmt.Fprintf(w, "[%s:%s]%s[-:-]", fg, bg, a.Filename)
 		}
 	}
+
+	ml.drawEmbeds(w, message)
+}
+
+func (ml *messagesList) drawEmbeds(w io.Writer, msg discord.Message) {
+	for _, embed := range msg.Embeds {
+		io.WriteString(w, "\n")
+		ml.drawEmbed(w, msg, embed)
+	}
+	if len(msg.Embeds) > 0 {
+		io.WriteString(w, "\n")
+	}
+}
+
+func (ml *messagesList) drawEmbed(w io.Writer, msg discord.Message, embed discord.Embed) {
+	var indicator string
+	if embed.Color != 0 {
+		indicator = "[" + tcell.NewHexColor(int32(embed.Color)).String() + ":-:-:-] │[-] "
+	} else {
+		indicator = "[-:-:-:-] │ "
+	}
+
+	if embed.Author != nil && embed.Author.Name != "" {
+		fmt.Fprintf(w, "%s[::d]%s[::D]\n", indicator, tview.Escape(embed.Author.Name))
+	}
+
+	if embed.Title != "" {
+		title := tview.Escape(embed.Title)
+		if embed.URL != "" {
+			urlFg := ml.cfg.Theme.MessagesList.URLStyle.GetForeground()
+			fmt.Fprintf(w, "%s[%s::bu]%s[-::-]\n", indicator, urlFg, title)
+		} else {
+			fmt.Fprintf(w, "%s[::bu]%s[::-]\n", indicator, title)
+		}
+	}
+
+	if embed.Description != "" {
+		desc := []byte(embed.Description)
+		ast := discordmd.ParseWithMessage(desc, *ml.chatView.state.Cabinet, &msg, false)
+		ml.renderer.RenderEmbed(w, desc, ast, indicator)
+	}
+
+	// TODO: show more of the embed
 }
 
 func (ml *messagesList) drawForwardedMessage(w io.Writer, message discord.Message) {
