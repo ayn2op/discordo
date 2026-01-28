@@ -7,9 +7,6 @@ import (
 )
 
 type Tab interface {
-	// Init() tea.Cmd
-	// Update(msg tea.Msg) (tea.Model, tea.Cmd)
-	// View() string
 	tea.Model
 	Name() string
 }
@@ -71,46 +68,26 @@ func (m Model) View() tea.View {
 		return tea.NewView("")
 	}
 
-	var contentView tea.View
-	names := make([]string, len(m.tabs))
-	for i, t := range m.tabs {
+	var activeContent string
+	tabLabels := make([]string, len(m.tabs))
+	for index, tab := range m.tabs {
 		var style lipgloss.Style
-		if i == m.active {
+		if index == m.active {
 			style = m.Styles.ActiveTab
-			contentView = t.View()
+			activeContent = tab.View().Content
 		} else {
 			style = m.Styles.InactiveTab
 		}
 
-		names[i] = style.Render(t.Name())
+		tabLabels[index] = style.Render(tab.Name())
 	}
 
-	row := lipgloss.JoinHorizontal(lipgloss.Top, names...)
-	return tea.NewView(stackedLayer{header: row, body: contentView})
-}
-
-type stackedLayer struct {
-	header string
-	body   tea.View
-}
-
-func (l stackedLayer) Draw(scr tea.Screen, area tea.Rectangle) {
-	width := area.Max.X - area.Min.X
-	header := l.header
-	if width > 0 && header != "" {
-		header = lipgloss.Place(width, lipgloss.Height(header), lipgloss.Center, lipgloss.Top, header)
-	}
-
-	headerView := tea.NewView(header)
-	headerHeight := lipgloss.Height(header)
-	headerArea := area
-	headerArea.Max.Y = min(area.Min.Y+headerHeight, area.Max.Y)
-	headerView.Content.Draw(scr, headerArea)
-	if headerArea.Max.Y >= area.Max.Y {
-		return
-	}
-
-	bodyArea := area
-	bodyArea.Min.Y = headerArea.Max.Y
-	l.body.Content.Draw(scr, bodyArea)
+	tabRowWidth := lipgloss.Width(activeContent)
+	tabRow := lipgloss.JoinHorizontal(lipgloss.Top, tabLabels...)
+	column := lipgloss.JoinVertical(
+		lipgloss.Top,
+		lipgloss.NewStyle().Width(tabRowWidth).Align(lipgloss.Center).Render(tabRow),
+		activeContent,
+	)
+	return tea.NewView(column)
 }

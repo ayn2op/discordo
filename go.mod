@@ -3,11 +3,10 @@ module github.com/ayn2op/discordo
 go 1.25.5
 
 require (
-	charm.land/bubbles/v2 v2.0.0-rc.1
-	charm.land/bubbletea/v2 v2.0.0-rc.2
+	charm.land/bubbles/v2 v2.0.0-rc.1.0.20260109112849-ae99f46cec66
+	charm.land/bubbletea/v2 v2.0.0-rc.2.0.20260126225716-76f2e6d81219
 	charm.land/lipgloss/v2 v2.0.0-beta.3.0.20251205162909-7869489d8971
 	github.com/BurntSushi/toml v1.6.0
-	github.com/ayn2op/tview v0.0.0-20260124020829-9bf015ba0400
 	github.com/coder/websocket v1.8.14
 	github.com/diamondburned/arikawa/v3 v3.6.0
 	github.com/diamondburned/ningen/v3 v3.0.1-0.20250920191746-98fbd92e134d
