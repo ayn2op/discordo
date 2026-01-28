@@ -273,9 +273,9 @@ func (ml *messagesList) drawEmbed(w io.Writer, msg discord.Message, embed discor
 		title := tview.Escape(embed.Title)
 		if embed.URL != "" {
 			urlFg := ml.cfg.Theme.MessagesList.URLStyle.GetForeground()
-			fmt.Fprintf(w, "%s[%s::bu]%s[-::-]\n", indicator, urlFg, title)
+			fmt.Fprintf(w, "%s[%s::bu:%s]%s[-::-:-]\n", indicator, urlFg, embed.URL, title)
 		} else {
-			fmt.Fprintf(w, "%s[::bu]%s[::-]\n", indicator, title)
+			fmt.Fprintf(w, "%s[::b]%s[::-]\n", indicator, title)
 		}
 	}
 
