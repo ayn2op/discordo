@@ -3,6 +3,8 @@ package login
 import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/login/qr"
+	"github.com/ayn2op/discordo/internal/login/token"
 	"github.com/ayn2op/discordo/pkg/tabs"
 )
 
@@ -14,9 +16,9 @@ type Model struct {
 func NewModel(cfg *config.Config) Model {
 	return Model{
 		tabs: tabs.NewModel([]tabs.Tab{
-			newTokenModel(),
+			token.NewModel(),
 			newPasswordModel(),
-			newQRModel(),
+			qr.NewModel(),
 		}),
 		cfg: cfg,
 	}
