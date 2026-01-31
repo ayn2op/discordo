@@ -6,6 +6,7 @@ import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/login"
+	"github.com/ayn2op/discordo/internal/login/token"
 )
 
 type Model struct {
@@ -31,7 +32,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 
-	case login.TokenMsg:
+	case token.TokenMsg:
 		if msg.Err != nil {
 			m.model = login.NewModel(m.cfg)
 		} else {

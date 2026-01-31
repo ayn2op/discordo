@@ -1,4 +1,4 @@
-package login
+package token
 
 import (
 	"strings"
@@ -14,36 +14,36 @@ type TokenMsg struct {
 	Err   error
 }
 
-func tokenMsgCmd(value string, err error) tea.Cmd {
+func tokenCmd(token string, err error) tea.Cmd {
 	return func() tea.Msg {
-		return TokenMsg{Value: value, Err: err}
+		return TokenMsg{token, err}
 	}
 }
 
-type TokenModel struct {
+type Model struct {
 	form *form.Model
 }
 
-func newTokenModel() TokenModel {
+func NewModel() Model {
 	input := textinput.New()
 	input.Placeholder = "Token"
 	input.EchoMode = textinput.EchoPassword
-	return TokenModel{
+	return Model{
 		form: form.NewModel([]textinput.Model{input}),
 	}
 }
 
-func (m TokenModel) Name() string {
+func (m Model) Name() string {
 	return "Token"
 }
 
-var _ tea.Model = TokenModel{}
+var _ tea.Model = Model{}
 
-func (m TokenModel) Init() tea.Cmd {
+func (m Model) Init() tea.Cmd {
 	return m.form.Init()
 }
 
-func (m TokenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case form.SubmitMsg:
 		if len(msg.Values) < 1 {
@@ -54,9 +54,9 @@ func (m TokenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		if err := keyring.SetToken(token); err != nil {
-			return m, tokenMsgCmd("", err)
+			return m, tokenCmd("", err)
 		}
-		return m, tokenMsgCmd(token, nil)
+		return m, tokenCmd(token, nil)
 	}
 
 	var cmd tea.Cmd
@@ -64,6 +64,6 @@ func (m TokenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m TokenModel) View() tea.View {
+func (m Model) View() tea.View {
 	return m.form.View()
 }
