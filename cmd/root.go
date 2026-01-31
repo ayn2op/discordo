@@ -26,6 +26,12 @@ func Run() error {
 		return err
 	}
 
+	file, err := tea.LogToFile(logPath, "debug")
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
 	input, output, err := tea.OpenTTY()
 	if err != nil {
 		return err
