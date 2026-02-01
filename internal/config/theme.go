@@ -156,6 +156,12 @@ type (
 		MaxHeight uint `toml:"max_height"`
 	}
 
+	HotkeysTheme struct {
+		Compact   bool   `toml:"show_compact_keys"`
+		Format    string `toml:"format"`
+		Separator string `toml:"separator"`
+	}
+
 	Theme struct {
 		Title        TitleTheme        `toml:"title"`
 		Footer       FooterTheme       `toml:"footer"`
@@ -163,6 +169,7 @@ type (
 		GuildsTree   GuildsTreeTheme   `toml:"guilds_tree"`
 		MessagesList MessagesListTheme `toml:"messages_list"`
 		MentionsList MentionsListTheme `toml:"mentions_list"`
+		Hotkeys      HotkeysTheme      `toml:"hotkeys"`
 	}
 )
 

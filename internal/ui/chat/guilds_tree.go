@@ -36,6 +36,7 @@ func newGuildsTree(cfg *config.Config, chatView *View) *guildsTree {
 		SetGraphics(cfg.Theme.GuildsTree.Graphics).
 		SetGraphicsColor(tcell.GetColor(cfg.Theme.GuildsTree.GraphicsColor)).
 		SetSelectedFunc(gt.onSelected).
+		SetCurrentNode(nil).
 		SetTitle("Guilds").
 		SetInputCapture(gt.onInputCapture)
 
@@ -339,4 +340,54 @@ func (gt *guildsTree) expandPathToNode(node *tview.TreeNode) {
 	for _, n := range gt.GetPath(node) {
 		n.Expand()
 	}
+}
+
+func (gt *guildsTree) hotkeys() []hotkey {
+	cfg := gt.cfg.Keybinds.GuildsTree
+	return []hotkey{
+		{name: "prev/next", bind: cfg.Up + "/" + cfg.Down},
+		{name: "top/bot", bind: cfg.Top + "/" + cfg.Bottom},
+		{name: "expand", bind: cfg.SelectCurrent, show: gt.isExpand},
+		{name: "collapse", bind: cfg.SelectCurrent, show: gt.isCollapse},
+		{name: "select", bind: cfg.SelectCurrent, show: gt.isSelect},
+	}
+}
+
+func (gt *guildsTree) isExpand() bool {
+	n := gt.GetCurrentNode()
+	if n == nil {
+		return false
+	}
+	if len(n.GetChildren()) != 0 {
+		return !n.IsExpanded()
+	}
+	switch n.GetReference().(type) {
+	case discord.ChannelID:
+		return false
+	default:
+		return true
+	}
+}
+
+func (gt *guildsTree) isSelect() bool {
+	n := gt.GetCurrentNode()
+	if n == nil {
+		return false
+	}
+	if len(n.GetChildren()) != 0 {
+		return false
+	}
+	switch n.GetReference().(type) {
+	case discord.ChannelID:
+		return true
+	}
+	return false
+}
+
+func (gt *guildsTree) isCollapse() bool {
+	n := gt.GetCurrentNode()
+	if n == nil {
+		return false
+	}
+	return len(n.GetChildren()) != 0 && n.IsExpanded()
 }

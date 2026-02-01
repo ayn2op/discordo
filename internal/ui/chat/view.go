@@ -29,6 +29,7 @@ const (
 type View struct {
 	*tview.Pages
 
+	rootFlex  *tview.Flex
 	mainFlex  *tview.Flex
 	rightFlex *tview.Flex
 
@@ -36,6 +37,7 @@ type View struct {
 	messagesList   *messagesList
 	messageInput   *messageInput
 	channelsPicker *channelsPicker
+	hotkeysBar     *hotkeysBar
 
 	selectedChannel   *discord.Channel
 	selectedChannelMu sync.RWMutex
@@ -54,6 +56,7 @@ func NewView(app *tview.Application, cfg *config.Config, onLogout func()) *View 
 	v := &View{
 		Pages: tview.NewPages(),
 
+		rootFlex:  tview.NewFlex(),
 		mainFlex:  tview.NewFlex(),
 		rightFlex: tview.NewFlex(),
 
@@ -68,10 +71,19 @@ func NewView(app *tview.Application, cfg *config.Config, onLogout func()) *View 
 	v.messageInput = newMessageInput(cfg, v)
 	v.channelsPicker = newChannelsPicker(cfg, v)
 	v.channelsPicker.SetCancelFunc(v.closePicker)
+	v.hotkeysBar = newHotkeysBar(cfg)
+	v.hotkeysBar.setHotkeys(v.guildsTree.hotkeys())
 
 	v.SetInputCapture(v.onInputCapture)
 	v.buildLayout()
 	return v
+}
+
+func (v *View) Draw(s tcell.Screen) {
+	if v.cfg.ShowHotkeys {
+		v.hotkeysBar.update()
+	}
+	v.Pages.Draw(s)
 }
 
 func (v *View) SelectedChannel() *discord.Channel {
@@ -90,6 +102,7 @@ func (v *View) buildLayout() {
 	v.Clear()
 	v.rightFlex.Clear()
 	v.mainFlex.Clear()
+	v.rootFlex.Clear()
 
 	v.rightFlex.
 		SetDirection(tview.FlexRow).
@@ -99,8 +112,12 @@ func (v *View) buildLayout() {
 	v.mainFlex.
 		AddItem(v.guildsTree, 0, 1, true).
 		AddItem(v.rightFlex, 0, 4, false)
+	v.rootFlex.
+		SetDirection(tview.FlexRow).
+		AddItem(v.mainFlex, 0, 1, true).
+		AddItem(v.hotkeysBar, 1, 1, false)
 
-	v.AddAndSwitchToPage(flexPageName, v.mainFlex, true)
+	v.AddAndSwitchToPage(flexPageName, v.rootFlex, true)
 }
 
 func (v *View) togglePicker() {
