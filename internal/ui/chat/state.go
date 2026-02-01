@@ -210,7 +210,8 @@ func (v *View) onTypingStart(event *gateway.TypingStartEvent) {
 		return
 	}
 
-	if event.UserID == v.me.ID {
+	me, _ := v.state.Cabinet.Me()
+	if event.UserID == me.ID {
 		return
 	}
 

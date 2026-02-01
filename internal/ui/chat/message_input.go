@@ -282,8 +282,9 @@ func (mi *messageInput) expandMentions(c *discord.Channel, src []byte) []byte {
 				}
 			}
 			// self ping
-			if strings.EqualFold(mi.chatView.me.Username, name) {
-				return []byte(mi.chatView.me.ID.Mention())
+			me, _ := state.Cabinet.Me()
+			if strings.EqualFold(me.Username, name) {
+				return []byte(me.ID.Mention())
 			}
 			return output
 		}
@@ -370,7 +371,8 @@ func (mi *messageInput) tabSuggestion() {
 	if name == "" {
 		shown = make(map[string]struct{})
 		// Don't show @me in the list of recent authors
-		shown[mi.chatView.me.Username] = userDone
+		me, _ := mi.chatView.state.Cabinet.Me()
+		shown[me.Username] = userDone
 	}
 
 	// DMs have recipients, not members
@@ -389,7 +391,8 @@ func (mi *messageInput) tabSuggestion() {
 			}
 		} else {
 			users := selected.DMRecipients
-			users = append(users, *mi.chatView.me)
+			me, _ := mi.chatView.state.Cabinet.Me()
+			users = append(users, *me)
 			res := fuzzy.FindFrom(name, userList(users))
 			for _, r := range res {
 				mi.addMentionUser(&users[r.Index])
