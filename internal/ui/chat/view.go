@@ -67,13 +67,12 @@ func NewView(app *tview.Application, cfg *config.Config, onLogout func()) *View 
 		cfg:      cfg,
 		onLogout: onLogout,
 	}
+	v.hotkeysBar = newHotkeysBar(cfg)
 	v.guildsTree = newGuildsTree(cfg, v)
 	v.messagesList = newMessagesList(cfg, v)
 	v.messageInput = newMessageInput(cfg, v)
 	v.channelsPicker = newChannelsPicker(cfg, v)
 	v.channelsPicker.SetCancelFunc(v.closePicker)
-	v.hotkeysBar = newHotkeysBar(cfg)
-	v.hotkeysBar.setHotkeys(v.guildsTree.hotkeys())
 
 	v.SetInputCapture(v.onInputCapture)
 	v.buildLayout()

@@ -522,7 +522,7 @@ func (mi *messageInput) showMentionList() {
 
 		w = min(w+borders*2, maxW)
 		_, col, _, _ := mi.GetCursor()
-		x += min(col, maxW-w)
+		x += min(col-1, maxW-w)
 	}
 
 	l.SetRect(x, y, w, h)
@@ -658,4 +658,26 @@ func (mi *messageInput) attach(name string, reader io.Reader) {
 		names = append(names, file.Name)
 	}
 	mi.SetFooter("Attached " + humanJoin(names))
+}
+
+// Set hotkeys on focus.
+func (mi *messageInput) Focus(delegate func(p tview.Primitive)) {
+	if mi.chatView.Pages.HasPage(mentionsListPageName) {
+		cfg := mi.cfg.Keybinds.MentionsList
+		mi.chatView.hotkeysBar.setHotkeys([]hotkey{
+			{name: "next/prev", bind: cfg.Down + "/" + cfg.Up},
+			{name: "top/bot", bind: cfg.Top + "/" + cfg.Bottom},
+			{name: "select", bind: mi.cfg.Keybinds.MessageInput.TabComplete},
+		})
+	} else {
+		cfg := mi.cfg.Keybinds.MessageInput
+		mi.chatView.hotkeysBar.setHotkeys([]hotkey{
+			{name: "paste", bind: cfg.Paste},
+			{name: "send", bind: cfg.Send},
+			{name: "cancel", bind: cfg.Cancel},
+			{name: "editor", bind: cfg.OpenEditor},
+			{name: "attach", bind: cfg.OpenFilePicker},
+		})
+	}
+	mi.TextArea.Focus(delegate)
 }

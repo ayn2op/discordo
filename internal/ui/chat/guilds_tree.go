@@ -342,18 +342,20 @@ func (gt *guildsTree) expandPathToNode(node *tview.TreeNode) {
 	}
 }
 
-func (gt *guildsTree) hotkeys() []hotkey {
+// Set hotkeys on focus.
+func (gt *guildsTree) Focus(delegate func(p tview.Primitive)) {
 	cfg := gt.cfg.Keybinds.GuildsTree
-	return []hotkey{
-		{name: "prev/next", bind: cfg.Up + "/" + cfg.Down},
+	gt.chatView.hotkeysBar.setHotkeys([]hotkey{
+		{name: "next/prev", bind: cfg.Down + "/" + cfg.Up},
 		{name: "top/bot", bind: cfg.Top + "/" + cfg.Bottom},
-		{name: "expand", bind: cfg.SelectCurrent, show: gt.isExpand},
-		{name: "collapse", bind: cfg.SelectCurrent, show: gt.isCollapse},
-		{name: "select", bind: cfg.SelectCurrent, show: gt.isSelect},
-	}
+		{name: "expand", bind: cfg.SelectCurrent, show: gt.hkExpand},
+		{name: "collapse", bind: cfg.SelectCurrent, show: gt.hkCollapse},
+		{name: "select", bind: cfg.SelectCurrent, show: gt.hkSelect},
+	})
+	gt.TreeView.Focus(delegate)
 }
 
-func (gt *guildsTree) isExpand() bool {
+func (gt *guildsTree) hkExpand() bool {
 	n := gt.GetCurrentNode()
 	if n == nil {
 		return false
@@ -369,7 +371,7 @@ func (gt *guildsTree) isExpand() bool {
 	}
 }
 
-func (gt *guildsTree) isSelect() bool {
+func (gt *guildsTree) hkSelect() bool {
 	n := gt.GetCurrentNode()
 	if n == nil {
 		return false
@@ -384,7 +386,7 @@ func (gt *guildsTree) isSelect() bool {
 	return false
 }
 
-func (gt *guildsTree) isCollapse() bool {
+func (gt *guildsTree) hkCollapse() bool {
 	n := gt.GetCurrentNode()
 	if n == nil {
 		return false

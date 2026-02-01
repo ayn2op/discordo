@@ -748,3 +748,51 @@ func (ml *messagesList) waitForChunkEvent() uint {
 	<-ml.fetchingMembers.done
 	return ml.fetchingMembers.count
 }
+
+// Set hotkeys on focus.
+func (ml *messagesList) Focus(delegate func(p tview.Primitive)) {
+	cfg := ml.cfg.Keybinds.MessagesList
+	ml.chatView.hotkeysBar.setHotkeys([]hotkey{
+		{name: "next/prev", bind: cfg.SelectDown + "/" + cfg.SelectUp},
+		{name: "top/bot", bind: cfg.SelectTop + "/" + cfg.SelectBottom},
+		{name: "goto_reply", bind: cfg.SelectReply, show: ml.hkGotoReply},
+		{name: "@/reply", bind: cfg.ReplyMention + "/" + cfg.Reply, show: ml.hkReply},
+		{name: "cancel", bind: cfg.Cancel},
+		{name: "edit", bind: cfg.Edit, show: ml.hkEdit},
+		{name: "delete", bind: cfg.DeleteConfirm, show: ml.hkDelete},
+		{name: "open", bind: cfg.Open, show: ml.hkOpen},
+	})
+	ml.ScrollList.Focus(delegate)
+}
+
+func (ml *messagesList) hkGotoReply() bool {
+	msg, err := ml.selectedMessage()
+	if err != nil {
+		return false
+	}
+	return msg.ReferencedMessage != nil
+}
+
+func (ml *messagesList) hkReply() bool {
+	return true // TODO
+}
+
+func (ml *messagesList) hkEdit() bool {
+	msg, err := ml.selectedMessage()
+	if err != nil {
+		return false
+	}
+	return msg.Author.ID == ml.chatView.me.ID
+}
+
+func (ml *messagesList) hkDelete() bool {
+	return true
+}
+
+func (ml *messagesList) hkOpen() bool {
+	msg, err := ml.selectedMessage()
+	if err != nil {
+		return false
+	}
+	return len(extractURLs(msg.Content)) != 0 || len(msg.Attachments) != 0
+}

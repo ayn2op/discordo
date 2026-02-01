@@ -22,10 +22,6 @@ type hotkey struct {
 	                 // hotkey right now. Use nil for "always"
 }
 
-type hotkeyer interface {
-	hotkeys() []hotkey
-}
-
 var runePattern = regexp.MustCompile(`Rune\[(.)]`)
 
 func newHotkeysBar(cfg *config.Config) *hotkeysBar {
