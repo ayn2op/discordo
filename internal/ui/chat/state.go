@@ -198,12 +198,7 @@ func (v *View) onTypingStart(event *gateway.TypingStartEvent) {
 		return
 	}
 
-	me, err := v.state.Cabinet.Me()
-	if err != nil {
-		slog.Error("failed to get me from state", "err", err)
-		return
-	}
-
+	me, _ := v.state.Cabinet.Me()
 	if event.UserID == me.ID {
 		return
 	}

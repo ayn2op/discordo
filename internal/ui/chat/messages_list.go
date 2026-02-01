@@ -630,12 +630,7 @@ func (ml *messagesList) edit() {
 		return
 	}
 
-	me, err := ml.chatView.state.Cabinet.Me()
-	if err != nil {
-		slog.Error("failed to get client user (me)", "err", err)
-		return
-	}
-
+	me, _ := ml.chatView.state.Cabinet.Me()
 	if message.Author.ID != me.ID {
 		slog.Error("failed to edit message; not the author", "channel_id", message.ChannelID, "message_id", message.ID)
 		return
@@ -669,7 +664,7 @@ func (ml *messagesList) delete() {
 	}
 
 	if msg.GuildID.IsValid() {
-		me, err := ml.chatView.state.Cabinet.Me()
+		me, _ := ml.chatView.state.Cabinet.Me()
 		if err != nil {
 			slog.Error("failed to get client user (me)", "err", err)
 			return
