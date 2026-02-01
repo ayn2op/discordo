@@ -255,6 +255,11 @@ func (v *View) showConfirmModal(prompt string, buttons []string, onDone func(lab
 	v.
 		AddAndSwitchToPage(confirmModalPageName, ui.Centered(modal, 0, 0), true).
 		ShowPage(flexPageName)
+	
+	v.hotkeysBar.setHotkeys([]hotkey{
+		{name: "left/right", bind: "Left/Right"},
+		{name: "select", bind: "Enter"},
+	})
 }
 
 func (v *View) onReadUpdate(event *read.UpdateEvent) {

@@ -116,3 +116,15 @@ func (cp *channelsPicker) addChannel(guild *discord.Guild, channel discord.Chann
 	name := b.String()
 	cp.AddItem(picker.Item{Text: name, FilterText: name, Reference: channel.ID})
 }
+
+// Set hotkeys on focus.
+func (cp *channelsPicker) Focus(delegate func(p tview.Primitive)) {
+	cfg := cp.chatView.cfg.Keybinds.Picker
+	cp.chatView.hotkeysBar.setHotkeys([]hotkey{
+		{name: "next/prev", bind: cfg.Down + "/" + cfg.Up},
+		{name: "top/bot", bind: cfg.Top + "/" + cfg.Bottom},
+		{name: "select", bind: cfg.Select},
+		{name: "cancel", bind: cfg.Cancel},
+	})
+	cp.Picker.Focus(delegate)
+}
