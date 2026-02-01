@@ -35,8 +35,17 @@ func (v *View) OpenState(token string) error {
 	v.state = ningen.FromState(state)
 
 	// Handlers
+	done := make(chan error)
 	v.state.AddHandler(v.onRaw)
-	v.state.AddHandler(v.onReady)
+	v.state.AddHandler(func(r *gateway.ReadyEvent) {
+		me, err := v.state.Cabinet.Me()
+		done <- err
+		if err != nil {
+			return
+		}
+		v.me = me
+		v.onReady(r)
+	})
 	v.state.AddHandler(v.onMessageCreate)
 	v.state.AddHandler(v.onMessageUpdate)
 	v.state.AddHandler(v.onMessageDelete)
@@ -53,7 +62,10 @@ func (v *View) OpenState(token string) error {
 	}
 
 	v.state.OnRequest = append(v.state.OnRequest, httputil.WithHeaders(http.Headers()), v.onRequest)
-	return v.state.Open(context.TODO())
+	if err := v.state.Open(context.TODO()); err != nil {
+		return err
+	}
+	return <-done
 }
 
 func (v *View) CloseState() error {
@@ -198,13 +210,7 @@ func (v *View) onTypingStart(event *gateway.TypingStartEvent) {
 		return
 	}
 
-	me, err := v.state.Cabinet.Me()
-	if err != nil {
-		slog.Error("failed to get me from state", "err", err)
-		return
-	}
-
-	if event.UserID == me.ID {
+	if event.UserID == v.me.ID {
 		return
 	}
 

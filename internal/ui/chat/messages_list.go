@@ -630,13 +630,7 @@ func (ml *messagesList) edit() {
 		return
 	}
 
-	me, err := ml.chatView.state.Cabinet.Me()
-	if err != nil {
-		slog.Error("failed to get client user (me)", "err", err)
-		return
-	}
-
-	if message.Author.ID != me.ID {
+	if message.Author.ID != ml.chatView.me.ID {
 		slog.Error("failed to edit message; not the author", "channel_id", message.ChannelID, "message_id", message.ID)
 		return
 	}
@@ -669,13 +663,7 @@ func (ml *messagesList) delete() {
 	}
 
 	if msg.GuildID.IsValid() {
-		me, err := ml.chatView.state.Cabinet.Me()
-		if err != nil {
-			slog.Error("failed to get client user (me)", "err", err)
-			return
-		}
-
-		if msg.Author.ID != me.ID && !ml.chatView.state.HasPermissions(msg.ChannelID, discord.PermissionManageMessages) {
+		if msg.Author.ID != ml.chatView.me.ID && !ml.chatView.state.HasPermissions(msg.ChannelID, discord.PermissionManageMessages) {
 			slog.Error("failed to delete message; missing relevant permissions", "channel_id", msg.ChannelID, "message_id", msg.ID)
 			return
 		}
