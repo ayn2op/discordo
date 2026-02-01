@@ -665,11 +665,6 @@ func (ml *messagesList) delete() {
 
 	if msg.GuildID.IsValid() {
 		me, _ := ml.chatView.state.Cabinet.Me()
-		if err != nil {
-			slog.Error("failed to get client user (me)", "err", err)
-			return
-		}
-
 		if msg.Author.ID != me.ID && !ml.chatView.state.HasPermissions(msg.ChannelID, discord.PermissionManageMessages) {
 			slog.Error("failed to delete message; missing relevant permissions", "channel_id", msg.ChannelID, "message_id", msg.ID)
 			return

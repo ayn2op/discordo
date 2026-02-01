@@ -272,6 +272,7 @@ func (mi *messageInput) processText(channel *discord.Channel, src []byte) string
 }
 
 func (mi *messageInput) expandMentions(c *discord.Channel, src []byte) []byte {
+	state := mi.chatView.state
 	return mentionRegex.ReplaceAllFunc(src, func(input []byte) []byte {
 		output := input
 		name := string(input[1:])
