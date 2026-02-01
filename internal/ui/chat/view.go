@@ -45,6 +45,7 @@ type View struct {
 	typersMu sync.RWMutex
 	typers   map[discord.UserID]*time.Timer
 
+	me    *discord.User
 	app   *tview.Application
 	cfg   *config.Config
 	state *ningen.State
