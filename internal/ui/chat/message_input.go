@@ -199,7 +199,7 @@ func (mi *messageInput) send() {
 		}
 	}()
 
-	text = processText(mi.chatView.state, selected, []byte(text))
+	text = mi.processText(selected, []byte(text))
 
 	if mi.edit {
 		m, err := mi.chatView.messagesList.selectedMessage()
@@ -231,7 +231,7 @@ func (mi *messageInput) send() {
 	mi.chatView.messagesList.ScrollToEnd()
 }
 
-func processText(state *ningen.State, channel *discord.Channel, src []byte) string {
+func (mi *messageInput) processText(channel *discord.Channel, src []byte) string {
 	// Fast path: no mentions to expand.
 	if bytes.IndexByte(src, '@') == -1 {
 		return string(src)
@@ -239,7 +239,7 @@ func processText(state *ningen.State, channel *discord.Channel, src []byte) stri
 
 	// Fast path: no back ticks (code blocks), so expand mentions directly.
 	if bytes.IndexByte(src, '`') == -1 {
-		return string(expandMentions(state, channel, src))
+		return string(mi.expandMentions(channel, src))
 	}
 
 	var (
@@ -265,13 +265,14 @@ func processText(state *ningen.State, channel *discord.Channel, src []byte) stri
 	})
 
 	for _, rng := range ranges {
-		src = slices.Replace(src, rng[0], rng[1], expandMentions(state, channel, src[rng[0]:rng[1]])...)
+		src = slices.Replace(src, rng[0], rng[1], mi.expandMentions(channel, src[rng[0]:rng[1]])...)
 	}
 
 	return string(src)
 }
 
-func expandMentions(state *ningen.State, c *discord.Channel, src []byte) []byte {
+func (mi *messageInput) expandMentions(c *discord.Channel, src []byte) []byte {
+	state := mi.chatView.state
 	return mentionRegex.ReplaceAllFunc(src, func(input []byte) []byte {
 		output := input
 		name := string(input[1:])
