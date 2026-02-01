@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ayn2op/tview"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/diamondburned/ningen/v3/discordmd"
 	"github.com/yuin/goldmark/ast"
@@ -58,6 +59,86 @@ func (r *Renderer) Render(w io.Writer, source []byte, node ast.Node) error {
 	})
 }
 
+type embedWriter struct{
+	w           io.Writer
+	indicator   []byte
+	beginOfLine bool
+}
+
+func (r *Renderer) RenderEmbed(w io.Writer, src []byte, node ast.Node, indicator string) error {
+	return r.Render(newEmbedWriter(w, indicator), src, node)
+}
+
+func newEmbedWriter(w io.Writer, indicator string) *embedWriter {
+	return &embedWriter{
+		w:           w,
+		indicator:   []byte(indicator),
+		beginOfLine: true,
+	}
+}
+
+func (ew *embedWriter) Write(b []byte) (int, error) {
+	total := 0
+	begin := 0
+	for i, c := range b {
+		if ew.beginOfLine {
+			ew.beginOfLine = false
+			written, err := ew.w.Write(ew.indicator)
+			total += written
+			if err != nil {
+				return total, err
+			}
+			if begin != 0 {
+				written, err := ew.w.Write(b[begin:i])
+				total += written
+				if err != nil {
+					return total, err
+				}
+			}
+		}
+		if c == '\n' {
+			ew.beginOfLine = true
+		}
+	}
+	if begin != len(b) {
+		i, err := ew.w.Write(b[begin:])
+		total += i
+		return total, err
+	}
+	return total, nil
+}
+
+func (ew *embedWriter) WriteString(s string) (int, error) {
+	total := 0
+	begin := 0
+	for i, c := range s {
+		if ew.beginOfLine {
+			written, err := ew.w.Write(ew.indicator)
+			ew.beginOfLine = false
+			total += written
+			if err != nil {
+				return total, err
+			}
+			if begin != 0 {
+				written, err := io.WriteString(ew.w, s[begin:i])
+				total += written
+				if err != nil {
+					return total, err
+				}
+			}
+		}
+		if c == '\n' {
+			ew.beginOfLine = true
+		}
+	}
+	if begin != len(s) {
+		i, err := io.WriteString(ew.w, s[begin:])
+		total += i
+		return total, err
+	}
+	return total, nil
+}
+
 func (r *Renderer) renderHeading(w io.Writer, node *ast.Heading, entering bool) {
 	if entering {
 		io.WriteString(w, strings.Repeat("#", node.Level))
@@ -74,7 +155,7 @@ func (r *Renderer) renderFencedCodeBlock(w io.Writer, node *ast.FencedCodeBlock,
 		// language
 		if l := node.Language(source); l != nil {
 			io.WriteString(w, "|=> ")
-			w.Write(l)
+			io.WriteString(w, tview.Escape(string(l)))
 			io.WriteString(w, "\n")
 		}
 
@@ -83,7 +164,7 @@ func (r *Renderer) renderFencedCodeBlock(w io.Writer, node *ast.FencedCodeBlock,
 		for i := range lines.Len() {
 			line := lines.At(i)
 			io.WriteString(w, "| ")
-			w.Write(line.Value(source))
+			io.WriteString(w, tview.Escape(string(line.Value(source))))
 		}
 	}
 }
@@ -95,7 +176,7 @@ func (r *Renderer) renderAutoLink(w io.Writer, node *ast.AutoLink, entering bool
 		fg := urlStyle.GetForeground()
 		bg := urlStyle.GetBackground()
 		fmt.Fprintf(w, "[%s:%s]", fg, bg)
-		w.Write(node.URL(source))
+		io.WriteString(w, tview.Escape(string(node.URL(source))))
 	} else {
 		io.WriteString(w, "[-:-]")
 	}
@@ -106,7 +187,7 @@ func (r *Renderer) renderLink(w io.Writer, node *ast.Link, entering bool) {
 	if entering {
 		fg := urlStyle.GetForeground()
 		bg := urlStyle.GetBackground()
-		fmt.Fprintf(w, "[%s:%s::%s]", fg, bg, node.Destination)
+		fmt.Fprintf(w, "[%s:%s::%s]", fg, bg, tview.Escape(string(node.Destination)))
 	} else {
 		io.WriteString(w, "[-:-::-]")
 	}
@@ -145,7 +226,7 @@ func (r *Renderer) renderListItem(w io.Writer, entering bool) {
 
 func (r *Renderer) renderText(w io.Writer, node *ast.Text, entering bool, source []byte) {
 	if entering {
-		w.Write(node.Segment.Value(source))
+		io.WriteString(w, tview.Escape(string(node.Segment.Value(source))))
 		switch {
 		case node.HardLineBreak():
 			io.WriteString(w, "\n\n")
@@ -171,16 +252,16 @@ func (r *Renderer) renderMention(w io.Writer, node *discordmd.Mention, entering 
 
 		switch {
 		case node.Channel != nil:
-			io.WriteString(w, "#"+node.Channel.Name)
+			io.WriteString(w, tview.Escape("#"+node.Channel.Name))
 		case node.GuildUser != nil:
 			name := node.GuildUser.DisplayOrUsername()
 			if member := node.GuildUser.Member; member != nil && member.Nick != "" {
 				name = member.Nick
 			}
 
-			io.WriteString(w, "@"+name)
+			io.WriteString(w, tview.Escape("@"+name))
 		case node.GuildRole != nil:
-			io.WriteString(w, "@"+node.GuildRole.Name)
+			io.WriteString(w, tview.Escape("@"+node.GuildRole.Name))
 		}
 	} else {
 		io.WriteString(w, "[-:-:B]")
@@ -193,7 +274,7 @@ func (r *Renderer) renderEmoji(w io.Writer, node *discordmd.Emoji, entering bool
 		fg := emojiStyle.GetForeground()
 		bg := emojiStyle.GetBackground()
 		fmt.Fprintf(w, "[%s:%s]", fg, bg)
-		io.WriteString(w, ":"+node.Name+":")
+		io.WriteString(w, tview.Escape(":"+node.Name+":"))
 	} else {
 		io.WriteString(w, "[-:-]")
 	}
