@@ -172,12 +172,16 @@ func (v *View) focusMessageInput() bool {
 
 func (v *View) focusPrevious() {
 	switch v.app.GetFocus() {
-	case v.guildsTree:
-		v.focusMessageInput()
 	case v.messagesList: // Handle both a.messagesList and a.flex as well as other edge cases (if there is).
-		if ok := v.focusGuildsTree(); !ok {
-			v.app.SetFocus(v.messageInput)
+		if v.focusGuildsTree() {
+			return
 		}
+		fallthrough
+	case v.guildsTree:
+		if v.focusMessageInput() {
+			return
+		}
+		fallthrough
 	case v.messageInput:
 		v.app.SetFocus(v.messagesList)
 	}
@@ -185,14 +189,18 @@ func (v *View) focusPrevious() {
 
 func (v *View) focusNext() {
 	switch v.app.GetFocus() {
+	case v.messagesList:
+		if v.focusMessageInput() {
+			return
+		}
+		fallthrough
+	case v.messageInput: // Handle both a.messageInput and a.flex as well as other edge cases (if there is).
+		if v.focusGuildsTree() {
+			return
+		}
+		fallthrough
 	case v.guildsTree:
 		v.app.SetFocus(v.messagesList)
-	case v.messagesList:
-		v.focusMessageInput()
-	case v.messageInput: // Handle both a.messageInput and a.flex as well as other edge cases (if there is).
-		if ok := v.focusGuildsTree(); !ok {
-			v.app.SetFocus(v.messagesList)
-		}
 	}
 }
 
