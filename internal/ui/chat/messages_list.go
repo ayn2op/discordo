@@ -158,7 +158,7 @@ func (ml *messagesList) writeMessage(writer io.Writer, message discord.Message) 
 	case discord.GuildMemberJoinMessage:
 		ml.drawTimestamps(writer, message.Timestamp)
 		ml.drawAuthor(writer, message)
-		fmt.Fprint(writer, "joined the server.")
+		io.WriteString(writer, "joined the server.")
 	case discord.InlinedReplyMessage:
 		ml.drawReplyMessage(writer, message)
 	case discord.ChannelPinnedMessage:
@@ -174,7 +174,9 @@ func (ml *messagesList) formatTimestamp(ts discord.Timestamp) string {
 }
 
 func (ml *messagesList) drawTimestamps(w io.Writer, ts discord.Timestamp) {
-	fmt.Fprintf(w, "[::d]%s[::D] ", ml.formatTimestamp(ts))
+	io.WriteString(w, "[::d]")
+	io.WriteString(w, ml.formatTimestamp(ts))
+	io.WriteString(w, "[::D] ")
 }
 
 func (ml *messagesList) drawAuthor(w io.Writer, message discord.Message) {
@@ -233,7 +235,7 @@ func (ml *messagesList) drawDefaultMessage(w io.Writer, message discord.Message)
 	}
 
 	for _, a := range message.Attachments {
-		fmt.Fprintln(w)
+		io.WriteString(w, "\n")
 
 		fg := ml.cfg.Theme.MessagesList.AttachmentStyle.GetForeground()
 		bg := ml.cfg.Theme.MessagesList.AttachmentStyle.GetBackground()
@@ -254,8 +256,11 @@ func (ml *messagesList) drawForwardedMessage(w io.Writer, message discord.Messag
 }
 
 func (ml *messagesList) drawReplyMessage(w io.Writer, message discord.Message) {
-	// reply
-	fmt.Fprintf(w, "[::d]%s ", ml.cfg.Theme.MessagesList.ReplyIndicator)
+	// indicator
+	io.WriteString(w, "[::d]")
+	io.WriteString(w, ml.cfg.Theme.MessagesList.ReplyIndicator)
+	io.WriteString(w, " ")
+
 	if m := message.ReferencedMessage; m != nil {
 		m.GuildID = message.GuildID
 		ml.drawAuthor(w, *m)
@@ -270,7 +275,8 @@ func (ml *messagesList) drawReplyMessage(w io.Writer, message discord.Message) {
 }
 
 func (ml *messagesList) drawPinnedMessage(w io.Writer, message discord.Message) {
-	fmt.Fprintf(w, "%s pinned a message", message.Author.DisplayOrUsername())
+	io.WriteString(w, message.Author.DisplayOrUsername())
+	io.WriteString(w, " pinned a message.")
 }
 
 func (ml *messagesList) selectedMessage() (*discord.Message, error) {
@@ -624,12 +630,7 @@ func (ml *messagesList) edit() {
 		return
 	}
 
-	me, err := ml.chatView.state.Cabinet.Me()
-	if err != nil {
-		slog.Error("failed to get client user (me)", "err", err)
-		return
-	}
-
+	me, _ := ml.chatView.state.Cabinet.Me()
 	if message.Author.ID != me.ID {
 		slog.Error("failed to edit message; not the author", "channel_id", message.ChannelID, "message_id", message.ID)
 		return
@@ -663,12 +664,7 @@ func (ml *messagesList) delete() {
 	}
 
 	if msg.GuildID.IsValid() {
-		me, err := ml.chatView.state.Cabinet.Me()
-		if err != nil {
-			slog.Error("failed to get client user (me)", "err", err)
-			return
-		}
-
+		me, _ := ml.chatView.state.Cabinet.Me()
 		if msg.Author.ID != me.ID && !ml.chatView.state.HasPermissions(msg.ChannelID, discord.PermissionManageMessages) {
 			slog.Error("failed to delete message; missing relevant permissions", "channel_id", msg.ChannelID, "message_id", msg.ID)
 			return

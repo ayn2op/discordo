@@ -199,7 +199,7 @@ func (mi *messageInput) send() {
 		}
 	}()
 
-	text = processText(mi.chatView.state, selected, []byte(text))
+	text = mi.processText(selected, []byte(text))
 
 	if mi.edit {
 		m, err := mi.chatView.messagesList.selectedMessage()
@@ -231,7 +231,7 @@ func (mi *messageInput) send() {
 	mi.chatView.messagesList.ScrollToEnd()
 }
 
-func processText(state *ningen.State, channel *discord.Channel, src []byte) string {
+func (mi *messageInput) processText(channel *discord.Channel, src []byte) string {
 	// Fast path: no mentions to expand.
 	if bytes.IndexByte(src, '@') == -1 {
 		return string(src)
@@ -239,7 +239,7 @@ func processText(state *ningen.State, channel *discord.Channel, src []byte) stri
 
 	// Fast path: no back ticks (code blocks), so expand mentions directly.
 	if bytes.IndexByte(src, '`') == -1 {
-		return string(expandMentions(state, channel, src))
+		return string(mi.expandMentions(channel, src))
 	}
 
 	var (
@@ -265,13 +265,14 @@ func processText(state *ningen.State, channel *discord.Channel, src []byte) stri
 	})
 
 	for _, rng := range ranges {
-		src = slices.Replace(src, rng[0], rng[1], expandMentions(state, channel, src[rng[0]:rng[1]])...)
+		src = slices.Replace(src, rng[0], rng[1], mi.expandMentions(channel, src[rng[0]:rng[1]])...)
 	}
 
 	return string(src)
 }
 
-func expandMentions(state *ningen.State, c *discord.Channel, src []byte) []byte {
+func (mi *messageInput) expandMentions(c *discord.Channel, src []byte) []byte {
+	state := mi.chatView.state
 	return mentionRegex.ReplaceAllFunc(src, func(input []byte) []byte {
 		output := input
 		name := string(input[1:])
@@ -282,10 +283,8 @@ func expandMentions(state *ningen.State, c *discord.Channel, src []byte) []byte 
 				}
 			}
 			// self ping
-			me, err := state.Cabinet.Me()
-			if err != nil {
-				slog.Error("failed to get client user (me)", "err", err)
-			} else if strings.EqualFold(me.Username, name) {
+			me, _ := state.Cabinet.Me()
+			if strings.EqualFold(me.Username, name) {
 				return []byte(me.ID.Mention())
 			}
 			return output
@@ -373,12 +372,8 @@ func (mi *messageInput) tabSuggestion() {
 	if name == "" {
 		shown = make(map[string]struct{})
 		// Don't show @me in the list of recent authors
-		me, err := mi.chatView.state.Cabinet.Me()
-		if err != nil {
-			slog.Error("failed to get client user (me)", "err", err)
-		} else {
-			shown[me.Username] = userDone
-		}
+		me, _ := mi.chatView.state.Cabinet.Me()
+		shown[me.Username] = userDone
 	}
 
 	// DMs have recipients, not members
@@ -397,12 +392,8 @@ func (mi *messageInput) tabSuggestion() {
 			}
 		} else {
 			users := selected.DMRecipients
-			me, err := mi.chatView.state.Cabinet.Me()
-			if err != nil {
-				slog.Error("failed to get client user (me)", "err", err)
-			} else {
-				users = append(users, *me)
-			}
+			me, _ := mi.chatView.state.Cabinet.Me()
+			users = append(users, *me)
 			res := fuzzy.FindFrom(name, userList(users))
 			for _, r := range res {
 				mi.addMentionUser(&users[r.Index])
