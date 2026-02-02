@@ -182,6 +182,13 @@ func (r *Renderer) renderInline(w io.Writer, node *discordmd.Inline, entering bo
 	} else {
 		io.WriteString(w, end)
 	}
+
+	if (node.Attr & discordmd.AttrSpoiler) != 0 && entering {
+		shownStyle := r.theme.ShownSpoilerStyle
+		fg := shownStyle.GetForeground()
+		bg := shownStyle.GetBackground()
+		fmt.Fprintf(w, "[%s:%s:-][::R]", fg, bg)
+	}
 }
 
 func (r *Renderer) renderMention(w io.Writer, node *discordmd.Mention, entering bool) {
