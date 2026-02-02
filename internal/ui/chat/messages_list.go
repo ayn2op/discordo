@@ -120,8 +120,22 @@ func (ml *messagesList) buildItem(index int, cursor int) tview.ScrollListItem {
 	tv := tview.NewTextView().
 		SetWrap(true).
 		SetWordWrap(true).
-		SetDynamicColors(true).
-		SetText(ml.renderMessage(message, index == cursor))
+		SetDynamicColors(true)
+	
+	switch ml.cfg.ShowSpoiler {
+	case "moderated":
+		show := index == cursor
+		if !show {
+			if selChannel := ml.chatView.SelectedChannel(); selChannel != nil {
+				show = ml.chatView.state.HasPermissions(selChannel.ID, discord.PermissionManageMessages)
+			}
+		}
+		tv.SetText(ml.renderMessage(message, show))
+	case "selected":
+		tv.SetText(ml.renderMessage(message, index == cursor))
+	default:
+		tv.SetText(ml.renderMessage(message, true))
+	}
 	if index == cursor {
 		tv.SetTextStyle(ml.cfg.Theme.MessagesList.SelectedMessageStyle.Style)
 	} else {

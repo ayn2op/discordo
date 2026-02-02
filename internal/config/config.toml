@@ -14,6 +14,11 @@ status = "default"
 markdown = true
 hide_blocked_users = true
 show_attachment_links = true
+# When to show spoilers.
+# "selected" -> selected messages
+# "moderated" -> on channels I moderate (has ManageMessages permission)
+# default -> always
+show_spoiler = "selected"
 
 # Max members to be in the mention autocomplete suggestions list
 # Note: Use autocomplete_limit = 0 to disable.
