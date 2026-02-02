@@ -680,8 +680,13 @@ func (mi *messageInput) Focus(delegate func(p tview.Primitive)) {
 			{name: "send", bind: cfg.Send},
 			{name: "cancel", bind: cfg.Cancel},
 			{name: "editor", bind: cfg.OpenEditor},
-			{name: "attach", bind: cfg.OpenFilePicker},
+			{name: "attach", bind: cfg.OpenFilePicker, show: mi.hkAttach},
 		})
 	}
 	mi.TextArea.Focus(delegate)
+}
+
+func (mi *messageInput) hkAttach() bool {
+	sel := mi.chatView.SelectedChannel()
+	return sel != nil && mi.chatView.state.HasPermissions(sel.ID, discord.PermissionAttachFiles)
 }

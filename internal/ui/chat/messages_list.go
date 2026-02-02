@@ -776,7 +776,12 @@ func (ml *messagesList) hkGotoReply() bool {
 }
 
 func (ml *messagesList) hkReply() bool {
-	return true // TODO
+	msg, err := ml.selectedMessage()
+	if err != nil {
+		return false
+	}
+	me, _ := ml.chatView.state.Cabinet.Me()
+	return msg.Author.ID != me.ID
 }
 
 func (ml *messagesList) hkEdit() bool {
@@ -789,7 +794,11 @@ func (ml *messagesList) hkEdit() bool {
 }
 
 func (ml *messagesList) hkDelete() bool {
-	return true
+	if ml.hkEdit() {
+		return true
+	}
+	sel := ml.chatView.SelectedChannel()
+	return sel != nil && ml.chatView.state.HasPermissions(sel.ID, discord.PermissionManageMessages)
 }
 
 func (ml *messagesList) hkOpen() bool {
