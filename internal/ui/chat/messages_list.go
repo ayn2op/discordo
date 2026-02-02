@@ -784,7 +784,8 @@ func (ml *messagesList) hkEdit() bool {
 	if err != nil {
 		return false
 	}
-	return msg.Author.ID == ml.chatView.me.ID
+	me, _ := ml.chatView.state.Cabinet.Me()
+	return msg.Author.ID == me.ID
 }
 
 func (ml *messagesList) hkDelete() bool {
