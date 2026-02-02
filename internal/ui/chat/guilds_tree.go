@@ -91,7 +91,8 @@ func (gt *guildsTree) getChannelNodeStyle(channelID discord.ChannelID) tcell.Sty
 func (gt *guildsTree) createGuildNode(n *tview.TreeNode, guild discord.Guild) {
 	guildNode := tview.NewTreeNode(guild.Name).
 		SetReference(guild.ID).
-		SetTextStyle(gt.getGuildNodeStyle(guild.ID))
+		SetTextStyle(gt.getGuildNodeStyle(guild.ID)).
+		Collapse()
 	n.AddChild(guildNode)
 }
 
@@ -360,23 +361,17 @@ func (gt *guildsTree) hkExpand() bool {
 	if n == nil {
 		return false
 	}
-	if len(n.GetChildren()) != 0 {
-		return !n.IsExpanded()
-	}
 	switch n.GetReference().(type) {
 	case discord.ChannelID:
 		return false
 	default:
-		return true
+		return !n.IsExpanded()
 	}
 }
 
 func (gt *guildsTree) hkSelect() bool {
 	n := gt.GetCurrentNode()
 	if n == nil {
-		return false
-	}
-	if len(n.GetChildren()) != 0 {
 		return false
 	}
 	switch n.GetReference().(type) {
@@ -391,5 +386,10 @@ func (gt *guildsTree) hkCollapse() bool {
 	if n == nil {
 		return false
 	}
-	return len(n.GetChildren()) != 0 && n.IsExpanded()
+	switch n.GetReference().(type) {
+	case discord.ChannelID:
+		return false
+	default:
+		return n.IsExpanded()
+	}
 }

@@ -93,7 +93,9 @@ func (v *View) onRaw(event *ws.RawEvent) {
 }
 
 func (v *View) onReady(r *gateway.ReadyEvent) {
-	dmNode := tview.NewTreeNode("Direct Messages").SetReference(dmNode{})
+	dmNode := tview.NewTreeNode("Direct Messages").
+		SetReference(dmNode{}).
+		Collapse()
 	root := v.guildsTree.
 		GetRoot().
 		ClearChildren().
@@ -119,7 +121,7 @@ func (v *View) onReady(r *gateway.ReadyEvent) {
 		}
 	}
 
-	v.guildsTree.SetCurrentNode(root)
+	v.guildsTree.SetCurrentNode(dmNode)
 	v.app.SetFocus(v.guildsTree)
 	v.app.Draw()
 }
