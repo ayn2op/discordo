@@ -289,9 +289,9 @@ func (mi *messageInput) expandMentions(c *discord.Channel, src []byte) []byte {
 			}
 			return output
 		}
-		mi.chatView.state.MemberStore.Each(c.GuildID, func(m *discord.Member) bool {
+		state.MemberStore.Each(c.GuildID, func(m *discord.Member) bool {
 			if strings.EqualFold(m.User.Username, name) {
-				if channelHasUser(mi.chatView.state, c.ID, m.User.ID) {
+				if channelHasUser(state, c.ID, m.User.ID) {
 					output = []byte(m.User.ID.Mention())
 				}
 				return true
