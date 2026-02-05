@@ -66,7 +66,6 @@ type (
 		Markdown            bool `toml:"markdown"`
 		HideBlockedUsers    bool `toml:"hide_blocked_users"`
 		ShowAttachmentLinks bool `toml:"show_attachment_links"`
-		ShowHotkeys         bool `toml:"show_hotkeys"`
 
 		// Use 0 to disable
 		AutocompleteLimit uint8 `toml:"autocomplete_limit"`

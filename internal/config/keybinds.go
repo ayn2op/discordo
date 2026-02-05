@@ -1,88 +1,93 @@
 package config
 
 type NavigationKeybinds struct {
-	Up     string `toml:"up"`
-	Down   string `toml:"down"`
-	Top    string `toml:"top"`
-	Bottom string `toml:"bottom"`
+	Up     string `toml:"up" join:"next"`
+	Down   string `toml:"down" name:"prev/next" hot:"true"`
+	Top    string `toml:"top" join:"next"`
+	Bottom string `toml:"bottom" name:"first/last" hot:"true"`
 }
 
 type ScrollKeybinds struct {
-	ScrollUp     string `toml:"scroll_up"`
-	ScrollDown   string `toml:"scroll_down"`
-	ScrollTop    string `toml:"scroll_top"`
-	ScrollBottom string `toml:"scroll_bottom"`
+	ScrollUp     string `toml:"scroll_up" join:"next"`
+	ScrollDown   string `toml:"scroll_down" name:"up/down" hot:"true"`
+	ScrollTop    string `toml:"scroll_top" join:"next"`
+	ScrollBottom string `toml:"scroll_bottom" name"top/bot"`
 }
 
 type SelectionKeybinds struct {
-	SelectUp     string `toml:"select_up"`
-	SelectDown   string `toml:"select_down"`
-	SelectTop    string `toml:"select_top"`
-	SelectBottom string `toml:"select_bottom"`
+	SelectUp     string `toml:"select_up" join:"next"`
+	SelectDown   string `toml:"select_down" name:"prev/next" hot:"true"`
+	SelectTop    string `toml:"select_top" join:"next"`
+	SelectBottom string `toml:"select_bottom" name:"first/last" hot:"true"`
 }
 
 type PickerKeybinds struct {
 	NavigationKeybinds
 	Toggle string `toml:"toggle"`
-	Cancel string `toml:"cancel"`
-	Select string `toml:"select"`
+	Select string `toml:"select" name:"select" hot:"true"`
+	Cancel string `toml:"cancel" name:"cancel" hot:"true"`
 }
 
 type GuildsTreeKeybinds struct {
 	NavigationKeybinds
 	SelectCurrent string `toml:"select_current"`
-	YankID        string `toml:"yank_id"`
+	YankID        string `toml:"yank_id" name:"yank_id"`
 
-	CollapseParentNode string `toml:"collapse_parent_node"`
-	MoveToParentNode   string `toml:"move_to_parent_node"`
+	CollapseParentNode string `toml:"collapse_parent_node" name:"collapse_parent"`
+	MoveToParentNode   string `toml:"move_to_parent_node" name:"goto_parent"`
 }
 
 type MessagesListKeybinds struct {
 	SelectionKeybinds
 	ScrollKeybinds
 
-	SelectReply  string `toml:"select_reply"`
-	Reply        string `toml:"reply"`
-	ReplyMention string `toml:"reply_mention"`
+	SelectReply  string `toml:"select_reply" name:"goto_reply" hot:"true"`
+	ReplyMention string `toml:"reply_mention" join:"next"`
+	Reply        string `toml:"reply" name:"@/reply" hot:"true"`
 
-	Cancel        string `toml:"cancel"`
-	Edit          string `toml:"edit"`
-	Delete        string `toml:"delete"`
-	DeleteConfirm string `toml:"delete_confirm"`
-	Open          string `toml:"open"`
+	Cancel        string `toml:"cancel" name:"cancel" hot:"true"`
+	Edit          string `toml:"edit" name:"edit" hot:"true"`
+	Delete        string `toml:"delete" name:"delete_force"`
+	DeleteConfirm string `toml:"delete_confirm" name:"delete" hot:"true"`
+	Open          string `toml:"open" name:"open" hot:"true"`
 
-	YankContent string `toml:"yank_content"`
-	YankURL     string `toml:"yank_url"`
-	YankID      string `toml:"yank_id"`
+	YankContent string `toml:"yank_content" name:"yank_content"`
+	YankURL     string `toml:"yank_url" name:"yank_url"`
+	YankID      string `toml:"yank_id" name:"yank_id"`
 }
 
 type MessageInputKeybinds struct {
-	Paste       string `toml:"paste"`
-	Send        string `toml:"send"`
-	Cancel      string `toml:"cancel"`
+	Paste       string `toml:"paste" name:"paste" hot:"true"`
+	Send        string `toml:"send" name:"send" hot:"true"`
+	Cancel      string `toml:"cancel" name:"cancel" hot:"true"`
 	TabComplete string `toml:"tab_complete"`
 
-	OpenEditor     string `toml:"open_editor"`
-	OpenFilePicker string `toml:"open_file_picker"`
+	OpenEditor     string `toml:"open_editor" name:"editor" hot:"true"`
+	OpenFilePicker string `toml:"open_file_picker" name:"attach" hot:"true"`
 }
 
 type MentionsListKeybinds struct {
 	NavigationKeybinds
 }
 
+type HotkeysKeybinds struct {
+	ShowAll string `toml:"show_all"`
+}
+
 type Keybinds struct {
-	FocusGuildsTree   string `toml:"focus_guilds_tree"`
-	FocusMessagesList string `toml:"focus_messages_list"`
-	FocusMessageInput string `toml:"focus_message_input"`
-	FocusPrevious     string `toml:"focus_previous"`
-	FocusNext         string `toml:"focus_next"`
-	ToggleGuildsTree  string `toml:"toggle_guilds_tree"`
+	FocusGuildsTree      string `toml:"focus_guilds_tree"`
+	FocusMessagesList    string `toml:"focus_messages_list"`
+	FocusMessageInput    string `toml:"focus_message_input"`
+	FocusPrevious        string `toml:"focus_previous"`
+	FocusNext            string `toml:"focus_next"`
+	ToggleGuildsTree     string `toml:"toggle_guilds_tree"`
 
 	Picker       PickerKeybinds       `toml:"picker"`
 	GuildsTree   GuildsTreeKeybinds   `toml:"guilds_tree"`
 	MessagesList MessagesListKeybinds `toml:"messages_list"`
 	MessageInput MessageInputKeybinds `toml:"message_input"`
 	MentionsList MentionsListKeybinds `toml:"mentions_list"`
+	Hotkeys      HotkeysKeybinds      `toml:"hotkeys"`
 
 	Logout string `toml:"logout"`
 	Quit   string `toml:"quit"`

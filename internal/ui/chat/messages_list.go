@@ -14,6 +14,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"reflect"
 
 	"github.com/ayn2op/discordo/internal/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
@@ -48,6 +49,8 @@ type messagesList struct {
 		count uint
 		done  chan struct{}
 	}
+
+	hotkeysShowMap map[string]func() bool
 }
 
 func newMessagesList(cfg *config.Config, chatView *View) *messagesList {
@@ -63,6 +66,12 @@ func newMessagesList(cfg *config.Config, chatView *View) *messagesList {
 	ml.SetBuilder(ml.buildItem)
 	ml.SetTrackEnd(true)
 	ml.SetInputCapture(ml.onInputCapture)
+	ml.hotkeysShowMap = make(map[string]func() bool)
+	ml.hotkeysShowMap["goto_reply"] = ml.hkGotoReply
+	ml.hotkeysShowMap["@/reply"] = ml.hkReply
+	ml.hotkeysShowMap["edit"] = ml.hkEdit
+	ml.hotkeysShowMap["delete"] = ml.hkDelete
+	ml.hotkeysShowMap["open"] = ml.hkOpen
 	return ml
 }
 
@@ -777,17 +786,10 @@ func (ml *messagesList) MouseHandler() func(action tview.MouseAction, event *tce
 }
 
 func (ml *messagesList) hotkeys() {
-	cfg := ml.cfg.Keybinds.MessagesList
-	ml.chatView.hotkeysBar.setHotkeys([]hotkey{
-		{name: "next/prev", bind: cfg.SelectDown + "/" + cfg.SelectUp},
-		{name: "top/bot", bind: cfg.SelectTop + "/" + cfg.SelectBottom},
-		{name: "goto_reply", bind: cfg.SelectReply, show: ml.hkGotoReply},
-		{name: "@/reply", bind: cfg.ReplyMention + "/" + cfg.Reply, show: ml.hkReply},
-		{name: "cancel", bind: cfg.Cancel},
-		{name: "edit", bind: cfg.Edit, show: ml.hkEdit},
-		{name: "delete", bind: cfg.DeleteConfirm, show: ml.hkDelete},
-		{name: "open", bind: cfg.Open, show: ml.hkOpen},
-	})
+	ml.chatView.hotkeysBar.hotkeysFromValue(
+		reflect.ValueOf(ml.cfg.Keybinds.MessagesList),
+		ml.hotkeysShowMap,
+	)
 }
 
 func (ml *messagesList) hkGotoReply() bool {

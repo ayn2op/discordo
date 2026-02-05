@@ -157,7 +157,9 @@ type (
 	}
 
 	HotkeysTheme struct {
-		Compact   bool   `toml:"show_compact_keys"`
+		Enable    bool   `toml:"enable"`
+		Compact   bool   `toml:"show_compact_keybinds"`
+		ShowAll   bool   `toml:"show_all_keybinds"`
 		Format    string `toml:"format"`
 		Separator string `toml:"separator"`
 	}

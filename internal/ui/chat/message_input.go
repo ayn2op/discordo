@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 	"unicode"
+	"reflect"
 
 	"github.com/ayn2op/discordo/internal/cache"
 	"github.com/ayn2op/discordo/internal/clipboard"
@@ -57,6 +58,8 @@ type messageInput struct {
 
 	typingTimerMu sync.Mutex
 	typingTimer   *time.Timer
+
+	hotkeysShowMap map[string]func() bool
 }
 
 func newMessageInput(cfg *config.Config, chatView *View) *messageInput {
@@ -87,6 +90,9 @@ func newMessageInput(cfg *config.Config, chatView *View) *messageInput {
 	b := mi.mentionsList.GetBorderSet()
 	b.BottomLeft, b.BottomRight = b.BottomT, b.BottomT
 	mi.mentionsList.SetBorderSet(b)
+
+	mi.hotkeysShowMap = make(map[string]func() bool)
+	mi.hotkeysShowMap["attach"] = mi.hkAttach
 
 	return mi
 }
@@ -696,14 +702,10 @@ func (mi *messageInput) hotkeys() {
 		mi.mentionsList.hotkeys()
 		return
 	}
-	cfg := mi.cfg.Keybinds.MessageInput
-	mi.chatView.hotkeysBar.setHotkeys([]hotkey{
-		{name: "paste", bind: cfg.Paste},
-		{name: "send", bind: cfg.Send},
-		{name: "cancel", bind: cfg.Cancel},
-		{name: "editor", bind: cfg.OpenEditor},
-		{name: "attach", bind: cfg.OpenFilePicker, show: mi.hkAttach},
-	})
+	mi.chatView.hotkeysBar.hotkeysFromValue(
+		reflect.ValueOf(mi.cfg.Keybinds.MessageInput),
+		mi.hotkeysShowMap,
+	)
 }
 
 func (ml mentionsList) MouseHandler() func(action tview.MouseAction, event *tcell.EventMouse, setFocus func(p tview.Primitive)) (consumed bool, capture tview.Primitive) {
@@ -718,12 +720,10 @@ func (ml mentionsList) MouseHandler() func(action tview.MouseAction, event *tcel
 }
 
 func (ml *mentionsList) hotkeys() {
-	cfg := ml.messageInput.cfg.Keybinds.MentionsList
-	ml.messageInput.chatView.hotkeysBar.setHotkeys([]hotkey{
-		{name: "next/prev", bind: cfg.Down + "/" + cfg.Up},
-		{name: "top/bot", bind: cfg.Top + "/" + cfg.Bottom},
-		{name: "select", bind: ml.messageInput.cfg.Keybinds.MessageInput.TabComplete},
-	})
+	ml.messageInput.chatView.hotkeysBar.hotkeysFromValue(
+		reflect.ValueOf(ml.messageInput.cfg.Keybinds.MentionsList),
+		nil,
+	)
 }
 
 func (mi *messageInput) hkAttach() bool {

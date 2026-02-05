@@ -3,6 +3,7 @@ package chat
 import (
 	"fmt"
 	"log/slog"
+	"reflect"
 
 	"github.com/ayn2op/discordo/internal/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
@@ -364,13 +365,13 @@ func (gt *guildsTree) MouseHandler() func(action tview.MouseAction, event *tcell
 
 func (gt *guildsTree) hotkeys() {
 	cfg := gt.cfg.Keybinds.GuildsTree
-	gt.chatView.hotkeysBar.setHotkeys([]hotkey{
-		{name: "next/prev", bind: cfg.Down + "/" + cfg.Up},
-		{name: "top/bot", bind: cfg.Top + "/" + cfg.Bottom},
-		{name: "expand", bind: cfg.SelectCurrent, show: gt.hkExpand},
-		{name: "collapse", bind: cfg.SelectCurrent, show: gt.hkCollapse},
-		{name: "select", bind: cfg.SelectCurrent, show: gt.hkSelect},
-	})
+	gt.chatView.hotkeysBar.
+		hotkeysFromValue(reflect.ValueOf(cfg), nil).
+		appendHotkeys([]hotkey{
+			{name: "expand", bind: cfg.SelectCurrent, show: gt.hkExpand, hot: true},
+			{name: "collapse", bind: cfg.SelectCurrent, show: gt.hkCollapse, hot: true},
+			{name: "select", bind: cfg.SelectCurrent, show: gt.hkSelect, hot: true},
+		})
 }
 
 func (gt *guildsTree) hkExpand() bool {
@@ -378,12 +379,12 @@ func (gt *guildsTree) hkExpand() bool {
 	if n == nil {
 		return false
 	}
-	switch n.GetReference().(type) {
-	case discord.ChannelID:
-		return false
-	default:
-		return !n.IsExpanded()
+	if _, ok := n.GetReference().(discord.ChannelID); ok {
+		if len(n.GetChildren()) == 0 {
+			return false
+		}
 	}
+	return !n.IsExpanded()
 }
 
 func (gt *guildsTree) hkSelect() bool {
@@ -391,9 +392,8 @@ func (gt *guildsTree) hkSelect() bool {
 	if n == nil {
 		return false
 	}
-	switch n.GetReference().(type) {
-	case discord.ChannelID:
-		return true
+	if _, ok := n.GetReference().(discord.ChannelID); ok {
+		return len(n.GetChildren()) == 0
 	}
 	return false
 }
@@ -403,10 +403,10 @@ func (gt *guildsTree) hkCollapse() bool {
 	if n == nil {
 		return false
 	}
-	switch n.GetReference().(type) {
-	case discord.ChannelID:
-		return false
-	default:
-		return n.IsExpanded()
+	if _, ok := n.GetReference().(discord.ChannelID); ok {
+		if len(n.GetChildren()) == 0 {
+			return false
+		}
 	}
+	return n.IsExpanded()
 }

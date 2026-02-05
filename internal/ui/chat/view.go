@@ -30,9 +30,9 @@ const (
 type View struct {
 	*layers.Layers
 
-	rootFlex  *tview.Flex
-	mainFlex  *tview.Flex
-	rightFlex *tview.Flex
+	hotkeysFlex *tview.Flex
+	mainFlex    *tview.Flex
+	rightFlex   *tview.Flex
 
 	guildsTree     *guildsTree
 	messagesList   *messagesList
@@ -57,9 +57,9 @@ func NewView(app *tview.Application, cfg *config.Config, onLogout func()) *View 
 	v := &View{
 		Layers: layers.New(),
 
-		rootFlex:  tview.NewFlex(),
-		mainFlex:  tview.NewFlex(),
-		rightFlex: tview.NewFlex(),
+		hotkeysFlex: tview.NewFlex(),
+		mainFlex:    tview.NewFlex(),
+		rightFlex:   tview.NewFlex(),
 
 		typers: make(map[discord.UserID]*time.Timer),
 
@@ -81,8 +81,8 @@ func NewView(app *tview.Application, cfg *config.Config, onLogout func()) *View 
 }
 
 func (v *View) Draw(s tcell.Screen) {
-	if v.cfg.ShowHotkeys {
-		v.rootFlex.ResizeItem(v.hotkeysBar, v.hotkeysBar.update(), 0)
+	if v.cfg.Theme.Hotkeys.Enable {
+		v.hotkeysFlex.ResizeItem(v.hotkeysBar, v.hotkeysBar.update(), 0)
 	}
 	v.Layers.Draw(s)
 }
@@ -103,7 +103,7 @@ func (v *View) buildLayout() {
 	v.Clear()
 	v.rightFlex.Clear()
 	v.mainFlex.Clear()
-	v.rootFlex.Clear()
+	v.hotkeysFlex.Clear()
 
 	v.rightFlex.
 		SetDirection(tview.FlexRow).
@@ -113,12 +113,16 @@ func (v *View) buildLayout() {
 	v.mainFlex.
 		AddItem(v.guildsTree, 0, 1, true).
 		AddItem(v.rightFlex, 0, 4, false)
-	v.rootFlex.
+	v.hotkeysFlex.
 		SetDirection(tview.FlexRow).
 		AddItem(v.mainFlex, 0, 1, true).
 		AddItem(v.hotkeysBar, 1, 1, false)
 
-	v.AddLayer(v.rootFlex, layers.WithName(flexLayerName), layers.WithResize(true), layers.WithVisible(true))
+	if v.cfg.Theme.Hotkeys.Enable {
+		v.AddLayer(v.hotkeysFlex, layers.WithName(flexLayerName), layers.WithResize(true), layers.WithVisible(true))
+	} else {
+		v.AddLayer(v.mainFlex, layers.WithName(flexLayerName), layers.WithResize(true), layers.WithVisible(true))
+	}
 }
 
 func (v *View) togglePicker() {
@@ -243,6 +247,9 @@ func (v *View) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		return nil
 	case v.cfg.Keybinds.ToggleGuildsTree:
 		v.toggleGuildsTree()
+		return nil
+	case v.cfg.Keybinds.Hotkeys.ShowAll:
+		v.cfg.Theme.Hotkeys.ShowAll = !v.cfg.Theme.Hotkeys.ShowAll
 		return nil
 	case v.cfg.Keybinds.Picker.Toggle:
 		v.togglePicker()
