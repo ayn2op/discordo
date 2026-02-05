@@ -2,6 +2,7 @@ package chat
 
 import (
 	"fmt"
+	"github.com/ayn2op/tview/layers"
 	"log/slog"
 	"sync"
 	"time"
@@ -27,7 +28,7 @@ const (
 )
 
 type View struct {
-	*tview.Pages
+	*layers.Layers
 
 	rootFlex  *tview.Flex
 	mainFlex  *tview.Flex
@@ -54,7 +55,7 @@ type View struct {
 
 func NewView(app *tview.Application, cfg *config.Config, onLogout func()) *View {
 	v := &View{
-		Pages: tview.NewPages(),
+		Layers: layers.New(),
 
 		rootFlex:  tview.NewFlex(),
 		mainFlex:  tview.NewFlex(),
@@ -73,6 +74,7 @@ func NewView(app *tview.Application, cfg *config.Config, onLogout func()) *View 
 	v.channelsPicker = newChannelsPicker(cfg, v)
 	v.channelsPicker.SetCancelFunc(v.closePicker)
 
+	v.SetBackgroundLayerStyle(v.cfg.Theme.Dialog.BackgroundStyle.Style)
 	v.SetInputCapture(v.onInputCapture)
 	v.buildLayout()
 	return v
@@ -82,7 +84,7 @@ func (v *View) Draw(s tcell.Screen) {
 	if v.cfg.ShowHotkeys {
 		v.rootFlex.ResizeItem(v.hotkeysBar, v.hotkeysBar.update(), 0)
 	}
-	v.Pages.Draw(s)
+	v.Layers.Draw(s)
 }
 
 func (v *View) SelectedChannel() *discord.Channel {
@@ -116,11 +118,11 @@ func (v *View) buildLayout() {
 		AddItem(v.mainFlex, 0, 1, true).
 		AddItem(v.hotkeysBar, 1, 1, false)
 
-	v.AddAndSwitchToPage(flexPageName, v.rootFlex, true)
+	v.AddLayer(v.rootFlex, layers.WithName(flexPageName), layers.WithResize(true), layers.WithVisible(true))
 }
 
 func (v *View) togglePicker() {
-	if v.HasPage(channelsPickerPageName) {
+	if v.HasLayer(channelsPickerPageName) {
 		v.closePicker()
 	} else {
 		v.openPicker()
@@ -128,12 +130,18 @@ func (v *View) togglePicker() {
 }
 
 func (v *View) openPicker() {
-	v.AddAndSwitchToPage(channelsPickerPageName, ui.Centered(v.channelsPicker, v.cfg.Picker.Width, v.cfg.Picker.Height), true).ShowPage(flexPageName)
+	v.AddLayer(
+		ui.Centered(v.channelsPicker, v.cfg.Picker.Width, v.cfg.Picker.Height),
+		layers.WithName(channelsPickerPageName),
+		layers.WithResize(true),
+		layers.WithVisible(true),
+		layers.WithOverlay(),
+	).SendToFront(channelsPickerPageName)
 	v.channelsPicker.update()
 }
 
 func (v *View) closePicker() {
-	v.RemovePage(channelsPickerPageName).SwitchToPage(flexPageName)
+	v.RemoveLayer(channelsPickerPageName)
 	v.channelsPicker.Update()
 }
 
@@ -251,18 +259,22 @@ func (v *View) showConfirmModal(prompt string, buttons []string, onDone func(lab
 		SetText(prompt).
 		AddButtons(buttons).
 		SetDoneFunc(func(_ int, buttonLabel string) {
-			v.RemovePage(confirmModalPageName).SwitchToPage(flexPageName)
+			v.RemoveLayer(confirmModalPageName)
 			v.app.SetFocus(previousFocus)
 
 			if onDone != nil {
 				onDone(buttonLabel)
 			}
 		})
-
 	v.
-		AddAndSwitchToPage(confirmModalPageName, ui.Centered(modal, 0, 0), true).
-		ShowPage(flexPageName)
-	
+		AddLayer(
+			ui.Centered(modal, 0, 0),
+			layers.WithName(confirmModalPageName),
+			layers.WithResize(true),
+			layers.WithVisible(true),
+			layers.WithOverlay(),
+		).
+		SendToFront(confirmModalPageName)
 	v.hotkeysBar.setHotkeys([]hotkey{
 		{name: "left/right", bind: "Left/Right"},
 		{name: "select", bind: "Enter"},

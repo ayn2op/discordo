@@ -203,3 +203,8 @@ show_compact_keys = false
 # Example: "%[2]s[%[1]s[]"
 format = "[::r][::b] %[1]s [::B][::R] %[2]s"
 separator = "  "
+
+[theme.dialog]
+style = {}
+# Background style: everything else behind the dialog
+background_style = { attributes = "dim" }

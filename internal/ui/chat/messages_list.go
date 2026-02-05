@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/ayn2op/tview/layers"
 	"io"
 	"log/slog"
 	"net/http"
@@ -509,7 +510,7 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 		SetHighlightFullLine(true).
 		ShowSecondaryText(false).
 		SetDoneFunc(func() {
-			ml.chatView.RemovePage(attachmentsListPageName).SwitchToPage(flexPageName)
+			ml.chatView.RemoveLayer(attachmentsListPageName)
 			ml.chatView.app.SetFocus(ml)
 		})
 	list.
@@ -546,8 +547,14 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 	}
 
 	ml.chatView.
-		AddAndSwitchToPage(attachmentsListPageName, ui.Centered(list, 0, 0), true).
-		ShowPage(flexPageName)
+		AddLayer(
+			ui.Centered(list, 0, 0),
+			layers.WithName(attachmentsListPageName),
+			layers.WithResize(true),
+			layers.WithVisible(true),
+			layers.WithOverlay(),
+		).
+		SendToFront(attachmentsListPageName)
 }
 
 func (ml *messagesList) openAttachment(attachment discord.Attachment) {

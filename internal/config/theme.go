@@ -162,6 +162,11 @@ type (
 		Separator string `toml:"separator"`
 	}
 
+	DialogTheme struct {
+		Style           StyleWrapper `toml:"foreground_style"`
+		BackgroundStyle StyleWrapper `toml:"background_style"`
+	}
+
 	Theme struct {
 		Title        TitleTheme        `toml:"title"`
 		Footer       FooterTheme       `toml:"footer"`
@@ -170,6 +175,7 @@ type (
 		MessagesList MessagesListTheme `toml:"messages_list"`
 		MentionsList MentionsListTheme `toml:"mentions_list"`
 		Hotkeys      HotkeysTheme      `toml:"hotkeys"`
+		Dialog       DialogTheme       `toml:"dialog"`
 	}
 )
 

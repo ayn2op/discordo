@@ -3,6 +3,7 @@ package chat
 import (
 	"bytes"
 	"fmt"
+	"github.com/ayn2op/tview/layers"
 	"io"
 	"log/slog"
 	"os"
@@ -532,8 +533,12 @@ func (mi *messageInput) showMentionList() {
 	l.SetRect(x, y, w, h)
 
 	mi.chatView.
-		AddAndSwitchToPage(mentionsListPageName, l, false).
-		ShowPage(flexPageName)
+		AddLayer(l,
+			layers.WithName(mentionsListPageName),
+			layers.WithResize(false),
+			layers.WithVisible(true),
+		).
+		SendToFront(mentionsListPageName)
 	mi.chatView.app.SetFocus(mi)
 }
 
@@ -586,8 +591,7 @@ func (mi *messageInput) addMentionUser(user *discord.User) {
 // used by chatView
 func (mi *messageInput) removeMentionsList() {
 	mi.chatView.
-		RemovePage(mentionsListPageName).
-		SwitchToPage(flexPageName)
+		RemoveLayer(mentionsListPageName)
 }
 
 func (mi *messageInput) stopTabCompletion() {
@@ -666,7 +670,7 @@ func (mi *messageInput) attach(name string, reader io.Reader) {
 
 // Set hotkeys on focus.
 func (mi *messageInput) Focus(delegate func(p tview.Primitive)) {
-	if mi.chatView.Pages.HasPage(mentionsListPageName) {
+	if mi.chatView.Layers.HasLayer(mentionsListPageName) {
 		cfg := mi.cfg.Keybinds.MentionsList
 		mi.chatView.hotkeysBar.setHotkeys([]hotkey{
 			{name: "next/prev", bind: cfg.Down + "/" + cfg.Up},
