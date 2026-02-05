@@ -108,7 +108,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		return tcell.NewEventKey(tcell.KeyCtrlV, "", tcell.ModNone)
 
 	case mi.cfg.Keybinds.MessageInput.Send:
-		if mi.chatView.GetVisibile(mentionsListPageName) {
+		if mi.chatView.GetVisibile(mentionsListLayerName) {
 			mi.tabComplete()
 			return nil
 		}
@@ -124,7 +124,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		mi.openFilePicker()
 		return nil
 	case mi.cfg.Keybinds.MessageInput.Cancel:
-		if mi.chatView.GetVisibile(mentionsListPageName) {
+		if mi.chatView.GetVisibile(mentionsListLayerName) {
 			mi.stopTabCompletion()
 		} else {
 			mi.reset()
@@ -149,7 +149,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	}
 
 	if mi.cfg.AutocompleteLimit > 0 {
-		if mi.chatView.GetVisibile(mentionsListPageName) {
+		if mi.chatView.GetVisibile(mentionsListLayerName) {
 			handler := mi.mentionsList.InputHandler()
 			switch event.Name() {
 			case mi.cfg.Keybinds.MentionsList.Up:
@@ -534,11 +534,11 @@ func (mi *messageInput) showMentionList() {
 
 	mi.chatView.
 		AddLayer(l,
-			layers.WithName(mentionsListPageName),
+			layers.WithName(mentionsListLayerName),
 			layers.WithResize(false),
 			layers.WithVisible(true),
 		).
-		SendToFront(mentionsListPageName)
+		SendToFront(mentionsListLayerName)
 	mi.chatView.app.SetFocus(mi)
 }
 
@@ -591,7 +591,7 @@ func (mi *messageInput) addMentionUser(user *discord.User) {
 // used by chatView
 func (mi *messageInput) removeMentionsList() {
 	mi.chatView.
-		RemoveLayer(mentionsListPageName)
+		RemoveLayer(mentionsListLayerName)
 }
 
 func (mi *messageInput) stopTabCompletion() {

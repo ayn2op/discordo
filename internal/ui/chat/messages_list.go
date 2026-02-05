@@ -510,7 +510,7 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 		SetHighlightFullLine(true).
 		ShowSecondaryText(false).
 		SetDoneFunc(func() {
-			ml.chatView.RemoveLayer(attachmentsListPageName)
+			ml.chatView.RemoveLayer(attachmentsListLayerName)
 			ml.chatView.app.SetFocus(ml)
 		})
 	list.
@@ -549,12 +549,12 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 	ml.chatView.
 		AddLayer(
 			ui.Centered(list, 0, 0),
-			layers.WithName(attachmentsListPageName),
+			layers.WithName(attachmentsListLayerName),
 			layers.WithResize(true),
 			layers.WithVisible(true),
 			layers.WithOverlay(),
 		).
-		SendToFront(attachmentsListPageName)
+		SendToFront(attachmentsListLayerName)
 }
 
 func (ml *messagesList) openAttachment(attachment discord.Attachment) {

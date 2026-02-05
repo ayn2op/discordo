@@ -15,9 +15,9 @@ import (
 )
 
 const (
-	formPageName  = "form"
-	errorPageName = "error"
-	qrPageName    = "qr"
+	formLayerName  = "form"
+	errorLayerName = "error"
+	qrLayerName    = "qr"
 )
 
 type DoneFn = func(token string)
@@ -44,7 +44,7 @@ func NewForm(app *tview.Application, cfg *config.Config, done DoneFn) *Form {
 		AddButton("Login", f.login).
 		AddButton("Login with QR", f.loginWithQR)
 	f.SetBackgroundLayerStyle(f.cfg.Theme.Dialog.BackgroundStyle.Style)
-	f.AddLayer(f.form, layers.WithName(formPageName), layers.WithResize(true), layers.WithVisible(true))
+	f.AddLayer(f.form, layers.WithName(formLayerName), layers.WithResize(true), layers.WithVisible(true))
 	return f
 }
 
@@ -73,7 +73,7 @@ func (f *Form) onError(err error) {
 			if buttonIndex == 0 {
 				go clipboard.Write(clipboard.FmtText, []byte(message))
 			} else {
-				f.RemoveLayer(errorPageName)
+				f.RemoveLayer(errorLayerName)
 			}
 		})
 	{
@@ -94,12 +94,12 @@ func (f *Form) onError(err error) {
 	f.
 		AddLayer(
 			ui.Centered(modal, 0, 0),
-			layers.WithName(errorPageName),
+			layers.WithName(errorLayerName),
 			layers.WithResize(true),
 			layers.WithVisible(true),
 			layers.WithOverlay(),
 		).
-		SendToFront(errorPageName)
+		SendToFront(errorLayerName)
 }
 
 func (f *Form) loginWithQR() {
@@ -110,18 +110,18 @@ func (f *Form) loginWithQR() {
 		}
 
 		if token == "" {
-			f.RemoveLayer(qrPageName)
+			f.RemoveLayer(qrLayerName)
 			return
 		}
 
 		go keyring.SetToken(token)
 
-		f.RemoveLayer(qrPageName)
+		f.RemoveLayer(qrLayerName)
 		if f.done != nil {
 			f.done(token)
 		}
 	})
 
-	f.AddLayer(qr, layers.WithName(qrPageName), layers.WithResize(true), layers.WithVisible(true))
+	f.AddLayer(qr, layers.WithName(qrLayerName), layers.WithResize(true), layers.WithVisible(true))
 	qr.start()
 }
