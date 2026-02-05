@@ -163,7 +163,7 @@ type (
 	}
 
 	DialogTheme struct {
-		Style           StyleWrapper `toml:"foreground_style"`
+		Style           StyleWrapper `toml:"style"`
 		BackgroundStyle StyleWrapper `toml:"background_style"`
 	}
 

@@ -20,11 +20,11 @@ import (
 const typingDuration = 10 * time.Second
 
 const (
-	flexPageName            = "flex"
-	mentionsListPageName    = "mentionsList"
-	attachmentsListPageName = "attachmentsList"
-	confirmModalPageName    = "confirmModal"
-	channelsPickerPageName  = "channelsPicker"
+	flexLayerName            = "flex"
+	mentionsListLayerName    = "mentionsList"
+	attachmentsListLayerName = "attachmentsList"
+	confirmModalLayerName    = "confirmModal"
+	channelsPickerLayerName  = "channelsPicker"
 )
 
 type View struct {
@@ -118,11 +118,11 @@ func (v *View) buildLayout() {
 		AddItem(v.mainFlex, 0, 1, true).
 		AddItem(v.hotkeysBar, 1, 1, false)
 
-	v.AddLayer(v.rootFlex, layers.WithName(flexPageName), layers.WithResize(true), layers.WithVisible(true))
+	v.AddLayer(v.rootFlex, layers.WithName(flexLayerName), layers.WithResize(true), layers.WithVisible(true))
 }
 
 func (v *View) togglePicker() {
-	if v.HasLayer(channelsPickerPageName) {
+	if v.HasLayer(channelsPickerLayerName) {
 		v.closePicker()
 	} else {
 		v.openPicker()
@@ -132,16 +132,16 @@ func (v *View) togglePicker() {
 func (v *View) openPicker() {
 	v.AddLayer(
 		ui.Centered(v.channelsPicker, v.cfg.Picker.Width, v.cfg.Picker.Height),
-		layers.WithName(channelsPickerPageName),
+		layers.WithName(channelsPickerLayerName),
 		layers.WithResize(true),
 		layers.WithVisible(true),
 		layers.WithOverlay(),
-	).SendToFront(channelsPickerPageName)
+	).SendToFront(channelsPickerLayerName)
 	v.channelsPicker.update()
 }
 
 func (v *View) closePicker() {
-	v.RemoveLayer(channelsPickerPageName)
+	v.RemoveLayer(channelsPickerLayerName)
 	v.channelsPicker.Update()
 }
 
@@ -259,7 +259,7 @@ func (v *View) showConfirmModal(prompt string, buttons []string, onDone func(lab
 		SetText(prompt).
 		AddButtons(buttons).
 		SetDoneFunc(func(_ int, buttonLabel string) {
-			v.RemoveLayer(confirmModalPageName)
+			v.RemoveLayer(confirmModalLayerName)
 			v.app.SetFocus(previousFocus)
 
 			if onDone != nil {
@@ -269,12 +269,12 @@ func (v *View) showConfirmModal(prompt string, buttons []string, onDone func(lab
 	v.
 		AddLayer(
 			ui.Centered(modal, 0, 0),
-			layers.WithName(confirmModalPageName),
+			layers.WithName(confirmModalLayerName),
 			layers.WithResize(true),
 			layers.WithVisible(true),
 			layers.WithOverlay(),
 		).
-		SendToFront(confirmModalPageName)
+		SendToFront(confirmModalLayerName)
 	v.hotkeysBar.setHotkeys([]hotkey{
 		{name: "left/right", bind: "Left/Right"},
 		{name: "select", bind: "Enter"},
