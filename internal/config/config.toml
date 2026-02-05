@@ -197,3 +197,8 @@ min_width = 20
 # Maximum height
 # 0 = make the list as tall as needed
 max_height = 0
+
+[theme.dialog]
+style = {}
+# Background style: everything else behind the dialog
+background_style = { attributes = "dim" }

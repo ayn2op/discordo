@@ -3,6 +3,7 @@ package chat
 import (
 	"bytes"
 	"fmt"
+	"github.com/ayn2op/tview/layers"
 	"io"
 	"log/slog"
 	"os"
@@ -107,7 +108,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		return tcell.NewEventKey(tcell.KeyCtrlV, "", tcell.ModNone)
 
 	case mi.cfg.Keybinds.MessageInput.Send:
-		if mi.chatView.GetVisibile(mentionsListPageName) {
+		if mi.chatView.GetVisibile(mentionsListLayerName) {
 			mi.tabComplete()
 			return nil
 		}
@@ -123,7 +124,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		mi.openFilePicker()
 		return nil
 	case mi.cfg.Keybinds.MessageInput.Cancel:
-		if mi.chatView.GetVisibile(mentionsListPageName) {
+		if mi.chatView.GetVisibile(mentionsListLayerName) {
 			mi.stopTabCompletion()
 		} else {
 			mi.reset()
@@ -148,7 +149,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	}
 
 	if mi.cfg.AutocompleteLimit > 0 {
-		if mi.chatView.GetVisibile(mentionsListPageName) {
+		if mi.chatView.GetVisibile(mentionsListLayerName) {
 			handler := mi.mentionsList.InputHandler()
 			switch event.Name() {
 			case mi.cfg.Keybinds.MentionsList.Up:
@@ -532,8 +533,12 @@ func (mi *messageInput) showMentionList() {
 	l.SetRect(x, y, w, h)
 
 	mi.chatView.
-		AddAndSwitchToPage(mentionsListPageName, l, false).
-		ShowPage(flexPageName)
+		AddLayer(l,
+			layers.WithName(mentionsListLayerName),
+			layers.WithResize(false),
+			layers.WithVisible(true),
+		).
+		SendToFront(mentionsListLayerName)
 	mi.chatView.app.SetFocus(mi)
 }
 
@@ -586,8 +591,7 @@ func (mi *messageInput) addMentionUser(user *discord.User) {
 // used by chatView
 func (mi *messageInput) removeMentionsList() {
 	mi.chatView.
-		RemovePage(mentionsListPageName).
-		SwitchToPage(flexPageName)
+		RemoveLayer(mentionsListLayerName)
 }
 
 func (mi *messageInput) stopTabCompletion() {
