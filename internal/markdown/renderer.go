@@ -12,6 +12,7 @@ import (
 	"github.com/diamondburned/ningen/v3/discordmd"
 	"github.com/yuin/goldmark/ast"
 	gmr "github.com/yuin/goldmark/renderer"
+	"github.com/rivo/uniseg"
 )
 
 type Renderer struct {
@@ -64,8 +65,8 @@ func (r *Renderer) Render(w io.Writer, source []byte, node ast.Node, showSpoiler
 
 func (r *Renderer) renderHeading(w io.Writer, node *ast.Heading, entering bool) {
 	if entering {
-		io.WriteString(w, strings.Repeat(r.checkAndSpoil("#"), node.Level))
-		io.WriteString(w, r.checkAndSpoil(" "))
+		io.WriteString(w, strings.Repeat("#", node.Level))
+		io.WriteString(w, " ")
 	} else {
 		io.WriteString(w, "\n")
 	}
@@ -77,8 +78,8 @@ func (r *Renderer) renderFencedCodeBlock(w io.Writer, node *ast.FencedCodeBlock,
 	if entering {
 		// language
 		if l := node.Language(source); l != nil {
-			io.WriteString(w, r.checkAndSpoil("|=> "))
-			w.Write(r.checkAndSpoilSource(l))
+			io.WriteString(w, "|=> ")
+			w.Write(r.checkAndSpoilBytes(l))
 			io.WriteString(w, "\n")
 		}
 
@@ -86,8 +87,8 @@ func (r *Renderer) renderFencedCodeBlock(w io.Writer, node *ast.FencedCodeBlock,
 		lines := node.Lines()
 		for i := range lines.Len() {
 			line := lines.At(i)
-			io.WriteString(w, r.checkAndSpoil("| "))
-			w.Write(r.checkAndSpoilSource(line.Value(source)))
+			io.WriteString(w, "| ")
+			w.Write(r.checkAndSpoilBytes(line.Value(source)))
 		}
 	}
 }
@@ -158,7 +159,7 @@ func (r *Renderer) renderListItem(w io.Writer, entering bool) {
 
 func (r *Renderer) renderText(w io.Writer, node *ast.Text, entering bool, source []byte) {
 	if entering {
-		w.Write(r.checkAndSpoilSource(node.Segment.Value(source)))
+		w.Write(r.checkAndSpoilBytes(node.Segment.Value(source)))
 		switch {
 		case node.HardLineBreak():
 			io.WriteString(w, "\n\n")
@@ -238,14 +239,14 @@ func (r *Renderer) renderEmoji(w io.Writer, node *discordmd.Emoji, entering bool
 
 func (r *Renderer) checkAndSpoil(s string) string {
 	if r.spoil {
-		return strings.Repeat(r.theme.SpoilCharacter, len(s))
+		return strings.Repeat(r.theme.SpoilCharacter, uniseg.StringWidth(s))
 	}
 	return s
 }
 
-func (r *Renderer) checkAndSpoilSource(s []byte) []byte {
+func (r *Renderer) checkAndSpoilBytes(s []byte) []byte {
 	if r.spoil {
-		return bytes.Repeat([]byte(r.theme.SpoilCharacter), len(s))
+		return bytes.Repeat([]byte(r.theme.SpoilCharacter), uniseg.StringWidth(string(s)))
 	}
 	return s
 }
