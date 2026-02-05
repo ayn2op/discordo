@@ -120,7 +120,9 @@ func (cp *channelsPicker) addChannel(guild *discord.Guild, channel discord.Chann
 
 // Set hotkeys on focus.
 func (cp *channelsPicker) Focus(delegate func(p tview.Primitive)) {
-	cfg := cp.chatView.cfg.Keybinds.Picker
-	cp.chatView.hotkeysBar.hotkeysFromValue(reflect.ValueOf(cfg), nil)
+	cp.chatView.hotkeysBar.hotkeysFromValue(
+		reflect.ValueOf(cp.chatView.cfg.Keybinds.Picker),
+		nil,
+	)
 	cp.Picker.Focus(delegate)
 }

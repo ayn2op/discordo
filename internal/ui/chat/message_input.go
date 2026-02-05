@@ -91,8 +91,9 @@ func newMessageInput(cfg *config.Config, chatView *View) *messageInput {
 	b.BottomLeft, b.BottomRight = b.BottomT, b.BottomT
 	mi.mentionsList.SetBorderSet(b)
 
-	mi.hotkeysShowMap = make(map[string]func() bool)
-	mi.hotkeysShowMap["attach"] = mi.hkAttach
+	mi.hotkeysShowMap = map[string]func() bool{
+		"attach": mi.hkAttach,
+	}
 
 	return mi
 }

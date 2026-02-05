@@ -66,12 +66,13 @@ func newMessagesList(cfg *config.Config, chatView *View) *messagesList {
 	ml.SetBuilder(ml.buildItem)
 	ml.SetTrackEnd(true)
 	ml.SetInputCapture(ml.onInputCapture)
-	ml.hotkeysShowMap = make(map[string]func() bool)
-	ml.hotkeysShowMap["goto_reply"] = ml.hkGotoReply
-	ml.hotkeysShowMap["@/reply"] = ml.hkReply
-	ml.hotkeysShowMap["edit"] = ml.hkEdit
-	ml.hotkeysShowMap["delete"] = ml.hkDelete
-	ml.hotkeysShowMap["open"] = ml.hkOpen
+	ml.hotkeysShowMap = map[string]func() bool{
+		"goto_reply": ml.hkGotoReply,
+		"@/reply": ml.hkReply,
+		"edit": ml.hkEdit,
+		"delete": ml.hkDelete,
+		"open": ml.hkOpen,
+	}
 	return ml
 }
 
