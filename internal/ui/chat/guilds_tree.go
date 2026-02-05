@@ -90,7 +90,8 @@ func (gt *guildsTree) getChannelNodeStyle(channelID discord.ChannelID) tcell.Sty
 func (gt *guildsTree) createGuildNode(n *tview.TreeNode, guild discord.Guild) {
 	guildNode := tview.NewTreeNode(guild.Name).
 		SetReference(guild.ID).
-		SetTextStyle(gt.getGuildNodeStyle(guild.ID))
+		SetTextStyle(gt.getGuildNodeStyle(guild.ID)).
+		SetIndent(gt.cfg.Theme.GuildsTree.Indents.Guild)
 	n.AddChild(guildNode)
 }
 
@@ -99,46 +100,47 @@ func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Ch
 		return
 	}
 
-	channelNode := tview.NewTreeNode(ui.ChannelToString(channel, gt.cfg.Icons)).
+	cn := tview.NewTreeNode(ui.ChannelToString(channel, gt.cfg.Icons)).
 		SetReference(channel.ID).
 		SetTextStyle(gt.getChannelNodeStyle(channel.ID))
-	node.AddChild(channelNode)
+	switch channel.Type {
+	case discord.DirectMessage:
+		cn.SetIndent(gt.cfg.Theme.GuildsTree.Indents.DM)
+	case discord.GroupDM:
+		cn.SetIndent(gt.cfg.Theme.GuildsTree.Indents.GroupDM)
+	default:
+		cn.SetIndent(gt.cfg.Theme.GuildsTree.Indents.Channel)
+	}
+	node.AddChild(cn)
+}
+
+func (gt *guildsTree) createCategoryNode(node *tview.TreeNode, channel discord.Channel) *tview.TreeNode {
+	cn := tview.NewTreeNode(channel.Name).
+		SetReference(channel.ID).
+		SetTextStyle(gt.getChannelNodeStyle(channel.ID)).
+		SetIndent(gt.cfg.Theme.GuildsTree.Indents.Category)
+	node.AddChild(cn)
+	return cn
 }
 
 func (gt *guildsTree) createChannelNodes(node *tview.TreeNode, channels []discord.Channel) {
+	// Category-less channels last so they appear first
 	for _, channel := range channels {
-		if channel.Type != discord.GuildCategory && !channel.ParentID.IsValid() {
-			gt.createChannelNode(node, channel)
+		if channel.ParentID.IsValid() || channel.Type == discord.GuildCategory {
+			continue
 		}
+		gt.createChannelNode(node, channel)
 	}
-
-PARENT_CHANNELS:
 	for _, channel := range channels {
-		if channel.Type == discord.GuildCategory {
-			for _, nested := range channels {
-				if nested.ParentID == channel.ID {
-					gt.createChannelNode(node, channel)
-					continue PARENT_CHANNELS
-				}
-			}
+		if channel.Type != discord.GuildCategory {
+			continue
 		}
-	}
-
-	for _, channel := range channels {
-		if channel.ParentID.IsValid() {
-			var parent *tview.TreeNode
-			node.Walk(func(node, _ *tview.TreeNode) bool {
-				if node.GetReference() == channel.ParentID {
-					parent = node
-					return false
-				}
-
-				return true
-			})
-
-			if parent != nil {
-				gt.createChannelNode(parent, channel)
+		catNode := gt.createCategoryNode(node, channel)
+		for _, nested := range channels {
+			if nested.ParentID != channel.ID {
+				continue
 			}
+			gt.createChannelNode(catNode, nested)
 		}
 	}
 }
@@ -164,7 +166,7 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 	case discord.ChannelID:
 		channel, err := gt.chatView.state.Cabinet.Channel(ref)
 		if err != nil {
-			slog.Error("failed to get channel from state", "channel_id", ref)
+			slog.Error("failed to get channel from state", "err", err, "channel_id", ref)
 			return
 		}
 
