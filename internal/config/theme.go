@@ -156,6 +156,11 @@ type (
 		MaxHeight uint `toml:"max_height"`
 	}
 
+	DialogTheme struct {
+		Style           StyleWrapper `toml:"foreground_style"`
+		BackgroundStyle StyleWrapper `toml:"background_style"`
+	}
+
 	Theme struct {
 		Title        TitleTheme        `toml:"title"`
 		Footer       FooterTheme       `toml:"footer"`
@@ -163,6 +168,7 @@ type (
 		GuildsTree   GuildsTreeTheme   `toml:"guilds_tree"`
 		MessagesList MessagesListTheme `toml:"messages_list"`
 		MentionsList MentionsListTheme `toml:"mentions_list"`
+		Dialog       DialogTheme       `toml:"dialog"`
 	}
 )
 

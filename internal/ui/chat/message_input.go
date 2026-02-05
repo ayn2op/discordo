@@ -3,6 +3,7 @@ package chat
 import (
 	"bytes"
 	"fmt"
+	"github.com/ayn2op/tview/layers"
 	"io"
 	"log/slog"
 	"os"
@@ -532,8 +533,12 @@ func (mi *messageInput) showMentionList() {
 	l.SetRect(x, y, w, h)
 
 	mi.chatView.
-		AddAndSwitchToPage(mentionsListPageName, l, false).
-		ShowPage(flexPageName)
+		AddLayer(l,
+			layers.WithName(mentionsListPageName),
+			layers.WithResize(false),
+			layers.WithVisible(true),
+		).
+		SendToFront(mentionsListPageName)
 	mi.chatView.app.SetFocus(mi)
 }
 
@@ -586,8 +591,7 @@ func (mi *messageInput) addMentionUser(user *discord.User) {
 // used by chatView
 func (mi *messageInput) removeMentionsList() {
 	mi.chatView.
-		RemovePage(mentionsListPageName).
-		SwitchToPage(flexPageName)
+		RemoveLayer(mentionsListPageName)
 }
 
 func (mi *messageInput) stopTabCompletion() {
