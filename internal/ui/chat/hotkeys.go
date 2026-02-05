@@ -29,7 +29,9 @@ func newHotkeysBar(cfg *config.Config) *hotkeysBar {
 		TextView: tview.NewTextView(),
 		cfg:      cfg,
 	}
-	hkb.TextView.SetDynamicColors(true)
+	hkb.TextView.
+		SetDynamicColors(true).
+		SetWrap(false)
 	return hkb
 }
 
@@ -38,25 +40,42 @@ func (b *hotkeysBar) setHotkeys(hotkeys []hotkey) *hotkeysBar {
 	return b
 }
 
-func (b *hotkeysBar) update() {
-	result := &strings.Builder{}
-	addSep := false
-	for _, hk := range b.hotkeys {
+func (b *hotkeysBar) update() int {
+	result := strings.Builder{}
+	_, _, w, _ := b.GetRect()
+	lines := 1
+	total := 0
+	strLen := 0
+	sep := b.cfg.Theme.Hotkeys.Separator
+	sepLen := tview.TaggedStringWidth(sep)
+	for i := range b.hotkeys {
+		hk := b.hotkeys[i]
 		if hk.show != nil && !hk.show() {
 			continue
-		}
-		if addSep {
-			result.WriteString(b.cfg.Theme.Hotkeys.Separator)
-		} else {
-			addSep = true
 		}
 		bind := tview.Escape(runePattern.ReplaceAllString(hk.bind, `$1`))
 		if b.cfg.Theme.Hotkeys.Compact {
 			bind = strings.ReplaceAll(bind, "Ctrl+", "^")
 			bind = strings.ReplaceAll(bind, "Shift+", "S-")
 		}
-		fmt.Fprintf(result, b.cfg.Theme.Hotkeys.Format, hk.name, bind)
+		str := fmt.Sprintf(b.cfg.Theme.Hotkeys.Format, hk.name, bind)
+		strLen = tview.TaggedStringWidth(str)
+		total += strLen
+		if i != 0 {
+			total += sepLen
+		}
+		if total >= w {
+			total = strLen
+			lines++
+			result.WriteRune('\n')
+			result.WriteString(str)
+			continue
+		}
+		if i != 0 {
+			result.WriteString(sep)
+		}
+		result.WriteString(str)
 	}
-
 	b.SetText(result.String())
+	return lines
 }

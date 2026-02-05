@@ -80,7 +80,7 @@ func NewView(app *tview.Application, cfg *config.Config, onLogout func()) *View 
 
 func (v *View) Draw(s tcell.Screen) {
 	if v.cfg.ShowHotkeys {
-		v.hotkeysBar.update()
+		v.rootFlex.ResizeItem(v.hotkeysBar, v.hotkeysBar.update(), 0)
 	}
 	v.Pages.Draw(s)
 }
