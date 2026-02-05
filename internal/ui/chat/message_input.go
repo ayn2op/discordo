@@ -39,6 +39,11 @@ const tmpFilePattern = consts.Name + "_*.md"
 
 var mentionRegex = regexp.MustCompile("@[a-zA-Z0-9._]+")
 
+type mentionsList struct {
+	*tview.List
+	messageInput *messageInput
+}
+
 type messageInput struct {
 	*tview.TextArea
 	cfg      *config.Config
@@ -47,7 +52,7 @@ type messageInput struct {
 	edit            bool
 	sendMessageData *api.SendMessageData
 	cache           *cache.Cache
-	mentionsList    *tview.List
+	mentionsList
 	lastSearch      time.Time
 
 	typingTimerMu sync.Mutex
@@ -61,8 +66,8 @@ func newMessageInput(cfg *config.Config, chatView *View) *messageInput {
 		chatView:        chatView,
 		sendMessageData: &api.SendMessageData{},
 		cache:           cache.NewCache(),
-		mentionsList:    tview.NewList(),
 	}
+	mi.mentionsList = mentionsList{tview.NewList(),mi}
 	mi.Box = ui.ConfigureBox(mi.Box, &cfg.Theme)
 	mi.SetInputCapture(mi.onInputCapture)
 	mi.
@@ -670,24 +675,55 @@ func (mi *messageInput) attach(name string, reader io.Reader) {
 
 // Set hotkeys on focus.
 func (mi *messageInput) Focus(delegate func(p tview.Primitive)) {
-	if mi.chatView.Layers.HasLayer(mentionsListLayerName) {
-		cfg := mi.cfg.Keybinds.MentionsList
-		mi.chatView.hotkeysBar.setHotkeys([]hotkey{
-			{name: "next/prev", bind: cfg.Down + "/" + cfg.Up},
-			{name: "top/bot", bind: cfg.Top + "/" + cfg.Bottom},
-			{name: "select", bind: mi.cfg.Keybinds.MessageInput.TabComplete},
-		})
-	} else {
-		cfg := mi.cfg.Keybinds.MessageInput
-		mi.chatView.hotkeysBar.setHotkeys([]hotkey{
-			{name: "paste", bind: cfg.Paste},
-			{name: "send", bind: cfg.Send},
-			{name: "cancel", bind: cfg.Cancel},
-			{name: "editor", bind: cfg.OpenEditor},
-			{name: "attach", bind: cfg.OpenFilePicker, show: mi.hkAttach},
-		})
-	}
+	mi.hotkeys()
 	mi.TextArea.Focus(delegate)
+}
+
+// Set hotkeys on mouse focus.
+func (mi *messageInput) MouseHandler() func(action tview.MouseAction, event *tcell.EventMouse, setFocus func(p tview.Primitive)) (consumed bool, capture tview.Primitive) {
+	return mi.TextArea.WrapMouseHandler(func(action tview.MouseAction, event *tcell.EventMouse, setFocus func(p tview.Primitive)) (consumed bool, capture tview.Primitive) {
+		return mi.TextArea.MouseHandler()(action, event, func(p tview.Primitive) {
+			if p == mi.TextArea {
+				mi.hotkeys()
+			}
+			setFocus(p)
+		})
+	})
+}
+
+func (mi *messageInput) hotkeys() {
+	if mi.chatView.Layers.HasLayer(mentionsListLayerName) {
+		mi.mentionsList.hotkeys()
+		return
+	}
+	cfg := mi.cfg.Keybinds.MessageInput
+	mi.chatView.hotkeysBar.setHotkeys([]hotkey{
+		{name: "paste", bind: cfg.Paste},
+		{name: "send", bind: cfg.Send},
+		{name: "cancel", bind: cfg.Cancel},
+		{name: "editor", bind: cfg.OpenEditor},
+		{name: "attach", bind: cfg.OpenFilePicker, show: mi.hkAttach},
+	})
+}
+
+func (ml mentionsList) MouseHandler() func(action tview.MouseAction, event *tcell.EventMouse, setFocus func(p tview.Primitive)) (consumed bool, capture tview.Primitive) {
+	return ml.List.WrapMouseHandler(func(action tview.MouseAction, event *tcell.EventMouse, setFocus func(p tview.Primitive)) (consumed bool, capture tview.Primitive) {
+		return ml.List.MouseHandler()(action, event, func(p tview.Primitive) {
+			if p == ml.List {
+				ml.hotkeys()
+			}
+			setFocus(p)
+		})
+	})
+}
+
+func (ml *mentionsList) hotkeys() {
+	cfg := ml.messageInput.cfg.Keybinds.MentionsList
+	ml.messageInput.chatView.hotkeysBar.setHotkeys([]hotkey{
+		{name: "next/prev", bind: cfg.Down + "/" + cfg.Up},
+		{name: "top/bot", bind: cfg.Top + "/" + cfg.Bottom},
+		{name: "select", bind: ml.messageInput.cfg.Keybinds.MessageInput.TabComplete},
+	})
 }
 
 func (mi *messageInput) hkAttach() bool {

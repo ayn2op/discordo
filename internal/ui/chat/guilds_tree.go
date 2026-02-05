@@ -163,6 +163,7 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 
 		ui.SortGuildChannels(channels)
 		gt.createChannelNodes(node, channels)
+		node.Expand()
 	case discord.ChannelID:
 		channel, err := gt.chatView.state.Cabinet.Channel(ref)
 		if err != nil {
@@ -345,6 +346,23 @@ func (gt *guildsTree) expandPathToNode(node *tview.TreeNode) {
 
 // Set hotkeys on focus.
 func (gt *guildsTree) Focus(delegate func(p tview.Primitive)) {
+	gt.hotkeys()
+	gt.TreeView.Focus(delegate)
+}
+
+// Set hotkeys on mouse focus.
+func (gt *guildsTree) MouseHandler() func(action tview.MouseAction, event *tcell.EventMouse, setFocus func(p tview.Primitive)) (consumed bool, capture tview.Primitive) {
+	return gt.TreeView.WrapMouseHandler(func(action tview.MouseAction, event *tcell.EventMouse, setFocus func(p tview.Primitive)) (consumed bool, capture tview.Primitive) {
+		return gt.TreeView.MouseHandler()(action, event, func(p tview.Primitive) {
+			if p == gt.TreeView {
+				gt.hotkeys()
+			}
+			setFocus(p)
+		})
+	})
+}
+
+func (gt *guildsTree) hotkeys() {
 	cfg := gt.cfg.Keybinds.GuildsTree
 	gt.chatView.hotkeysBar.setHotkeys([]hotkey{
 		{name: "next/prev", bind: cfg.Down + "/" + cfg.Up},
@@ -353,7 +371,6 @@ func (gt *guildsTree) Focus(delegate func(p tview.Primitive)) {
 		{name: "collapse", bind: cfg.SelectCurrent, show: gt.hkCollapse},
 		{name: "select", bind: cfg.SelectCurrent, show: gt.hkSelect},
 	})
-	gt.TreeView.Focus(delegate)
 }
 
 func (gt *guildsTree) hkExpand() bool {

@@ -760,6 +760,23 @@ func (ml *messagesList) waitForChunkEvent() uint {
 
 // Set hotkeys on focus.
 func (ml *messagesList) Focus(delegate func(p tview.Primitive)) {
+	ml.hotkeys()
+	ml.ScrollList.Focus(delegate)
+}
+
+// Set hotkeys on mouse focus.
+func (ml *messagesList) MouseHandler() func(action tview.MouseAction, event *tcell.EventMouse, setFocus func(p tview.Primitive)) (consumed bool, capture tview.Primitive) {
+	return ml.ScrollList.WrapMouseHandler(func(action tview.MouseAction, event *tcell.EventMouse, setFocus func(p tview.Primitive)) (consumed bool, capture tview.Primitive) {
+		return ml.ScrollList.MouseHandler()(action, event, func(p tview.Primitive) {
+			if p == ml.ScrollList {
+				ml.hotkeys()
+			}
+			setFocus(p)
+		})
+	})
+}
+
+func (ml *messagesList) hotkeys() {
 	cfg := ml.cfg.Keybinds.MessagesList
 	ml.chatView.hotkeysBar.setHotkeys([]hotkey{
 		{name: "next/prev", bind: cfg.SelectDown + "/" + cfg.SelectUp},
@@ -771,7 +788,6 @@ func (ml *messagesList) Focus(delegate func(p tview.Primitive)) {
 		{name: "delete", bind: cfg.DeleteConfirm, show: ml.hkDelete},
 		{name: "open", bind: cfg.Open, show: ml.hkOpen},
 	})
-	ml.ScrollList.Focus(delegate)
 }
 
 func (ml *messagesList) hkGotoReply() bool {
