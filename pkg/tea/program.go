@@ -24,6 +24,9 @@ type Program struct {
 	forceRedraw bool
 	// spaceRuns caches " " strings by length for clear-to-EOL batching.
 	spaceRuns []string
+	// asciiRunScratch is reused for ASCII style-run batching to avoid per-run
+	// byte-slice allocations in the blit hot path.
+	asciiRunScratch []byte
 }
 
 var ErrProgramPanic = errors.New("tea program panicked")
@@ -328,6 +331,37 @@ func (p *Program) blit() {
 				x++
 				continue
 			}
+
+			// Batch contiguous changed ASCII cells with identical style into one
+			// terminal write to reduce per-cell call overhead.
+			if b, ok := singleASCIIByte(next.text); ok {
+				styleID := next.styleID
+				runStart := x
+				p.asciiRunScratch = append(p.asciiRunScratch[:0], b)
+				x++
+				for x < endX {
+					if clearFrom < endX && x >= clearFrom {
+						break
+					}
+					runNext := p.back.cellAt(x, y)
+					runPrev := p.front.cellAt(x, y)
+					if !p.forceRedraw && cellsEqual(runPrev, runNext) {
+						break
+					}
+					if runNext.cont || runNext.text == "" || runNext.styleID != styleID {
+						break
+					}
+					rb, ok := singleASCIIByte(runNext.text)
+					if !ok {
+						break
+					}
+					p.asciiRunScratch = append(p.asciiRunScratch, rb)
+					x++
+				}
+				p.screen.PutStrStyled(runStart, y, string(p.asciiRunScratch), p.back.style(styleID))
+				changed = true
+				continue
+			}
 			p.screen.Put(x, y, next.text, p.back.style(next.styleID))
 			changed = true
 			x++
@@ -369,6 +403,14 @@ func (p *Program) trailingClearStart(y int, startX int, endX int) int {
 
 func isLogicalEmptyCell(c canvasCell) bool {
 	return c.text == "" && !c.cont
+}
+
+func singleASCIIByte(s string) (byte, bool) {
+	if len(s) != 1 {
+		return 0, false
+	}
+	b := s[0]
+	return b, b < 0x80
 }
 
 func (p *Program) spaces(n int) string {
