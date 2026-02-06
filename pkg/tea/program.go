@@ -44,19 +44,22 @@ func (p *Program) Run() (returnErr error) {
 	defer p.screen.Fini()
 
 	msgs := make(chan Msg)
+	cmds := make(chan Cmd)
 
 	// done is the shared shutdown signal for renderer/input/cmd goroutines.
 	done := make(chan struct{})
 	invalidate, waitForRenderLoop := p.startRenderLoop(done, errs)
 	waitForInputLoop := p.startInputLoop(done, msgs, errs)
+	waitForCommandLoop := p.startCommandLoop(done, msgs, cmds, errs)
 	defer func() {
 		close(done)
 		waitForInputLoop()
 		waitForRenderLoop()
+		waitForCommandLoop()
 	}()
 
 	// Kick off model init command and paint the initial frame synchronously.
-	p.enqueueCmd(done, msgs, errs, p.initCmd())
+	p.sendCmd(done, cmds, p.initCmd())
 	p.render()
 
 	for {
@@ -70,19 +73,19 @@ func (p *Program) Run() (returnErr error) {
 			}
 			if batch, ok := msg.(batchMsg); ok {
 				for _, c := range batch {
-					p.enqueueCmd(done, msgs, errs, c)
+					p.sendCmd(done, cmds, c)
 				}
 				continue
 			}
 			if sequence, ok := msg.(sequenceMsg); ok {
-				p.runSequence(done, msgs, errs, sequence)
+				p.runSequence(done, msgs, cmds, errs, sequence)
 				continue
 			}
 
 			// Regular messages go through Update, then trigger async command work
 			// and a coalesced render invalidation.
 			cmd := p.updateModel(msg)
-			p.enqueueCmd(done, msgs, errs, cmd)
+			p.sendCmd(done, cmds, cmd)
 			invalidate()
 		}
 	}
@@ -157,6 +160,36 @@ func (p *Program) startRenderLoop(done <-chan struct{}, errs chan<- error) (inva
 	}
 
 	return invalidate, wg.Wait
+}
+
+func (p *Program) startCommandLoop(
+	done <-chan struct{},
+	msgs chan<- Msg,
+	cmds chan Cmd,
+	errs chan<- error,
+) (wait func()) {
+	var wg sync.WaitGroup
+	wg.Go(func() {
+		defer func() {
+			if r := recover(); r != nil {
+				p.handleGoroutinePanic(errs, "command loop", r)
+			}
+		}()
+		for {
+			select {
+			case <-done:
+				return
+			case cmd := <-cmds:
+				if cmd == nil {
+					continue
+				}
+				// Commands execute in their own goroutines so long-running
+				// work doesn't block command intake or the update loop.
+				go p.execCmd(done, msgs, cmds, errs, cmd)
+			}
+		}
+	})
+	return wg.Wait
 }
 
 func (p *Program) initCmd() Cmd {
@@ -266,53 +299,62 @@ func cellsEqual(a, b canvasCell) bool {
 	return a.styleID == b.styleID
 }
 
-func (p *Program) enqueueCmd(done <-chan struct{}, msgs chan<- Msg, errs chan<- error, cmd Cmd) {
+func (p *Program) sendCmd(done <-chan struct{}, cmds chan<- Cmd, cmd Cmd) {
 	if cmd == nil {
 		return
 	}
 	select {
+	case cmds <- cmd:
 	case <-done:
-		return
-	default:
 	}
-
-	// Long-running commands must not block the update/render loop.
-	go func(c Cmd) {
-		defer func() {
-			if r := recover(); r != nil {
-				p.handleGoroutinePanic(errs, "command", r)
-			}
-		}()
-		msg := c()
-		p.dispatchCmdMsg(done, msgs, errs, msg)
-	}(cmd)
 }
 
-func (p *Program) runSequence(done <-chan struct{}, msgs chan<- Msg, errs chan<- error, sequence sequenceMsg) {
-	go func(cmds sequenceMsg) {
+func (p *Program) execCmd(done <-chan struct{}, msgs chan<- Msg, cmds chan<- Cmd, errs chan<- error, cmd Cmd) {
+	defer func() {
+		if r := recover(); r != nil {
+			p.handleGoroutinePanic(errs, "command", r)
+		}
+	}()
+	msg := cmd()
+	p.dispatchCmdMsg(done, msgs, cmds, msg)
+}
+
+func (p *Program) runSequence(
+	done <-chan struct{},
+	msgs chan<- Msg,
+	cmds chan<- Cmd,
+	errs chan<- error,
+	sequence sequenceMsg,
+) {
+	go func(seq sequenceMsg) {
 		defer func() {
 			if r := recover(); r != nil {
 				p.handleGoroutinePanic(errs, "sequence", r)
 			}
 		}()
-		for _, cmd := range cmds {
+		for _, cmd := range seq {
 			if cmd == nil {
 				continue
 			}
 			msg := cmd()
-			p.dispatchCmdMsg(done, msgs, errs, msg)
+			p.dispatchCmdMsg(done, msgs, cmds, msg)
 		}
 	}(sequence)
 }
 
-func (p *Program) dispatchCmdMsg(done <-chan struct{}, msgs chan<- Msg, errs chan<- error, msg Msg) {
+func (p *Program) dispatchCmdMsg(
+	done <-chan struct{},
+	msgs chan<- Msg,
+	cmds chan<- Cmd,
+	msg Msg,
+) {
 	if msg == nil {
 		return
 	}
 	switch m := msg.(type) {
 	case batchMsg:
 		for _, cmd := range m {
-			p.enqueueCmd(done, msgs, errs, cmd)
+			p.sendCmd(done, cmds, cmd)
 		}
 	case sequenceMsg:
 		for _, cmd := range m {
@@ -320,7 +362,7 @@ func (p *Program) dispatchCmdMsg(done <-chan struct{}, msgs chan<- Msg, errs cha
 				continue
 			}
 			next := cmd()
-			p.dispatchCmdMsg(done, msgs, errs, next)
+			p.dispatchCmdMsg(done, msgs, cmds, next)
 		}
 	default:
 		select {
