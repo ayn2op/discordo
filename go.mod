@@ -2,7 +2,7 @@ module github.com/ayn2op/discordo
 
 go 1.25.3
 
-// replace github.com/ayn2op/tview => ../tview
+replace github.com/ayn2op/tview => ../tview
 
 require (
 	github.com/BurntSushi/toml v1.6.0
