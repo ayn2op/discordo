@@ -120,7 +120,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		return tcell.NewEventKey(tcell.KeyCtrlV, "", tcell.ModNone)
 
 	case mi.cfg.Keybinds.MessageInput.Send:
-		if mi.chatView.GetVisibile(mentionsListLayerName) {
+		if mi.chatView.layers.GetVisibile(mentionsListLayerName) {
 			mi.tabComplete()
 			return nil
 		}
@@ -136,7 +136,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		mi.openFilePicker()
 		return nil
 	case mi.cfg.Keybinds.MessageInput.Cancel:
-		if mi.chatView.GetVisibile(mentionsListLayerName) {
+		if mi.chatView.layers.GetVisibile(mentionsListLayerName) {
 			mi.stopTabCompletion()
 		} else {
 			mi.reset()
@@ -161,7 +161,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	}
 
 	if mi.cfg.AutocompleteLimit > 0 {
-		if mi.chatView.GetVisibile(mentionsListLayerName) {
+		if mi.chatView.layers.GetVisibile(mentionsListLayerName) {
 			handler := mi.mentionsList.InputHandler()
 			switch event.Name() {
 			case mi.cfg.Keybinds.MentionsList.Up:
@@ -544,7 +544,7 @@ func (mi *messageInput) showMentionList() {
 
 	l.SetRect(x, y, w, h)
 
-	mi.chatView.
+	mi.chatView.layers.
 		AddLayer(l,
 			layers.WithName(mentionsListLayerName),
 			layers.WithResize(false),
@@ -602,8 +602,7 @@ func (mi *messageInput) addMentionUser(user *discord.User) {
 
 // used by chatView
 func (mi *messageInput) removeMentionsList() {
-	mi.chatView.
-		RemoveLayer(mentionsListLayerName)
+	mi.chatView.layers.RemoveLayer(mentionsListLayerName)
 }
 
 func (mi *messageInput) stopTabCompletion() {
@@ -699,7 +698,7 @@ func (mi *messageInput) MouseHandler() func(action tview.MouseAction, event *tce
 }
 
 func (mi *messageInput) hotkeys() {
-	if mi.chatView.Layers.HasLayer(mentionsListLayerName) {
+	if mi.chatView.layers.HasLayer(mentionsListLayerName) {
 		mi.mentionsList.hotkeys()
 		return
 	}

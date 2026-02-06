@@ -28,11 +28,11 @@ const (
 )
 
 type View struct {
-	*layers.Layers
+	*tview.Flex
 
-	hotkeysFlex *tview.Flex
-	mainFlex    *tview.Flex
-	rightFlex   *tview.Flex
+	layers    *layers.Layers
+	mainFlex  *tview.Flex
+	rightFlex *tview.Flex
 
 	guildsTree     *guildsTree
 	messagesList   *messagesList
@@ -55,11 +55,11 @@ type View struct {
 
 func NewView(app *tview.Application, cfg *config.Config, onLogout func()) *View {
 	v := &View{
-		Layers: layers.New(),
+		Flex: tview.NewFlex(),
 
-		hotkeysFlex: tview.NewFlex(),
-		mainFlex:    tview.NewFlex(),
-		rightFlex:   tview.NewFlex(),
+		layers:    layers.New(),
+		mainFlex:  tview.NewFlex(),
+		rightFlex: tview.NewFlex(),
 
 		typers: make(map[discord.UserID]*time.Timer),
 
@@ -74,7 +74,7 @@ func NewView(app *tview.Application, cfg *config.Config, onLogout func()) *View 
 	v.channelsPicker = newChannelsPicker(cfg, v)
 	v.channelsPicker.SetCancelFunc(v.closePicker)
 
-	v.SetBackgroundLayerStyle(v.cfg.Theme.Dialog.BackgroundStyle.Style)
+	v.layers.SetBackgroundLayerStyle(v.cfg.Theme.Dialog.BackgroundStyle.Style)
 	v.SetInputCapture(v.onInputCapture)
 	v.buildLayout()
 	return v
@@ -82,9 +82,9 @@ func NewView(app *tview.Application, cfg *config.Config, onLogout func()) *View 
 
 func (v *View) Draw(s tcell.Screen) {
 	if v.cfg.Theme.Hotkeys.Enable {
-		v.hotkeysFlex.ResizeItem(v.hotkeysBar, v.hotkeysBar.update(), 0)
+		v.ResizeItem(v.hotkeysBar, v.hotkeysBar.update(), 0)
 	}
-	v.Layers.Draw(s)
+	v.Flex.Draw(s)
 }
 
 func (v *View) SelectedChannel() *discord.Channel {
@@ -101,9 +101,9 @@ func (v *View) SetSelectedChannel(channel *discord.Channel) {
 
 func (v *View) buildLayout() {
 	v.Clear()
+	v.layers.Clear()
 	v.rightFlex.Clear()
 	v.mainFlex.Clear()
-	v.hotkeysFlex.Clear()
 
 	v.rightFlex.
 		SetDirection(tview.FlexRow).
@@ -113,20 +113,18 @@ func (v *View) buildLayout() {
 	v.mainFlex.
 		AddItem(v.guildsTree, 0, 1, true).
 		AddItem(v.rightFlex, 0, 4, false)
-	v.hotkeysFlex.
+	v.layers.AddLayer(v.mainFlex, layers.WithName(flexLayerName), layers.WithResize(true), layers.WithVisible(true))
+	v.Flex.
 		SetDirection(tview.FlexRow).
-		AddItem(v.mainFlex, 0, 1, true).
-		AddItem(v.hotkeysBar, 1, 1, false)
+		AddItem(v.layers, 0, 1, true)
 
 	if v.cfg.Theme.Hotkeys.Enable {
-		v.AddLayer(v.hotkeysFlex, layers.WithName(flexLayerName), layers.WithResize(true), layers.WithVisible(true))
-	} else {
-		v.AddLayer(v.mainFlex, layers.WithName(flexLayerName), layers.WithResize(true), layers.WithVisible(true))
+		v.Flex.AddItem(v.hotkeysBar, 1, 1, false)
 	}
 }
 
 func (v *View) togglePicker() {
-	if v.HasLayer(channelsPickerLayerName) {
+	if v.layers.HasLayer(channelsPickerLayerName) {
 		v.closePicker()
 	} else {
 		v.openPicker()
@@ -134,7 +132,7 @@ func (v *View) togglePicker() {
 }
 
 func (v *View) openPicker() {
-	v.AddLayer(
+	v.layers.AddLayer(
 		ui.Centered(v.channelsPicker, v.cfg.Picker.Width, v.cfg.Picker.Height),
 		layers.WithName(channelsPickerLayerName),
 		layers.WithResize(true),
@@ -145,7 +143,7 @@ func (v *View) openPicker() {
 }
 
 func (v *View) closePicker() {
-	v.RemoveLayer(channelsPickerLayerName)
+	v.layers.RemoveLayer(channelsPickerLayerName)
 	v.channelsPicker.Update()
 }
 
@@ -266,14 +264,14 @@ func (v *View) showConfirmModal(prompt string, buttons []string, onDone func(lab
 		SetText(prompt).
 		AddButtons(buttons).
 		SetDoneFunc(func(_ int, buttonLabel string) {
-			v.RemoveLayer(confirmModalLayerName)
+			v.layers.RemoveLayer(confirmModalLayerName)
 			v.app.SetFocus(previousFocus)
 
 			if onDone != nil {
 				onDone(buttonLabel)
 			}
 		})
-	v.
+	v.layers.
 		AddLayer(
 			ui.Centered(modal, 0, 0),
 			layers.WithName(confirmModalLayerName),
@@ -283,8 +281,8 @@ func (v *View) showConfirmModal(prompt string, buttons []string, onDone func(lab
 		).
 		SendToFront(confirmModalLayerName)
 	v.hotkeysBar.setHotkeys([]hotkey{
-		{name: "left/right", bind: "Left/Right"},
-		{name: "select", bind: "Enter"},
+		{name: "left/right", bind: "Left/Right", hot: true},
+		{name: "select", bind: "Enter", hot: true},
 	})
 }
 

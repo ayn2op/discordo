@@ -219,7 +219,7 @@ func (ml *messagesList) drawAuthor(w io.Writer, message discord.Message) {
 
 func (ml *messagesList) drawContent(w io.Writer, message discord.Message) {
 	c := []byte(tview.Escape(message.Content))
-	if ml.chatView.cfg.Markdown {
+	if ml.cfg.Markdown {
 		ast := discordmd.ParseWithMessage(c, *ml.chatView.state.Cabinet, &message, false)
 		ml.renderer.Render(w, c, ast)
 	} else {
@@ -520,7 +520,7 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 		SetHighlightFullLine(true).
 		ShowSecondaryText(false).
 		SetDoneFunc(func() {
-			ml.chatView.RemoveLayer(attachmentsListLayerName)
+			ml.chatView.layers.RemoveLayer(attachmentsListLayerName)
 			ml.chatView.app.SetFocus(ml)
 		})
 	list.
@@ -556,7 +556,7 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 		})
 	}
 
-	ml.chatView.
+	ml.chatView.layers.
 		AddLayer(
 			ui.Centered(list, 0, 0),
 			layers.WithName(attachmentsListLayerName),
