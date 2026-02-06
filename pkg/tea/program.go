@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image"
 	"runtime/debug"
+	"strings"
 	"sync"
 
 	tcell "github.com/gdamore/tcell/v3"
@@ -21,6 +22,8 @@ type Program struct {
 	back *Frame
 	// forceRedraw bypasses diffing and repaints every cell on the next blit.
 	forceRedraw bool
+	// spaceRuns caches " " strings by length for clear-to-EOL batching.
+	spaceRuns []string
 }
 
 var ErrProgramPanic = errors.New("tea program panicked")
@@ -70,16 +73,6 @@ func (p *Program) Run() (returnErr error) {
 			// Control messages are handled internally and do not reach Update.
 			if _, ok := msg.(quitMsg); ok {
 				return nil
-			}
-			if batch, ok := msg.(batchMsg); ok {
-				for _, c := range batch {
-					p.sendCmd(done, cmds, c)
-				}
-				continue
-			}
-			if sequence, ok := msg.(sequenceMsg); ok {
-				p.runSequence(done, msgs, cmds, errs, sequence)
-				continue
 			}
 
 			// Regular messages go through Update, then trigger async command work
@@ -184,7 +177,8 @@ func (p *Program) startCommandLoop(
 					continue
 				}
 				// Commands execute in their own goroutines so long-running
-				// work doesn't block command intake or the update loop.
+				// work doesn't block command intake or the update loop. The
+				// command channel still centralizes dispatch policy in one place.
 				go p.execCmd(done, msgs, cmds, errs, cmd)
 			}
 		}
@@ -256,18 +250,73 @@ func (p *Program) blit() {
 		if !p.forceRedraw && !p.back.rowDirty(y) && !p.front.rowDirty(y) {
 			continue
 		}
-		for x := range width {
+		startX, endX := 0, width
+		if !p.forceRedraw {
+			bStart, bEnd, bOK := p.back.rowSpan(y)
+			fStart, fEnd, fOK := p.front.rowSpan(y)
+			switch {
+			case bOK && fOK:
+				if fStart < bStart {
+					startX = fStart
+				} else {
+					startX = bStart
+				}
+				if fEnd > bEnd {
+					endX = fEnd
+				} else {
+					endX = bEnd
+				}
+			case bOK:
+				startX, endX = bStart, bEnd
+			case fOK:
+				startX, endX = fStart, fEnd
+			default:
+				continue
+			}
+
+			// ncurses-style trim: narrow work to the first/last differing cells
+			// within the candidate span so long unchanged prefixes/suffixes are
+			// skipped without entering the main blit loop.
+			for startX < endX {
+				if !cellsEqual(p.front.cellAt(startX, y), p.back.cellAt(startX, y)) {
+					break
+				}
+				startX++
+			}
+			for startX < endX {
+				last := endX - 1
+				if !cellsEqual(p.front.cellAt(last, y), p.back.cellAt(last, y)) {
+					break
+				}
+				endX = last
+			}
+			if startX >= endX {
+				continue
+			}
+		}
+
+		clearFrom := p.trailingClearStart(y, startX, endX)
+		for x := startX; x < endX; {
+			if clearFrom < endX && x == clearFrom {
+				// Batch trailing clears as a single string write.
+				p.screen.PutStrStyled(x, y, p.spaces(endX-x), tcell.StyleDefault)
+				changed = true
+				break
+			}
+
 			next := p.back.cellAt(x, y)
 			prev := p.front.cellAt(x, y)
 
 			// Fast path: unchanged cell in non-forced redraw mode.
 			if !p.forceRedraw && cellsEqual(prev, next) {
+				x++
 				continue
 			}
 
 			// Continuation cells belong to a wide grapheme started at x-1.
 			// Writing the lead cell already paints the full glyph width.
 			if next.cont {
+				x++
 				continue
 			}
 
@@ -276,10 +325,12 @@ func (p *Program) blit() {
 				// written in this frame.
 				p.screen.Put(x, y, " ", tcell.StyleDefault)
 				changed = true
+				x++
 				continue
 			}
 			p.screen.Put(x, y, next.text, p.back.style(next.styleID))
 			changed = true
+			x++
 		}
 	}
 	p.forceRedraw = false
@@ -297,6 +348,44 @@ func cellsEqual(a, b canvasCell) bool {
 		return false
 	}
 	return a.styleID == b.styleID
+}
+
+func (p *Program) trailingClearStart(y int, startX int, endX int) int {
+	// Scan backward to find a contiguous suffix that's logically empty in the
+	// next frame. That suffix can be cleared in one batched write.
+	clearFrom := endX
+	for x := endX - 1; x >= startX; x-- {
+		if !isLogicalEmptyCell(p.back.cellAt(x, y)) {
+			break
+		}
+		clearFrom = x
+	}
+	// Tiny tails don't benefit from batching; keep simple per-cell path.
+	if endX-clearFrom < 4 {
+		return endX
+	}
+	return clearFrom
+}
+
+func isLogicalEmptyCell(c canvasCell) bool {
+	return c.text == "" && !c.cont
+}
+
+func (p *Program) spaces(n int) string {
+	if n <= 0 {
+		return ""
+	}
+	if n < len(p.spaceRuns) {
+		return p.spaceRuns[n]
+	}
+	// Grow a cache of exact-length space strings so clear batching avoids
+	// repeated allocations in the render hot path.
+	oldLen := len(p.spaceRuns)
+	p.spaceRuns = append(p.spaceRuns, make([]string, n-oldLen+1)...)
+	for i := oldLen; i <= n; i++ {
+		p.spaceRuns[i] = strings.Repeat(" ", i)
+	}
+	return p.spaceRuns[n]
 }
 
 func (p *Program) sendCmd(done <-chan struct{}, cmds chan<- Cmd, cmd Cmd) {
@@ -319,29 +408,6 @@ func (p *Program) execCmd(done <-chan struct{}, msgs chan<- Msg, cmds chan<- Cmd
 	p.dispatchCmdMsg(done, msgs, cmds, msg)
 }
 
-func (p *Program) runSequence(
-	done <-chan struct{},
-	msgs chan<- Msg,
-	cmds chan<- Cmd,
-	errs chan<- error,
-	sequence sequenceMsg,
-) {
-	go func(seq sequenceMsg) {
-		defer func() {
-			if r := recover(); r != nil {
-				p.handleGoroutinePanic(errs, "sequence", r)
-			}
-		}()
-		for _, cmd := range seq {
-			if cmd == nil {
-				continue
-			}
-			msg := cmd()
-			p.dispatchCmdMsg(done, msgs, cmds, msg)
-		}
-	}(sequence)
-}
-
 func (p *Program) dispatchCmdMsg(
 	done <-chan struct{},
 	msgs chan<- Msg,
@@ -353,10 +419,12 @@ func (p *Program) dispatchCmdMsg(
 	}
 	switch m := msg.(type) {
 	case batchMsg:
+		// Batch fan-outs are enqueued concurrently via the command loop.
 		for _, cmd := range m {
 			p.sendCmd(done, cmds, cmd)
 		}
 	case sequenceMsg:
+		// Sequence executes inline to preserve strict ordering guarantees.
 		for _, cmd := range m {
 			if cmd == nil {
 				continue

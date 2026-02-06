@@ -31,16 +31,30 @@ type canvasCell struct {
 type Frame struct {
 	width  int
 	height int
-	epoch  uint32
-	cells  []canvasCell
-	rows   []uint32
-	dirty  int
-	pool   *stylePool
+	// epoch increments each frame; cells/rows tagged with older epochs are
+	// treated as logically empty.
+	epoch uint32
+	cells []canvasCell
+	// rows marks rows touched in the current epoch for dirty-row blitting.
+	rows []uint32
+	// spanStart/spanEnd track touched x-ranges (end-exclusive) per row/epoch.
+	spanStart []int
+	spanEnd   []int
+	spanGen   []uint32
+	// dirty counts how many rows were first-marked in the current epoch.
+	dirty int
+	// pool interns styles so cells store compact style IDs.
+	pool *stylePool
 }
 
 type stylePool struct {
-	styles    []tcell.Style
-	index     map[tcell.Style]uint32
+	// styles is an ID-indexed table so cells can store a compact uint32 styleID
+	// instead of a full tcell.Style value.
+	styles []tcell.Style
+	// index maps canonical style values to their stable IDs.
+	index map[tcell.Style]uint32
+	// lastStyle/lastID provide a tiny hot cache for repeated style writes,
+	// avoiding a map lookup in dense text paths.
 	lastStyle tcell.Style
 	lastID    uint32
 	hasLast   bool
@@ -56,6 +70,7 @@ func newStylePool() *stylePool {
 }
 
 func (p *stylePool) intern(style tcell.Style) uint32 {
+	// Most callers write many adjacent cells with the same style.
 	if p.hasLast && style == p.lastStyle {
 		return p.lastID
 	}
@@ -64,6 +79,8 @@ func (p *stylePool) intern(style tcell.Style) uint32 {
 		return id
 	}
 
+	// First time we've seen this style: assign the next sequential ID, append
+	// it to the ID table, and cache the reverse lookup + hot-path last-style.
 	id := uint32(len(p.styles))
 	p.styles = append(p.styles, style)
 	p.index[style] = id
@@ -72,6 +89,7 @@ func (p *stylePool) intern(style tcell.Style) uint32 {
 }
 
 func (p *stylePool) style(id uint32) tcell.Style {
+	// Invalid IDs can appear only from corrupted state; fall back defensively.
 	if int(id) < len(p.styles) {
 		return p.styles[id]
 	}
@@ -86,11 +104,14 @@ func NewFrame(width, height int, pool *stylePool) *Frame {
 		height = 0
 	}
 	return &Frame{
-		width:  width,
-		height: height,
-		cells:  make([]canvasCell, width*height),
-		rows:   make([]uint32, height),
-		pool:   pool,
+		width:     width,
+		height:    height,
+		cells:     make([]canvasCell, width*height),
+		rows:      make([]uint32, height),
+		spanStart: make([]int, height),
+		spanEnd:   make([]int, height),
+		spanGen:   make([]uint32, height),
+		pool:      pool,
 	}
 }
 
@@ -144,7 +165,7 @@ func (f *Frame) putWithStyleID(x int, y int, str string, styleID uint32) (string
 	// Before writing, clear any same-frame wide grapheme ownership that overlaps
 	// the write span so we never leave orphan continuation cells behind.
 	f.clearOverlappingWideCells(x, y, width)
-	f.markRowDirty(y)
+	f.touchSpan(y, x, x+width)
 
 	index := y*f.width + x
 	f.cells[index] = canvasCell{
@@ -173,17 +194,13 @@ func (f *Frame) PutStr(x int, y int, str string) {
 
 func (f *Frame) PutStrStyled(x int, y int, str string, style tcell.Style) {
 	styleID := f.pool.intern(style)
-	rowMarked := false
 	for str != "" && x < f.width && y >= 0 && y < f.height {
-		// Fast path for ASCII-heavy UI text.
+		// Fast path for ASCII-heavy text.
 		if b := str[0]; b < utf8.RuneSelf {
 			// ASCII writes can overwrite a previous wide glyph, so run the same
 			// overlap cleanup as putWithStyleID.
 			f.clearOverlappingWideCells(x, y, 1)
-			if !rowMarked {
-				f.markRowDirty(y)
-				rowMarked = true
-			}
+			f.touchSpan(y, x, x+1)
 			index := y*f.width + x
 			f.cells[index] = canvasCell{
 				text:    asciiText[b],
@@ -199,7 +216,6 @@ func (f *Frame) PutStrStyled(x int, y int, str string, style tcell.Style) {
 		if width <= 0 || remain == str {
 			return
 		}
-		rowMarked = true
 		str = remain
 		x += width
 	}
@@ -251,6 +267,45 @@ func (f *Frame) hasDirtyRows() bool {
 	return f.dirty > 0
 }
 
+func (f *Frame) touchSpan(y int, start int, end int) {
+	if y < 0 || y >= f.height {
+		return
+	}
+	if start < 0 {
+		start = 0
+	}
+	if end > f.width {
+		end = f.width
+	}
+	if start >= end {
+		return
+	}
+
+	f.markRowDirty(y)
+	if f.spanGen[y] != f.epoch {
+		f.spanGen[y] = f.epoch
+		f.spanStart[y] = start
+		f.spanEnd[y] = end
+		return
+	}
+	if start < f.spanStart[y] {
+		f.spanStart[y] = start
+	}
+	if end > f.spanEnd[y] {
+		f.spanEnd[y] = end
+	}
+}
+
+func (f *Frame) rowSpan(y int) (start int, end int, ok bool) {
+	if y < 0 || y >= f.height {
+		return 0, 0, false
+	}
+	if f.spanGen[y] != f.epoch {
+		return 0, 0, false
+	}
+	return f.spanStart[y], f.spanEnd[y], true
+}
+
 func (f *Frame) resize(width int, height int) {
 	if width < 0 {
 		width = 0
@@ -276,6 +331,21 @@ func (f *Frame) resize(width int, height int) {
 		f.rows = make([]uint32, height)
 	} else {
 		f.rows = f.rows[:height]
+	}
+	if cap(f.spanStart) < height {
+		f.spanStart = make([]int, height)
+	} else {
+		f.spanStart = f.spanStart[:height]
+	}
+	if cap(f.spanEnd) < height {
+		f.spanEnd = make([]int, height)
+	} else {
+		f.spanEnd = f.spanEnd[:height]
+	}
+	if cap(f.spanGen) < height {
+		f.spanGen = make([]uint32, height)
+	} else {
+		f.spanGen = f.spanGen[:height]
 	}
 }
 
@@ -331,14 +401,16 @@ func (f *Frame) clearWideRun(leadX int, y int) {
 	if leadX < 0 || leadX >= f.width || y < 0 || y >= f.height {
 		return
 	}
-	f.markRowDirty(y)
 	f.cells[y*f.width+leadX] = canvasCell{epoch: f.epoch}
 	// Clear the contiguous continuation run owned by this lead cell.
+	end := leadX + 1
 	for x := leadX + 1; x < f.width; x++ {
 		cell := f.cells[y*f.width+x]
 		if cell.epoch != f.epoch || !cell.cont {
-			return
+			break
 		}
 		f.cells[y*f.width+x] = canvasCell{epoch: f.epoch}
+		end = x + 1
 	}
+	f.touchSpan(y, leadX, end)
 }
