@@ -140,6 +140,7 @@ func (v *View) openPicker() {
 		layers.WithOverlay(),
 	).SendToFront(channelsPickerLayerName)
 	v.channelsPicker.update()
+	v.app.SetFocus(v.layers)
 }
 
 func (v *View) closePicker() {
@@ -181,6 +182,8 @@ func (v *View) focusMessageInput() bool {
 
 func (v *View) focusPrevious() {
 	switch v.app.GetFocus() {
+	default:
+		fallthrough
 	case v.messagesList: // Handle both a.messagesList and a.flex as well as other edge cases (if there is).
 		if v.focusGuildsTree() {
 			return
@@ -198,6 +201,8 @@ func (v *View) focusPrevious() {
 
 func (v *View) focusNext() {
 	switch v.app.GetFocus() {
+	default:
+		fallthrough
 	case v.messagesList:
 		if v.focusMessageInput() {
 			return

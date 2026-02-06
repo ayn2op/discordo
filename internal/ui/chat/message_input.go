@@ -139,7 +139,14 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		if mi.chatView.layers.GetVisibile(mentionsListLayerName) {
 			mi.stopTabCompletion()
 		} else {
-			mi.reset()
+			if mi.edit != false ||
+			   mi.GetTitle() != "" ||
+			   mi.GetFooter() != "" ||
+			   mi.GetText() != "" {
+				mi.reset()
+			} else {
+				mi.chatView.app.SetFocus(mi.chatView.hotkeysBar)
+			}
 		}
 
 		return nil

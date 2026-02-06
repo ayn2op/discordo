@@ -319,7 +319,11 @@ func (ml *messagesList) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		return nil
 
 	case ml.cfg.Keybinds.MessagesList.Cancel:
-		ml.clearSelection()
+		if ml.Cursor() != -1 {
+			ml.clearSelection()
+		} else {
+			ml.chatView.app.SetFocus(ml.chatView.hotkeysBar)
+		}
 		return nil
 
 	case ml.cfg.Keybinds.MessagesList.SelectUp, ml.cfg.Keybinds.MessagesList.SelectDown, ml.cfg.Keybinds.MessagesList.SelectTop, ml.cfg.Keybinds.MessagesList.SelectBottom, ml.cfg.Keybinds.MessagesList.SelectReply:

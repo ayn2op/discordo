@@ -8,6 +8,7 @@ import (
 
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/tview"
+	"github.com/gdamore/tcell/v3"
 )
 
 type hotkeysBar struct {
@@ -84,6 +85,38 @@ func (b *hotkeysBar) setHotkeys(hks []hotkey) *hotkeysBar {
 func (b *hotkeysBar) appendHotkeys(hks []hotkey) *hotkeysBar {
 	b.hotkeys = append(b.hotkeys, hks...)
 	return b
+}
+
+// Set hotkeys on focus.
+func (b *hotkeysBar) Focus(delegate func(p tview.Primitive)) {
+	b._hotkeys()
+	b.TextView.Focus(delegate)
+}
+
+// Set hotkeys on mouse focus.
+func (b *hotkeysBar) MouseHandler() func(action tview.MouseAction, event *tcell.EventMouse, setFocus func(p tview.Primitive)) (consumed bool, capture tview.Primitive) {
+	return b.TextView.WrapMouseHandler(func(action tview.MouseAction, event *tcell.EventMouse, setFocus func(p tview.Primitive)) (consumed bool, capture tview.Primitive) {
+		return b.TextView.MouseHandler()(action, event, func(p tview.Primitive) {
+			if p == b.TextView {
+				b._hotkeys()
+			}
+			setFocus(p)
+		})
+	})
+}
+
+func (b *hotkeysBar) _hotkeys() {
+	cfg := b.cfg.Keybinds
+	b.setHotkeys([]hotkey{
+		{name: "prev/next", bind: cfg.FocusPrevious + "/" + cfg.FocusNext, hot: true},
+		{name: "guilds", bind: cfg.FocusGuildsTree, hot: true},
+		{name: "messages", bind: cfg.FocusMessagesList, hot: true},
+		{name: "input", bind: cfg.FocusMessageInput, hot: true},
+		{name: "channels", bind: cfg.Picker.Toggle, hot: true},
+		{name: "logout", bind: cfg.Logout, hot: true},
+		{name: "quit", bind: cfg.Quit, hot: true},
+
+	})
 }
 
 func (b *hotkeysBar) update() int {

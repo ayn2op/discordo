@@ -91,6 +91,7 @@ bottom = "Rune[G]"
 # Select the currently highlighted text-based channel or expand a guild or channel.
 select_current = "Enter"
 yank_id = "Rune[i]"
+cancel = "Esc"
 collapse_parent_node = "Rune[-]"
 move_to_parent_node = "Rune[p]"
 

@@ -32,6 +32,7 @@ type GuildsTreeKeybinds struct {
 	NavigationKeybinds
 	SelectCurrent string `toml:"select_current"`
 	YankID        string `toml:"yank_id" name:"yank_id"`
+	Cancel        string `toml:"cancel" name:"cancel" hot:"true"`
 
 	CollapseParentNode string `toml:"collapse_parent_node" name:"collapse_parent"`
 	MoveToParentNode   string `toml:"move_to_parent_node" name:"goto_parent"`

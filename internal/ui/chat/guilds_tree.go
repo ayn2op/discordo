@@ -280,6 +280,9 @@ func (gt *guildsTree) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	case gt.cfg.Keybinds.GuildsTree.SelectCurrent:
 		return tcell.NewEventKey(tcell.KeyEnter, "", tcell.ModNone)
 
+	case gt.cfg.Keybinds.GuildsTree.Cancel:
+		gt.chatView.app.SetFocus(gt.chatView.hotkeysBar)
+
 	case gt.cfg.Keybinds.GuildsTree.YankID:
 		gt.yankID()
 	}
