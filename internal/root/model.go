@@ -47,8 +47,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m Model) View(canvas *tea.Canvas, area tea.Rect) {
+func (m Model) View(frame *tea.Frame, area tea.Rect) {
 	if m.model != nil {
-		m.model.View(canvas, area)
+		m.model.View(frame, area)
 	}
 }

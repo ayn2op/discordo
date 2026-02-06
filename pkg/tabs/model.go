@@ -59,7 +59,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m Model) View(canvas *tea.Canvas, area tea.Rect) {
+func (m Model) View(frame *tea.Frame, area tea.Rect) {
 	if len(m.tabs) == 0 {
 		return
 	}
@@ -77,12 +77,12 @@ func (m Model) View(canvas *tea.Canvas, area tea.Rect) {
 			labels.WriteByte(']')
 		}
 	}
-	canvas.PutStr(area.Min.X, area.Min.Y, labels.String())
+	frame.PutStr(area.Min.X, area.Min.Y, labels.String())
 
 	content := area
 	content.Min.Y++
 	if content.Dy() <= 0 {
 		return
 	}
-	m.tabs[m.active].View(canvas, content)
+	m.tabs[m.active].View(frame, content)
 }

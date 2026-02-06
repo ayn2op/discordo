@@ -20,6 +20,6 @@ func (m Model) Update(tea.Msg) (tea.Model, tea.Cmd) {
 	panic("unimplemented")
 }
 
-func (m Model) View(canvas *tea.Canvas, area tea.Rect) {
-	canvas.PutStr(area.Min.X, area.Min.Y, "Chat")
+func (m Model) View(frame *tea.Frame, area tea.Rect) {
+	frame.PutStr(area.Min.X, area.Min.Y, "Chat")
 }

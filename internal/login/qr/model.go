@@ -20,8 +20,8 @@ func (m Model) Update(tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) View(canvas *tea.Canvas, area tea.Rect) {
-	canvas.PutStr(area.Min.X, area.Min.Y, "QR login tab")
+func (m Model) View(frame *tea.Frame, area tea.Rect) {
+	frame.PutStr(area.Min.X, area.Min.Y, "QR login tab")
 }
 
 func (m Model) Label() string {

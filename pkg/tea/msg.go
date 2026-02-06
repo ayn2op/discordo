@@ -22,23 +22,38 @@ func Quit() Msg {
 }
 
 type batchMsg []Cmd
+type sequenceMsg []Cmd
 
 func Batch(cmds ...Cmd) Cmd {
-	filtered := make([]Cmd, 0, len(cmds))
-	for _, cmd := range cmds {
-		if cmd != nil {
-			filtered = append(filtered, cmd)
-		}
-	}
-
+	filtered := compactCmds(cmds)
 	switch len(filtered) {
 	case 0:
 		return nil
 	case 1:
 		return filtered[0]
 	default:
-		return func() Msg {
-			return batchMsg(filtered)
+		return func() Msg { return batchMsg(filtered) }
+	}
+}
+
+func Sequence(cmds ...Cmd) Cmd {
+	filtered := compactCmds(cmds)
+	switch len(filtered) {
+	case 0:
+		return nil
+	case 1:
+		return filtered[0]
+	default:
+		return func() Msg { return sequenceMsg(filtered) }
+	}
+}
+
+func compactCmds(cmds []Cmd) []Cmd {
+	filtered := make([]Cmd, 0, len(cmds))
+	for _, cmd := range cmds {
+		if cmd != nil {
+			filtered = append(filtered, cmd)
 		}
 	}
+	return filtered
 }
