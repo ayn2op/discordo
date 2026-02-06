@@ -86,10 +86,12 @@ func (ml *messagesList) setTitle(channel discord.Channel) {
 func (ml *messagesList) setMessages(messages []discord.Message) {
 	ml.messages = slices.Clone(messages)
 	slices.Reverse(ml.messages)
+	ml.MarkDirty()
 }
 
 func (ml *messagesList) addMessage(message discord.Message) {
 	ml.messages = append(ml.messages, message)
+	ml.MarkDirty()
 }
 
 func (ml *messagesList) setMessage(index int, message discord.Message) {
@@ -98,6 +100,7 @@ func (ml *messagesList) setMessage(index int, message discord.Message) {
 	}
 
 	ml.messages[index] = message
+	ml.MarkDirty()
 }
 
 func (ml *messagesList) deleteMessage(index int) {
@@ -106,6 +109,7 @@ func (ml *messagesList) deleteMessage(index int) {
 	}
 
 	ml.messages = append(ml.messages[:index], ml.messages[index+1:]...)
+	ml.MarkDirty()
 }
 
 func (ml *messagesList) clearSelection() {
