@@ -199,6 +199,7 @@ max_height = 0
 # Hotkeys bar
 [theme.hotkeys]
 enable = true
+padding = [1, 1] # [left, right]
 # Show ^X and S-X instead of CTRL-X and Shift-X
 show_compact_keybinds = false
 # Show all avaliable keybindings, not just the mostly used ones

@@ -33,7 +33,8 @@ func newHotkeysBar(cfg *config.Config) *hotkeysBar {
 	}
 	hkb.TextView.
 		SetDynamicColors(true).
-		SetWrap(false)
+		SetWrap(false).
+		SetBorderPadding(0, 0, cfg.Theme.Hotkeys.Padding[0], cfg.Theme.Hotkeys.Padding[1])
 	return hkb
 }
 

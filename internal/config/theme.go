@@ -158,6 +158,7 @@ type (
 
 	HotkeysTheme struct {
 		Enable    bool   `toml:"enable"`
+		Padding   [2]int `toml:"padding"`
 		Compact   bool   `toml:"show_compact_keybinds"`
 		ShowAll   bool   `toml:"show_all_keybinds"`
 		Format    string `toml:"format"`
