@@ -7,7 +7,7 @@ go 1.25.3
 require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/andybalholm/brotli v1.2.0
-	github.com/ayn2op/tview v0.0.0-20260131155949-225a892e84f6
+	github.com/ayn2op/tview v0.0.0-20260206094054-e7bcc869f99d
 	github.com/deckarep/gosx-notifier v0.0.0-20180201035817-e127226297fb
 	github.com/diamondburned/arikawa/v3 v3.6.1-0.20250928004212-a891a653eb26
 	github.com/diamondburned/ningen/v3 v3.0.1-0.20250920191746-98fbd92e134d
@@ -51,7 +51,7 @@ require (
 	go4.org v0.0.0-20260112195520-a5071408f32f // indirect
 	golang.org/x/exp/shiny v0.0.0-20260112195511-716be5621a96 // indirect
 	golang.org/x/image v0.35.0 // indirect
-	golang.org/x/mobile v0.0.0-20260120165949-40bd9ace6ce4 // indirect
+	golang.org/x/mobile v0.0.0-20260204172633-1dceadbbeea3 // indirect
 	golang.org/x/sys v0.40.0 // indirect
 	golang.org/x/term v0.39.0 // indirect
 	golang.org/x/text v0.33.0 // indirect

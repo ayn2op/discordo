@@ -20,6 +20,13 @@ type guildsTree struct {
 	*tview.TreeView
 	cfg      *config.Config
 	chatView *View
+
+	// Fast-path indexes for frequent event handlers (read updates, picker
+	// navigation). They mirror the current rendered tree and are rebuilt on
+	// READY before nodes are added.
+	guildNodeByID   map[discord.GuildID]*tview.TreeNode
+	channelNodeByID map[discord.ChannelID]*tview.TreeNode
+	dmRootNode      *tview.TreeNode
 }
 
 func newGuildsTree(cfg *config.Config, chatView *View) *guildsTree {
@@ -27,6 +34,9 @@ func newGuildsTree(cfg *config.Config, chatView *View) *guildsTree {
 		TreeView: tview.NewTreeView(),
 		cfg:      cfg,
 		chatView: chatView,
+
+		guildNodeByID:   make(map[discord.GuildID]*tview.TreeNode),
+		channelNodeByID: make(map[discord.ChannelID]*tview.TreeNode),
 	}
 
 	gt.Box = ui.ConfigureBox(gt.Box, &cfg.Theme)
@@ -40,6 +50,13 @@ func newGuildsTree(cfg *config.Config, chatView *View) *guildsTree {
 		SetInputCapture(gt.onInputCapture)
 
 	return gt
+}
+
+func (gt *guildsTree) resetNodeIndex() {
+	// Keep allocated map capacity; READY can rebuild often during reconnects.
+	clear(gt.guildNodeByID)
+	clear(gt.channelNodeByID)
+	gt.dmRootNode = nil
 }
 
 func (gt *guildsTree) createFolderNode(folder gateway.GuildFolder) {
@@ -92,6 +109,7 @@ func (gt *guildsTree) createGuildNode(n *tview.TreeNode, guild discord.Guild) {
 		SetReference(guild.ID).
 		SetTextStyle(gt.getGuildNodeStyle(guild.ID))
 	n.AddChild(guildNode)
+	gt.guildNodeByID[guild.ID] = guildNode
 }
 
 func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Channel) {
@@ -103,39 +121,42 @@ func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Ch
 		SetReference(channel.ID).
 		SetTextStyle(gt.getChannelNodeStyle(channel.ID))
 	node.AddChild(channelNode)
+	gt.channelNodeByID[channel.ID] = channelNode
 }
 
 func (gt *guildsTree) createChannelNodes(node *tview.TreeNode, channels []discord.Channel) {
+	// Preserve exact ordering semantics:
+	// 1) top-level non-categories (in input order),
+	// 2) categories that have at least one child in the source slice (in input order),
+	// 3) parented channels under already-created categories (in input order).
+	//
+	// We precompute parent presence once to avoid the O(n^2) category-child scan.
+	hasChildByParentID := make(map[discord.ChannelID]struct{}, len(channels))
+	for _, channel := range channels {
+		if channel.ParentID.IsValid() {
+			hasChildByParentID[channel.ParentID] = struct{}{}
+		}
+	}
+
 	for _, channel := range channels {
 		if channel.Type != discord.GuildCategory && !channel.ParentID.IsValid() {
 			gt.createChannelNode(node, channel)
 		}
 	}
 
-PARENT_CHANNELS:
 	for _, channel := range channels {
 		if channel.Type == discord.GuildCategory {
-			for _, nested := range channels {
-				if nested.ParentID == channel.ID {
-					gt.createChannelNode(node, channel)
-					continue PARENT_CHANNELS
-				}
+			if _, ok := hasChildByParentID[channel.ID]; ok {
+				gt.createChannelNode(node, channel)
 			}
 		}
 	}
 
 	for _, channel := range channels {
 		if channel.ParentID.IsValid() {
-			var parent *tview.TreeNode
-			node.Walk(func(node, _ *tview.TreeNode) bool {
-				if node.GetReference() == channel.ParentID {
-					parent = node
-					return false
-				}
-
-				return true
-			})
-
+			// Parent categories are inserted earlier in this function, so this
+			// lookup is O(1) and avoids per-channel subtree walks.
+			parent := gt.channelNodeByID[channel.ParentID]
 			if parent != nil {
 				gt.createChannelNode(parent, channel)
 			}
@@ -297,16 +318,25 @@ func (gt *guildsTree) yankID() {
 }
 
 func (gt *guildsTree) findNodeByReference(reference any) *tview.TreeNode {
-	var found *tview.TreeNode
-	gt.GetRoot().Walk(func(node, _ *tview.TreeNode) bool {
-		if node.GetReference() == reference {
-			found = node
-			return false
-		}
-
-		return true
-	})
-	return found
+	switch ref := reference.(type) {
+	case discord.GuildID:
+		return gt.guildNodeByID[ref]
+	case discord.ChannelID:
+		return gt.channelNodeByID[ref]
+	case dmNode:
+		return gt.dmRootNode
+	default:
+		// Fallback keeps this helper safe for non-indexed custom references.
+		var found *tview.TreeNode
+		gt.GetRoot().Walk(func(node, _ *tview.TreeNode) bool {
+			if node.GetReference() == reference {
+				found = node
+				return false
+			}
+			return true
+		})
+		return found
+	}
 }
 
 func (gt *guildsTree) findNodeByChannelID(channelID discord.ChannelID) *tview.TreeNode {

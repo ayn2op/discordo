@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/ayn2op/tview/layers"
 	"io"
 	"log/slog"
 	"net/http"
@@ -40,6 +41,10 @@ type messagesList struct {
 	messages []discord.Message
 
 	renderer *markdown.Renderer
+	// itemByID caches fully built message TextViews. ScrollList may ask the
+	// builder repeatedly during drawing, so we avoid reparsing markdown and
+	// reconstructing TextViews unless a message actually changed.
+	itemByID map[discord.MessageID]*tview.TextView
 
 	fetchingMembers struct {
 		mu    sync.Mutex
@@ -55,6 +60,7 @@ func newMessagesList(cfg *config.Config, chatView *View) *messagesList {
 		cfg:        cfg,
 		chatView:   chatView,
 		renderer:   markdown.NewRenderer(cfg.Theme.MessagesList),
+		itemByID:   make(map[discord.MessageID]*tview.TextView),
 	}
 
 	ml.Box = ui.ConfigureBox(ml.Box, &cfg.Theme)
@@ -67,6 +73,7 @@ func newMessagesList(cfg *config.Config, chatView *View) *messagesList {
 
 func (ml *messagesList) reset() {
 	ml.messages = nil
+	clear(ml.itemByID)
 	ml.
 		Clear().
 		SetBuilder(ml.buildItem).
@@ -85,10 +92,17 @@ func (ml *messagesList) setTitle(channel discord.Channel) {
 func (ml *messagesList) setMessages(messages []discord.Message) {
 	ml.messages = slices.Clone(messages)
 	slices.Reverse(ml.messages)
+	// New channel payload / refetch: replace the cache wholesale to keep it in
+	// lockstep with the current message slice.
+	clear(ml.itemByID)
+	ml.MarkDirty()
 }
 
 func (ml *messagesList) addMessage(message discord.Message) {
 	ml.messages = append(ml.messages, message)
+	// Defensive invalidation for ID reuse/edits delivered out-of-order.
+	delete(ml.itemByID, message.ID)
+	ml.MarkDirty()
 }
 
 func (ml *messagesList) setMessage(index int, message discord.Message) {
@@ -97,6 +111,8 @@ func (ml *messagesList) setMessage(index int, message discord.Message) {
 	}
 
 	ml.messages[index] = message
+	delete(ml.itemByID, message.ID)
+	ml.MarkDirty()
 }
 
 func (ml *messagesList) deleteMessage(index int) {
@@ -104,7 +120,9 @@ func (ml *messagesList) deleteMessage(index int) {
 		return
 	}
 
+	delete(ml.itemByID, ml.messages[index].ID)
 	ml.messages = append(ml.messages[:index], ml.messages[index+1:]...)
+	ml.MarkDirty()
 }
 
 func (ml *messagesList) clearSelection() {
@@ -117,11 +135,16 @@ func (ml *messagesList) buildItem(index int, cursor int) tview.ScrollListItem {
 	}
 
 	message := ml.messages[index]
-	tv := tview.NewTextView().
-		SetWrap(true).
-		SetWordWrap(true).
-		SetDynamicColors(true).
-		SetText(ml.renderMessage(message))
+	tv, ok := ml.itemByID[message.ID]
+	if !ok {
+		tv = tview.NewTextView().
+			SetWrap(true).
+			SetWordWrap(true).
+			SetDynamicColors(true).
+			SetText(ml.renderMessage(message))
+		ml.itemByID[message.ID] = tv
+	}
+	// Selection state is visual only; we mutate style on the cached view.
 	if index == cursor {
 		tv.SetTextStyle(ml.cfg.Theme.MessagesList.SelectedMessageStyle.Style)
 	} else {
@@ -429,6 +452,10 @@ func (ml *messagesList) _select(name string) {
 			older := slices.Clone(messages)
 			slices.Reverse(older)
 
+			// Defensive invalidation if Discord returns overlapping windows.
+			for _, message := range older {
+				delete(ml.itemByID, message.ID)
+			}
 			ml.messages = slices.Concat(older, ml.messages)
 			cursor = len(messages) - 1
 		}
@@ -552,7 +579,7 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 		SetHighlightFullLine(true).
 		ShowSecondaryText(false).
 		SetDoneFunc(func() {
-			ml.chatView.RemovePage(attachmentsListPageName).SwitchToPage(flexPageName)
+			ml.chatView.RemoveLayer(attachmentsListLayerName)
 			ml.chatView.app.SetFocus(ml)
 		})
 	list.
@@ -589,8 +616,14 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 	}
 
 	ml.chatView.
-		AddAndSwitchToPage(attachmentsListPageName, ui.Centered(list, 0, 0), true).
-		ShowPage(flexPageName)
+		AddLayer(
+			ui.Centered(list, 0, 0),
+			layers.WithName(attachmentsListLayerName),
+			layers.WithResize(true),
+			layers.WithVisible(true),
+			layers.WithOverlay(),
+		).
+		SendToFront(attachmentsListLayerName)
 }
 
 func (ml *messagesList) openAttachment(attachment discord.Attachment) {
