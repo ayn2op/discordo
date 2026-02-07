@@ -14,6 +14,11 @@ status = "default"
 markdown = true
 hide_blocked_users = true
 show_attachment_links = true
+# When to show spoilers.
+# "selected" -> selected messages
+# "moderated" -> on channels I moderate (has ManageMessages permission)
+# default -> always
+show_spoiler = "selected"
 
 # Max members to be in the mention autocomplete suggestions list
 # Note: Use autocomplete_limit = 0 to disable.
@@ -174,6 +179,7 @@ graphics_color = "default"
 [theme.messages_list]
 reply_indicator = ">"
 forwarded_indicator = "<"
+spoil_character = "▒"
 
 mention_style = { foreground = "blue" }
 emoji_style = { foreground = "green" }
@@ -181,6 +187,7 @@ url_style = { foreground = "blue" }
 attachment_style = { foreground = "yellow" }
 message_style = {}
 selected_message_style = { attributes = "reverse" }
+shown_spoiler_style = { background = "#181818" }
 
 [theme.mentions_list]
 # Note: width and height are capped to the avaliable space

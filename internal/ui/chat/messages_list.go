@@ -46,6 +46,10 @@ type messagesList struct {
 	// reconstructing TextViews unless a message actually changed.
 	itemByID map[discord.MessageID]*tview.TextView
 
+	// Recalculate the text of messages by index.
+	// -1 == don't.
+	respoil [2]int
+
 	fetchingMembers struct {
 		mu    sync.Mutex
 		value bool
@@ -126,7 +130,10 @@ func (ml *messagesList) deleteMessage(index int) {
 }
 
 func (ml *messagesList) clearSelection() {
-	ml.SetCursor(-1)
+	if ml.Cursor() != -1 {
+		ml.respoil[0] = ml.Cursor()
+		ml.SetCursor(-1)
+	}
 }
 
 func (ml *messagesList) buildItem(index int, cursor int) tview.ScrollListItem {
@@ -134,16 +141,24 @@ func (ml *messagesList) buildItem(index int, cursor int) tview.ScrollListItem {
 		return nil
 	}
 
-	message := ml.messages[index]
-	tv, ok := ml.itemByID[message.ID]
+	msg := ml.messages[index]
+	tv, ok := ml.itemByID[msg.ID]
 	if !ok {
 		tv = tview.NewTextView().
 			SetWrap(true).
 			SetWordWrap(true).
-			SetDynamicColors(true).
-			SetText(ml.renderMessage(message))
-		ml.itemByID[message.ID] = tv
+			SetDynamicColors(true)
+		ml.setMessageText(tv, msg, index == cursor)
+		ml.itemByID[msg.ID] = tv
+	} else if index == ml.respoil[0] || index == ml.respoil[1] {
+		if index == ml.respoil[0] {
+			ml.respoil[0] = -1
+		} else {
+			ml.respoil[1] = -1
+		}
+		ml.setMessageText(tv, msg, index == cursor)
 	}
+
 	// Selection state is visual only; we mutate style on the cached view.
 	if index == cursor {
 		tv.SetTextStyle(ml.cfg.Theme.MessagesList.SelectedMessageStyle.Style)
@@ -153,13 +168,30 @@ func (ml *messagesList) buildItem(index int, cursor int) tview.ScrollListItem {
 	return tv
 }
 
-func (ml *messagesList) renderMessage(message discord.Message) string {
+func (ml *messagesList) setMessageText(tv *tview.TextView, msg discord.Message, isCurrent bool) {
+	switch ml.cfg.ShowSpoiler {
+	case "moderated":
+		show := isCurrent
+		if !show {
+			if selChannel := ml.chatView.SelectedChannel(); selChannel != nil {
+				show = ml.chatView.state.HasPermissions(selChannel.ID, discord.PermissionManageMessages)
+			}
+		}
+		tv.SetText(ml.renderMessage(msg, show))
+	case "selected":
+		tv.SetText(ml.renderMessage(msg, isCurrent))
+	default:
+		tv.SetText(ml.renderMessage(msg, true))
+	}
+}
+
+func (ml *messagesList) renderMessage(message discord.Message, showSpoiler bool) string {
 	var b strings.Builder
-	ml.writeMessage(&b, message)
+	ml.writeMessage(&b, message, showSpoiler)
 	return b.String()
 }
 
-func (ml *messagesList) writeMessage(writer io.Writer, message discord.Message) {
+func (ml *messagesList) writeMessage(writer io.Writer, message discord.Message, showSpoiler bool) {
 	if ml.cfg.HideBlockedUsers {
 		isBlocked := ml.chatView.state.UserIsBlocked(message.Author.ID)
 		if isBlocked {
@@ -176,7 +208,7 @@ func (ml *messagesList) writeMessage(writer io.Writer, message discord.Message) 
 		if message.Reference != nil && message.Reference.Type == discord.MessageReferenceTypeForward {
 			ml.drawForwardedMessage(writer, message)
 		} else {
-			ml.drawDefaultMessage(writer, message)
+			ml.drawDefaultMessage(writer, message, showSpoiler)
 		}
 	case discord.GuildMemberJoinMessage:
 		ml.drawTimestamps(writer, message.Timestamp)
@@ -229,11 +261,11 @@ func (ml *messagesList) drawAuthor(w io.Writer, message discord.Message) {
 	fmt.Fprintf(w, "[%s::b]%s[-::B] ", foreground, name)
 }
 
-func (ml *messagesList) drawContent(w io.Writer, message discord.Message) {
+func (ml *messagesList) drawContent(w io.Writer, message discord.Message, showSpoiler bool) {
 	c := []byte(tview.Escape(message.Content))
 	if ml.chatView.cfg.Markdown {
 		ast := discordmd.ParseWithMessage(c, *ml.chatView.state.Cabinet, &message, false)
-		ml.renderer.Render(w, c, ast)
+		ml.renderer.Render(w, c, ast, showSpoiler)
 	} else {
 		w.Write(c) // write the content as is
 	}
@@ -245,13 +277,13 @@ func (ml *messagesList) drawSnapshotContent(w io.Writer, message discord.Message
 	w.Write(c)
 }
 
-func (ml *messagesList) drawDefaultMessage(w io.Writer, message discord.Message) {
+func (ml *messagesList) drawDefaultMessage(w io.Writer, message discord.Message, showSpoiler bool) {
 	if ml.cfg.Timestamps.Enabled {
 		ml.drawTimestamps(w, message.Timestamp)
 	}
 
 	ml.drawAuthor(w, message)
-	ml.drawContent(w, message)
+	ml.drawContent(w, message, showSpoiler)
 
 	if message.EditedTimestamp.IsValid() {
 		io.WriteString(w, " [::d](edited)[::D]")
@@ -287,14 +319,14 @@ func (ml *messagesList) drawReplyMessage(w io.Writer, message discord.Message) {
 	if m := message.ReferencedMessage; m != nil {
 		m.GuildID = message.GuildID
 		ml.drawAuthor(w, *m)
-		ml.drawContent(w, *m)
+		ml.drawContent(w, *m, false)
 	} else {
 		io.WriteString(w, "Original message was deleted")
 	}
 
 	io.WriteString(w, "\n")
 	// main
-	ml.drawDefaultMessage(w, message)
+	ml.drawDefaultMessage(w, message, true)
 }
 
 func (ml *messagesList) drawPinnedMessage(w io.Writer, message discord.Message) {
@@ -376,6 +408,7 @@ func (ml *messagesList) _select(name string) {
 	}
 
 	cursor := ml.Cursor()
+	lastCursor := cursor
 
 	switch name {
 	case ml.cfg.Keybinds.MessagesList.SelectUp:
@@ -443,6 +476,11 @@ func (ml *messagesList) _select(name string) {
 	}
 
 	ml.SetCursor(cursor)
+
+	if lastCursor != cursor {
+		ml.respoil[0] = cursor
+		ml.respoil[1] = lastCursor
+	}
 }
 
 func (ml *messagesList) yankID() {

@@ -6,11 +6,13 @@ import (
 	"io"
 	"strconv"
 	"strings"
+	"bytes"
 
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/diamondburned/ningen/v3/discordmd"
 	"github.com/yuin/goldmark/ast"
 	gmr "github.com/yuin/goldmark/renderer"
+	"github.com/rivo/uniseg"
 )
 
 type Renderer struct {
@@ -18,6 +20,8 @@ type Renderer struct {
 
 	listIx     *int
 	listNested int
+
+	spoil bool
 }
 
 func NewRenderer(theme config.MessagesListTheme) *Renderer {
@@ -26,7 +30,8 @@ func NewRenderer(theme config.MessagesListTheme) *Renderer {
 
 func (r *Renderer) AddOptions(opts ...gmr.Option) {}
 
-func (r *Renderer) Render(w io.Writer, source []byte, node ast.Node) error {
+func (r *Renderer) Render(w io.Writer, source []byte, node ast.Node, showSpoiler bool) error {
+	r.spoil = false
 	return ast.Walk(node, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
 		switch node := node.(type) {
 		case *ast.Document:
@@ -47,7 +52,7 @@ func (r *Renderer) Render(w io.Writer, source []byte, node ast.Node) error {
 			r.renderListItem(w, entering)
 
 		case *discordmd.Inline:
-			r.renderInline(w, node, entering)
+			r.renderInline(w, node, entering, showSpoiler)
 		case *discordmd.Mention:
 			r.renderMention(w, node, entering)
 		case *discordmd.Emoji:
@@ -74,7 +79,7 @@ func (r *Renderer) renderFencedCodeBlock(w io.Writer, node *ast.FencedCodeBlock,
 		// language
 		if l := node.Language(source); l != nil {
 			io.WriteString(w, "|=> ")
-			w.Write(l)
+			w.Write(r.checkAndSpoilBytes(l))
 			io.WriteString(w, "\n")
 		}
 
@@ -83,12 +88,16 @@ func (r *Renderer) renderFencedCodeBlock(w io.Writer, node *ast.FencedCodeBlock,
 		for i := range lines.Len() {
 			line := lines.At(i)
 			io.WriteString(w, "| ")
-			w.Write(line.Value(source))
+			w.Write(r.checkAndSpoilBytes(line.Value(source)))
 		}
 	}
 }
 
 func (r *Renderer) renderAutoLink(w io.Writer, node *ast.AutoLink, entering bool, source []byte) {
+	if r.spoil {
+		return
+	}
+
 	urlStyle := r.theme.URLStyle
 
 	if entering {
@@ -102,7 +111,12 @@ func (r *Renderer) renderAutoLink(w io.Writer, node *ast.AutoLink, entering bool
 }
 
 func (r *Renderer) renderLink(w io.Writer, node *ast.Link, entering bool) {
+	if r.spoil {
+		return
+	}
+
 	urlStyle := r.theme.URLStyle
+
 	if entering {
 		fg := urlStyle.GetForeground()
 		bg := urlStyle.GetBackground()
@@ -145,7 +159,7 @@ func (r *Renderer) renderListItem(w io.Writer, entering bool) {
 
 func (r *Renderer) renderText(w io.Writer, node *ast.Text, entering bool, source []byte) {
 	if entering {
-		w.Write(node.Segment.Value(source))
+		w.Write(r.checkAndSpoilBytes(node.Segment.Value(source)))
 		switch {
 		case node.HardLineBreak():
 			io.WriteString(w, "\n\n")
@@ -154,49 +168,87 @@ func (r *Renderer) renderText(w io.Writer, node *ast.Text, entering bool, source
 		}
 	}
 }
-func (r *Renderer) renderInline(w io.Writer, node *discordmd.Inline, entering bool) {
+func (r *Renderer) renderInline(w io.Writer, node *discordmd.Inline, entering bool, showSpoiler bool) {
+	if (node.Attr & discordmd.AttrSpoiler) != 0 && !showSpoiler {
+		r.spoil = entering
+		return
+	}
+
+	if r.spoil {
+		return
+	}
+
 	if start, end := attrToTag(node.Attr); entering && start != "" {
 		io.WriteString(w, start)
 	} else {
 		io.WriteString(w, end)
 	}
+
+	if (node.Attr & discordmd.AttrSpoiler) != 0 && entering {
+		shownStyle := r.theme.ShownSpoilerStyle
+		fg := shownStyle.GetForeground()
+		bg := shownStyle.GetBackground()
+		fmt.Fprintf(w, "[%s:%s:-][::R]", fg, bg)
+	}
 }
 
 func (r *Renderer) renderMention(w io.Writer, node *discordmd.Mention, entering bool) {
-	mentionStyle := r.theme.MentionStyle
 	if entering {
-		fg := mentionStyle.GetForeground()
-		bg := mentionStyle.GetBackground()
-		fmt.Fprintf(w, "[%s:%s:b]", fg, bg)
+		if !r.spoil {
+			mentionStyle := r.theme.MentionStyle
+			fg := mentionStyle.GetForeground()
+			bg := mentionStyle.GetBackground()
+			fmt.Fprintf(w, "[%s:%s:b]", fg, bg)
+		}
 
 		switch {
 		case node.Channel != nil:
-			io.WriteString(w, "#"+node.Channel.Name)
+			io.WriteString(w, r.checkAndSpoil("#"+node.Channel.Name))
 		case node.GuildUser != nil:
 			name := node.GuildUser.DisplayOrUsername()
 			if member := node.GuildUser.Member; member != nil && member.Nick != "" {
 				name = member.Nick
 			}
 
-			io.WriteString(w, "@"+name)
+			io.WriteString(w, r.checkAndSpoil("@"+name))
 		case node.GuildRole != nil:
-			io.WriteString(w, "@"+node.GuildRole.Name)
+			io.WriteString(w, r.checkAndSpoil("@"+node.GuildRole.Name))
 		}
 	} else {
-		io.WriteString(w, "[-:-:B]")
+		if !r.spoil {
+			io.WriteString(w, "[-:-:B]")
+		}
 	}
 }
 
 func (r *Renderer) renderEmoji(w io.Writer, node *discordmd.Emoji, entering bool) {
 	if entering {
-		emojiStyle := r.theme.EmojiStyle
-		fg := emojiStyle.GetForeground()
-		bg := emojiStyle.GetBackground()
-		fmt.Fprintf(w, "[%s:%s]", fg, bg)
-		io.WriteString(w, ":"+node.Name+":")
+		if !r.spoil {
+			emojiStyle := r.theme.EmojiStyle
+			fg := emojiStyle.GetForeground()
+			bg := emojiStyle.GetBackground()
+			fmt.Fprintf(w, "[%s:%s]", fg, bg)
+		}
+		io.WriteString(w, r.checkAndSpoil(":"+node.Name+":"))
 	} else {
-		io.WriteString(w, "[-:-]")
+		if !r.spoil {
+			io.WriteString(w, "[-:-]")
+		}
 	}
+}
+
+func (r *Renderer) checkAndSpoil(s string) string {
+	if r.spoil {
+		return strings.Repeat(r.theme.SpoilCharacter, uniseg.StringWidth(s))
+	}
+	return s
+}
+
+func (r *Renderer) checkAndSpoilBytes(s []byte) []byte {
+	if r.spoil {
+		return bytes.Repeat([]byte(r.theme.SpoilCharacter), uniseg.StringWidth(string(s)))
+	}
+	return s
 }
 
 func attrToTag(attr discordmd.Attribute) (string, string) {
