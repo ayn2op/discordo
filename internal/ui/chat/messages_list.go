@@ -46,6 +46,10 @@ type messagesList struct {
 	// reconstructing TextViews unless a message actually changed.
 	itemByID map[discord.MessageID]*tview.TextView
 
+	// Recalculate the text of messages by index.
+	// -1 == don't.
+	respoil [2]int
+
 	fetchingMembers struct {
 		mu    sync.Mutex
 		value bool
@@ -126,7 +130,10 @@ func (ml *messagesList) deleteMessage(index int) {
 }
 
 func (ml *messagesList) clearSelection() {
-	ml.SetCursor(-1)
+	if ml.Cursor() != -1 {
+		ml.respoil[0] = ml.Cursor()
+		ml.SetCursor(-1)
+	}
 }
 
 func (ml *messagesList) buildItem(index int, cursor int) tview.ScrollListItem {
@@ -134,32 +141,48 @@ func (ml *messagesList) buildItem(index int, cursor int) tview.ScrollListItem {
 		return nil
 	}
 
-	message := ml.messages[index]
-	tv := tview.NewTextView().
-		SetWrap(true).
-		SetWordWrap(true).
-		SetDynamicColors(true)
-	
-	switch ml.cfg.ShowSpoiler {
-	case "moderated":
-		show := index == cursor
-		if !show {
-			if selChannel := ml.chatView.SelectedChannel(); selChannel != nil {
-				show = ml.chatView.state.HasPermissions(selChannel.ID, discord.PermissionManageMessages)
-			}
+	msg := ml.messages[index]
+	tv, ok := ml.itemByID[msg.ID]
+	if !ok {
+		tv = tview.NewTextView().
+			SetWrap(true).
+			SetWordWrap(true).
+			SetDynamicColors(true)
+		ml.setMessageText(tv, msg, index == cursor)
+		ml.itemByID[msg.ID] = tv
+	} else if index == ml.respoil[0] || index == ml.respoil[1] {
+		if index == ml.respoil[0] {
+			ml.respoil[0] = -1
+		} else {
+			ml.respoil[1] = -1
 		}
-		tv.SetText(ml.renderMessage(message, show))
-	case "selected":
-		tv.SetText(ml.renderMessage(message, index == cursor))
-	default:
-		tv.SetText(ml.renderMessage(message, true))
+		ml.setMessageText(tv, msg, index == cursor)
 	}
+
+	// Selection state is visual only; we mutate style on the cached view.
 	if index == cursor {
 		tv.SetTextStyle(ml.cfg.Theme.MessagesList.SelectedMessageStyle.Style)
 	} else {
 		tv.SetTextStyle(ml.cfg.Theme.MessagesList.MessageStyle.Style)
 	}
 	return tv
+}
+
+func (ml *messagesList) setMessageText(tv *tview.TextView, msg discord.Message, isCurrent bool) {
+	switch ml.cfg.ShowSpoiler {
+	case "moderated":
+		show := isCurrent
+		if !show {
+			if selChannel := ml.chatView.SelectedChannel(); selChannel != nil {
+				show = ml.chatView.state.HasPermissions(selChannel.ID, discord.PermissionManageMessages)
+			}
+		}
+		tv.SetText(ml.renderMessage(msg, show))
+	case "selected":
+		tv.SetText(ml.renderMessage(msg, isCurrent))
+	default:
+		tv.SetText(ml.renderMessage(msg, true))
+	}
 }
 
 func (ml *messagesList) renderMessage(message discord.Message, showSpoiler bool) string {
@@ -385,6 +408,7 @@ func (ml *messagesList) _select(name string) {
 	}
 
 	cursor := ml.Cursor()
+	lastCursor := cursor
 
 	switch name {
 	case ml.cfg.Keybinds.MessagesList.SelectUp:
@@ -452,6 +476,11 @@ func (ml *messagesList) _select(name string) {
 	}
 
 	ml.SetCursor(cursor)
+
+	if lastCursor != cursor {
+		ml.respoil[0] = cursor
+		ml.respoil[1] = lastCursor
+	}
 }
 
 func (ml *messagesList) yankID() {
