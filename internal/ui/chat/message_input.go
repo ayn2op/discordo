@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 	"unicode"
+	"reflect"
 
 	"github.com/ayn2op/discordo/internal/cache"
 	"github.com/ayn2op/discordo/internal/clipboard"
@@ -39,6 +40,11 @@ const tmpFilePattern = consts.Name + "_*.md"
 
 var mentionRegex = regexp.MustCompile("@[a-zA-Z0-9._]+")
 
+type mentionsList struct {
+	*tview.List
+	messageInput *messageInput
+}
+
 type messageInput struct {
 	*tview.TextArea
 	cfg      *config.Config
@@ -47,11 +53,13 @@ type messageInput struct {
 	edit            bool
 	sendMessageData *api.SendMessageData
 	cache           *cache.Cache
-	mentionsList    *tview.List
+	mentionsList
 	lastSearch      time.Time
 
 	typingTimerMu sync.Mutex
 	typingTimer   *time.Timer
+
+	hotkeysShowMap map[string]func() bool
 }
 
 func newMessageInput(cfg *config.Config, chatView *View) *messageInput {
@@ -61,8 +69,8 @@ func newMessageInput(cfg *config.Config, chatView *View) *messageInput {
 		chatView:        chatView,
 		sendMessageData: &api.SendMessageData{},
 		cache:           cache.NewCache(),
-		mentionsList:    tview.NewList(),
 	}
+	mi.mentionsList = mentionsList{tview.NewList(),mi}
 	mi.Box = ui.ConfigureBox(mi.Box, &cfg.Theme)
 	mi.SetInputCapture(mi.onInputCapture)
 	mi.
@@ -82,6 +90,10 @@ func newMessageInput(cfg *config.Config, chatView *View) *messageInput {
 	b := mi.mentionsList.GetBorderSet()
 	b.BottomLeft, b.BottomRight = b.BottomT, b.BottomT
 	mi.mentionsList.SetBorderSet(b)
+
+	mi.hotkeysShowMap = map[string]func() bool{
+		"attach": mi.hkAttach,
+	}
 
 	return mi
 }
@@ -108,7 +120,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		return tcell.NewEventKey(tcell.KeyCtrlV, "", tcell.ModNone)
 
 	case mi.cfg.Keybinds.MessageInput.Send:
-		if mi.chatView.GetVisibile(mentionsListLayerName) {
+		if mi.chatView.layers.GetVisibile(mentionsListLayerName) {
 			mi.tabComplete()
 			return nil
 		}
@@ -124,10 +136,17 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		mi.openFilePicker()
 		return nil
 	case mi.cfg.Keybinds.MessageInput.Cancel:
-		if mi.chatView.GetVisibile(mentionsListLayerName) {
+		if mi.chatView.layers.GetVisibile(mentionsListLayerName) {
 			mi.stopTabCompletion()
 		} else {
-			mi.reset()
+			if mi.edit != false ||
+			   mi.GetTitle() != "" ||
+			   mi.GetFooter() != "" ||
+			   mi.GetText() != "" {
+				mi.reset()
+			} else {
+				mi.chatView.app.SetFocus(mi.chatView.hotkeysBar)
+			}
 		}
 
 		return nil
@@ -149,7 +168,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	}
 
 	if mi.cfg.AutocompleteLimit > 0 {
-		if mi.chatView.GetVisibile(mentionsListLayerName) {
+		if mi.chatView.layers.GetVisibile(mentionsListLayerName) {
 			handler := mi.mentionsList.InputHandler()
 			switch event.Name() {
 			case mi.cfg.Keybinds.MentionsList.Up:
@@ -527,12 +546,12 @@ func (mi *messageInput) showMentionList() {
 
 		w = min(w+borders*2, maxW)
 		_, col, _, _ := mi.GetCursor()
-		x += min(col, maxW-w)
+		x += min(col-1, maxW-w)
 	}
 
 	l.SetRect(x, y, w, h)
 
-	mi.chatView.
+	mi.chatView.layers.
 		AddLayer(l,
 			layers.WithName(mentionsListLayerName),
 			layers.WithResize(false),
@@ -590,8 +609,7 @@ func (mi *messageInput) addMentionUser(user *discord.User) {
 
 // used by chatView
 func (mi *messageInput) removeMentionsList() {
-	mi.chatView.
-		RemoveLayer(mentionsListLayerName)
+	mi.chatView.layers.RemoveLayer(mentionsListLayerName)
 }
 
 func (mi *messageInput) stopTabCompletion() {
@@ -666,4 +684,56 @@ func (mi *messageInput) attach(name string, reader io.Reader) {
 		names = append(names, file.Name)
 	}
 	mi.SetFooter("Attached " + humanJoin(names))
+}
+
+// Set hotkeys on focus.
+func (mi *messageInput) Focus(delegate func(p tview.Primitive)) {
+	mi.hotkeys()
+	mi.TextArea.Focus(delegate)
+}
+
+// Set hotkeys on mouse focus.
+func (mi *messageInput) MouseHandler() func(action tview.MouseAction, event *tcell.EventMouse, setFocus func(p tview.Primitive)) (consumed bool, capture tview.Primitive) {
+	return mi.TextArea.WrapMouseHandler(func(action tview.MouseAction, event *tcell.EventMouse, setFocus func(p tview.Primitive)) (consumed bool, capture tview.Primitive) {
+		return mi.TextArea.MouseHandler()(action, event, func(p tview.Primitive) {
+			if p == mi.TextArea {
+				mi.hotkeys()
+			}
+			setFocus(p)
+		})
+	})
+}
+
+func (mi *messageInput) hotkeys() {
+	if mi.chatView.layers.HasLayer(mentionsListLayerName) {
+		mi.mentionsList.hotkeys()
+		return
+	}
+	mi.chatView.hotkeysBar.hotkeysFromValue(
+		reflect.ValueOf(mi.cfg.Keybinds.MessageInput),
+		mi.hotkeysShowMap,
+	)
+}
+
+func (ml mentionsList) MouseHandler() func(action tview.MouseAction, event *tcell.EventMouse, setFocus func(p tview.Primitive)) (consumed bool, capture tview.Primitive) {
+	return ml.List.WrapMouseHandler(func(action tview.MouseAction, event *tcell.EventMouse, setFocus func(p tview.Primitive)) (consumed bool, capture tview.Primitive) {
+		return ml.List.MouseHandler()(action, event, func(p tview.Primitive) {
+			if p == ml.List {
+				ml.hotkeys()
+			}
+			setFocus(p)
+		})
+	})
+}
+
+func (ml *mentionsList) hotkeys() {
+	ml.messageInput.chatView.hotkeysBar.hotkeysFromValue(
+		reflect.ValueOf(ml.messageInput.cfg.Keybinds.MentionsList),
+		nil,
+	)
+}
+
+func (mi *messageInput) hkAttach() bool {
+	sel := mi.chatView.SelectedChannel()
+	return sel != nil && mi.chatView.state.HasPermissions(sel.ID, discord.PermissionAttachFiles)
 }

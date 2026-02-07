@@ -3,6 +3,7 @@ package chat
 import (
 	"fmt"
 	"log/slog"
+	"reflect"
 
 	"github.com/ayn2op/discordo/internal/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
@@ -46,6 +47,7 @@ func newGuildsTree(cfg *config.Config, chatView *View) *guildsTree {
 		SetGraphics(cfg.Theme.GuildsTree.Graphics).
 		SetGraphicsColor(tcell.GetColor(cfg.Theme.GuildsTree.GraphicsColor)).
 		SetSelectedFunc(gt.onSelected).
+		SetCurrentNode(nil).
 		SetTitle("Guilds").
 		SetInputCapture(gt.onInputCapture)
 
@@ -107,7 +109,8 @@ func (gt *guildsTree) getChannelNodeStyle(channelID discord.ChannelID) tcell.Sty
 func (gt *guildsTree) createGuildNode(n *tview.TreeNode, guild discord.Guild) {
 	guildNode := tview.NewTreeNode(guild.Name).
 		SetReference(guild.ID).
-		SetTextStyle(gt.getGuildNodeStyle(guild.ID))
+		SetTextStyle(gt.getGuildNodeStyle(guild.ID)).
+		Collapse()
 	n.AddChild(guildNode)
 	gt.guildNodeByID[guild.ID] = guildNode
 }
@@ -182,6 +185,7 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 
 		ui.SortGuildChannels(channels)
 		gt.createChannelNodes(node, channels)
+		node.Expand()
 	case discord.ChannelID:
 		channel, err := gt.chatView.state.Cabinet.Channel(ref)
 		if err != nil {
@@ -258,6 +262,7 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 		for _, c := range channels {
 			gt.createChannelNode(node, c)
 		}
+		node.Expand()
 	}
 }
 
@@ -296,6 +301,9 @@ func (gt *guildsTree) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 
 	case gt.cfg.Keybinds.GuildsTree.SelectCurrent:
 		return tcell.NewEventKey(tcell.KeyEnter, "", tcell.ModNone)
+
+	case gt.cfg.Keybinds.GuildsTree.Cancel:
+		gt.chatView.app.SetFocus(gt.chatView.hotkeysBar)
 
 	case gt.cfg.Keybinds.GuildsTree.YankID:
 		gt.yankID()
@@ -369,4 +377,70 @@ func (gt *guildsTree) expandPathToNode(node *tview.TreeNode) {
 	for _, n := range gt.GetPath(node) {
 		n.Expand()
 	}
+}
+
+// Set hotkeys on focus.
+func (gt *guildsTree) Focus(delegate func(p tview.Primitive)) {
+	gt.hotkeys()
+	gt.TreeView.Focus(delegate)
+}
+
+// Set hotkeys on mouse focus.
+func (gt *guildsTree) MouseHandler() func(action tview.MouseAction, event *tcell.EventMouse, setFocus func(p tview.Primitive)) (consumed bool, capture tview.Primitive) {
+	return gt.TreeView.WrapMouseHandler(func(action tview.MouseAction, event *tcell.EventMouse, setFocus func(p tview.Primitive)) (consumed bool, capture tview.Primitive) {
+		return gt.TreeView.MouseHandler()(action, event, func(p tview.Primitive) {
+			if p == gt.TreeView {
+				gt.hotkeys()
+			}
+			setFocus(p)
+		})
+	})
+}
+
+func (gt *guildsTree) hotkeys() {
+	cfg := gt.cfg.Keybinds.GuildsTree
+	gt.chatView.hotkeysBar.
+		hotkeysFromValue(reflect.ValueOf(cfg), nil).
+		appendHotkeys([]hotkey{
+			{name: "expand", bind: cfg.SelectCurrent, show: gt.hkExpand, hot: true},
+			{name: "collapse", bind: cfg.SelectCurrent, show: gt.hkCollapse, hot: true},
+			{name: "select", bind: cfg.SelectCurrent, show: gt.hkSelect, hot: true},
+		})
+}
+
+func (gt *guildsTree) hkExpand() bool {
+	n := gt.GetCurrentNode()
+	if n == nil {
+		return false
+	}
+	if _, ok := n.GetReference().(discord.ChannelID); ok {
+		if len(n.GetChildren()) == 0 {
+			return false
+		}
+	}
+	return !n.IsExpanded()
+}
+
+func (gt *guildsTree) hkSelect() bool {
+	n := gt.GetCurrentNode()
+	if n == nil {
+		return false
+	}
+	if _, ok := n.GetReference().(discord.ChannelID); ok {
+		return len(n.GetChildren()) == 0
+	}
+	return false
+}
+
+func (gt *guildsTree) hkCollapse() bool {
+	n := gt.GetCurrentNode()
+	if n == nil {
+		return false
+	}
+	if _, ok := n.GetReference().(discord.ChannelID); ok {
+		if len(n.GetChildren()) == 0 {
+			return false
+		}
+	}
+	return n.IsExpanded()
 }

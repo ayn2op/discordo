@@ -3,6 +3,7 @@ package chat
 import (
 	"log/slog"
 	"strings"
+	"reflect"
 
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/ui"
@@ -115,4 +116,13 @@ func (cp *channelsPicker) addChannel(guild *discord.Guild, channel discord.Chann
 
 	name := b.String()
 	cp.AddItem(picker.Item{Text: name, FilterText: name, Reference: channel.ID})
+}
+
+// Set hotkeys on focus.
+func (cp *channelsPicker) Focus(delegate func(p tview.Primitive)) {
+	cp.chatView.hotkeysBar.hotkeysFromValue(
+		reflect.ValueOf(cp.chatView.cfg.Keybinds.Picker),
+		nil,
+	)
+	cp.Picker.Focus(delegate)
 }

@@ -91,6 +91,7 @@ bottom = "Rune[G]"
 # Select the currently highlighted text-based channel or expand a guild or channel.
 select_current = "Enter"
 yank_id = "Rune[i]"
+cancel = "Esc"
 collapse_parent_node = "Rune[-]"
 move_to_parent_node = "Rune[p]"
 
@@ -107,10 +108,10 @@ scroll_top = "Home"
 scroll_bottom = "End"
 # Select the message reference (reply) of the selected channel.
 select_reply = "Rune[s]"
-# Reply to the selected message.
-reply = "Rune[R]"
 # Reply (with mention) to the selected message.
 reply_mention = "Rune[r]"
+# Reply (without mention) to the selected message.
+reply = "Rune[R]"
 cancel = "Esc"
 edit = "Rune[e]"
 delete = "Rune[D]"
@@ -142,6 +143,10 @@ up = "Ctrl+P"
 down = "Ctrl+N"
 top = "Home"
 bottom = "End"
+
+[keybinds.hotkeys]
+# Hide/show all keybinds in the hotkeys bar
+show_all = "Ctrl+Rune[]]"
 
 # style = { foreground = "", background = "", attributes = "" or [""] }
 [theme.title]
@@ -190,6 +195,22 @@ min_width = 20
 # Maximum height
 # 0 = make the list as tall as needed
 max_height = 0
+
+# Hotkeys bar
+[theme.hotkeys]
+enable = true
+padding = [1, 1] # [left, right]
+# Show ^X and S-X instead of CTRL-X and Shift-X
+show_compact_keybinds = false
+# Show all avaliable keybindings, not just the mostly used ones
+show_all_keybinds = false
+# Tview-style tag rules apply. See <https://pkg.go.dev/github.com/rivo/tview#hdr-Styles__Colors__and_Hyperlinks>
+# %[1]s is the name of the hotkey, e.g., "next".
+# %[2]s is the keybindding of the hotkey, e.g., "j".
+# To escape a style tag, use "]".
+# Example: "%[2]s[%[1]s[]"
+format = "[::rb]%[1]s[::RB] %[2]s"
+separator = "  "
 
 [theme.dialog]
 style = {}
