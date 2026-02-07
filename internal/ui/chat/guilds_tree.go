@@ -125,20 +125,29 @@ func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Ch
 }
 
 func (gt *guildsTree) createChannelNodes(node *tview.TreeNode, channels []discord.Channel) {
+	// Preserve exact ordering semantics:
+	// 1) top-level non-categories (in input order),
+	// 2) categories that have at least one child in the source slice (in input order),
+	// 3) parented channels under already-created categories (in input order).
+	//
+	// We precompute parent presence once to avoid the O(n^2) category-child scan.
+	hasChildByParentID := make(map[discord.ChannelID]struct{}, len(channels))
+	for _, channel := range channels {
+		if channel.ParentID.IsValid() {
+			hasChildByParentID[channel.ParentID] = struct{}{}
+		}
+	}
+
 	for _, channel := range channels {
 		if channel.Type != discord.GuildCategory && !channel.ParentID.IsValid() {
 			gt.createChannelNode(node, channel)
 		}
 	}
 
-PARENT_CHANNELS:
 	for _, channel := range channels {
 		if channel.Type == discord.GuildCategory {
-			for _, nested := range channels {
-				if nested.ParentID == channel.ID {
-					gt.createChannelNode(node, channel)
-					continue PARENT_CHANNELS
-				}
+			if _, ok := hasChildByParentID[channel.ID]; ok {
+				gt.createChannelNode(node, channel)
 			}
 		}
 	}
