@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"image"
 	"runtime/debug"
-	"strings"
 	"sync"
 
 	tcell "github.com/gdamore/tcell/v3"
@@ -22,11 +21,6 @@ type Program struct {
 	back *Frame
 	// forceRedraw bypasses diffing and repaints every cell on the next blit.
 	forceRedraw bool
-	// spaceRuns caches " " strings by length for clear-to-EOL batching.
-	spaceRuns []string
-	// asciiRunScratch is reused for ASCII style-run batching to avoid per-run
-	// byte-slice allocations in the blit hot path.
-	asciiRunScratch []byte
 }
 
 var ErrProgramPanic = errors.New("tea program panicked")
@@ -44,7 +38,14 @@ func (p *Program) Run() (returnErr error) {
 	}()
 
 	// Initialize terminal resources once before any background loops start.
-	if err := p.initScreen(); err != nil {
+	if p.screen == nil {
+		screen, err := tcell.NewScreen()
+		if err != nil {
+			return err
+		}
+		p.screen = screen
+	}
+	if err := p.screen.Init(); err != nil {
 		return err
 	}
 	defer p.screen.Fini()
@@ -65,7 +66,10 @@ func (p *Program) Run() (returnErr error) {
 	}()
 
 	// Kick off model init command and paint the initial frame synchronously.
-	p.sendCmd(done, cmds, p.initCmd())
+	p.modelMu.Lock()
+	cmd := p.model.Init()
+	p.modelMu.Unlock()
+	p.sendCmd(done, cmds, cmd)
 	p.render()
 
 	for {
@@ -80,22 +84,13 @@ func (p *Program) Run() (returnErr error) {
 
 			// Regular messages go through Update, then trigger async command work
 			// and a coalesced render invalidation.
-			cmd := p.updateModel(msg)
+			p.modelMu.Lock()
+			p.model, cmd = p.model.Update(msg)
+			p.modelMu.Unlock()
 			p.sendCmd(done, cmds, cmd)
 			invalidate()
 		}
 	}
-}
-
-func (p *Program) initScreen() error {
-	if p.screen == nil {
-		screen, err := tcell.NewScreen()
-		if err != nil {
-			return err
-		}
-		p.screen = screen
-	}
-	return p.screen.Init()
 }
 
 func (p *Program) startInputLoop(done <-chan struct{}, msgs chan<- Msg, errs chan<- error) (wait func()) {
@@ -187,20 +182,6 @@ func (p *Program) startCommandLoop(
 		}
 	})
 	return wg.Wait
-}
-
-func (p *Program) initCmd() Cmd {
-	p.modelMu.Lock()
-	defer p.modelMu.Unlock()
-	return p.model.Init()
-}
-
-func (p *Program) updateModel(msg Msg) Cmd {
-	var cmd Cmd
-	p.modelMu.Lock()
-	defer p.modelMu.Unlock()
-	p.model, cmd = p.model.Update(msg)
-	return cmd
 }
 
 func (p *Program) render() {
@@ -298,28 +279,18 @@ func (p *Program) blit() {
 			}
 		}
 
-		clearFrom := p.trailingClearStart(y, startX, endX)
-		for x := startX; x < endX; {
-			if clearFrom < endX && x == clearFrom {
-				// Batch trailing clears as a single string write.
-				p.screen.PutStrStyled(x, y, p.spaces(endX-x), tcell.StyleDefault)
-				changed = true
-				break
-			}
-
+		for x := startX; x < endX; x++ {
 			next := p.back.cellAt(x, y)
 			prev := p.front.cellAt(x, y)
 
 			// Fast path: unchanged cell in non-forced redraw mode.
 			if !p.forceRedraw && cellsEqual(prev, next) {
-				x++
 				continue
 			}
 
 			// Continuation cells belong to a wide grapheme started at x-1.
 			// Writing the lead cell already paints the full glyph width.
 			if next.cont {
-				x++
 				continue
 			}
 
@@ -328,43 +299,10 @@ func (p *Program) blit() {
 				// written in this frame.
 				p.screen.Put(x, y, " ", tcell.StyleDefault)
 				changed = true
-				x++
-				continue
-			}
-
-			// Batch contiguous changed ASCII cells with identical style into one
-			// terminal write to reduce per-cell call overhead.
-			if b, ok := singleASCIIByte(next.text); ok {
-				styleID := next.styleID
-				runStart := x
-				p.asciiRunScratch = append(p.asciiRunScratch[:0], b)
-				x++
-				for x < endX {
-					if clearFrom < endX && x >= clearFrom {
-						break
-					}
-					runNext := p.back.cellAt(x, y)
-					runPrev := p.front.cellAt(x, y)
-					if !p.forceRedraw && cellsEqual(runPrev, runNext) {
-						break
-					}
-					if runNext.cont || runNext.text == "" || runNext.styleID != styleID {
-						break
-					}
-					rb, ok := singleASCIIByte(runNext.text)
-					if !ok {
-						break
-					}
-					p.asciiRunScratch = append(p.asciiRunScratch, rb)
-					x++
-				}
-				p.screen.PutStrStyled(runStart, y, string(p.asciiRunScratch), p.back.style(styleID))
-				changed = true
 				continue
 			}
 			p.screen.Put(x, y, next.text, p.back.style(next.styleID))
 			changed = true
-			x++
 		}
 	}
 	p.forceRedraw = false
@@ -382,52 +320,6 @@ func cellsEqual(a, b canvasCell) bool {
 		return false
 	}
 	return a.styleID == b.styleID
-}
-
-func (p *Program) trailingClearStart(y int, startX int, endX int) int {
-	// Scan backward to find a contiguous suffix that's logically empty in the
-	// next frame. That suffix can be cleared in one batched write.
-	clearFrom := endX
-	for x := endX - 1; x >= startX; x-- {
-		if !isLogicalEmptyCell(p.back.cellAt(x, y)) {
-			break
-		}
-		clearFrom = x
-	}
-	// Tiny tails don't benefit from batching; keep simple per-cell path.
-	if endX-clearFrom < 4 {
-		return endX
-	}
-	return clearFrom
-}
-
-func isLogicalEmptyCell(c canvasCell) bool {
-	return c.text == "" && !c.cont
-}
-
-func singleASCIIByte(s string) (byte, bool) {
-	if len(s) != 1 {
-		return 0, false
-	}
-	b := s[0]
-	return b, b < 0x80
-}
-
-func (p *Program) spaces(n int) string {
-	if n <= 0 {
-		return ""
-	}
-	if n < len(p.spaceRuns) {
-		return p.spaceRuns[n]
-	}
-	// Grow a cache of exact-length space strings so clear batching avoids
-	// repeated allocations in the render hot path.
-	oldLen := len(p.spaceRuns)
-	p.spaceRuns = append(p.spaceRuns, make([]string, n-oldLen+1)...)
-	for i := oldLen; i <= n; i++ {
-		p.spaceRuns[i] = strings.Repeat(" ", i)
-	}
-	return p.spaceRuns[n]
 }
 
 func (p *Program) sendCmd(done <-chan struct{}, cmds chan<- Cmd, cmd Cmd) {
