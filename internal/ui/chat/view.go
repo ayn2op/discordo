@@ -292,39 +292,26 @@ func (v *View) showConfirmModal(prompt string, buttons []string, onDone func(lab
 }
 
 func (v *View) onReadUpdate(event *read.UpdateEvent) {
-	var guildNode *tview.TreeNode
-	v.guildsTree.
-		GetRoot().
-		Walk(func(node, parent *tview.TreeNode) bool {
-			switch node.GetReference() {
-			case event.GuildID:
-				node.SetTextStyle(v.guildsTree.getGuildNodeStyle(event.GuildID))
-				guildNode = node
-				return false
-			case event.ChannelID:
-				// private channel
-				if !event.GuildID.IsValid() {
-					style := v.guildsTree.getChannelNodeStyle(event.ChannelID)
-					node.SetTextStyle(style)
-					return false
-				}
-			}
-
-			return true
-		})
-
-	if guildNode != nil {
-		guildNode.Walk(func(node, parent *tview.TreeNode) bool {
-			if node.GetReference() == event.ChannelID {
-				node.SetTextStyle(v.guildsTree.getChannelNodeStyle(event.ChannelID))
-				return false
-			}
-
-			return true
-		})
+	// Use indexed node lookup to avoid walking the whole tree on every read
+	// event. This runs frequently while reading/typing across channels.
+	var updated bool
+	if event.GuildID.IsValid() {
+		if guildNode := v.guildsTree.findNodeByReference(event.GuildID); guildNode != nil {
+			guildNode.SetTextStyle(v.guildsTree.getGuildNodeStyle(event.GuildID))
+			updated = true
+		}
 	}
 
-	v.app.Draw()
+	// Channel style is always updated for the target channel regardless of
+	// whether it's in a guild or DM.
+	if channelNode := v.guildsTree.findNodeByReference(event.ChannelID); channelNode != nil {
+		channelNode.SetTextStyle(v.guildsTree.getChannelNodeStyle(event.ChannelID))
+		updated = true
+	}
+
+	if updated {
+		v.app.Draw()
+	}
 }
 
 func (v *View) clearTypers() {

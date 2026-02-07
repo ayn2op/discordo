@@ -42,6 +42,10 @@ type messagesList struct {
 	messages []discord.Message
 
 	renderer *markdown.Renderer
+	// itemByID caches fully built message TextViews. ScrollList may ask the
+	// builder repeatedly during drawing, so we avoid reparsing markdown and
+	// reconstructing TextViews unless a message actually changed.
+	itemByID map[discord.MessageID]*tview.TextView
 
 	fetchingMembers struct {
 		mu    sync.Mutex
@@ -59,6 +63,7 @@ func newMessagesList(cfg *config.Config, chatView *View) *messagesList {
 		cfg:        cfg,
 		chatView:   chatView,
 		renderer:   markdown.NewRenderer(cfg.Theme.MessagesList),
+		itemByID:   make(map[discord.MessageID]*tview.TextView),
 	}
 
 	ml.Box = ui.ConfigureBox(ml.Box, &cfg.Theme)
@@ -78,6 +83,7 @@ func newMessagesList(cfg *config.Config, chatView *View) *messagesList {
 
 func (ml *messagesList) reset() {
 	ml.messages = nil
+	clear(ml.itemByID)
 	ml.
 		Clear().
 		SetBuilder(ml.buildItem).
@@ -96,10 +102,17 @@ func (ml *messagesList) setTitle(channel discord.Channel) {
 func (ml *messagesList) setMessages(messages []discord.Message) {
 	ml.messages = slices.Clone(messages)
 	slices.Reverse(ml.messages)
+	// New channel payload / refetch: replace the cache wholesale to keep it in
+	// lockstep with the current message slice.
+	clear(ml.itemByID)
+	ml.MarkDirty()
 }
 
 func (ml *messagesList) addMessage(message discord.Message) {
 	ml.messages = append(ml.messages, message)
+	// Defensive invalidation for ID reuse/edits delivered out-of-order.
+	delete(ml.itemByID, message.ID)
+	ml.MarkDirty()
 }
 
 func (ml *messagesList) setMessage(index int, message discord.Message) {
@@ -108,6 +121,8 @@ func (ml *messagesList) setMessage(index int, message discord.Message) {
 	}
 
 	ml.messages[index] = message
+	delete(ml.itemByID, message.ID)
+	ml.MarkDirty()
 }
 
 func (ml *messagesList) deleteMessage(index int) {
@@ -115,7 +130,9 @@ func (ml *messagesList) deleteMessage(index int) {
 		return
 	}
 
+	delete(ml.itemByID, ml.messages[index].ID)
 	ml.messages = append(ml.messages[:index], ml.messages[index+1:]...)
+	ml.MarkDirty()
 }
 
 func (ml *messagesList) clearSelection() {
@@ -128,11 +145,16 @@ func (ml *messagesList) buildItem(index int, cursor int) tview.ScrollListItem {
 	}
 
 	message := ml.messages[index]
-	tv := tview.NewTextView().
-		SetWrap(true).
-		SetWordWrap(true).
-		SetDynamicColors(true).
-		SetText(ml.renderMessage(message))
+	tv, ok := ml.itemByID[message.ID]
+	if !ok {
+		tv = tview.NewTextView().
+			SetWrap(true).
+			SetWordWrap(true).
+			SetDynamicColors(true).
+			SetText(ml.renderMessage(message))
+		ml.itemByID[message.ID] = tv
+	}
+	// Selection state is visual only; we mutate style on the cached view.
 	if index == cursor {
 		tv.SetTextStyle(ml.cfg.Theme.MessagesList.SelectedMessageStyle.Style)
 	} else {
@@ -401,6 +423,10 @@ func (ml *messagesList) _select(name string) {
 			older := slices.Clone(messages)
 			slices.Reverse(older)
 
+			// Defensive invalidation if Discord returns overlapping windows.
+			for _, message := range older {
+				delete(ml.itemByID, message.ID)
+			}
 			ml.messages = slices.Concat(older, ml.messages)
 			cursor = len(messages) - 1
 		}

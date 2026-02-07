@@ -84,6 +84,10 @@ func (v *View) onReady(r *gateway.ReadyEvent) {
 	dmNode := tview.NewTreeNode("Direct Messages").
 		SetReference(dmNode{}).
 		Collapse()
+	// Rebuild indexes from scratch so reconnects and account switches do not
+	// retain stale pointers to detached tree nodes.
+	v.guildsTree.resetNodeIndex()
+	v.guildsTree.dmRootNode = dmNode
 	root := v.guildsTree.
 		GetRoot().
 		ClearChildren().
