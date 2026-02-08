@@ -3,7 +3,6 @@ package chat
 import (
 	"context"
 	"errors"
-	"github.com/ayn2op/tview/layers"
 	"io"
 	"log/slog"
 	"net/http"
@@ -20,6 +19,7 @@ import (
 	"github.com/ayn2op/discordo/internal/markdown"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/layers"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
@@ -92,14 +92,12 @@ func (ml *messagesList) setMessages(messages []discord.Message) {
 	// New channel payload / refetch: replace the cache wholesale to keep it in
 	// lockstep with the current message slice.
 	clear(ml.itemByID)
-	ml.MarkDirty()
 }
 
 func (ml *messagesList) addMessage(message discord.Message) {
 	ml.messages = append(ml.messages, message)
 	// Defensive invalidation for ID reuse/edits delivered out-of-order.
 	delete(ml.itemByID, message.ID)
-	ml.MarkDirty()
 }
 
 func (ml *messagesList) setMessage(index int, message discord.Message) {
@@ -109,7 +107,6 @@ func (ml *messagesList) setMessage(index int, message discord.Message) {
 
 	ml.messages[index] = message
 	delete(ml.itemByID, message.ID)
-	ml.MarkDirty()
 }
 
 func (ml *messagesList) deleteMessage(index int) {
@@ -119,7 +116,6 @@ func (ml *messagesList) deleteMessage(index int) {
 
 	delete(ml.itemByID, ml.messages[index].ID)
 	ml.messages = append(ml.messages[:index], ml.messages[index+1:]...)
-	ml.MarkDirty()
 }
 
 func (ml *messagesList) clearSelection() {
