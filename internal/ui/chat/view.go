@@ -2,6 +2,7 @@ package chat
 
 import (
 	"fmt"
+	"github.com/ayn2op/tview/layers"
 	"log/slog"
 	"sync"
 	"time"
@@ -19,15 +20,15 @@ import (
 const typingDuration = 10 * time.Second
 
 const (
-	flexPageName            = "flex"
-	mentionsListPageName    = "mentionsList"
-	attachmentsListPageName = "attachmentsList"
-	confirmModalPageName    = "confirmModal"
-	channelsPickerPageName  = "channelsPicker"
+	flexLayerName            = "flex"
+	mentionsListLayerName    = "mentionsList"
+	attachmentsListLayerName = "attachmentsList"
+	confirmModalLayerName    = "confirmModal"
+	channelsPickerLayerName  = "channelsPicker"
 )
 
 type View struct {
-	*tview.Pages
+	*layers.Layers
 
 	mainFlex  *tview.Flex
 	rightFlex *tview.Flex
@@ -52,7 +53,7 @@ type View struct {
 
 func NewView(app *tview.Application, cfg *config.Config, onLogout func()) *View {
 	v := &View{
-		Pages: tview.NewPages(),
+		Layers: layers.New(),
 
 		mainFlex:  tview.NewFlex(),
 		rightFlex: tview.NewFlex(),
@@ -63,12 +64,14 @@ func NewView(app *tview.Application, cfg *config.Config, onLogout func()) *View 
 		cfg:      cfg,
 		onLogout: onLogout,
 	}
+
 	v.guildsTree = newGuildsTree(cfg, v)
 	v.messagesList = newMessagesList(cfg, v)
 	v.messageInput = newMessageInput(cfg, v)
 	v.channelsPicker = newChannelsPicker(cfg, v)
 	v.channelsPicker.SetCancelFunc(v.closePicker)
 
+	v.SetBackgroundLayerStyle(v.cfg.Theme.Dialog.BackgroundStyle.Style)
 	v.SetInputCapture(v.onInputCapture)
 	v.buildLayout()
 	return v
@@ -100,11 +103,11 @@ func (v *View) buildLayout() {
 		AddItem(v.guildsTree, 0, 1, true).
 		AddItem(v.rightFlex, 0, 4, false)
 
-	v.AddAndSwitchToPage(flexPageName, v.mainFlex, true)
+	v.AddLayer(v.mainFlex, layers.WithName(flexLayerName), layers.WithResize(true), layers.WithVisible(true))
 }
 
 func (v *View) togglePicker() {
-	if v.HasPage(channelsPickerPageName) {
+	if v.HasLayer(channelsPickerLayerName) {
 		v.closePicker()
 	} else {
 		v.openPicker()
@@ -112,12 +115,18 @@ func (v *View) togglePicker() {
 }
 
 func (v *View) openPicker() {
-	v.AddAndSwitchToPage(channelsPickerPageName, ui.Centered(v.channelsPicker, v.cfg.Picker.Width, v.cfg.Picker.Height), true).ShowPage(flexPageName)
+	v.AddLayer(
+		ui.Centered(v.channelsPicker, v.cfg.Picker.Width, v.cfg.Picker.Height),
+		layers.WithName(channelsPickerLayerName),
+		layers.WithResize(true),
+		layers.WithVisible(true),
+		layers.WithOverlay(),
+	).SendToFront(channelsPickerLayerName)
 	v.channelsPicker.update()
 }
 
 func (v *View) closePicker() {
-	v.RemovePage(channelsPickerPageName).SwitchToPage(flexPageName)
+	v.RemoveLayer(channelsPickerLayerName)
 	v.channelsPicker.Update()
 }
 
@@ -235,53 +244,45 @@ func (v *View) showConfirmModal(prompt string, buttons []string, onDone func(lab
 		SetText(prompt).
 		AddButtons(buttons).
 		SetDoneFunc(func(_ int, buttonLabel string) {
-			v.RemovePage(confirmModalPageName).SwitchToPage(flexPageName)
+			v.RemoveLayer(confirmModalLayerName)
 			v.app.SetFocus(previousFocus)
 
 			if onDone != nil {
 				onDone(buttonLabel)
 			}
 		})
-
 	v.
-		AddAndSwitchToPage(confirmModalPageName, ui.Centered(modal, 0, 0), true).
-		ShowPage(flexPageName)
+		AddLayer(
+			ui.Centered(modal, 0, 0),
+			layers.WithName(confirmModalLayerName),
+			layers.WithResize(true),
+			layers.WithVisible(true),
+			layers.WithOverlay(),
+		).
+		SendToFront(confirmModalLayerName)
 }
 
 func (v *View) onReadUpdate(event *read.UpdateEvent) {
-	var guildNode *tview.TreeNode
-	v.guildsTree.
-		GetRoot().
-		Walk(func(node, parent *tview.TreeNode) bool {
-			switch node.GetReference() {
-			case event.GuildID:
-				node.SetTextStyle(v.guildsTree.getGuildNodeStyle(event.GuildID))
-				guildNode = node
-				return false
-			case event.ChannelID:
-				// private channel
-				if !event.GuildID.IsValid() {
-					style := v.guildsTree.getChannelNodeStyle(event.ChannelID)
-					node.SetTextStyle(style)
-					return false
-				}
-			}
-
-			return true
-		})
-
-	if guildNode != nil {
-		guildNode.Walk(func(node, parent *tview.TreeNode) bool {
-			if node.GetReference() == event.ChannelID {
-				node.SetTextStyle(v.guildsTree.getChannelNodeStyle(event.ChannelID))
-				return false
-			}
-
-			return true
-		})
+	// Use indexed node lookup to avoid walking the whole tree on every read
+	// event. This runs frequently while reading/typing across channels.
+	var updated bool
+	if event.GuildID.IsValid() {
+		if guildNode := v.guildsTree.findNodeByReference(event.GuildID); guildNode != nil {
+			v.guildsTree.setNodeLineStyle(guildNode, v.guildsTree.getGuildNodeStyle(event.GuildID))
+			updated = true
+		}
 	}
 
-	v.app.Draw()
+	// Channel style is always updated for the target channel regardless of
+	// whether it's in a guild or DM.
+	if channelNode := v.guildsTree.findNodeByReference(event.ChannelID); channelNode != nil {
+		v.guildsTree.setNodeLineStyle(channelNode, v.guildsTree.getChannelNodeStyle(event.ChannelID))
+		updated = true
+	}
+
+	if updated {
+		v.app.Draw()
+	}
 }
 
 func (v *View) clearTypers() {

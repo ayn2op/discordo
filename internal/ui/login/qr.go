@@ -52,7 +52,6 @@ func newQRLogin(app *tview.Application, cfg *config.Config, done func(token stri
 	q.Box = ui.ConfigureBox(q.Box, &cfg.Theme)
 
 	q.
-		SetDynamicColors(true).
 		SetScrollable(true).
 		SetWrap(false).
 		SetTextAlign(tview.AlignmentCenter).
@@ -74,21 +73,6 @@ func newQRLogin(app *tview.Application, cfg *config.Config, done func(token stri
 	return q
 }
 
-func (q *qrLogin) centerText(s string) string {
-	_, _, _, height := q.GetInnerRect()
-	if height == 0 {
-		height = 40
-	}
-	lines := strings.Count(s, "\n") + 1
-	padding := (height - lines) / 2
-	if padding < 0 {
-		padding = 0
-	} else if padding < 1 && height > lines {
-		padding = 1
-	}
-	return strings.Repeat("\n", padding) + s
-}
-
 func (q *qrLogin) start() {
 	ctx, cancel := context.WithCancel(context.Background())
 	q.cancel = cancel
@@ -105,9 +89,36 @@ func (q *qrLogin) stop() {
 }
 
 func (q *qrLogin) setText(s string) {
+	builder := tview.NewLineBuilder()
+	builder.Write(s, tcell.StyleDefault)
+	q.setLines(builder.Finish())
+}
+
+func (q *qrLogin) setLines(lines []tview.Line) {
 	q.app.QueueUpdateDraw(func() {
-		q.SetText(q.centerText(s))
+		q.SetLines(q.centerLines(lines))
 	})
+}
+
+func (q *qrLogin) centerLines(lines []tview.Line) []tview.Line {
+	_, _, _, height := q.GetInnerRect()
+	if height == 0 {
+		height = 40
+	}
+	padding := (height - len(lines)) / 2
+	if padding < 0 {
+		padding = 0
+	} else if padding < 1 && height > len(lines) {
+		padding = 1
+	}
+	if padding == 0 {
+		return lines
+	}
+
+	centered := make([]tview.Line, 0, padding+len(lines))
+	centered = append(centered, make([]tview.Line, padding)...)
+	centered = append(centered, lines...)
+	return centered
 }
 
 func (q *qrLogin) writeJSON(data any) error {
@@ -137,14 +148,7 @@ type raPendingTicket struct {
 
 func (q *qrLogin) run(ctx context.Context) {
 	defer q.stop()
-
-	setText := func(s string) {
-		q.app.QueueUpdateDraw(func() {
-			q.SetText(q.centerText(s))
-		})
-	}
-
-	setText("Preparing QR code...\n\n[::d]Press Esc to cancel[-]")
+	q.setText("Preparing QR code...\n\nPress Esc to cancel")
 
 	privKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
@@ -164,7 +168,7 @@ func (q *qrLogin) run(ctx context.Context) {
 	headers.Set("User-Agent", apphttp.BrowserUserAgent)
 	headers.Set("Origin", "https://discord.com")
 
-	q.setText("Connecting to Remote Auth Gateway...\n\n[::d]Press Esc to cancel[-]")
+	q.setText("Connecting to Remote Auth Gateway...\n\nPress Esc to cancel")
 
 	dialer := websocket.Dialer{
 		Proxy:             stdhttp.ProxyFromEnvironment,
@@ -216,7 +220,7 @@ func (q *qrLogin) run(ctx context.Context) {
 				Op string `json:"op"`
 			}
 			if err := json.Unmarshal(data, &opOnly); err != nil {
-				q.setText("[red]Bad JSON:[-] " + err.Error())
+				q.setText("Bad JSON: " + err.Error())
 				q.fail(err)
 				return
 			}
@@ -225,7 +229,7 @@ func (q *qrLogin) run(ctx context.Context) {
 			case "hello":
 				var h raHello
 				if err := json.Unmarshal(data, &h); err != nil {
-					q.setText("[red]Hello decode failed:[-] " + err.Error())
+					q.setText("Hello decode failed: " + err.Error())
 					q.fail(err)
 					return
 				}
@@ -243,73 +247,76 @@ func (q *qrLogin) run(ctx context.Context) {
 						}
 					}()
 				}
-				q.setText("Connected. Handshaking...\n\n[::d]Press Esc to cancel[-]")
+				q.setText("Connected. Handshaking...\n\nPress Esc to cancel")
 				if err := q.writeJSON(map[string]any{
 					"op":                 "init",
 					"encoded_public_key": encodedPublicKey,
 				}); err != nil {
-					q.setText("[red]Init send failed:[-] " + err.Error())
+					q.setText("Init send failed: " + err.Error())
 					q.fail(err)
 					return
 				}
 			case "nonce_proof":
 				var n raNonceProof
 				if err := json.Unmarshal(data, &n); err != nil {
-					q.setText("[red]Nonce decode failed:[-] " + err.Error())
+					q.setText("Nonce decode failed: " + err.Error())
 					q.fail(err)
 					return
 				}
 				enc, err := base64.StdEncoding.DecodeString(n.EncryptedNonce)
 				if err != nil {
-					q.setText("[red]Nonce b64 decode failed:[-] " + err.Error())
+					q.setText("Nonce b64 decode failed: " + err.Error())
 					q.fail(err)
 					return
 				}
 				pt, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, q.privKey, enc, nil)
 				if err != nil {
-					q.setText("[red]Nonce decrypt failed:[-] " + err.Error())
+					q.setText("Nonce decrypt failed: " + err.Error())
 					q.fail(err)
 					return
 				}
 				nonce := base64.RawURLEncoding.EncodeToString(pt)
 				if err := q.writeJSON(map[string]any{"op": "nonce_proof", "nonce": nonce}); err != nil {
-					q.setText("[red]Nonce send failed:[-] " + err.Error())
+					q.setText("Nonce send failed: " + err.Error())
 					q.fail(err)
 					return
 				}
 			case "pending_remote_init":
 				var p raPendingInit
 				if err := json.Unmarshal(data, &p); err != nil {
-					q.setText("[red]Init decode failed:[-] " + err.Error())
+					q.setText("Init decode failed: " + err.Error())
 					q.fail(err)
 					return
 				}
 				q.fingerprint = p.Fingerprint
 				content := "https://discord.com/ra/" + p.Fingerprint
-				ascii, err := renderQR(content)
+				qrLines, err := renderQR(content)
 				if err != nil {
-					q.setText("[red]QR render failed:[-] " + err.Error())
+					q.setText("QR render failed: " + err.Error())
 					q.fail(err)
 					return
 				}
-				q.setText(ascii + "\n\n[::b]Scan with Discord mobile app[::-]\n\n[::d]Press Esc to cancel[-]")
+				builder := tview.NewLineBuilder()
+				builder.AppendLines(qrLines)
+				builder.Write("\n\nScan with Discord mobile app\n\nPress Esc to cancel", tcell.StyleDefault)
+				q.setLines(builder.Finish())
 			case "heartbeat_ack":
 			case "pending_ticket":
 				var t raPendingTicket
 				if err := json.Unmarshal(data, &t); err != nil {
-					q.setText("[red]Ticket decode failed:[-] " + err.Error())
+					q.setText("Ticket decode failed: " + err.Error())
 					q.fail(err)
 					return
 				}
 				payload, err := base64.StdEncoding.DecodeString(t.EncryptedUserPayload)
 				if err != nil {
-					q.setText("[red]Ticket payload b64 failed:[-] " + err.Error())
+					q.setText("Ticket payload b64 failed: " + err.Error())
 					q.fail(err)
 					return
 				}
 				pt, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, q.privKey, payload, nil)
 				if err != nil {
-					q.setText("[red]Ticket payload decrypt failed:[-] " + err.Error())
+					q.setText("Ticket payload decrypt failed: " + err.Error())
 					q.fail(err)
 					return
 				}
@@ -320,21 +327,21 @@ func (q *qrLogin) run(ctx context.Context) {
 					username = parts[3]
 				}
 				if discriminator == "" && username == "" {
-					q.setText("Scan received.\n\nWaiting for approval on mobile...\n\n[::d]Press Esc to cancel[-]")
+					q.setText("Scan received.\n\nWaiting for approval on mobile...\n\nPress Esc to cancel")
 				} else {
-					q.setText("Logging in as [::b]" + username + "[#]" + discriminator + "[::-]\n\nConfirm on mobile...\n\n[::d]Press Esc to cancel[-]")
+					q.setText("Logging in as " + username + "#" + discriminator + "\n\nConfirm on mobile...\n\nPress Esc to cancel")
 				}
 			case "pending_login":
 				var p raPendingLogin
 				if err := json.Unmarshal(data, &p); err != nil {
-					q.setText("[red]Login decode failed:[-] " + err.Error())
+					q.setText("Login decode failed: " + err.Error())
 					q.fail(err)
 					return
 				}
-				q.setText("Authenticating...\n\n[::d]Please wait[-]")
+				q.setText("Authenticating...\n\nPlease wait")
 				token, err := exchangeTicket(ctx, p.Ticket, q.fingerprint, q.privKey)
 				if err != nil {
-					q.setText("[red]Ticket exchange failed:[-] " + err.Error())
+					q.setText("Ticket exchange failed: " + err.Error())
 					q.fail(err)
 					return
 				}
@@ -352,13 +359,14 @@ func (q *qrLogin) run(ctx context.Context) {
 	}
 }
 
-func renderQR(content string) (string, error) {
+func renderQR(content string) ([]tview.Line, error) {
 	code, err := qrcode.New(content, qrcode.Low)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	bitmap := code.Bitmap()
-	var b strings.Builder
+	builder := tview.NewLineBuilder()
+	style := tcell.StyleDefault
 	for y := 0; y < len(bitmap); y += 2 {
 		for x := range bitmap[y] {
 			top := bitmap[y][x]
@@ -367,18 +375,18 @@ func renderQR(content string) (string, error) {
 				bottom = bitmap[y+1][x]
 			}
 			if top && bottom {
-				b.WriteString("█")
+				builder.Write("█", style)
 			} else if top && !bottom {
-				b.WriteString("▀")
+				builder.Write("▀", style)
 			} else if !top && bottom {
-				b.WriteString("▄")
+				builder.Write("▄", style)
 			} else {
-				b.WriteString(" ")
+				builder.Write(" ", style)
 			}
 		}
-		b.WriteByte('\n')
+		builder.NewLine()
 	}
-	return b.String(), nil
+	return builder.Finish(), nil
 }
 
 func exchangeTicket(ctx context.Context, ticket string, fingerprint string, priv *rsa.PrivateKey) (string, error) {

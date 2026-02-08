@@ -4,6 +4,9 @@ import (
 	"errors"
 	"log/slog"
 
+	"github.com/ayn2op/tview/layers"
+	"github.com/gdamore/tcell/v3"
+
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/keyring"
 	"github.com/ayn2op/discordo/internal/ui"
@@ -12,15 +15,15 @@ import (
 )
 
 const (
-	formPageName  = "form"
-	errorPageName = "error"
-	qrPageName    = "qr"
+	formLayerName  = "form"
+	errorLayerName = "error"
+	qrLayerName    = "qr"
 )
 
 type DoneFn = func(token string)
 
 type Form struct {
-	*tview.Pages
+	*layers.Layers
 	app  *tview.Application
 	cfg  *config.Config
 	form *tview.Form
@@ -29,18 +32,19 @@ type Form struct {
 
 func NewForm(app *tview.Application, cfg *config.Config, done DoneFn) *Form {
 	f := &Form{
-		Pages: tview.NewPages(),
-		app:   app,
-		cfg:   cfg,
-		form:  tview.NewForm(),
-		done:  done,
+		Layers: layers.New(),
+		app:    app,
+		cfg:    cfg,
+		form:   tview.NewForm(),
+		done:   done,
 	}
 
 	f.form.
 		AddPasswordField("Token", "", 0, 0, nil).
 		AddButton("Login", f.login).
 		AddButton("Login with QR", f.loginWithQR)
-	f.AddAndSwitchToPage(formPageName, f.form, true)
+	f.SetBackgroundLayerStyle(f.cfg.Theme.Dialog.BackgroundStyle.Style)
+	f.AddLayer(f.form, layers.WithName(formLayerName), layers.WithResize(true), layers.WithVisible(true))
 	return f
 }
 
@@ -69,14 +73,34 @@ func (f *Form) onError(err error) {
 			if buttonIndex == 0 {
 				go clipboard.Write(clipboard.FmtText, []byte(message))
 			} else {
-				f.
-					RemovePage(errorPageName).
-					SwitchToPage(formPageName)
+				f.RemoveLayer(errorLayerName)
 			}
 		})
+	{
+		bg := f.cfg.Theme.Dialog.Style.GetBackground()
+		buttonStyle := f.cfg.Theme.Dialog.Style.Style
+		if bg != tcell.ColorDefault {
+			modal.SetBackgroundColor(bg)
+			buttonStyle = buttonStyle.Background(bg)
+		}
+		fg := f.cfg.Theme.Dialog.Style.GetForeground()
+		if fg != tcell.ColorDefault {
+			modal.SetTextColor(fg)
+			buttonStyle = buttonStyle.Foreground(fg)
+		}
+		// Keep button styles aligned with dialog content without hiding text.
+		modal.SetButtonStyle(buttonStyle)
+		modal.SetButtonActivatedStyle(buttonStyle)
+	}
 	f.
-		AddAndSwitchToPage(errorPageName, ui.Centered(modal, 0, 0), true).
-		ShowPage(formPageName)
+		AddLayer(
+			ui.Centered(modal, 0, 0),
+			layers.WithName(errorLayerName),
+			layers.WithResize(true),
+			layers.WithVisible(true),
+			layers.WithOverlay(),
+		).
+		SendToFront(errorLayerName)
 }
 
 func (f *Form) loginWithQR() {
@@ -87,18 +111,18 @@ func (f *Form) loginWithQR() {
 		}
 
 		if token == "" {
-			f.RemovePage(qrPageName).SwitchToPage(formPageName)
+			f.RemoveLayer(qrLayerName)
 			return
 		}
 
 		go keyring.SetToken(token)
 
-		f.RemovePage(qrPageName)
+		f.RemoveLayer(qrLayerName)
 		if f.done != nil {
 			f.done(token)
 		}
 	})
 
-	f.AddAndSwitchToPage(qrPageName, qr, true)
+	f.AddLayer(qr, layers.WithName(qrLayerName), layers.WithResize(true), layers.WithVisible(true))
 	qr.start()
 }
