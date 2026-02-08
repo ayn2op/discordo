@@ -3,7 +3,6 @@ package chat
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/ayn2op/tview/layers"
 	"io"
 	"log/slog"
@@ -35,15 +34,13 @@ import (
 )
 
 type messagesList struct {
-	*tview.ScrollList
+	*tview.List
 	cfg      *config.Config
 	chatView *View
 	messages []discord.Message
 
 	renderer *markdown.Renderer
-	// itemByID caches fully built message TextViews. ScrollList may ask the
-	// builder repeatedly during drawing, so we avoid reparsing markdown and
-	// reconstructing TextViews unless a message actually changed.
+	// itemByID caches unselected message TextViews.
 	itemByID map[discord.MessageID]*tview.TextView
 
 	fetchingMembers struct {
@@ -56,11 +53,11 @@ type messagesList struct {
 
 func newMessagesList(cfg *config.Config, chatView *View) *messagesList {
 	ml := &messagesList{
-		ScrollList: tview.NewScrollList(),
-		cfg:        cfg,
-		chatView:   chatView,
-		renderer:   markdown.NewRenderer(cfg.Theme.MessagesList),
-		itemByID:   make(map[discord.MessageID]*tview.TextView),
+		List:     tview.NewList(),
+		cfg:      cfg,
+		chatView: chatView,
+		renderer: markdown.NewRenderer(cfg.Theme.MessagesList),
+		itemByID: make(map[discord.MessageID]*tview.TextView),
 	}
 
 	ml.Box = ui.ConfigureBox(ml.Box, &cfg.Theme)
@@ -129,66 +126,63 @@ func (ml *messagesList) clearSelection() {
 	ml.SetCursor(-1)
 }
 
-func (ml *messagesList) buildItem(index int, cursor int) tview.ScrollListItem {
+func (ml *messagesList) buildItem(index int, cursor int) tview.ListItem {
 	if index < 0 || index >= len(ml.messages) {
 		return nil
 	}
 
 	message := ml.messages[index]
-	tv, ok := ml.itemByID[message.ID]
-	if !ok {
-		tv = tview.NewTextView().
+	if index == cursor {
+		return tview.NewTextView().
 			SetWrap(true).
 			SetWordWrap(true).
-			SetDynamicColors(true).
-			SetText(ml.renderMessage(message))
-		ml.itemByID[message.ID] = tv
+			SetLines(ml.renderMessage(message, ml.cfg.Theme.MessagesList.SelectedMessageStyle.Style))
 	}
-	// Selection state is visual only; we mutate style on the cached view.
-	if index == cursor {
-		tv.SetTextStyle(ml.cfg.Theme.MessagesList.SelectedMessageStyle.Style)
-	} else {
-		tv.SetTextStyle(ml.cfg.Theme.MessagesList.MessageStyle.Style)
+
+	item, ok := ml.itemByID[message.ID]
+	if !ok {
+		item = tview.NewTextView().
+			SetWrap(true).
+			SetWordWrap(true).
+			SetLines(ml.renderMessage(message, ml.cfg.Theme.MessagesList.MessageStyle.Style))
+		ml.itemByID[message.ID] = item
 	}
-	return tv
+	return item
 }
 
-func (ml *messagesList) renderMessage(message discord.Message) string {
-	var b strings.Builder
-	ml.writeMessage(&b, message)
-	return b.String()
+func (ml *messagesList) renderMessage(message discord.Message, baseStyle tcell.Style) []tview.Line {
+	builder := tview.NewLineBuilder()
+	ml.writeMessage(builder, message, baseStyle)
+	return builder.Finish()
 }
 
-func (ml *messagesList) writeMessage(writer io.Writer, message discord.Message) {
+func (ml *messagesList) writeMessage(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style) {
 	if ml.cfg.HideBlockedUsers {
 		isBlocked := ml.chatView.state.UserIsBlocked(message.Author.ID)
 		if isBlocked {
-			io.WriteString(writer, "[:red:b]Blocked message[:-:-]")
+			builder.Write("Blocked message", baseStyle.Foreground(tcell.ColorRed).Bold(true))
 			return
 		}
 	}
 
-	// reset
-	io.WriteString(writer, "[-:-:-]")
-
 	switch message.Type {
 	case discord.DefaultMessage:
 		if message.Reference != nil && message.Reference.Type == discord.MessageReferenceTypeForward {
-			ml.drawForwardedMessage(writer, message)
+			ml.drawForwardedMessage(builder, message, baseStyle)
 		} else {
-			ml.drawDefaultMessage(writer, message)
+			ml.drawDefaultMessage(builder, message, baseStyle)
 		}
 	case discord.GuildMemberJoinMessage:
-		ml.drawTimestamps(writer, message.Timestamp)
-		ml.drawAuthor(writer, message)
-		io.WriteString(writer, "joined the server.")
+		ml.drawTimestamps(builder, message.Timestamp, baseStyle)
+		ml.drawAuthor(builder, message, baseStyle)
+		builder.Write("joined the server.", baseStyle)
 	case discord.InlinedReplyMessage:
-		ml.drawReplyMessage(writer, message)
+		ml.drawReplyMessage(builder, message, baseStyle)
 	case discord.ChannelPinnedMessage:
-		ml.drawPinnedMessage(writer, message)
+		ml.drawPinnedMessage(builder, message, baseStyle)
 	default:
-		ml.drawTimestamps(writer, message.Timestamp)
-		ml.drawAuthor(writer, message)
+		ml.drawTimestamps(builder, message.Timestamp, baseStyle)
+		ml.drawAuthor(builder, message, baseStyle)
 	}
 }
 
@@ -196,13 +190,12 @@ func (ml *messagesList) formatTimestamp(ts discord.Timestamp) string {
 	return ts.Time().In(time.Local).Format(ml.cfg.Timestamps.Format)
 }
 
-func (ml *messagesList) drawTimestamps(w io.Writer, ts discord.Timestamp) {
-	io.WriteString(w, "[::d]")
-	io.WriteString(w, ml.formatTimestamp(ts))
-	io.WriteString(w, "[::D] ")
+func (ml *messagesList) drawTimestamps(builder *tview.LineBuilder, ts discord.Timestamp, baseStyle tcell.Style) {
+	dimStyle := baseStyle.Dim(true)
+	builder.Write(ml.formatTimestamp(ts)+" ", dimStyle)
 }
 
-func (ml *messagesList) drawAuthor(w io.Writer, message discord.Message) {
+func (ml *messagesList) drawAuthor(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style) {
 	name := message.Author.DisplayOrUsername()
 	foreground := tcell.ColorDefault
 
@@ -226,80 +219,86 @@ func (ml *messagesList) drawAuthor(w io.Writer, message discord.Message) {
 		}
 	}
 
-	fmt.Fprintf(w, "[%s::b]%s[-::B] ", foreground, name)
+	style := baseStyle.Foreground(foreground).Bold(true)
+	builder.Write(name+" ", style)
 }
 
-func (ml *messagesList) drawContent(w io.Writer, message discord.Message) {
-	c := []byte(tview.Escape(message.Content))
+func (ml *messagesList) drawContent(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style) {
+	c := []byte(message.Content)
 	if ml.chatView.cfg.Markdown {
-		ast := discordmd.ParseWithMessage(c, *ml.chatView.state.Cabinet, &message, false)
-		ml.renderer.Render(w, c, ast)
+		root := discordmd.ParseWithMessage(c, *ml.chatView.state.Cabinet, &message, false)
+		lines := ml.renderer.RenderLines(c, root, baseStyle)
+		if builder.HasCurrentLine() {
+			for len(lines) > 1 && len(lines[0]) == 0 {
+				lines = lines[1:]
+			}
+		}
+		builder.AppendLines(lines)
 	} else {
-		w.Write(c) // write the content as is
+		builder.Write(message.Content, baseStyle)
 	}
 }
 
-func (ml *messagesList) drawSnapshotContent(w io.Writer, message discord.MessageSnapshotMessage) {
-	c := []byte(tview.Escape(message.Content))
+func (ml *messagesList) drawSnapshotContent(builder *tview.LineBuilder, message discord.MessageSnapshotMessage, baseStyle tcell.Style) {
+	c := []byte(message.Content)
 	// discordmd doesn't support MessageSnapshotMessage, so we just use write it as is. todo?
-	w.Write(c)
+	builder.Write(string(c), baseStyle)
 }
 
-func (ml *messagesList) drawDefaultMessage(w io.Writer, message discord.Message) {
+func (ml *messagesList) drawDefaultMessage(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style) {
 	if ml.cfg.Timestamps.Enabled {
-		ml.drawTimestamps(w, message.Timestamp)
+		ml.drawTimestamps(builder, message.Timestamp, baseStyle)
 	}
 
-	ml.drawAuthor(w, message)
-	ml.drawContent(w, message)
+	ml.drawAuthor(builder, message, baseStyle)
+	ml.drawContent(builder, message, baseStyle)
 
 	if message.EditedTimestamp.IsValid() {
-		io.WriteString(w, " [::d](edited)[::D]")
+		dimStyle := baseStyle.Dim(true)
+		builder.Write(" (edited)", dimStyle)
 	}
 
+	attachmentStyle := ui.MergeStyle(baseStyle, ml.cfg.Theme.MessagesList.AttachmentStyle.Style)
 	for _, a := range message.Attachments {
-		io.WriteString(w, "\n")
-
-		fg := ml.cfg.Theme.MessagesList.AttachmentStyle.GetForeground()
-		bg := ml.cfg.Theme.MessagesList.AttachmentStyle.GetBackground()
+		builder.NewLine()
 		if ml.cfg.ShowAttachmentLinks {
-			fmt.Fprintf(w, "[%s:%s]%s:\n%s[-:-]", fg, bg, a.Filename, a.URL)
+			builder.Write(a.Filename+":\n"+a.URL, attachmentStyle)
 		} else {
-			fmt.Fprintf(w, "[%s:%s]%s[-:-]", fg, bg, a.Filename)
+			builder.Write(a.Filename, attachmentStyle)
 		}
 	}
 }
 
-func (ml *messagesList) drawForwardedMessage(w io.Writer, message discord.Message) {
-	ml.drawTimestamps(w, message.Timestamp)
-	ml.drawAuthor(w, message)
-	fmt.Fprintf(w, "[::d]%s [::-]", ml.cfg.Theme.MessagesList.ForwardedIndicator)
-	ml.drawSnapshotContent(w, message.MessageSnapshots[0].Message)
-	fmt.Fprintf(w, " [::d](%s)[-:-:-] ", ml.formatTimestamp(message.MessageSnapshots[0].Message.Timestamp))
+func (ml *messagesList) drawForwardedMessage(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style) {
+	dimStyle := baseStyle.Dim(true)
+	ml.drawTimestamps(builder, message.Timestamp, baseStyle)
+	ml.drawAuthor(builder, message, baseStyle)
+	builder.Write(ml.cfg.Theme.MessagesList.ForwardedIndicator+" ", dimStyle)
+	ml.drawSnapshotContent(builder, message.MessageSnapshots[0].Message, baseStyle)
+	builder.Write(" ("+ml.formatTimestamp(message.MessageSnapshots[0].Message.Timestamp)+") ", dimStyle)
 }
 
-func (ml *messagesList) drawReplyMessage(w io.Writer, message discord.Message) {
+func (ml *messagesList) drawReplyMessage(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style) {
+	dimStyle := baseStyle.Dim(true)
 	// indicator
-	io.WriteString(w, "[::d]")
-	io.WriteString(w, ml.cfg.Theme.MessagesList.ReplyIndicator)
-	io.WriteString(w, " ")
+	builder.Write(ml.cfg.Theme.MessagesList.ReplyIndicator+" ", dimStyle)
 
 	if m := message.ReferencedMessage; m != nil {
 		m.GuildID = message.GuildID
-		ml.drawAuthor(w, *m)
-		ml.drawContent(w, *m)
+		ml.drawAuthor(builder, *m, dimStyle)
+		ml.drawContent(builder, *m, dimStyle)
 	} else {
-		io.WriteString(w, "Original message was deleted")
+		builder.Write("Original message was deleted", dimStyle)
 	}
 
-	io.WriteString(w, "\n")
+	builder.NewLine()
 	// main
-	ml.drawDefaultMessage(w, message)
+	ml.drawDefaultMessage(builder, message, baseStyle)
 }
 
-func (ml *messagesList) drawPinnedMessage(w io.Writer, message discord.Message) {
-	io.WriteString(w, message.Author.DisplayOrUsername())
-	io.WriteString(w, " pinned a message.")
+func (ml *messagesList) drawPinnedMessage(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style) {
+	builder.Write(message.Author.DisplayOrUsername(), baseStyle)
+	builder.Write(" pinned a message.", baseStyle)
 }
 
 func (ml *messagesList) selectedMessage() (*discord.Message, error) {
@@ -531,46 +530,114 @@ func extractURLs(content string) []string {
 }
 
 func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord.Attachment) {
-	list := tview.NewList().
-		SetWrapAround(true).
-		SetHighlightFullLine(true).
-		ShowSecondaryText(false).
-		SetDoneFunc(func() {
-			ml.chatView.RemoveLayer(attachmentsListLayerName)
-			ml.chatView.app.SetFocus(ml)
-		})
-	list.
-		SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-			switch event.Name() {
-			case ml.cfg.Keybinds.MessagesList.SelectUp:
-				return tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone)
-			case ml.cfg.Keybinds.MessagesList.SelectDown:
-				return tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone)
-			case ml.cfg.Keybinds.MessagesList.SelectTop:
-				return tcell.NewEventKey(tcell.KeyHome, "", tcell.ModNone)
-			case ml.cfg.Keybinds.MessagesList.SelectBottom:
-				return tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone)
-			}
+	type attachmentAction struct {
+		label    string
+		shortcut rune
+		open     func()
+	}
 
-			return event
+	closeList := func() {
+		ml.chatView.RemoveLayer(attachmentsListLayerName)
+		ml.chatView.app.SetFocus(ml)
+	}
+
+	var actions []attachmentAction
+	for i, a := range attachments {
+		attachment := a
+		action := func() {
+			if strings.HasPrefix(attachment.ContentType, "image/") {
+				go ml.openAttachment(attachment)
+			} else {
+				go ml.openURL(attachment.URL)
+			}
+		}
+		actions = append(actions, attachmentAction{
+			label:    attachment.Filename,
+			shortcut: rune('a' + i),
+			open:     action,
+		})
+	}
+	for i, u := range urls {
+		url := u
+		actions = append(actions, attachmentAction{
+			label:    url,
+			shortcut: rune('1' + i),
+			open:     func() { go ml.openURL(url) },
+		})
+	}
+
+	normalItems := make([]*tview.TextView, len(actions))
+	selectedItems := make([]*tview.TextView, len(actions))
+	for i, action := range actions {
+		normalItems[i] = tview.NewTextView().
+			SetScrollable(false).
+			SetWrap(false).
+			SetWordWrap(false).
+			SetLines([]tview.Line{{{Text: action.label, Style: tcell.StyleDefault}}})
+		selectedItems[i] = tview.NewTextView().
+			SetScrollable(false).
+			SetWrap(false).
+			SetWordWrap(false).
+			SetLines([]tview.Line{{{Text: action.label, Style: tcell.StyleDefault.Reverse(true)}}})
+	}
+
+	list := tview.NewList().
+		SetSnapToItems(true).
+		SetBuilder(func(index int, cursor int) tview.ListItem {
+			if index < 0 || index >= len(actions) {
+				return nil
+			}
+			if index == cursor {
+				return selectedItems[index]
+			}
+			return normalItems[index]
 		})
 	list.Box = ui.ConfigureBox(list.Box, &ml.cfg.Theme)
+	if len(actions) > 0 {
+		list.SetCursor(0)
+	}
+	list.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		switch event.Name() {
+		case ml.cfg.Keybinds.MessagesList.SelectUp:
+			return tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone)
+		case ml.cfg.Keybinds.MessagesList.SelectDown:
+			return tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone)
+		case ml.cfg.Keybinds.MessagesList.SelectTop:
+			return tcell.NewEventKey(tcell.KeyHome, "", tcell.ModNone)
+		case ml.cfg.Keybinds.MessagesList.SelectBottom:
+			return tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone)
+		case ml.cfg.Keybinds.MessagesList.Cancel:
+			closeList()
+			return nil
+		}
 
-	for i, a := range attachments {
-		list.AddItem(a.Filename, "", rune('a'+i), func() {
-			if strings.HasPrefix(a.ContentType, "image/") {
-				go ml.openAttachment(a)
-			} else {
-				go ml.openURL(a.URL)
+		if event.Key() == tcell.KeyEnter || event.Key() == tcell.KeyRune && event.Str() == " " {
+			index := list.Cursor()
+			if index >= 0 && index < len(actions) {
+				actions[index].open()
+				closeList()
 			}
-		})
-	}
+			return nil
+		}
 
-	for i, u := range urls {
-		list.AddItem(u, "", rune('1'+i), func() {
-			go ml.openURL(u)
-		})
-	}
+		if event.Key() == tcell.KeyRune {
+			key := event.Str()
+			if key == "" {
+				return event
+			}
+			ch := []rune(key)[0]
+			for index, action := range actions {
+				if action.shortcut == ch {
+					list.SetCursor(index)
+					actions[index].open()
+					closeList()
+					return nil
+				}
+			}
+		}
+
+		return event
+	})
 
 	ml.chatView.
 		AddLayer(

@@ -78,18 +78,19 @@ func (f *Form) onError(err error) {
 		})
 	{
 		bg := f.cfg.Theme.Dialog.Style.GetBackground()
+		buttonStyle := f.cfg.Theme.Dialog.Style.Style
 		if bg != tcell.ColorDefault {
 			modal.SetBackgroundColor(bg)
-			modal.SetButtonBackgroundColor(bg)
+			buttonStyle = buttonStyle.Background(bg)
 		}
 		fg := f.cfg.Theme.Dialog.Style.GetForeground()
 		if fg != tcell.ColorDefault {
 			modal.SetTextColor(fg)
-			modal.SetButtonTextColor(fg)
+			buttonStyle = buttonStyle.Foreground(fg)
 		}
 		// Keep button styles aligned with dialog content without hiding text.
-		modal.SetButtonStyle(f.cfg.Theme.Dialog.Style.Style)
-		modal.SetButtonActivatedStyle(f.cfg.Theme.Dialog.Style.Style)
+		modal.SetButtonStyle(buttonStyle)
+		modal.SetButtonActivatedStyle(buttonStyle)
 	}
 	f.
 		AddLayer(

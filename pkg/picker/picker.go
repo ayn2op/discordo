@@ -45,10 +45,7 @@ func New() *Picker {
 		SetBorderStyle(tcell.StyleDefault.Dim(true)).
 		SetInputCapture(p.onInputCapture)
 
-	p.list.
-		SetSelectedFunc(p.onListSelected).
-		ShowSecondaryText(false).
-		SetHighlightFullLine(true)
+	p.list.SetSnapToItems(true)
 
 	p.
 		SetDirection(tview.FlexRow).
@@ -58,6 +55,32 @@ func New() *Picker {
 
 	p.Update()
 	return p
+}
+
+func (p *Picker) setFilteredItems(filtered Items) {
+	p.filtered = filtered
+
+	p.list.SetBuilder(func(index int, cursor int) tview.ListItem {
+		if index < 0 || index >= len(p.filtered) {
+			return nil
+		}
+		style := tcell.StyleDefault
+		if index == cursor {
+			style = style.Foreground(tview.Styles.PrimitiveBackgroundColor).Background(tview.Styles.PrimaryTextColor)
+		}
+		return tview.NewTextView().
+			SetScrollable(false).
+			SetWrap(false).
+			SetWordWrap(false).
+			SetTextStyle(style).
+			SetLines([]tview.Line{{{Text: p.filtered[index].Text, Style: style}}})
+	})
+
+	if len(filtered) == 0 {
+		p.list.SetCursor(-1)
+	} else {
+		p.list.SetCursor(0)
+	}
 }
 
 func (p *Picker) SetKeyMap(keyMap *KeyMap) {
@@ -77,6 +100,7 @@ func (p *Picker) ClearInput() {
 }
 
 func (p *Picker) ClearList() {
+	p.filtered = nil
 	p.list.Clear()
 }
 
@@ -94,7 +118,7 @@ func (p *Picker) Update() {
 	p.onInputChanged("")
 }
 
-func (p *Picker) onListSelected(index int, text, _ string, _ rune) {
+func (p *Picker) onListSelected(index int) {
 	if p.onSelected != nil {
 		if index >= 0 && index < len(p.filtered) {
 			item := p.filtered[index]
@@ -113,12 +137,7 @@ func (p *Picker) onInputChanged(text string) {
 			fuzzied = append(fuzzied, p.items[match.Index])
 		}
 	}
-	p.filtered = fuzzied
-
-	p.ClearList()
-	for _, item := range fuzzied {
-		p.list.AddItem(item.Text, "", 0, nil)
-	}
+	p.setFilteredItems(fuzzied)
 }
 
 func (p *Picker) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
@@ -140,7 +159,8 @@ func (p *Picker) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	case p.keyMap.Bottom:
 		handler(tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone), nil)
 	case p.keyMap.Select:
-		handler(tcell.NewEventKey(tcell.KeyEnter, "", tcell.ModNone), nil)
+		p.onListSelected(p.list.Cursor())
+		return nil
 
 	case p.keyMap.Cancel:
 		if p.onCancel != nil {

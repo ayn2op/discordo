@@ -62,10 +62,14 @@ func (gt *guildsTree) resetNodeIndex() {
 func (gt *guildsTree) createFolderNode(folder gateway.GuildFolder) {
 	name := "Folder"
 	if folder.Name != "" {
-		name = fmt.Sprintf("[%s]%s[-]", folder.Color, folder.Name)
+		name = folder.Name
 	}
 
 	folderNode := tview.NewTreeNode(name).SetExpanded(gt.cfg.Theme.GuildsTree.AutoExpandFolders)
+	if folder.Color != 0 {
+		folderStyle := tcell.StyleDefault.Foreground(tcell.NewHexColor(int32(folder.Color)))
+		folderNode.SetTextStyle(folderStyle)
+	}
 	gt.GetRoot().AddChild(folderNode)
 
 	for _, gID := range folder.GuildIDs {
