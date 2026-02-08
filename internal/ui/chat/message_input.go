@@ -65,8 +65,7 @@ func newMessageInput(cfg *config.Config, chatView *View) *messageInput {
 	mi.Box = ui.ConfigureBox(mi.Box, &cfg.Theme)
 	mi.SetInputCapture(mi.onInputCapture)
 	mi.
-		SetPlaceholder("Select a channel to start chatting").
-		SetPlaceholderStyle(tcell.StyleDefault.Dim(true)).
+		SetPlaceholder(tview.NewLine(tview.NewSegment("Select a channel to start chatting", tcell.StyleDefault.Dim(true)))).
 		SetClipboard(
 			func(s string) { clipboard.Write(clipboard.FmtText, []byte(s)) },
 			func() string { return string(clipboard.Read(clipboard.FmtText)) },

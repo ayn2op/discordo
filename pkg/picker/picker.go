@@ -66,7 +66,7 @@ func (p *Picker) setFilteredItems(filtered Items) {
 		}
 		style := tcell.StyleDefault
 		if index == cursor {
-			style = style.Foreground(tview.Styles.PrimitiveBackgroundColor).Background(tview.Styles.PrimaryTextColor)
+			style = style.Reverse(true)
 		}
 		return tview.NewTextView().
 			SetScrollable(false).

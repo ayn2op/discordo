@@ -51,15 +51,16 @@ func (m *mentionsList) rebuild() {
 		item := m.items[index]
 		style := item.style
 		if index == cursor {
-			style = style.Foreground(tview.Styles.PrimitiveBackgroundColor).Background(tview.Styles.PrimaryTextColor)
+			style = style.Reverse(true)
 		}
+		line := tview.NewLine(tview.NewSegment(item.displayText, style))
 
 		return tview.NewTextView().
 			SetScrollable(false).
 			SetWrap(false).
 			SetWordWrap(false).
 			SetTextStyle(style).
-			SetLines([]tview.Line{{{Text: item.displayText, Style: style}}})
+			SetLines([]tview.Line{line})
 	})
 
 	if len(m.items) == 0 {
