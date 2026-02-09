@@ -59,7 +59,7 @@ func (gt *guildsTree) resetNodeIndex() {
 	gt.dmRootNode = nil
 }
 
-func (gt *guildsTree) createFolderNode(folder gateway.GuildFolder) {
+func (gt *guildsTree) createFolderNode(folder gateway.GuildFolder, guildsByID map[discord.GuildID]*gateway.GuildCreateEvent) {
 	name := "Folder"
 	if folder.Name != "" {
 		name = folder.Name
@@ -72,14 +72,10 @@ func (gt *guildsTree) createFolderNode(folder gateway.GuildFolder) {
 	}
 	gt.GetRoot().AddChild(folderNode)
 
-	for _, gID := range folder.GuildIDs {
-		guild, err := gt.chatView.state.Cabinet.Guild(gID)
-		if err != nil {
-			slog.Error("failed to get guild from state", "guild_id", gID, "err", err)
-			continue
+	for _, guildID := range folder.GuildIDs {
+		if guildEvent, ok := guildsByID[guildID]; ok {
+			gt.createGuildNode(folderNode, guildEvent.Guild)
 		}
-
-		gt.createGuildNode(folderNode, *guild)
 	}
 }
 

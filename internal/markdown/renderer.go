@@ -162,8 +162,7 @@ func applyInlineAttr(style tcell.Style, attr discordmd.Attribute) tcell.Style {
 	case discordmd.AttrItalics:
 		return style.Italic(true)
 	case discordmd.AttrUnderline:
-		// tcell v3 in this project does not expose underline attrs.
-		return style
+		return style.Underline(true)
 	case discordmd.AttrStrikethrough:
 		return style.StrikeThrough(true)
 	case discordmd.AttrMonospace:

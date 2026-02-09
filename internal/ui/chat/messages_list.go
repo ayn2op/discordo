@@ -3,7 +3,6 @@ package chat
 import (
 	"context"
 	"errors"
-	"github.com/ayn2op/tview/layers"
 	"io"
 	"log/slog"
 	"net/http"
@@ -13,6 +12,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/ayn2op/tview/layers"
 
 	"github.com/ayn2op/discordo/internal/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
@@ -27,6 +28,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/diamondburned/ningen/v3/discordmd"
 	"github.com/gdamore/tcell/v3"
+	"github.com/gdamore/tcell/v3/color"
 	"github.com/skratchdot/open-golang/open"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/parser"
@@ -160,7 +162,7 @@ func (ml *messagesList) writeMessage(builder *tview.LineBuilder, message discord
 	if ml.cfg.HideBlockedUsers {
 		isBlocked := ml.chatView.state.UserIsBlocked(message.Author.ID)
 		if isBlocked {
-			builder.Write("Blocked message", baseStyle.Foreground(tcell.ColorRed).Bold(true))
+			builder.Write("Blocked message", baseStyle.Foreground(color.Red).Bold(true))
 			return
 		}
 	}
