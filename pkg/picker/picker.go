@@ -32,11 +32,11 @@ func New() *Picker {
 	}
 
 	// Show a horizontal bottom border to visually separate input from list.
-	borderSet := tview.BorderSet{
-		Bottom: tview.BoxDrawingsLightHorizontal,
-	}
+	var borderSet tview.BorderSet
+	borderSet.Bottom = tview.BoxDrawingsLightHorizontal
 	borderSet.BottomLeft = borderSet.Bottom
 	borderSet.BottomRight = borderSet.Bottom
+
 	p.input.
 		SetChangedFunc(p.onInputChanged).
 		SetLabel("> ").
@@ -44,8 +44,6 @@ func New() *Picker {
 		SetBorderSet(borderSet).
 		SetBorderStyle(tcell.StyleDefault.Dim(true)).
 		SetInputCapture(p.onInputCapture)
-
-	p.list.SetSnapToItems(true)
 
 	p.
 		SetDirection(tview.FlexRow).
