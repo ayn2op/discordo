@@ -81,7 +81,7 @@ func NewView(app *tview.Application, cfg *config.Config, onLogout func()) *View 
 }
 
 func (v *View) Draw(s tcell.Screen) {
-	if v.cfg.Theme.Hotkeys.Enable {
+	if v.cfg.Theme.Hotkeys.Enabled {
 		v.ResizeItem(v.hotkeysBar, v.hotkeysBar.update(), 0)
 	}
 	v.Flex.Draw(s)
@@ -118,7 +118,7 @@ func (v *View) buildLayout() {
 		SetDirection(tview.FlexRow).
 		AddItem(v.layers, 0, 1, true)
 
-	if v.cfg.Theme.Hotkeys.Enable {
+	if v.cfg.Theme.Hotkeys.Enabled {
 		v.Flex.AddItem(v.hotkeysBar, 1, 1, false)
 	}
 }
