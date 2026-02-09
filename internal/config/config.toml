@@ -144,7 +144,7 @@ down = "Ctrl+N"
 top = "Home"
 bottom = "End"
 
-[keybinds.hotkeys]
+[keybinds.hotkeys_bar]
 # Hide/show all keybinds in the hotkeys bar
 show_all = "Ctrl+Rune[]]"
 
@@ -197,7 +197,7 @@ min_width = 20
 max_height = 0
 
 # Hotkeys bar
-[theme.hotkeys]
+[theme.hotkeys_bar]
 enable = true
 padding = [1, 1] # [left, right]
 # Show ^X and S-X instead of CTRL-X and Shift-X

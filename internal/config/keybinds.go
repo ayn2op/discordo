@@ -88,7 +88,7 @@ type Keybinds struct {
 	MessagesList MessagesListKeybinds `toml:"messages_list"`
 	MessageInput MessageInputKeybinds `toml:"message_input"`
 	MentionsList MentionsListKeybinds `toml:"mentions_list"`
-	Hotkeys      HotkeysKeybinds      `toml:"hotkeys"`
+	Hotkeys      HotkeysKeybinds      `toml:"hotkeys_bar"`
 
 	Logout string `toml:"logout"`
 	Quit   string `toml:"quit"`
