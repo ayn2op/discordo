@@ -297,7 +297,7 @@ func (v *View) onReadUpdate(event *read.UpdateEvent) {
 	var updated bool
 	if event.GuildID.IsValid() {
 		if guildNode := v.guildsTree.findNodeByReference(event.GuildID); guildNode != nil {
-			guildNode.SetTextStyle(v.guildsTree.getGuildNodeStyle(event.GuildID))
+			v.guildsTree.setNodeLineStyle(guildNode, v.guildsTree.getGuildNodeStyle(event.GuildID))
 			updated = true
 		}
 	}
@@ -305,7 +305,7 @@ func (v *View) onReadUpdate(event *read.UpdateEvent) {
 	// Channel style is always updated for the target channel regardless of
 	// whether it's in a guild or DM.
 	if channelNode := v.guildsTree.findNodeByReference(event.ChannelID); channelNode != nil {
-		channelNode.SetTextStyle(v.guildsTree.getChannelNodeStyle(event.ChannelID))
+		v.guildsTree.setNodeLineStyle(channelNode, v.guildsTree.getChannelNodeStyle(event.ChannelID))
 		updated = true
 	}
 

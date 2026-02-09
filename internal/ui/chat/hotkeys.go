@@ -7,14 +7,17 @@ import (
 	"reflect"
 
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/markdown"
 	"github.com/ayn2op/tview"
 	"github.com/gdamore/tcell/v3"
+	"github.com/rivo/uniseg"
 )
 
 type hotkeysBar struct {
 	*tview.TextView
-	cfg     *config.Config
-	hotkeys []hotkey
+	cfg      *config.Config
+	renderer *markdown.InlineRenderer
+	hotkeys  []hotkey
 }
 
 type hotkey struct {
@@ -29,10 +32,10 @@ var runePattern = regexp.MustCompile(`Rune\[(.)]`)
 func newHotkeysBar(cfg *config.Config) *hotkeysBar {
 	hkb := &hotkeysBar{
 		TextView: tview.NewTextView(),
+		renderer: markdown.NewInlineRenderer(),
 		cfg:      cfg,
 	}
 	hkb.TextView.
-		SetDynamicColors(true).
 		SetWrap(false).
 		SetBorderPadding(0, 0, cfg.Theme.Hotkeys.Padding[0], cfg.Theme.Hotkeys.Padding[1])
 	return hkb
@@ -121,42 +124,61 @@ func (b *hotkeysBar) _hotkeys() {
 }
 
 func (b *hotkeysBar) update() int {
-	result := strings.Builder{}
-	_, _, w, _ := b.GetRect()
-	lines := 1
+	builder := tview.NewLineBuilder()
+	_, _, w, _ := b.GetInnerRect()
 	total := 0
-	strLen := 0
-	sep := b.cfg.Theme.Hotkeys.Separator
-	sepLen := tview.TaggedStringWidth(sep)
-	for i := range b.hotkeys {
-		hk := b.hotkeys[i]
+	sep := b.renderer.RenderMarkdownLine([]byte(b.cfg.Theme.Hotkeys.Separator), tcell.StyleDefault)
+	sepWidth := lineWidth(sep)
+	if sepWidth == 0 {
+		sep = tview.NewLine(tview.NewSegment(b.cfg.Theme.Hotkeys.Separator, tcell.StyleDefault))
+		sepWidth = uniseg.StringWidth(sep[0].Text)
+	}
+	for _, hk := range b.hotkeys {
 		if (!hk.hot && !b.cfg.Theme.Hotkeys.ShowAll) ||
 		   (hk.show != nil && !hk.show()) {
 			continue
 		}
-		bind := tview.Escape(runePattern.ReplaceAllString(hk.bind, `$1`))
+		bind := runePattern.ReplaceAllString(hk.bind, `$1`)
 		if b.cfg.Theme.Hotkeys.Compact {
 			bind = strings.ReplaceAll(bind, "Ctrl+", "^")
 			bind = strings.ReplaceAll(bind, "Shift+", "S-")
+			bind = strings.ReplaceAll(bind, "Alt+", "A-")
 		}
-		str := fmt.Sprintf(b.cfg.Theme.Hotkeys.Format, hk.name, bind)
-		strLen = tview.TaggedStringWidth(str)
-		total += strLen
-		if i != 0 {
-			total += sepLen
+		line := b.renderer.RenderMarkdownLine(
+			[]byte(fmt.Sprintf(b.cfg.Theme.Hotkeys.Format, hk.name, bind)),
+			tcell.StyleDefault,
+		)
+		width := lineWidth(line)
+		if total != 0 {
+			total += sepWidth
 		}
-		if total >= w {
-			total = strLen
-			lines++
-			result.WriteRune('\n')
-			result.WriteString(str)
+		if total+width >= w {
+			total = width
+			builder.NewLine()
+			appendLine(builder, line)
 			continue
 		}
-		if i != 0 {
-			result.WriteString(sep)
+		if total != 0 {
+			appendLine(builder, sep)
 		}
-		result.WriteString(str)
+		total += width
+		appendLine(builder, line)
 	}
-	b.SetText(result.String())
-	return lines
+	lines := builder.Finish()
+	b.SetLines(lines)
+	return len(lines)
+}
+
+func lineWidth(line tview.Line) int {
+	strLen := 0
+	for _, segment := range line {
+		strLen += uniseg.StringWidth(segment.Text)
+	}
+	return strLen
+}
+
+func appendLine(builder *tview.LineBuilder, line tview.Line) {
+	for _, segment := range line {
+		builder.Write(segment.Text, segment.Style)
+	}
 }

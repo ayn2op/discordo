@@ -2,7 +2,6 @@ package chat
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/ayn2op/tview/layers"
 	"io"
 	"log/slog"
@@ -40,11 +39,6 @@ const tmpFilePattern = consts.Name + "_*.md"
 
 var mentionRegex = regexp.MustCompile("@[a-zA-Z0-9._]+")
 
-type mentionsList struct {
-	*tview.List
-	messageInput *messageInput
-}
-
 type messageInput struct {
 	*tview.TextArea
 	cfg      *config.Config
@@ -53,7 +47,7 @@ type messageInput struct {
 	edit            bool
 	sendMessageData *api.SendMessageData
 	cache           *cache.Cache
-	mentionsList
+	mentionsList    *mentionsList
 	lastSearch      time.Time
 
 	typingTimerMu sync.Mutex
@@ -70,26 +64,16 @@ func newMessageInput(cfg *config.Config, chatView *View) *messageInput {
 		sendMessageData: &api.SendMessageData{},
 		cache:           cache.NewCache(),
 	}
-	mi.mentionsList = mentionsList{tview.NewList(),mi}
+	mi.mentionsList = newMentionsList(mi)
 	mi.Box = ui.ConfigureBox(mi.Box, &cfg.Theme)
 	mi.SetInputCapture(mi.onInputCapture)
 	mi.
-		SetPlaceholder("Select a channel to start chatting").
-		SetPlaceholderStyle(tcell.StyleDefault.Dim(true)).
+		SetPlaceholder(tview.NewLine(tview.NewSegment("Select a channel to start chatting", tcell.StyleDefault.Dim(true)))).
 		SetClipboard(
 			func(s string) { clipboard.Write(clipboard.FmtText, []byte(s)) },
 			func() string { return string(clipboard.Read(clipboard.FmtText)) },
 		).
 		SetDisabled(true)
-
-	mi.mentionsList.Box = ui.ConfigureBox(mi.mentionsList.Box, &mi.cfg.Theme)
-	mi.mentionsList.
-		ShowSecondaryText(false).
-		SetTitle("Mentions")
-
-	b := mi.mentionsList.GetBorderSet()
-	b.BottomLeft, b.BottomRight = b.BottomT, b.BottomT
-	mi.mentionsList.SetBorderSet(b)
 
 	mi.hotkeysShowMap = map[string]func() bool{
 		"attach": mi.hkAttach,
@@ -120,7 +104,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		return tcell.NewEventKey(tcell.KeyCtrlV, "", tcell.ModNone)
 
 	case mi.cfg.Keybinds.MessageInput.Send:
-		if mi.chatView.layers.GetVisibile(mentionsListLayerName) {
+		if mi.chatView.layers.GetVisible(mentionsListLayerName) {
 			mi.tabComplete()
 			return nil
 		}
@@ -136,7 +120,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		mi.openFilePicker()
 		return nil
 	case mi.cfg.Keybinds.MessageInput.Cancel:
-		if mi.chatView.layers.GetVisibile(mentionsListLayerName) {
+		if mi.chatView.layers.GetVisible(mentionsListLayerName) {
 			mi.stopTabCompletion()
 		} else {
 			if mi.edit != false ||
@@ -168,7 +152,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	}
 
 	if mi.cfg.AutocompleteLimit > 0 {
-		if mi.chatView.layers.GetVisibile(mentionsListLayerName) {
+		if mi.chatView.layers.GetVisible(mentionsListLayerName) {
 			handler := mi.mentionsList.InputHandler()
 			switch event.Name() {
 			case mi.cfg.Keybinds.MentionsList.Up:
@@ -363,10 +347,13 @@ func (mi *messageInput) tabComplete() {
 		}
 		return
 	}
-	if mi.mentionsList.GetItemCount() == 0 {
+	if mi.mentionsList.itemCount() == 0 {
 		return
 	}
-	_, name = mi.mentionsList.GetItemText(mi.mentionsList.GetCurrentItem())
+	name, ok := mi.mentionsList.selectedInsertText()
+	if !ok {
+		return
+	}
 	mi.Replace(pos, posEnd, "@"+name+" ")
 	mi.stopTabCompletion()
 }
@@ -385,7 +372,7 @@ func (mi *messageInput) tabSuggestion() {
 	}
 	gID := selected.GuildID
 	cID := selected.ID
-	mi.mentionsList.Clear()
+	mi.mentionsList.clear()
 
 	var shown map[string]struct{}
 	var userDone struct{}
@@ -455,11 +442,12 @@ func (mi *messageInput) tabSuggestion() {
 		}
 	}
 
-	if mi.mentionsList.GetItemCount() == 0 {
+	if mi.mentionsList.itemCount() == 0 {
 		mi.stopTabCompletion()
 		return
 	}
 
+	mi.mentionsList.rebuild()
 	mi.showMentionList()
 }
 
@@ -532,17 +520,14 @@ func (mi *messageInput) showMentionList() {
 	if t := int(mi.cfg.Theme.MentionsList.MaxHeight); t != 0 {
 		maxH = min(maxH, t)
 	}
-	count := l.GetItemCount() + borders
+	count := mi.mentionsList.itemCount() + borders
 	h := min(count, maxH) + borders + mi.cfg.Theme.Border.Padding[1]
 	y -= h
 	w := int(mi.cfg.Theme.MentionsList.MinWidth)
 	if w == 0 {
 		w = maxW
 	} else {
-		for i := range count - 1 {
-			t, _ := mi.mentionsList.GetItemText(i)
-			w = max(w, tview.TaggedStringWidth(t))
-		}
+		w = max(w, mi.mentionsList.maxDisplayWidth())
 
 		w = min(w+borders*2, maxW)
 		_, col, _, _ := mi.GetCursor()
@@ -571,24 +556,30 @@ func (mi *messageInput) addMentionMember(gID discord.GuildID, m *discord.Member)
 		name = m.Nick
 	}
 
+	style := tcell.StyleDefault
+
 	// This avoids a slower member color lookup path.
 	color, ok := state.MemberColor(m, func(id discord.RoleID) *discord.Role {
 		r, _ := mi.chatView.state.Cabinet.Role(gID, id)
 		return r
 	})
 	if ok {
-		name = fmt.Sprintf("[%s]%s[-]", color, name)
+		style = style.Foreground(tcell.NewHexColor(int32(color)))
 	}
 
 	presence, err := mi.chatView.state.Cabinet.Presence(gID, m.User.ID)
 	if err != nil {
 		slog.Info("failed to get presence from state", "guild_id", gID, "user_id", m.User.ID, "err", err)
 	} else if presence.Status == discord.OfflineStatus {
-		name = fmt.Sprintf("[::d]%s[::D]", name)
+		style = style.Dim(true)
 	}
 
-	mi.mentionsList.AddItem(name, m.User.Username, 0, nil)
-	return mi.mentionsList.GetItemCount() > int(mi.cfg.AutocompleteLimit)
+	mi.mentionsList.append(mentionsListItem{
+		insertText:  name,
+		displayText: name,
+		style:       style,
+	})
+	return mi.mentionsList.itemCount() > int(mi.cfg.AutocompleteLimit)
 }
 
 func (mi *messageInput) addMentionUser(user *discord.User) {
@@ -597,14 +588,19 @@ func (mi *messageInput) addMentionUser(user *discord.User) {
 	}
 
 	name := user.DisplayOrUsername()
+	style := tcell.StyleDefault
 	presence, err := mi.chatView.state.Cabinet.Presence(discord.NullGuildID, user.ID)
 	if err != nil {
 		slog.Info("failed to get presence from state", "user_id", user.ID, "err", err)
 	} else if presence.Status == discord.OfflineStatus {
-		name = fmt.Sprintf("[::d]%s[::D]", name)
+		style = style.Dim(true)
 	}
 
-	mi.mentionsList.AddItem(name, user.Username, 0, nil)
+	mi.mentionsList.append(mentionsListItem{
+		insertText:  name,
+		displayText: name,
+		style:       style,
+	})
 }
 
 // used by chatView
@@ -614,7 +610,7 @@ func (mi *messageInput) removeMentionsList() {
 
 func (mi *messageInput) stopTabCompletion() {
 	if mi.cfg.AutocompleteLimit > 0 {
-		mi.mentionsList.Clear()
+		mi.mentionsList.clear()
 		mi.removeMentionsList()
 		mi.chatView.app.SetFocus(mi)
 	}

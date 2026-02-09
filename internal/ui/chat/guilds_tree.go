@@ -61,23 +61,23 @@ func (gt *guildsTree) resetNodeIndex() {
 	gt.dmRootNode = nil
 }
 
-func (gt *guildsTree) createFolderNode(folder gateway.GuildFolder) {
+func (gt *guildsTree) createFolderNode(folder gateway.GuildFolder, guildsByID map[discord.GuildID]*gateway.GuildCreateEvent) {
 	name := "Folder"
 	if folder.Name != "" {
-		name = fmt.Sprintf("[%s]%s[-]", folder.Color, folder.Name)
+		name = folder.Name
 	}
 
 	folderNode := tview.NewTreeNode(name).SetExpanded(gt.cfg.Theme.GuildsTree.AutoExpandFolders)
+	if folder.Color != 0 {
+		folderStyle := tcell.StyleDefault.Foreground(tcell.NewHexColor(int32(folder.Color)))
+		gt.setNodeLineStyle(folderNode, folderStyle)
+	}
 	gt.GetRoot().AddChild(folderNode)
 
-	for _, gID := range folder.GuildIDs {
-		guild, err := gt.chatView.state.Cabinet.Guild(gID)
-		if err != nil {
-			slog.Error("failed to get guild from state", "guild_id", gID, "err", err)
-			continue
+	for _, guildID := range folder.GuildIDs {
+		if guildEvent, ok := guildsByID[guildID]; ok {
+			gt.createGuildNode(folderNode, guildEvent.Guild)
 		}
-
-		gt.createGuildNode(folderNode, *guild)
 	}
 }
 
@@ -109,8 +109,8 @@ func (gt *guildsTree) getChannelNodeStyle(channelID discord.ChannelID) tcell.Sty
 func (gt *guildsTree) createGuildNode(n *tview.TreeNode, guild discord.Guild) {
 	guildNode := tview.NewTreeNode(guild.Name).
 		SetReference(guild.ID).
-		SetTextStyle(gt.getGuildNodeStyle(guild.ID)).
 		Collapse()
+	gt.setNodeLineStyle(guildNode, gt.getGuildNodeStyle(guild.ID))
 	n.AddChild(guildNode)
 	gt.guildNodeByID[guild.ID] = guildNode
 }
@@ -120,11 +120,18 @@ func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Ch
 		return
 	}
 
-	channelNode := tview.NewTreeNode(ui.ChannelToString(channel, gt.cfg.Icons)).
-		SetReference(channel.ID).
-		SetTextStyle(gt.getChannelNodeStyle(channel.ID))
+	channelNode := tview.NewTreeNode(ui.ChannelToString(channel, gt.cfg.Icons)).SetReference(channel.ID)
+	gt.setNodeLineStyle(channelNode, gt.getChannelNodeStyle(channel.ID))
 	node.AddChild(channelNode)
 	gt.channelNodeByID[channel.ID] = channelNode
+}
+
+func (gt *guildsTree) setNodeLineStyle(node *tview.TreeNode, style tcell.Style) {
+	line := node.GetLine()
+	for i := range line {
+		line[i].Style = style
+	}
+	node.SetLine(line)
 }
 
 func (gt *guildsTree) createChannelNodes(node *tview.TreeNode, channels []discord.Channel) {
@@ -243,14 +250,16 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 
 		hasNoPerm := channel.Type != discord.DirectMessage && channel.Type != discord.GroupDM && !gt.chatView.state.HasPermissions(channel.ID, discord.PermissionSendMessages)
 		gt.chatView.messageInput.SetDisabled(hasNoPerm)
+		var text string
 		if hasNoPerm {
-			gt.chatView.messageInput.SetPlaceholder("You do not have permission to send messages in this channel.")
+			text = "You do not have permission to send messages in this channel."
 		} else {
-			gt.chatView.messageInput.SetPlaceholder("Message...")
+			text = "Message..."
 			if gt.cfg.AutoFocus {
 				gt.chatView.app.SetFocus(gt.chatView.messageInput)
 			}
 		}
+		gt.chatView.messageInput.SetPlaceholder(tview.NewLine(tview.NewSegment(text, tcell.StyleDefault.Dim(true))))
 	case dmNode: // Direct messages folder
 		channels, err := gt.chatView.state.PrivateChannels()
 		if err != nil {

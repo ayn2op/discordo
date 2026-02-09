@@ -204,12 +204,10 @@ padding = [1, 1] # [left, right]
 show_compact_keybinds = false
 # Show all avaliable keybindings, not just the mostly used ones
 show_all_keybinds = false
-# Tview-style tag rules apply. See <https://pkg.go.dev/github.com/rivo/tview#hdr-Styles__Colors__and_Hyperlinks>
+# Markdown-like syntax.
 # %[1]s is the name of the hotkey, e.g., "next".
 # %[2]s is the keybindding of the hotkey, e.g., "j".
-# To escape a style tag, use "]".
-# Example: "%[2]s[%[1]s[]"
-format = "[::rb]%[1]s[::RB] %[2]s"
+format = "**`%[1]s`** %[2]s"
 separator = "  "
 
 [theme.dialog]
