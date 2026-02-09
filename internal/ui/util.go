@@ -8,6 +8,7 @@ import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/tview"
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/gdamore/tcell/v3"
 )
 
 // ConfigureBox configures the provided box according to the provided theme.
@@ -120,4 +121,26 @@ func getMessageIDFromChannel(channel discord.Channel) discord.MessageID {
 		return channel.LastMessageID
 	}
 	return discord.MessageID(channel.ID)
+}
+
+func MergeStyle(base, overlay tcell.Style) tcell.Style {
+	fg := overlay.GetForeground()
+	if fg == tcell.ColorDefault {
+		fg = base.GetForeground()
+	}
+	bg := overlay.GetBackground()
+	if bg == tcell.ColorDefault {
+		bg = base.GetBackground()
+	}
+	style := base.Foreground(fg).Background(bg)
+	style = style.Bold(base.HasBold() || overlay.HasBold())
+	style = style.Dim(base.HasDim() || overlay.HasDim())
+	style = style.Italic(base.HasItalic() || overlay.HasItalic())
+	style = style.Blink(base.HasBlink() || overlay.HasBlink())
+	style = style.Reverse(base.HasReverse() || overlay.HasReverse())
+	style = style.StrikeThrough(base.HasStrikeThrough() || overlay.HasStrikeThrough())
+	if base.HasUnderline() || overlay.HasUnderline() {
+		style = style.Underline(true)
+	}
+	return style
 }
