@@ -83,8 +83,14 @@ type (
 	}
 )
 
-//go:embed config.toml
-var defaultCfg []byte
+func DefaultConfig() Config {
+	return Config{
+		Mouse: true,
+
+		Keybinds: defaultKeybinds(),
+		Theme:    defaultTheme(),
+	}
+}
 
 func DefaultPath() string {
 	path, err := os.UserConfigDir()
@@ -101,10 +107,7 @@ func DefaultPath() string {
 
 // Load reads the configuration file and parses it.
 func Load(path string) (*Config, error) {
-	var cfg Config
-	if err := toml.Unmarshal(defaultCfg, &cfg); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal default config: %w", err)
-	}
+	cfg := DefaultConfig()
 
 	file, err := os.Open(path)
 	if os.IsNotExist(err) {

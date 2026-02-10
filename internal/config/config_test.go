@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/BurntSushi/toml"
 	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/gdamore/tcell/v3"
 	"github.com/google/go-cmp/cmp"
@@ -29,15 +28,6 @@ func TestDefaultPath(t *testing.T) {
 }
 
 func TestLoad(t *testing.T) {
-	t.Run("invalid default config returns error", func(t *testing.T) {
-		orig := defaultCfg
-		defaultCfg = []byte("invalid =")
-		t.Cleanup(func() { defaultCfg = orig })
-		if _, err := Load("does-not-matter.toml"); err == nil {
-			t.Fatal(err)
-		}
-	})
-
 	t.Run("invalid config returns error", func(t *testing.T) {
 		path := filepath.Join(t.TempDir(), "bad.toml")
 		if err := os.WriteFile(path, []byte("invalid ="), os.ModePerm); err != nil {
@@ -78,12 +68,7 @@ func TestLoad(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		var defCfg Config
-		if err := toml.Unmarshal(defaultCfg, &defCfg); err != nil {
-			t.Fatal(err)
-		}
-		applyDefaults(&defCfg)
-
+		defCfg := DefaultConfig()
 		if diff := cmp.Diff(defCfg, *cfg, cmpopts.EquateComparable(tcell.Style{})); diff != "" {
 			t.Fatalf("got = -, want = +, diff=%s", diff)
 		}

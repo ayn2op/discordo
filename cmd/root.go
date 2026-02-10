@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/ayn2op/discordo/internal/app"
+	tea "charm.land/bubbletea/v2"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/logger"
+	"github.com/ayn2op/discordo/internal/ui/root"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 )
 
@@ -45,5 +46,7 @@ func Run() error {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
-	return app.New(cfg).Run()
+	p := tea.NewProgram(root.NewModel(cfg))
+	_, err = p.Run()
+	return err
 }

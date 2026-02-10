@@ -14,10 +14,10 @@ const (
 	OSVersion = "10"
 
 	Browser          = "Chrome"
-	BrowserVersion   = "143.0.0.0"
+	BrowserVersion   = "145.0.0.0"
 	BrowserUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " + Browser + "/" + BrowserVersion + " Safari/537.36"
 
-	ClientBuildNumber = 482285
+	ClientBuildNumber = 500334
 	Locale            = discord.EnglishUS
 )
 

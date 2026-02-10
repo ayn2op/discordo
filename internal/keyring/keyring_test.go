@@ -9,7 +9,7 @@ import (
 
 const testToken = "abc123"
 
-var testErr = errors.New("boom")
+var errBoom = errors.New("boom")
 
 func TestSetToken(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
@@ -30,7 +30,7 @@ func TestSetToken(t *testing.T) {
 	})
 
 	t.Run("error", func(t *testing.T) {
-		zkeyring.MockInitWithError(testErr)
+		zkeyring.MockInitWithError(errBoom)
 
 		if err := SetToken(testToken); err == nil {
 			t.Fatal("expected error")
@@ -65,7 +65,7 @@ func TestGetToken(t *testing.T) {
 	})
 
 	t.Run("error", func(t *testing.T) {
-		zkeyring.MockInitWithError(testErr)
+		zkeyring.MockInitWithError(errBoom)
 
 		if _, err := GetToken(); err == nil {
 			t.Fatal("expected error")
@@ -100,7 +100,7 @@ func TestDeleteToken(t *testing.T) {
 	})
 
 	t.Run("error", func(t *testing.T) {
-		zkeyring.MockInitWithError(testErr)
+		zkeyring.MockInitWithError(errBoom)
 
 		if err := DeleteToken(); err == nil {
 			t.Fatal("expected error")

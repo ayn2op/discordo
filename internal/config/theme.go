@@ -172,6 +172,10 @@ type (
 	}
 )
 
+func defaultTheme() Theme {
+	return Theme{}
+}
+
 func stringToAttrMask(s string) tcell.AttrMask {
 	switch s {
 	case "bold":
