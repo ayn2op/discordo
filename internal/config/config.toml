@@ -204,11 +204,11 @@ padding = [1, 1] # [left, right]
 show_compact_keybinds = false
 # Show all avaliable keybindings, not just the mostly used ones
 show_all_keybinds = false
-# Markdown-like syntax.
-# %[1]s is the name of the hotkey, e.g., "next".
-# %[2]s is the keybindding of the hotkey, e.g., "j".
-format = "**`%[1]s`** %[2]s"
-separator = "  "
+# Markdown-like syntax
+# {{name}} is the name of the hotkey. "next"
+# {{keybind} is the keybinding of the hotkey. "j"
+format = "**{{keybind}}** {{name}}"
+separator = " • "
 
 [theme.dialog]
 style = {}

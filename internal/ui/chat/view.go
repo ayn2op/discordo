@@ -81,7 +81,7 @@ func NewView(app *tview.Application, cfg *config.Config, onLogout func()) *View 
 }
 
 func (v *View) Draw(s tcell.Screen) {
-	if v.cfg.Theme.Hotkeys.Enabled {
+	if v.cfg.Theme.HotkeysBar.Enabled {
 		v.ResizeItem(v.hotkeysBar, v.hotkeysBar.update(), 0)
 	}
 	v.Flex.Draw(s)
@@ -118,7 +118,7 @@ func (v *View) buildLayout() {
 		SetDirection(tview.FlexRow).
 		AddItem(v.layers, 0, 1, true)
 
-	if v.cfg.Theme.Hotkeys.Enabled {
+	if v.cfg.Theme.HotkeysBar.Enabled {
 		v.Flex.AddItem(v.hotkeysBar, 1, 1, false)
 	}
 }
@@ -252,7 +252,7 @@ func (v *View) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		v.toggleGuildsTree()
 		return nil
 	case v.cfg.Keybinds.Hotkeys.ShowAll:
-		v.cfg.Theme.Hotkeys.ShowAll = !v.cfg.Theme.Hotkeys.ShowAll
+		v.cfg.Theme.HotkeysBar.ShowAll = !v.cfg.Theme.HotkeysBar.ShowAll
 		return nil
 	case v.cfg.Keybinds.Picker.Toggle:
 		v.togglePicker()

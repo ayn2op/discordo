@@ -1,6 +1,8 @@
 package markdown
 
 import (
+	"strings"
+
 	"github.com/ayn2op/tview"
 	"github.com/diamondburned/ningen/v3/discordmd"
 	"github.com/gdamore/tcell/v3"
@@ -13,7 +15,7 @@ func NewInlineRenderer() *InlineRenderer {
 	return &InlineRenderer{}
 }
 
-func (r *InlineRenderer) RenderMarkdownLine(source []byte, base tcell.Style) tview.Line {
+func (r *InlineRenderer) RenderMarkdownLine(source []byte, base tcell.Style, replacer *strings.Replacer) tview.Line {
 	node := discordmd.Parse(source)
 	builder := tview.NewLineBuilder()
 	styleStack := []tcell.Style{base}
@@ -34,7 +36,7 @@ func (r *InlineRenderer) RenderMarkdownLine(source []byte, base tcell.Style) tvi
 		switch node := node.(type) {
 		case *ast.Text:
 			if entering {
-				builder.Write(string(node.Segment.Value(source)), currentStyle())
+				builder.Write(replacer.Replace(string(node.Segment.Value(source))), currentStyle())
 			}
 		case *discordmd.Inline:
 			if entering {

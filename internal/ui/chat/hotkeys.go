@@ -1,7 +1,6 @@
 package chat
 
 import (
-	"fmt"
 	"strings"
 	"regexp"
 	"reflect"
@@ -18,13 +17,18 @@ type hotkeysBar struct {
 	cfg      *config.Config
 	renderer *markdown.InlineRenderer
 	hotkeys  []hotkey
+	sep      tview.Line
+	sepWidth int
 }
 
 type hotkey struct {
-	name string      // Hotkey name. E.g., "next"
-	bind string      // Hotkey actual keybinding. E.g., "j"
+	name string
+	bind string
 	show func() bool // Returns whether it's ok to display this hotkey right now. Use nil for "always"
 	hot  bool        // False = only show if theme.hotkeys.show_all is set
+
+	line  tview.Line
+	width int
 }
 
 var runePattern = regexp.MustCompile(`Rune\[(.)]`)
@@ -37,7 +41,7 @@ func newHotkeysBar(cfg *config.Config) *hotkeysBar {
 	}
 	hkb.TextView.
 		SetWrap(false).
-		SetBorderPadding(0, 0, cfg.Theme.Hotkeys.Padding[0], cfg.Theme.Hotkeys.Padding[1])
+		SetBorderPadding(0, 0, cfg.Theme.HotkeysBar.Padding[0], cfg.Theme.HotkeysBar.Padding[1])
 	return hkb
 }
 
@@ -78,17 +82,35 @@ func (b *hotkeysBar) appendHotkeysFromValue(v reflect.Value, showFuncs map[strin
 			hot:  fld.Tag.Get("hot") == "true",
 		})
 	}
+	b.process()
 	return b
 }
 
 func (b *hotkeysBar) setHotkeys(hks []hotkey) *hotkeysBar {
 	b.hotkeys = hks
+	b.process()
 	return b
 }
 
 func (b *hotkeysBar) appendHotkeys(hks []hotkey) *hotkeysBar {
 	b.hotkeys = append(b.hotkeys, hks...)
+	b.process()
 	return b
+}
+
+func (b *hotkeysBar) process() {
+	for i, hk := range b.hotkeys {
+		bind := runePattern.ReplaceAllString(hk.bind, `$1`)
+		if b.cfg.Theme.HotkeysBar.Compact {
+			bind = strings.ReplaceAll(bind, "Ctrl+", "^")
+			bind = strings.ReplaceAll(bind, "Shift+", "S-")
+			bind = strings.ReplaceAll(bind, "Alt+", "A-")
+		}
+		b.hotkeys[i].line = b.renderer.RenderMarkdownLine([]byte(b.cfg.Theme.HotkeysBar.Format), tcell.StyleDefault, strings.NewReplacer("{{name}}", hk.name, "{{keybind}}", bind))
+		b.hotkeys[i].width = lineWidth(b.hotkeys[i].line)
+	}
+	b.sep = tview.NewLine(tview.NewSegment(b.cfg.Theme.HotkeysBar.Separator, tcell.StyleDefault))
+	b.sepWidth = uniseg.StringWidth(b.cfg.Theme.HotkeysBar.Separator)
 }
 
 // Set hotkeys on focus.
@@ -127,42 +149,25 @@ func (b *hotkeysBar) update() int {
 	builder := tview.NewLineBuilder()
 	_, _, w, _ := b.GetInnerRect()
 	total := 0
-	sep := b.renderer.RenderMarkdownLine([]byte(b.cfg.Theme.Hotkeys.Separator), tcell.StyleDefault)
-	sepWidth := lineWidth(sep)
-	if sepWidth == 0 {
-		sep = tview.NewLine(tview.NewSegment(b.cfg.Theme.Hotkeys.Separator, tcell.StyleDefault))
-		sepWidth = uniseg.StringWidth(sep[0].Text)
-	}
 	for _, hk := range b.hotkeys {
-		if (!hk.hot && !b.cfg.Theme.Hotkeys.ShowAll) ||
+		if (!hk.hot && !b.cfg.Theme.HotkeysBar.ShowAll) ||
 		   (hk.show != nil && !hk.show()) {
 			continue
 		}
-		bind := runePattern.ReplaceAllString(hk.bind, `$1`)
-		if b.cfg.Theme.Hotkeys.Compact {
-			bind = strings.ReplaceAll(bind, "Ctrl+", "^")
-			bind = strings.ReplaceAll(bind, "Shift+", "S-")
-			bind = strings.ReplaceAll(bind, "Alt+", "A-")
-		}
-		line := b.renderer.RenderMarkdownLine(
-			[]byte(fmt.Sprintf(b.cfg.Theme.Hotkeys.Format, hk.name, bind)),
-			tcell.StyleDefault,
-		)
-		width := lineWidth(line)
 		if total != 0 {
-			total += sepWidth
+			total += b.sepWidth
 		}
-		if total+width >= w {
-			total = width
+		if total+hk.width >= w {
+			total = hk.width
 			builder.NewLine()
-			appendLine(builder, line)
+			appendLine(builder, hk.line)
 			continue
 		}
 		if total != 0 {
-			appendLine(builder, sep)
+			appendLine(builder, b.sep)
 		}
-		total += width
-		appendLine(builder, line)
+		total += hk.width
+		appendLine(builder, hk.line)
 	}
 	lines := builder.Finish()
 	b.SetLines(lines)

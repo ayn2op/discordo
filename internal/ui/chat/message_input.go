@@ -727,6 +727,9 @@ func (ml *mentionsList) hotkeys() {
 		reflect.ValueOf(ml.messageInput.cfg.Keybinds.MentionsList),
 		nil,
 	)
+	ml.messageInput.chatView.hotkeysBar.appendHotkeys([]hotkey{
+		{name: "select", bind: ml.messageInput.cfg.Keybinds.MessageInput.TabComplete, hot: true},
+	})
 }
 
 func (mi *messageInput) hkAttach() bool {

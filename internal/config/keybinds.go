@@ -1,22 +1,22 @@
 package config
 
 type NavigationKeybinds struct {
-	Up     string `toml:"up" join:"next"`
-	Down   string `toml:"down" name:"prev/next" hot:"true"`
+	Down   string `toml:"down" join:"next"`
+	Up     string `toml:"up" name:"next/prev" hot:"true"`
 	Top    string `toml:"top" join:"next"`
 	Bottom string `toml:"bottom" name:"first/last" hot:"true"`
 }
 
 type ScrollKeybinds struct {
-	ScrollUp     string `toml:"scroll_up" join:"next"`
-	ScrollDown   string `toml:"scroll_down" name:"up/down" hot:"true"`
+	ScrollDown   string `toml:"scroll_down" join:"next"`
+	ScrollUp     string `toml:"scroll_up" name:"scroll" hot:"true"`
 	ScrollTop    string `toml:"scroll_top" join:"next"`
 	ScrollBottom string `toml:"scroll_bottom" name"top/bot"`
 }
 
 type SelectionKeybinds struct {
-	SelectUp     string `toml:"select_up" join:"next"`
-	SelectDown   string `toml:"select_down" name:"prev/next" hot:"true"`
+	SelectDown   string `toml:"select_down" join:"next"`
+	SelectUp     string `toml:"select_up" name:"next/prev" hot:"true"`
 	SelectTop    string `toml:"select_top" join:"next"`
 	SelectBottom string `toml:"select_bottom" name:"first/last" hot:"true"`
 }
