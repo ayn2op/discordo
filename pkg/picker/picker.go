@@ -145,6 +145,11 @@ func (p *Picker) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 
 	handler := p.list.InputHandler()
 	switch event.Name() {
+	case "Up", "Down", "Home", "End":
+		handler(event, nil)
+		return nil
+	}
+	switch event.Name() {
 	case p.keyMap.Up:
 		handler(tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone), nil)
 		return nil

@@ -285,6 +285,16 @@ func (gt *guildsTree) collapseParentNode(node *tview.TreeNode) {
 
 func (gt *guildsTree) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
+	case "Up", "Down":
+		return event
+	case "Home":
+		gt.Move(gt.GetRowCount() * -1)
+		return nil
+	case "End":
+		gt.Move(gt.GetRowCount())
+		return nil
+	}
+	switch event.Name() {
 	case gt.cfg.Keybinds.GuildsTree.CollapseParentNode:
 		gt.collapseParentNode(gt.GetCurrentNode())
 		return nil

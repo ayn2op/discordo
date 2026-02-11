@@ -141,6 +141,11 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		if mi.chatView.GetVisible(mentionsListLayerName) {
 			handler := mi.mentionsList.InputHandler()
 			switch event.Name() {
+			case "Up", "Down", "Home", "End":
+				handler(event, nil)
+				return nil
+			}
+			switch event.Name() {
 			case mi.cfg.Keybinds.MentionsList.Up:
 				handler(tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone), nil)
 				return nil

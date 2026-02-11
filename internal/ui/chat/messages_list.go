@@ -318,6 +318,20 @@ func (ml *messagesList) selectedMessage() (*discord.Message, error) {
 
 func (ml *messagesList) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch event.Name() {
+	case "Up":
+		ml._select(ml.cfg.Keybinds.MessagesList.SelectUp)
+		return nil
+	case "Down":
+		ml._select(ml.cfg.Keybinds.MessagesList.SelectDown)
+		return nil
+	case "Home":
+		ml._select(ml.cfg.Keybinds.MessagesList.SelectTop)
+		return nil
+	case "End":
+		ml._select(ml.cfg.Keybinds.MessagesList.SelectBottom)
+		return nil
+	}
+	switch event.Name() {
 	case ml.cfg.Keybinds.MessagesList.ScrollUp:
 		ml.ScrollUp()
 		return nil
