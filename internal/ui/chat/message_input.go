@@ -141,7 +141,7 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		if mi.chatView.GetVisible(mentionsListLayerName) {
 			handler := mi.mentionsList.InputHandler()
 			switch event.Name() {
-			case "Up", "Down", "Home", "End":
+			case "Up", "Down", "Home", "PgUp", "PgDn", "End":
 				handler(event, nil)
 				return nil
 			}

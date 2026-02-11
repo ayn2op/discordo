@@ -161,6 +161,7 @@ func (p *Picker) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		return nil
 	case p.keyMap.Bottom:
 		handler(tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone), nil)
+		return nil
 	case p.keyMap.Select:
 		p.onListSelected(p.list.Cursor())
 		return nil
