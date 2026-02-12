@@ -614,7 +614,16 @@ func (mi *messageInput) editor() {
 
 	file.WriteString(mi.GetText())
 
-	cmd := exec.Command(mi.cfg.Editor, file.Name())
+	editorArgs := strings.Split(mi.cfg.Editor, " ")
+	if len(editorArgs) == 0 {
+		return
+	}
+
+	editor := editorArgs[0]
+	args := append(editorArgs[1:], file.Name())
+
+	cmd := exec.Command(editor, args...)
+
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
