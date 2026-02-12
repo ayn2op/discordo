@@ -67,14 +67,19 @@ func (r *Renderer) RenderLines(source []byte, node ast.Node, base tcell.Style) [
 			if entering {
 				builder.NewLine()
 				if language := node.Language(source); language != nil {
-					builder.Write("|=> "+string(language), currentStyle())
+					builder.Write(" |=> "+string(language), currentStyle())
 					builder.NewLine()
 				}
 
 				lines := node.Lines()
+				prefix := tview.NewSegment(" | ", currentStyle())
 				for i := range lines.Len() {
 					line := lines.At(i)
-					builder.Write("| "+string(line.Value(source)), currentStyle())
+
+					builder.AppendLine(tview.NewLine(
+						prefix,
+						tview.NewSegment(string(line.Value(source)), currentStyle()),
+					).WithWrappedPrefix(prefix))
 				}
 			}
 		case *ast.AutoLink:

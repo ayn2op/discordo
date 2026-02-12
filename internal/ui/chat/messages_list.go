@@ -230,11 +230,6 @@ func (ml *messagesList) drawContent(builder *tview.LineBuilder, message discord.
 	if ml.chatView.cfg.Markdown {
 		root := discordmd.ParseWithMessage(c, *ml.chatView.state.Cabinet, &message, false)
 		lines := ml.renderer.RenderLines(c, root, baseStyle)
-		if builder.HasCurrentLine() {
-			for len(lines) > 1 && len(lines[0]) == 0 {
-				lines = lines[1:]
-			}
-		}
 		builder.AppendLines(lines)
 	} else {
 		builder.Write(message.Content, baseStyle)
@@ -575,12 +570,12 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 			SetScrollable(false).
 			SetWrap(false).
 			SetWordWrap(false).
-			SetLines([]tview.Line{{{Text: action.label, Style: tcell.StyleDefault}}})
+			SetLines([]tview.Line{tview.NewLine(tview.NewSegment(action.label, tcell.StyleDefault))})
 		selectedItems[i] = tview.NewTextView().
 			SetScrollable(false).
 			SetWrap(false).
 			SetWordWrap(false).
-			SetLines([]tview.Line{{{Text: action.label, Style: tcell.StyleDefault.Reverse(true)}}})
+			SetLines([]tview.Line{tview.NewLine(tview.NewSegment(action.label, tcell.StyleDefault.Reverse(true)))})
 	}
 
 	list := tview.NewList().
