@@ -606,6 +606,7 @@ func (mi *messageInput) stopTabCompletion() {
 
 func (mi *messageInput) editor() {
 	if mi.cfg.Editor == "" {
+		slog.Warn("Attempt to open editor, but no editor is configured. Configure one in your config.toml or ensure that EDITOR is set in your environment.");
 		return
 	}
 
