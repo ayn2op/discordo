@@ -616,9 +616,10 @@ func (mi *messageInput) editor() {
 	file.WriteString(mi.GetText())
 
 	var cmd *exec.Cmd
-	if runtime.GOOS == "unix" {
+	switch runtime.GOOS {
+	case "linux", "darwin", "freebsd":
 		cmd = exec.Command("sh", "-c", mi.cfg.Editor+" \"$@\"", mi.cfg.Editor, file.Name())
-	} else {
+	default:
 		cmd = exec.Command(mi.cfg.Editor, file.Name())
 	}
 
