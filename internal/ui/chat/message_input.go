@@ -5,10 +5,8 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -605,11 +603,6 @@ func (mi *messageInput) stopTabCompletion() {
 }
 
 func (mi *messageInput) editor() {
-	if mi.cfg.Editor == "" {
-		slog.Warn("Attempt to open editor, but no editor is configured. Configure one in your config.toml or ensure that EDITOR is set in your environment.");
-		return
-	}
-
 	file, err := os.CreateTemp("", tmpFilePattern)
 	if err != nil {
 		slog.Error("failed to create tmp file", "err", err)
@@ -620,12 +613,9 @@ func (mi *messageInput) editor() {
 
 	file.WriteString(mi.GetText())
 
-	var cmd *exec.Cmd
-	switch runtime.GOOS {
-	case "linux", "darwin", "freebsd":
-		cmd = exec.Command("sh", "-c", mi.cfg.Editor+" \"$@\"", mi.cfg.Editor, file.Name())
-	default:
-		cmd = exec.Command(mi.cfg.Editor, file.Name())
+	cmd := mi.cfg.OpenFile(file.Name())
+	if cmd == nil {
+		return
 	}
 
 	cmd.Stdin = os.Stdin
