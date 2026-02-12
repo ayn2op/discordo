@@ -58,7 +58,7 @@ func newMessagesList(cfg *config.Config, chatView *View) *messagesList {
 		List:     tview.NewList(),
 		cfg:      cfg,
 		chatView: chatView,
-		renderer: markdown.NewRenderer(cfg.Theme.MessagesList),
+		renderer: markdown.NewRenderer(cfg),
 		itemByID: make(map[discord.MessageID]*tview.TextView),
 	}
 
@@ -227,7 +227,7 @@ func (ml *messagesList) drawAuthor(builder *tview.LineBuilder, message discord.M
 
 func (ml *messagesList) drawContent(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style) {
 	c := []byte(message.Content)
-	if ml.chatView.cfg.Markdown {
+	if ml.chatView.cfg.Markdown.Enabled {
 		root := discordmd.ParseWithMessage(c, *ml.chatView.state.Cabinet, &message, false)
 		lines := ml.renderer.RenderLines(c, root, baseStyle)
 		if builder.HasCurrentLine() {

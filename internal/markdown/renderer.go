@@ -16,7 +16,7 @@ import (
 )
 
 type Renderer struct {
-	theme config.MessagesListTheme
+	cfg *config.Config
 
 	listIx     *int
 	listNested int
@@ -24,8 +24,8 @@ type Renderer struct {
 
 const codeBlockIndent = "    "
 
-func NewRenderer(theme config.MessagesListTheme) *Renderer {
-	return &Renderer{theme: theme}
+func NewRenderer(cfg *config.Config) *Renderer {
+	return &Renderer{cfg: cfg}
 }
 
 func (r *Renderer) RenderLines(source []byte, node ast.Node, base tcell.Style) []tview.Line {
@@ -47,6 +47,7 @@ func (r *Renderer) RenderLines(source []byte, node ast.Node, base tcell.Style) [
 		}
 	}
 
+	theme := r.cfg.Theme.MessagesList
 	_ = ast.Walk(node, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
 		switch node := node.(type) {
 		case *ast.Document:
@@ -75,12 +76,12 @@ func (r *Renderer) RenderLines(source []byte, node ast.Node, base tcell.Style) [
 			}
 		case *ast.AutoLink:
 			if entering {
-				style := ui.MergeStyle(currentStyle(), r.theme.URLStyle.Style)
+				style := ui.MergeStyle(currentStyle(), theme.URLStyle.Style)
 				builder.Write(string(node.URL(source)), style)
 			}
 		case *ast.Link:
 			if entering {
-				pushStyle(ui.MergeStyle(currentStyle(), r.theme.URLStyle.Style))
+				pushStyle(ui.MergeStyle(currentStyle(), theme.URLStyle.Style))
 			} else {
 				popStyle()
 			}
@@ -118,13 +119,13 @@ func (r *Renderer) RenderLines(source []byte, node ast.Node, base tcell.Style) [
 			}
 		case *discordmd.Mention:
 			if entering {
-				style := ui.MergeStyle(currentStyle(), r.theme.MentionStyle.Style)
+				style := ui.MergeStyle(currentStyle(), theme.MentionStyle.Style)
 				style = style.Bold(true)
 				builder.Write(mentionText(node), style)
 			}
 		case *discordmd.Emoji:
 			if entering {
-				style := ui.MergeStyle(currentStyle(), r.theme.EmojiStyle.Style)
+				style := ui.MergeStyle(currentStyle(), theme.EmojiStyle.Style)
 				builder.Write(":"+node.Name+":", style)
 			}
 		}
@@ -168,7 +169,7 @@ func (r *Renderer) renderFencedCodeBlock(builder *tview.LineBuilder, source []by
 		return
 	}
 
-	theme := styles.Get(r.theme.SyntaxHighlightTheme)
+	theme := styles.Get(r.cfg.Markdown.Theme)
 	if theme == nil {
 		theme = styles.Fallback
 	}
