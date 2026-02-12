@@ -3,15 +3,9 @@
 package config
 
 import (
-	"log/slog"
 	"os/exec"
 )
 
-func (cfg *Config) OpenFile(path string) *exec.Cmd {
-	if cfg.Editor == "" {
-		slog.Warn("Attempt to open file with editor, but no editor is set")
-		return nil
-	}
-
+func (cfg *Config) createEditorCommand(path string) *exec.Cmd {
 	return exec.Command(cfg.Editor, path)
 }

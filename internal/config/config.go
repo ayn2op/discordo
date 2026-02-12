@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/BurntSushi/toml"
@@ -138,4 +139,13 @@ func applyDefaults(cfg *Config) {
 	if cfg.Status == "default" {
 		cfg.Status = discord.UnknownStatus
 	}
+}
+
+func (cfg *Config) OpenFile(path string) *exec.Cmd {
+	if cfg.Editor == "" {
+		slog.Warn("Attempt to open file with editor, but no editor is set")
+		return nil
+	}
+
+	return cfg.createEditorCommand(path)
 }
