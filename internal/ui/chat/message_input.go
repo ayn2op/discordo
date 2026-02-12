@@ -605,6 +605,10 @@ func (mi *messageInput) stopTabCompletion() {
 }
 
 func (mi *messageInput) editor() {
+	if mi.cfg.Editor == "" {
+		return
+	}
+
 	file, err := os.CreateTemp("", tmpFilePattern)
 	if err != nil {
 		slog.Error("failed to create tmp file", "err", err)
@@ -614,10 +618,6 @@ func (mi *messageInput) editor() {
 	defer os.Remove(file.Name())
 
 	file.WriteString(mi.GetText())
-
-	if len(mi.cfg.Editor) == 0 {
-		return
-	}
 
 	var cmd *exec.Cmd
 	switch runtime.GOOS {
