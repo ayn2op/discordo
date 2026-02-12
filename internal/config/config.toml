@@ -174,6 +174,9 @@ graphics_color = "default"
 [theme.messages_list]
 reply_indicator = ">"
 forwarded_indicator = "<"
+# Chroma theme for fenced code blocks.
+# Available themes: https://xyproto.github.io/splash/docs/
+syntax_highlight_theme = "monokai"
 
 mention_style = { foreground = "blue" }
 emoji_style = { foreground = "green" }
