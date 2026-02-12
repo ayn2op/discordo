@@ -613,7 +613,7 @@ func (mi *messageInput) editor() {
 
 	file.WriteString(mi.GetText())
 
-	cmd := mi.cfg.OpenFile(file.Name())
+	cmd := mi.cfg.OpenEditor(file.Name())
 	if cmd == nil {
 		return
 	}
