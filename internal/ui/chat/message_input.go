@@ -618,7 +618,7 @@ func (mi *messageInput) editor() {
 
 	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
-		cmd = exec.Command("cmd", "/C", mi.cfg.Editor+" "+file.Name())
+		cmd = exec.Command(mi.cfg.Editor, file.Name())
 	} else {
 		cmd = exec.Command("sh", "-c", mi.cfg.Editor+" \"$@\"", mi.cfg.Editor, file.Name())
 	}
