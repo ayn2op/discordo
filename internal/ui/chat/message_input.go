@@ -615,6 +615,10 @@ func (mi *messageInput) editor() {
 
 	file.WriteString(mi.GetText())
 
+	if len(mi.cfg.Editor) == 0 {
+		return
+	}
+
 	var cmd *exec.Cmd
 	switch runtime.GOOS {
 	case "linux", "darwin", "freebsd":
