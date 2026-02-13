@@ -16,8 +16,9 @@ const fileName = "config.toml"
 
 type (
 	Timestamps struct {
-		Enabled bool   `toml:"enabled"`
-		Format  string `toml:"format"`
+		Enabled        bool   `toml:"enabled"`
+		DateSeparators bool   `toml:"date_separators"`
+		Format         string `toml:"format"`
 	}
 
 	Notifications struct {

@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/ayn2op/tview/layers"
 
@@ -40,6 +41,10 @@ type messagesList struct {
 	cfg      *config.Config
 	chatView *View
 	messages []discord.Message
+	// rows is the virtual list model rendered by tview (message rows +
+	// date-separator rows). It is rebuilt lazily when rowsDirty is true.
+	rows      []messagesListRow
+	rowsDirty bool
 
 	renderer *markdown.Renderer
 	// itemByID caches unselected message TextViews.
@@ -51,6 +56,19 @@ type messagesList struct {
 		count uint
 		done  chan struct{}
 	}
+}
+
+type messagesListRowKind uint8
+
+const (
+	messagesListRowMessage messagesListRowKind = iota
+	messagesListRowSeparator
+)
+
+type messagesListRow struct {
+	kind         messagesListRowKind
+	messageIndex int
+	timestamp    discord.Timestamp
 }
 
 func newMessagesList(cfg *config.Config, chatView *View) *messagesList {
@@ -65,6 +83,7 @@ func newMessagesList(cfg *config.Config, chatView *View) *messagesList {
 	ml.Box = ui.ConfigureBox(ml.Box, &cfg.Theme)
 	ml.SetTitle("Messages")
 	ml.SetBuilder(ml.buildItem)
+	ml.SetChangedFunc(ml.onRowCursorChanged)
 	ml.SetTrackEnd(true)
 	ml.SetInputCapture(ml.onInputCapture)
 	return ml
@@ -72,6 +91,8 @@ func newMessagesList(cfg *config.Config, chatView *View) *messagesList {
 
 func (ml *messagesList) reset() {
 	ml.messages = nil
+	ml.rows = nil
+	ml.rowsDirty = false
 	clear(ml.itemByID)
 	ml.
 		Clear().
@@ -91,6 +112,7 @@ func (ml *messagesList) setTitle(channel discord.Channel) {
 func (ml *messagesList) setMessages(messages []discord.Message) {
 	ml.messages = slices.Clone(messages)
 	slices.Reverse(ml.messages)
+	ml.invalidateRows()
 	// New channel payload / refetch: replace the cache wholesale to keep it in
 	// lockstep with the current message slice.
 	clear(ml.itemByID)
@@ -99,6 +121,7 @@ func (ml *messagesList) setMessages(messages []discord.Message) {
 
 func (ml *messagesList) addMessage(message discord.Message) {
 	ml.messages = append(ml.messages, message)
+	ml.invalidateRows()
 	// Defensive invalidation for ID reuse/edits delivered out-of-order.
 	delete(ml.itemByID, message.ID)
 	ml.MarkDirty()
@@ -111,6 +134,7 @@ func (ml *messagesList) setMessage(index int, message discord.Message) {
 
 	ml.messages[index] = message
 	delete(ml.itemByID, message.ID)
+	ml.invalidateRows()
 	ml.MarkDirty()
 }
 
@@ -121,6 +145,7 @@ func (ml *messagesList) deleteMessage(index int) {
 
 	delete(ml.itemByID, ml.messages[index].ID)
 	ml.messages = append(ml.messages[:index], ml.messages[index+1:]...)
+	ml.invalidateRows()
 	ml.MarkDirty()
 }
 
@@ -129,11 +154,18 @@ func (ml *messagesList) clearSelection() {
 }
 
 func (ml *messagesList) buildItem(index int, cursor int) tview.ListItem {
-	if index < 0 || index >= len(ml.messages) {
+	ml.ensureRows()
+
+	if index < 0 || index >= len(ml.rows) {
 		return nil
 	}
 
-	message := ml.messages[index]
+	row := ml.rows[index]
+	if row.kind == messagesListRowSeparator {
+		return ml.buildSeparatorItem(row.timestamp)
+	}
+
+	message := ml.messages[row.messageIndex]
 	if index == cursor {
 		return tview.NewTextView().
 			SetWrap(true).
@@ -156,6 +188,140 @@ func (ml *messagesList) renderMessage(message discord.Message, baseStyle tcell.S
 	builder := tview.NewLineBuilder()
 	ml.writeMessage(builder, message, baseStyle)
 	return builder.Finish()
+}
+
+func (ml *messagesList) buildSeparatorItem(ts discord.Timestamp) *tview.TextView {
+	builder := tview.NewLineBuilder()
+	ml.drawDateSeparator(builder, ts, ml.cfg.Theme.MessagesList.MessageStyle.Style)
+	return tview.NewTextView().
+		SetScrollable(false).
+		SetWrap(false).
+		SetWordWrap(false).
+		SetLines(builder.Finish())
+}
+
+func (ml *messagesList) drawDateSeparator(builder *tview.LineBuilder, ts discord.Timestamp, baseStyle tcell.Style) {
+	date := ts.Time().In(time.Local).Format("January 2, 2006")
+	label := " " + date + " "
+	_, _, width, _ := ml.GetInnerRect()
+	if width <= 0 {
+		builder.Write("────────"+label+"────────", baseStyle.Dim(true))
+		return
+	}
+
+	labelWidth := utf8.RuneCountInString(label)
+	if width <= labelWidth {
+		builder.Write(date, baseStyle.Dim(true))
+		return
+	}
+
+	fillWidth := width - labelWidth
+	left := fillWidth / 2
+	right := fillWidth - left
+	builder.Write(strings.Repeat("─", left)+label+strings.Repeat("─", right), baseStyle.Dim(true))
+}
+
+func (ml *messagesList) rebuildRows() {
+	rows := make([]messagesListRow, 0, len(ml.messages)*2)
+
+	for i := range ml.messages {
+		if ml.cfg.Timestamps.DateSeparators && i > 0 && !sameLocalDate(ml.messages[i-1].Timestamp, ml.messages[i].Timestamp) {
+			rows = append(rows, messagesListRow{
+				kind:      messagesListRowSeparator,
+				timestamp: ml.messages[i].Timestamp,
+			})
+		}
+
+		rows = append(rows, messagesListRow{
+			kind:         messagesListRowMessage,
+			messageIndex: i,
+		})
+	}
+
+	ml.rows = rows
+	ml.rowsDirty = false
+}
+
+func (ml *messagesList) invalidateRows() {
+	ml.rowsDirty = true
+}
+
+// ensureRows lazily rebuilds list rows. This avoids repeated O(n) row rebuild
+// work when multiple message mutations happen close together.
+func (ml *messagesList) ensureRows() {
+	if !ml.rowsDirty {
+		return
+	}
+
+	ml.rebuildRows()
+}
+
+func sameLocalDate(a discord.Timestamp, b discord.Timestamp) bool {
+	ta := a.Time().In(time.Local)
+	tb := b.Time().In(time.Local)
+	ay, am, ad := ta.Date()
+	by, bm, bd := tb.Date()
+	return ay == by && am == bm && ad == bd
+}
+
+// Cursor returns the selected message index, skipping separator rows.
+func (ml *messagesList) Cursor() int {
+	ml.ensureRows()
+	rowIndex := ml.List.Cursor()
+	if rowIndex < 0 || rowIndex >= len(ml.rows) {
+		return -1
+	}
+
+	row := ml.rows[rowIndex]
+	if row.kind != messagesListRowMessage {
+		return -1
+	}
+	return row.messageIndex
+}
+
+// SetCursor selects a message index and maps it to the corresponding row.
+func (ml *messagesList) SetCursor(index int) {
+	ml.ensureRows()
+	ml.List.SetCursor(ml.messageToRowIndex(index))
+}
+
+func (ml *messagesList) messageToRowIndex(messageIndex int) int {
+	if messageIndex < 0 || messageIndex >= len(ml.messages) {
+		return -1
+	}
+
+	for i, row := range ml.rows {
+		if row.kind == messagesListRowMessage && row.messageIndex == messageIndex {
+			return i
+		}
+	}
+
+	return -1
+}
+
+func (ml *messagesList) onRowCursorChanged(rowIndex int) {
+	ml.ensureRows()
+	if rowIndex < 0 || rowIndex >= len(ml.rows) || ml.rows[rowIndex].kind == messagesListRowMessage {
+		return
+	}
+
+	target := ml.nearestMessageRowIndex(rowIndex)
+	ml.List.SetCursor(target)
+}
+
+// nearestMessageRowIndex expects rowIndex to be within bounds.
+func (ml *messagesList) nearestMessageRowIndex(rowIndex int) int {
+	for i := rowIndex - 1; i >= 0; i-- {
+		if ml.rows[i].kind == messagesListRowMessage {
+			return i
+		}
+	}
+	for i := rowIndex + 1; i < len(ml.rows); i++ {
+		if ml.rows[i].kind == messagesListRowMessage {
+			return i
+		}
+	}
+	return -1
 }
 
 func (ml *messagesList) writeMessage(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style) {
@@ -428,6 +594,8 @@ func (ml *messagesList) _select(name string) {
 				delete(ml.itemByID, message.ID)
 			}
 			ml.messages = slices.Concat(older, ml.messages)
+			ml.invalidateRows()
+			ml.MarkDirty()
 			cursor = len(messages) - 1
 		}
 	case ml.cfg.Keybinds.MessagesList.SelectDown:
