@@ -23,8 +23,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: stable
-      # More assembly might be required: Docker logins, GPG, etc.
-      # It all depends on your needs.
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
