@@ -162,14 +162,15 @@ func (r *Renderer) renderFencedCodeBlock(builder *tview.LineBuilder, source []by
 	lexer = chroma.Coalesce(lexer)
 
 	// Show a fallback header when the language is omitted or unknown.
+	headerStyle := base.Dim(true)
 	if analyzed {
-		builder.Write(codeBlockIndent+"code: analyzed", base)
+		builder.Write(codeBlockIndent+"code: analyzed", headerStyle)
 		builder.NewLine()
 	} else if language == "" {
-		builder.Write(codeBlockIndent+"code", base)
+		builder.Write(codeBlockIndent+"code", headerStyle)
 		builder.NewLine()
 	} else if !declaredLanguageSupported {
-		builder.Write(codeBlockIndent+"code: "+language, base)
+		builder.Write(codeBlockIndent+"code: "+language, headerStyle)
 		builder.NewLine()
 	}
 
