@@ -4,6 +4,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/lexers"
+	"github.com/alecthomas/chroma/v2/styles"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
@@ -14,7 +17,7 @@ import (
 )
 
 type Renderer struct {
-	theme config.MessagesListTheme
+	cfg *config.Config
 
 	listIx     *int
 	listNested int
@@ -22,8 +25,10 @@ type Renderer struct {
 	spoil bool
 }
 
-func NewRenderer(theme config.MessagesListTheme) *Renderer {
-	return &Renderer{theme: theme}
+const codeBlockIndent = "    "
+
+func NewRenderer(cfg *config.Config) *Renderer {
+	return &Renderer{cfg: cfg}
 }
 
 func (r *Renderer) RenderLines(source []byte, node ast.Node, base tcell.Style, showSpoiler bool) []tview.Line {
@@ -46,6 +51,7 @@ func (r *Renderer) RenderLines(source []byte, node ast.Node, base tcell.Style, s
 		}
 	}
 
+	theme := r.cfg.Theme.MessagesList
 	_ = ast.Walk(node, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
 		switch node := node.(type) {
 		case *ast.Document:
@@ -70,29 +76,20 @@ func (r *Renderer) RenderLines(source []byte, node ast.Node, base tcell.Style, s
 		case *ast.FencedCodeBlock:
 			if entering {
 				builder.NewLine()
-				if language := node.Language(source); language != nil {
-					builder.Write("|=> "+r.checkAndSpoil(string(language)), currentStyle())
-					builder.NewLine()
-				}
-
-				lines := node.Lines()
-				for i := range lines.Len() {
-					line := lines.At(i)
-					builder.Write("| "+r.checkAndSpoil(string(line.Value(source))), currentStyle())
-				}
+				r.renderFencedCodeBlock(builder, source, node, currentStyle())
 			}
 		case *ast.AutoLink:
 			if entering {
 				style := currentStyle()
 				if !r.spoil {
-					style = ui.MergeStyle(style, r.theme.URLStyle.Style)
+					style = ui.MergeStyle(style, theme.URLStyle.Style)
 				}
 				builder.Write(r.checkAndSpoil(string(node.URL(source))), style)
 			}
 		case *ast.Link:
 			if !r.spoil {
 				if entering {
-					pushStyle(ui.MergeStyle(currentStyle(), r.theme.URLStyle.Style))
+					pushStyle(ui.MergeStyle(currentStyle(), theme.URLStyle.Style))
 				} else {
 					popStyle()
 				}
@@ -137,7 +134,7 @@ func (r *Renderer) RenderLines(source []byte, node ast.Node, base tcell.Style, s
 			if entering {
 				style := currentStyle()
 				if !r.spoil {
-					style = ui.MergeStyle(style, r.theme.MentionStyle.Style)
+					style = ui.MergeStyle(style, theme.MentionStyle.Style)
 					style = style.Bold(true)
 				}
 				builder.Write(r.checkAndSpoil(mentionText(node)), style)
@@ -146,7 +143,7 @@ func (r *Renderer) RenderLines(source []byte, node ast.Node, base tcell.Style, s
 			if entering {
 				style := currentStyle()
 				if !r.spoil {
-					style = ui.MergeStyle(style, r.theme.EmojiStyle.Style)
+					style = ui.MergeStyle(style, theme.EmojiStyle.Style)
 				}
 				builder.Write(r.checkAndSpoil(":"+node.Name+":"), style)
 			}
@@ -170,11 +167,118 @@ func (r *Renderer) applyInlineAttr(style tcell.Style, attr discordmd.Attribute) 
 	case discordmd.AttrMonospace:
 		return style.Reverse(true)
 	case discordmd.AttrSpoiler:
-		return r.theme.ShownSpoilerStyle.Style
+		return r.cfg.Theme.MessagesList.ShownSpoilerStyle.Style
 	}
 	return style
 }
 
+func (r *Renderer) renderFencedCodeBlock(builder *tview.LineBuilder, source []byte, node *ast.FencedCodeBlock, base tcell.Style) {
+	var code strings.Builder
+	lines := node.Lines()
+	for i := range lines.Len() {
+		line := lines.At(i)
+		code.Write(line.Value(source))
+	}
+
+	language := strings.TrimSpace(string(node.Language(source)))
+	lexer := lexers.Get(language)
+	declaredLanguageSupported := lexer != nil
+
+	// Detect the language from its content.
+	var analyzed bool
+	if lexer == nil {
+		lexer = lexers.Analyse(code.String())
+		analyzed = lexer != nil
+	}
+	if lexer == nil {
+		lexer = lexers.Fallback
+	}
+
+	// At this point, it should be noted that some lexers can be extremely chatty.
+	// To mitigate this, use the coalescing lexer to coalesce runs of identical token types into a single token.
+	lexer = chroma.Coalesce(lexer)
+
+	// Show a fallback header when the language is omitted or unknown.
+	headerStyle := base.Dim(true)
+	if analyzed {
+		builder.Write(codeBlockIndent+"code: analyzed", headerStyle)
+		builder.NewLine()
+	} else if language == "" {
+		builder.Write(codeBlockIndent+"code", headerStyle)
+		builder.NewLine()
+	} else if !declaredLanguageSupported {
+		builder.Write(codeBlockIndent+"code: "+language, headerStyle)
+		builder.NewLine()
+	}
+
+	iterator, err := lexer.Tokenise(nil, code.String())
+	if err != nil {
+		for i := range lines.Len() {
+			line := lines.At(i)
+			builder.Write(codeBlockIndent+string(line.Value(source)), base)
+		}
+		return
+	}
+
+	theme := styles.Get(r.cfg.Markdown.Theme)
+	if theme == nil {
+		theme = styles.Fallback
+	}
+
+	builder.Write(codeBlockIndent, base)
+	for token := iterator(); token != chroma.EOF; token = iterator() {
+		style := applyChromaStyle(base, theme.Get(token.Type))
+		// Chroma tokens may include embedded newlines, so split and re-emit with indentation on each visual line.
+		parts := strings.Split(token.Value, "\n")
+		for i, part := range parts {
+			if i > 0 {
+				builder.NewLine()
+				builder.Write(codeBlockIndent, base)
+			}
+			if part != "" {
+				builder.Write(part, style)
+			}
+		}
+	}
+}
+
+func applyChromaStyle(base tcell.Style, entry chroma.StyleEntry) tcell.Style {
+	style := base
+	if entry.Colour.IsSet() {
+		style = style.Foreground(tcell.NewRGBColor(
+			int32(entry.Colour.Red()),
+			int32(entry.Colour.Green()),
+			int32(entry.Colour.Blue()),
+		))
+	}
+	// Intentionally do not apply token background colors so code blocks keep the user's terminal/chat background.
+	// if entry.Background.IsSet() {
+	// 	style = style.Background(tcell.NewRGBColor(
+	// 		int32(entry.Background.Red()),
+	// 		int32(entry.Background.Green()),
+	// 		int32(entry.Background.Blue()),
+	// 	))
+	// }
+	switch entry.Bold {
+	case chroma.Yes:
+		style = style.Bold(true)
+	case chroma.No:
+		style = style.Bold(false)
+	}
+	switch entry.Italic {
+	case chroma.Yes:
+		style = style.Italic(true)
+	case chroma.No:
+		style = style.Italic(false)
+	}
+	switch entry.Underline {
+	case chroma.Yes:
+		style = style.Underline(true)
+	case chroma.No:
+		style = style.Underline(false)
+	}
+	return style
+}
 
 func mentionText(node *discordmd.Mention) string {
 	switch {
@@ -195,7 +299,7 @@ func mentionText(node *discordmd.Mention) string {
 
 func (r *Renderer) checkAndSpoil(s string) string {
 	if r.spoil {
-		return strings.Repeat(r.theme.SpoilCharacter, uniseg.StringWidth(s))
+		return strings.Repeat(r.cfg.Theme.MessagesList.SpoilCharacter, uniseg.StringWidth(s))
 	}
 	return s
 }

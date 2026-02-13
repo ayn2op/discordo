@@ -56,22 +56,26 @@ type (
 		Height int `toml:"height"`
 	}
 
+	MarkdownConfig struct {
+		Enabled bool   `toml:"enabled"`
+		Theme   string `toml:"theme"`
+	}
+
 	Config struct {
 		AutoFocus bool   `toml:"auto_focus"`
 		Mouse     bool   `toml:"mouse"`
 		Editor    string `toml:"editor"`
 
-		Status discord.Status `toml:"status"`
-
-		Markdown            bool   `toml:"markdown"`
-		HideBlockedUsers    bool   `toml:"hide_blocked_users"`
-		ShowAttachmentLinks bool   `toml:"show_attachment_links"`
+		Status              discord.Status `toml:"status"`
+		HideBlockedUsers    bool           `toml:"hide_blocked_users"`
+		ShowAttachmentLinks bool           `toml:"show_attachment_links"`
 		ShowSpoiler         string `toml:"show_spoiler"`
 
 		// Use 0 to disable
 		AutocompleteLimit uint8 `toml:"autocomplete_limit"`
 		MessagesLimit     uint8 `toml:"messages_limit"`
 
+		Markdown        MarkdownConfig  `toml:"markdown"`
 		Picker          PickerConfig    `toml:"picker"`
 		Timestamps      Timestamps      `toml:"timestamps"`
 		Notifications   Notifications   `toml:"notifications"`
