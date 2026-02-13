@@ -35,6 +35,13 @@ enabled = true
 # https://pkg.go.dev/time#Layout
 format = "3:04PM"
 
+[date_separator]
+enabled = true
+# https://pkg.go.dev/time#Layout
+format = "January 2, 2006"
+# The fill character used on both sides of the date label.
+character = "─"
+
 [notifications]
 enabled = true
 # The duration of the sound. Set the value to `0` to use default duration. This is only supported on Unix and Windows.
