@@ -146,12 +146,15 @@ func (r *Renderer) renderFencedCodeBlock(builder *tview.LineBuilder, source []by
 	language := strings.TrimSpace(string(node.Language(source)))
 	lexer := lexers.Get(language)
 	declaredLanguageSupported := lexer != nil
+	// Detect the language from its content.
 	if lexer == nil {
 		lexer = lexers.Analyse(code.String())
 	}
 	if lexer == nil {
 		lexer = lexers.Fallback
 	}
+	// At this point, it should be noted that some lexers can be extremely chatty.
+	// To mitigate this, use the coalescing lexer to coalesce runs of identical token types into a single token.
 	lexer = chroma.Coalesce(lexer)
 
 	// Add language if the language is not supported by syntax highlighter.
