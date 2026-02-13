@@ -10,8 +10,6 @@ editor = "default"
 # "default" (unknown), "online", "dnd", "idle", "invisible", "offline"
 status = "default"
 
-# Whether to parse and render markdown in messages or not.
-markdown = true
 hide_blocked_users = true
 show_attachment_links = true
 
@@ -21,6 +19,14 @@ autocomplete_limit = 20
 
 # The number of messages to fetch when a text-based channel is selected from guilds tree. The minimum and maximum value is 1 and 100, respectively.
 messages_limit = 50
+
+[markdown]
+# Whether to parse and render markdown in messages or not.
+enabled = true
+# Theme for fenced code blocks. Available themes: https://xyproto.github.io/splash/docs
+theme = "monokai"
+# Indentation for code blocks.
+code_block_indent = "    "
 
 [picker]
 width = 60
