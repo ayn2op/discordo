@@ -105,7 +105,9 @@ func (gt *guildsTree) getChannelNodeStyle(channelID discord.ChannelID) tcell.Sty
 }
 
 func (gt *guildsTree) createGuildNode(n *tview.TreeNode, guild discord.Guild) {
-	guildNode := tview.NewTreeNode(guild.Name).SetReference(guild.ID)
+	guildNode := tview.NewTreeNode(guild.Name).
+		SetReference(guild.ID).
+		SetIndent(gt.cfg.Theme.GuildsTree.Indents.Guild)
 	gt.setNodeLineStyle(guildNode, gt.getGuildNodeStyle(guild.ID))
 	n.AddChild(guildNode)
 	gt.guildNodeByID[guild.ID] = guildNode
@@ -115,11 +117,27 @@ func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Ch
 	if channel.Type != discord.DirectMessage && channel.Type != discord.GroupDM && !gt.chatView.state.HasPermissions(channel.ID, discord.PermissionViewChannel) {
 		return
 	}
-
 	channelNode := tview.NewTreeNode(ui.ChannelToString(channel, gt.cfg.Icons)).SetReference(channel.ID)
 	gt.setNodeLineStyle(channelNode, gt.getChannelNodeStyle(channel.ID))
+	switch channel.Type {
+	case discord.DirectMessage:
+		channelNode.SetIndent(gt.cfg.Theme.GuildsTree.Indents.DM)
+	case discord.GroupDM:
+		channelNode.SetIndent(gt.cfg.Theme.GuildsTree.Indents.GroupDM)
+	default:
+		channelNode.SetIndent(gt.cfg.Theme.GuildsTree.Indents.Channel)
+	}
 	node.AddChild(channelNode)
 	gt.channelNodeByID[channel.ID] = channelNode
+}
+
+func (gt *guildsTree) createCategoryNode(node *tview.TreeNode, channel discord.Channel) {
+	categoryNode := tview.NewTreeNode(channel.Name).
+		SetReference(channel.ID).
+		SetIndent(gt.cfg.Theme.GuildsTree.Indents.Category)
+	gt.setNodeLineStyle(categoryNode, gt.getChannelNodeStyle(channel.ID))
+	node.AddChild(categoryNode)
+	gt.channelNodeByID[channel.ID] = categoryNode
 }
 
 func (gt *guildsTree) setNodeLineStyle(node *tview.TreeNode, style tcell.Style) {
@@ -153,7 +171,7 @@ func (gt *guildsTree) createChannelNodes(node *tview.TreeNode, channels []discor
 	for _, channel := range channels {
 		if channel.Type == discord.GuildCategory {
 			if _, ok := hasChildByParentID[channel.ID]; ok {
-				gt.createChannelNode(node, channel)
+				gt.createCategoryNode(node, channel)
 			}
 		}
 	}
@@ -191,7 +209,7 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 	case discord.ChannelID:
 		channel, err := gt.chatView.state.Cabinet.Channel(ref)
 		if err != nil {
-			slog.Error("failed to get channel from state", "channel_id", ref)
+			slog.Error("failed to get channel from state", "err", err, "channel_id", ref)
 			return
 		}
 

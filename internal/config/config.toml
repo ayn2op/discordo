@@ -182,6 +182,14 @@ auto_expand_folders = true
 graphics = true
 graphics_color = "default"
 
+# Guilds tree indentation for different item types
+[theme.guilds_tree.indents]
+dm = 2
+groupdm = 1
+guild = 2      # server inside a folder
+category = 1
+channel = 2
+
 [theme.messages_list]
 reply_indicator = ">"
 forwarded_indicator = "<"
