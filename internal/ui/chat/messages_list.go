@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 	"reflect"
+	"unicode/utf8"
 
 	"github.com/ayn2op/tview/layers"
 
@@ -41,6 +42,10 @@ type messagesList struct {
 	cfg      *config.Config
 	chatView *View
 	messages []discord.Message
+	// rows is the virtual list model rendered by tview (message rows +
+	// date-separator rows). It is rebuilt lazily when rowsDirty is true.
+	rows      []messagesListRow
+	rowsDirty bool
 
 	renderer *markdown.Renderer
 	// itemByID caches unselected message TextViews.
@@ -56,6 +61,19 @@ type messagesList struct {
 	hotkeysShowMap map[string]func() bool
 }
 
+type messagesListRowKind uint8
+
+const (
+	messagesListRowMessage messagesListRowKind = iota
+	messagesListRowSeparator
+)
+
+type messagesListRow struct {
+	kind         messagesListRowKind
+	messageIndex int
+	timestamp    discord.Timestamp
+}
+
 func newMessagesList(cfg *config.Config, chatView *View) *messagesList {
 	ml := &messagesList{
 		List:     tview.NewList(),
@@ -68,6 +86,7 @@ func newMessagesList(cfg *config.Config, chatView *View) *messagesList {
 	ml.Box = ui.ConfigureBox(ml.Box, &cfg.Theme)
 	ml.SetTitle("Messages")
 	ml.SetBuilder(ml.buildItem)
+	ml.SetChangedFunc(ml.onRowCursorChanged)
 	ml.SetTrackEnd(true)
 	ml.SetInputCapture(ml.onInputCapture)
 	ml.hotkeysShowMap = map[string]func() bool{
@@ -82,6 +101,8 @@ func newMessagesList(cfg *config.Config, chatView *View) *messagesList {
 
 func (ml *messagesList) reset() {
 	ml.messages = nil
+	ml.rows = nil
+	ml.rowsDirty = false
 	clear(ml.itemByID)
 	ml.
 		Clear().
@@ -101,6 +122,7 @@ func (ml *messagesList) setTitle(channel discord.Channel) {
 func (ml *messagesList) setMessages(messages []discord.Message) {
 	ml.messages = slices.Clone(messages)
 	slices.Reverse(ml.messages)
+	ml.invalidateRows()
 	// New channel payload / refetch: replace the cache wholesale to keep it in
 	// lockstep with the current message slice.
 	clear(ml.itemByID)
@@ -109,6 +131,7 @@ func (ml *messagesList) setMessages(messages []discord.Message) {
 
 func (ml *messagesList) addMessage(message discord.Message) {
 	ml.messages = append(ml.messages, message)
+	ml.invalidateRows()
 	// Defensive invalidation for ID reuse/edits delivered out-of-order.
 	delete(ml.itemByID, message.ID)
 	ml.MarkDirty()
@@ -121,6 +144,7 @@ func (ml *messagesList) setMessage(index int, message discord.Message) {
 
 	ml.messages[index] = message
 	delete(ml.itemByID, message.ID)
+	ml.invalidateRows()
 	ml.MarkDirty()
 }
 
@@ -131,6 +155,7 @@ func (ml *messagesList) deleteMessage(index int) {
 
 	delete(ml.itemByID, ml.messages[index].ID)
 	ml.messages = append(ml.messages[:index], ml.messages[index+1:]...)
+	ml.invalidateRows()
 	ml.MarkDirty()
 }
 
@@ -139,11 +164,18 @@ func (ml *messagesList) clearSelection() {
 }
 
 func (ml *messagesList) buildItem(index int, cursor int) tview.ListItem {
-	if index < 0 || index >= len(ml.messages) {
+	ml.ensureRows()
+
+	if index < 0 || index >= len(ml.rows) {
 		return nil
 	}
 
-	message := ml.messages[index]
+	row := ml.rows[index]
+	if row.kind == messagesListRowSeparator {
+		return ml.buildSeparatorItem(row.timestamp)
+	}
+
+	message := ml.messages[row.messageIndex]
 	if index == cursor {
 		return tview.NewTextView().
 			SetWrap(true).
@@ -166,6 +198,140 @@ func (ml *messagesList) renderMessage(message discord.Message, baseStyle tcell.S
 	builder := tview.NewLineBuilder()
 	ml.writeMessage(builder, message, baseStyle)
 	return builder.Finish()
+}
+
+func (ml *messagesList) buildSeparatorItem(ts discord.Timestamp) *tview.TextView {
+	builder := tview.NewLineBuilder()
+	ml.drawDateSeparator(builder, ts, ml.cfg.Theme.MessagesList.MessageStyle.Style)
+	return tview.NewTextView().
+		SetScrollable(false).
+		SetWrap(false).
+		SetWordWrap(false).
+		SetLines(builder.Finish())
+}
+
+func (ml *messagesList) drawDateSeparator(builder *tview.LineBuilder, ts discord.Timestamp, baseStyle tcell.Style) {
+	date := ts.Time().In(time.Local).Format(ml.cfg.DateSeparator.Format)
+	label := " " + date + " "
+	fillChar := ml.cfg.DateSeparator.Character
+	dimStyle := baseStyle.Dim(true)
+	_, _, width, _ := ml.GetInnerRect()
+	if width <= 0 {
+		builder.Write(strings.Repeat(fillChar, 8)+label+strings.Repeat(fillChar, 8), dimStyle)
+		return
+	}
+
+	labelWidth := utf8.RuneCountInString(label)
+	if width <= labelWidth {
+		builder.Write(date, dimStyle)
+		return
+	}
+
+	fillWidth := width - labelWidth
+	left := fillWidth / 2
+	right := fillWidth - left
+	builder.Write(strings.Repeat(fillChar, left)+label+strings.Repeat(fillChar, right), dimStyle)
+}
+
+func (ml *messagesList) rebuildRows() {
+	rows := make([]messagesListRow, 0, len(ml.messages)*2)
+
+	for i := range ml.messages {
+		if ml.cfg.DateSeparator.Enabled && i > 0 && !sameLocalDate(ml.messages[i-1].Timestamp, ml.messages[i].Timestamp) {
+			rows = append(rows, messagesListRow{
+				kind:      messagesListRowSeparator,
+				timestamp: ml.messages[i].Timestamp,
+			})
+		}
+
+		rows = append(rows, messagesListRow{
+			kind:         messagesListRowMessage,
+			messageIndex: i,
+		})
+	}
+
+	ml.rows = rows
+	ml.rowsDirty = false
+}
+
+func (ml *messagesList) invalidateRows() {
+	ml.rowsDirty = true
+}
+
+// ensureRows lazily rebuilds list rows. This avoids repeated O(n) row rebuild
+// work when multiple message mutations happen close together.
+func (ml *messagesList) ensureRows() {
+	if !ml.rowsDirty {
+		return
+	}
+
+	ml.rebuildRows()
+}
+
+func sameLocalDate(a discord.Timestamp, b discord.Timestamp) bool {
+	ta := a.Time().In(time.Local)
+	tb := b.Time().In(time.Local)
+	return ta.Year() == tb.Year() && ta.YearDay() == tb.YearDay()
+}
+
+// Cursor returns the selected message index, skipping separator rows.
+func (ml *messagesList) Cursor() int {
+	ml.ensureRows()
+	rowIndex := ml.List.Cursor()
+	if rowIndex < 0 || rowIndex >= len(ml.rows) {
+		return -1
+	}
+
+	row := ml.rows[rowIndex]
+	if row.kind != messagesListRowMessage {
+		return -1
+	}
+	return row.messageIndex
+}
+
+// SetCursor selects a message index and maps it to the corresponding row.
+func (ml *messagesList) SetCursor(index int) {
+	ml.List.SetCursor(ml.messageToRowIndex(index))
+}
+
+func (ml *messagesList) messageToRowIndex(messageIndex int) int {
+	ml.ensureRows()
+	if messageIndex < 0 || messageIndex >= len(ml.messages) {
+		return -1
+	}
+
+	for i, row := range ml.rows {
+		if row.kind == messagesListRowMessage && row.messageIndex == messageIndex {
+			return i
+		}
+	}
+
+	return -1
+}
+
+func (ml *messagesList) onRowCursorChanged(rowIndex int) {
+	ml.ensureRows()
+	if rowIndex < 0 || rowIndex >= len(ml.rows) || ml.rows[rowIndex].kind == messagesListRowMessage {
+		return
+	}
+
+	target := ml.nearestMessageRowIndex(rowIndex)
+	ml.List.SetCursor(target)
+}
+
+// nearestMessageRowIndex expects rowIndex to be within bounds.
+func (ml *messagesList) nearestMessageRowIndex(rowIndex int) int {
+	for i := rowIndex - 1; i >= 0; i-- {
+		if ml.rows[i].kind == messagesListRowMessage {
+			return i
+		}
+	}
+	for i := rowIndex + 1; i < len(ml.rows); i++ {
+		if ml.rows[i].kind == messagesListRowMessage {
+			return i
+		}
+	}
+	return -1
 }
 
 func (ml *messagesList) writeMessage(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style) {
@@ -211,28 +377,36 @@ func (ml *messagesList) drawAuthor(builder *tview.LineBuilder, message discord.M
 	name := message.Author.DisplayOrUsername()
 	foreground := tcell.ColorDefault
 
-	// Webhooks do not have nicknames or roles.
-	if message.GuildID.IsValid() && !message.WebhookID.IsValid() {
-		member, err := ml.chatView.state.Cabinet.Member(message.GuildID, message.Author.ID)
-		if err != nil {
-			slog.Error("failed to get member from state", "guild_id", message.GuildID, "member_id", message.Author.ID, "err", err)
-		} else {
-			if member.Nick != "" {
-				name = member.Nick
-			}
+	if member := ml.memberForMessage(message); member != nil {
+		if member.Nick != "" {
+			name = member.Nick
+		}
 
-			color, ok := state.MemberColor(member, func(id discord.RoleID) *discord.Role {
-				r, _ := ml.chatView.state.Cabinet.Role(message.GuildID, id)
-				return r
-			})
-			if ok {
-				foreground = tcell.NewHexColor(int32(color))
-			}
+		color, ok := state.MemberColor(member, func(id discord.RoleID) *discord.Role {
+			r, _ := ml.chatView.state.Cabinet.Role(message.GuildID, id)
+			return r
+		})
+		if ok {
+			foreground = tcell.NewHexColor(int32(color))
 		}
 	}
 
 	style := baseStyle.Foreground(foreground).Bold(true)
 	builder.Write(name+" ", style)
+}
+
+func (ml *messagesList) memberForMessage(message discord.Message) *discord.Member {
+	// Webhooks do not have nicknames or roles.
+	if !message.GuildID.IsValid() || message.WebhookID.IsValid() {
+		return nil
+	}
+
+	member, err := ml.chatView.state.Cabinet.Member(message.GuildID, message.Author.ID)
+	if err != nil {
+		slog.Error("failed to get member from state", "guild_id", message.GuildID, "member_id", message.Author.ID, "err", err)
+		return nil
+	}
+	return member
 }
 
 func (ml *messagesList) drawContent(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style) {
@@ -413,36 +587,11 @@ func (ml *messagesList) _select(name string) {
 		case cursor > 0:
 			cursor--
 		case cursor == 0:
-			selectedChannel := ml.chatView.SelectedChannel()
-			if selectedChannel == nil {
+			added := ml.prependOlderMessages()
+			if added == 0 {
 				return
 			}
-
-			channelID := selectedChannel.ID
-			before := ml.messages[0].ID
-			limit := uint(ml.cfg.MessagesLimit)
-			messages, err := ml.chatView.state.MessagesBefore(channelID, before, limit)
-			if err != nil {
-				slog.Error("failed to fetch older messages", "err", err)
-				return
-			}
-			if len(messages) == 0 {
-				return
-			}
-
-			if guildID := selectedChannel.GuildID; guildID.IsValid() {
-				ml.requestGuildMembers(guildID, messages)
-			}
-
-			older := slices.Clone(messages)
-			slices.Reverse(older)
-
-			// Defensive invalidation if Discord returns overlapping windows.
-			for _, message := range older {
-				delete(ml.itemByID, message.ID)
-			}
-			ml.messages = slices.Concat(older, ml.messages)
-			cursor = len(messages) - 1
+			cursor = added - 1
 		}
 	case ml.cfg.Keybinds.MessagesList.SelectDown:
 		switch {
@@ -471,6 +620,41 @@ func (ml *messagesList) _select(name string) {
 	}
 
 	ml.SetCursor(cursor)
+}
+
+func (ml *messagesList) prependOlderMessages() int {
+	selectedChannel := ml.chatView.SelectedChannel()
+	if selectedChannel == nil {
+		return 0
+	}
+
+	channelID := selectedChannel.ID
+	before := ml.messages[0].ID
+	limit := uint(ml.cfg.MessagesLimit)
+	messages, err := ml.chatView.state.MessagesBefore(channelID, before, limit)
+	if err != nil {
+		slog.Error("failed to fetch older messages", "err", err)
+		return 0
+	}
+	if len(messages) == 0 {
+		return 0
+	}
+
+	if guildID := selectedChannel.GuildID; guildID.IsValid() {
+		ml.requestGuildMembers(guildID, messages)
+	}
+
+	older := slices.Clone(messages)
+	slices.Reverse(older)
+
+	// Defensive invalidation if Discord returns overlapping windows.
+	for _, message := range older {
+		delete(ml.itemByID, message.ID)
+	}
+	ml.messages = slices.Concat(older, ml.messages)
+	ml.invalidateRows()
+	ml.MarkDirty()
+	return len(messages)
 }
 
 func (ml *messagesList) yankID() {
@@ -726,15 +910,8 @@ func (ml *messagesList) reply(mention bool) {
 	}
 
 	name := message.Author.DisplayOrUsername()
-	if message.GuildID.IsValid() {
-		member, err := ml.chatView.state.Cabinet.Member(message.GuildID, message.Author.ID)
-		if err != nil {
-			slog.Error("failed to get member from state", "guild_id", message.GuildID, "member_id", message.Author.ID, "err", err)
-		} else {
-			if member.Nick != "" {
-				name = member.Nick
-			}
-		}
+	if member := ml.memberForMessage(*message); member != nil && member.Nick != "" {
+		name = member.Nick
 	}
 
 	data := ml.chatView.messageInput.sendMessageData
