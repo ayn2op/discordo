@@ -61,7 +61,7 @@ func newMessagesList(cfg *config.Config, chatView *View) *messagesList {
 		List:     tview.NewList(),
 		cfg:      cfg,
 		chatView: chatView,
-		renderer: markdown.NewRenderer(cfg.Theme.MessagesList),
+		renderer: markdown.NewRenderer(cfg),
 		itemByID: make(map[discord.MessageID]*tview.TextView),
 	}
 
@@ -237,12 +237,25 @@ func (ml *messagesList) drawAuthor(builder *tview.LineBuilder, message discord.M
 
 func (ml *messagesList) drawContent(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style) {
 	c := []byte(message.Content)
-	if ml.chatView.cfg.Markdown {
+	if ml.chatView.cfg.Markdown.Enabled {
 		root := discordmd.ParseWithMessage(c, *ml.chatView.state.Cabinet, &message, false)
 		lines := ml.renderer.RenderLines(c, root, baseStyle)
 		if builder.HasCurrentLine() {
-			for len(lines) > 1 && len(lines[0]) == 0 {
-				lines = lines[1:]
+			startsWithCodeBlock := false
+			if first := root.FirstChild(); first != nil {
+				_, startsWithCodeBlock = first.(*ast.FencedCodeBlock)
+			}
+
+			if startsWithCodeBlock {
+				// Keep code blocks visually separate from "timestamp + author".
+				builder.NewLine()
+				for len(lines) > 0 && len(lines[0]) == 0 {
+					lines = lines[1:]
+				}
+			} else {
+				for len(lines) > 1 && len(lines[0]) == 0 {
+					lines = lines[1:]
+				}
 			}
 		}
 		builder.AppendLines(lines)

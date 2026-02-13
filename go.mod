@@ -6,6 +6,7 @@ go 1.25.3
 
 require (
 	github.com/BurntSushi/toml v1.6.0
+	github.com/alecthomas/chroma/v2 v2.23.1
 	github.com/andybalholm/brotli v1.2.0
 	github.com/ayn2op/tview v0.0.0-20260208071935-3324c648db69
 	github.com/deckarep/gosx-notifier v0.0.0-20180201035817-e127226297fb
@@ -32,6 +33,7 @@ require (
 	github.com/akavel/rsrc v0.10.2 // indirect
 	github.com/danieljoos/wincred v1.2.3 // indirect
 	github.com/dchest/jsmin v1.0.0 // indirect
+	github.com/dlclark/regexp2 v1.11.5 // indirect
 	github.com/esiqveland/notify v0.13.3 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
