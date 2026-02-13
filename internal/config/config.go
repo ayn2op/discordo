@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"unicode/utf8"
 
 	"github.com/BurntSushi/toml"
 	"github.com/ayn2op/discordo/internal/consts"
@@ -18,6 +19,12 @@ type (
 	Timestamps struct {
 		Enabled bool   `toml:"enabled"`
 		Format  string `toml:"format"`
+	}
+
+	DateSeparator struct {
+		Enabled   bool   `toml:"enabled"`
+		Format    string `toml:"format"`
+		Character string `toml:"character"`
 	}
 
 	Notifications struct {
@@ -78,6 +85,7 @@ type (
 		Markdown        MarkdownConfig  `toml:"markdown"`
 		Picker          PickerConfig    `toml:"picker"`
 		Timestamps      Timestamps      `toml:"timestamps"`
+		DateSeparator   DateSeparator   `toml:"date_separator"`
 		Notifications   Notifications   `toml:"notifications"`
 		TypingIndicator TypingIndicator `toml:"typing_indicator"`
 
@@ -143,4 +151,19 @@ func applyDefaults(cfg *Config) {
 	if cfg.Status == "default" {
 		cfg.Status = discord.UnknownStatus
 	}
+
+	if cfg.DateSeparator.Format == "" {
+		cfg.DateSeparator.Format = "January 2, 2006"
+	}
+	if cfg.DateSeparator.Character == "" {
+		cfg.DateSeparator.Character = "─"
+		return
+	}
+
+	r, _ := utf8.DecodeRuneInString(cfg.DateSeparator.Character)
+	if r == utf8.RuneError {
+		cfg.DateSeparator.Character = "─"
+		return
+	}
+	cfg.DateSeparator.Character = string(r)
 }

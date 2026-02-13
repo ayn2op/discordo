@@ -76,7 +76,7 @@ func (v *View) onRaw(event *ws.RawEvent) {
 		"new raw event",
 		"code", event.OriginalCode,
 		"type", event.OriginalType,
-		// "data", event.Raw,
+		"data", event.Raw,
 	)
 }
 
