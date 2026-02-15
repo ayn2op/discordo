@@ -6,3 +6,7 @@ builds:
       - linux
       - windows
       - darwin
+
+before:
+  hooks:
+    - go mod tidy
