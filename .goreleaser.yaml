@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
 project_name: discordo
 builds:
   - env: [CGO_ENABLED=1]
