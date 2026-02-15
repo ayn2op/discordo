@@ -6,5 +6,3 @@ builds:
       - linux
       - windows
       - darwin
-release:
-  prerelease: "true"
