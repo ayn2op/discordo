@@ -179,7 +179,7 @@ type (
 		GuildsTree   GuildsTreeTheme   `toml:"guilds_tree"`
 		MessagesList MessagesListTheme `toml:"messages_list"`
 		MentionsList MentionsListTheme `toml:"mentions_list"`
-		HotkeysBar   HotkeysBarTheme      `toml:"hotkeys_bar"`
+		HotkeysBar   HotkeysBarTheme   `toml:"hotkeys_bar"`
 		Dialog       DialogTheme       `toml:"dialog"`
 	}
 )
