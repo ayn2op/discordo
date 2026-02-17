@@ -85,6 +85,16 @@ func (p *Picker) SetKeyMap(keyMap *KeyMap) {
 	p.keyMap = keyMap
 }
 
+// SetScrollBarVisibility sets when the picker's list scrollBar is rendered.
+func (p *Picker) SetScrollBarVisibility(visibility tview.ScrollBarVisibility) {
+	p.list.SetScrollBarVisibility(visibility)
+}
+
+// SetScrollBar sets the scrollBar primitive used by the picker's list.
+func (p *Picker) SetScrollBar(scrollBar *tview.ScrollBar) {
+	p.list.SetScrollBar(scrollBar)
+}
+
 func (p *Picker) SetSelectedFunc(onSelected SelectedFunc) {
 	p.onSelected = onSelected
 }

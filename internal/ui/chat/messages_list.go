@@ -85,6 +85,11 @@ func newMessagesList(cfg *config.Config, chatView *View) *messagesList {
 	ml.SetBuilder(ml.buildItem)
 	ml.SetChangedFunc(ml.onRowCursorChanged)
 	ml.SetTrackEnd(true)
+	ml.SetScrollBarVisibility(cfg.Theme.ScrollBar.Visibility.ScrollBarVisibility)
+	ml.SetScrollBar(tview.NewScrollBar().
+		SetTrackStyle(cfg.Theme.ScrollBar.TrackStyle.Style).
+		SetThumbStyle(cfg.Theme.ScrollBar.ThumbStyle.Style).
+		SetGlyphSet(cfg.Theme.ScrollBar.GlyphSet.GlyphSet))
 	ml.SetInputCapture(ml.onInputCapture)
 	return ml
 }
