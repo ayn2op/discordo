@@ -162,6 +162,8 @@ type (
 		Compact      bool         `toml:"show_compact_keybinds"`
 		ShowAll      bool         `toml:"show_all_keybinds"`
 		Format       string       `toml:"format"`
+		NameStyle    StyleWrapper `toml:"name_style"`
+		KeybindStyle StyleWrapper `toml:"keybind_style"`
 		Separator    string       `toml:"separator"`
 	}
 

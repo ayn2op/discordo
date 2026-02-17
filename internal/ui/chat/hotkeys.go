@@ -6,7 +6,6 @@ import (
 	"reflect"
 
 	"github.com/ayn2op/discordo/internal/config"
-	"github.com/ayn2op/discordo/internal/markdown"
 	"github.com/ayn2op/tview"
 	"github.com/gdamore/tcell/v3"
 	"github.com/rivo/uniseg"
@@ -15,7 +14,6 @@ import (
 type hotkeysBar struct {
 	*tview.TextView
 	cfg      *config.Config
-	renderer *markdown.InlineRenderer
 	hotkeys  []hotkey
 	sep      tview.Line
 	sepWidth int
@@ -36,7 +34,6 @@ var runePattern = regexp.MustCompile(`Rune\[(.)]`)
 func newHotkeysBar(cfg *config.Config) *hotkeysBar {
 	hkb := &hotkeysBar{
 		TextView: tview.NewTextView(),
-		renderer: markdown.NewInlineRenderer(),
 		cfg:      cfg,
 	}
 	hkb.TextView.
@@ -106,7 +103,32 @@ func (b *hotkeysBar) process() {
 			bind = strings.ReplaceAll(bind, "Shift+", "S-")
 			bind = strings.ReplaceAll(bind, "Alt+", "A-")
 		}
-		b.hotkeys[i].line = b.renderer.RenderMarkdownLine([]byte(b.cfg.Theme.HotkeysBar.Format), tcell.StyleDefault, strings.NewReplacer("{{name}}", hk.name, "{{keybind}}", bind))
+		line := tview.NewLineBuilder()
+		fmt := b.cfg.Theme.HotkeysBar.Format
+		for len(fmt) != 0 {
+			index := strings.Index(fmt, "{{")
+			if index == -1 {
+				line.Write(fmt, tcell.StyleDefault)
+				break
+			}
+			if index != 0 {
+				line.Write(fmt[:index], tcell.StyleDefault)
+				fmt = fmt[index:]
+			}
+			if strings.HasPrefix(fmt, "{{name}}") {
+				fmt = strings.TrimPrefix(fmt, "{{name}}")
+				line.Write(hk.name, b.cfg.Theme.HotkeysBar.NameStyle.Style)
+				continue
+			}
+			if strings.HasPrefix(fmt, "{{keybind}}") {
+				fmt = strings.TrimPrefix(fmt, "{{keybind}}")
+				line.Write(bind, b.cfg.Theme.HotkeysBar.KeybindStyle.Style)
+				continue
+			}
+			line.Write("{{", tcell.StyleDefault)
+			fmt = strings.TrimPrefix(fmt, "{{")
+		}
+		b.hotkeys[i].line = line.Finish()[0]
 		b.hotkeys[i].width = lineWidth(b.hotkeys[i].line)
 	}
 	b.sep = tview.NewLine(tview.NewSegment(b.cfg.Theme.HotkeysBar.Separator, tcell.StyleDefault))
