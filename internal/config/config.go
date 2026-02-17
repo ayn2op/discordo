@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"unicode/utf8"
 
@@ -166,14 +165,4 @@ func applyDefaults(cfg *Config) {
 		return
 	}
 	cfg.DateSeparator.Character = string(r)
-}
-
-// Open file `path` in the user's configured editor
-func (cfg *Config) OpenEditor(path string) *exec.Cmd {
-	if cfg.Editor == "" {
-		slog.Warn("Attempt to open file with editor, but no editor is set")
-		return nil
-	}
-
-	return cfg.createEditorCommand(path)
 }

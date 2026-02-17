@@ -613,7 +613,12 @@ func (mi *messageInput) editor() {
 
 	file.WriteString(mi.GetText())
 
-	cmd := mi.cfg.OpenEditor(file.Name())
+	if mi.cfg.Editor == "" {
+		slog.Warn("Attempt to open file with editor, but no editor is set")
+		return
+	}
+
+	cmd := mi.cfg.CreateEditorCommand(file.Name())
 	if cmd == nil {
 		return
 	}
