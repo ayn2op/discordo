@@ -161,6 +161,11 @@ func (v *View) toggleGuildsTree() {
 	}
 }
 
+func (v *View) toggleHotkeysBar() {
+	v.cfg.Theme.HotkeysBar.Enabled = !v.cfg.Theme.HotkeysBar.Enabled
+	v.buildLayout()
+}
+
 func (v *View) focusGuildsTree() bool {
 	// The guilds tree is not hidden if the number of items is two.
 	if v.mainFlex.GetItemCount() == 2 {
@@ -250,6 +255,9 @@ func (v *View) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		return nil
 	case v.cfg.Keybinds.ToggleGuildsTree:
 		v.toggleGuildsTree()
+		return nil
+	case v.cfg.Keybinds.ToggleHotkeysBar:
+		v.toggleHotkeysBar()
 		return nil
 	case v.cfg.Keybinds.Hotkeys.ShowAll:
 		v.cfg.Theme.HotkeysBar.ShowAll = !v.cfg.Theme.HotkeysBar.ShowAll

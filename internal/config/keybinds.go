@@ -82,6 +82,7 @@ type Keybinds struct {
 	FocusPrevious        string `toml:"focus_previous"`
 	FocusNext            string `toml:"focus_next"`
 	ToggleGuildsTree     string `toml:"toggle_guilds_tree"`
+	ToggleHotkeysBar     string `toml:"toggle_hotkeys_bar"`
 
 	Picker       PickerKeybinds       `toml:"picker"`
 	GuildsTree   GuildsTreeKeybinds   `toml:"guilds_tree"`

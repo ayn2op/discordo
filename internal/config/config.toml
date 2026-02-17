@@ -77,8 +77,9 @@ focus_message_input = "Ctrl+I"
 # Cycle focus between the widgets.
 focus_previous = "Ctrl+H"
 focus_next = "Ctrl+L"
-# Hide/show the guilds tree.
+# Hide/show the guilds tree/hotkeys bar.
 toggle_guilds_tree = "Ctrl+B"
+toggle_hotkeys_bar = "Ctrl+."
 quit = "Ctrl+C"
 # Log out and remove the authentication token from keyring.
 # Requires re-login upon restart.
