@@ -7,6 +7,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/ayn2op/discordo/internal/consts"
+	tviewkeybind "github.com/ayn2op/tview/keybind"
 	"github.com/gdamore/tcell/v3"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -84,7 +85,12 @@ func TestLoad(t *testing.T) {
 		}
 		applyDefaults(&defCfg)
 
-		if diff := cmp.Diff(defCfg, *cfg, cmpopts.EquateComparable(tcell.Style{})); diff != "" {
+		if diff := cmp.Diff(
+			defCfg,
+			*cfg,
+			cmpopts.EquateComparable(tcell.Style{}),
+			cmpopts.IgnoreUnexported(tviewkeybind.Keybind{}),
+		); diff != "" {
 			t.Fatalf("got = -, want = +, diff=%s", diff)
 		}
 	})

@@ -1,11 +1,13 @@
 package picker
 
-type KeyMap struct {
-	Cancel string
+import "github.com/ayn2op/tview/keybind"
 
-	Up     string
-	Down   string
-	Top    string
-	Bottom string
-	Select string
+type KeyMap struct {
+	Cancel keybind.Keybind
+
+	Up     keybind.Keybind
+	Down   keybind.Keybind
+	Top    keybind.Keybind
+	Bottom keybind.Keybind
+	Select keybind.Keybind
 }

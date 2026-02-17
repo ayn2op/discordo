@@ -8,6 +8,8 @@ import (
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/discordo/pkg/picker"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/help"
+	"github.com/ayn2op/tview/keybind"
 	"github.com/diamondburned/arikawa/v3/discord"
 )
 
@@ -15,6 +17,8 @@ type channelsPicker struct {
 	*picker.Picker
 	chatView *View
 }
+
+var _ help.KeyMap = (*channelsPicker)(nil)
 
 func newChannelsPicker(cfg *config.Config, chatView *View) *channelsPicker {
 	cp := &channelsPicker{picker.New(), chatView}
@@ -30,13 +34,18 @@ func newChannelsPicker(cfg *config.Config, chatView *View) *channelsPicker {
 
 	cp.SetSelectedFunc(cp.onSelected)
 	cp.SetTitle("Channels")
+	cp.SetScrollBarVisibility(cfg.Theme.ScrollBar.Visibility.ScrollBarVisibility)
+	cp.SetScrollBar(tview.NewScrollBar().
+		SetTrackStyle(cfg.Theme.ScrollBar.TrackStyle.Style).
+		SetThumbStyle(cfg.Theme.ScrollBar.ThumbStyle.Style).
+		SetGlyphSet(cfg.Theme.ScrollBar.GlyphSet.GlyphSet))
 	cp.SetKeyMap(&picker.KeyMap{
-		Cancel: cfg.Keybinds.Picker.Cancel,
-		Up:     cfg.Keybinds.Picker.Up,
-		Down:   cfg.Keybinds.Picker.Down,
-		Top:    cfg.Keybinds.Picker.Top,
-		Bottom: cfg.Keybinds.Picker.Bottom,
-		Select: cfg.Keybinds.Picker.Select,
+		Cancel: cfg.Keybinds.Picker.Cancel.Keybind,
+		Up:     cfg.Keybinds.Picker.Up.Keybind,
+		Down:   cfg.Keybinds.Picker.Down.Keybind,
+		Top:    cfg.Keybinds.Picker.Top.Keybind,
+		Bottom: cfg.Keybinds.Picker.Bottom.Keybind,
+		Select: cfg.Keybinds.Picker.Select.Keybind,
 	})
 	return cp
 }
@@ -115,4 +124,17 @@ func (cp *channelsPicker) addChannel(guild *discord.Guild, channel discord.Chann
 
 	name := b.String()
 	cp.AddItem(picker.Item{Text: name, FilterText: name, Reference: channel.ID})
+}
+
+func (cp *channelsPicker) ShortHelp() []keybind.Keybind {
+	cfg := cp.chatView.cfg.Keybinds.Picker
+	return []keybind.Keybind{cfg.Up.Keybind, cfg.Down.Keybind, cfg.Select.Keybind, cfg.Cancel.Keybind}
+}
+
+func (cp *channelsPicker) FullHelp() [][]keybind.Keybind {
+	cfg := cp.chatView.cfg.Keybinds.Picker
+	return [][]keybind.Keybind{
+		{cfg.Up.Keybind, cfg.Down.Keybind, cfg.Top.Keybind, cfg.Bottom.Keybind},
+		{cfg.Select.Keybind, cfg.Cancel.Keybind},
+	}
 }
