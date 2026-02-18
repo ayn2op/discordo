@@ -11,7 +11,7 @@ type ScrollKeybinds struct {
 	ScrollDown   string `toml:"scroll_down" join:"next"`
 	ScrollUp     string `toml:"scroll_up" name:"scroll" hot:"true"`
 	ScrollTop    string `toml:"scroll_top" join:"next"`
-	ScrollBottom string `toml:"scroll_bottom" name"top/bot"`
+	ScrollBottom string `toml:"scroll_bottom" name:"top/bot"`
 }
 
 type SelectionKeybinds struct {
