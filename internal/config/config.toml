@@ -225,7 +225,7 @@ show_compact_keybinds = false
 show_all_keybinds = false
 # {{name}} is the name of the hotkey. "next"
 # {{keybind}} is the keybinding of the hotkey. "j"
-format = "[{{keybind}}] {{name}}"
+format = "{{keybind}} {{name}}"
 name_style = { attributes = "dim" }
 keybind_style = { attributes = "bold" }
 separator = " • "
