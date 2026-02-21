@@ -223,8 +223,8 @@ padding = [1, 1] # [left, right]
 show_compact_keybinds = false
 # Show all avaliable keybindings, not just the mostly used ones
 show_all_keybinds = false
-# {{name}} is the name of the hotkey. "next"
-# {{keybind}} is the keybinding of the hotkey. "j"
+# {{name}} is the name of the hotkey, for example, "next".
+# {{keybind}} is the keybinding of the hotkey, for example, "j".
 format = "{{keybind}} {{name}}"
 name_style = { attributes = "dim" }
 keybind_style = { attributes = "bold" }
