@@ -418,11 +418,11 @@ func (ml *messagesList) drawContent(builder *tview.LineBuilder, message discord.
 			if startsWithCodeBlock {
 				// Keep code blocks visually separate from "timestamp + author".
 				builder.NewLine()
-				for len(lines) > 0 && len(lines[0]) == 0 {
+				for len(lines) > 0 && len(lines[0].Segments) == 0 {
 					lines = lines[1:]
 				}
 			} else {
-				for len(lines) > 1 && len(lines[0]) == 0 {
+				for len(lines) > 1 && len(lines[0].Segments) == 0 {
 					lines = lines[1:]
 				}
 			}
@@ -791,12 +791,12 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 			SetScrollable(false).
 			SetWrap(false).
 			SetWordWrap(false).
-			SetLines([]tview.Line{{{Text: action.label, Style: tcell.StyleDefault}}})
+			SetLines([]tview.Line{tview.NewLine(tview.NewSegment(action.label, tcell.StyleDefault))})
 		selectedItems[i] = tview.NewTextView().
 			SetScrollable(false).
 			SetWrap(false).
 			SetWordWrap(false).
-			SetLines([]tview.Line{{{Text: action.label, Style: tcell.StyleDefault.Reverse(true)}}})
+			SetLines([]tview.Line{tview.NewLine(tview.NewSegment(action.label, tcell.StyleDefault.Reverse(true)))})
 	}
 
 	list := tview.NewList().

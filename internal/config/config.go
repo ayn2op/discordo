@@ -64,8 +64,9 @@ type (
 	}
 
 	MarkdownConfig struct {
-		Enabled bool   `toml:"enabled"`
-		Theme   string `toml:"theme"`
+		Enabled         bool   `toml:"enabled"`
+		Theme           string `toml:"theme"`
+		CodeBlockIndent string `toml:"code_block_indent"`
 	}
 
 	Config struct {
