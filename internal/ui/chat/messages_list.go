@@ -88,6 +88,11 @@ func newMessagesList(cfg *config.Config, chatView *View) *messagesList {
 	ml.SetBuilder(ml.buildItem)
 	ml.SetChangedFunc(ml.onRowCursorChanged)
 	ml.SetTrackEnd(true)
+	ml.SetScrollBarVisibility(cfg.Theme.ScrollBar.Visibility.ScrollBarVisibility)
+	ml.SetScrollBar(tview.NewScrollBar().
+		SetTrackStyle(cfg.Theme.ScrollBar.TrackStyle.Style).
+		SetThumbStyle(cfg.Theme.ScrollBar.ThumbStyle.Style).
+		SetGlyphSet(cfg.Theme.ScrollBar.GlyphSet.GlyphSet))
 	ml.SetInputCapture(ml.onInputCapture)
 	ml.hotkeysShowMap = map[string]func() bool{
 		"goto_reply": ml.hkGotoReply,
@@ -438,10 +443,24 @@ func (ml *messagesList) drawContent(builder *tview.LineBuilder, message discord.
 	}
 }
 
-func (ml *messagesList) drawSnapshotContent(builder *tview.LineBuilder, message discord.MessageSnapshotMessage, baseStyle tcell.Style) {
-	c := []byte(message.Content)
-	// discordmd doesn't support MessageSnapshotMessage, so we just use write it as is. todo?
-	builder.Write(string(c), baseStyle)
+func (ml *messagesList) drawSnapshotContent(builder *tview.LineBuilder, parent discord.Message, snapshot discord.MessageSnapshotMessage, baseStyle tcell.Style) {
+	// Convert discord.MessageSnapshotMessage to discord.Message with common fields.
+	message := discord.Message{
+		Type:            snapshot.Type,
+		Content:         snapshot.Content,
+		Embeds:          snapshot.Embeds,
+		Attachments:     snapshot.Attachments,
+		Timestamp:       snapshot.Timestamp,
+		EditedTimestamp: snapshot.EditedTimestamp,
+		Flags:           snapshot.Flags,
+		Mentions:        snapshot.Mentions,
+		MentionRoleIDs:  snapshot.MentionRoleIDs,
+		Stickers:        snapshot.Stickers,
+		Components:      snapshot.Components,
+		ChannelID:       parent.ChannelID,
+		GuildID:         parent.GuildID,
+	}
+	ml.drawContent(builder, message, baseStyle)
 }
 
 func (ml *messagesList) drawDefaultMessage(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style) {
@@ -473,7 +492,7 @@ func (ml *messagesList) drawForwardedMessage(builder *tview.LineBuilder, message
 	ml.drawTimestamps(builder, message.Timestamp, baseStyle)
 	ml.drawAuthor(builder, message, baseStyle)
 	builder.Write(ml.cfg.Theme.MessagesList.ForwardedIndicator+" ", dimStyle)
-	ml.drawSnapshotContent(builder, message.MessageSnapshots[0].Message, baseStyle)
+	ml.drawSnapshotContent(builder, message, message.MessageSnapshots[0].Message, baseStyle)
 	builder.Write(" ("+ml.formatTimestamp(message.MessageSnapshots[0].Message.Timestamp)+") ", dimStyle)
 }
 

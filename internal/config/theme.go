@@ -107,6 +107,46 @@ func (bw *BorderSetWrapper) UnmarshalTOML(val any) error {
 	return nil
 }
 
+type GlyphSetWrapper struct{ tview.GlyphSet }
+
+func (gw *GlyphSetWrapper) UnmarshalTOML(val any) error {
+	s, ok := val.(string)
+	if !ok {
+		return errInvalidType
+	}
+
+	switch s {
+	case "minimal":
+		gw.GlyphSet = tview.MinimalGlyphSet()
+	case "box_drawing", "boxdrawing", "box":
+		gw.GlyphSet = tview.BoxDrawingGlyphSet()
+	case "unicode":
+		gw.GlyphSet = tview.UnicodeGlyphSet()
+	}
+
+	return nil
+}
+
+type ScrollBarVisibilityWrapper struct{ tview.ScrollBarVisibility }
+
+func (vw *ScrollBarVisibilityWrapper) UnmarshalTOML(val any) error {
+	s, ok := val.(string)
+	if !ok {
+		return errInvalidType
+	}
+
+	switch s {
+	case "automatic", "auto":
+		vw.ScrollBarVisibility = tview.ScrollBarVisibilityAutomatic
+	case "always":
+		vw.ScrollBarVisibility = tview.ScrollBarVisibilityAlways
+	case "never", "hidden", "off":
+		vw.ScrollBarVisibility = tview.ScrollBarVisibilityNever
+	}
+
+	return nil
+}
+
 type (
 	ThemeStyle struct {
 		NormalStyle StyleWrapper `toml:"normal_style"`
@@ -172,11 +212,19 @@ type (
 		BackgroundStyle StyleWrapper `toml:"background_style"`
 	}
 
+	ScrollBarTheme struct {
+		Visibility ScrollBarVisibilityWrapper `toml:"visibility"`
+		GlyphSet   GlyphSetWrapper            `toml:"glyph_set"`
+		TrackStyle StyleWrapper               `toml:"track_style"`
+		ThumbStyle StyleWrapper               `toml:"thumb_style"`
+	}
+
 	Theme struct {
 		Title        TitleTheme        `toml:"title"`
 		Footer       FooterTheme       `toml:"footer"`
 		Border       BorderTheme       `toml:"border"`
 		GuildsTree   GuildsTreeTheme   `toml:"guilds_tree"`
+		ScrollBar    ScrollBarTheme    `toml:"scroll_bar"`
 		MessagesList MessagesListTheme `toml:"messages_list"`
 		MentionsList MentionsListTheme `toml:"mentions_list"`
 		HotkeysBar   HotkeysBarTheme   `toml:"hotkeys_bar"`

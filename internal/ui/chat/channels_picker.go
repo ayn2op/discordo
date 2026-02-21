@@ -31,6 +31,11 @@ func newChannelsPicker(cfg *config.Config, chatView *View) *channelsPicker {
 
 	cp.SetSelectedFunc(cp.onSelected)
 	cp.SetTitle("Channels")
+	cp.SetScrollBarVisibility(cfg.Theme.ScrollBar.Visibility.ScrollBarVisibility)
+	cp.SetScrollBar(tview.NewScrollBar().
+		SetTrackStyle(cfg.Theme.ScrollBar.TrackStyle.Style).
+		SetThumbStyle(cfg.Theme.ScrollBar.ThumbStyle.Style).
+		SetGlyphSet(cfg.Theme.ScrollBar.GlyphSet.GlyphSet))
 	cp.SetKeyMap(&picker.KeyMap{
 		Cancel: cfg.Keybinds.Picker.Cancel,
 		Up:     cfg.Keybinds.Picker.Up,

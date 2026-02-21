@@ -162,7 +162,7 @@ show_all = "Ctrl+Rune[]]"
 
 # style = { foreground = "", background = "", attributes = "" or [""] }
 [theme.title]
-alignment = "left" # `"left"`, `"center"`, or `"right"`.
+alignment = "left"                                           # `"left"`, `"center"`, or `"right"`.
 normal_style = { attributes = "dim" }
 active_style = { foreground = "green", attributes = "bold" }
 
@@ -187,6 +187,13 @@ auto_expand_folders = true
 # Give tree-like shape
 graphics = true
 graphics_color = "default"
+
+[theme.scroll_bar]
+visibility = "auto"
+# "minimal", "box_drawing", or "unicode"
+glyph_set = "unicode"
+track_style = { attributes = "dim" }
+thumb_style = {}
 
 [theme.messages_list]
 reply_indicator = ">"
