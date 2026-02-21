@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"reflect"
 	"unicode/utf8"
 
 	"github.com/ayn2op/tview/layers"
@@ -56,6 +57,8 @@ type messagesList struct {
 		count uint
 		done  chan struct{}
 	}
+
+	hotkeysShowMap map[string]func() bool
 }
 
 type messagesListRowKind uint8
@@ -91,6 +94,13 @@ func newMessagesList(cfg *config.Config, chatView *View) *messagesList {
 		SetThumbStyle(cfg.Theme.ScrollBar.ThumbStyle.Style).
 		SetGlyphSet(cfg.Theme.ScrollBar.GlyphSet.GlyphSet))
 	ml.SetInputCapture(ml.onInputCapture)
+	ml.hotkeysShowMap = map[string]func() bool{
+		"goto_reply": ml.hkGotoReply,
+		"@/reply": ml.hkReply,
+		"edit": ml.hkEdit,
+		"delete": ml.hkDelete,
+		"open": ml.hkOpen,
+	}
 	return ml
 }
 
@@ -538,7 +548,11 @@ func (ml *messagesList) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		return nil
 
 	case ml.cfg.Keybinds.MessagesList.Cancel:
-		ml.clearSelection()
+		if ml.Cursor() != -1 {
+			ml.clearSelection()
+		} else {
+			ml.chatView.app.SetFocus(ml.chatView.hotkeysBar)
+		}
 		return nil
 
 	case ml.cfg.Keybinds.MessagesList.SelectUp, ml.cfg.Keybinds.MessagesList.SelectDown, ml.cfg.Keybinds.MessagesList.SelectTop, ml.cfg.Keybinds.MessagesList.SelectBottom, ml.cfg.Keybinds.MessagesList.SelectReply:
@@ -755,7 +769,7 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 	}
 
 	closeList := func() {
-		ml.chatView.RemoveLayer(attachmentsListLayerName)
+		ml.chatView.layers.RemoveLayer(attachmentsListLayerName)
 		ml.chatView.app.SetFocus(ml)
 	}
 
@@ -857,7 +871,7 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 		return event
 	})
 
-	ml.chatView.
+	ml.chatView.layers.
 		AddLayer(
 			ui.Centered(list, 0, 0),
 			layers.WithName(attachmentsListLayerName),
@@ -1060,4 +1074,71 @@ func (ml *messagesList) waitForChunkEvent() uint {
 
 	<-ml.fetchingMembers.done
 	return ml.fetchingMembers.count
+}
+
+// Set hotkeys on focus.
+func (ml *messagesList) Focus(delegate func(p tview.Primitive)) {
+	ml.hotkeys()
+	ml.List.Focus(delegate)
+}
+
+// Set hotkeys on mouse focus.
+func (ml *messagesList) MouseHandler() func(action tview.MouseAction, event *tcell.EventMouse, setFocus func(p tview.Primitive)) (consumed bool, capture tview.Primitive) {
+	return ml.List.WrapMouseHandler(func(action tview.MouseAction, event *tcell.EventMouse, setFocus func(p tview.Primitive)) (consumed bool, capture tview.Primitive) {
+		return ml.List.MouseHandler()(action, event, func(p tview.Primitive) {
+			if p == ml.List {
+				ml.hotkeys()
+			}
+			setFocus(p)
+		})
+	})
+}
+
+func (ml *messagesList) hotkeys() {
+	ml.chatView.hotkeysBar.hotkeysFromValue(
+		reflect.ValueOf(ml.cfg.Keybinds.MessagesList),
+		ml.hotkeysShowMap,
+	)
+}
+
+func (ml *messagesList) hkGotoReply() bool {
+	msg, err := ml.selectedMessage()
+	if err != nil {
+		return false
+	}
+	return msg.ReferencedMessage != nil
+}
+
+func (ml *messagesList) hkReply() bool {
+	msg, err := ml.selectedMessage()
+	if err != nil {
+		return false
+	}
+	me, _ := ml.chatView.state.Cabinet.Me()
+	return msg.Author.ID != me.ID
+}
+
+func (ml *messagesList) hkEdit() bool {
+	msg, err := ml.selectedMessage()
+	if err != nil {
+		return false
+	}
+	me, _ := ml.chatView.state.Cabinet.Me()
+	return msg.Author.ID == me.ID
+}
+
+func (ml *messagesList) hkDelete() bool {
+	if ml.hkEdit() {
+		return true
+	}
+	sel := ml.chatView.SelectedChannel()
+	return sel != nil && ml.chatView.state.HasPermissions(sel.ID, discord.PermissionManageMessages)
+}
+
+func (ml *messagesList) hkOpen() bool {
+	msg, err := ml.selectedMessage()
+	if err != nil {
+		return false
+	}
+	return len(extractURLs(msg.Content)) != 0 || len(msg.Attachments) != 0
 }

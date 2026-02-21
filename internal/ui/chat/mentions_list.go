@@ -1,7 +1,6 @@
 package chat
 
 import (
-	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
 	"github.com/gdamore/tcell/v3"
@@ -16,14 +15,16 @@ type mentionsListItem struct {
 type mentionsList struct {
 	*tview.List
 	items []mentionsListItem
+	messageInput *messageInput
 }
 
-func newMentionsList(cfg *config.Config) *mentionsList {
+func newMentionsList(mi *messageInput) *mentionsList {
 	m := &mentionsList{
-		List: tview.NewList(),
+		List:         tview.NewList(),
+		messageInput: mi,
 	}
 
-	m.Box = ui.ConfigureBox(m.Box, &cfg.Theme)
+	m.Box = ui.ConfigureBox(m.Box, &mi.cfg.Theme)
 	m.SetSnapToItems(true).SetTitle("Mentions")
 
 	b := m.GetBorderSet()

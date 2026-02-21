@@ -196,6 +196,17 @@ type (
 		MaxHeight uint `toml:"max_height"`
 	}
 
+	HotkeysBarTheme struct {
+		Enabled      bool         `toml:"enabled"`
+		Padding      [2]int       `toml:"padding"`
+		Compact      bool         `toml:"show_compact_keybinds"`
+		ShowAll      bool         `toml:"show_all_keybinds"`
+		Format       string       `toml:"format"`
+		NameStyle    StyleWrapper `toml:"name_style"`
+		KeybindStyle StyleWrapper `toml:"keybind_style"`
+		Separator    string       `toml:"separator"`
+	}
+
 	DialogTheme struct {
 		Style           StyleWrapper `toml:"style"`
 		BackgroundStyle StyleWrapper `toml:"background_style"`
@@ -216,6 +227,7 @@ type (
 		ScrollBar    ScrollBarTheme    `toml:"scroll_bar"`
 		MessagesList MessagesListTheme `toml:"messages_list"`
 		MentionsList MentionsListTheme `toml:"mentions_list"`
+		HotkeysBar   HotkeysBarTheme   `toml:"hotkeys_bar"`
 		Dialog       DialogTheme       `toml:"dialog"`
 	}
 )

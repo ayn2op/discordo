@@ -77,8 +77,9 @@ focus_message_input = "Ctrl+I"
 # Cycle focus between the widgets.
 focus_previous = "Ctrl+H"
 focus_next = "Ctrl+L"
-# Hide/show the guilds tree.
+# Hide/show the guilds tree/hotkeys bar.
 toggle_guilds_tree = "Ctrl+B"
+toggle_hotkeys_bar = "Ctrl+."
 quit = "Ctrl+C"
 # Log out and remove the authentication token from keyring.
 # Requires re-login upon restart.
@@ -102,6 +103,7 @@ bottom = "Rune[G]"
 # Select the currently highlighted text-based channel or expand a guild or channel.
 select_current = "Enter"
 yank_id = "Rune[i]"
+cancel = "Esc"
 collapse_parent_node = "Rune[-]"
 move_to_parent_node = "Rune[p]"
 
@@ -118,10 +120,10 @@ scroll_top = "Home"
 scroll_bottom = "End"
 # Select the message reference (reply) of the selected channel.
 select_reply = "Rune[s]"
-# Reply to the selected message.
-reply = "Rune[R]"
 # Reply (with mention) to the selected message.
 reply_mention = "Rune[r]"
+# Reply (without mention) to the selected message.
+reply = "Rune[R]"
 cancel = "Esc"
 edit = "Rune[e]"
 delete = "Rune[D]"
@@ -153,6 +155,10 @@ up = "Ctrl+P"
 down = "Ctrl+N"
 top = "Home"
 bottom = "End"
+
+[keybinds.hotkeys_bar]
+# Hide/show all keybinds in the hotkeys bar
+show_all = "Ctrl+Rune[]]"
 
 # style = { foreground = "", background = "", attributes = "" or [""] }
 [theme.title]
@@ -208,6 +214,20 @@ min_width = 20
 # Maximum height
 # 0 = make the list as tall as needed
 max_height = 0
+
+[theme.hotkeys_bar]
+enabled = true
+padding = [1, 1] # [left, right]
+# Show ^X and S-X instead of CTRL-X and Shift-X
+show_compact_keybinds = false
+# Show all avaliable keybindings, not just the commonly used ones.
+show_all_keybinds = false
+# {{name}} is the name of the hotkey, for example, "next".
+# {{keybind}} is the keybinding of the hotkey, for example, "j".
+format = "{{keybind}} {{name}}"
+name_style = { attributes = "dim" }
+keybind_style = { attributes = "bold" }
+separator = " • "
 
 [theme.dialog]
 style = {}
