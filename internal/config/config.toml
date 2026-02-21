@@ -220,7 +220,7 @@ enabled = true
 padding = [1, 1] # [left, right]
 # Show ^X and S-X instead of CTRL-X and Shift-X
 show_compact_keybinds = false
-# Show all avaliable keybindings, not just the mostly used ones
+# Show all avaliable keybindings, not just the commonly used ones.
 show_all_keybinds = false
 # {{name}} is the name of the hotkey, for example, "next".
 # {{keybind}} is the keybinding of the hotkey, for example, "j".
