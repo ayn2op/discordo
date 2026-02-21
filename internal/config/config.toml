@@ -215,7 +215,6 @@ min_width = 20
 # 0 = make the list as tall as needed
 max_height = 0
 
-# Hotkeys bar
 [theme.hotkeys_bar]
 enabled = true
 padding = [1, 1] # [left, right]
