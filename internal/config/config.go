@@ -74,6 +74,16 @@ type (
 		Separator        string `toml:"separator"`
 	}
 
+	SidebarMarkersConfig struct {
+		Expanded  string `toml:"expanded"`
+		Collapsed string `toml:"collapsed"`
+		Leaf      string `toml:"leaf"`
+	}
+
+	SidebarConfig struct {
+		Markers SidebarMarkersConfig `toml:"markers"`
+	}
+
 	Config struct {
 		AutoFocus bool   `toml:"auto_focus"`
 		Mouse     bool   `toml:"mouse"`
@@ -94,6 +104,7 @@ type (
 		DateSeparator   DateSeparator   `toml:"date_separator"`
 		Notifications   Notifications   `toml:"notifications"`
 		TypingIndicator TypingIndicator `toml:"typing_indicator"`
+		Sidebar         SidebarConfig   `toml:"sidebar"`
 
 		Icons Icons `toml:"icons"`
 
