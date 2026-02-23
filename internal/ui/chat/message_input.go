@@ -12,7 +12,6 @@ import (
 	"sync"
 	"time"
 	"unicode"
-	"reflect"
 
 	"github.com/ayn2op/discordo/internal/cache"
 	"github.com/ayn2op/discordo/internal/clipboard"
@@ -51,8 +50,6 @@ type messageInput struct {
 
 	typingTimerMu sync.Mutex
 	typingTimer   *time.Timer
-
-	hotkeysShowMap map[string]func() bool
 }
 
 func newMessageInput(cfg *config.Config, chatView *View) *messageInput {
@@ -73,10 +70,6 @@ func newMessageInput(cfg *config.Config, chatView *View) *messageInput {
 			func() string { return string(clipboard.Read(clipboard.FmtText)) },
 		).
 		SetDisabled(true)
-
-	mi.hotkeysShowMap = map[string]func() bool{
-		"attach": mi.hkAttach,
-	}
 
 	return mi
 }
@@ -122,10 +115,10 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		if mi.chatView.layers.GetVisible(mentionsListLayerName) {
 			mi.stopTabCompletion()
 		} else {
-			if mi.edit != false ||
-			   mi.GetTitle() != "" ||
-			   mi.GetFooter() != "" ||
-			   mi.GetText() != "" {
+			if mi.edit ||
+				mi.GetTitle() != "" ||
+				mi.GetFooter() != "" ||
+				mi.GetText() != "" {
 				mi.reset()
 			} else {
 				mi.chatView.app.SetFocus(mi.chatView.hotkeysBar)
@@ -698,7 +691,7 @@ func (mi *messageInput) Focus(delegate func(p tview.Primitive)) {
 
 // Set hotkeys on mouse focus.
 func (mi *messageInput) MouseHandler() func(action tview.MouseAction, event *tcell.EventMouse, setFocus func(p tview.Primitive)) (consumed bool, capture tview.Primitive) {
-	return mi.TextArea.WrapMouseHandler(func(action tview.MouseAction, event *tcell.EventMouse, setFocus func(p tview.Primitive)) (consumed bool, capture tview.Primitive) {
+	return mi.WrapMouseHandler(func(action tview.MouseAction, event *tcell.EventMouse, setFocus func(p tview.Primitive)) (consumed bool, capture tview.Primitive) {
 		return mi.TextArea.MouseHandler()(action, event, func(p tview.Primitive) {
 			if p == mi.TextArea {
 				mi.hotkeys()
@@ -713,14 +706,18 @@ func (mi *messageInput) hotkeys() {
 		mi.mentionsList.hotkeys()
 		return
 	}
-	mi.chatView.hotkeysBar.hotkeysFromValue(
-		reflect.ValueOf(mi.cfg.Keybinds.MessageInput),
-		mi.hotkeysShowMap,
-	)
+	cfg := mi.cfg.Keybinds.MessageInput
+	mi.chatView.hotkeysBar.setHotkeys([]hotkey{
+		{name: "paste", bind: cfg.Paste, hot: true},
+		{name: "send", bind: cfg.Send, hot: true},
+		{name: "cancel", bind: cfg.Cancel, hot: true},
+		{name: "editor", bind: cfg.OpenEditor, hot: true},
+		{name: "attach", bind: cfg.OpenFilePicker, show: mi.hkAttach, hot: true},
+	})
 }
 
-func (ml mentionsList) MouseHandler() func(action tview.MouseAction, event *tcell.EventMouse, setFocus func(p tview.Primitive)) (consumed bool, capture tview.Primitive) {
-	return ml.List.WrapMouseHandler(func(action tview.MouseAction, event *tcell.EventMouse, setFocus func(p tview.Primitive)) (consumed bool, capture tview.Primitive) {
+func (ml *mentionsList) MouseHandler() func(action tview.MouseAction, event *tcell.EventMouse, setFocus func(p tview.Primitive)) (consumed bool, capture tview.Primitive) {
+	return ml.WrapMouseHandler(func(action tview.MouseAction, event *tcell.EventMouse, setFocus func(p tview.Primitive)) (consumed bool, capture tview.Primitive) {
 		return ml.List.MouseHandler()(action, event, func(p tview.Primitive) {
 			if p == ml.List {
 				ml.hotkeys()
@@ -731,13 +728,14 @@ func (ml mentionsList) MouseHandler() func(action tview.MouseAction, event *tcel
 }
 
 func (ml *mentionsList) hotkeys() {
-	ml.messageInput.chatView.hotkeysBar.hotkeysFromValue(
-		reflect.ValueOf(ml.messageInput.cfg.Keybinds.MentionsList),
-		nil,
+	cfg := ml.messageInput.cfg.Keybinds.MentionsList
+	ml.messageInput.chatView.hotkeysBar.setHotkeys(
+		[]hotkey{
+			{name: "next/prev", bind: cfg.Down + "/" + cfg.Up, hot: true},
+			{name: "first/last", bind: cfg.Top + "/" + cfg.Bottom, hot: true},
+			{name: "select", bind: ml.messageInput.cfg.Keybinds.MessageInput.TabComplete, hot: true},
+		},
 	)
-	ml.messageInput.chatView.hotkeysBar.appendHotkeys([]hotkey{
-		{name: "select", bind: ml.messageInput.cfg.Keybinds.MessageInput.TabComplete, hot: true},
-	})
 }
 
 func (mi *messageInput) hkAttach() bool {

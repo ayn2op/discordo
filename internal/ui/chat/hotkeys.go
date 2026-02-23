@@ -1,9 +1,8 @@
 package chat
 
 import (
-	"strings"
 	"regexp"
-	"reflect"
+	"strings"
 
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/tview"
@@ -42,57 +41,9 @@ func newHotkeysBar(cfg *config.Config) *hotkeysBar {
 	return hkb
 }
 
-func (b *hotkeysBar) hotkeysFromValue(v reflect.Value, showFuncs map[string]func() bool) *hotkeysBar {
-	b.hotkeys = []hotkey{}
-	return b.appendHotkeysFromValue(v, showFuncs)
-}
-
-func (b *hotkeysBar) appendHotkeysFromValue(v reflect.Value, showFuncs map[string]func() bool) *hotkeysBar {
-	var show func() bool
-	t := v.Type()
-	for i := 0; i < t.NumField(); i++ {
-		fld := t.Field(i)
-		if fld.Type.Kind() == reflect.Struct {
-			b.appendHotkeysFromValue(v.Field(i), showFuncs)
-			continue
-		}
-		name := fld.Tag.Get("name")
-		bind := v.Field(i).String()
-		for fld.Tag.Get("join") == "next" {
-			i++
-			fld = t.Field(i)
-			name = fld.Tag.Get("name")
-			bind += "/" + v.Field(i).String()
-		}
-		if name == "" {
-			continue
-		}
-		if showFuncs != nil {
-			show = showFuncs[name]
-		} else {
-			show = nil
-		}
-		b.hotkeys = append(b.hotkeys, hotkey{
-			name: name,
-			bind: bind,
-			show: show,
-			hot:  fld.Tag.Get("hot") == "true",
-		})
-	}
-	b.process()
-	return b
-}
-
-func (b *hotkeysBar) setHotkeys(hks []hotkey) *hotkeysBar {
+func (b *hotkeysBar) setHotkeys(hks []hotkey) {
 	b.hotkeys = hks
 	b.process()
-	return b
-}
-
-func (b *hotkeysBar) appendHotkeys(hks []hotkey) *hotkeysBar {
-	b.hotkeys = append(b.hotkeys, hks...)
-	b.process()
-	return b
 }
 
 func (b *hotkeysBar) process() {
@@ -115,13 +66,13 @@ func (b *hotkeysBar) process() {
 				line.Write(fmt[:index], tcell.StyleDefault)
 				fmt = fmt[index:]
 			}
-			if strings.HasPrefix(fmt, "{{name}}") {
-				fmt = strings.TrimPrefix(fmt, "{{name}}")
+			if after, ok := strings.CutPrefix(fmt, "{{name}}"); ok {
+				fmt = after
 				line.Write(hk.name, b.cfg.Theme.HotkeysBar.NameStyle.Style)
 				continue
 			}
-			if strings.HasPrefix(fmt, "{{keybind}}") {
-				fmt = strings.TrimPrefix(fmt, "{{keybind}}")
+			if after, ok := strings.CutPrefix(fmt, "{{keybind}}"); ok {
+				fmt = after
 				line.Write(bind, b.cfg.Theme.HotkeysBar.KeybindStyle.Style)
 				continue
 			}
@@ -143,7 +94,7 @@ func (b *hotkeysBar) Focus(delegate func(p tview.Primitive)) {
 
 // Set hotkeys on mouse focus.
 func (b *hotkeysBar) MouseHandler() func(action tview.MouseAction, event *tcell.EventMouse, setFocus func(p tview.Primitive)) (consumed bool, capture tview.Primitive) {
-	return b.TextView.WrapMouseHandler(func(action tview.MouseAction, event *tcell.EventMouse, setFocus func(p tview.Primitive)) (consumed bool, capture tview.Primitive) {
+	return b.WrapMouseHandler(func(action tview.MouseAction, event *tcell.EventMouse, setFocus func(p tview.Primitive)) (consumed bool, capture tview.Primitive) {
 		return b.TextView.MouseHandler()(action, event, func(p tview.Primitive) {
 			if p == b.TextView {
 				b._hotkeys()
@@ -163,7 +114,6 @@ func (b *hotkeysBar) _hotkeys() {
 		{name: "channels", bind: cfg.Picker.Toggle, hot: true},
 		{name: "logout", bind: cfg.Logout, hot: true},
 		{name: "quit", bind: cfg.Quit, hot: true},
-
 	})
 }
 
@@ -173,7 +123,7 @@ func (b *hotkeysBar) update() int {
 	total := 0
 	for _, hk := range b.hotkeys {
 		if (!hk.hot && !b.cfg.Theme.HotkeysBar.ShowAll) ||
-		   (hk.show != nil && !hk.show()) {
+			(hk.show != nil && !hk.show()) {
 			continue
 		}
 		if total != 0 {

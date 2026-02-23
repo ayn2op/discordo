@@ -3,7 +3,6 @@ package chat
 import (
 	"log/slog"
 	"strings"
-	"reflect"
 
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/ui"
@@ -125,9 +124,13 @@ func (cp *channelsPicker) addChannel(guild *discord.Guild, channel discord.Chann
 
 // Set hotkeys on focus.
 func (cp *channelsPicker) Focus(delegate func(p tview.Primitive)) {
-	cp.chatView.hotkeysBar.hotkeysFromValue(
-		reflect.ValueOf(cp.chatView.cfg.Keybinds.Picker),
-		nil,
-	)
+	cfg := cp.chatView.cfg.Keybinds.Picker
+	cp.chatView.hotkeysBar.setHotkeys([]hotkey{
+		{name: "next/prev", bind: cfg.Down + "/" + cfg.Up, hot: true},
+		{name: "first/last", bind: cfg.Top + "/" + cfg.Bottom, hot: true},
+		{name: "toggle", bind: cfg.Toggle, hot: true},
+		{name: "select", bind: cfg.Select, hot: true},
+		{name: "cancel", bind: cfg.Cancel, hot: true},
+	})
 	cp.Picker.Focus(delegate)
 }

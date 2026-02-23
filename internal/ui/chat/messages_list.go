@@ -12,7 +12,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"reflect"
 	"unicode/utf8"
 
 	"github.com/ayn2op/tview/layers"
@@ -57,8 +56,6 @@ type messagesList struct {
 		count uint
 		done  chan struct{}
 	}
-
-	hotkeysShowMap map[string]func() bool
 }
 
 type messagesListRowKind uint8
@@ -94,13 +91,6 @@ func newMessagesList(cfg *config.Config, chatView *View) *messagesList {
 		SetThumbStyle(cfg.Theme.ScrollBar.ThumbStyle.Style).
 		SetGlyphSet(cfg.Theme.ScrollBar.GlyphSet.GlyphSet))
 	ml.SetInputCapture(ml.onInputCapture)
-	ml.hotkeysShowMap = map[string]func() bool{
-		"goto_reply": ml.hkGotoReply,
-		"@/reply": ml.hkReply,
-		"edit": ml.hkEdit,
-		"delete": ml.hkDelete,
-		"open": ml.hkOpen,
-	}
 	return ml
 }
 
@@ -1095,10 +1085,23 @@ func (ml *messagesList) MouseHandler() func(action tview.MouseAction, event *tce
 }
 
 func (ml *messagesList) hotkeys() {
-	ml.chatView.hotkeysBar.hotkeysFromValue(
-		reflect.ValueOf(ml.cfg.Keybinds.MessagesList),
-		ml.hotkeysShowMap,
-	)
+	cfg := ml.cfg.Keybinds.MessagesList
+	ml.chatView.hotkeysBar.setHotkeys([]hotkey{
+		{name: "next/prev", bind: cfg.SelectDown + "/" + cfg.SelectUp, hot: true},
+		{name: "first/last", bind: cfg.SelectTop + "/" + cfg.SelectBottom, hot: true},
+		{name: "scroll", bind: cfg.ScrollDown + "/" + cfg.ScrollUp, hot: true},
+		{name: "top/bot", bind: cfg.ScrollTop + "/" + cfg.ScrollBottom},
+		{name: "goto_reply", bind: cfg.SelectReply, show: ml.hkGotoReply, hot: true},
+		{name: "@/reply", bind: cfg.ReplyMention + "/" + cfg.Reply, show: ml.hkReply, hot: true},
+		{name: "cancel", bind: cfg.Cancel, hot: true},
+		{name: "edit", bind: cfg.Edit, show: ml.hkEdit, hot: true},
+		{name: "delete_force", bind: cfg.Delete},
+		{name: "delete", bind: cfg.DeleteConfirm, show: ml.hkDelete, hot: true},
+		{name: "open", bind: cfg.Open, show: ml.hkOpen, hot: true},
+		{name: "yank_content", bind: cfg.YankContent},
+		{name: "yank_url", bind: cfg.YankURL},
+		{name: "yank_id", bind: cfg.YankID},
+	})
 }
 
 func (ml *messagesList) hkGotoReply() bool {

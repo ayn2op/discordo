@@ -3,7 +3,6 @@ package chat
 import (
 	"fmt"
 	"log/slog"
-	"reflect"
 
 	"github.com/ayn2op/discordo/internal/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
@@ -408,13 +407,17 @@ func (gt *guildsTree) MouseHandler() func(action tview.MouseAction, event *tcell
 
 func (gt *guildsTree) hotkeys() {
 	cfg := gt.cfg.Keybinds.GuildsTree
-	gt.chatView.hotkeysBar.
-		hotkeysFromValue(reflect.ValueOf(cfg), nil).
-		appendHotkeys([]hotkey{
-			{name: "expand", bind: cfg.SelectCurrent, show: gt.hkExpand, hot: true},
-			{name: "collapse", bind: cfg.SelectCurrent, show: gt.hkCollapse, hot: true},
-			{name: "select", bind: cfg.SelectCurrent, show: gt.hkSelect, hot: true},
-		})
+	gt.chatView.hotkeysBar.setHotkeys([]hotkey{
+		{name: "next/prev", bind: cfg.Down + "/" + cfg.Up, hot: true},
+		{name: "first/last", bind: cfg.Top + "/" + cfg.Bottom, hot: true},
+		{name: "yank_id", bind: cfg.YankID},
+		{name: "cancel", bind: cfg.Cancel, hot: true},
+		{name: "collapse_parent", bind: cfg.CollapseParentNode},
+		{name: "goto_parent", bind: cfg.MoveToParentNode},
+		{name: "expand", bind: cfg.SelectCurrent, show: gt.hkExpand, hot: true},
+		{name: "collapse", bind: cfg.SelectCurrent, show: gt.hkCollapse, hot: true},
+		{name: "select", bind: cfg.SelectCurrent, show: gt.hkSelect, hot: true},
+	})
 }
 
 func (gt *guildsTree) hkExpand() bool {
