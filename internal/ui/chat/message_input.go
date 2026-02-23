@@ -2,11 +2,9 @@ package chat
 
 import (
 	"bytes"
-	"github.com/ayn2op/tview/layers"
 	"io"
 	"log/slog"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -21,6 +19,7 @@ import (
 	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/layers"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/state"
@@ -614,7 +613,16 @@ func (mi *messageInput) editor() {
 
 	file.WriteString(mi.GetText())
 
-	cmd := exec.Command(mi.cfg.Editor, file.Name())
+	if mi.cfg.Editor == "" {
+		slog.Warn("Attempt to open file with editor, but no editor is set")
+		return
+	}
+
+	cmd := mi.cfg.CreateEditorCommand(file.Name())
+	if cmd == nil {
+		return
+	}
+
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
