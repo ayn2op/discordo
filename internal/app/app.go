@@ -12,6 +12,7 @@ import (
 	"github.com/ayn2op/discordo/internal/ui/chat"
 	"github.com/ayn2op/discordo/internal/ui/login"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/keybind"
 	"github.com/gdamore/tcell/v3"
 )
 
@@ -100,11 +101,11 @@ func (a *App) quit() {
 }
 
 func (a *App) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
-	switch event.Name() {
-	case a.cfg.Keybinds.Quit:
+	switch {
+	case keybind.Matches(event, a.cfg.Keybinds.Quit.Keybind):
 		a.quit()
 		return nil
-	case "Ctrl+C":
+	case keybind.Matches(event, keybind.NewKeybind(keybind.WithKeys("ctrl+c"))):
 		// https://github.com/ayn2op/tview/blob/a64fc48d7654432f71922c8b908280cdb525805c/application.go#L153
 		return tcell.NewEventKey(tcell.KeyCtrlC, "", tcell.ModNone)
 	}

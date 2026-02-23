@@ -147,6 +147,13 @@ func (vw *ScrollBarVisibilityWrapper) UnmarshalTOML(val any) error {
 	return nil
 }
 
+type HelpTheme struct {
+	ShortKeyStyle  StyleWrapper `toml:"short_key_style"`
+	ShortDescStyle StyleWrapper `toml:"short_desc_style"`
+	FullKeyStyle   StyleWrapper `toml:"full_key_style"`
+	FullDescStyle  StyleWrapper `toml:"full_desc_style"`
+}
+
 type (
 	ThemeStyle struct {
 		NormalStyle StyleWrapper `toml:"normal_style"`
@@ -217,6 +224,7 @@ type (
 		MessagesList MessagesListTheme `toml:"messages_list"`
 		MentionsList MentionsListTheme `toml:"mentions_list"`
 		Dialog       DialogTheme       `toml:"dialog"`
+		Help         HelpTheme         `toml:"help"`
 	}
 )
 
