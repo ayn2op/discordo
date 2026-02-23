@@ -8,9 +8,9 @@ require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/alecthomas/chroma/v2 v2.23.1
 	github.com/andybalholm/brotli v1.2.0
-	github.com/ayn2op/tview v0.0.0-20260217063213-aa3df80a3074
+	github.com/ayn2op/tview v0.0.0-20260223065535-6a0c066d0bdd
 	github.com/deckarep/gosx-notifier v0.0.0-20180201035817-e127226297fb
-	github.com/diamondburned/arikawa/v3 v3.6.1-0.20260221035217-15298f718931
+	github.com/diamondburned/arikawa/v3 v3.6.1-0.20260221051847-b81b70d1a5cb
 	github.com/diamondburned/ningen/v3 v3.0.1-0.20250920191746-98fbd92e134d
 	github.com/gdamore/tcell/v3 v3.1.2
 	github.com/gen2brain/beeep v0.11.2

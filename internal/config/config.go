@@ -69,6 +69,12 @@ type (
 		CodeBlockIndent string `toml:"code_block_indent"`
 	}
 
+	HelpConfig struct {
+		CompactModifiers bool   `toml:"compact_modifiers"`
+		Padding          [2]int `toml:"padding"`
+		Separator        string `toml:"separator"`
+	}
+
 	Config struct {
 		AutoFocus bool   `toml:"auto_focus"`
 		Mouse     bool   `toml:"mouse"`
@@ -83,6 +89,7 @@ type (
 		MessagesLimit     uint8 `toml:"messages_limit"`
 
 		Markdown        MarkdownConfig  `toml:"markdown"`
+		Help            HelpConfig      `toml:"help"`
 		Picker          PickerConfig    `toml:"picker"`
 		Timestamps      Timestamps      `toml:"timestamps"`
 		DateSeparator   DateSeparator   `toml:"date_separator"`
@@ -114,7 +121,9 @@ func DefaultPath() string {
 
 // Load reads the configuration file and parses it.
 func Load(path string) (*Config, error) {
-	var cfg Config
+	cfg := Config{
+		Keybinds: defaultKeybinds(),
+	}
 	if err := toml.Unmarshal(defaultCfg, &cfg); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal default config: %w", err)
 	}
