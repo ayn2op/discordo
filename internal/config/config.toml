@@ -63,6 +63,11 @@ send = true
 # Whether to receive typing status or not.
 receive = true
 
+[sidebar.markers]
+expanded = "▾ "
+collapsed = "▸ "
+leaf = ""
+
 [icons]
 guild_category = ""
 guild_text = "#"
@@ -87,10 +92,11 @@ focus_previous = "ctrl+h"
 focus_next = "ctrl+l"
 # Hide/show the guilds tree.
 toggle_guilds_tree = "ctrl+b"
-quit = "ctrl+c"
 # Log out and remove the authentication token from keyring.
 # Requires re-login upon restart.
 logout = "ctrl+d"
+suspend = "ctrl+z"
+quit = "ctrl+c"
 
 [keybinds.picker]
 toggle = "ctrl+k"
@@ -152,6 +158,7 @@ send = "enter"
 cancel = "esc"
 # Complete usernames when mentioning
 tab_complete = "tab"
+undo = "ctrl+u"
 
 open_editor = "ctrl+e"
 open_file_picker = "ctrl+\\"

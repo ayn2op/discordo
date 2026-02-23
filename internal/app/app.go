@@ -102,6 +102,9 @@ func (a *App) quit() {
 
 func (a *App) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	switch {
+	case keybind.Matches(event, a.cfg.Keybinds.Suspend.Keybind):
+		a.suspend()
+		return nil
 	case keybind.Matches(event, a.cfg.Keybinds.Quit.Keybind):
 		a.quit()
 		return nil
