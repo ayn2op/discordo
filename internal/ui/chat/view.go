@@ -2,7 +2,6 @@ package chat
 
 import (
 	"fmt"
-	"github.com/ayn2op/tview/layers"
 	"log/slog"
 	"sync"
 	"time"
@@ -11,6 +10,9 @@ import (
 	"github.com/ayn2op/discordo/internal/keyring"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/help"
+	"github.com/ayn2op/tview/keybind"
+	"github.com/ayn2op/tview/layers"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/ningen/v3"
 	"github.com/diamondburned/ningen/v3/states/read"
@@ -30,6 +32,7 @@ const (
 type View struct {
 	*layers.Layers
 
+	rootFlex  *tview.Flex
 	mainFlex  *tview.Flex
 	rightFlex *tview.Flex
 
@@ -37,6 +40,7 @@ type View struct {
 	messagesList   *messagesList
 	messageInput   *messageInput
 	channelsPicker *channelsPicker
+	help           *help.Help
 
 	selectedChannel   *discord.Channel
 	selectedChannelMu sync.RWMutex
@@ -55,6 +59,7 @@ func NewView(app *tview.Application, cfg *config.Config, onLogout func()) *View 
 	v := &View{
 		Layers: layers.New(),
 
+		rootFlex:  tview.NewFlex(),
 		mainFlex:  tview.NewFlex(),
 		rightFlex: tview.NewFlex(),
 
@@ -70,6 +75,20 @@ func NewView(app *tview.Application, cfg *config.Config, onLogout func()) *View 
 	v.messageInput = newMessageInput(cfg, v)
 	v.channelsPicker = newChannelsPicker(cfg, v)
 	v.channelsPicker.SetCancelFunc(v.closePicker)
+
+	v.help = help.New()
+
+	styles := help.DefaultStyles()
+	styles.ShortKeyStyle = cfg.Theme.Help.ShortKeyStyle.Style
+	styles.ShortDescStyle = cfg.Theme.Help.ShortDescStyle.Style
+	styles.FullKeyStyle = cfg.Theme.Help.FullKeyStyle.Style
+	styles.FullDescStyle = cfg.Theme.Help.FullDescStyle.Style
+	v.help.SetStyles(styles)
+
+	v.help.SetKeyMap(v)
+	v.help.SetCompactModifiers(cfg.Help.CompactModifiers)
+	v.help.SetShortSeparator(cfg.Help.Separator)
+	v.help.SetBorderPadding(0, 0, cfg.Help.Padding[0], cfg.Help.Padding[1])
 
 	v.SetBackgroundLayerStyle(v.cfg.Theme.Dialog.BackgroundStyle.Style)
 	v.SetInputCapture(v.onInputCapture)
@@ -91,6 +110,7 @@ func (v *View) SetSelectedChannel(channel *discord.Channel) {
 
 func (v *View) buildLayout() {
 	v.Clear()
+	v.rootFlex.Clear()
 	v.rightFlex.Clear()
 	v.mainFlex.Clear()
 
@@ -103,7 +123,13 @@ func (v *View) buildLayout() {
 		AddItem(v.guildsTree, 0, 1, true).
 		AddItem(v.rightFlex, 0, 4, false)
 
-	v.AddLayer(v.mainFlex, layers.WithName(flexLayerName), layers.WithResize(true), layers.WithVisible(true))
+	v.rootFlex.
+		SetDirection(tview.FlexRow).
+		AddItem(v.mainFlex, 0, 1, true).
+		AddItem(v.help, 1, 0, false)
+
+	v.updateHelpHeight()
+	v.AddLayer(v.rootFlex, layers.WithName(flexLayerName), layers.WithResize(true), layers.WithVisible(true))
 }
 
 func (v *View) togglePicker() {
@@ -197,25 +223,29 @@ func (v *View) focusNext() {
 }
 
 func (v *View) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
-	switch event.Name() {
-	case v.cfg.Keybinds.FocusGuildsTree:
+	switch {
+	case keybind.Matches(event, v.cfg.Keybinds.ToggleHelp.Keybind):
+		v.help.SetShowAll(!v.help.ShowAll())
+		v.updateHelpHeight()
+		return nil
+	case keybind.Matches(event, v.cfg.Keybinds.FocusGuildsTree.Keybind):
 		v.messageInput.removeMentionsList()
 		v.focusGuildsTree()
 		return nil
-	case v.cfg.Keybinds.FocusMessagesList:
+	case keybind.Matches(event, v.cfg.Keybinds.FocusMessagesList.Keybind):
 		v.messageInput.removeMentionsList()
 		v.app.SetFocus(v.messagesList)
 		return nil
-	case v.cfg.Keybinds.FocusMessageInput:
+	case keybind.Matches(event, v.cfg.Keybinds.FocusMessageInput.Keybind):
 		v.focusMessageInput()
 		return nil
-	case v.cfg.Keybinds.FocusPrevious:
+	case keybind.Matches(event, v.cfg.Keybinds.FocusPrevious.Keybind):
 		v.focusPrevious()
 		return nil
-	case v.cfg.Keybinds.FocusNext:
+	case keybind.Matches(event, v.cfg.Keybinds.FocusNext.Keybind):
 		v.focusNext()
 		return nil
-	case v.cfg.Keybinds.Logout:
+	case keybind.Matches(event, v.cfg.Keybinds.Logout.Keybind):
 		if v.onLogout != nil {
 			v.onLogout()
 		}
@@ -226,15 +256,26 @@ func (v *View) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		}
 
 		return nil
-	case v.cfg.Keybinds.ToggleGuildsTree:
+	case keybind.Matches(event, v.cfg.Keybinds.ToggleGuildsTree.Keybind):
 		v.toggleGuildsTree()
 		return nil
-	case v.cfg.Keybinds.Picker.Toggle:
+	case keybind.Matches(event, v.cfg.Keybinds.ToggleChannelsPicker.Keybind):
 		v.togglePicker()
 		return nil
 	}
 
 	return event
+}
+
+func (v *View) updateHelpHeight() {
+	height := 1
+	if v.help.ShowAll() {
+		height = len(v.help.FullHelpLines(v.FullHelp(), 0))
+		if height < 1 {
+			height = 1
+		}
+	}
+	v.rootFlex.ResizeItem(v.help, height, 0)
 }
 
 func (v *View) showConfirmModal(prompt string, buttons []string, onDone func(label string)) {

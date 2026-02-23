@@ -2,6 +2,7 @@ package picker
 
 import (
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/keybind"
 	"github.com/gdamore/tcell/v3"
 	"github.com/sahilm/fuzzy"
 )
@@ -154,23 +155,23 @@ func (p *Picker) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	}
 
 	handler := p.list.InputHandler()
-	switch event.Name() {
-	case p.keyMap.Up:
+	switch {
+	case keybind.Matches(event, p.keyMap.Up):
 		handler(tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone), nil)
 		return nil
-	case p.keyMap.Down:
+	case keybind.Matches(event, p.keyMap.Down):
 		handler(tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone), nil)
 		return nil
-	case p.keyMap.Top:
+	case keybind.Matches(event, p.keyMap.Top):
 		handler(tcell.NewEventKey(tcell.KeyHome, "", tcell.ModNone), nil)
 		return nil
-	case p.keyMap.Bottom:
+	case keybind.Matches(event, p.keyMap.Bottom):
 		handler(tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone), nil)
-	case p.keyMap.Select:
+	case keybind.Matches(event, p.keyMap.Select):
 		p.onListSelected(p.list.Cursor())
 		return nil
 
-	case p.keyMap.Cancel:
+	case keybind.Matches(event, p.keyMap.Cancel):
 		if p.onCancel != nil {
 			p.onCancel()
 		}
