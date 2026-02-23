@@ -126,6 +126,8 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	case keybind.Matches(event, mi.cfg.Keybinds.MessageInput.TabComplete.Keybind):
 		go mi.chatView.app.QueueUpdateDraw(func() { mi.tabComplete() })
 		return nil
+	case keybind.Matches(event, mi.cfg.Keybinds.MessageInput.Undo.Keybind):
+		return tcell.NewEventKey(tcell.KeyCtrlZ, "", tcell.ModNone)
 	default:
 		if mi.cfg.TypingIndicator.Send && mi.typingTimer == nil {
 			mi.typingTimer = time.AfterFunc(typingDuration, func() {
@@ -717,7 +719,7 @@ func (mi *messageInput) FullHelp() [][]keybind.Keybind {
 	}
 
 	return [][]keybind.Keybind{
-		{cfg.Send.Keybind, cfg.Cancel.Keybind, cfg.TabComplete.Keybind},
+		{cfg.Send.Keybind, cfg.Cancel.Keybind, cfg.TabComplete.Keybind, cfg.Undo.Keybind},
 		openEditor,
 	}
 }
