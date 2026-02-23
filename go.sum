@@ -14,8 +14,8 @@ github.com/alecthomas/repr v0.5.2 h1:SU73FTI9D1P5UNtvseffFSGmdNci/O6RsqzeXJtP0Qs
 github.com/alecthomas/repr v0.5.2/go.mod h1:Fr0507jx4eOXV7AlPV6AVZLYrLIuIeSOWtW57eE/O/4=
 github.com/andybalholm/brotli v1.2.0 h1:ukwgCxwYrmACq68yiUqwIWnGY0cTPox/M94sVwToPjQ=
 github.com/andybalholm/brotli v1.2.0/go.mod h1:rzTDkvFWvIrjDXZHkuS16NPggd91W3kUSvPlQ1pLaKY=
-github.com/ayn2op/tview v0.0.0-20260223065535-6a0c066d0bdd h1:DdR19f4xNbd3XM9vxmC9LtF5XY1nv0rDMMzn0FSTwd0=
-github.com/ayn2op/tview v0.0.0-20260223065535-6a0c066d0bdd/go.mod h1:lZ8RdOegQWBQafTOasGE7Ps1/Ymy4jmXoPt5vz2QsS0=
+github.com/ayn2op/tview v0.0.0-20260223211434-6859308d597f h1:ZxDODg1E/RPoTWlXhnhZOKITe1ebBM0Cpy+GiGaa+xk=
+github.com/ayn2op/tview v0.0.0-20260223211434-6859308d597f/go.mod h1:lZ8RdOegQWBQafTOasGE7Ps1/Ymy4jmXoPt5vz2QsS0=
 github.com/danieljoos/wincred v1.2.3 h1:v7dZC2x32Ut3nEfRH+vhoZGvN72+dQ/snVXo/vMFLdQ=
 github.com/danieljoos/wincred v1.2.3/go.mod h1:6qqX0WNrS4RzPZ1tnroDzq9kY3fu1KwE7MRLQK4X0bs=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

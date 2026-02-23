@@ -65,6 +65,11 @@ send = true
 # Whether to receive typing status or not.
 receive = true
 
+[sidebar.markers]
+expanded = "▾ "
+collapsed = "▸ "
+leaf = ""
+
 [icons]
 guild_category = ""
 guild_text = "#"

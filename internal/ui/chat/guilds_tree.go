@@ -47,6 +47,11 @@ func newGuildsTree(cfg *config.Config, chatView *View) *guildsTree {
 	gt.
 		SetRoot(tview.NewTreeNode("")).
 		SetTopLevel(1).
+		SetMarkers(tview.TreeMarkers{
+			Expanded:  cfg.Sidebar.Markers.Expanded,
+			Collapsed: cfg.Sidebar.Markers.Collapsed,
+			Leaf:      cfg.Sidebar.Markers.Leaf,
+		}).
 		SetGraphics(cfg.Theme.GuildsTree.Graphics).
 		SetGraphicsColor(tcell.GetColor(cfg.Theme.GuildsTree.GraphicsColor)).
 		SetSelectedFunc(gt.onSelected).
@@ -189,7 +194,7 @@ func (gt *guildsTree) getChannelNodeStyle(channelID discord.ChannelID) tcell.Sty
 }
 
 func (gt *guildsTree) createGuildNode(n *tview.TreeNode, guild discord.Guild) {
-	guildNode := tview.NewTreeNode(guild.Name).SetReference(guild.ID)
+	guildNode := tview.NewTreeNode(guild.Name).SetReference(guild.ID).SetExpandable(true)
 	gt.setNodeLineStyle(guildNode, gt.getGuildNodeStyle(guild.ID))
 	n.AddChild(guildNode)
 	gt.guildNodeByID[guild.ID] = guildNode
@@ -201,6 +206,9 @@ func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Ch
 	}
 
 	channelNode := tview.NewTreeNode(ui.ChannelToString(channel, gt.cfg.Icons)).SetReference(channel.ID)
+	if channel.Type == discord.GuildForum {
+		channelNode.SetExpandable(true)
+	}
 	gt.setNodeLineStyle(channelNode, gt.getChannelNodeStyle(channel.ID))
 	node.AddChild(channelNode)
 	gt.channelNodeByID[channel.ID] = channelNode
