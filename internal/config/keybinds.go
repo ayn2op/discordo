@@ -96,6 +96,7 @@ type MessageInputKeybinds struct {
 	Send        Keybind `toml:"send"`
 	Cancel      Keybind `toml:"cancel"`
 	TabComplete Keybind `toml:"tab_complete"`
+	Undo        Keybind `toml:"undo"`
 
 	OpenEditor     Keybind `toml:"open_editor"`
 	OpenFilePicker Keybind `toml:"open_file_picker"`
@@ -109,6 +110,7 @@ type Keybinds struct {
 	ToggleGuildsTree     Keybind `toml:"toggle_guilds_tree"`
 	ToggleChannelsPicker Keybind `toml:"toggle_channels_picker"`
 	ToggleHelp           Keybind `toml:"toggle_help"`
+	Suspend              Keybind `toml:"suspend"`
 
 	FocusGuildsTree   Keybind `toml:"focus_guilds_tree"`
 	FocusMessagesList Keybind `toml:"focus_messages_list"`
@@ -132,6 +134,7 @@ func defaultKeybinds() Keybinds {
 		ToggleGuildsTree:     newKeybind("ctrl+b", "toggle guilds"),
 		ToggleChannelsPicker: newKeybind("ctrl+k", "channels picker"),
 		ToggleHelp:           newKeybind("ctrl+.", "help"),
+		Suspend:              newKeybind("ctrl+z", "suspend"),
 
 		FocusGuildsTree:   newKeybind("ctrl+g", "guilds"),
 		FocusMessagesList: newKeybind("ctrl+t", "messages"),
@@ -198,6 +201,7 @@ func defaultKeybinds() Keybinds {
 			Send:           newKeybind("enter", "send"),
 			Cancel:         newKeybind("esc", "cancel"),
 			TabComplete:    newKeybind("tab", "complete"),
+			Undo:           newKeybind("ctrl+u", "undo"),
 			OpenEditor:     newKeybind("ctrl+e", "editor"),
 			OpenFilePicker: newKeybind("ctrl+\\", "attach"),
 		},
