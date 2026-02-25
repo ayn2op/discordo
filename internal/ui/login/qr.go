@@ -58,19 +58,20 @@ func newQRLogin(app *tview.Application, cfg *config.Config, done func(token stri
 		SetChangedFunc(func() {
 			q.app.QueueUpdateDraw(func() {})
 		}).
-		SetTitle("Login with QR").
-		SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
-			if ev.Key() == tcell.KeyEsc {
-				q.stop()
-				if q.done != nil {
-					q.done("", nil)
-				}
-				return nil
-			}
-			return ev
-		})
+		SetTitle("Login with QR")
 
 	return q
+}
+
+func (q *qrLogin) InputHandler(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
+	if event.Key() == tcell.KeyEsc {
+		q.stop()
+		if q.done != nil {
+			q.done("", nil)
+		}
+		return
+	}
+	q.TextView.InputHandler(event, setFocus)
 }
 
 func (q *qrLogin) start() {

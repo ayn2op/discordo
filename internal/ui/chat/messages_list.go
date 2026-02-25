@@ -52,6 +52,8 @@ type messagesList struct {
 	// itemByID caches unselected message TextViews.
 	itemByID map[discord.MessageID]*tview.TextView
 
+	attachmentsPicker *attachmentsPicker
+
 	fetchingMembers struct {
 		mu    sync.Mutex
 		value bool
@@ -83,6 +85,7 @@ func newMessagesList(cfg *config.Config, chatView *View) *messagesList {
 		renderer: markdown.NewRenderer(cfg),
 		itemByID: make(map[discord.MessageID]*tview.TextView),
 	}
+	ml.attachmentsPicker = newAttachmentsPicker(cfg, chatView)
 
 	ml.Box = ui.ConfigureBox(ml.Box, &cfg.Theme)
 	ml.SetTitle("Messages")
@@ -94,7 +97,6 @@ func newMessagesList(cfg *config.Config, chatView *View) *messagesList {
 		SetTrackStyle(cfg.Theme.ScrollBar.TrackStyle.Style).
 		SetThumbStyle(cfg.Theme.ScrollBar.ThumbStyle.Style).
 		SetGlyphSet(cfg.Theme.ScrollBar.GlyphSet.GlyphSet))
-	ml.SetInputCapture(ml.onInputCapture)
 	return ml
 }
 
@@ -526,7 +528,7 @@ func (ml *messagesList) selectedMessage() (*discord.Message, error) {
 	return &ml.messages[cursor], nil
 }
 
-func (ml *messagesList) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
+func (ml *messagesList) handleInput(event *tcell.EventKey) *tcell.EventKey {
 	switch {
 	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ScrollUp.Keybind):
 		ml.ScrollUp()
@@ -590,6 +592,14 @@ func (ml *messagesList) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	}
 
 	return event
+}
+
+func (ml *messagesList) InputHandler(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
+	event = ml.handleInput(event)
+	if event == nil {
+		return
+	}
+	ml.List.InputHandler(event, setFocus)
 }
 
 func (ml *messagesList) selectUp() {
@@ -788,19 +798,8 @@ func extractURLs(content string) []string {
 }
 
 func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord.Attachment) {
-	type attachmentAction struct {
-		label    string
-		shortcut rune
-		open     func()
-	}
-
-	closeList := func() {
-		ml.chatView.RemoveLayer(attachmentsListLayerName)
-		ml.chatView.app.SetFocus(ml)
-	}
-
-	var actions []attachmentAction
-	for i, a := range attachments {
+	var items []attachmentItem
+	for _, a := range attachments {
 		attachment := a
 		action := func() {
 			if strings.HasPrefix(attachment.ContentType, "image/") {
@@ -809,103 +808,30 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 				go ml.openURL(attachment.URL)
 			}
 		}
-		actions = append(actions, attachmentAction{
-			label:    attachment.Filename,
-			shortcut: rune('a' + i),
-			open:     action,
+		items = append(items, attachmentItem{
+			label: attachment.Filename,
+			open:  action,
 		})
 	}
-	for i, u := range urls {
+	for _, u := range urls {
 		url := u
-		actions = append(actions, attachmentAction{
-			label:    url,
-			shortcut: rune('1' + i),
-			open:     func() { go ml.openURL(url) },
+		items = append(items, attachmentItem{
+			label: url,
+			open:  func() { go ml.openURL(url) },
 		})
 	}
-
-	normalItems := make([]*tview.TextView, len(actions))
-	selectedItems := make([]*tview.TextView, len(actions))
-	for i, action := range actions {
-		normalItems[i] = tview.NewTextView().
-			SetScrollable(false).
-			SetWrap(false).
-			SetWordWrap(false).
-			SetLines([]tview.Line{tview.NewLine(tview.NewSegment(action.label, tcell.StyleDefault))})
-		selectedItems[i] = tview.NewTextView().
-			SetScrollable(false).
-			SetWrap(false).
-			SetWordWrap(false).
-			SetLines([]tview.Line{tview.NewLine(tview.NewSegment(action.label, tcell.StyleDefault.Reverse(true)))})
-	}
-
-	list := tview.NewList().
-		SetSnapToItems(true).
-		SetBuilder(func(index int, cursor int) tview.ListItem {
-			if index < 0 || index >= len(actions) {
-				return nil
-			}
-			if index == cursor {
-				return selectedItems[index]
-			}
-			return normalItems[index]
-		})
-	list.Box = ui.ConfigureBox(list.Box, &ml.cfg.Theme)
-	if len(actions) > 0 {
-		list.SetCursor(0)
-	}
-	list.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		switch {
-		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectUp.Keybind):
-			return tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone)
-		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectDown.Keybind):
-			return tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone)
-		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectTop.Keybind):
-			return tcell.NewEventKey(tcell.KeyHome, "", tcell.ModNone)
-		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectBottom.Keybind):
-			return tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone)
-		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Cancel.Keybind):
-			closeList()
-			return nil
-		}
-
-		if event.Key() == tcell.KeyEnter || event.Key() == tcell.KeyRune && event.Str() == " " {
-			index := list.Cursor()
-			if index >= 0 && index < len(actions) {
-				actions[index].open()
-				closeList()
-			}
-			return nil
-		}
-
-		if event.Key() == tcell.KeyRune {
-			key := event.Str()
-			if key == "" {
-				return event
-			}
-			ch := []rune(key)[0]
-			for index, action := range actions {
-				if action.shortcut == ch {
-					list.SetCursor(index)
-					actions[index].open()
-					closeList()
-					return nil
-				}
-			}
-		}
-
-		return event
-	})
+	ml.attachmentsPicker.SetItems(items)
 
 	ml.chatView.
 		AddLayer(
-			ui.Centered(list, 0, 0),
+			ui.Centered(ml.attachmentsPicker, 0, 0),
 			layers.WithName(attachmentsListLayerName),
 			layers.WithResize(true),
 			layers.WithVisible(true),
 			layers.WithOverlay(),
 		).
 		SendToFront(attachmentsListLayerName)
+	ml.chatView.app.SetFocus(ml.attachmentsPicker)
 }
 
 func (ml *messagesList) openAttachment(attachment discord.Attachment) {

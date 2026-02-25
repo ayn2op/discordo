@@ -91,7 +91,6 @@ func NewView(app *tview.Application, cfg *config.Config, onLogout func()) *View 
 	v.help.SetBorderPadding(0, 0, cfg.Help.Padding[0], cfg.Help.Padding[1])
 
 	v.SetBackgroundLayerStyle(v.cfg.Theme.Dialog.BackgroundStyle.Style)
-	v.SetInputCapture(v.onInputCapture)
 	v.buildLayout()
 	return v
 }
@@ -222,7 +221,7 @@ func (v *View) focusNext() {
 	}
 }
 
-func (v *View) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
+func (v *View) handleInput(event *tcell.EventKey) *tcell.EventKey {
 	switch {
 	case keybind.Matches(event, v.cfg.Keybinds.ToggleHelp.Keybind):
 		v.help.SetShowAll(!v.help.ShowAll())
@@ -265,6 +264,14 @@ func (v *View) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	}
 
 	return event
+}
+
+func (v *View) InputHandler(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
+	event = v.handleInput(event)
+	if event == nil {
+		return
+	}
+	v.Layers.InputHandler(event, setFocus)
 }
 
 func (v *View) updateHelpHeight() {

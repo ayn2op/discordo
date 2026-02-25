@@ -66,7 +66,6 @@ func newMessageInput(cfg *config.Config, chatView *View) *messageInput {
 		mentionsList:    newMentionsList(cfg),
 	}
 	mi.Box = ui.ConfigureBox(mi.Box, &cfg.Theme)
-	mi.SetInputCapture(mi.onInputCapture)
 	mi.
 		SetPlaceholder(tview.NewLine(tview.NewSegment("Select a channel to start chatting", tcell.StyleDefault.Dim(true)))).
 		SetClipboard(
@@ -93,7 +92,7 @@ func (mi *messageInput) stopTypingTimer() {
 	}
 }
 
-func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
+func (mi *messageInput) handleInput(event *tcell.EventKey) *tcell.EventKey {
 	switch {
 	case keybind.Matches(event, mi.cfg.Keybinds.MessageInput.Paste.Keybind):
 		mi.paste()
@@ -144,19 +143,18 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 
 	if mi.cfg.AutocompleteLimit > 0 {
 		if mi.chatView.GetVisible(mentionsListLayerName) {
-			handler := mi.mentionsList.InputHandler()
 			switch {
 			case keybind.Matches(event, mi.cfg.Keybinds.MentionsList.Up.Keybind):
-				handler(tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone), nil)
+				mi.mentionsList.InputHandler(tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone), nil)
 				return nil
 			case keybind.Matches(event, mi.cfg.Keybinds.MentionsList.Down.Keybind):
-				handler(tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone), nil)
+				mi.mentionsList.InputHandler(tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone), nil)
 				return nil
 			case keybind.Matches(event, mi.cfg.Keybinds.MentionsList.Top.Keybind):
-				handler(tcell.NewEventKey(tcell.KeyHome, "", tcell.ModNone), nil)
+				mi.mentionsList.InputHandler(tcell.NewEventKey(tcell.KeyHome, "", tcell.ModNone), nil)
 				return nil
 			case keybind.Matches(event, mi.cfg.Keybinds.MentionsList.Bottom.Keybind):
-				handler(tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone), nil)
+				mi.mentionsList.InputHandler(tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone), nil)
 				return nil
 			}
 		}
@@ -165,6 +163,14 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	}
 
 	return event
+}
+
+func (mi *messageInput) InputHandler(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
+	event = mi.handleInput(event)
+	if event == nil {
+		return
+	}
+	mi.TextArea.InputHandler(event, setFocus)
 }
 
 func (mi *messageInput) paste() {

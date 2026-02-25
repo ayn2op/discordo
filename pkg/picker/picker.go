@@ -43,8 +43,7 @@ func New() *Picker {
 		SetLabel("> ").
 		SetBorders(tview.BordersBottom).
 		SetBorderSet(borderSet).
-		SetBorderStyle(tcell.StyleDefault.Dim(true)).
-		SetInputCapture(p.onInputCapture)
+		SetBorderStyle(tcell.StyleDefault.Dim(true))
 
 	p.
 		SetDirection(tview.FlexRow).
@@ -149,24 +148,23 @@ func (p *Picker) onInputChanged(text string) {
 	p.setFilteredItems(fuzzied)
 }
 
-func (p *Picker) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
+func (p *Picker) handleInput(event *tcell.EventKey) *tcell.EventKey {
 	if p.keyMap == nil {
-		return nil
+		return event
 	}
 
-	handler := p.list.InputHandler()
 	switch {
 	case keybind.Matches(event, p.keyMap.Up):
-		handler(tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone), nil)
+		p.list.InputHandler(tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone), nil)
 		return nil
 	case keybind.Matches(event, p.keyMap.Down):
-		handler(tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone), nil)
+		p.list.InputHandler(tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone), nil)
 		return nil
 	case keybind.Matches(event, p.keyMap.Top):
-		handler(tcell.NewEventKey(tcell.KeyHome, "", tcell.ModNone), nil)
+		p.list.InputHandler(tcell.NewEventKey(tcell.KeyHome, "", tcell.ModNone), nil)
 		return nil
 	case keybind.Matches(event, p.keyMap.Bottom):
-		handler(tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone), nil)
+		p.list.InputHandler(tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone), nil)
 	case keybind.Matches(event, p.keyMap.Select):
 		p.onListSelected(p.list.Cursor())
 		return nil
@@ -179,4 +177,12 @@ func (p *Picker) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	}
 
 	return event
+}
+
+func (p *Picker) InputHandler(event *tcell.EventKey, setFocus func(p2 tview.Primitive)) {
+	event = p.handleInput(event)
+	if event == nil {
+		return
+	}
+	p.Flex.InputHandler(event, setFocus)
 }
