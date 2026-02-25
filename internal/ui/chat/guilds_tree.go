@@ -55,8 +55,7 @@ func newGuildsTree(cfg *config.Config, chatView *View) *guildsTree {
 		SetGraphics(cfg.Theme.GuildsTree.Graphics).
 		SetGraphicsColor(tcell.GetColor(cfg.Theme.GuildsTree.GraphicsColor)).
 		SetSelectedFunc(gt.onSelected).
-		SetTitle("Guilds").
-		SetInputCapture(gt.onInputCapture)
+		SetTitle("Guilds")
 
 	return gt
 }
@@ -375,7 +374,7 @@ func (gt *guildsTree) collapseParentNode(node *tview.TreeNode) {
 		})
 }
 
-func (gt *guildsTree) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
+func (gt *guildsTree) handleInput(event *tcell.EventKey) *tcell.EventKey {
 	switch {
 	case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.CollapseParentNode.Keybind):
 		gt.collapseParentNode(gt.GetCurrentNode())
@@ -402,6 +401,14 @@ func (gt *guildsTree) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	}
 
 	return nil
+}
+
+func (gt *guildsTree) InputHandler(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
+	event = gt.handleInput(event)
+	if event == nil {
+		return
+	}
+	gt.TreeView.InputHandler(event, setFocus)
 }
 
 func (gt *guildsTree) yankID() {
