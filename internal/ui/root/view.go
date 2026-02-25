@@ -165,30 +165,18 @@ func (v *View) Blur() {
 	v.Box.Blur()
 }
 
-func (v *View) MouseHandler() func(action tview.MouseAction, event *tcell.EventMouse, setFocus func(p tview.Primitive)) (consumed bool, capture tview.Primitive) {
-	return v.WrapMouseHandler(func(action tview.MouseAction, event *tcell.EventMouse, setFocus func(p tview.Primitive)) (consumed bool, capture tview.Primitive) {
-		if v.inner == nil {
-			return false, nil
-		}
-		handler := v.inner.MouseHandler()
-		if handler == nil {
-			return false, nil
-		}
-		return handler(action, event, setFocus)
-	})
+func (v *View) MouseHandler(action tview.MouseAction, event *tcell.EventMouse, setFocus func(p tview.Primitive)) (consumed bool, capture tview.Primitive) {
+	if v.inner == nil {
+		return false, nil
+	}
+	return v.inner.MouseHandler(action, event, setFocus)
 }
 
-func (v *View) PasteHandler() func(text string, setFocus func(p tview.Primitive)) {
-	return v.WrapPasteHandler(func(text string, setFocus func(p tview.Primitive)) {
-		if v.inner == nil {
-			return
-		}
-		handler := v.inner.PasteHandler()
-		if handler == nil {
-			return
-		}
-		handler(text, setFocus)
-	})
+func (v *View) PasteHandler(text string, setFocus func(p tview.Primitive)) {
+	if v.inner == nil {
+		return
+	}
+	v.inner.PasteHandler(text, setFocus)
 }
 
 func (v *View) IsDirty() bool {
