@@ -73,7 +73,12 @@ func (v *View) Run() error {
 		v.showLoginView()
 	} else {
 		if err := v.showChatView(token); err != nil {
-			return err
+			slog.Error("failed to connect with saved token", "err", err)
+			_ = keyring.DeleteToken()
+			v.showLoginView()
+			if form, ok := v.inner.(*login.Form); ok {
+				form.ShowError(fmt.Errorf("saved token failed: %w", err))
+			}
 		}
 	}
 
@@ -87,6 +92,10 @@ func (v *View) showLoginView() {
 	loginForm := login.NewForm(v.app, v.cfg, func(token string) {
 		if err := v.showChatView(token); err != nil {
 			slog.Error("failed to show chat view", "err", err)
+			_ = keyring.DeleteToken()
+			if form, ok := v.inner.(*login.Form); ok {
+				form.ShowError(fmt.Errorf("failed to connect: %w", err))
+			}
 		}
 	})
 	v.inner = loginForm
