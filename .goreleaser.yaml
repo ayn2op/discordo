@@ -48,6 +48,10 @@ archives:
       {{- else if eq .Arch "arm64" }}arm64
       {{- else }}{{ .Arch }}{{ end }}
 
+changelog:
+  # NOTE: do we disable changelog? It can be customized, so that it includes the author and such.
+  disable: true
+
 before:
   hooks:
     - go mod tidy
