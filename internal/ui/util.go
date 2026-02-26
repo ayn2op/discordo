@@ -8,6 +8,7 @@ import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/tview"
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/ningen/v3"
 	"github.com/gdamore/tcell/v3"
 )
 
@@ -61,7 +62,7 @@ func Centered(p tview.Primitive, width, height int) tview.Primitive {
 		AddItem(p, 1, 1, 1, 1, 0, 0, true)
 }
 
-func ChannelToString(channel discord.Channel, icons config.Icons) string {
+func ChannelToString(channel discord.Channel, icons config.Icons, state *ningen.State) string {
 	var icon string
 	switch channel.Type {
 	case discord.DirectMessage, discord.GroupDM:
@@ -71,6 +72,14 @@ func ChannelToString(channel discord.Channel, icons config.Icons) string {
 
 		recipients := make([]string, len(channel.DMRecipients))
 		for i, r := range channel.DMRecipients {
+			if state != nil && channel.Type == discord.DirectMessage {
+				if rel, ok := state.RelationshipState.FullRelationship(r.ID); ok {
+					if rel.Nickname != nil && *rel.Nickname != "" {
+						recipients[i] = *rel.Nickname
+						continue
+					}
+				}
+			}
 			recipients[i] = r.DisplayOrUsername()
 		}
 
