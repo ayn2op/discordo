@@ -7,15 +7,23 @@ jobs:
       fail-fast: false
       matrix:
         # https://docs.github.com/en/actions/using-github-hosted-runners
-        os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, windows-11-arm, macos-latest, macos-15-intel]
+        os:
+          [
+            ubuntu-latest,
+            ubuntu-24.04-arm,
+            windows-latest,
+            windows-11-arm,
+            macos-latest,
+            macos-15-intel,
+          ]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-go@v6
         with:
           go-version: stable
-          
+
       - name: Install libx11-dev for clipboard support
         if: runner.os == 'Linux'
         run: sudo apt install libx11-dev
@@ -26,7 +34,7 @@ jobs:
       - name: Build
         run: go build -trimpath -ldflags=-s .
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: ${{ github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
         with:
           name: discordo_${{ runner.os }}_${{ runner.arch }}

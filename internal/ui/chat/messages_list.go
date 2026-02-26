@@ -22,6 +22,8 @@ import (
 	"github.com/ayn2op/discordo/internal/markdown"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/help"
+	"github.com/ayn2op/tview/keybind"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
@@ -50,6 +52,8 @@ type messagesList struct {
 	// itemByID caches unselected message TextViews.
 	itemByID map[discord.MessageID]*tview.TextView
 
+	attachmentsPicker *attachmentsPicker
+
 	fetchingMembers struct {
 		mu    sync.Mutex
 		value bool
@@ -57,6 +61,8 @@ type messagesList struct {
 		done  chan struct{}
 	}
 }
+
+var _ help.KeyMap = (*messagesList)(nil)
 
 type messagesListRowKind uint8
 
@@ -79,13 +85,18 @@ func newMessagesList(cfg *config.Config, chatView *View) *messagesList {
 		renderer: markdown.NewRenderer(cfg),
 		itemByID: make(map[discord.MessageID]*tview.TextView),
 	}
+	ml.attachmentsPicker = newAttachmentsPicker(cfg, chatView)
 
 	ml.Box = ui.ConfigureBox(ml.Box, &cfg.Theme)
 	ml.SetTitle("Messages")
 	ml.SetBuilder(ml.buildItem)
 	ml.SetChangedFunc(ml.onRowCursorChanged)
 	ml.SetTrackEnd(true)
-	ml.SetInputCapture(ml.onInputCapture)
+	ml.SetScrollBarVisibility(cfg.Theme.ScrollBar.Visibility.ScrollBarVisibility)
+	ml.SetScrollBar(tview.NewScrollBar().
+		SetTrackStyle(cfg.Theme.ScrollBar.TrackStyle.Style).
+		SetThumbStyle(cfg.Theme.ScrollBar.ThumbStyle.Style).
+		SetGlyphSet(cfg.Theme.ScrollBar.GlyphSet.GlyphSet))
 	return ml
 }
 
@@ -428,10 +439,24 @@ func (ml *messagesList) drawContent(builder *tview.LineBuilder, message discord.
 	}
 }
 
-func (ml *messagesList) drawSnapshotContent(builder *tview.LineBuilder, message discord.MessageSnapshotMessage, baseStyle tcell.Style) {
-	c := []byte(message.Content)
-	// discordmd doesn't support MessageSnapshotMessage, so we just use write it as is. todo?
-	builder.Write(string(c), baseStyle)
+func (ml *messagesList) drawSnapshotContent(builder *tview.LineBuilder, parent discord.Message, snapshot discord.MessageSnapshotMessage, baseStyle tcell.Style) {
+	// Convert discord.MessageSnapshotMessage to discord.Message with common fields.
+	message := discord.Message{
+		Type:            snapshot.Type,
+		Content:         snapshot.Content,
+		Embeds:          snapshot.Embeds,
+		Attachments:     snapshot.Attachments,
+		Timestamp:       snapshot.Timestamp,
+		EditedTimestamp: snapshot.EditedTimestamp,
+		Flags:           snapshot.Flags,
+		Mentions:        snapshot.Mentions,
+		MentionRoleIDs:  snapshot.MentionRoleIDs,
+		Stickers:        snapshot.Stickers,
+		Components:      snapshot.Components,
+		ChannelID:       parent.ChannelID,
+		GuildID:         parent.GuildID,
+	}
+	ml.drawContent(builder, message, baseStyle)
 }
 
 func (ml *messagesList) drawDefaultMessage(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style) {
@@ -463,7 +488,7 @@ func (ml *messagesList) drawForwardedMessage(builder *tview.LineBuilder, message
 	ml.drawTimestamps(builder, message.Timestamp, baseStyle)
 	ml.drawAuthor(builder, message, baseStyle)
 	builder.Write(ml.cfg.Theme.MessagesList.ForwardedIndicator+" ", dimStyle)
-	ml.drawSnapshotContent(builder, message.MessageSnapshots[0].Message, baseStyle)
+	ml.drawSnapshotContent(builder, message, message.MessageSnapshots[0].Message, baseStyle)
 	builder.Write(" ("+ml.formatTimestamp(message.MessageSnapshots[0].Message.Timestamp)+") ", dimStyle)
 }
 
@@ -503,53 +528,65 @@ func (ml *messagesList) selectedMessage() (*discord.Message, error) {
 	return &ml.messages[cursor], nil
 }
 
-func (ml *messagesList) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
-	switch event.Name() {
-	case ml.cfg.Keybinds.MessagesList.ScrollUp:
+func (ml *messagesList) handleInput(event *tcell.EventKey) *tcell.EventKey {
+	switch {
+	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ScrollUp.Keybind):
 		ml.ScrollUp()
 		return nil
-	case ml.cfg.Keybinds.MessagesList.ScrollDown:
+	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ScrollDown.Keybind):
 		ml.ScrollDown()
 		return nil
-	case ml.cfg.Keybinds.MessagesList.ScrollTop:
+	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ScrollTop.Keybind):
 		ml.ScrollToStart()
 		return nil
-	case ml.cfg.Keybinds.MessagesList.ScrollBottom:
+	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ScrollBottom.Keybind):
 		ml.ScrollToEnd()
 		return nil
 
-	case ml.cfg.Keybinds.MessagesList.Cancel:
+	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Cancel.Keybind):
 		ml.clearSelection()
 		return nil
 
-	case ml.cfg.Keybinds.MessagesList.SelectUp, ml.cfg.Keybinds.MessagesList.SelectDown, ml.cfg.Keybinds.MessagesList.SelectTop, ml.cfg.Keybinds.MessagesList.SelectBottom, ml.cfg.Keybinds.MessagesList.SelectReply:
-		ml._select(event.Name())
+	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectUp.Keybind):
+		ml.selectUp()
 		return nil
-	case ml.cfg.Keybinds.MessagesList.YankID:
+	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectDown.Keybind):
+		ml.selectDown()
+		return nil
+	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectTop.Keybind):
+		ml.selectTop()
+		return nil
+	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectBottom.Keybind):
+		ml.selectBottom()
+		return nil
+	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectReply.Keybind):
+		ml.selectReply()
+		return nil
+	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.YankID.Keybind):
 		ml.yankID()
 		return nil
-	case ml.cfg.Keybinds.MessagesList.YankContent:
+	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.YankContent.Keybind):
 		ml.yankContent()
 		return nil
-	case ml.cfg.Keybinds.MessagesList.YankURL:
+	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.YankURL.Keybind):
 		ml.yankURL()
 		return nil
-	case ml.cfg.Keybinds.MessagesList.Open:
+	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Open.Keybind):
 		ml.open()
 		return nil
-	case ml.cfg.Keybinds.MessagesList.Reply:
+	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Reply.Keybind):
 		ml.reply(false)
 		return nil
-	case ml.cfg.Keybinds.MessagesList.ReplyMention:
+	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ReplyMention.Keybind):
 		ml.reply(true)
 		return nil
-	case ml.cfg.Keybinds.MessagesList.Edit:
+	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Edit.Keybind):
 		ml.edit()
 		return nil
-	case ml.cfg.Keybinds.MessagesList.Delete:
+	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Delete.Keybind):
 		ml.delete()
 		return nil
-	case ml.cfg.Keybinds.MessagesList.DeleteConfirm:
+	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.DeleteConfirm.Keybind):
 		ml.confirmDelete()
 		return nil
 	}
@@ -557,55 +594,87 @@ func (ml *messagesList) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	return event
 }
 
-func (ml *messagesList) _select(name string) {
+func (ml *messagesList) InputHandler(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
+	event = ml.handleInput(event)
+	if event == nil {
+		return
+	}
+	ml.List.InputHandler(event, setFocus)
+}
+
+func (ml *messagesList) selectUp() {
 	messages := ml.messages
 	if len(messages) == 0 {
 		return
 	}
 
 	cursor := ml.Cursor()
-
-	switch name {
-	case ml.cfg.Keybinds.MessagesList.SelectUp:
-		switch {
-		case cursor == -1:
-			cursor = len(messages) - 1
-		case cursor > 0:
-			cursor--
-		case cursor == 0:
-			added := ml.prependOlderMessages()
-			if added == 0 {
-				return
-			}
-			cursor = added - 1
-		}
-	case ml.cfg.Keybinds.MessagesList.SelectDown:
-		switch {
-		case cursor == -1:
-			cursor = len(messages) - 1
-		case cursor < len(messages)-1:
-			cursor++
-		}
-	case ml.cfg.Keybinds.MessagesList.SelectTop:
-		cursor = 0
-	case ml.cfg.Keybinds.MessagesList.SelectBottom:
+	switch {
+	case cursor == -1:
 		cursor = len(messages) - 1
-	case ml.cfg.Keybinds.MessagesList.SelectReply:
-		if cursor == -1 || cursor >= len(messages) {
+	case cursor > 0:
+		cursor--
+	case cursor == 0:
+		added := ml.prependOlderMessages()
+		if added == 0 {
 			return
 		}
-
-		if ref := messages[cursor].ReferencedMessage; ref != nil {
-			refIdx := slices.IndexFunc(messages, func(m discord.Message) bool {
-				return m.ID == ref.ID
-			})
-			if refIdx != -1 {
-				cursor = refIdx
-			}
-		}
+		cursor = added - 1
 	}
 
 	ml.SetCursor(cursor)
+}
+
+func (ml *messagesList) selectDown() {
+	messages := ml.messages
+	if len(messages) == 0 {
+		return
+	}
+
+	cursor := ml.Cursor()
+	switch {
+	case cursor == -1:
+		cursor = len(messages) - 1
+	case cursor < len(messages)-1:
+		cursor++
+	}
+
+	ml.SetCursor(cursor)
+}
+
+func (ml *messagesList) selectTop() {
+	if len(ml.messages) == 0 {
+		return
+	}
+	ml.SetCursor(0)
+}
+
+func (ml *messagesList) selectBottom() {
+	if len(ml.messages) == 0 {
+		return
+	}
+	ml.SetCursor(len(ml.messages) - 1)
+}
+
+func (ml *messagesList) selectReply() {
+	messages := ml.messages
+	if len(messages) == 0 {
+		return
+	}
+
+	cursor := ml.Cursor()
+	if cursor == -1 || cursor >= len(messages) {
+		return
+	}
+
+	if ref := messages[cursor].ReferencedMessage; ref != nil {
+		refIdx := slices.IndexFunc(messages, func(m discord.Message) bool {
+			return m.ID == ref.ID
+		})
+		if refIdx != -1 {
+			ml.SetCursor(refIdx)
+		}
+	}
 }
 
 func (ml *messagesList) prependOlderMessages() int {
@@ -729,19 +798,8 @@ func extractURLs(content string) []string {
 }
 
 func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord.Attachment) {
-	type attachmentAction struct {
-		label    string
-		shortcut rune
-		open     func()
-	}
-
-	closeList := func() {
-		ml.chatView.RemoveLayer(attachmentsListLayerName)
-		ml.chatView.app.SetFocus(ml)
-	}
-
-	var actions []attachmentAction
-	for i, a := range attachments {
+	var items []attachmentItem
+	for _, a := range attachments {
 		attachment := a
 		action := func() {
 			if strings.HasPrefix(attachment.ContentType, "image/") {
@@ -750,103 +808,30 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 				go ml.openURL(attachment.URL)
 			}
 		}
-		actions = append(actions, attachmentAction{
-			label:    attachment.Filename,
-			shortcut: rune('a' + i),
-			open:     action,
+		items = append(items, attachmentItem{
+			label: attachment.Filename,
+			open:  action,
 		})
 	}
-	for i, u := range urls {
+	for _, u := range urls {
 		url := u
-		actions = append(actions, attachmentAction{
-			label:    url,
-			shortcut: rune('1' + i),
-			open:     func() { go ml.openURL(url) },
+		items = append(items, attachmentItem{
+			label: url,
+			open:  func() { go ml.openURL(url) },
 		})
 	}
-
-	normalItems := make([]*tview.TextView, len(actions))
-	selectedItems := make([]*tview.TextView, len(actions))
-	for i, action := range actions {
-		normalItems[i] = tview.NewTextView().
-			SetScrollable(false).
-			SetWrap(false).
-			SetWordWrap(false).
-			SetLines([]tview.Line{{{Text: action.label, Style: tcell.StyleDefault}}})
-		selectedItems[i] = tview.NewTextView().
-			SetScrollable(false).
-			SetWrap(false).
-			SetWordWrap(false).
-			SetLines([]tview.Line{{{Text: action.label, Style: tcell.StyleDefault.Reverse(true)}}})
-	}
-
-	list := tview.NewList().
-		SetSnapToItems(true).
-		SetBuilder(func(index int, cursor int) tview.ListItem {
-			if index < 0 || index >= len(actions) {
-				return nil
-			}
-			if index == cursor {
-				return selectedItems[index]
-			}
-			return normalItems[index]
-		})
-	list.Box = ui.ConfigureBox(list.Box, &ml.cfg.Theme)
-	if len(actions) > 0 {
-		list.SetCursor(0)
-	}
-	list.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		switch event.Name() {
-		case ml.cfg.Keybinds.MessagesList.SelectUp:
-			return tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone)
-		case ml.cfg.Keybinds.MessagesList.SelectDown:
-			return tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone)
-		case ml.cfg.Keybinds.MessagesList.SelectTop:
-			return tcell.NewEventKey(tcell.KeyHome, "", tcell.ModNone)
-		case ml.cfg.Keybinds.MessagesList.SelectBottom:
-			return tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone)
-		case ml.cfg.Keybinds.MessagesList.Cancel:
-			closeList()
-			return nil
-		}
-
-		if event.Key() == tcell.KeyEnter || event.Key() == tcell.KeyRune && event.Str() == " " {
-			index := list.Cursor()
-			if index >= 0 && index < len(actions) {
-				actions[index].open()
-				closeList()
-			}
-			return nil
-		}
-
-		if event.Key() == tcell.KeyRune {
-			key := event.Str()
-			if key == "" {
-				return event
-			}
-			ch := []rune(key)[0]
-			for index, action := range actions {
-				if action.shortcut == ch {
-					list.SetCursor(index)
-					actions[index].open()
-					closeList()
-					return nil
-				}
-			}
-		}
-
-		return event
-	})
+	ml.attachmentsPicker.SetItems(items)
 
 	ml.chatView.
 		AddLayer(
-			ui.Centered(list, 0, 0),
+			ui.Centered(ml.attachmentsPicker, 0, 0),
 			layers.WithName(attachmentsListLayerName),
 			layers.WithResize(true),
 			layers.WithVisible(true),
 			layers.WithOverlay(),
 		).
 		SendToFront(attachmentsListLayerName)
+	ml.chatView.app.SetFocus(ml.attachmentsPicker)
 }
 
 func (ml *messagesList) openAttachment(attachment discord.Attachment) {
@@ -1041,4 +1026,73 @@ func (ml *messagesList) waitForChunkEvent() uint {
 
 	<-ml.fetchingMembers.done
 	return ml.fetchingMembers.count
+}
+
+func (ml *messagesList) ShortHelp() []keybind.Keybind {
+	cfg := ml.cfg.Keybinds.MessagesList
+	help := []keybind.Keybind{
+		cfg.SelectUp.Keybind,
+		cfg.SelectDown.Keybind,
+		cfg.Cancel.Keybind,
+	}
+
+	if msg, err := ml.selectedMessage(); err == nil {
+		me, _ := ml.chatView.state.Cabinet.Me()
+		if msg.Author.ID != me.ID {
+			help = append(help, cfg.Reply.Keybind)
+		}
+	}
+
+	return help
+}
+
+func (ml *messagesList) FullHelp() [][]keybind.Keybind {
+	cfg := ml.cfg.Keybinds.MessagesList
+
+	canSelectReply := false
+	canReply := false
+	canEdit := false
+	canDelete := false
+	canOpen := false
+	if msg, err := ml.selectedMessage(); err == nil {
+		canSelectReply = msg.ReferencedMessage != nil
+		canOpen = len(extractURLs(msg.Content)) != 0 || len(msg.Attachments) != 0
+
+		me, _ := ml.chatView.state.Cabinet.Me()
+		canReply = msg.Author.ID != me.ID
+		canEdit = msg.Author.ID == me.ID
+		canDelete = canEdit
+		if !canDelete {
+			selected := ml.chatView.SelectedChannel()
+			canDelete = selected != nil && ml.chatView.state.HasPermissions(selected.ID, discord.PermissionManageMessages)
+		}
+	}
+
+	actions := make([]keybind.Keybind, 0, 4)
+	if canReply {
+		actions = append(actions, cfg.Reply.Keybind, cfg.ReplyMention.Keybind)
+	}
+	if canSelectReply {
+		actions = append(actions, cfg.SelectReply.Keybind)
+	}
+	actions = append(actions, cfg.Cancel.Keybind)
+
+	manage := make([]keybind.Keybind, 0, 4)
+	if canEdit {
+		manage = append(manage, cfg.Edit.Keybind)
+	}
+	if canDelete {
+		manage = append(manage, cfg.DeleteConfirm.Keybind, cfg.Delete.Keybind)
+	}
+	if canOpen {
+		manage = append(manage, cfg.Open.Keybind)
+	}
+
+	return [][]keybind.Keybind{
+		{cfg.SelectUp.Keybind, cfg.SelectDown.Keybind, cfg.SelectTop.Keybind, cfg.SelectBottom.Keybind},
+		{cfg.ScrollUp.Keybind, cfg.ScrollDown.Keybind, cfg.ScrollTop.Keybind, cfg.ScrollBottom.Keybind},
+		actions,
+		manage,
+		{cfg.YankContent.Keybind, cfg.YankURL.Keybind, cfg.YankID.Keybind},
+	}
 }

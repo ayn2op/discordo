@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/ayn2op/discordo/internal/app"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/logger"
+	"github.com/ayn2op/discordo/internal/ui/root"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 )
 
@@ -45,5 +45,5 @@ func Run() error {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
-	return app.New(cfg).Run()
+	return root.NewView(cfg).Run()
 }

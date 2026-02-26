@@ -85,7 +85,7 @@ func (v *View) onReady(event *gateway.ReadyEvent) {
 	// retain stale pointers to detached tree nodes.
 	v.guildsTree.resetNodeIndex()
 
-	dmNode := tview.NewTreeNode("Direct Messages").SetReference(dmNode{})
+	dmNode := tview.NewTreeNode("Direct Messages").SetReference(dmNode{}).SetExpandable(true).SetExpanded(false)
 	v.guildsTree.dmRootNode = dmNode
 
 	root := v.guildsTree.
