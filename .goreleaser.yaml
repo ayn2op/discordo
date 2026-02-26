@@ -38,7 +38,9 @@ builds:
       - CXX=oa64-clang++
 
 archives:
-  - format: binary
+  # NOTE: assuming binary and tar.gz is good enough for the time being.
+  - formats: ["binary", "tar.gz"]
+    # NOTE: keep default naming or use custom? Default includes version, so it might help AUR packagers and others?
     name_template: >-
       discordo_
       {{- if eq .Os "darwin" }}macos{{ else }}{{ .Os }}{{ end }}_
