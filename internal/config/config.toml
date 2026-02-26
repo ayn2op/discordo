@@ -31,6 +31,13 @@ enabled = true
 # Theme for fenced code blocks. Available themes: https://xyproto.github.io/splash/docs
 theme = "monokai"
 
+[help]
+# Show compact key modifiers in help, e.g. "^x" instead of "ctrl+x".
+compact_modifiers = true
+# [left, right]
+padding = [1, 1]
+separator = " • "
+
 [picker]
 width = 60
 height = 20
@@ -61,6 +68,11 @@ send = true
 # Whether to receive typing status or not.
 receive = true
 
+[sidebar.markers]
+expanded = "▾ "
+collapsed = "▸ "
+leaf = ""
+
 [icons]
 guild_category = ""
 guild_text = "#"
@@ -76,92 +88,95 @@ guild_store = "s-"
 # Global shortcuts
 # Esc: Reset message selection or close the channel selection popup.
 [keybinds]
-focus_guilds_tree = "Ctrl+G"
-focus_messages_list = "Ctrl+T"
-focus_message_input = "Ctrl+I"
+toggle_help = "ctrl+."
+focus_guilds_tree = "ctrl+g"
+focus_messages_list = "ctrl+t"
+focus_message_input = "ctrl+i"
 # Cycle focus between the widgets.
-focus_previous = "Ctrl+H"
-focus_next = "Ctrl+L"
+focus_previous = "ctrl+h"
+focus_next = "ctrl+l"
 # Hide/show the guilds tree.
-toggle_guilds_tree = "Ctrl+B"
-quit = "Ctrl+C"
+toggle_guilds_tree = "ctrl+b"
 # Log out and remove the authentication token from keyring.
 # Requires re-login upon restart.
-logout = "Ctrl+D"
+logout = "ctrl+d"
+suspend = "ctrl+z"
+quit = "ctrl+c"
 
 [keybinds.picker]
-toggle = "Ctrl+K"
-cancel = "Esc"
-up = "Ctrl+P"
-down = "Ctrl+N"
-top = "Home"
-bottom = "End"
-select = "Enter"
+toggle = "ctrl+k"
+cancel = "esc"
+up = "ctrl+p"
+down = "ctrl+n"
+top = "home"
+bottom = "end"
+select = "enter"
 
 # Only while focusing on the guilds tree
 [keybinds.guilds_tree]
-up = "Rune[k]"
-down = "Rune[j]"
-top = "Rune[g]"
-bottom = "Rune[G]"
+up = "k"
+down = "j"
+top = "g"
+bottom = "G"
 # Select the currently highlighted text-based channel or expand a guild or channel.
-select_current = "Enter"
-yank_id = "Rune[i]"
-collapse_parent_node = "Rune[-]"
-move_to_parent_node = "Rune[p]"
+select_current = "enter"
+yank_id = "i"
+collapse_parent_node = "-"
+move_to_parent_node = "p"
 
 # Only while focusing on sent messages
 [keybinds.messages_list]
-select_up = "Rune[k]"
-select_down = "Rune[j]"
-select_top = "Rune[g]"
-select_bottom = "Rune[G]"
+select_up = "k"
+select_down = "j"
+select_top = "g"
+select_bottom = "G"
 # Scroll the messages list without changing the selection.
-scroll_up = "Rune[K]"
-scroll_down = "Rune[J]"
-scroll_top = "Home"
-scroll_bottom = "End"
+scroll_up = "K"
+scroll_down = "J"
+scroll_top = "home"
+scroll_bottom = "end"
 # Select the message reference (reply) of the selected channel.
-select_reply = "Rune[s]"
+select_reply = "s"
 # Reply to the selected message.
-reply = "Rune[R]"
+reply = "R"
 # Reply (with mention) to the selected message.
-reply_mention = "Rune[r]"
-cancel = "Esc"
-edit = "Rune[e]"
-delete = "Rune[D]"
-delete_confirm = "Rune[d]"
+reply_mention = "r"
+cancel = "esc"
+edit = "e"
+delete = "D"
+delete_confirm = "d"
 # Open the selected message's attachments or hyperlinks in the message
 # using the default browser application.
-open = "Rune[o]"
+open = "o"
 # Yank (copy) the selected message's content/url/id.
-yank_content = "Rune[y]"
-yank_url = "Rune[u]"
-yank_id = "Rune[i]"
+yank_content = "y"
+yank_url = "u"
+yank_id = "i"
 
 # Only while typing a message
 # Alt+Enter: Insert a new line to the current text.
 [keybinds.message_input]
 # paste from clipboard (supports both text and images)
-paste = "Ctrl+V"
-send = "Enter"
+paste = "ctrl+v"
+send = "enter"
 # Remove existing text or cancel reply.
-cancel = "Esc"
+cancel = "esc"
 # Complete usernames when mentioning
-tab_complete = "Tab"
+tab_complete = "tab"
+undo = "ctrl+u"
 
-open_editor = "Ctrl+E"
-open_file_picker = "Ctrl+Rune[\\]"
+open_editor = "ctrl+e"
+open_file_picker = "ctrl+\\"
 
 [keybinds.mentions_list]
-up = "Ctrl+P"
-down = "Ctrl+N"
-top = "Home"
-bottom = "End"
+up = "ctrl+p"
+down = "ctrl+n"
+top = "home"
+bottom = "end"
 
 # style = { foreground = "", background = "", attributes = "" or [""] }
 [theme.title]
-alignment = "left" # `"left"`, `"center"`, or `"right"`.
+alignment = "left"                                           # `"left"`, `"center"`, or `"right"`.
 normal_style = { attributes = "dim" }
 active_style = { foreground = "green", attributes = "bold" }
 
@@ -186,6 +201,13 @@ auto_expand_folders = true
 # Give tree-like shape
 graphics = true
 graphics_color = "default"
+
+[theme.scroll_bar]
+visibility = "auto"
+# "minimal", "box_drawing", or "unicode"
+glyph_set = "unicode"
+track_style = { attributes = "dim" }
+thumb_style = {}
 
 [theme.messages_list]
 reply_indicator = ">"
@@ -213,3 +235,9 @@ max_height = 0
 style = {}
 # Background style: everything else behind the dialog
 background_style = { attributes = "dim" }
+
+[theme.help]
+short_key_style = { attributes = "dim" }
+short_desc_style = {}
+full_key_style = { attributes = "dim" }
+full_desc_style = {}

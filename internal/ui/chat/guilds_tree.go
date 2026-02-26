@@ -8,6 +8,8 @@ import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/help"
+	"github.com/ayn2op/tview/keybind"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/ningen/v3"
@@ -29,6 +31,8 @@ type guildsTree struct {
 	dmRootNode      *tview.TreeNode
 }
 
+var _ help.KeyMap = (*guildsTree)(nil)
+
 func newGuildsTree(cfg *config.Config, chatView *View) *guildsTree {
 	gt := &guildsTree{
 		TreeView: tview.NewTreeView(),
@@ -43,13 +47,97 @@ func newGuildsTree(cfg *config.Config, chatView *View) *guildsTree {
 	gt.
 		SetRoot(tview.NewTreeNode("")).
 		SetTopLevel(1).
+		SetMarkers(tview.TreeMarkers{
+			Expanded:  cfg.Sidebar.Markers.Expanded,
+			Collapsed: cfg.Sidebar.Markers.Collapsed,
+			Leaf:      cfg.Sidebar.Markers.Leaf,
+		}).
 		SetGraphics(cfg.Theme.GuildsTree.Graphics).
 		SetGraphicsColor(tcell.GetColor(cfg.Theme.GuildsTree.GraphicsColor)).
 		SetSelectedFunc(gt.onSelected).
-		SetTitle("Guilds").
-		SetInputCapture(gt.onInputCapture)
+		SetTitle("Guilds")
 
 	return gt
+}
+
+func (gt *guildsTree) ShortHelp() []keybind.Keybind {
+	cfg := gt.cfg.Keybinds.GuildsTree
+	selectCurrent := cfg.SelectCurrent.Keybind
+	collapseParent := cfg.CollapseParentNode.Keybind
+	selectHelp := selectCurrent.Help()
+	selectDesc := selectHelp.Desc
+	if node := gt.GetCurrentNode(); node != nil {
+		if len(node.GetChildren()) > 0 {
+			if node.IsExpanded() {
+				selectDesc = "collapse"
+			} else {
+				selectDesc = "expand"
+			}
+		} else {
+			switch node.GetReference().(type) {
+			case discord.GuildID, dmNode:
+				selectDesc = "expand"
+			}
+		}
+	}
+	selectCurrent.SetHelp(selectHelp.Key, selectDesc)
+	collapseHelp := collapseParent.Help()
+	collapseParent.SetHelp(collapseHelp.Key, "collapse parent")
+
+	shortHelp := []keybind.Keybind{cfg.Up.Keybind, cfg.Down.Keybind, selectCurrent}
+	if gt.canCollapseParent(gt.GetCurrentNode()) {
+		shortHelp = append(shortHelp, collapseParent)
+	}
+	return shortHelp
+}
+
+func (gt *guildsTree) FullHelp() [][]keybind.Keybind {
+	cfg := gt.cfg.Keybinds.GuildsTree
+	selectCurrent := cfg.SelectCurrent.Keybind
+	collapseParent := cfg.CollapseParentNode.Keybind
+	selectHelp := selectCurrent.Help()
+	selectDesc := selectHelp.Desc
+	if node := gt.GetCurrentNode(); node != nil {
+		if len(node.GetChildren()) > 0 {
+			if node.IsExpanded() {
+				selectDesc = "collapse"
+			} else {
+				selectDesc = "expand"
+			}
+		} else {
+			switch node.GetReference().(type) {
+			case discord.GuildID, dmNode:
+				selectDesc = "expand"
+			}
+		}
+	}
+	selectCurrent.SetHelp(selectHelp.Key, selectDesc)
+	collapseHelp := collapseParent.Help()
+	collapseParent.SetHelp(collapseHelp.Key, "collapse parent")
+
+	actions := []keybind.Keybind{selectCurrent, cfg.MoveToParentNode.Keybind}
+	if gt.canCollapseParent(gt.GetCurrentNode()) {
+		actions = append(actions, collapseParent)
+	}
+
+	return [][]keybind.Keybind{
+		{cfg.Up.Keybind, cfg.Down.Keybind, cfg.Top.Keybind, cfg.Bottom.Keybind},
+		actions,
+		{cfg.YankID.Keybind},
+	}
+}
+
+func (gt *guildsTree) canCollapseParent(node *tview.TreeNode) bool {
+	if node == nil {
+		return false
+	}
+	path := gt.GetPath(node)
+	// Path layout is [root, ..., node]. A non-root parent means at least 3 nodes.
+	if len(path) < 3 {
+		return false
+	}
+	parent := path[len(path)-2]
+	return parent != nil && parent.GetLevel() != 0
 }
 
 func (gt *guildsTree) resetNodeIndex() {
@@ -105,18 +193,21 @@ func (gt *guildsTree) getChannelNodeStyle(channelID discord.ChannelID) tcell.Sty
 }
 
 func (gt *guildsTree) createGuildNode(n *tview.TreeNode, guild discord.Guild) {
-	guildNode := tview.NewTreeNode(guild.Name).SetReference(guild.ID)
+	guildNode := tview.NewTreeNode(guild.Name).SetReference(guild.ID).SetExpandable(true).SetExpanded(false)
 	gt.setNodeLineStyle(guildNode, gt.getGuildNodeStyle(guild.ID))
 	n.AddChild(guildNode)
 	gt.guildNodeByID[guild.ID] = guildNode
 }
 
 func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Channel) {
-	if channel.Type != discord.DirectMessage && channel.Type != discord.GroupDM && !gt.chatView.state.HasPermissions(channel.ID, discord.PermissionViewChannel) {
+	if channel.Type != discord.DirectMessage && channel.Type != discord.GroupDM && channel.Type != discord.GuildCategory && !gt.chatView.state.HasPermissions(channel.ID, discord.PermissionViewChannel) {
 		return
 	}
 
 	channelNode := tview.NewTreeNode(ui.ChannelToString(channel, gt.cfg.Icons)).SetReference(channel.ID)
+	if channel.Type == discord.GuildForum {
+		channelNode.SetExpandable(true).SetExpanded(false)
+	}
 	gt.setNodeLineStyle(channelNode, gt.getChannelNodeStyle(channel.ID))
 	node.AddChild(channelNode)
 	gt.channelNodeByID[channel.ID] = channelNode
@@ -188,6 +279,7 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 
 		ui.SortGuildChannels(channels)
 		gt.createChannelNodes(node, channels)
+		node.Expand()
 	case discord.ChannelID:
 		channel, err := gt.chatView.state.Cabinet.Channel(ref)
 		if err != nil {
@@ -218,6 +310,7 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 			for _, thread := range forumThreads {
 				gt.createChannelNode(node, thread)
 			}
+			node.Expand()
 			return
 		}
 
@@ -266,6 +359,7 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 		for _, c := range channels {
 			gt.createChannelNode(node, c)
 		}
+		node.Expand()
 	}
 }
 
@@ -283,33 +377,41 @@ func (gt *guildsTree) collapseParentNode(node *tview.TreeNode) {
 		})
 }
 
-func (gt *guildsTree) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
-	switch event.Name() {
-	case gt.cfg.Keybinds.GuildsTree.CollapseParentNode:
+func (gt *guildsTree) handleInput(event *tcell.EventKey) *tcell.EventKey {
+	switch {
+	case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.CollapseParentNode.Keybind):
 		gt.collapseParentNode(gt.GetCurrentNode())
 		return nil
-	case gt.cfg.Keybinds.GuildsTree.MoveToParentNode:
+	case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.MoveToParentNode.Keybind):
 		return tcell.NewEventKey(tcell.KeyRune, "K", tcell.ModNone)
 
-	case gt.cfg.Keybinds.GuildsTree.Up:
+	case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.Up.Keybind):
 		return tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone)
-	case gt.cfg.Keybinds.GuildsTree.Down:
+	case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.Down.Keybind):
 		return tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone)
-	case gt.cfg.Keybinds.GuildsTree.Top:
+	case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.Top.Keybind):
 		gt.Move(gt.GetRowCount() * -1)
 		// return tcell.NewEventKey(tcell.KeyHome, 0, tcell.ModNone)
-	case gt.cfg.Keybinds.GuildsTree.Bottom:
+	case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.Bottom.Keybind):
 		gt.Move(gt.GetRowCount())
 		// return tcell.NewEventKey(tcell.KeyEnd, 0, tcell.ModNone)
 
-	case gt.cfg.Keybinds.GuildsTree.SelectCurrent:
+	case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.SelectCurrent.Keybind):
 		return tcell.NewEventKey(tcell.KeyEnter, "", tcell.ModNone)
 
-	case gt.cfg.Keybinds.GuildsTree.YankID:
+	case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.YankID.Keybind):
 		gt.yankID()
 	}
 
 	return nil
+}
+
+func (gt *guildsTree) InputHandler(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
+	event = gt.handleInput(event)
+	if event == nil {
+		return
+	}
+	gt.TreeView.InputHandler(event, setFocus)
 }
 
 func (gt *guildsTree) yankID() {
