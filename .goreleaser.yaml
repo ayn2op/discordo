@@ -1,5 +1,7 @@
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
 project_name: discordo
+# NOTE: if this is not here LSPs will complain about missing version
+# (only relevant for goreleaser, does not impact actual version tags)
 version: 2
 env:
   - CGO_ENABLED=1
