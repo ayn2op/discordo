@@ -560,7 +560,7 @@ func (mi *messageInput) addMentionMember(gID discord.GuildID, m *discord.Member)
 	}
 
 	mi.mentionsList.append(mentionsListItem{
-		insertText:  name,
+		insertText:  m.User.Username,
 		displayText: name,
 		style:       style,
 	})
@@ -582,7 +582,7 @@ func (mi *messageInput) addMentionUser(user *discord.User) {
 	}
 
 	mi.mentionsList.append(mentionsListItem{
-		insertText:  name,
+		insertText:  user.Username,
 		displayText: name,
 		style:       style,
 	})
