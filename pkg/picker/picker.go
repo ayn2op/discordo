@@ -2,6 +2,7 @@ package picker
 
 import (
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/keybind"
 	"github.com/gdamore/tcell/v3"
 	"github.com/sahilm/fuzzy"
 )
@@ -42,8 +43,7 @@ func New() *Picker {
 		SetLabel("> ").
 		SetBorders(tview.BordersBottom).
 		SetBorderSet(borderSet).
-		SetBorderStyle(tcell.StyleDefault.Dim(true)).
-		SetInputCapture(p.onInputCapture)
+		SetBorderStyle(tcell.StyleDefault.Dim(true))
 
 	p.
 		SetDirection(tview.FlexRow).
@@ -148,29 +148,28 @@ func (p *Picker) onInputChanged(text string) {
 	p.setFilteredItems(fuzzied)
 }
 
-func (p *Picker) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
+func (p *Picker) handleInput(event *tcell.EventKey) *tcell.EventKey {
 	if p.keyMap == nil {
-		return nil
+		return event
 	}
 
-	handler := p.list.InputHandler()
-	switch event.Name() {
-	case p.keyMap.Up:
-		handler(tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone), nil)
+	switch {
+	case keybind.Matches(event, p.keyMap.Up):
+		p.list.InputHandler(tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone), nil)
 		return nil
-	case p.keyMap.Down:
-		handler(tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone), nil)
+	case keybind.Matches(event, p.keyMap.Down):
+		p.list.InputHandler(tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone), nil)
 		return nil
-	case p.keyMap.Top:
-		handler(tcell.NewEventKey(tcell.KeyHome, "", tcell.ModNone), nil)
+	case keybind.Matches(event, p.keyMap.Top):
+		p.list.InputHandler(tcell.NewEventKey(tcell.KeyHome, "", tcell.ModNone), nil)
 		return nil
-	case p.keyMap.Bottom:
-		handler(tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone), nil)
-	case p.keyMap.Select:
+	case keybind.Matches(event, p.keyMap.Bottom):
+		p.list.InputHandler(tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone), nil)
+	case keybind.Matches(event, p.keyMap.Select):
 		p.onListSelected(p.list.Cursor())
 		return nil
 
-	case p.keyMap.Cancel:
+	case keybind.Matches(event, p.keyMap.Cancel):
 		if p.onCancel != nil {
 			p.onCancel()
 		}
@@ -178,4 +177,12 @@ func (p *Picker) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	}
 
 	return event
+}
+
+func (p *Picker) InputHandler(event *tcell.EventKey, setFocus func(p2 tview.Primitive)) {
+	event = p.handleInput(event)
+	if event == nil {
+		return
+	}
+	p.Flex.InputHandler(event, setFocus)
 }

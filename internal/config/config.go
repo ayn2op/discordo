@@ -68,6 +68,22 @@ type (
 		Theme   string `toml:"theme"`
 	}
 
+	HelpConfig struct {
+		CompactModifiers bool   `toml:"compact_modifiers"`
+		Padding          [2]int `toml:"padding"`
+		Separator        string `toml:"separator"`
+	}
+
+	SidebarMarkersConfig struct {
+		Expanded  string `toml:"expanded"`
+		Collapsed string `toml:"collapsed"`
+		Leaf      string `toml:"leaf"`
+	}
+
+	SidebarConfig struct {
+		Markers SidebarMarkersConfig `toml:"markers"`
+	}
+
 	Config struct {
 		AutoFocus bool   `toml:"auto_focus"`
 		Mouse     bool   `toml:"mouse"`
@@ -82,11 +98,13 @@ type (
 		MessagesLimit     uint8 `toml:"messages_limit"`
 
 		Markdown        MarkdownConfig  `toml:"markdown"`
+		Help            HelpConfig      `toml:"help"`
 		Picker          PickerConfig    `toml:"picker"`
 		Timestamps      Timestamps      `toml:"timestamps"`
 		DateSeparator   DateSeparator   `toml:"date_separator"`
 		Notifications   Notifications   `toml:"notifications"`
 		TypingIndicator TypingIndicator `toml:"typing_indicator"`
+		Sidebar         SidebarConfig   `toml:"sidebar"`
 
 		Icons Icons `toml:"icons"`
 
@@ -113,7 +131,9 @@ func DefaultPath() string {
 
 // Load reads the configuration file and parses it.
 func Load(path string) (*Config, error) {
-	var cfg Config
+	cfg := Config{
+		Keybinds: defaultKeybinds(),
+	}
 	if err := toml.Unmarshal(defaultCfg, &cfg); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal default config: %w", err)
 	}

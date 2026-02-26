@@ -19,6 +19,8 @@ import (
 	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/help"
+	"github.com/ayn2op/tview/keybind"
 	"github.com/ayn2op/tview/layers"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -52,6 +54,8 @@ type messageInput struct {
 	typingTimer   *time.Timer
 }
 
+var _ help.KeyMap = (*messageInput)(nil)
+
 func newMessageInput(cfg *config.Config, chatView *View) *messageInput {
 	mi := &messageInput{
 		TextArea:        tview.NewTextArea(),
@@ -62,7 +66,6 @@ func newMessageInput(cfg *config.Config, chatView *View) *messageInput {
 		mentionsList:    newMentionsList(cfg),
 	}
 	mi.Box = ui.ConfigureBox(mi.Box, &cfg.Theme)
-	mi.SetInputCapture(mi.onInputCapture)
 	mi.
 		SetPlaceholder(tview.NewLine(tview.NewSegment("Select a channel to start chatting", tcell.StyleDefault.Dim(true)))).
 		SetClipboard(
@@ -89,13 +92,13 @@ func (mi *messageInput) stopTypingTimer() {
 	}
 }
 
-func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
-	switch event.Name() {
-	case mi.cfg.Keybinds.MessageInput.Paste:
+func (mi *messageInput) handleInput(event *tcell.EventKey) *tcell.EventKey {
+	switch {
+	case keybind.Matches(event, mi.cfg.Keybinds.MessageInput.Paste.Keybind):
 		mi.paste()
 		return tcell.NewEventKey(tcell.KeyCtrlV, "", tcell.ModNone)
 
-	case mi.cfg.Keybinds.MessageInput.Send:
+	case keybind.Matches(event, mi.cfg.Keybinds.MessageInput.Send.Keybind):
 		if mi.chatView.GetVisible(mentionsListLayerName) {
 			mi.tabComplete()
 			return nil
@@ -103,15 +106,15 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 
 		mi.send()
 		return nil
-	case mi.cfg.Keybinds.MessageInput.OpenEditor:
+	case keybind.Matches(event, mi.cfg.Keybinds.MessageInput.OpenEditor.Keybind):
 		mi.stopTabCompletion()
 		mi.editor()
 		return nil
-	case mi.cfg.Keybinds.MessageInput.OpenFilePicker:
+	case keybind.Matches(event, mi.cfg.Keybinds.MessageInput.OpenFilePicker.Keybind):
 		mi.stopTabCompletion()
 		mi.openFilePicker()
 		return nil
-	case mi.cfg.Keybinds.MessageInput.Cancel:
+	case keybind.Matches(event, mi.cfg.Keybinds.MessageInput.Cancel.Keybind):
 		if mi.chatView.GetVisible(mentionsListLayerName) {
 			mi.stopTabCompletion()
 		} else {
@@ -119,9 +122,11 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		}
 
 		return nil
-	case mi.cfg.Keybinds.MessageInput.TabComplete:
+	case keybind.Matches(event, mi.cfg.Keybinds.MessageInput.TabComplete.Keybind):
 		go mi.chatView.app.QueueUpdateDraw(func() { mi.tabComplete() })
 		return nil
+	case keybind.Matches(event, mi.cfg.Keybinds.MessageInput.Undo.Keybind):
+		return tcell.NewEventKey(tcell.KeyCtrlZ, "", tcell.ModNone)
 	default:
 		if mi.cfg.TypingIndicator.Send && mi.typingTimer == nil {
 			mi.typingTimer = time.AfterFunc(typingDuration, func() {
@@ -138,19 +143,18 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 
 	if mi.cfg.AutocompleteLimit > 0 {
 		if mi.chatView.GetVisible(mentionsListLayerName) {
-			handler := mi.mentionsList.InputHandler()
-			switch event.Name() {
-			case mi.cfg.Keybinds.MentionsList.Up:
-				handler(tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone), nil)
+			switch {
+			case keybind.Matches(event, mi.cfg.Keybinds.MentionsList.Up.Keybind):
+				mi.mentionsList.InputHandler(tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone), nil)
 				return nil
-			case mi.cfg.Keybinds.MentionsList.Down:
-				handler(tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone), nil)
+			case keybind.Matches(event, mi.cfg.Keybinds.MentionsList.Down.Keybind):
+				mi.mentionsList.InputHandler(tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone), nil)
 				return nil
-			case mi.cfg.Keybinds.MentionsList.Top:
-				handler(tcell.NewEventKey(tcell.KeyHome, "", tcell.ModNone), nil)
+			case keybind.Matches(event, mi.cfg.Keybinds.MentionsList.Top.Keybind):
+				mi.mentionsList.InputHandler(tcell.NewEventKey(tcell.KeyHome, "", tcell.ModNone), nil)
 				return nil
-			case mi.cfg.Keybinds.MentionsList.Bottom:
-				handler(tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone), nil)
+			case keybind.Matches(event, mi.cfg.Keybinds.MentionsList.Bottom.Keybind):
+				mi.mentionsList.InputHandler(tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone), nil)
 				return nil
 			}
 		}
@@ -159,6 +163,14 @@ func (mi *messageInput) onInputCapture(event *tcell.EventKey) *tcell.EventKey {
 	}
 
 	return event
+}
+
+func (mi *messageInput) InputHandler(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
+	event = mi.handleInput(event)
+	if event == nil {
+		return
+	}
+	mi.TextArea.InputHandler(event, setFocus)
 }
 
 func (mi *messageInput) paste() {
@@ -675,4 +687,45 @@ func (mi *messageInput) attach(name string, reader io.Reader) {
 		names = append(names, file.Name)
 	}
 	mi.SetFooter("Attached " + humanJoin(names))
+}
+
+func (mi *messageInput) ShortHelp() []keybind.Keybind {
+	if mi.chatView.GetVisible(mentionsListLayerName) {
+		cfg := mi.cfg.Keybinds.MentionsList
+		icfg := mi.cfg.Keybinds.MessageInput
+		short := []keybind.Keybind{cfg.Up.Keybind, cfg.Down.Keybind, icfg.Cancel.Keybind}
+		if selected := mi.chatView.SelectedChannel(); selected != nil && mi.chatView.state.HasPermissions(selected.ID, discord.PermissionAttachFiles) {
+			short = append(short, icfg.OpenFilePicker.Keybind)
+		}
+		return short
+	}
+
+	cfg := mi.cfg.Keybinds.MessageInput
+	short := []keybind.Keybind{cfg.Send.Keybind, cfg.Cancel.Keybind, cfg.Paste.Keybind, cfg.OpenEditor.Keybind}
+	if selected := mi.chatView.SelectedChannel(); selected != nil && mi.chatView.state.HasPermissions(selected.ID, discord.PermissionAttachFiles) {
+		short = append(short, cfg.OpenFilePicker.Keybind)
+	}
+	return short
+}
+
+func (mi *messageInput) FullHelp() [][]keybind.Keybind {
+	if mi.chatView.GetVisible(mentionsListLayerName) {
+		mcfg := mi.cfg.Keybinds.MentionsList
+		icfg := mi.cfg.Keybinds.MessageInput
+		return [][]keybind.Keybind{
+			{mcfg.Up.Keybind, mcfg.Down.Keybind, mcfg.Top.Keybind, mcfg.Bottom.Keybind},
+			{icfg.TabComplete.Keybind, icfg.Cancel.Keybind},
+		}
+	}
+
+	cfg := mi.cfg.Keybinds.MessageInput
+	openEditor := []keybind.Keybind{cfg.Paste.Keybind, cfg.OpenEditor.Keybind}
+	if selected := mi.chatView.SelectedChannel(); selected != nil && mi.chatView.state.HasPermissions(selected.ID, discord.PermissionAttachFiles) {
+		openEditor = append(openEditor, cfg.OpenFilePicker.Keybind)
+	}
+
+	return [][]keybind.Keybind{
+		{cfg.Send.Keybind, cfg.Cancel.Keybind, cfg.TabComplete.Keybind, cfg.Undo.Keybind},
+		openEditor,
+	}
 }
