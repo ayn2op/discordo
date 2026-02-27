@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"strconv"
 	"sync"
 	"time"
 	"unicode/utf8"
@@ -339,29 +340,152 @@ func (ml *messagesList) writeMessage(builder *tview.LineBuilder, message discord
 	if ml.cfg.HideBlockedUsers {
 		isBlocked := ml.chatView.state.UserIsBlocked(message.Author.ID)
 		if isBlocked {
-			builder.Write("Blocked message", baseStyle.Foreground(color.Red).Bold(true))
+			builder.Write(" ⊘ Blocked message", baseStyle.Foreground(color.Red).Bold(true))
 			return
 		}
 	}
 
 	switch message.Type {
-	case discord.DefaultMessage:
+	case discord.DefaultMessage, discord.ThreadStarterMessage, discord.ChatInputCommandMessage, discord.ContextMenuCommand:
 		if message.Reference != nil && message.Reference.Type == discord.MessageReferenceTypeForward {
 			ml.drawForwardedMessage(builder, message, baseStyle)
 		} else {
 			ml.drawDefaultMessage(builder, message, baseStyle)
 		}
-	case discord.GuildMemberJoinMessage:
-		ml.drawTimestamps(builder, message.Timestamp, baseStyle)
-		ml.drawAuthor(builder, message, baseStyle)
-		builder.Write("joined the server.", baseStyle)
+		return
 	case discord.InlinedReplyMessage:
 		ml.drawReplyMessage(builder, message, baseStyle)
+		return
+	}
+
+	builder.Write("⟶  ", baseStyle.Foreground(color.Lime))
+	builder.Write(ml.formatTimestamp(message.Timestamp) + " ", baseStyle.Dim(true))
+	author := ml.formatAuthor(message, baseStyle)
+	bcontent := tview.NewSegment(message.Content, baseStyle.Bold(true)) // Bold content
+	content := tview.NewSegment(message.Content, baseStyle)
+
+	// See https://docs.discord.food/resources/message#message-type
+	switch message.Type {
+	case discord.RecipientAddMessage, discord.RecipientRemoveMessage:
+		chtype := "channel"
+		switch ml.chatView.selectedChannel.Type {
+		case discord.GroupDM:
+			chtype = "group"
+		case discord.GuildPublicThread, discord.GuildPrivateThread:
+			chtype = "thread"
+		}
+		if len(message.Mentions) == 0 {
+			builder.Write("Invalid Recipient message object", baseStyle.Foreground(color.Red))
+			return
+		}
+		name := message.Mentions[0].DisplayOrUsername()
+		if message.GuildID.IsValid() && !message.WebhookID.IsValid() {
+			member, err := ml.chatView.state.Cabinet.Member(message.GuildID, message.Mentions[0].ID)
+			if err != nil {
+				slog.Error("failed to get member from state", "guild_id", message.GuildID, "member_id", message.Author.ID, "err", err)
+			} else if member.Nick != "" {
+				name = member.Nick
+			}
+		}
+		user := tview.NewSegment(name, ml.cfg.Theme.MessagesList.MentionStyle.Style)
+		if message.Type == discord.RecipientAddMessage {
+			builder.WriteAll(baseStyle, author, " added ", user, " to the " + chtype)
+		} else {
+			builder.WriteAll(baseStyle, author, " removed ", user, " from the " + chtype)
+		}
+	case discord.CallMessage:
+		me, _ := ml.chatView.state.Cabinet.Me()
+		participated := false
+		for _, part := range message.Call.Participants {
+			if part == me.ID {
+				participated = true
+				break
+			}
+		}
+		if participated {
+			builder.WriteAll(baseStyle, author, " started a call")
+		} else {
+			builder.WriteAll(baseStyle, "You missed a call from ", author)
+		}
+		if ts := message.Call.EndedTimestamp; ts != nil {
+			builder.Write(" that lasted " + ts.Time().Sub(message.Timestamp.Time()).String() + ".", baseStyle)
+		}
+	case discord.ChannelNameChangeMessage:
+		if message.Content == "" {
+			builder.WriteAll(baseStyle, author, " removed the custom group name.")
+			return
+		}
+		switch ml.chatView.selectedChannel.Type {
+		case discord.GuildForum:
+			builder.WriteAll(baseStyle, author, " changed the post title: ", bcontent)
+		case discord.GroupDM:
+			builder.WriteAll(baseStyle, author, " changed the group name: ", bcontent)
+		default:
+			builder.WriteAll(baseStyle, author, " changed the channel name: ", bcontent)
+		}
+	case discord.ChannelIconChangeMessage:
+		builder.WriteAll(baseStyle, author, " changed the channel icon.")
 	case discord.ChannelPinnedMessage:
-		ml.drawPinnedMessage(builder, message, baseStyle)
+		builder.WriteAll(baseStyle, author, " pinned a message to this channel.")
+	case discord.GuildMemberJoinMessage:
+		switch message.Timestamp.Time().UnixMilli()%13 {
+		case 0: builder.WriteAll(baseStyle, author, " joined the party.")
+		case 1: builder.WriteAll(baseStyle, author, " is here.")
+		case 2: builder.WriteAll(baseStyle, "Welcome, ", author, " We hope you brought pizza.")
+		case 3: builder.WriteAll(baseStyle, "A wild ", author, " appeared.")
+		case 4: builder.WriteAll(baseStyle, author, " just landed.")
+		case 5: builder.WriteAll(baseStyle, author, " just slid into the server.")
+		case 6: builder.WriteAll(baseStyle, author, " just showed up!")
+		case 7: builder.WriteAll(baseStyle, "Welcome ", author, ". Say hi!")
+		case 8: builder.WriteAll(baseStyle, author, " hopped into the server.")
+		case 9: builder.WriteAll(baseStyle, "Everyone welcome ", author, "!")
+		case 10: builder.WriteAll(baseStyle, "Glad you're here, ", author, ".")
+		case 11: builder.WriteAll(baseStyle, "Good to see you, ", author, ".")
+		case 12: builder.WriteAll(baseStyle, "Yay you made it, ", author, "!")
+		}
+	case discord.NitroBoostMessage, discord.NitroTier1Message, discord.NitroTier2Message, discord.NitroTier3Message:
+		if len(message.Content) != 0 {
+			builder.WriteAll(baseStyle, author, " just boosted the server ", bcontent, " times!")
+		} else {
+			builder.WriteAll(baseStyle, author, " just boosted the server!")
+		}
+		if message.Type != discord.NitroBoostMessage {
+			if guild, err := ml.chatView.state.Cabinet.Guild(message.GuildID); err == nil {
+				builder.Write(" " + guild.Name + " has achieved ", baseStyle)
+				switch message.Type {
+				case discord.NitroTier1Message:
+					builder.Write("Level 1", baseStyle.Bold(true))
+				case discord.NitroTier2Message:
+					builder.Write("Level 2", baseStyle.Bold(true))
+				case discord.NitroTier3Message:
+					builder.Write("Level 3", baseStyle.Bold(true))
+				}
+			}
+		}
+	case discord.ChannelFollowAddMessage:
+		builder.WriteAll(baseStyle, author, " has added ", content, " to this channel. Its most important updates will show up here.")
+	case discord.GuildDiscoveryDisqualifiedMessage:
+		builder.WriteAll(baseStyle, "This server has been removed from Server Discovery because it no longer passes all the requirements. Check Server Settings for more details.")
+	case discord.GuildDiscoveryRequalifiedMessage:
+		builder.WriteAll(baseStyle, "This server is eligible for Server Discovery again and has been automatically relisted!")
+	case discord.GuildDiscoveryGracePeriodInitialWarning:
+		builder.WriteAll(baseStyle, "This server has failed Discovery activity requirements for 1 week. If this server fails for 4 weeks in a row, it will be automatically removed from Discovery.")
+	case discord.GuildDiscoveryGracePeriodFinalWarning:
+		builder.WriteAll(baseStyle, "This server has failed Discovery activity requirements for 3 weeks in a row. If this server fails for 1 more week, it will be removed from Discovery.")
+	case discord.ThreadCreatedMessage:
+		builder.WriteAll(baseStyle, author, " started a thread: ", content, ". See all threads.")
+	case discord.GuildInviteReminderMessage:
+		builder.WriteAll(baseStyle, "Wondering who to invite?\n    Start by inviting anyone who can help you build the server!")
+	case discord.StageStartMessage:
+		builder.WriteAll(baseStyle, author, " started ", bcontent)
+	case discord.StageEndMessage:
+		builder.WriteAll(baseStyle, author, " ended ", bcontent)
+	case discord.StageSpeakerMessage:
+		builder.WriteAll(baseStyle, author, " is now a speaker.")
+	case discord.StageTopicMessage:
+		builder.WriteAll(baseStyle, author, " changed the Stage topic: ", bcontent)
 	default:
-		ml.drawTimestamps(builder, message.Timestamp, baseStyle)
-		ml.drawAuthor(builder, message, baseStyle)
+		builder.WriteAll(baseStyle, "Unknown message. Author: ", author, " type: " + strconv.Itoa(int(message.Type)) + " content: ", content)
 	}
 }
 
@@ -370,11 +494,15 @@ func (ml *messagesList) formatTimestamp(ts discord.Timestamp) string {
 }
 
 func (ml *messagesList) drawTimestamps(builder *tview.LineBuilder, ts discord.Timestamp, baseStyle tcell.Style) {
-	dimStyle := baseStyle.Dim(true)
-	builder.Write(ml.formatTimestamp(ts)+" ", dimStyle)
+	builder.Write(ml.formatTimestamp(ts)+" ", baseStyle.Dim(true))
 }
 
 func (ml *messagesList) drawAuthor(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style) {
+	author := ml.formatAuthor(message, baseStyle)
+	builder.Write(author.Text + " ", author.Style)
+}
+
+func (ml *messagesList) formatAuthor(message discord.Message, baseStyle tcell.Style) tview.Segment {
 	name := message.Author.DisplayOrUsername()
 	foreground := tcell.ColorDefault
 
@@ -392,8 +520,7 @@ func (ml *messagesList) drawAuthor(builder *tview.LineBuilder, message discord.M
 		}
 	}
 
-	style := baseStyle.Foreground(foreground).Bold(true)
-	builder.Write(name+" ", style)
+	return tview.NewSegment(name, baseStyle.Foreground(foreground).Bold(true))
 }
 
 func (ml *messagesList) memberForMessage(message discord.Message) *discord.Member {
