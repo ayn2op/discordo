@@ -64,8 +64,25 @@ type (
 	}
 
 	MarkdownConfig struct {
-		Enabled bool   `toml:"enabled"`
-		Theme   string `toml:"theme"`
+		Enabled         bool   `toml:"enabled"`
+		Theme           string `toml:"theme"`
+		CodeBlockIndent string `toml:"code_block_indent"`
+	}
+
+	HelpConfig struct {
+		CompactModifiers bool   `toml:"compact_modifiers"`
+		Padding          [2]int `toml:"padding"`
+		Separator        string `toml:"separator"`
+	}
+
+	SidebarMarkersConfig struct {
+		Expanded  string `toml:"expanded"`
+		Collapsed string `toml:"collapsed"`
+		Leaf      string `toml:"leaf"`
+	}
+
+	SidebarConfig struct {
+		Markers SidebarMarkersConfig `toml:"markers"`
 	}
 
 	HelpConfig struct {

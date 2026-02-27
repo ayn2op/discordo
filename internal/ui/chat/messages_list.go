@@ -425,11 +425,11 @@ func (ml *messagesList) drawContent(builder *tview.LineBuilder, message discord.
 			if startsWithCodeBlock {
 				// Keep code blocks visually separate from "timestamp + author".
 				builder.NewLine()
-				for len(lines) > 0 && len(lines[0]) == 0 {
+				for len(lines) > 0 && len(lines[0].Segments) == 0 {
 					lines = lines[1:]
 				}
 			} else {
-				for len(lines) > 1 && len(lines[0]) == 0 {
+				for len(lines) > 1 && len(lines[0].Segments) == 0 {
 					lines = lines[1:]
 				}
 			}

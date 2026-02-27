@@ -215,8 +215,8 @@ func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Ch
 
 func (gt *guildsTree) setNodeLineStyle(node *tview.TreeNode, style tcell.Style) {
 	line := node.GetLine()
-	for i := range line {
-		line[i].Style = style
+	for i := range line.Segments {
+		line.Segments[i].Style = style
 	}
 	node.SetLine(line)
 }
