@@ -26,6 +26,10 @@ func (v *View) FullHelp() [][]keybind.Keybind {
 }
 
 func (v *View) activeKeyMap() help.KeyMap {
+	if v.GetVisible(userContextMenuLayerName) {
+		return v.userContextMenu
+	}
+
 	if v.GetVisible(channelsPickerLayerName) {
 		return v.channelsPicker
 	}

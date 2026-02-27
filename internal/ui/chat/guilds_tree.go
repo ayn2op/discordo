@@ -88,6 +88,9 @@ func (gt *guildsTree) ShortHelp() []keybind.Keybind {
 	if gt.canCollapseParent(gt.GetCurrentNode()) {
 		shortHelp = append(shortHelp, collapseParent)
 	}
+	if gt.isCurrentNodeDM() {
+		shortHelp = append(shortHelp, cfg.UserContextMenu.Keybind)
+	}
 	return shortHelp
 }
 
@@ -120,11 +123,32 @@ func (gt *guildsTree) FullHelp() [][]keybind.Keybind {
 		actions = append(actions, collapseParent)
 	}
 
+	misc := []keybind.Keybind{cfg.YankID.Keybind}
+	if gt.isCurrentNodeDM() {
+		misc = append(misc, cfg.UserContextMenu.Keybind)
+	}
+
 	return [][]keybind.Keybind{
 		{cfg.Up.Keybind, cfg.Down.Keybind, cfg.Top.Keybind, cfg.Bottom.Keybind},
 		actions,
-		{cfg.YankID.Keybind},
+		misc,
 	}
+}
+
+func (gt *guildsTree) isCurrentNodeDM() bool {
+	node := gt.GetCurrentNode()
+	if node == nil {
+		return false
+	}
+	channelID, ok := node.GetReference().(discord.ChannelID)
+	if !ok {
+		return false
+	}
+	channel, err := gt.chatView.state.Cabinet.Channel(channelID)
+	if err != nil {
+		return false
+	}
+	return channel.Type == discord.DirectMessage && len(channel.DMRecipients) > 0
 }
 
 func (gt *guildsTree) canCollapseParent(node *tview.TreeNode) bool {
@@ -416,6 +440,11 @@ func (gt *guildsTree) InputHandler(event *tcell.EventKey) tview.Command {
 		return consumeRedraw
 	case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.SelectCurrent.Keybind):
 		return handler(tcell.NewEventKey(tcell.KeyEnter, "", tcell.ModNone))
+
+	case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.UserContextMenu.Keybind):
+		if gt.showUserContextMenu() {
+			return consume
+		}
 	case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.YankID.Keybind):
 		gt.yankID()
 		return consume
@@ -423,6 +452,36 @@ func (gt *guildsTree) InputHandler(event *tcell.EventKey) tview.Command {
 
 	// Do not fall through to TreeView defaults for unmatched keys.
 	return consume
+}
+
+func (gt *guildsTree) showUserContextMenu() bool {
+	node := gt.GetCurrentNode()
+	if node == nil {
+		return false
+	}
+
+	channelID, ok := node.GetReference().(discord.ChannelID)
+	if !ok {
+		return false
+	}
+
+	channel, err := gt.chatView.state.Cabinet.Channel(channelID)
+	if err != nil {
+		slog.Error("failed to get channel from state", "channel_id", channelID, "err", err)
+		return false
+	}
+
+	if channel.Type != discord.DirectMessage || len(channel.DMRecipients) == 0 {
+		return false
+	}
+
+	user := channel.DMRecipients[0]
+
+	// Anchor near the right edge of the tree, vertically at the midpoint.
+	ax, ay, aw, ah := gt.GetInnerRect()
+	gt.chatView.userContextMenu.build(user, 0)
+	gt.chatView.userContextMenu.showAt(ax+aw, ay+ah/2)
+	return true
 }
 
 func (gt *guildsTree) yankID() {

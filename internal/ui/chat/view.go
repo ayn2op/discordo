@@ -36,11 +36,12 @@ type View struct {
 	mainFlex  *tview.Flex
 	rightFlex *tview.Flex
 
-	guildsTree     *guildsTree
-	messagesList   *messagesList
-	messageInput   *messageInput
-	channelsPicker *channelsPicker
-	help           *help.Help
+	guildsTree      *guildsTree
+	messagesList    *messagesList
+	messageInput    *messageInput
+	channelsPicker  *channelsPicker
+	userContextMenu *userContextMenu
+	help            *help.Help
 
 	selectedChannel   *discord.Channel
 	selectedChannelMu sync.RWMutex
@@ -74,6 +75,7 @@ func NewView(app *tview.Application, cfg *config.Config, onLogout func()) *View 
 	v.messagesList = newMessagesList(cfg, v)
 	v.messageInput = newMessageInput(cfg, v)
 	v.channelsPicker = newChannelsPicker(cfg, v)
+	v.userContextMenu = newUserContextMenu(cfg, v)
 	v.channelsPicker.SetCancelFunc(v.closePicker)
 
 	v.help = help.New()

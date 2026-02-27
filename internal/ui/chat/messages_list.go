@@ -38,6 +38,40 @@ import (
 	"github.com/yuin/goldmark/text"
 )
 
+// rectTracker wraps a tview.ListItem and records its screen rect when
+// SetRect is called by the tview draw pass. This lets us query the cursor
+// item's exact screen position between draws.
+type rectTracker struct {
+	inner tview.ListItem
+	x, y, w, h int
+}
+
+func (r *rectTracker) SetRect(x, y, w, h int) {
+	r.x, r.y, r.w, r.h = x, y, w, h
+	if r.inner != nil {
+		r.inner.SetRect(x, y, w, h)
+	}
+}
+
+func (r *rectTracker) GetRect() (int, int, int, int)        { return r.x, r.y, r.w, r.h }
+func (r *rectTracker) Draw(screen tcell.Screen)              { if r.inner != nil { r.inner.Draw(screen) } }
+func (r *rectTracker) InputHandler(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
+	if r.inner != nil { r.inner.InputHandler(event, setFocus) }
+}
+func (r *rectTracker) Focus(delegate func(p tview.Primitive))   { if r.inner != nil { r.inner.Focus(delegate) } }
+func (r *rectTracker) HasFocus() bool                           { if r.inner != nil { return r.inner.HasFocus() }; return false }
+func (r *rectTracker) Blur()                                    { if r.inner != nil { r.inner.Blur() } }
+func (r *rectTracker) MouseHandler(action tview.MouseAction, event *tcell.EventMouse, setFocus func(p tview.Primitive)) (bool, tview.Primitive) {
+	if r.inner != nil { return r.inner.MouseHandler(action, event, setFocus) }; return false, nil
+}
+func (r *rectTracker) PasteHandler(text string, setFocus func(p tview.Primitive)) {
+	if r.inner != nil { r.inner.PasteHandler(text, setFocus) }
+}
+func (r *rectTracker) IsDirty() bool   { if r.inner != nil { return r.inner.IsDirty() }; return false }
+func (r *rectTracker) MarkDirty()      { if r.inner != nil { r.inner.MarkDirty() } }
+func (r *rectTracker) MarkClean()      { if r.inner != nil { r.inner.MarkClean() } }
+func (r *rectTracker) Height(width int) int { if r.inner != nil { return r.inner.Height(width) }; return 0 }
+
 type messagesList struct {
 	*tview.List
 	cfg      *config.Config
@@ -53,6 +87,10 @@ type messagesList struct {
 	itemByID map[discord.MessageID]*tview.TextView
 
 	attachmentsPicker *attachmentsPicker
+
+	// cursorRect records the screen position of the cursor item, updated via
+	// a rectTracker wrapper during the draw pass.
+	cursorRect rectTracker
 
 	fetchingMembers struct {
 		mu    sync.Mutex
@@ -174,10 +212,12 @@ func (ml *messagesList) buildItem(index int, cursor int) tview.ListItem {
 
 	message := ml.messages[row.messageIndex]
 	if index == cursor {
-		return tview.NewTextView().
+		item := tview.NewTextView().
 			SetWrap(true).
 			SetWordWrap(true).
 			SetLines(ml.renderMessage(message, ml.cfg.Theme.MessagesList.SelectedMessageStyle.Style))
+		ml.cursorRect.inner = item
+		return &ml.cursorRect
 	}
 
 	item, ok := ml.itemByID[message.ID]
@@ -587,6 +627,9 @@ func (ml *messagesList) InputHandler(event *tcell.EventKey) tview.Command {
 	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.DeleteConfirm.Keybind):
 		ml.confirmDelete()
 		return consumeRedraw
+	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.UserContextMenu.Keybind):
+		ml.showUserContextMenu()
+		return consume
 	}
 
 	// Do not fall through to List defaults for unmatched keys.
@@ -1018,6 +1061,19 @@ func (ml *messagesList) waitForChunkEvent() uint {
 	return ml.fetchingMembers.count
 }
 
+func (ml *messagesList) showUserContextMenu() {
+	msg, err := ml.selectedMessage()
+	if err != nil {
+		slog.Error("failed to get selected message", "err", err)
+		return
+	}
+
+	// cursorRect is updated by the rectTracker wrapper during the draw pass,
+	// so it reflects the exact screen position of the selected message.
+	ml.chatView.userContextMenu.build(msg.Author, msg.GuildID)
+	ml.chatView.userContextMenu.showAt(ml.cursorRect.x, ml.cursorRect.y)
+}
+
 func (ml *messagesList) ShortHelp() []keybind.Keybind {
 	cfg := ml.cfg.Keybinds.MessagesList
 	help := []keybind.Keybind{
@@ -1033,6 +1089,7 @@ func (ml *messagesList) ShortHelp() []keybind.Keybind {
 		}
 	}
 
+	help = append(help, cfg.UserContextMenu.Keybind)
 	return help
 }
 
@@ -1084,5 +1141,6 @@ func (ml *messagesList) FullHelp() [][]keybind.Keybind {
 		actions,
 		manage,
 		{cfg.YankContent.Keybind, cfg.YankURL.Keybind, cfg.YankID.Keybind},
+		{cfg.UserContextMenu.Keybind},
 	}
 }

@@ -116,6 +116,7 @@ bottom = "G"
 # Select the currently highlighted text-based channel or expand a guild or channel.
 select_current = "enter"
 yank_id = "i"
+user_context_menu = "ctrl+p"
 collapse_parent_node = "-"
 move_to_parent_node = "p"
 
@@ -143,6 +144,7 @@ delete_confirm = "d"
 # Open the selected message's attachments or hyperlinks in the message
 # using the default browser application.
 open = "o"
+user_context_menu = "ctrl+p"
 # Yank (copy) the selected message's content/url/id.
 yank_content = "y"
 yank_url = "u"

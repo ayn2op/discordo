@@ -65,8 +65,9 @@ type PickerKeybinds struct {
 
 type GuildsTreeKeybinds struct {
 	NavigationKeybinds
-	SelectCurrent Keybind `toml:"select_current"`
-	YankID        Keybind `toml:"yank_id"`
+	SelectCurrent   Keybind `toml:"select_current"`
+	YankID          Keybind `toml:"yank_id"`
+	UserContextMenu Keybind `toml:"user_context_menu"`
 
 	CollapseParentNode Keybind `toml:"collapse_parent_node"`
 	MoveToParentNode   Keybind `toml:"move_to_parent_node"`
@@ -80,11 +81,12 @@ type MessagesListKeybinds struct {
 	Reply        Keybind `toml:"reply"`
 	ReplyMention Keybind `toml:"reply_mention"`
 
-	Cancel        Keybind `toml:"cancel"`
-	Edit          Keybind `toml:"edit"`
-	Delete        Keybind `toml:"delete"`
-	DeleteConfirm Keybind `toml:"delete_confirm"`
-	Open          Keybind `toml:"open"`
+	Cancel          Keybind `toml:"cancel"`
+	Edit            Keybind `toml:"edit"`
+	Delete          Keybind `toml:"delete"`
+	DeleteConfirm   Keybind `toml:"delete_confirm"`
+	Open            Keybind `toml:"open"`
+	UserContextMenu Keybind `toml:"user_context_menu"`
 
 	YankContent Keybind `toml:"yank_content"`
 	YankURL     Keybind `toml:"yank_url"`
@@ -106,6 +108,9 @@ type MentionsListKeybinds struct {
 	NavigationKeybinds
 }
 
+type UserContextMenuKeybinds struct {
+}
+
 type Keybinds struct {
 	ToggleGuildsTree     Keybind `toml:"toggle_guilds_tree"`
 	ToggleChannelsPicker Keybind `toml:"toggle_channels_picker"`
@@ -123,7 +128,8 @@ type Keybinds struct {
 	GuildsTree   GuildsTreeKeybinds   `toml:"guilds_tree"`
 	MessagesList MessagesListKeybinds `toml:"messages_list"`
 	MessageInput MessageInputKeybinds `toml:"message_input"`
-	MentionsList MentionsListKeybinds `toml:"mentions_list"`
+	MentionsList    MentionsListKeybinds    `toml:"mentions_list"`
+	UserContextMenu UserContextMenuKeybinds `toml:"user_context_menu"`
 
 	Logout Keybind `toml:"logout"`
 	Quit   Keybind `toml:"quit"`
@@ -165,6 +171,7 @@ func defaultKeybinds() Keybinds {
 			},
 			SelectCurrent:      newKeybind("enter", "sel"),
 			YankID:             newKeybind("i", "copy id"),
+			UserContextMenu:    newKeybind("ctrl+p", "user menu"),
 			CollapseParentNode: newKeybind("-", "collapse"),
 			MoveToParentNode:   newKeybind("p", "parent"),
 		},
@@ -192,9 +199,10 @@ func defaultKeybinds() Keybinds {
 				"delete",
 			),
 			Open:        newKeybind("o", "open"),
-			YankContent: newKeybind("y", "copy text"),
-			YankURL:     newKeybind("u", "copy url"),
-			YankID:      newKeybind("i", "copy id"),
+			UserContextMenu: newKeybind("ctrl+p", "user menu"),
+			YankContent:     newKeybind("y", "copy text"),
+			YankURL:         newKeybind("u", "copy url"),
+			YankID:          newKeybind("i", "copy id"),
 		},
 		MessageInput: MessageInputKeybinds{
 			Paste:          newKeybind("ctrl+v", "paste"),
@@ -205,6 +213,7 @@ func defaultKeybinds() Keybinds {
 			OpenEditor:     newKeybind("ctrl+e", "editor"),
 			OpenFilePicker: newKeybind("ctrl+\\", "attach"),
 		},
+		UserContextMenu: UserContextMenuKeybinds{},
 		MentionsList: MentionsListKeybinds{
 			NavigationKeybinds: NavigationKeybinds{
 				Up:     newKeybind("ctrl+p", "up"),
