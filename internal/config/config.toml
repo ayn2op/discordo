@@ -200,7 +200,7 @@ graphics_color = "default"
 # Guilds tree indentation for different item types
 [theme.guilds_tree.indents]
 dm = 2
-groupdm = 1
+group_dm = 1
 guild = 2      # server inside a folder
 category = 1
 channel = 2

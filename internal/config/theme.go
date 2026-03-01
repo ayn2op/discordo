@@ -213,7 +213,7 @@ type (
 		Guild    int `toml:"guild"`
 		Category int `toml:"category"`
 		Channel  int `toml:"channel"`
-		GroupDM  int `toml:"groupdm"`
+		GroupDM  int `toml:"group_dm"`
 		DM       int `toml:"dm"`
 	}
 
