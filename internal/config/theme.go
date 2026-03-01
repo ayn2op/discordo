@@ -41,6 +41,9 @@ func (sw *StyleWrapper) UnmarshalTOML(v any) error {
 		return errInvalidType
 	}
 
+	// Reset on new styles
+	sw.Style = tcell.StyleDefault
+
 	for key, val := range m {
 		switch key {
 		case "foreground":
