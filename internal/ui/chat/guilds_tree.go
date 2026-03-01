@@ -204,7 +204,7 @@ func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Ch
 		return
 	}
 
-	channelNode := tview.NewTreeNode(ui.ChannelToString(channel, gt.cfg.Icons)).SetReference(channel.ID)
+	channelNode := tview.NewTreeNode(ui.ChannelToString(channel, gt.cfg.Icons, gt.chatView.state)).SetReference(channel.ID)
 	if channel.Type == discord.GuildForum {
 		channelNode.SetExpandable(true).SetExpanded(false)
 	}

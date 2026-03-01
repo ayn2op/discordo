@@ -76,8 +76,7 @@ func (r *Renderer) RenderLines(source []byte, node ast.Node, base tcell.Style) [
 			}
 		case *ast.AutoLink:
 			if entering {
-				style := ui.MergeStyle(currentStyle(), theme.URLStyle.Style)
-				builder.Write(string(node.URL(source)), style)
+				builder.Write(string(node.URL(source)), ui.MergeStyle(currentStyle(), theme.URLStyle.Style))
 			}
 		case *ast.Link:
 			if entering {
@@ -119,14 +118,11 @@ func (r *Renderer) RenderLines(source []byte, node ast.Node, base tcell.Style) [
 			}
 		case *discordmd.Mention:
 			if entering {
-				style := ui.MergeStyle(currentStyle(), theme.MentionStyle.Style)
-				style = style.Bold(true)
-				builder.Write(mentionText(node), style)
+				builder.Write(mentionText(node), ui.MergeStyle(currentStyle(), theme.MentionStyle.Style))
 			}
 		case *discordmd.Emoji:
 			if entering {
-				style := ui.MergeStyle(currentStyle(), theme.EmojiStyle.Style)
-				builder.Write(":"+node.Name+":", style)
+				builder.Write(":"+node.Name+":", ui.MergeStyle(currentStyle(), theme.EmojiStyle.Style))
 			}
 		}
 		return ast.WalkContinue, nil
