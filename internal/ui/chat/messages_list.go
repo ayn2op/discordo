@@ -266,7 +266,8 @@ func (ml *messagesList) rebuildRows() {
 	rows := make([]messagesListRow, 0, len(ml.messages)*2)
 
 	for i := range ml.messages {
-		if ml.cfg.DateSeparator.Enabled && i > 0 && !sameLocalDate(ml.messages[i-1].Timestamp, ml.messages[i].Timestamp) {
+		// Always show a date separator before the first message, and between messages on different days.
+		if ml.cfg.DateSeparator.Enabled && (i == 0 || !sameLocalDate(ml.messages[i-1].Timestamp, ml.messages[i].Timestamp)) {
 			rows = append(rows, messagesListRow{
 				kind:      messagesListRowSeparator,
 				timestamp: ml.messages[i].Timestamp,

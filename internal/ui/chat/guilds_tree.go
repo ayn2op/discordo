@@ -314,14 +314,14 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 			return
 		}
 
-		go gt.chatView.state.ReadState.MarkRead(channel.ID, channel.LastMessageID)
-
 		limit := gt.cfg.MessagesLimit
 		messages, err := gt.chatView.state.Messages(channel.ID, uint(limit))
 		if err != nil {
 			slog.Error("failed to get messages", "err", err, "channel_id", channel.ID, "limit", limit)
 			return
 		}
+
+		go gt.chatView.state.ReadState.MarkRead(channel.ID, channel.LastMessageID)
 
 		if guildID := channel.GuildID; guildID.IsValid() {
 			gt.chatView.messagesList.requestGuildMembers(guildID, messages)
