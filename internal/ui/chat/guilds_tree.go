@@ -204,13 +204,8 @@ func (gt *guildsTree) createGuildNode(n *tview.TreeNode, guild discord.Guild) {
 }
 
 func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Channel) {
-	switch channel.Type {
-	case discord.DirectMessage, discord.GroupDM, discord.GuildCategory, discord.GuildForum:
-		break
-	default:
-		if !gt.chatView.state.HasPermissions(channel.ID, discord.PermissionViewChannel) {
-			return
-		}
+	if channel.Type != discord.DirectMessage && channel.Type != discord.GroupDM && channel.Type != discord.GuildCategory && !gt.chatView.state.HasPermissions(channel.ID, discord.PermissionViewChannel) {
+		return
 	}
 
 	channelNode := tview.NewTreeNode(ui.ChannelToString(channel, gt.cfg.Icons, gt.chatView.state)).SetReference(channel.ID)
