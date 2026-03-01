@@ -129,6 +129,7 @@ func (v *View) buildLayout() {
 
 	v.updateHelpHeight()
 	v.AddLayer(v.rootFlex, layers.WithName(flexLayerName), layers.WithResize(true), layers.WithVisible(true))
+	v.AddLayer(v.messageInput.mentionsList, layers.WithName(mentionsListLayerName), layers.WithResize(false), layers.WithVisible(false))
 }
 
 func (v *View) togglePicker() {
@@ -221,57 +222,97 @@ func (v *View) focusNext() {
 	}
 }
 
-func (v *View) handleInput(event *tcell.EventKey) *tcell.EventKey {
+func (v *View) InputHandler(event *tcell.EventKey) tview.Command {
+	consume := tview.BatchCommand{tview.RedrawCommand{}, tview.ConsumeEventCommand{}}
+
 	switch {
 	case keybind.Matches(event, v.cfg.Keybinds.ToggleHelp.Keybind):
 		v.help.SetShowAll(!v.help.ShowAll())
 		v.updateHelpHeight()
-		return nil
+		return consume
 	case keybind.Matches(event, v.cfg.Keybinds.FocusGuildsTree.Keybind):
 		v.messageInput.removeMentionsList()
 		v.focusGuildsTree()
-		return nil
+		return consume
 	case keybind.Matches(event, v.cfg.Keybinds.FocusMessagesList.Keybind):
 		v.messageInput.removeMentionsList()
 		v.app.SetFocus(v.messagesList)
-		return nil
+		return consume
 	case keybind.Matches(event, v.cfg.Keybinds.FocusMessageInput.Keybind):
 		v.focusMessageInput()
-		return nil
+		return consume
 	case keybind.Matches(event, v.cfg.Keybinds.FocusPrevious.Keybind):
 		v.focusPrevious()
-		return nil
+		return consume
 	case keybind.Matches(event, v.cfg.Keybinds.FocusNext.Keybind):
 		v.focusNext()
-		return nil
+		return consume
 	case keybind.Matches(event, v.cfg.Keybinds.Logout.Keybind):
 		if v.onLogout != nil {
 			v.onLogout()
 		}
-
 		if err := keyring.DeleteToken(); err != nil {
 			slog.Error("failed to delete token from keyring", "err", err)
-			return nil
 		}
-
-		return nil
+		return consume
 	case keybind.Matches(event, v.cfg.Keybinds.ToggleGuildsTree.Keybind):
 		v.toggleGuildsTree()
-		return nil
+		return consume
 	case keybind.Matches(event, v.cfg.Keybinds.ToggleChannelsPicker.Keybind):
 		v.togglePicker()
+		return consume
+	}
+
+	cmd := v.Layers.InputHandler(event)
+	return v.consumeLayerCommands(cmd)
+}
+
+func (v *View) consumeLayerCommands(command tview.Command) tview.Command {
+	if command == nil {
 		return nil
 	}
 
-	return event
-}
-
-func (v *View) InputHandler(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
-	event = v.handleInput(event)
-	if event == nil {
-		return
+	var commands []tview.Command
+	switch c := command.(type) {
+	case tview.BatchCommand:
+		commands = c
+	default:
+		commands = []tview.Command{c}
 	}
-	v.Layers.InputHandler(event, setFocus)
+
+	remaining := make([]tview.Command, 0, len(commands))
+	for _, cmd := range commands {
+		switch c := cmd.(type) {
+		case layers.OpenLayerCommand:
+			if v.HasLayer(c.Name) {
+				v.ShowLayer(c.Name).SendToFront(c.Name)
+			}
+			continue
+		case layers.CloseLayerCommand:
+			if v.HasLayer(c.Name) {
+				v.HideLayer(c.Name)
+			}
+			continue
+		case layers.ToggleLayerCommand:
+			if v.HasLayer(c.Name) {
+				if v.GetVisible(c.Name) {
+					v.HideLayer(c.Name)
+				} else {
+					v.ShowLayer(c.Name).SendToFront(c.Name)
+				}
+			}
+			continue
+		}
+		remaining = append(remaining, cmd)
+	}
+
+	if len(remaining) == 0 {
+		return nil
+	}
+	if len(remaining) == 1 {
+		return remaining[0]
+	}
+	return tview.BatchCommand(remaining)
 }
 
 func (v *View) updateHelpHeight() {
@@ -311,26 +352,21 @@ func (v *View) showConfirmModal(prompt string, buttons []string, onDone func(lab
 }
 
 func (v *View) onReadUpdate(event *read.UpdateEvent) {
-	// Use indexed node lookup to avoid walking the whole tree on every read
-	// event. This runs frequently while reading/typing across channels.
-	var updated bool
-	if event.GuildID.IsValid() {
-		if guildNode := v.guildsTree.findNodeByReference(event.GuildID); guildNode != nil {
-			v.guildsTree.setNodeLineStyle(guildNode, v.guildsTree.getGuildNodeStyle(event.GuildID))
-			updated = true
+	v.app.QueueUpdateDraw(func() {
+		// Use indexed node lookup to avoid walking the whole tree on every read
+		// event. This runs frequently while reading/typing across channels.
+		if event.GuildID.IsValid() {
+			if guildNode := v.guildsTree.findNodeByReference(event.GuildID); guildNode != nil {
+				v.guildsTree.setNodeLineStyle(guildNode, v.guildsTree.getGuildNodeStyle(event.GuildID))
+			}
 		}
-	}
 
-	// Channel style is always updated for the target channel regardless of
-	// whether it's in a guild or DM.
-	if channelNode := v.guildsTree.findNodeByReference(event.ChannelID); channelNode != nil {
-		v.guildsTree.setNodeLineStyle(channelNode, v.guildsTree.getChannelNodeStyle(event.ChannelID))
-		updated = true
-	}
-
-	if updated {
-		v.app.Draw()
-	}
+		// Channel style is always updated for the target channel regardless of
+		// whether it's in a guild or DM.
+		if channelNode := v.guildsTree.findNodeByReference(event.ChannelID); channelNode != nil {
+			v.guildsTree.setNodeLineStyle(channelNode, v.guildsTree.getChannelNodeStyle(event.ChannelID))
+		}
+	})
 }
 
 func (v *View) clearTypers() {

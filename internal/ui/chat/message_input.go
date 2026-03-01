@@ -92,52 +92,56 @@ func (mi *messageInput) stopTypingTimer() {
 	}
 }
 
-func (mi *messageInput) handleInput(event *tcell.EventKey) *tcell.EventKey {
+func (mi *messageInput) InputHandler(event *tcell.EventKey) tview.Command {
+	consume := tview.ConsumeEventCommand{}
+	consumeRedraw := tview.BatchCommand{tview.RedrawCommand{}, tview.ConsumeEventCommand{}}
+	handler := mi.TextArea.InputHandler
+
 	switch {
 	case keybind.Matches(event, mi.cfg.Keybinds.MessageInput.Paste.Keybind):
 		mi.paste()
-		return tcell.NewEventKey(tcell.KeyCtrlV, "", tcell.ModNone)
-
+		return handler(tcell.NewEventKey(tcell.KeyCtrlV, "", tcell.ModNone))
 	case keybind.Matches(event, mi.cfg.Keybinds.MessageInput.Send.Keybind):
 		if mi.chatView.GetVisible(mentionsListLayerName) {
 			mi.tabComplete()
-			return nil
+		} else {
+			mi.send()
 		}
-
-		mi.send()
-		return nil
+		return consumeRedraw
 	case keybind.Matches(event, mi.cfg.Keybinds.MessageInput.OpenEditor.Keybind):
-		mi.stopTabCompletion()
+		var cmd tview.Command
+		mi.stopTabCompletion(func(next tview.Command) { cmd = tview.AppendCommand(cmd, next) })
 		mi.editor()
-		return nil
+		return tview.AppendCommand(cmd, consumeRedraw)
 	case keybind.Matches(event, mi.cfg.Keybinds.MessageInput.OpenFilePicker.Keybind):
-		mi.stopTabCompletion()
+		var cmd tview.Command
+		mi.stopTabCompletion(func(next tview.Command) { cmd = tview.AppendCommand(cmd, next) })
 		mi.openFilePicker()
-		return nil
+		return tview.AppendCommand(cmd, consumeRedraw)
 	case keybind.Matches(event, mi.cfg.Keybinds.MessageInput.Cancel.Keybind):
+		var cmd tview.Command
 		if mi.chatView.GetVisible(mentionsListLayerName) {
-			mi.stopTabCompletion()
+			mi.stopTabCompletion(func(next tview.Command) { cmd = tview.AppendCommand(cmd, next) })
 		} else {
 			mi.reset()
 		}
-
-		return nil
+		return tview.AppendCommand(cmd, consumeRedraw)
 	case keybind.Matches(event, mi.cfg.Keybinds.MessageInput.TabComplete.Keybind):
 		go mi.chatView.app.QueueUpdateDraw(func() { mi.tabComplete() })
-		return nil
+		return consume
 	case keybind.Matches(event, mi.cfg.Keybinds.MessageInput.Undo.Keybind):
-		return tcell.NewEventKey(tcell.KeyCtrlZ, "", tcell.ModNone)
-	default:
-		if mi.cfg.TypingIndicator.Send && mi.typingTimer == nil {
-			mi.typingTimer = time.AfterFunc(typingDuration, func() {
-				mi.typingTimerMu.Lock()
-				mi.typingTimer = nil
-				mi.typingTimerMu.Unlock()
-			})
+		return handler(tcell.NewEventKey(tcell.KeyCtrlZ, "", tcell.ModNone))
+	}
 
-			if selectedChannel := mi.chatView.SelectedChannel(); selectedChannel != nil {
-				go mi.chatView.state.Typing(selectedChannel.ID)
-			}
+	if mi.cfg.TypingIndicator.Send && mi.typingTimer == nil {
+		mi.typingTimer = time.AfterFunc(typingDuration, func() {
+			mi.typingTimerMu.Lock()
+			mi.typingTimer = nil
+			mi.typingTimerMu.Unlock()
+		})
+
+		if selectedChannel := mi.chatView.SelectedChannel(); selectedChannel != nil {
+			go mi.chatView.state.Typing(selectedChannel.ID)
 		}
 	}
 
@@ -145,32 +149,24 @@ func (mi *messageInput) handleInput(event *tcell.EventKey) *tcell.EventKey {
 		if mi.chatView.GetVisible(mentionsListLayerName) {
 			switch {
 			case keybind.Matches(event, mi.cfg.Keybinds.MentionsList.Up.Keybind):
-				mi.mentionsList.InputHandler(tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone), nil)
-				return nil
+				mi.mentionsList.InputHandler(tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone))
+				return consumeRedraw
 			case keybind.Matches(event, mi.cfg.Keybinds.MentionsList.Down.Keybind):
-				mi.mentionsList.InputHandler(tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone), nil)
-				return nil
+				mi.mentionsList.InputHandler(tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone))
+				return consumeRedraw
 			case keybind.Matches(event, mi.cfg.Keybinds.MentionsList.Top.Keybind):
-				mi.mentionsList.InputHandler(tcell.NewEventKey(tcell.KeyHome, "", tcell.ModNone), nil)
-				return nil
+				mi.mentionsList.InputHandler(tcell.NewEventKey(tcell.KeyHome, "", tcell.ModNone))
+				return consumeRedraw
 			case keybind.Matches(event, mi.cfg.Keybinds.MentionsList.Bottom.Keybind):
-				mi.mentionsList.InputHandler(tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone), nil)
-				return nil
+				mi.mentionsList.InputHandler(tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone))
+				return consumeRedraw
 			}
 		}
 
 		go mi.chatView.app.QueueUpdateDraw(func() { mi.tabSuggestion() })
 	}
 
-	return event
-}
-
-func (mi *messageInput) InputHandler(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
-	event = mi.handleInput(event)
-	if event == nil {
-		return
-	}
-	mi.TextArea.InputHandler(event, setFocus)
+	return handler(event)
 }
 
 func (mi *messageInput) paste() {
@@ -308,7 +304,7 @@ func (mi *messageInput) tabComplete() {
 		return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '.'
 	})
 	if r != '@' {
-		mi.stopTabCompletion()
+		mi.stopTabCompletion(nil)
 		return
 	}
 	pos := posEnd - (len(name) + 1)
@@ -352,7 +348,7 @@ func (mi *messageInput) tabComplete() {
 		return
 	}
 	mi.Replace(pos, posEnd, "@"+name+" ")
-	mi.stopTabCompletion()
+	mi.stopTabCompletion(nil)
 }
 
 func (mi *messageInput) tabSuggestion() {
@@ -360,7 +356,7 @@ func (mi *messageInput) tabSuggestion() {
 		return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '.'
 	})
 	if r != '@' {
-		mi.stopTabCompletion()
+		mi.stopTabCompletion(nil)
 		return
 	}
 	selected := mi.chatView.SelectedChannel()
@@ -440,7 +436,7 @@ func (mi *messageInput) tabSuggestion() {
 	}
 
 	if mi.mentionsList.itemCount() == 0 {
-		mi.stopTabCompletion()
+		mi.stopTabCompletion(nil)
 		return
 	}
 
@@ -532,14 +528,7 @@ func (mi *messageInput) showMentionList() {
 	}
 
 	l.SetRect(x, y, w, h)
-
-	mi.chatView.
-		AddLayer(l,
-			layers.WithName(mentionsListLayerName),
-			layers.WithResize(false),
-			layers.WithVisible(true),
-		).
-		SendToFront(mentionsListLayerName)
+	mi.chatView.ShowLayer(mentionsListLayerName).SendToFront(mentionsListLayerName)
 	mi.chatView.app.SetFocus(mi)
 }
 
@@ -602,15 +591,19 @@ func (mi *messageInput) addMentionUser(user *discord.User) {
 
 // used by chatView
 func (mi *messageInput) removeMentionsList() {
-	mi.chatView.
-		RemoveLayer(mentionsListLayerName)
+	mi.chatView.HideLayer(mentionsListLayerName)
 }
 
-func (mi *messageInput) stopTabCompletion() {
+func (mi *messageInput) stopTabCompletion(emit func(tview.Command)) {
 	if mi.cfg.AutocompleteLimit > 0 {
 		mi.mentionsList.clear()
-		mi.removeMentionsList()
-		mi.chatView.app.SetFocus(mi)
+		if emit != nil {
+			emit(layers.CloseLayerCommand{Name: mentionsListLayerName})
+			emit(tview.SetFocusCommand{Target: mi})
+		} else {
+			mi.removeMentionsList()
+			mi.chatView.app.SetFocus(mi)
+		}
 	}
 }
 

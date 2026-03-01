@@ -127,7 +127,6 @@ func (ml *messagesList) setMessages(messages []discord.Message) {
 	// New channel payload / refetch: replace the cache wholesale to keep it in
 	// lockstep with the current message slice.
 	clear(ml.itemByID)
-	ml.MarkDirty()
 }
 
 func (ml *messagesList) addMessage(message discord.Message) {
@@ -135,7 +134,6 @@ func (ml *messagesList) addMessage(message discord.Message) {
 	ml.invalidateRows()
 	// Defensive invalidation for ID reuse/edits delivered out-of-order.
 	delete(ml.itemByID, message.ID)
-	ml.MarkDirty()
 }
 
 func (ml *messagesList) setMessage(index int, message discord.Message) {
@@ -146,7 +144,6 @@ func (ml *messagesList) setMessage(index int, message discord.Message) {
 	ml.messages[index] = message
 	delete(ml.itemByID, message.ID)
 	ml.invalidateRows()
-	ml.MarkDirty()
 }
 
 func (ml *messagesList) deleteMessage(index int) {
@@ -157,7 +154,6 @@ func (ml *messagesList) deleteMessage(index int) {
 	delete(ml.itemByID, ml.messages[index].ID)
 	ml.messages = append(ml.messages[:index], ml.messages[index+1:]...)
 	ml.invalidateRows()
-	ml.MarkDirty()
 }
 
 func (ml *messagesList) clearSelection() {
@@ -529,78 +525,72 @@ func (ml *messagesList) selectedMessage() (*discord.Message, error) {
 	return &ml.messages[cursor], nil
 }
 
-func (ml *messagesList) handleInput(event *tcell.EventKey) *tcell.EventKey {
+func (ml *messagesList) InputHandler(event *tcell.EventKey) tview.Command {
+	consume := tview.ConsumeEventCommand{}
+	consumeRedraw := tview.BatchCommand{tview.RedrawCommand{}, tview.ConsumeEventCommand{}}
+
 	switch {
 	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ScrollUp.Keybind):
 		ml.ScrollUp()
-		return nil
+		return consumeRedraw
 	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ScrollDown.Keybind):
 		ml.ScrollDown()
-		return nil
+		return consumeRedraw
 	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ScrollTop.Keybind):
 		ml.ScrollToStart()
-		return nil
+		return consumeRedraw
 	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ScrollBottom.Keybind):
 		ml.ScrollToEnd()
-		return nil
-
+		return consumeRedraw
 	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Cancel.Keybind):
 		ml.clearSelection()
-		return nil
-
+		return consumeRedraw
 	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectUp.Keybind):
 		ml.selectUp()
-		return nil
+		return consumeRedraw
 	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectDown.Keybind):
 		ml.selectDown()
-		return nil
+		return consumeRedraw
 	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectTop.Keybind):
 		ml.selectTop()
-		return nil
+		return consumeRedraw
 	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectBottom.Keybind):
 		ml.selectBottom()
-		return nil
+		return consumeRedraw
 	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectReply.Keybind):
 		ml.selectReply()
-		return nil
+		return consumeRedraw
 	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.YankID.Keybind):
 		ml.yankID()
-		return nil
+		return consume
 	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.YankContent.Keybind):
 		ml.yankContent()
-		return nil
+		return consume
 	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.YankURL.Keybind):
 		ml.yankURL()
-		return nil
+		return consume
 	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Open.Keybind):
 		ml.open()
-		return nil
+		return consume
 	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Reply.Keybind):
 		ml.reply(false)
-		return nil
+		return consumeRedraw
 	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ReplyMention.Keybind):
 		ml.reply(true)
-		return nil
+		return consumeRedraw
 	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Edit.Keybind):
 		ml.edit()
-		return nil
+		return consumeRedraw
 	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Delete.Keybind):
 		ml.delete()
-		return nil
+		return consumeRedraw
 	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.DeleteConfirm.Keybind):
 		ml.confirmDelete()
-		return nil
+		return consumeRedraw
 	}
 
-	return event
-}
-
-func (ml *messagesList) InputHandler(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
-	event = ml.handleInput(event)
-	if event == nil {
-		return
-	}
-	ml.List.InputHandler(event, setFocus)
+	// Do not fall through to List defaults for unmatched keys.
+	return consume
 }
 
 func (ml *messagesList) selectUp() {
@@ -709,7 +699,6 @@ func (ml *messagesList) prependOlderMessages() int {
 	}
 	ml.messages = slices.Concat(older, ml.messages)
 	ml.invalidateRows()
-	ml.MarkDirty()
 	return len(messages)
 }
 
@@ -985,7 +974,7 @@ func (ml *messagesList) requestGuildMembers(guildID discord.GuildID, messages []
 	}
 
 	if len(usersToFetch) > 0 {
-		err := ml.chatView.state.SendGateway(context.TODO(), &gateway.RequestGuildMembersCommand{
+		err := ml.chatView.state.SendGateway(context.Background(), &gateway.RequestGuildMembersCommand{
 			GuildIDs: []discord.GuildID{guildID},
 			UserIDs:  usersToFetch,
 		})
