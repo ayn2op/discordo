@@ -55,21 +55,18 @@ func (r *rectTracker) SetRect(x, y, w, h int) {
 
 func (r *rectTracker) GetRect() (int, int, int, int)        { return r.x, r.y, r.w, r.h }
 func (r *rectTracker) Draw(screen tcell.Screen)              { if r.inner != nil { r.inner.Draw(screen) } }
-func (r *rectTracker) InputHandler(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
-	if r.inner != nil { r.inner.InputHandler(event, setFocus) }
+func (r *rectTracker) InputHandler(event *tcell.EventKey) tview.Command {
+	if r.inner != nil { return r.inner.InputHandler(event) }; return nil
 }
 func (r *rectTracker) Focus(delegate func(p tview.Primitive))   { if r.inner != nil { r.inner.Focus(delegate) } }
 func (r *rectTracker) HasFocus() bool                           { if r.inner != nil { return r.inner.HasFocus() }; return false }
 func (r *rectTracker) Blur()                                    { if r.inner != nil { r.inner.Blur() } }
-func (r *rectTracker) MouseHandler(action tview.MouseAction, event *tcell.EventMouse, setFocus func(p tview.Primitive)) (bool, tview.Primitive) {
-	if r.inner != nil { return r.inner.MouseHandler(action, event, setFocus) }; return false, nil
+func (r *rectTracker) MouseHandler(action tview.MouseAction, event *tcell.EventMouse) (tview.Primitive, tview.Command) {
+	if r.inner != nil { return r.inner.MouseHandler(action, event) }; return nil, nil
 }
-func (r *rectTracker) PasteHandler(text string, setFocus func(p tview.Primitive)) {
-	if r.inner != nil { r.inner.PasteHandler(text, setFocus) }
+func (r *rectTracker) PasteHandler(text string) tview.Command {
+	if r.inner != nil { return r.inner.PasteHandler(text) }; return nil
 }
-func (r *rectTracker) IsDirty() bool   { if r.inner != nil { return r.inner.IsDirty() }; return false }
-func (r *rectTracker) MarkDirty()      { if r.inner != nil { r.inner.MarkDirty() } }
-func (r *rectTracker) MarkClean()      { if r.inner != nil { r.inner.MarkClean() } }
 func (r *rectTracker) Height(width int) int { if r.inner != nil { return r.inner.Height(width) }; return 0 }
 
 type messagesList struct {
@@ -629,7 +626,7 @@ func (ml *messagesList) InputHandler(event *tcell.EventKey) tview.Command {
 		return consumeRedraw
 	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.UserContextMenu.Keybind):
 		ml.showUserContextMenu()
-		return consume
+		return consumeRedraw
 	}
 
 	// Do not fall through to List defaults for unmatched keys.

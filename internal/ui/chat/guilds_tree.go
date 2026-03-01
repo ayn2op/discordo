@@ -443,7 +443,7 @@ func (gt *guildsTree) InputHandler(event *tcell.EventKey) tview.Command {
 
 	case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.UserContextMenu.Keybind):
 		if gt.showUserContextMenu() {
-			return consume
+			return consumeRedraw
 		}
 	case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.YankID.Keybind):
 		gt.yankID()

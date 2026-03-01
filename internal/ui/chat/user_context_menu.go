@@ -129,7 +129,6 @@ func (m *userContextMenu) build(user discord.User, guildID discord.GuildID) {
 	})
 
 	m.SetCursor(-1)
-	m.MarkDirty()
 }
 
 // showAt displays the menu anchored near the given screen position. The menu
@@ -217,12 +216,12 @@ func (m *userContextMenu) handleInput(event *tcell.EventKey) *tcell.EventKey {
 	return nil
 }
 
-func (m *userContextMenu) InputHandler(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
+func (m *userContextMenu) InputHandler(event *tcell.EventKey) tview.Command {
 	event = m.handleInput(event)
 	if event == nil {
-		return
+		return tview.BatchCommand{tview.RedrawCommand{}, tview.ConsumeEventCommand{}}
 	}
-	m.List.InputHandler(event, setFocus)
+	return m.List.InputHandler(event)
 }
 
 func (m *userContextMenu) hasExistingDM(userID discord.UserID) bool {
@@ -396,12 +395,12 @@ type profileView struct {
 	close func()
 }
 
-func (p *profileView) InputHandler(event *tcell.EventKey, setFocus func(tview.Primitive)) {
+func (p *profileView) InputHandler(event *tcell.EventKey) tview.Command {
 	if event.Key() == tcell.KeyEscape {
 		p.close()
-		return
+		return tview.BatchCommand{tview.RedrawCommand{}, tview.ConsumeEventCommand{}}
 	}
-	p.TextView.InputHandler(event, setFocus)
+	return p.TextView.InputHandler(event)
 }
 
 // Help bar integration
