@@ -51,7 +51,7 @@ func NewForm(app *tview.Application, cfg *config.Config, done DoneFn) *Form {
 func (f *Form) login() {
 	token := f.form.GetFormItem(0).(*tview.InputField).GetText()
 	if token == "" {
-		f.onError(errors.New("token required"))
+		f.ShowError(errors.New("token required"))
 		return
 	}
 
@@ -62,7 +62,7 @@ func (f *Form) login() {
 	}
 }
 
-func (f *Form) onError(err error) {
+func (f *Form) ShowError(err error) {
 	slog.Error("failed to login", "err", err)
 
 	message := err.Error()
@@ -106,7 +106,7 @@ func (f *Form) onError(err error) {
 func (f *Form) loginWithQR() {
 	qr := newQRLogin(f.app, f.cfg, func(token string, err error) {
 		if err != nil {
-			f.onError(err)
+			f.ShowError(err)
 			return
 		}
 
