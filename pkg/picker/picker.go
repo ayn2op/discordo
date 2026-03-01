@@ -148,41 +148,33 @@ func (p *Picker) onInputChanged(text string) {
 	p.setFilteredItems(fuzzied)
 }
 
-func (p *Picker) handleInput(event *tcell.EventKey) *tcell.EventKey {
-	if p.keyMap == nil {
-		return event
-	}
+func (p *Picker) InputHandler(event *tcell.EventKey) tview.Command {
+	consume := tview.BatchCommand{tview.RedrawCommand{}, tview.ConsumeEventCommand{}}
 
-	switch {
-	case keybind.Matches(event, p.keyMap.Up):
-		p.list.InputHandler(tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone), nil)
-		return nil
-	case keybind.Matches(event, p.keyMap.Down):
-		p.list.InputHandler(tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone), nil)
-		return nil
-	case keybind.Matches(event, p.keyMap.Top):
-		p.list.InputHandler(tcell.NewEventKey(tcell.KeyHome, "", tcell.ModNone), nil)
-		return nil
-	case keybind.Matches(event, p.keyMap.Bottom):
-		p.list.InputHandler(tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone), nil)
-	case keybind.Matches(event, p.keyMap.Select):
-		p.onListSelected(p.list.Cursor())
-		return nil
-
-	case keybind.Matches(event, p.keyMap.Cancel):
-		if p.onCancel != nil {
-			p.onCancel()
+	if p.keyMap != nil {
+		switch {
+		case keybind.Matches(event, p.keyMap.Up):
+			p.list.InputHandler(tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone))
+			return consume
+		case keybind.Matches(event, p.keyMap.Down):
+			p.list.InputHandler(tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone))
+			return consume
+		case keybind.Matches(event, p.keyMap.Top):
+			p.list.InputHandler(tcell.NewEventKey(tcell.KeyHome, "", tcell.ModNone))
+			return consume
+		case keybind.Matches(event, p.keyMap.Bottom):
+			p.list.InputHandler(tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone))
+			return consume
+		case keybind.Matches(event, p.keyMap.Select):
+			p.onListSelected(p.list.Cursor())
+			return consume
+		case keybind.Matches(event, p.keyMap.Cancel):
+			if p.onCancel != nil {
+				p.onCancel()
+			}
+			return consume
 		}
-		return nil
 	}
 
-	return event
-}
-
-func (p *Picker) InputHandler(event *tcell.EventKey, setFocus func(p2 tview.Primitive)) {
-	event = p.handleInput(event)
-	if event == nil {
-		return
-	}
-	p.Flex.InputHandler(event, setFocus)
+	return p.Flex.InputHandler(event)
 }
