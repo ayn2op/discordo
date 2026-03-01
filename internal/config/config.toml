@@ -174,7 +174,7 @@ down = "ctrl+n"
 top = "home"
 bottom = "end"
 
-# style = { foreground = "", background = "", attributes = "" or [""] }
+# style = { foreground = "", background = "", attributes = "" or ["",""],  underline = "", underline_color = "" }
 [theme.title]
 alignment = "left"                                           # `"left"`, `"center"`, or `"right"`.
 normal_style = { attributes = "dim" }
@@ -214,7 +214,7 @@ reply_indicator = ">"
 forwarded_indicator = "<"
 spoil_character = "▒"
 
-mention_style = { foreground = "blue" }
+mention_style = { foreground = "blue", attributes = "bold" }
 emoji_style = { foreground = "green" }
 url_style = { foreground = "blue" }
 attachment_style = { foreground = "yellow" }
