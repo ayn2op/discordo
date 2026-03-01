@@ -41,46 +41,69 @@ func (sw *StyleWrapper) UnmarshalTOML(v any) error {
 		return errInvalidType
 	}
 
+	// Reset on new styles
+	sw.Style = tcell.StyleDefault
+
 	for key, val := range m {
 		switch key {
 		case "foreground":
-			s, ok := val.(string)
-			if !ok {
-				continue
+			if s, ok := val.(string); ok {
+				sw.Style = sw.Foreground(tcell.GetColor(s))
 			}
-
-			color := tcell.GetColor(s)
-			sw.Style = sw.Foreground(color)
 		case "background":
-			s, ok := val.(string)
-			if !ok {
-				continue
+			if s, ok := val.(string); ok {
+				sw.Style = sw.Background(tcell.GetColor(s))
 			}
-
-			color := tcell.GetColor(s)
-			sw.Style = sw.Background(color)
 		case "attributes":
-			var attrs tcell.AttrMask
 			switch val := val.(type) {
 			case string:
-				attrs |= stringToAttrMask(val)
+				sw.parseAttr(val)
 			case []any:
 				for _, attr := range val {
-					s, ok := attr.(string)
-					if !ok {
-						continue
+					if s, ok := attr.(string); ok {
+						sw.parseAttr(s)
 					}
-
-					attrs |= stringToAttrMask(s)
 				}
 
 			}
-
-			sw.Style = sw.Attributes(attrs)
+		case "underline":
+			if s, ok := val.(string); ok {
+				switch s {
+				case "": sw.Style = sw.Underline(tcell.UnderlineStyleNone)
+				case "solid": sw.Style = sw.Underline(tcell.UnderlineStyleSolid)
+				case "double": sw.Style = sw.Underline(tcell.UnderlineStyleDouble)
+				case "curly": sw.Style = sw.Underline(tcell.UnderlineStyleCurly)
+				case "dotted": sw.Style = sw.Underline(tcell.UnderlineStyleDotted)
+				case "dashed": sw.Style = sw.Underline(tcell.UnderlineStyleDashed)
+				}
+			}
+		case "underline_color":
+			if s, ok := val.(string); ok {
+				sw.Style = sw.Underline(tcell.GetColor(s))
+			}
 		}
 	}
 
 	return nil
+}
+
+func (sw *StyleWrapper) parseAttr(s string) {
+	switch s {
+	case "underline":
+		sw.Style = sw.Underline(true)
+	case "bold":
+		sw.Style = sw.Bold(true)
+	case "blink":
+		sw.Style = sw.Blink(true)
+	case "reverse":
+		sw.Style = sw.Reverse(true)
+	case "dim":
+		sw.Style = sw.Dim(true)
+	case "italic":
+		sw.Style = sw.Italic(true)
+	case "strikethrough":
+		sw.Style = sw.StrikeThrough(true)
+	}
 }
 
 type BorderSetWrapper struct{ tview.BorderSet }
@@ -236,22 +259,3 @@ type (
 		Help         HelpTheme         `toml:"help"`
 	}
 )
-
-func stringToAttrMask(s string) tcell.AttrMask {
-	switch s {
-	case "bold":
-		return tcell.AttrBold
-	case "blink":
-		return tcell.AttrBlink
-	case "reverse":
-		return tcell.AttrReverse
-	case "dim":
-		return tcell.AttrDim
-	case "italic":
-		return tcell.AttrItalic
-	case "strikethrough":
-		return tcell.AttrStrikeThrough
-	default:
-		return tcell.AttrNone
-	}
-}
