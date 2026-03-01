@@ -197,6 +197,15 @@ auto_expand_folders = true
 graphics = true
 graphics_color = "default"
 
+# Guilds tree indentation for different item types
+[theme.guilds_tree.indents]
+dm = 2
+group_dm = 1
+guild = 2      # server inside a folder
+category = 1
+channel = 2
+forum = 2
+
 [theme.scroll_bar]
 visibility = "auto"
 # "minimal", "box_drawing", or "unicode"

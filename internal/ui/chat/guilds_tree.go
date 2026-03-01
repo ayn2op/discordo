@@ -193,7 +193,11 @@ func (gt *guildsTree) getChannelNodeStyle(channelID discord.ChannelID) tcell.Sty
 }
 
 func (gt *guildsTree) createGuildNode(n *tview.TreeNode, guild discord.Guild) {
-	guildNode := tview.NewTreeNode(guild.Name).SetReference(guild.ID).SetExpandable(true).SetExpanded(false)
+	guildNode := tview.NewTreeNode(guild.Name).
+		SetReference(guild.ID).
+		SetExpandable(true).
+		SetExpanded(false).
+		SetIndent(gt.cfg.Theme.GuildsTree.Indents.Guild)
 	gt.setNodeLineStyle(guildNode, gt.getGuildNodeStyle(guild.ID))
 	n.AddChild(guildNode)
 	gt.guildNodeByID[guild.ID] = guildNode
@@ -205,12 +209,24 @@ func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Ch
 	}
 
 	channelNode := tview.NewTreeNode(ui.ChannelToString(channel, gt.cfg.Icons, gt.chatView.state)).SetReference(channel.ID)
-	if channel.Type == discord.GuildForum {
-		channelNode.SetExpandable(true).SetExpanded(false)
-	}
 	gt.setNodeLineStyle(channelNode, gt.getChannelNodeStyle(channel.ID))
+	switch channel.Type {
+	case discord.DirectMessage:
+		channelNode.SetIndent(gt.cfg.Theme.GuildsTree.Indents.DM)
+	case discord.GroupDM:
+		channelNode.SetIndent(gt.cfg.Theme.GuildsTree.Indents.GroupDM)
+	case discord.GuildCategory:
+		channelNode.SetIndent(gt.cfg.Theme.GuildsTree.Indents.Category)
+		channelNode.SetExpandable(true).SetExpanded(true)
+	case discord.GuildForum:
+		channelNode.SetIndent(gt.cfg.Theme.GuildsTree.Indents.Forum)
+		channelNode.SetExpandable(true).SetExpanded(false)
+	default:
+		channelNode.SetIndent(gt.cfg.Theme.GuildsTree.Indents.Channel)
+	}
 	node.AddChild(channelNode)
 	gt.channelNodeByID[channel.ID] = channelNode
+	gt.setNodeLineStyle(channelNode, gt.getChannelNodeStyle(channel.ID))
 }
 
 func (gt *guildsTree) setNodeLineStyle(node *tview.TreeNode, style tcell.Style) {
@@ -283,7 +299,7 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 	case discord.ChannelID:
 		channel, err := gt.chatView.state.Cabinet.Channel(ref)
 		if err != nil {
-			slog.Error("failed to get channel from state", "channel_id", ref)
+			slog.Error("failed to get channel from state", "err", err, "channel_id", ref)
 			return
 		}
 
