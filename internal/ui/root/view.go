@@ -16,6 +16,8 @@ import (
 	"github.com/gdamore/tcell/v3"
 )
 
+const tokenEnvVarKey = "DISCORDO_TOKEN"
+
 type View struct {
 	*tview.Box
 	app   *tview.Application
@@ -41,7 +43,7 @@ func NewView(cfg *config.Config) *View {
 }
 
 func (v *View) Run() error {
-	token := os.Getenv("DISCORDO_TOKEN")
+	token := os.Getenv(tokenEnvVarKey)
 	if token == "" {
 		t, err := keyring.GetToken()
 		if err != nil {
@@ -90,7 +92,6 @@ func (v *View) showLoginView() {
 		}
 	})
 	v.inner = loginForm
-	v.MarkDirty()
 	v.app.SetFocus(v)
 }
 
@@ -100,14 +101,8 @@ func (v *View) showChatView(token string) error {
 		return err
 	}
 	v.inner = v.chat
-	v.MarkDirty()
 	v.app.SetFocus(v)
 	return nil
-}
-
-func (v *View) quit() {
-	v.closeChatViewState()
-	v.app.Stop()
 }
 
 func (v *View) closeChatViewState() {
@@ -128,19 +123,20 @@ func (v *View) Draw(screen tcell.Screen) {
 	v.inner.Draw(screen)
 }
 
-func (v *View) InputHandler(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
+func (v *View) InputHandler(event *tcell.EventKey) tview.Command {
 	switch {
 	case keybind.Matches(event, v.cfg.Keybinds.Suspend.Keybind):
 		v.suspend()
-		return
+		return tview.ConsumeEventCommand{}
 	case keybind.Matches(event, v.cfg.Keybinds.Quit.Keybind):
-		v.quit()
-		return
+		v.closeChatViewState()
+		return tview.QuitCommand{}
 	}
 
 	if v.inner != nil {
-		v.inner.InputHandler(event, setFocus)
+		return v.inner.InputHandler(event)
 	}
+	return nil
 }
 
 func (v *View) Focus(delegate func(p tview.Primitive)) {
@@ -165,33 +161,16 @@ func (v *View) Blur() {
 	v.Box.Blur()
 }
 
-func (v *View) MouseHandler(action tview.MouseAction, event *tcell.EventMouse, setFocus func(p tview.Primitive)) (consumed bool, capture tview.Primitive) {
+func (v *View) MouseHandler(action tview.MouseAction, event *tcell.EventMouse) (tview.Primitive, tview.Command) {
 	if v.inner == nil {
-		return false, nil
+		return nil, nil
 	}
-	return v.inner.MouseHandler(action, event, setFocus)
+	return v.inner.MouseHandler(action, event)
 }
 
-func (v *View) PasteHandler(text string, setFocus func(p tview.Primitive)) {
+func (v *View) PasteHandler(text string) tview.Command {
 	if v.inner == nil {
-		return
+		return nil
 	}
-	v.inner.PasteHandler(text, setFocus)
-}
-
-func (v *View) IsDirty() bool {
-	if v.Box.IsDirty() {
-		return true
-	}
-	if v.inner == nil {
-		return false
-	}
-	return v.inner.IsDirty()
-}
-
-func (v *View) MarkClean() {
-	v.Box.MarkClean()
-	if v.inner != nil {
-		v.inner.MarkClean()
-	}
+	return v.inner.PasteHandler(text)
 }

@@ -377,41 +377,36 @@ func (gt *guildsTree) collapseParentNode(node *tview.TreeNode) {
 		})
 }
 
-func (gt *guildsTree) handleInput(event *tcell.EventKey) *tcell.EventKey {
+func (gt *guildsTree) InputHandler(event *tcell.EventKey) tview.Command {
+	consume := tview.ConsumeEventCommand{}
+	consumeRedraw := tview.BatchCommand{tview.RedrawCommand{}, tview.ConsumeEventCommand{}}
+	handler := gt.TreeView.InputHandler
+
 	switch {
 	case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.CollapseParentNode.Keybind):
 		gt.collapseParentNode(gt.GetCurrentNode())
-		return nil
+		return consumeRedraw
 	case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.MoveToParentNode.Keybind):
-		return tcell.NewEventKey(tcell.KeyRune, "K", tcell.ModNone)
-
+		return handler(tcell.NewEventKey(tcell.KeyRune, "K", tcell.ModNone))
 	case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.Up.Keybind):
-		return tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone)
+		return handler(tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone))
 	case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.Down.Keybind):
-		return tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone)
+		return handler(tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone))
 	case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.Top.Keybind):
 		gt.Move(gt.GetRowCount() * -1)
-		// return tcell.NewEventKey(tcell.KeyHome, 0, tcell.ModNone)
+		return consumeRedraw
 	case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.Bottom.Keybind):
 		gt.Move(gt.GetRowCount())
-		// return tcell.NewEventKey(tcell.KeyEnd, 0, tcell.ModNone)
-
+		return consumeRedraw
 	case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.SelectCurrent.Keybind):
-		return tcell.NewEventKey(tcell.KeyEnter, "", tcell.ModNone)
-
+		return handler(tcell.NewEventKey(tcell.KeyEnter, "", tcell.ModNone))
 	case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.YankID.Keybind):
 		gt.yankID()
+		return consume
 	}
 
-	return nil
-}
-
-func (gt *guildsTree) InputHandler(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
-	event = gt.handleInput(event)
-	if event == nil {
-		return
-	}
-	gt.TreeView.InputHandler(event, setFocus)
+	// Do not fall through to TreeView defaults for unmatched keys.
+	return consume
 }
 
 func (gt *guildsTree) yankID() {
