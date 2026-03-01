@@ -224,8 +224,8 @@ func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Ch
 		channelNode.SetIndent(gt.cfg.Theme.GuildsTree.Indents.Category)
 		channelNode.SetExpandable(true).SetExpanded(true)
 	case discord.GuildForum:
+		channelNode.SetIndent(gt.cfg.Theme.GuildsTree.Indents.Forum)
 		channelNode.SetExpandable(true).SetExpanded(false)
-		fallthrough
 	default:
 		channelNode.SetIndent(gt.cfg.Theme.GuildsTree.Indents.Channel)
 	}

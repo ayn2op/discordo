@@ -204,6 +204,7 @@ group_dm = 1
 guild = 2      # server inside a folder
 category = 1
 channel = 2
+forum = 2
 
 [theme.scroll_bar]
 visibility = "auto"
