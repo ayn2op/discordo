@@ -73,7 +73,7 @@ func ChannelToString(channel discord.Channel, icons config.Icons, state *ningen.
 		recipients := make([]string, len(channel.DMRecipients))
 		for i, r := range channel.DMRecipients {
 			if state != nil && channel.Type == discord.DirectMessage {
-				if rel, ok := state.RelationshipState.FullRelationship(r.ID); ok {
+				if rel, ok := state.RelationshipState.FullRelationship(r.ID); ok && rel.Type == discord.FriendRelationship {
 					if rel.Nickname != nil && *rel.Nickname != "" {
 						recipients[i] = *rel.Nickname
 						continue
