@@ -169,7 +169,7 @@ down = "ctrl+n"
 top = "home"
 bottom = "end"
 
-# style = { foreground = "", background = "", attributes = "" or ["",""],  underline = "", underline_color = "" }
+# style = { foreground = "", background = "", attributes = "" or [""] }
 [theme.title]
 alignment = "left"                                           # `"left"`, `"center"`, or `"right"`.
 normal_style = { attributes = "dim" }
