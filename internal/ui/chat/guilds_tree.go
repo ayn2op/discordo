@@ -204,34 +204,34 @@ func (gt *guildsTree) createGuildNode(n *tview.TreeNode, guild discord.Guild) {
 }
 
 func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Channel) {
-	if channel.Type != discord.DirectMessage && channel.Type != discord.GroupDM && channel.Type != discord.GuildCategory && !gt.chatView.state.HasPermissions(channel.ID, discord.PermissionViewChannel) {
-		return
+	switch channel.Type {
+	case discord.DirectMessage, discord.GroupDM, discord.GuildCategory, discord.GuildForum:
+		break
+	default:
+		if !gt.chatView.state.HasPermissions(channel.ID, discord.PermissionViewChannel) {
+			return
+		}
 	}
 
 	channelNode := tview.NewTreeNode(ui.ChannelToString(channel, gt.cfg.Icons, gt.chatView.state)).SetReference(channel.ID)
-	if channel.Type == discord.GuildForum {
-		channelNode.SetExpandable(true).SetExpanded(false)
-	}
 	gt.setNodeLineStyle(channelNode, gt.getChannelNodeStyle(channel.ID))
 	switch channel.Type {
 	case discord.DirectMessage:
 		channelNode.SetIndent(gt.cfg.Theme.GuildsTree.Indents.DM)
 	case discord.GroupDM:
 		channelNode.SetIndent(gt.cfg.Theme.GuildsTree.Indents.GroupDM)
+	case discord.GuildCategory:
+		channelNode.SetIndent(gt.cfg.Theme.GuildsTree.Indents.Category)
+		channelNode.SetExpandable(true).SetExpanded(true)
+	case discord.GuildForum:
+		channelNode.SetExpandable(true).SetExpanded(false)
+		fallthrough
 	default:
 		channelNode.SetIndent(gt.cfg.Theme.GuildsTree.Indents.Channel)
 	}
 	node.AddChild(channelNode)
 	gt.channelNodeByID[channel.ID] = channelNode
-}
-
-func (gt *guildsTree) createCategoryNode(node *tview.TreeNode, channel discord.Channel) {
-	categoryNode := tview.NewTreeNode(channel.Name).
-		SetReference(channel.ID).
-		SetIndent(gt.cfg.Theme.GuildsTree.Indents.Category)
-	gt.setNodeLineStyle(categoryNode, gt.getChannelNodeStyle(channel.ID))
-	node.AddChild(categoryNode)
-	gt.channelNodeByID[channel.ID] = categoryNode
+	gt.setNodeLineStyle(channelNode, gt.getChannelNodeStyle(channel.ID))
 }
 
 func (gt *guildsTree) setNodeLineStyle(node *tview.TreeNode, style tcell.Style) {
@@ -265,7 +265,7 @@ func (gt *guildsTree) createChannelNodes(node *tview.TreeNode, channels []discor
 	for _, channel := range channels {
 		if channel.Type == discord.GuildCategory {
 			if _, ok := hasChildByParentID[channel.ID]; ok {
-				gt.createCategoryNode(node, channel)
+				gt.createChannelNode(node, channel)
 			}
 		}
 	}
