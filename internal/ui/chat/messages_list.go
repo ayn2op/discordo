@@ -52,6 +52,8 @@ type messagesList struct {
 	// itemByID caches unselected message TextViews.
 	itemByID map[discord.MessageID]*tview.TextView
 
+	lastCursor int
+
 	attachmentsPicker *attachmentsPicker
 
 	fetchingMembers struct {
@@ -84,6 +86,8 @@ func newMessagesList(cfg *config.Config, chatView *View) *messagesList {
 		chatView: chatView,
 		renderer: markdown.NewRenderer(cfg),
 		itemByID: make(map[discord.MessageID]*tview.TextView),
+
+		lastCursor: -1,
 	}
 	ml.attachmentsPicker = newAttachmentsPicker(cfg, chatView)
 
@@ -173,27 +177,51 @@ func (ml *messagesList) buildItem(index int, cursor int) tview.ListItem {
 	}
 
 	message := ml.messages[row.messageIndex]
-	if index == cursor {
-		return tview.NewTextView().
-			SetWrap(true).
-			SetWordWrap(true).
-			SetLines(ml.renderMessage(message, ml.cfg.Theme.MessagesList.SelectedMessageStyle.Style))
-	}
-
 	item, ok := ml.itemByID[message.ID]
 	if !ok {
 		item = tview.NewTextView().
 			SetWrap(true).
-			SetWordWrap(true).
-			SetLines(ml.renderMessage(message, ml.cfg.Theme.MessagesList.MessageStyle.Style))
+			SetWordWrap(true)
+		ml.setMessageText(item, message, index == cursor)
 		ml.itemByID[message.ID] = item
+		return item
 	}
+
+	if index == cursor {
+		ml.setMessageText(item, message, true)
+	} else if index == ml.lastCursor {
+		ml.setMessageText(item, message, false)
+	}
+
 	return item
 }
 
-func (ml *messagesList) renderMessage(message discord.Message, baseStyle tcell.Style) []tview.Line {
+func (ml *messagesList) setMessageText(tv *tview.TextView, msg discord.Message, isCurrent bool) {
+	var style tcell.Style
+	if isCurrent {
+		style = ml.cfg.Theme.MessagesList.SelectedMessageStyle.Style
+	} else {
+		style = ml.cfg.Theme.MessagesList.MessageStyle.Style
+	}
+	switch ml.cfg.ShowSpoiler {
+	case "moderated":
+		show := isCurrent
+		if !show {
+			if sel := ml.chatView.SelectedChannel(); sel != nil {
+				show = ml.chatView.state.HasPermissions(sel.ID, discord.PermissionManageMessages)
+			}
+		}
+		tv.SetLines(ml.renderMessage(msg, style, show))
+	case "selected":
+		tv.SetLines(ml.renderMessage(msg, style, isCurrent))
+	default:
+		tv.SetLines(ml.renderMessage(msg, style, true))
+	}
+}
+
+func (ml *messagesList) renderMessage(message discord.Message, baseStyle tcell.Style, showSpoiler bool) []tview.Line {
 	builder := tview.NewLineBuilder()
-	ml.writeMessage(builder, message, baseStyle)
+	ml.writeMessage(builder, message, baseStyle, showSpoiler)
 	return builder.Finish()
 }
 
@@ -289,6 +317,7 @@ func (ml *messagesList) Cursor() int {
 
 // SetCursor selects a message index and maps it to the corresponding row.
 func (ml *messagesList) SetCursor(index int) {
+	ml.lastCursor = ml.messageToRowIndex(ml.Cursor())
 	ml.List.SetCursor(ml.messageToRowIndex(index))
 }
 
@@ -332,7 +361,7 @@ func (ml *messagesList) nearestMessageRowIndex(rowIndex int) int {
 	return -1
 }
 
-func (ml *messagesList) writeMessage(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style) {
+func (ml *messagesList) writeMessage(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style, showSpoiler bool) {
 	if ml.cfg.HideBlockedUsers {
 		isBlocked := ml.chatView.state.UserIsBlocked(message.Author.ID)
 		if isBlocked {
@@ -344,16 +373,16 @@ func (ml *messagesList) writeMessage(builder *tview.LineBuilder, message discord
 	switch message.Type {
 	case discord.DefaultMessage:
 		if message.Reference != nil && message.Reference.Type == discord.MessageReferenceTypeForward {
-			ml.drawForwardedMessage(builder, message, baseStyle)
+			ml.drawForwardedMessage(builder, message, baseStyle, showSpoiler)
 		} else {
-			ml.drawDefaultMessage(builder, message, baseStyle)
+			ml.drawDefaultMessage(builder, message, baseStyle, showSpoiler)
 		}
 	case discord.GuildMemberJoinMessage:
 		ml.drawTimestamps(builder, message.Timestamp, baseStyle)
 		ml.drawAuthor(builder, message, baseStyle)
 		builder.Write("joined the server.", baseStyle)
 	case discord.InlinedReplyMessage:
-		ml.drawReplyMessage(builder, message, baseStyle)
+		ml.drawReplyMessage(builder, message, baseStyle, showSpoiler)
 	case discord.ChannelPinnedMessage:
 		ml.drawPinnedMessage(builder, message, baseStyle)
 	default:
@@ -407,11 +436,11 @@ func (ml *messagesList) memberForMessage(message discord.Message) *discord.Membe
 	return member
 }
 
-func (ml *messagesList) drawContent(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style) {
+func (ml *messagesList) drawContent(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style, showSpoiler bool) {
 	c := []byte(message.Content)
 	if ml.chatView.cfg.Markdown.Enabled {
 		root := discordmd.ParseWithMessage(c, *ml.chatView.state.Cabinet, &message, false)
-		lines := ml.renderer.RenderLines(c, root, baseStyle)
+		lines := ml.renderer.RenderLines(c, root, baseStyle, showSpoiler)
 		if builder.HasCurrentLine() {
 			startsWithCodeBlock := false
 			if first := root.FirstChild(); first != nil {
@@ -436,7 +465,7 @@ func (ml *messagesList) drawContent(builder *tview.LineBuilder, message discord.
 	}
 }
 
-func (ml *messagesList) drawSnapshotContent(builder *tview.LineBuilder, parent discord.Message, snapshot discord.MessageSnapshotMessage, baseStyle tcell.Style) {
+func (ml *messagesList) drawSnapshotContent(builder *tview.LineBuilder, parent discord.Message, snapshot discord.MessageSnapshotMessage, baseStyle tcell.Style, showSpoiler bool) {
 	// Convert discord.MessageSnapshotMessage to discord.Message with common fields.
 	message := discord.Message{
 		Type:            snapshot.Type,
@@ -453,16 +482,16 @@ func (ml *messagesList) drawSnapshotContent(builder *tview.LineBuilder, parent d
 		ChannelID:       parent.ChannelID,
 		GuildID:         parent.GuildID,
 	}
-	ml.drawContent(builder, message, baseStyle)
+	ml.drawContent(builder, message, baseStyle, showSpoiler)
 }
 
-func (ml *messagesList) drawDefaultMessage(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style) {
+func (ml *messagesList) drawDefaultMessage(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style, showSpoiler bool) {
 	if ml.cfg.Timestamps.Enabled {
 		ml.drawTimestamps(builder, message.Timestamp, baseStyle)
 	}
 
 	ml.drawAuthor(builder, message, baseStyle)
-	ml.drawContent(builder, message, baseStyle)
+	ml.drawContent(builder, message, baseStyle, showSpoiler)
 
 	if message.EditedTimestamp.IsValid() {
 		dimStyle := baseStyle.Dim(true)
@@ -480,16 +509,16 @@ func (ml *messagesList) drawDefaultMessage(builder *tview.LineBuilder, message d
 	}
 }
 
-func (ml *messagesList) drawForwardedMessage(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style) {
+func (ml *messagesList) drawForwardedMessage(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style, showSpoiler bool) {
 	dimStyle := baseStyle.Dim(true)
 	ml.drawTimestamps(builder, message.Timestamp, baseStyle)
 	ml.drawAuthor(builder, message, baseStyle)
 	builder.Write(ml.cfg.Theme.MessagesList.ForwardedIndicator+" ", dimStyle)
-	ml.drawSnapshotContent(builder, message, message.MessageSnapshots[0].Message, baseStyle)
+	ml.drawSnapshotContent(builder, message, message.MessageSnapshots[0].Message, baseStyle, showSpoiler)
 	builder.Write(" ("+ml.formatTimestamp(message.MessageSnapshots[0].Message.Timestamp)+") ", dimStyle)
 }
 
-func (ml *messagesList) drawReplyMessage(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style) {
+func (ml *messagesList) drawReplyMessage(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style, showSpoiler bool) {
 	dimStyle := baseStyle.Dim(true)
 	// indicator
 	builder.Write(ml.cfg.Theme.MessagesList.ReplyIndicator+" ", dimStyle)
@@ -497,14 +526,14 @@ func (ml *messagesList) drawReplyMessage(builder *tview.LineBuilder, message dis
 	if m := message.ReferencedMessage; m != nil {
 		m.GuildID = message.GuildID
 		ml.drawAuthor(builder, *m, dimStyle)
-		ml.drawContent(builder, *m, dimStyle)
+		ml.drawContent(builder, *m, dimStyle, false)
 	} else {
 		builder.Write("Original message was deleted", dimStyle)
 	}
 
 	builder.NewLine()
 	// main
-	ml.drawDefaultMessage(builder, message, baseStyle)
+	ml.drawDefaultMessage(builder, message, baseStyle, showSpoiler)
 }
 
 func (ml *messagesList) drawPinnedMessage(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style) {
