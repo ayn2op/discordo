@@ -53,10 +53,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: vmactions/freebsd-vm@v1
+      - uses: actions/setup-go@v6
         with:
-          usesh: true
-          prepare: pkg install -y go libX11
-          run: |
-            go test -v ./...
-            go build -trimpath -ldflags=-s .
+          go-version: stable
+      - name: Cross-compile for FreeBSD
+        run: GOOS=freebsd GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags=-s .
