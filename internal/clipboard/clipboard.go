@@ -46,16 +46,15 @@ func Read(t Format) []byte {
 	return data
 }
 
-func Write(t Format, buf []byte) <-chan struct{} {
+func Write(t Format, buf []byte) {
 	if wayland {
 		waylandWrite(t, buf)
-		return nil
+		return
 	}
 	f := formatToNative(t)
 	if _, err := f.Write(buf); err != nil {
 		slog.Error("failed to write to clipboard", "err", err)
 	}
-	return nil
 }
 
 func waylandRead(t Format) []byte {
