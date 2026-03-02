@@ -123,18 +123,25 @@ func (v *View) Draw(screen tcell.Screen) {
 	v.inner.Draw(screen)
 }
 
-func (v *View) InputHandler(event *tcell.EventKey) tview.Command {
-	switch {
-	case keybind.Matches(event, v.cfg.Keybinds.Suspend.Keybind):
-		v.suspend()
-		return tview.ConsumeEventCommand{}
-	case keybind.Matches(event, v.cfg.Keybinds.Quit.Keybind):
-		v.closeChatViewState()
-		return tview.QuitCommand{}
-	}
+func (v *View) HandleEvent(event tcell.Event) tview.Command {
+	switch event := event.(type) {
+	case *tview.KeyEvent:
+		switch {
+		case keybind.Matches(event, v.cfg.Keybinds.Suspend.Keybind):
+			v.suspend()
+			return tview.ConsumeEventCommand{}
+		case keybind.Matches(event, v.cfg.Keybinds.Quit.Keybind):
+			v.closeChatViewState()
+			return tview.QuitCommand{}
+		}
 
-	if v.inner != nil {
-		return v.inner.InputHandler(event)
+		if v.inner != nil {
+			return v.inner.HandleEvent(event)
+		}
+	case *tview.MouseEvent, *tview.PasteEvent:
+		if v.inner != nil {
+			return v.inner.HandleEvent(event)
+		}
 	}
 	return nil
 }
@@ -159,18 +166,4 @@ func (v *View) Blur() {
 		v.inner.Blur()
 	}
 	v.Box.Blur()
-}
-
-func (v *View) MouseHandler(action tview.MouseAction, event *tcell.EventMouse) (tview.Primitive, tview.Command) {
-	if v.inner == nil {
-		return nil, nil
-	}
-	return v.inner.MouseHandler(action, event)
-}
-
-func (v *View) PasteHandler(text string) tview.Command {
-	if v.inner == nil {
-		return nil
-	}
-	return v.inner.PasteHandler(text)
 }
