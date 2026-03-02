@@ -10,6 +10,7 @@ require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/alecthomas/chroma/v2 v2.23.1
 	github.com/andybalholm/brotli v1.2.0
+	github.com/aymanbagabas/go-nativeclipboard v0.1.3
 	github.com/ayn2op/tview v0.0.0-20260303031938-2b5070cf10d5
 	github.com/deckarep/gosx-notifier v0.0.0-20180201035817-e127226297fb
 	github.com/diamondburned/arikawa/v3 v3.6.1-0.20260226015332-783a3e8e8e86
@@ -26,7 +27,6 @@ require (
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/yuin/goldmark v1.7.16
 	github.com/zalando/go-keyring v0.2.6
-	golang.design/x/clipboard v0.7.1
 )
 
 require (
@@ -36,6 +36,7 @@ require (
 	github.com/danieljoos/wincred v1.2.3 // indirect
 	github.com/dchest/jsmin v1.0.0 // indirect
 	github.com/dlclark/regexp2 v1.11.5 // indirect
+	github.com/ebitengine/purego v0.10.0-alpha.4 // indirect
 	github.com/esiqveland/notify v0.13.3 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
@@ -53,9 +54,7 @@ require (
 	github.com/tadvi/systray v0.0.0-20190226123456-11a2b8fa57af // indirect
 	github.com/twmb/murmur3 v1.1.8 // indirect
 	go4.org v0.0.0-20260112195520-a5071408f32f // indirect
-	golang.org/x/exp/shiny v0.0.0-20260218203240-3dfff04db8fa // indirect
 	golang.org/x/image v0.36.0 // indirect
-	golang.org/x/mobile v0.0.0-20260217195705-b56b3793a9c4 // indirect
 	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/term v0.40.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
