@@ -11,7 +11,7 @@ import (
 	"github.com/ayn2op/discordo/internal/keyring"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
-	"golang.design/x/clipboard"
+	"github.com/ayn2op/discordo/internal/clipboard"
 )
 
 const (
