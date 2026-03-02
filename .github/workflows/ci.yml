@@ -57,4 +57,4 @@ jobs:
         with:
           go-version: stable
       - name: Cross-compile for FreeBSD
-        run: CGO_ENABLED=1 GOOS=freebsd GOARCH=amd64 CC=clang go build -trimpath -ldflags=-s .
+        run: CGO_ENABLED=0 GOOS=freebsd GOARCH=amd64 go build -gcflags="github.com/ebitengine/purego/internal/fakecgo=-std" -trimpath -ldflags=-s .
