@@ -49,6 +49,10 @@ jobs:
         run: |
           gh api --method POST -H "Accept: application/vnd.github+json" -f "event_type=discordo-ci-completed" /repos/vvirtues/bucket/dispatches
 
+  # FreeBSD cross-compilation requires CGO_ENABLED=0 because GitHub runners
+  # don't have FreeBSD system headers. Any new dependency that requires CGO
+  # will break this build. purego's fakecgo needs -gcflags=-std on FreeBSD;
+  # see https://github.com/ebitengine/purego#supported-platforms
   build-freebsd:
     runs-on: ubuntu-latest
     steps:
