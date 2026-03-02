@@ -222,48 +222,53 @@ func (v *View) focusNext() {
 	}
 }
 
-func (v *View) InputHandler(event *tcell.EventKey) tview.Command {
-	consume := tview.BatchCommand{tview.RedrawCommand{}, tview.ConsumeEventCommand{}}
+func (v *View) HandleEvent(event tcell.Event) tview.Command {
+	switch event := event.(type) {
+	case *tview.KeyEvent:
+		consume := tview.BatchCommand{tview.RedrawCommand{}, tview.ConsumeEventCommand{}}
 
-	switch {
-	case keybind.Matches(event, v.cfg.Keybinds.ToggleHelp.Keybind):
-		v.help.SetShowAll(!v.help.ShowAll())
-		v.updateHelpHeight()
-		return consume
-	case keybind.Matches(event, v.cfg.Keybinds.FocusGuildsTree.Keybind):
-		v.messageInput.removeMentionsList()
-		v.focusGuildsTree()
-		return consume
-	case keybind.Matches(event, v.cfg.Keybinds.FocusMessagesList.Keybind):
-		v.messageInput.removeMentionsList()
-		v.app.SetFocus(v.messagesList)
-		return consume
-	case keybind.Matches(event, v.cfg.Keybinds.FocusMessageInput.Keybind):
-		v.focusMessageInput()
-		return consume
-	case keybind.Matches(event, v.cfg.Keybinds.FocusPrevious.Keybind):
-		v.focusPrevious()
-		return consume
-	case keybind.Matches(event, v.cfg.Keybinds.FocusNext.Keybind):
-		v.focusNext()
-		return consume
-	case keybind.Matches(event, v.cfg.Keybinds.Logout.Keybind):
-		if v.onLogout != nil {
-			v.onLogout()
+		switch {
+		case keybind.Matches(event, v.cfg.Keybinds.ToggleHelp.Keybind):
+			v.help.SetShowAll(!v.help.ShowAll())
+			v.updateHelpHeight()
+			return consume
+		case keybind.Matches(event, v.cfg.Keybinds.FocusGuildsTree.Keybind):
+			v.messageInput.removeMentionsList()
+			v.focusGuildsTree()
+			return consume
+		case keybind.Matches(event, v.cfg.Keybinds.FocusMessagesList.Keybind):
+			v.messageInput.removeMentionsList()
+			v.app.SetFocus(v.messagesList)
+			return consume
+		case keybind.Matches(event, v.cfg.Keybinds.FocusMessageInput.Keybind):
+			v.focusMessageInput()
+			return consume
+		case keybind.Matches(event, v.cfg.Keybinds.FocusPrevious.Keybind):
+			v.focusPrevious()
+			return consume
+		case keybind.Matches(event, v.cfg.Keybinds.FocusNext.Keybind):
+			v.focusNext()
+			return consume
+		case keybind.Matches(event, v.cfg.Keybinds.Logout.Keybind):
+			if v.onLogout != nil {
+				v.onLogout()
+			}
+			if err := keyring.DeleteToken(); err != nil {
+				slog.Error("failed to delete token from keyring", "err", err)
+			}
+			return consume
+		case keybind.Matches(event, v.cfg.Keybinds.ToggleGuildsTree.Keybind):
+			v.toggleGuildsTree()
+			return consume
+		case keybind.Matches(event, v.cfg.Keybinds.ToggleChannelsPicker.Keybind):
+			v.togglePicker()
+			return consume
 		}
-		if err := keyring.DeleteToken(); err != nil {
-			slog.Error("failed to delete token from keyring", "err", err)
-		}
-		return consume
-	case keybind.Matches(event, v.cfg.Keybinds.ToggleGuildsTree.Keybind):
-		v.toggleGuildsTree()
-		return consume
-	case keybind.Matches(event, v.cfg.Keybinds.ToggleChannelsPicker.Keybind):
-		v.togglePicker()
-		return consume
+
+		cmd := v.Layers.HandleEvent(event)
+		return v.consumeLayerCommands(cmd)
 	}
-
-	cmd := v.Layers.InputHandler(event)
+	cmd := v.Layers.HandleEvent(event)
 	return v.consumeLayerCommands(cmd)
 }
 

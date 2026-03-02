@@ -63,15 +63,19 @@ func newQRLogin(app *tview.Application, cfg *config.Config, done func(token stri
 	return q
 }
 
-func (q *qrLogin) InputHandler(event *tcell.EventKey) tview.Command {
-	if event.Key() == tcell.KeyEsc {
-		q.stop()
-		if q.done != nil {
-			q.done("", nil)
+func (q *qrLogin) HandleEvent(event tcell.Event) tview.Command {
+	switch event := event.(type) {
+	case *tview.KeyEvent:
+		if event.Key() == tcell.KeyEsc {
+			q.stop()
+			if q.done != nil {
+				q.done("", nil)
+			}
+			return tview.BatchCommand{tview.RedrawCommand{}, tview.ConsumeEventCommand{}}
 		}
-		return tview.BatchCommand{tview.RedrawCommand{}, tview.ConsumeEventCommand{}}
+		return q.TextView.HandleEvent(event)
 	}
-	return q.TextView.InputHandler(event)
+	return q.TextView.HandleEvent(event)
 }
 
 func (q *qrLogin) start() {
