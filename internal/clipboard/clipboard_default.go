@@ -1,11 +1,17 @@
-//go:build !linux
+//go:build !linux && !freebsd
 
 package clipboard
 
 import designClipb "golang.design/x/clipboard"
 
-var (
-	Init  = designClipb.Init
-	Read  = designClipb.Read
-	Write = designClipb.Write
-)
+func Init() error {
+	return designClipb.Init()
+}
+
+func Read(t Format) []byte {
+	return designClipb.Read(designClipb.Format(t))
+}
+
+func Write(t Format, buf []byte) <-chan struct{} {
+	return designClipb.Write(designClipb.Format(t), buf)
+}

@@ -1,10 +1,9 @@
 package clipboard
 
-import designClipb "golang.design/x/clipboard"
-
-type Format = designClipb.Format
+// Format represents the type of clipboard content.
+type Format int
 
 const (
-	FmtText  Format = designClipb.FmtText
-	FmtImage        = designClipb.FmtImage
+	FmtText  Format = iota // plain text
+	FmtImage               // image data
 )
