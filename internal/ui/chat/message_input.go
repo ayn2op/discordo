@@ -95,8 +95,7 @@ func (mi *messageInput) stopTypingTimer() {
 func (mi *messageInput) HandleEvent(event tcell.Event) tview.Command {
 	switch event := event.(type) {
 	case *tview.KeyEvent:
-		consume := tview.ConsumeEventCommand{}
-		consumeRedraw := tview.BatchCommand{tview.RedrawCommand{}, tview.ConsumeEventCommand{}}
+		redraw := tview.RedrawCommand{}
 		handler := mi.TextArea.HandleEvent
 		switch {
 		case keybind.Matches(event, mi.cfg.Keybinds.MessageInput.Paste.Keybind):
@@ -108,7 +107,7 @@ func (mi *messageInput) HandleEvent(event tcell.Event) tview.Command {
 			} else {
 				mi.send()
 			}
-			return consumeRedraw
+			return redraw
 		case keybind.Matches(event, mi.cfg.Keybinds.MessageInput.OpenEditor.Keybind):
 			var cmds tview.BatchCommand
 			mi.stopTabCompletion(func(next tview.Command) {
@@ -117,7 +116,7 @@ func (mi *messageInput) HandleEvent(event tcell.Event) tview.Command {
 				}
 			})
 			mi.editor()
-			cmds = append(cmds, consumeRedraw)
+			cmds = append(cmds, redraw)
 			return cmds
 		case keybind.Matches(event, mi.cfg.Keybinds.MessageInput.OpenFilePicker.Keybind):
 			var cmds tview.BatchCommand
@@ -127,7 +126,7 @@ func (mi *messageInput) HandleEvent(event tcell.Event) tview.Command {
 				}
 			})
 			mi.openFilePicker()
-			cmds = append(cmds, consumeRedraw)
+			cmds = append(cmds, redraw)
 			return cmds
 		case keybind.Matches(event, mi.cfg.Keybinds.MessageInput.Cancel.Keybind):
 			var cmds tview.BatchCommand
@@ -140,11 +139,11 @@ func (mi *messageInput) HandleEvent(event tcell.Event) tview.Command {
 			} else {
 				mi.reset()
 			}
-			cmds = append(cmds, consumeRedraw)
+			cmds = append(cmds, redraw)
 			return cmds
 		case keybind.Matches(event, mi.cfg.Keybinds.MessageInput.TabComplete.Keybind):
 			go mi.chatView.app.QueueUpdateDraw(func() { mi.tabComplete() })
-			return consume
+			return redraw
 		case keybind.Matches(event, mi.cfg.Keybinds.MessageInput.Undo.Keybind):
 			return handler(tcell.NewEventKey(tcell.KeyCtrlZ, "", tcell.ModNone))
 		}
@@ -166,16 +165,16 @@ func (mi *messageInput) HandleEvent(event tcell.Event) tview.Command {
 				switch {
 				case keybind.Matches(event, mi.cfg.Keybinds.MentionsList.Up.Keybind):
 					mi.mentionsList.HandleEvent(tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone))
-					return consumeRedraw
+					return redraw
 				case keybind.Matches(event, mi.cfg.Keybinds.MentionsList.Down.Keybind):
 					mi.mentionsList.HandleEvent(tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone))
-					return consumeRedraw
+					return redraw
 				case keybind.Matches(event, mi.cfg.Keybinds.MentionsList.Top.Keybind):
 					mi.mentionsList.HandleEvent(tcell.NewEventKey(tcell.KeyHome, "", tcell.ModNone))
-					return consumeRedraw
+					return redraw
 				case keybind.Matches(event, mi.cfg.Keybinds.MentionsList.Bottom.Keybind):
 					mi.mentionsList.HandleEvent(tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone))
-					return consumeRedraw
+					return redraw
 				}
 			}
 

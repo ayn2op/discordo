@@ -151,30 +151,29 @@ func (p *Picker) onInputChanged(text string) {
 func (p *Picker) HandleEvent(event tcell.Event) tview.Command {
 	switch event := event.(type) {
 	case *tview.KeyEvent:
-		consume := tview.BatchCommand{tview.RedrawCommand{}, tview.ConsumeEventCommand{}}
-
+		redraw := tview.RedrawCommand{}
 		if p.keyMap != nil {
 			switch {
 			case keybind.Matches(event, p.keyMap.Up):
 				p.list.HandleEvent(tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone))
-				return consume
+				return redraw
 			case keybind.Matches(event, p.keyMap.Down):
 				p.list.HandleEvent(tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone))
-				return consume
+				return redraw
 			case keybind.Matches(event, p.keyMap.Top):
 				p.list.HandleEvent(tcell.NewEventKey(tcell.KeyHome, "", tcell.ModNone))
-				return consume
+				return redraw
 			case keybind.Matches(event, p.keyMap.Bottom):
 				p.list.HandleEvent(tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone))
-				return consume
+				return redraw
 			case keybind.Matches(event, p.keyMap.Select):
 				p.onListSelected(p.list.Cursor())
-				return consume
+				return redraw
 			case keybind.Matches(event, p.keyMap.Cancel):
 				if p.onCancel != nil {
 					p.onCancel()
 				}
-				return consume
+				return redraw
 			}
 		}
 

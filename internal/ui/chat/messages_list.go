@@ -528,71 +528,68 @@ func (ml *messagesList) selectedMessage() (*discord.Message, error) {
 func (ml *messagesList) HandleEvent(event tcell.Event) tview.Command {
 	switch event := event.(type) {
 	case *tview.KeyEvent:
-		consume := tview.ConsumeEventCommand{}
-		consumeRedraw := tview.BatchCommand{tview.RedrawCommand{}, tview.ConsumeEventCommand{}}
-
+		redraw := tview.RedrawCommand{}
 		switch {
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ScrollUp.Keybind):
 			ml.ScrollUp()
-			return consumeRedraw
+			return redraw
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ScrollDown.Keybind):
 			ml.ScrollDown()
-			return consumeRedraw
+			return redraw
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ScrollTop.Keybind):
 			ml.ScrollToStart()
-			return consumeRedraw
+			return redraw
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ScrollBottom.Keybind):
 			ml.ScrollToEnd()
-			return consumeRedraw
+			return redraw
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Cancel.Keybind):
 			ml.clearSelection()
-			return consumeRedraw
+			return redraw
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectUp.Keybind):
 			ml.selectUp()
-			return consumeRedraw
+			return redraw
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectDown.Keybind):
 			ml.selectDown()
-			return consumeRedraw
+			return redraw
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectTop.Keybind):
 			ml.selectTop()
-			return consumeRedraw
+			return redraw
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectBottom.Keybind):
 			ml.selectBottom()
-			return consumeRedraw
+			return redraw
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectReply.Keybind):
 			ml.selectReply()
-			return consumeRedraw
+			return redraw
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.YankID.Keybind):
 			ml.yankID()
-			return consume
+			return nil
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.YankContent.Keybind):
 			ml.yankContent()
-			return consume
+			return nil
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.YankURL.Keybind):
 			ml.yankURL()
-			return consume
+			return nil
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Open.Keybind):
 			ml.open()
-			return consume
+			return nil
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Reply.Keybind):
 			ml.reply(false)
-			return consumeRedraw
+			return redraw
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ReplyMention.Keybind):
 			ml.reply(true)
-			return consumeRedraw
+			return redraw
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Edit.Keybind):
 			ml.edit()
-			return consumeRedraw
+			return redraw
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Delete.Keybind):
 			ml.delete()
-			return consumeRedraw
+			return redraw
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.DeleteConfirm.Keybind):
 			ml.confirmDelete()
-			return consumeRedraw
+			return redraw
 		}
-
 		// Do not fall through to List defaults for unmatched keys.
-		return consume
+		return nil
 	}
 	return ml.List.HandleEvent(event)
 }

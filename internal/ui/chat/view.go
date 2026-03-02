@@ -225,30 +225,29 @@ func (v *View) focusNext() {
 func (v *View) HandleEvent(event tcell.Event) tview.Command {
 	switch event := event.(type) {
 	case *tview.KeyEvent:
-		consume := tview.BatchCommand{tview.RedrawCommand{}, tview.ConsumeEventCommand{}}
-
+		redraw := tview.RedrawCommand{}
 		switch {
 		case keybind.Matches(event, v.cfg.Keybinds.ToggleHelp.Keybind):
 			v.help.SetShowAll(!v.help.ShowAll())
 			v.updateHelpHeight()
-			return consume
+			return redraw
 		case keybind.Matches(event, v.cfg.Keybinds.FocusGuildsTree.Keybind):
 			v.messageInput.removeMentionsList()
 			v.focusGuildsTree()
-			return consume
+			return redraw
 		case keybind.Matches(event, v.cfg.Keybinds.FocusMessagesList.Keybind):
 			v.messageInput.removeMentionsList()
 			v.app.SetFocus(v.messagesList)
-			return consume
+			return redraw
 		case keybind.Matches(event, v.cfg.Keybinds.FocusMessageInput.Keybind):
 			v.focusMessageInput()
-			return consume
+			return redraw
 		case keybind.Matches(event, v.cfg.Keybinds.FocusPrevious.Keybind):
 			v.focusPrevious()
-			return consume
+			return redraw
 		case keybind.Matches(event, v.cfg.Keybinds.FocusNext.Keybind):
 			v.focusNext()
-			return consume
+			return redraw
 		case keybind.Matches(event, v.cfg.Keybinds.Logout.Keybind):
 			if v.onLogout != nil {
 				v.onLogout()
@@ -256,17 +255,14 @@ func (v *View) HandleEvent(event tcell.Event) tview.Command {
 			if err := keyring.DeleteToken(); err != nil {
 				slog.Error("failed to delete token from keyring", "err", err)
 			}
-			return consume
+			return redraw
 		case keybind.Matches(event, v.cfg.Keybinds.ToggleGuildsTree.Keybind):
 			v.toggleGuildsTree()
-			return consume
+			return redraw
 		case keybind.Matches(event, v.cfg.Keybinds.ToggleChannelsPicker.Keybind):
 			v.togglePicker()
-			return consume
+			return redraw
 		}
-
-		cmd := v.Layers.HandleEvent(event)
-		return v.consumeLayerCommands(cmd)
 	}
 	cmd := v.Layers.HandleEvent(event)
 	return v.consumeLayerCommands(cmd)
@@ -323,10 +319,7 @@ func (v *View) consumeLayerCommands(command tview.Command) tview.Command {
 func (v *View) updateHelpHeight() {
 	height := 1
 	if v.help.ShowAll() {
-		height = len(v.help.FullHelpLines(v.FullHelp(), 0))
-		if height < 1 {
-			height = 1
-		}
+		height = max(len(v.help.FullHelpLines(v.FullHelp(), 0)), 1)
 	}
 	v.rootFlex.ResizeItem(v.help, height, 0)
 }

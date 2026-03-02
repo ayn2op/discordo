@@ -71,7 +71,7 @@ func (q *qrLogin) HandleEvent(event tcell.Event) tview.Command {
 			if q.done != nil {
 				q.done("", nil)
 			}
-			return tview.BatchCommand{tview.RedrawCommand{}, tview.ConsumeEventCommand{}}
+			return tview.RedrawCommand{}
 		}
 		return q.TextView.HandleEvent(event)
 	}

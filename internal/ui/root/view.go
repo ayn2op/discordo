@@ -129,7 +129,7 @@ func (v *View) HandleEvent(event tcell.Event) tview.Command {
 		switch {
 		case keybind.Matches(event, v.cfg.Keybinds.Suspend.Keybind):
 			v.suspend()
-			return tview.ConsumeEventCommand{}
+			return nil
 		case keybind.Matches(event, v.cfg.Keybinds.Quit.Keybind):
 			v.closeChatViewState()
 			return tview.QuitCommand{}
