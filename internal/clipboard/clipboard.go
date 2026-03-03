@@ -9,11 +9,11 @@ import (
 )
 
 // Format represents the type of clipboard content.
-type Format int
+type Format = nativeclipboard.Format
 
 const (
-	FmtText  Format = iota // plain text
-	FmtImage               // image data
+	FmtText  = nativeclipboard.Text
+	FmtImage = nativeclipboard.Image
 )
 
 var wayland bool
@@ -36,14 +36,14 @@ func Read(t Format) ([]byte, error) {
 	if wayland {
 		return waylandRead(t)
 	}
-	return formatToNative(t).Read()
+	return t.Read()
 }
 
 func Write(t Format, buf []byte) error {
 	if wayland {
 		return waylandWrite(t, buf)
 	}
-	_, err := formatToNative(t).Write(buf)
+	_, err := t.Write(buf)
 	return err
 }
 
@@ -66,11 +66,3 @@ func waylandMIME(t Format) string {
 	}
 }
 
-func formatToNative(t Format) nativeclipboard.Format {
-	switch t {
-	case FmtImage:
-		return nativeclipboard.Image
-	default:
-		return nativeclipboard.Text
-	}
-}
