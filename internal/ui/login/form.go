@@ -71,7 +71,11 @@ func (f *Form) onError(err error) {
 		AddButtons([]string{"Copy", "Close"}).
 		SetDoneFunc(func(buttonIndex int, _ string) {
 			if buttonIndex == 0 {
-				go clipboard.Write(clipboard.FmtText, []byte(message))
+				go func() {
+					if err := clipboard.Write(clipboard.FmtText, []byte(message)); err != nil {
+						slog.Error("failed to write to clipboard", "err", err)
+					}
+				}()
 			} else {
 				f.RemoveLayer(errorLayerName)
 			}

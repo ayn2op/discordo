@@ -710,7 +710,9 @@ func (ml *messagesList) yankID() {
 		return
 	}
 
-	go clipboard.Write(clipboard.FmtText, []byte(msg.ID.String()))
+	if err := clipboard.Write(clipboard.FmtText, []byte(msg.ID.String())); err != nil {
+		slog.Error("failed to write to clipboard", "err", err)
+	}
 }
 
 func (ml *messagesList) yankContent() {
@@ -720,7 +722,9 @@ func (ml *messagesList) yankContent() {
 		return
 	}
 
-	go clipboard.Write(clipboard.FmtText, []byte(msg.Content))
+	if err := clipboard.Write(clipboard.FmtText, []byte(msg.Content)); err != nil {
+		slog.Error("failed to write to clipboard", "err", err)
+	}
 }
 
 func (ml *messagesList) yankURL() {
@@ -730,7 +734,9 @@ func (ml *messagesList) yankURL() {
 		return
 	}
 
-	go clipboard.Write(clipboard.FmtText, []byte(msg.URL()))
+	if err := clipboard.Write(clipboard.FmtText, []byte(msg.URL())); err != nil {
+		slog.Error("failed to write to clipboard", "err", err)
+	}
 }
 
 func (ml *messagesList) open() {
