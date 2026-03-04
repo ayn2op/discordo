@@ -1,7 +1,6 @@
 package login
 
 import (
-	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
@@ -21,15 +20,13 @@ import (
 	apphttp "github.com/ayn2op/discordo/internal/http"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
-	"github.com/diamondburned/arikawa/v3/api"
+	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/gdamore/tcell/v3"
 	"github.com/gorilla/websocket"
 	"github.com/skip2/go-qrcode"
 )
 
 const gatewayURL = "wss://remote-auth-gateway.discord.gg/?v=2"
-
-var endpointRemoteAuthLogin = api.EndpointMe + "/remote-auth/login"
 
 type qrLogin struct {
 	*tview.TextView
@@ -169,11 +166,10 @@ func (q *qrLogin) run(ctx context.Context) {
 	}
 	encodedPublicKey := base64.StdEncoding.EncodeToString(pubDER)
 
-	headers := stdhttp.Header{}
-	headers.Set("User-Agent", apphttp.BrowserUserAgent)
-	headers.Set("Origin", "https://discord.com")
-
 	q.setText("Connecting to Remote Auth Gateway...\n\nPress Esc to cancel")
+
+	headers := apphttp.Headers()
+	headers.Set("User-Agent", apphttp.BrowserUserAgent)
 
 	dialer := websocket.Dialer{
 		Proxy:             stdhttp.ProxyFromEnvironment,
@@ -398,55 +394,31 @@ func exchangeTicket(ctx context.Context, ticket string, fingerprint string, priv
 	if ticket == "" {
 		return "", errors.New("empty ticket")
 	}
-	body := map[string]string{"ticket": ticket}
-	raw, err := json.Marshal(body)
-	if err != nil {
-		return "", err
-	}
-	req, err := stdhttp.NewRequestWithContext(ctx, stdhttp.MethodPost, endpointRemoteAuthLogin, bytes.NewReader(raw))
-	if err != nil {
-		return "", err
-	}
 
-	req.Header = apphttp.Headers()
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", apphttp.BrowserUserAgent)
+	headers := apphttp.Headers()
 	if fingerprint != "" {
-		req.Header.Set("X-Fingerprint", fingerprint)
-		req.Header.Set("Referer", "https://discord.com/ra/"+fingerprint)
+		headers.Set("X-Fingerprint", fingerprint)
+		headers.Set("Referer", "https://discord.com/ra/"+fingerprint)
 	}
 
-	client := &stdhttp.Client{Transport: apphttp.NewTransport(), Timeout: 20 * time.Second}
-	resp, err := client.Do(req)
+	// Create an API client without a token.
+	client := apphttp.NewClient("")
+	client.OnRequest = append(client.OnRequest, httputil.WithHeaders(headers))
+
+	token, err := client.ExchangeRemoteAuthTicket(ticket)
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		b, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("remote-auth login failed: %s: %s", resp.Status, string(b))
-	}
 
-	decoder := json.NewDecoder(resp.Body)
-
-	var out struct {
-		EncryptedToken string `json:"encrypted_token"`
-	}
-	if err := decoder.Decode(&out); err != nil {
-		return "", err
-	}
-	if out.EncryptedToken == "" {
-		return "", fmt.Errorf("no encrypted_token in response")
-	}
-	enc, err := base64.StdEncoding.DecodeString(out.EncryptedToken)
+	decodedToken, err := base64.StdEncoding.DecodeString(token)
 	if err != nil {
 		return "", err
 	}
-	pt, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, priv, enc, nil)
+	decryptedToken, err := rsa.DecryptOAEP(sha256.New(), nil, priv, decodedToken, nil)
 	if err != nil {
 		return "", err
 	}
-	return string(pt), nil
+	return string(decryptedToken), nil
 }
 
 func (q *qrLogin) success(token string) {
@@ -463,9 +435,8 @@ func (q *qrLogin) fail(err error) {
 }
 
 func mapWSCloseError(err error) error {
-	var cerr *websocket.CloseError
-	if errors.As(err, &cerr) {
-		switch cerr.Code {
+	if err, ok := errors.AsType[*websocket.CloseError](err); ok {
+		switch err.Code {
 		case 1000:
 			return errors.New("session closed")
 		case 4000:
