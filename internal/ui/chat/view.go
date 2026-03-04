@@ -231,10 +231,10 @@ func (v *View) HandleEvent(event tcell.Event) tview.Command {
 			return nil
 		})
 	case *QuitEvent:
-		if err := v.CloseState(); err != nil {
-			slog.Error("failed to close the session", "err", err)
+		return tview.BatchCommand{
+			tview.EventCommand(v.closeState),
+			tview.QuitCommand{},
 		}
-		return tview.QuitCommand{}
 	case *tview.KeyEvent:
 		redraw := tview.RedrawCommand{}
 		switch {
