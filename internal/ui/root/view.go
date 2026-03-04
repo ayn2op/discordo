@@ -6,6 +6,7 @@ import (
 
 	"github.com/ayn2op/discordo/internal/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/keyring"
 	"github.com/ayn2op/discordo/internal/ui/chat"
 	"github.com/ayn2op/discordo/internal/ui/login"
@@ -93,7 +94,7 @@ func (v *View) HandleEvent(event tcell.Event) tview.Command {
 				return tview.QuitCommand{}
 			}
 		}
-		return tview.SetFocusCommand{Target: v.inner}
+		return tview.BatchCommand{tview.SetTitleCommand(consts.Name), tview.SetFocusCommand{Target: v.inner}}
 
 	case *tview.KeyEvent:
 		switch {

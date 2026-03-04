@@ -6,7 +6,6 @@ import (
 	"log/slog"
 
 	"github.com/ayn2op/discordo/internal/config"
-	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/logger"
 	"github.com/ayn2op/discordo/internal/ui/root"
 	"github.com/ayn2op/tview"
@@ -60,8 +59,6 @@ func Run() error {
 	if cfg.Mouse {
 		screen.EnableMouse()
 	}
-
-	screen.SetTitle(consts.Name)
 	screen.EnablePaste()
 	screen.EnableFocus()
 
