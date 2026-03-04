@@ -260,10 +260,7 @@ func (v *View) HandleEvent(event tcell.Event) tview.Command {
 			v.focusNext()
 			return redraw
 		case keybind.Matches(event, v.cfg.Keybinds.Logout.Keybind):
-			if err := v.CloseState(); err != nil {
-				slog.Error("failed to close the session", "err", err)
-			}
-			return tview.EventCommand(func() tcell.Event { return NewLogoutEvent() })
+			return v.logout()
 		case keybind.Matches(event, v.cfg.Keybinds.ToggleGuildsTree.Keybind):
 			v.toggleGuildsTree()
 			return redraw
