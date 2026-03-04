@@ -62,6 +62,7 @@ func Run() error {
 	screen.EnablePaste()
 	screen.EnableFocus()
 
+	tview.Styles = tview.Theme{}
 	app := tview.NewApplication()
 	app.SetRoot(root.NewView(cfg, app))
 	app.SetScreen(screen)

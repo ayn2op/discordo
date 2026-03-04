@@ -10,7 +10,7 @@ require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/alecthomas/chroma/v2 v2.23.1
 	github.com/andybalholm/brotli v1.2.0
-	github.com/ayn2op/tview v0.0.0-20260304032402-f69fad13517e
+	github.com/ayn2op/tview v0.0.0-20260304052427-7549865d186e
 	github.com/deckarep/gosx-notifier v0.0.0-20180201035817-e127226297fb
 	github.com/diamondburned/arikawa/v3 v3.6.1-0.20260226015332-783a3e8e8e86
 	github.com/diamondburned/ningen/v3 v3.0.1-0.20260226220604-93f1e60c3cdb

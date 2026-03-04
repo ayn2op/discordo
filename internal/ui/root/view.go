@@ -2,12 +2,9 @@ package root
 
 import (
 	"log/slog"
-	"os"
 
-	"github.com/ayn2op/discordo/internal/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/consts"
-	"github.com/ayn2op/discordo/internal/keyring"
 	"github.com/ayn2op/discordo/internal/ui/chat"
 	"github.com/ayn2op/discordo/internal/ui/login"
 	"github.com/ayn2op/tview"
@@ -26,17 +23,10 @@ type View struct {
 }
 
 func NewView(cfg *config.Config, app *tview.Application) *View {
-	tview.Styles = tview.Theme{}
-	v := &View{
+	return &View{
 		app: app,
 		cfg: cfg,
 	}
-
-	if err := clipboard.Init(); err != nil {
-		slog.Error("failed to init clipboard", "err", err)
-	}
-
-	return v
 }
 
 func (v *View) showLoginView() {
@@ -45,11 +35,12 @@ func (v *View) showLoginView() {
 			slog.Error("failed to show chat view", "err", err)
 		}
 	})
+	v.chat = nil
 	v.inner = loginForm
 }
 
 func (v *View) showChatView(token string) error {
-	v.chat = chat.NewView(v.app, v.cfg, v.showLoginView)
+	v.chat = chat.NewView(v.app, v.cfg)
 	if err := v.chat.OpenState(token); err != nil {
 		return err
 	}
@@ -77,24 +68,27 @@ func (v *View) Draw(screen tcell.Screen) {
 func (v *View) HandleEvent(event tcell.Event) tview.Command {
 	switch event := event.(type) {
 	case *tview.InitEvent:
-		token := os.Getenv(tokenEnvVarKey)
-		if token == "" {
-			tok, err := keyring.GetToken()
-			if err != nil {
-				slog.Info("failed to retrieve token from keyring", "err", err)
-			}
-			token = tok
+		return tview.BatchCommand{
+			tview.SetTitleCommand(consts.Name),
+			tview.EventCommand(initClipboard),
+			tview.EventCommand(getToken),
 		}
-
-		if token == "" {
+	case *tokenEvent:
+		if event.token == "" {
 			v.showLoginView()
 		} else {
-			if err := v.showChatView(token); err != nil {
+			if err := v.showChatView(event.token); err != nil {
 				slog.Error("failed to show chat view", "err", err)
 				return tview.QuitCommand{}
 			}
 		}
-		return tview.BatchCommand{tview.SetTitleCommand(consts.Name), tview.SetFocusCommand{Target: v.inner}}
+		return tview.BatchCommand{tview.SetFocusCommand{Target: v.inner}}
+	case *chat.LogoutEvent:
+		v.showLoginView()
+		return tview.BatchCommand{
+			tview.EventCommand(deleteToken),
+			tview.SetFocusCommand{Target: v.inner},
+		}
 
 	case *tview.KeyEvent:
 		switch {

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/ayn2op/discordo/internal/config"
-	"github.com/ayn2op/discordo/internal/keyring"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/help"
@@ -51,11 +50,9 @@ type View struct {
 	app   *tview.Application
 	cfg   *config.Config
 	state *ningen.State
-
-	onLogout func()
 }
 
-func NewView(app *tview.Application, cfg *config.Config, onLogout func()) *View {
+func NewView(app *tview.Application, cfg *config.Config) *View {
 	v := &View{
 		Layers: layers.New(),
 
@@ -65,9 +62,8 @@ func NewView(app *tview.Application, cfg *config.Config, onLogout func()) *View 
 
 		typers: make(map[discord.UserID]*time.Timer),
 
-		app:      app,
-		cfg:      cfg,
-		onLogout: onLogout,
+		app: app,
+		cfg: cfg,
 	}
 
 	v.guildsTree = newGuildsTree(cfg, v)
@@ -249,13 +245,10 @@ func (v *View) HandleEvent(event tcell.Event) tview.Command {
 			v.focusNext()
 			return redraw
 		case keybind.Matches(event, v.cfg.Keybinds.Logout.Keybind):
-			if v.onLogout != nil {
-				v.onLogout()
+			if err := v.CloseState(); err != nil {
+				slog.Error("failed to close the session", "err", err)
 			}
-			if err := keyring.DeleteToken(); err != nil {
-				slog.Error("failed to delete token from keyring", "err", err)
-			}
-			return redraw
+			return tview.EventCommand(func() tcell.Event { return NewLogoutEvent() })
 		case keybind.Matches(event, v.cfg.Keybinds.ToggleGuildsTree.Keybind):
 			v.toggleGuildsTree()
 			return redraw
