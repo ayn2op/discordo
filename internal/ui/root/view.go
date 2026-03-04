@@ -17,7 +17,6 @@ import (
 const tokenEnvVarKey = "DISCORDO_TOKEN"
 
 type View struct {
-	*tview.Box
 	app   *tview.Application
 	inner tview.Primitive
 	chat  *chat.View
@@ -29,7 +28,6 @@ func NewView(cfg *config.Config, app *tview.Application) *View {
 	tview.Styles = tview.Theme{}
 	v := &View{
 		app: app,
-		Box: tview.NewBox(),
 		cfg: cfg,
 	}
 
@@ -67,13 +65,12 @@ func (v *View) closeChatViewState() {
 	}
 }
 
+var _ tview.Primitive = (*View)(nil)
+
 func (v *View) Draw(screen tcell.Screen) {
-	if v.inner == nil {
-		return
+	if v.inner != nil {
+		v.inner.Draw(screen)
 	}
-	x, y, width, height := v.GetRect()
-	v.inner.SetRect(x, y, width, height)
-	v.inner.Draw(screen)
 }
 
 func (v *View) HandleEvent(event tcell.Event) tview.Command {
@@ -96,7 +93,7 @@ func (v *View) HandleEvent(event tcell.Event) tview.Command {
 				return tview.QuitCommand{}
 			}
 		}
-		return tview.SetFocusCommand{Target: v}
+		return tview.SetFocusCommand{Target: v.inner}
 
 	case *tview.KeyEvent:
 		switch {
@@ -119,24 +116,34 @@ func (v *View) HandleEvent(event tcell.Event) tview.Command {
 	return nil
 }
 
+func (v *View) GetRect() (int, int, int, int) {
+	if v.inner != nil {
+		return v.inner.GetRect()
+	}
+	return 0, 0, 0, 0
+}
+
+func (v *View) SetRect(x int, y int, width int, height int) {
+	if v.inner != nil {
+		v.inner.SetRect(x, y, width, height)
+	}
+}
+
 func (v *View) Focus(delegate func(p tview.Primitive)) {
 	if v.inner != nil {
 		delegate(v.inner)
-		return
 	}
-	v.Box.Focus(delegate)
 }
 
 func (v *View) HasFocus() bool {
-	if v.inner != nil && v.inner.HasFocus() {
-		return true
+	if v.inner != nil {
+		return v.inner.HasFocus()
 	}
-	return v.Box.HasFocus()
+	return true
 }
 
 func (v *View) Blur() {
 	if v.inner != nil {
 		v.inner.Blur()
 	}
-	v.Box.Blur()
 }
