@@ -1,13 +1,11 @@
 package root
 
 import (
-	"fmt"
 	"log/slog"
 	"os"
 
 	"github.com/ayn2op/discordo/internal/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
-	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/keyring"
 	"github.com/ayn2op/discordo/internal/ui/chat"
 	"github.com/ayn2op/discordo/internal/ui/login"
@@ -27,11 +25,11 @@ type View struct {
 	cfg *config.Config
 }
 
-func NewView(cfg *config.Config) *View {
+func NewView(cfg *config.Config, app *tview.Application) *View {
 	tview.Styles = tview.Theme{}
 	v := &View{
+		app: app,
 		Box: tview.NewBox(),
-		app: tview.NewApplication(),
 		cfg: cfg,
 	}
 
@@ -42,49 +40,6 @@ func NewView(cfg *config.Config) *View {
 	return v
 }
 
-func (v *View) Run() error {
-	token := os.Getenv(tokenEnvVarKey)
-	if token == "" {
-		t, err := keyring.GetToken()
-		if err != nil {
-			slog.Info("failed to retrieve token from keyring", "err", err)
-		}
-		token = t
-	}
-
-	screen, err := tcell.NewScreen()
-	if err != nil {
-		return fmt.Errorf("failed to create screen: %w", err)
-	}
-
-	if err := screen.Init(); err != nil {
-		return fmt.Errorf("failed to init screen: %w", err)
-	}
-
-	if v.cfg.Mouse {
-		screen.EnableMouse()
-	}
-
-	screen.SetTitle(consts.Name)
-	screen.EnablePaste()
-	screen.EnableFocus()
-	v.app.SetScreen(screen)
-	v.app.SetRoot(v)
-
-	if token == "" {
-		v.showLoginView()
-	} else {
-		if err := v.showChatView(token); err != nil {
-			return err
-		}
-	}
-
-	v.app.SetFocus(v)
-	err = v.app.Run()
-	v.closeChatViewState()
-	return err
-}
-
 func (v *View) showLoginView() {
 	loginForm := login.NewForm(v.app, v.cfg, func(token string) {
 		if err := v.showChatView(token); err != nil {
@@ -92,7 +47,6 @@ func (v *View) showLoginView() {
 		}
 	})
 	v.inner = loginForm
-	v.app.SetFocus(v)
 }
 
 func (v *View) showChatView(token string) error {
@@ -101,7 +55,6 @@ func (v *View) showChatView(token string) error {
 		return err
 	}
 	v.inner = v.chat
-	v.app.SetFocus(v)
 	return nil
 }
 
@@ -125,6 +78,26 @@ func (v *View) Draw(screen tcell.Screen) {
 
 func (v *View) HandleEvent(event tcell.Event) tview.Command {
 	switch event := event.(type) {
+	case *tview.InitEvent:
+		token := os.Getenv(tokenEnvVarKey)
+		if token == "" {
+			tok, err := keyring.GetToken()
+			if err != nil {
+				slog.Info("failed to retrieve token from keyring", "err", err)
+			}
+			token = tok
+		}
+
+		if token == "" {
+			v.showLoginView()
+		} else {
+			if err := v.showChatView(token); err != nil {
+				slog.Error("failed to show chat view", "err", err)
+				return tview.QuitCommand{}
+			}
+		}
+		return tview.SetFocusCommand{Target: v}
+
 	case *tview.KeyEvent:
 		switch {
 		case keybind.Matches(event, v.cfg.Keybinds.Suspend.Keybind):
