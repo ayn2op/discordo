@@ -34,6 +34,7 @@ func (r *Renderer) RenderLines(source []byte, node ast.Node, base tcell.Style) [
 
 	builder := tview.NewLineBuilder()
 	styleStack := []tcell.Style{base}
+	linkDepth := 0
 
 	currentStyle := func() tcell.Style {
 		return styleStack[len(styleStack)-1]
@@ -76,12 +77,19 @@ func (r *Renderer) RenderLines(source []byte, node ast.Node, base tcell.Style) [
 			}
 		case *ast.AutoLink:
 			if entering {
-				builder.Write(string(node.URL(source)), ui.MergeStyle(currentStyle(), theme.URLStyle.Style))
+				url := string(node.URL(source))
+				style := ui.MergeStyle(currentStyle(), theme.URLStyle.Style).Url(url)
+				builder.Write(url, style)
 			}
 		case *ast.Link:
 			if entering {
-				pushStyle(ui.MergeStyle(currentStyle(), theme.URLStyle.Style))
+				url := string(node.Destination)
+				linkDepth++
+				pushStyle(ui.MergeStyle(currentStyle(), theme.URLStyle.Style).Url(url))
 			} else {
+				if linkDepth > 0 {
+					linkDepth--
+				}
 				popStyle()
 			}
 		case *ast.List:
@@ -112,7 +120,7 @@ func (r *Renderer) RenderLines(source []byte, node ast.Node, base tcell.Style) [
 			}
 		case *discordmd.Inline:
 			if entering {
-				pushStyle(applyInlineAttr(currentStyle(), node.Attr))
+				pushStyle(applyInlineAttr(currentStyle(), node.Attr, linkDepth > 0))
 			} else {
 				popStyle()
 			}
@@ -256,7 +264,7 @@ func mentionText(node *discordmd.Mention) string {
 	}
 }
 
-func applyInlineAttr(style tcell.Style, attr discordmd.Attribute) tcell.Style {
+func applyInlineAttr(style tcell.Style, attr discordmd.Attribute, inLink bool) tcell.Style {
 	switch attr {
 	case discordmd.AttrBold:
 		return style.Bold(true)
@@ -267,6 +275,11 @@ func applyInlineAttr(style tcell.Style, attr discordmd.Attribute) tcell.Style {
 	case discordmd.AttrStrikethrough:
 		return style.StrikeThrough(true)
 	case discordmd.AttrMonospace:
+		// Avoid reverse-video inside links. Link labels like `hash` should still
+		// look like links, not highlighted blocks.
+		if inLink {
+			return style
+		}
 		return style.Reverse(true)
 	}
 	return style

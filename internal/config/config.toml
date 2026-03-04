@@ -224,6 +224,16 @@ attachment_style = { foreground = "yellow" }
 message_style = {}
 selected_message_style = { attributes = "reverse" }
 
+[theme.messages_list.embeds]
+provider_style = { attributes = ["dim", "italic"] }
+author_style = { attributes = "italic" }
+title_style = { foreground = "blue", attributes = "bold" }
+description_style = { attributes = "dim" }
+field_name_style = { attributes = ["bold", "underline"] }
+field_value_style = {}
+footer_style = { attributes = ["dim", "italic"] }
+url_style = { foreground = "blue", underline = "solid" }
+
 [theme.mentions_list]
 # Note: width and height are capped to the avaliable space
 # Minimum width

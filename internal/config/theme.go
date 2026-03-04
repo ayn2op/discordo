@@ -69,12 +69,18 @@ func (sw *StyleWrapper) UnmarshalTOML(v any) error {
 		case "underline":
 			if s, ok := val.(string); ok {
 				switch s {
-				case "": sw.Style = sw.Underline(tcell.UnderlineStyleNone)
-				case "solid": sw.Style = sw.Underline(tcell.UnderlineStyleSolid)
-				case "double": sw.Style = sw.Underline(tcell.UnderlineStyleDouble)
-				case "curly": sw.Style = sw.Underline(tcell.UnderlineStyleCurly)
-				case "dotted": sw.Style = sw.Underline(tcell.UnderlineStyleDotted)
-				case "dashed": sw.Style = sw.Underline(tcell.UnderlineStyleDashed)
+				case "":
+					sw.Style = sw.Underline(tcell.UnderlineStyleNone)
+				case "solid":
+					sw.Style = sw.Underline(tcell.UnderlineStyleSolid)
+				case "double":
+					sw.Style = sw.Underline(tcell.UnderlineStyleDouble)
+				case "curly":
+					sw.Style = sw.Underline(tcell.UnderlineStyleCurly)
+				case "dotted":
+					sw.Style = sw.Underline(tcell.UnderlineStyleDotted)
+				case "dashed":
+					sw.Style = sw.Underline(tcell.UnderlineStyleDashed)
 				}
 			}
 		case "underline_color":
@@ -229,6 +235,19 @@ type (
 
 		MessageStyle         StyleWrapper `toml:"message_style"`
 		SelectedMessageStyle StyleWrapper `toml:"selected_message_style"`
+
+		Embeds MessagesListEmbedsTheme `toml:"embeds"`
+	}
+
+	MessagesListEmbedsTheme struct {
+		ProviderStyle    StyleWrapper `toml:"provider_style"`
+		AuthorStyle      StyleWrapper `toml:"author_style"`
+		TitleStyle       StyleWrapper `toml:"title_style"`
+		DescriptionStyle StyleWrapper `toml:"description_style"`
+		FieldNameStyle   StyleWrapper `toml:"field_name_style"`
+		FieldValueStyle  StyleWrapper `toml:"field_value_style"`
+		FooterStyle      StyleWrapper `toml:"footer_style"`
+		URLStyle         StyleWrapper `toml:"url_style"`
 	}
 
 	MentionsListTheme struct {
