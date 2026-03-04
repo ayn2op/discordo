@@ -9,3 +9,11 @@ func NewLogoutEvent() *LogoutEvent {
 	event.SetEventNow()
 	return event
 }
+
+type QuitEvent struct{ tcell.EventTime }
+
+func NewQuitEvent() *QuitEvent {
+	event := &QuitEvent{}
+	event.SetEventNow()
+	return event
+}

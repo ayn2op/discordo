@@ -50,9 +50,10 @@ type View struct {
 	app   *tview.Application
 	cfg   *config.Config
 	state *ningen.State
+	token string
 }
 
-func NewView(app *tview.Application, cfg *config.Config) *View {
+func NewView(app *tview.Application, cfg *config.Config, token string) *View {
 	v := &View{
 		Layers: layers.New(),
 
@@ -62,8 +63,9 @@ func NewView(app *tview.Application, cfg *config.Config) *View {
 
 		typers: make(map[discord.UserID]*time.Timer),
 
-		app: app,
-		cfg: cfg,
+		app:   app,
+		cfg:   cfg,
+		token: token,
 	}
 
 	v.guildsTree = newGuildsTree(cfg, v)
@@ -220,6 +222,19 @@ func (v *View) focusNext() {
 
 func (v *View) HandleEvent(event tcell.Event) tview.Command {
 	switch event := event.(type) {
+	case *tview.InitEvent:
+		return tview.EventCommand(func() tcell.Event {
+			if err := v.OpenState(v.token); err != nil {
+				slog.Error("failed to open chat state", "err", err)
+				return tcell.NewEventError(err)
+			}
+			return nil
+		})
+	case *QuitEvent:
+		if err := v.CloseState(); err != nil {
+			slog.Error("failed to close the session", "err", err)
+		}
+		return tview.QuitCommand{}
 	case *tview.KeyEvent:
 		redraw := tview.RedrawCommand{}
 		switch {

@@ -1,8 +1,6 @@
 package root
 
 import (
-	"log/slog"
-
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/ui/chat"
@@ -17,9 +15,7 @@ const tokenEnvVarKey = "DISCORDO_TOKEN"
 type View struct {
 	app   *tview.Application
 	inner tview.Primitive
-	chat  *chat.View
-
-	cfg *config.Config
+	cfg   *config.Config
 }
 
 func NewView(cfg *config.Config, app *tview.Application) *View {
@@ -29,32 +25,14 @@ func NewView(cfg *config.Config, app *tview.Application) *View {
 	}
 }
 
-func (v *View) showLoginView() {
-	loginForm := login.NewForm(v.app, v.cfg, func(token string) {
-		if err := v.showChatView(token); err != nil {
-			slog.Error("failed to show chat view", "err", err)
-		}
-	})
-	v.chat = nil
-	v.inner = loginForm
+func (v *View) showLoginView() tview.Command {
+	v.inner = login.NewForm(v.app, v.cfg)
+	return v.inner.HandleEvent(tview.NewInitEvent())
 }
 
-func (v *View) showChatView(token string) error {
-	v.chat = chat.NewView(v.app, v.cfg)
-	if err := v.chat.OpenState(token); err != nil {
-		return err
-	}
-	v.inner = v.chat
-	return nil
-}
-
-func (v *View) closeChatViewState() {
-	if v.chat != nil {
-		if err := v.chat.CloseState(); err != nil {
-			slog.Error("failed to close the session", "err", err)
-		}
-		v.chat = nil
-	}
+func (v *View) showChatView(token string) tview.Command {
+	v.inner = chat.NewView(v.app, v.cfg, token)
+	return v.inner.HandleEvent(tview.NewInitEvent())
 }
 
 var _ tview.Primitive = (*View)(nil)
@@ -75,14 +53,12 @@ func (v *View) HandleEvent(event tcell.Event) tview.Command {
 		}
 	case *tokenEvent:
 		if event.token == "" {
-			v.showLoginView()
+			return tview.BatchCommand{v.showLoginView(), tview.SetFocusCommand{Target: v.inner}}
 		} else {
-			if err := v.showChatView(event.token); err != nil {
-				slog.Error("failed to show chat view", "err", err)
-				return tview.QuitCommand{}
-			}
+			return tview.BatchCommand{v.showChatView(event.token), tview.SetFocusCommand{Target: v.inner}}
 		}
-		return tview.BatchCommand{tview.SetFocusCommand{Target: v.inner}}
+	case *login.TokenEvent:
+		return tview.BatchCommand{v.showChatView(event.Token), tview.SetFocusCommand{Target: v.inner}}
 	case *chat.LogoutEvent:
 		v.showLoginView()
 		return tview.BatchCommand{
@@ -96,7 +72,9 @@ func (v *View) HandleEvent(event tcell.Event) tview.Command {
 			v.suspend()
 			return nil
 		case keybind.Matches(event, v.cfg.Keybinds.Quit.Keybind):
-			v.closeChatViewState()
+			if v.inner != nil {
+				return v.inner.HandleEvent(chat.NewQuitEvent())
+			}
 			return tview.QuitCommand{}
 		}
 	}
