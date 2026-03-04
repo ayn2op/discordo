@@ -104,14 +104,10 @@ func (v *View) HandleEvent(event tcell.Event) tview.Command {
 			v.closeChatViewState()
 			return tview.QuitCommand{}
 		}
+	}
 
-		if v.inner != nil {
-			return v.inner.HandleEvent(event)
-		}
-	case *tview.MouseEvent, *tview.PasteEvent:
-		if v.inner != nil {
-			return v.inner.HandleEvent(event)
-		}
+	if v.inner != nil {
+		return v.inner.HandleEvent(event)
 	}
 	return nil
 }
