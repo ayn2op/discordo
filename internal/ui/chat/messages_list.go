@@ -514,10 +514,7 @@ func (ml *messagesList) drawEmbeds(builder *tview.LineBuilder, message discord.M
 	prefixWidth := tview.TaggedStringWidth(prefixText)
 	_, _, innerWidth, _ := ml.GetInnerRect()
 	// Wrap against the current list viewport. This keeps embed wrapping stable even when sidebars/panes are resized.
-	wrapWidth := innerWidth - prefixWidth
-	if wrapWidth < 1 {
-		wrapWidth = 1
-	}
+	wrapWidth := max(innerWidth-prefixWidth, 1)
 
 	for _, embed := range message.Embeds {
 		lines := embedLines(embed, contentURLs)
