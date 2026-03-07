@@ -14,10 +14,14 @@ require (
 	github.com/deckarep/gosx-notifier v0.0.0-20180201035817-e127226297fb
 	github.com/diamondburned/arikawa/v3 v3.6.1-0.20260226015332-783a3e8e8e86
 	github.com/diamondburned/ningen/v3 v3.0.1-0.20260226220604-93f1e60c3cdb
+	github.com/disgoorg/disgo v0.19.2
+	github.com/disgoorg/godave/golibdave v0.1.0
+	github.com/disgoorg/snowflake/v2 v2.0.3
 	github.com/gdamore/tcell/v3 v3.1.2
 	github.com/gen2brain/beeep v0.11.2
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0
+	github.com/gordonklaus/portaudio v0.0.0-20260203164431-765aa7dfa631
 	github.com/gorilla/websocket v1.5.3
 	github.com/klauspost/compress v1.18.4
 	github.com/ncruces/zenity v0.10.14
@@ -28,6 +32,7 @@ require (
 	github.com/yuin/goldmark v1.7.16
 	github.com/zalando/go-keyring v0.2.6
 	golang.design/x/clipboard v0.7.1
+	gopkg.in/hraban/opus.v2 v2.0.0-20230925203106-0188a62cb302
 )
 
 require (
@@ -36,6 +41,10 @@ require (
 	github.com/akavel/rsrc v0.10.2 // indirect
 	github.com/danieljoos/wincred v1.2.3 // indirect
 	github.com/dchest/jsmin v1.0.0 // indirect
+	github.com/disgoorg/godave v0.1.0 // indirect
+	github.com/disgoorg/godave/libdave v0.1.0 // indirect
+	github.com/disgoorg/json/v2 v2.0.0 // indirect
+	github.com/disgoorg/omit v1.0.0 // indirect
 	github.com/dlclark/regexp2 v1.11.5 // indirect
 	github.com/esiqveland/notify v0.13.3 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
@@ -48,11 +57,13 @@ require (
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/randall77/makefat v0.0.0-20210315173500-7ddd0e42c844 // indirect
+	github.com/sasha-s/go-csync v0.0.0-20240107134140-fcbab37b09ad // indirect
 	github.com/sergeymakinen/go-bmp v1.0.0 // indirect
 	github.com/sergeymakinen/go-ico v1.0.0 // indirect
 	github.com/tadvi/systray v0.0.0-20190226123456-11a2b8fa57af // indirect
 	github.com/twmb/murmur3 v1.1.8 // indirect
 	go4.org v0.0.0-20260112195520-a5071408f32f // indirect
+	golang.org/x/crypto v0.48.0 // indirect
 	golang.org/x/exp/shiny v0.0.0-20260218203240-3dfff04db8fa // indirect
 	golang.org/x/image v0.36.0 // indirect
 	golang.org/x/mobile v0.0.0-20260217195705-b56b3793a9c4 // indirect

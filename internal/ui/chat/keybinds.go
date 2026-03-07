@@ -41,6 +41,8 @@ func (v *View) activeKeyMap() help.KeyMap {
 		return v.messagesList
 	case v.messageInput:
 		return v.messageInput
+	case v.voicePanel:
+		return v.voicePanel
 	default:
 		return nil
 	}
@@ -62,10 +64,11 @@ func (v *View) baseFullHelp() [][]keybind.Keybind {
 	if !v.messageInput.GetDisabled() {
 		focus = append(focus, cfg.FocusMessageInput.Keybind)
 	}
-	return [][]keybind.Keybind{
+	full := [][]keybind.Keybind{
 		focus,
 		{cfg.FocusPrevious.Keybind, cfg.FocusNext.Keybind},
 		{cfg.ToggleGuildsTree.Keybind, cfg.ToggleChannelsPicker.Keybind},
 		{cfg.ToggleHelp.Keybind, cfg.Suspend.Keybind, cfg.Logout.Keybind, cfg.Quit.Keybind},
 	}
+	return full
 }

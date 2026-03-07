@@ -32,6 +32,17 @@ cd discordo
 go build .
 ```
 
+Voice support adds native audio dependencies when building from source:
+
+- macOS: `brew install portaudio opus`
+- Windows (MSYS2): `pacman -S --needed mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-pkgconf mingw-w64-ucrt-x86_64-portaudio mingw-w64-ucrt-x86_64-opus`
+- Linux:
+  - Debian/Ubuntu: `sudo apt install build-essential pkg-config portaudio19-dev libopus-dev`
+  - Fedora: `sudo dnf install gcc pkgconf-pkg-config portaudio-devel opus-devel`
+  - Arch: `sudo pacman -S --needed base-devel pkgconf portaudio opus`
+
+Voice support and the related hotkeys build and test successfully on macOS. Windows and Linux source builds should work with the dependencies above, but they still need runtime verification on those platforms.
+
 ### Wayland clipboard support
 
 `wl-clipboard` is required for clipboard support.

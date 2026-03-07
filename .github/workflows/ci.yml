@@ -12,7 +12,6 @@ jobs:
             ubuntu-latest,
             ubuntu-24.04-arm,
             windows-latest,
-            windows-11-arm,
             macos-latest,
             macos-15-intel,
           ]
@@ -24,9 +23,32 @@ jobs:
         with:
           go-version: stable
 
-      - name: Install libx11-dev for clipboard support
+      - uses: msys2/setup-msys2@v2
+        if: runner.os == 'Windows'
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-opus
+            mingw-w64-ucrt-x86_64-pkgconf
+            mingw-w64-ucrt-x86_64-portaudio
+
+      - name: Add MSYS2 toolchain to PATH
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          "C:\msys64\ucrt64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          "CC=gcc" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "CGO_ENABLED=1" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Install Linux native dependencies
         if: runner.os == 'Linux'
-        run: sudo apt install libx11-dev
+        run: sudo apt update && sudo apt install -y libopus-dev libx11-dev pkg-config portaudio19-dev
+
+      - name: Install macOS native dependencies
+        if: runner.os == 'macOS'
+        run: brew install opus portaudio
 
       - name: Test
         run: go test -v ./...

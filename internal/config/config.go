@@ -84,6 +84,15 @@ type (
 		Markers SidebarMarkersConfig `toml:"markers"`
 	}
 
+	VoiceConfig struct {
+		InputDevice   string  `toml:"input_device"`
+		OutputDevice  string  `toml:"output_device"`
+		InputVolume   float64 `toml:"input_volume"`
+		OutputVolume  float64 `toml:"output_volume"`
+		VoiceActivity bool    `toml:"voice_activity"`
+		NoiseGate     float64 `toml:"noise_gate"`
+	}
+
 	Config struct {
 		AutoFocus bool   `toml:"auto_focus"`
 		Mouse     bool   `toml:"mouse"`
@@ -104,6 +113,7 @@ type (
 		DateSeparator   DateSeparator   `toml:"date_separator"`
 		Notifications   Notifications   `toml:"notifications"`
 		TypingIndicator TypingIndicator `toml:"typing_indicator"`
+		Voice           VoiceConfig     `toml:"voice"`
 		Sidebar         SidebarConfig   `toml:"sidebar"`
 
 		Icons Icons `toml:"icons"`

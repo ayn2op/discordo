@@ -74,6 +74,10 @@ type GuildsTreeKeybinds struct {
 
 	CollapseParentNode Keybind `toml:"collapse_parent_node"`
 	MoveToParentNode   Keybind `toml:"move_to_parent_node"`
+	ShowVoiceUsers     Keybind `toml:"show_voice_channel_users"`
+	HideVoiceUsers     Keybind `toml:"hide_voice_channel_users"`
+	ShowAllVoiceUsers  Keybind `toml:"show_all_voice_channel_users"`
+	HideAllVoiceUsers  Keybind `toml:"hide_all_voice_channel_users"`
 }
 
 type MessagesListKeybinds struct {
@@ -110,6 +114,12 @@ type MentionsListKeybinds struct {
 	NavigationKeybinds
 }
 
+type VoiceKeybinds struct {
+	LeaveVoice   Keybind `toml:"leave_voice"`
+	ToggleMute   Keybind `toml:"toggle_mute"`
+	ToggleDeafen Keybind `toml:"toggle_deafen"`
+}
+
 type Keybinds struct {
 	ToggleGuildsTree     Keybind `toml:"toggle_guilds_tree"`
 	ToggleChannelsPicker Keybind `toml:"toggle_channels_picker"`
@@ -128,6 +138,7 @@ type Keybinds struct {
 	MessagesList MessagesListKeybinds `toml:"messages_list"`
 	MessageInput MessageInputKeybinds `toml:"message_input"`
 	MentionsList MentionsListKeybinds `toml:"mentions_list"`
+	Voice        VoiceKeybinds        `toml:"voice"`
 
 	Logout Keybind `toml:"logout"`
 	Quit   Keybind `toml:"quit"`
@@ -162,6 +173,10 @@ func defaultGuildsTreeKeybinds() GuildsTreeKeybinds {
 		YankID:             newKeybind("i", "copy id"),
 		CollapseParentNode: newKeybind("-", "collapse"),
 		MoveToParentNode:   newKeybind("p", "parent"),
+		ShowVoiceUsers:     newKeybind("v", "show voice"),
+		HideVoiceUsers:     newKeybind("V", "hide voice"),
+		ShowAllVoiceUsers:  newKeybind("a", "show all"),
+		HideAllVoiceUsers:  newKeybind("A", "hide all"),
 	}
 }
 
@@ -219,6 +234,14 @@ func defaultMentionsListKeybinds() MentionsListKeybinds {
 	}
 }
 
+func defaultVoiceKeybinds() VoiceKeybinds {
+	return VoiceKeybinds{
+		LeaveVoice:   newKeybind("q", "leave voice"),
+		ToggleMute:   newKeybind("m", "mute"),
+		ToggleDeafen: newKeybind("M", "deafen"),
+	}
+}
+
 func defaultKeybinds() Keybinds {
 	return Keybinds{
 		ToggleGuildsTree:     newKeybind("ctrl+b", "toggle guilds"),
@@ -241,5 +264,6 @@ func defaultKeybinds() Keybinds {
 		MessagesList: defaultMessagesListKeybinds(),
 		MessageInput: defaultMessageInputKeybinds(),
 		MentionsList: defaultMentionsListKeybinds(),
+		Voice:        defaultVoiceKeybinds(),
 	}
 }

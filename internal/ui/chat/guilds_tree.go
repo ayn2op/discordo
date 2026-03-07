@@ -3,6 +3,7 @@ package chat
 import (
 	"fmt"
 	"log/slog"
+	"sort"
 
 	"github.com/ayn2op/discordo/internal/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
@@ -18,6 +19,12 @@ import (
 
 type dmNode struct{}
 
+type voiceUserNode struct {
+	GuildID   discord.GuildID
+	ChannelID discord.ChannelID
+	UserID    discord.UserID
+}
+
 type guildsTree struct {
 	*tview.TreeView
 	cfg      *config.Config
@@ -29,9 +36,14 @@ type guildsTree struct {
 	guildNodeByID   map[discord.GuildID]*tview.TreeNode
 	channelNodeByID map[discord.ChannelID]*tview.TreeNode
 	dmRootNode      *tview.TreeNode
+
+	showAllVoiceUsers      bool
+	voiceChannelVisibility map[discord.ChannelID]bool
 }
 
 var _ help.KeyMap = (*guildsTree)(nil)
+
+const voiceParticipantIndentOffset = 2
 
 func newGuildsTree(cfg *config.Config, chatView *View) *guildsTree {
 	gt := &guildsTree{
@@ -39,8 +51,9 @@ func newGuildsTree(cfg *config.Config, chatView *View) *guildsTree {
 		cfg:      cfg,
 		chatView: chatView,
 
-		guildNodeByID:   make(map[discord.GuildID]*tview.TreeNode),
-		channelNodeByID: make(map[discord.ChannelID]*tview.TreeNode),
+		guildNodeByID:          make(map[discord.GuildID]*tview.TreeNode),
+		channelNodeByID:        make(map[discord.ChannelID]*tview.TreeNode),
+		voiceChannelVisibility: make(map[discord.ChannelID]bool),
 	}
 
 	gt.Box = ui.ConfigureBox(gt.Box, &cfg.Theme)
@@ -65,21 +78,7 @@ func (gt *guildsTree) ShortHelp() []keybind.Keybind {
 	selectCurrent := cfg.SelectCurrent.Keybind
 	collapseParent := cfg.CollapseParentNode.Keybind
 	selectHelp := selectCurrent.Help()
-	selectDesc := selectHelp.Desc
-	if node := gt.GetCurrentNode(); node != nil {
-		if len(node.GetChildren()) > 0 {
-			if node.IsExpanded() {
-				selectDesc = "collapse"
-			} else {
-				selectDesc = "expand"
-			}
-		} else {
-			switch node.GetReference().(type) {
-			case discord.GuildID, dmNode:
-				selectDesc = "expand"
-			}
-		}
-	}
+	selectDesc := gt.selectCurrentDescription(gt.GetCurrentNode(), selectHelp.Desc)
 	selectCurrent.SetHelp(selectHelp.Key, selectDesc)
 	collapseHelp := collapseParent.Help()
 	collapseParent.SetHelp(collapseHelp.Key, "collapse parent")
@@ -87,6 +86,9 @@ func (gt *guildsTree) ShortHelp() []keybind.Keybind {
 	shortHelp := []keybind.Keybind{cfg.Up.Keybind, cfg.Down.Keybind, selectCurrent}
 	if gt.canCollapseParent(gt.GetCurrentNode()) {
 		shortHelp = append(shortHelp, collapseParent)
+	}
+	if gt.currentVoiceChannelID().IsValid() {
+		shortHelp = append(shortHelp, cfg.ShowVoiceUsers.Keybind, cfg.HideVoiceUsers.Keybind)
 	}
 	return shortHelp
 }
@@ -96,21 +98,7 @@ func (gt *guildsTree) FullHelp() [][]keybind.Keybind {
 	selectCurrent := cfg.SelectCurrent.Keybind
 	collapseParent := cfg.CollapseParentNode.Keybind
 	selectHelp := selectCurrent.Help()
-	selectDesc := selectHelp.Desc
-	if node := gt.GetCurrentNode(); node != nil {
-		if len(node.GetChildren()) > 0 {
-			if node.IsExpanded() {
-				selectDesc = "collapse"
-			} else {
-				selectDesc = "expand"
-			}
-		} else {
-			switch node.GetReference().(type) {
-			case discord.GuildID, dmNode:
-				selectDesc = "expand"
-			}
-		}
-	}
+	selectDesc := gt.selectCurrentDescription(gt.GetCurrentNode(), selectHelp.Desc)
 	selectCurrent.SetHelp(selectHelp.Key, selectDesc)
 	collapseHelp := collapseParent.Help()
 	collapseParent.SetHelp(collapseHelp.Key, "collapse parent")
@@ -123,6 +111,7 @@ func (gt *guildsTree) FullHelp() [][]keybind.Keybind {
 	return [][]keybind.Keybind{
 		{cfg.Up.Keybind, cfg.Down.Keybind, cfg.Top.Keybind, cfg.Bottom.Keybind},
 		actions,
+		{cfg.ShowVoiceUsers.Keybind, cfg.HideVoiceUsers.Keybind, cfg.ShowAllVoiceUsers.Keybind, cfg.HideAllVoiceUsers.Keybind},
 		{cfg.YankID.Keybind},
 	}
 }
@@ -140,11 +129,74 @@ func (gt *guildsTree) canCollapseParent(node *tview.TreeNode) bool {
 	return parent != nil && parent.GetLevel() != 0
 }
 
+func hasChildren(node *tview.TreeNode) bool {
+	return len(node.GetChildren()) != 0
+}
+
+func (gt *guildsTree) toggleExpandedState(node *tview.TreeNode) bool {
+	if !hasChildren(node) {
+		return false
+	}
+	node.SetExpanded(!node.IsExpanded())
+	return true
+}
+
+func (gt *guildsTree) selectCurrentDescription(node *tview.TreeNode, fallback string) string {
+	if node == nil {
+		return fallback
+	}
+
+	switch ref := node.GetReference().(type) {
+	case discord.GuildID, dmNode:
+		if !hasChildren(node) {
+			return "expand"
+		}
+	case voiceUserNode:
+		return "preview"
+	case discord.ChannelID:
+		if gt.chatView.state != nil {
+			channel, err := gt.chatView.state.Cabinet.Channel(ref)
+			if err == nil {
+				switch {
+				case isVoiceTreeChannel(channel.Type):
+					return "join"
+				case channel.Type == discord.GuildCategory || channel.Type == discord.GuildForum:
+					if len(node.GetChildren()) == 0 {
+						return "expand"
+					}
+				}
+			}
+		}
+	}
+
+	if hasChildren(node) {
+		if node.IsExpanded() {
+			return "collapse"
+		}
+		return "expand"
+	}
+
+	return fallback
+}
+
 func (gt *guildsTree) resetNodeIndex() {
 	// Keep allocated map capacity; READY can rebuild often during reconnects.
 	clear(gt.guildNodeByID)
 	clear(gt.channelNodeByID)
 	gt.dmRootNode = nil
+}
+
+func (gt *guildsTree) pruneVoiceVisibility() {
+	if gt.chatView.state == nil {
+		clear(gt.voiceChannelVisibility)
+		return
+	}
+
+	for channelID := range gt.voiceChannelVisibility {
+		if _, err := gt.chatView.state.Cabinet.Channel(channelID); err != nil {
+			delete(gt.voiceChannelVisibility, channelID)
+		}
+	}
 }
 
 func (gt *guildsTree) createFolderNode(folder gateway.GuildFolder, guildsByID map[discord.GuildID]*gateway.GuildCreateEvent) {
@@ -227,6 +279,9 @@ func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Ch
 	node.AddChild(channelNode)
 	gt.channelNodeByID[channel.ID] = channelNode
 	gt.setNodeLineStyle(channelNode, gt.getChannelNodeStyle(channel.ID))
+	if isVoiceTreeChannel(channel.Type) {
+		gt.syncVoiceChannelUsers(channel.GuildID, channel.ID)
+	}
 }
 
 func (gt *guildsTree) setNodeLineStyle(node *tview.TreeNode, style tcell.Style) {
@@ -278,13 +333,22 @@ func (gt *guildsTree) createChannelNodes(node *tview.TreeNode, channels []discor
 }
 
 func (gt *guildsTree) onSelected(node *tview.TreeNode) {
-	if len(node.GetChildren()) != 0 {
-		node.SetExpanded(!node.IsExpanded())
+	if node == nil {
+		return
+	}
+
+	if node.GetReference() == nil {
+		gt.toggleExpandedState(node)
 		return
 	}
 
 	switch ref := node.GetReference().(type) {
+	case voiceUserNode:
+		return
 	case discord.GuildID:
+		if gt.toggleExpandedState(node) {
+			return
+		}
 		go gt.chatView.state.MemberState.Subscribe(ref)
 
 		channels, err := gt.chatView.state.Cabinet.Channels(ref)
@@ -301,6 +365,20 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 		if err != nil {
 			slog.Error("failed to get channel from state", "err", err, "channel_id", ref)
 			return
+		}
+
+		// Handle voice channels
+		if channel.Type == discord.GuildVoice || channel.Type == discord.GuildStageVoice {
+			gt.chatView.joinVoiceChannel(channel)
+			return
+		}
+
+		if hasChildren(node) {
+			switch channel.Type {
+			case discord.GuildCategory, discord.GuildForum:
+				gt.toggleExpandedState(node)
+				return
+			}
 		}
 
 		// Handle forum channels differently - they contain threads, not direct messages
@@ -327,6 +405,9 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 				gt.createChannelNode(node, thread)
 			}
 			node.Expand()
+			return
+		}
+		if channel.Type == discord.GuildCategory {
 			return
 		}
 
@@ -365,6 +446,9 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 		}
 		gt.chatView.messageInput.SetPlaceholder(tview.NewLine(tview.NewSegment(text, tcell.StyleDefault.Dim(true))))
 	case dmNode: // Direct messages folder
+		if gt.toggleExpandedState(node) {
+			return
+		}
 		channels, err := gt.chatView.state.PrivateChannels()
 		if err != nil {
 			slog.Error("failed to get private channels", "err", err)
@@ -420,6 +504,18 @@ func (gt *guildsTree) HandleEvent(event tcell.Event) tview.Command {
 		case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.YankID.Keybind):
 			gt.yankID()
 			return nil
+		case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.ShowVoiceUsers.Keybind):
+			gt.showCurrentVoiceUsers()
+			return redraw
+		case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.HideVoiceUsers.Keybind):
+			gt.hideCurrentVoiceUsers()
+			return redraw
+		case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.ShowAllVoiceUsers.Keybind):
+			gt.setAllVoiceUsersVisibility(true)
+			return redraw
+		case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.HideAllVoiceUsers.Keybind):
+			gt.setAllVoiceUsersVisibility(false)
+			return redraw
 		}
 		// Do not fall through to TreeView defaults for unmatched keys.
 		return nil
@@ -492,4 +588,186 @@ func (gt *guildsTree) expandPathToNode(node *tview.TreeNode) {
 	for _, n := range gt.GetPath(node) {
 		n.Expand()
 	}
+}
+
+func isVoiceTreeChannel(channelType discord.ChannelType) bool {
+	return channelType == discord.GuildVoice || channelType == discord.GuildStageVoice
+}
+
+func (gt *guildsTree) currentVoiceChannelID() discord.ChannelID {
+	_, channelID, ok := gt.resolveVoiceChannelNode(gt.GetCurrentNode())
+	if !ok {
+		return 0
+	}
+	return channelID
+}
+
+func (gt *guildsTree) resolveVoiceChannelNode(node *tview.TreeNode) (*tview.TreeNode, discord.ChannelID, bool) {
+	if node == nil {
+		return nil, 0, false
+	}
+
+	switch ref := node.GetReference().(type) {
+	case voiceUserNode:
+		channelNode := gt.findNodeByReference(ref.ChannelID)
+		if channelNode == nil {
+			return nil, 0, false
+		}
+		return channelNode, ref.ChannelID, true
+	case discord.ChannelID:
+		channel, err := gt.chatView.state.Cabinet.Channel(ref)
+		if err != nil || !isVoiceTreeChannel(channel.Type) {
+			return nil, 0, false
+		}
+		return node, ref, true
+	default:
+		return nil, 0, false
+	}
+}
+
+func (gt *guildsTree) voiceChannelVisible(channelID discord.ChannelID) bool {
+	if visible, ok := gt.voiceChannelVisibility[channelID]; ok {
+		return visible
+	}
+	return gt.showAllVoiceUsers
+}
+
+func (gt *guildsTree) showCurrentVoiceUsers() {
+	gt.setCurrentVoiceUsersVisibility(true)
+}
+
+func (gt *guildsTree) hideCurrentVoiceUsers() {
+	gt.setCurrentVoiceUsersVisibility(false)
+}
+
+func (gt *guildsTree) setCurrentVoiceUsersVisibility(visible bool) {
+	node, channelID, ok := gt.resolveVoiceChannelNode(gt.GetCurrentNode())
+	if !ok {
+		return
+	}
+
+	gt.voiceChannelVisibility[channelID] = visible
+
+	guildID := discord.GuildID(0)
+	if visible {
+		channel, err := gt.chatView.state.Cabinet.Channel(channelID)
+		if err != nil {
+			return
+		}
+		guildID = channel.GuildID
+	}
+
+	gt.syncVoiceChannelUsersNode(node, guildID, channelID)
+}
+
+func (gt *guildsTree) setAllVoiceUsersVisibility(visible bool) {
+	gt.showAllVoiceUsers = visible
+	clear(gt.voiceChannelVisibility)
+	gt.refreshAllVoiceChannelUsers()
+}
+
+func (gt *guildsTree) refreshAllVoiceChannelUsers() {
+	participantsByGuild := make(map[discord.GuildID]map[discord.ChannelID][]treeVoiceParticipant)
+	for channelID, node := range gt.channelNodeByID {
+		channel, err := gt.chatView.state.Cabinet.Channel(channelID)
+		if err != nil || !isVoiceTreeChannel(channel.Type) {
+			continue
+		}
+		guildID := channel.GuildID
+		participants, ok := participantsByGuild[guildID]
+		if !ok {
+			participants = gt.voiceParticipantsByChannel(guildID)
+			participantsByGuild[guildID] = participants
+		}
+		gt.syncVoiceChannelUsersNodeFromParticipants(node, guildID, channelID, participants[channelID])
+	}
+}
+
+func (gt *guildsTree) refreshVoiceChannelUsersForGuild(guildID discord.GuildID) {
+	participants := gt.voiceParticipantsByChannel(guildID)
+	for channelID, node := range gt.channelNodeByID {
+		channel, err := gt.chatView.state.Cabinet.Channel(channelID)
+		if err != nil || channel.GuildID != guildID || !isVoiceTreeChannel(channel.Type) {
+			continue
+		}
+		gt.syncVoiceChannelUsersNodeFromParticipants(node, guildID, channelID, participants[channelID])
+	}
+}
+
+func (gt *guildsTree) syncVoiceChannelUsers(guildID discord.GuildID, channelID discord.ChannelID) {
+	node := gt.findNodeByReference(channelID)
+	if node == nil {
+		return
+	}
+	gt.syncVoiceChannelUsersNode(node, guildID, channelID)
+}
+
+func (gt *guildsTree) syncVoiceChannelUsersNode(node *tview.TreeNode, guildID discord.GuildID, channelID discord.ChannelID) {
+	participants := gt.voiceParticipantsByChannel(guildID)
+	gt.syncVoiceChannelUsersNodeFromParticipants(node, guildID, channelID, participants[channelID])
+}
+
+func (gt *guildsTree) syncVoiceChannelUsersNodeFromParticipants(node *tview.TreeNode, guildID discord.GuildID, channelID discord.ChannelID, participants []treeVoiceParticipant) {
+	if node == nil {
+		return
+	}
+
+	node.ClearChildren()
+	node.SetExpandable(false)
+
+	if !gt.voiceChannelVisible(channelID) || !guildID.IsValid() {
+		return
+	}
+
+	if len(participants) == 0 {
+		return
+	}
+
+	for _, participant := range participants {
+		child := tview.NewTreeNode(participant.label).
+			SetReference(voiceUserNode{
+				GuildID:   guildID,
+				ChannelID: channelID,
+				UserID:    participant.userID,
+			}).
+			SetIndent(gt.cfg.Theme.GuildsTree.Indents.Channel + voiceParticipantIndentOffset)
+		gt.setNodeLineStyle(child, tcell.StyleDefault.Dim(true))
+		node.AddChild(child)
+	}
+
+	node.SetExpandable(true).SetExpanded(true)
+}
+
+type treeVoiceParticipant struct {
+	userID discord.UserID
+	label  string
+}
+
+func (gt *guildsTree) voiceParticipantsByChannel(guildID discord.GuildID) map[discord.ChannelID][]treeVoiceParticipant {
+	voiceStates, err := gt.chatView.state.Cabinet.VoiceStates(guildID)
+	if err != nil {
+		return nil
+	}
+
+	participantsByChannel := make(map[discord.ChannelID][]treeVoiceParticipant)
+	for _, voiceState := range voiceStates {
+		if !voiceState.ChannelID.IsValid() {
+			continue
+		}
+		participantsByChannel[voiceState.ChannelID] = append(participantsByChannel[voiceState.ChannelID], treeVoiceParticipant{
+			userID: voiceState.UserID,
+			label:  gt.chatView.resolveVoiceParticipantName(guildID, voiceState),
+		})
+	}
+
+	for _, participants := range participantsByChannel {
+		sort.SliceStable(participants, func(i, j int) bool {
+			if participants[i].label == participants[j].label {
+				return participants[i].userID < participants[j].userID
+			}
+			return participants[i].label < participants[j].label
+		})
+	}
+
+	return participantsByChannel
 }
