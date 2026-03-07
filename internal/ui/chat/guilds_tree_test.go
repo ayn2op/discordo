@@ -6,6 +6,7 @@ import (
 
 	"github.com/ayn2op/tview"
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/gateway"
 	arikawastate "github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/ningen/v3"
 	"github.com/gdamore/tcell/v3"
@@ -94,38 +95,24 @@ func TestGuildsTreeVoiceVisibilityCommands(t *testing.T) {
 	gt.SetCurrentNode(voiceOne)
 	gt.showCurrentVoiceUsers()
 
-	if got := voiceUserLabels(gt, discord.ChannelID(10)); len(got) != 2 || got[0] != "Bravo" || got[1] != "alpha" {
-		t.Fatalf("unexpected users for current voice channel: %#v", got)
-	}
-	if got := voiceUserLabels(gt, discord.ChannelID(11)); len(got) != 0 {
-		t.Fatalf("expected other voice channel to remain hidden, got %#v", got)
-	}
+	assertVoiceUsers(t, voiceUserLabels(gt, discord.ChannelID(10)), "Bravo", "alpha")
+	assertVoiceUsers(t, voiceUserLabels(gt, discord.ChannelID(11)))
 
 	participantNode := voiceOne.GetChildren()[0]
 	gt.SetCurrentNode(participantNode)
 	gt.hideCurrentVoiceUsers()
-	if got := voiceUserLabels(gt, discord.ChannelID(10)); len(got) != 0 {
-		t.Fatalf("expected current voice channel users to hide from participant row, got %#v", got)
-	}
+	assertVoiceUsers(t, voiceUserLabels(gt, discord.ChannelID(10)))
 
 	gt.setAllVoiceUsersVisibility(true)
-	if got := voiceUserLabels(gt, discord.ChannelID(10)); len(got) != 2 {
-		t.Fatalf("expected show all to reveal first channel users, got %#v", got)
-	}
-	if got := voiceUserLabels(gt, discord.ChannelID(11)); len(got) != 1 || got[0] != "charlie" {
-		t.Fatalf("expected show all to reveal second channel users, got %#v", got)
-	}
+	assertVoiceUsers(t, voiceUserLabels(gt, discord.ChannelID(10)), "Bravo", "alpha")
+	assertVoiceUsers(t, voiceUserLabels(gt, discord.ChannelID(11)), "charlie")
 	if len(gt.voiceChannelVisibility) != 0 {
 		t.Fatalf("expected global show-all to clear per-channel overrides, got %#v", gt.voiceChannelVisibility)
 	}
 
 	gt.setAllVoiceUsersVisibility(false)
-	if got := voiceUserLabels(gt, discord.ChannelID(10)); len(got) != 0 {
-		t.Fatalf("expected hide all to clear first channel users, got %#v", got)
-	}
-	if got := voiceUserLabels(gt, discord.ChannelID(11)); len(got) != 0 {
-		t.Fatalf("expected hide all to clear second channel users, got %#v", got)
-	}
+	assertVoiceUsers(t, voiceUserLabels(gt, discord.ChannelID(10)))
+	assertVoiceUsers(t, voiceUserLabels(gt, discord.ChannelID(11)))
 }
 
 func TestGuildsTreeVoiceParticipantSelectionIsNoOp(t *testing.T) {
@@ -197,9 +184,7 @@ func TestGuildsTreeVoiceUsersRefreshAndPersistAcrossRebuild(t *testing.T) {
 	})
 	gt.refreshVoiceChannelUsersForGuild(guildID)
 
-	if got := voiceUserLabels(gt, channelID); len(got) != 2 || got[0] != "echo" || got[1] != "foxtrot" {
-		t.Fatalf("unexpected refreshed users: %#v", got)
-	}
+	assertVoiceUsers(t, voiceUserLabels(gt, channelID), "echo", "foxtrot")
 
 	gt.resetNodeIndex()
 	gt.GetRoot().ClearChildren()
@@ -215,9 +200,7 @@ func TestGuildsTreeVoiceUsersRefreshAndPersistAcrossRebuild(t *testing.T) {
 	if rebuiltNode != gt.findNodeByReference(channelID) {
 		t.Fatal("expected rebuilt voice node to be indexed")
 	}
-	if got := voiceUserLabels(gt, channelID); len(got) != 2 || got[0] != "echo" || got[1] != "foxtrot" {
-		t.Fatalf("expected rebuilt node to preserve visible users, got %#v", got)
-	}
+	assertVoiceUsers(t, voiceUserLabels(gt, channelID), "echo", "foxtrot")
 }
 
 func TestGuildsTreeVoiceVisibilityKeybinds(t *testing.T) {
@@ -242,13 +225,38 @@ func TestGuildsTreeVoiceVisibilityKeybinds(t *testing.T) {
 
 	gt.SetCurrentNode(voiceNode)
 	gt.HandleEvent(tcell.NewEventKey(tcell.KeyRune, "v", tcell.ModNone))
-	if got := voiceUserLabels(gt, channelID); len(got) != 1 || got[0] != "golf" {
-		t.Fatalf("show keybind did not reveal users: %#v", got)
-	}
+	assertVoiceUsers(t, voiceUserLabels(gt, channelID), "golf")
 
 	gt.HandleEvent(tcell.NewEventKey(tcell.KeyRune, "A", tcell.ModShift))
-	if got := voiceUserLabels(gt, channelID); len(got) != 0 {
-		t.Fatalf("hide-all keybind did not hide users: %#v", got)
+	assertVoiceUsers(t, voiceUserLabels(gt, channelID))
+}
+
+func TestGuildsTreeFolderNodeStillExpands(t *testing.T) {
+	view := newGuildTreeTestView(t)
+	view.cfg.Theme.GuildsTree.AutoExpandFolders = false
+
+	guildID := discord.GuildID(90)
+	view.guildsTree.createFolderNode(gateway.GuildFolder{
+		Name:     "Folder",
+		GuildIDs: []discord.GuildID{guildID},
+	}, map[discord.GuildID]*gateway.GuildCreateEvent{
+		guildID: {
+			Guild: discord.Guild{
+				ID:   guildID,
+				Name: "Guild",
+			},
+		},
+	})
+
+	folderNode := view.guildsTree.GetRoot().GetChildren()[0]
+	if folderNode.IsExpanded() {
+		t.Fatal("expected folder node to start collapsed")
+	}
+
+	view.guildsTree.onSelected(folderNode)
+
+	if !folderNode.IsExpanded() {
+		t.Fatal("expected folder node to expand on selection")
 	}
 }
 
@@ -273,4 +281,18 @@ func voiceUserLabels(tree *guildsTree, channelID discord.ChannelID) []string {
 
 	slices.Sort(labels)
 	return labels
+}
+
+func assertVoiceUsers(t *testing.T, got []string, want ...string) {
+	t.Helper()
+
+	if len(got) != len(want) {
+		t.Fatalf("voice users mismatch. got=%#v want=%#v", got, want)
+	}
+
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("voice users mismatch at index %d. got=%#v want=%#v", i, got, want)
+		}
+	}
 }

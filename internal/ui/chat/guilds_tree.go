@@ -129,6 +129,18 @@ func (gt *guildsTree) canCollapseParent(node *tview.TreeNode) bool {
 	return parent != nil && parent.GetLevel() != 0
 }
 
+func hasChildren(node *tview.TreeNode) bool {
+	return len(node.GetChildren()) != 0
+}
+
+func (gt *guildsTree) toggleExpandedState(node *tview.TreeNode) bool {
+	if !hasChildren(node) {
+		return false
+	}
+	node.SetExpanded(!node.IsExpanded())
+	return true
+}
+
 func (gt *guildsTree) selectCurrentDescription(node *tview.TreeNode, fallback string) string {
 	if node == nil {
 		return fallback
@@ -136,7 +148,7 @@ func (gt *guildsTree) selectCurrentDescription(node *tview.TreeNode, fallback st
 
 	switch ref := node.GetReference().(type) {
 	case discord.GuildID, dmNode:
-		if len(node.GetChildren()) == 0 {
+		if !hasChildren(node) {
 			return "expand"
 		}
 	case voiceUserNode:
@@ -157,7 +169,7 @@ func (gt *guildsTree) selectCurrentDescription(node *tview.TreeNode, fallback st
 		}
 	}
 
-	if len(node.GetChildren()) != 0 {
+	if hasChildren(node) {
 		if node.IsExpanded() {
 			return "collapse"
 		}
@@ -321,12 +333,20 @@ func (gt *guildsTree) createChannelNodes(node *tview.TreeNode, channels []discor
 }
 
 func (gt *guildsTree) onSelected(node *tview.TreeNode) {
+	if node == nil {
+		return
+	}
+
+	if node.GetReference() == nil {
+		gt.toggleExpandedState(node)
+		return
+	}
+
 	switch ref := node.GetReference().(type) {
 	case voiceUserNode:
 		return
 	case discord.GuildID:
-		if len(node.GetChildren()) != 0 {
-			node.SetExpanded(!node.IsExpanded())
+		if gt.toggleExpandedState(node) {
 			return
 		}
 		go gt.chatView.state.MemberState.Subscribe(ref)
@@ -353,10 +373,10 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 			return
 		}
 
-		if len(node.GetChildren()) != 0 {
+		if hasChildren(node) {
 			switch channel.Type {
 			case discord.GuildCategory, discord.GuildForum:
-				node.SetExpanded(!node.IsExpanded())
+				gt.toggleExpandedState(node)
 				return
 			}
 		}
@@ -426,8 +446,7 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 		}
 		gt.chatView.messageInput.SetPlaceholder(tview.NewLine(tview.NewSegment(text, tcell.StyleDefault.Dim(true))))
 	case dmNode: // Direct messages folder
-		if len(node.GetChildren()) != 0 {
-			node.SetExpanded(!node.IsExpanded())
+		if gt.toggleExpandedState(node) {
 			return
 		}
 		channels, err := gt.chatView.state.PrivateChannels()
@@ -654,12 +673,13 @@ func (gt *guildsTree) refreshAllVoiceChannelUsers() {
 		if err != nil || !isVoiceTreeChannel(channel.Type) {
 			continue
 		}
-		participants := participantsByGuild[channel.GuildID]
-		if participants == nil {
-			participants = gt.voiceParticipantsByChannel(channel.GuildID)
-			participantsByGuild[channel.GuildID] = participants
+		guildID := channel.GuildID
+		participants, ok := participantsByGuild[guildID]
+		if !ok {
+			participants = gt.voiceParticipantsByChannel(guildID)
+			participantsByGuild[guildID] = participants
 		}
-		gt.syncVoiceChannelUsersNodeFromParticipants(node, channel.GuildID, channelID, participants[channelID])
+		gt.syncVoiceChannelUsersNodeFromParticipants(node, guildID, channelID, participants[channelID])
 	}
 }
 
@@ -740,9 +760,8 @@ func (gt *guildsTree) voiceParticipantsByChannel(guildID discord.GuildID) map[di
 		})
 	}
 
-	for channelID := range participantsByChannel {
-		sort.SliceStable(participantsByChannel[channelID], func(i, j int) bool {
-			participants := participantsByChannel[channelID]
+	for _, participants := range participantsByChannel {
+		sort.SliceStable(participants, func(i, j int) bool {
 			if participants[i].label == participants[j].label {
 				return participants[i].userID < participants[j].userID
 			}
