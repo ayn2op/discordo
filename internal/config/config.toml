@@ -63,6 +63,14 @@ send = true
 # Whether to receive typing status or not.
 receive = true
 
+[voice]
+input_device = ""
+output_device = ""
+input_volume = 1.0
+output_volume = 1.0
+voice_activity = true
+noise_gate = 0.05
+
 [sidebar.markers]
 expanded = "▾ "
 collapsed = "▸ "
@@ -118,6 +126,10 @@ select_current = "enter"
 yank_id = "i"
 collapse_parent_node = "-"
 move_to_parent_node = "p"
+show_voice_channel_users = "v"
+hide_voice_channel_users = "V"
+show_all_voice_channel_users = "a"
+hide_all_voice_channel_users = "A"
 
 # Only while focusing on sent messages
 [keybinds.messages_list]
@@ -168,6 +180,12 @@ up = "ctrl+p"
 down = "ctrl+n"
 top = "home"
 bottom = "end"
+
+# Voice channel controls (when voice panel is focused)
+[keybinds.voice]
+leave_voice = "q"
+toggle_mute = "m"
+toggle_deafen = "M"
 
 # style = { foreground = "", background = "", attributes = "" or ["",""],  underline = "", underline_color = "" }
 [theme.title]

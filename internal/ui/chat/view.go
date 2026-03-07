@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/ui"
+	"github.com/ayn2op/discordo/internal/voice"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/help"
 	"github.com/ayn2op/tview/keybind"
@@ -39,7 +41,10 @@ type View struct {
 	messagesList   *messagesList
 	messageInput   *messageInput
 	channelsPicker *channelsPicker
+	voicePanel     *voicePanel
 	help           *help.Help
+
+	voiceManager *voice.VoiceManager
 
 	selectedChannel   *discord.Channel
 	selectedChannelMu sync.RWMutex
@@ -73,6 +78,7 @@ func NewView(app *tview.Application, cfg *config.Config, token string) *View {
 	v.messageInput = newMessageInput(cfg, v)
 	v.channelsPicker = newChannelsPicker(cfg, v)
 	v.channelsPicker.SetCancelFunc(v.closePicker)
+	v.voicePanel = newVoicePanel(cfg, v)
 
 	v.help = help.New()
 
@@ -114,6 +120,7 @@ func (v *View) buildLayout() {
 	v.rightFlex.
 		SetDirection(tview.FlexRow).
 		AddItem(v.messagesList, 0, 1, false).
+		AddItem(v.voicePanel, 0, 0, false).
 		AddItem(v.messageInput, 3, 1, false)
 	// The guilds tree is always focused first at start-up.
 	v.mainFlex.
@@ -128,6 +135,7 @@ func (v *View) buildLayout() {
 	v.updateHelpHeight()
 	v.AddLayer(v.rootFlex, layers.WithName(flexLayerName), layers.WithResize(true), layers.WithVisible(true))
 	v.AddLayer(v.messageInput.mentionsList, layers.WithName(mentionsListLayerName), layers.WithResize(false), layers.WithVisible(false))
+	v.updateVoicePanelLayout()
 }
 
 func (v *View) togglePicker() {
@@ -186,6 +194,15 @@ func (v *View) focusMessageInput() bool {
 	return false
 }
 
+func (v *View) focusVoicePanel() bool {
+	if v.voicePanel.shouldShow() {
+		v.app.SetFocus(v.voicePanel)
+		return true
+	}
+
+	return false
+}
+
 func (v *View) focusPrevious() {
 	switch v.app.GetFocus() {
 	case v.messagesList: // Handle both a.messagesList and a.flex as well as other edge cases (if there is).
@@ -199,6 +216,11 @@ func (v *View) focusPrevious() {
 		}
 		fallthrough
 	case v.messageInput:
+		if v.focusVoicePanel() {
+			return
+		}
+		fallthrough
+	case v.voicePanel:
 		v.app.SetFocus(v.messagesList)
 	}
 }
@@ -206,6 +228,11 @@ func (v *View) focusPrevious() {
 func (v *View) focusNext() {
 	switch v.app.GetFocus() {
 	case v.messagesList:
+		if v.focusVoicePanel() {
+			return
+		}
+		fallthrough
+	case v.voicePanel:
 		if v.focusMessageInput() {
 			return
 		}
@@ -218,6 +245,85 @@ func (v *View) focusNext() {
 	case v.guildsTree:
 		v.app.SetFocus(v.messagesList)
 	}
+}
+
+func (v *View) updateVoiceStatus() {
+	if v.voiceManager == nil {
+		return
+	}
+	v.voicePanel.setPending(false)
+	v.voicePanel.render()
+	v.updateVoicePanelLayout()
+}
+
+func (v *View) prepareVoiceJoinUI(channel *discord.Channel) {
+	v.voicePanel.clear()
+	v.voicePanel.setChannelName(channel.Name)
+	v.voicePanel.setPending(true)
+	v.voicePanel.setError("")
+	v.voicePanel.render()
+	v.updateVoicePanelLayout()
+}
+
+func (v *View) updateVoicePanelLayout() {
+	height := 0
+	if v.voicePanel.shouldShow() {
+		height = v.voicePanel.preferredHeight()
+	} else if v.app.GetFocus() == v.voicePanel {
+		v.app.SetFocus(v.messagesList)
+	}
+	v.rightFlex.ResizeItem(v.voicePanel, height, 0)
+}
+
+func (v *View) withConnectedVoiceManager(fn func(*voice.VoiceManager)) bool {
+	vm := v.voiceManager
+	if vm == nil || vm.State() != voice.VoiceConnected {
+		return false
+	}
+
+	fn(vm)
+	return true
+}
+
+func (v *View) withActiveVoiceManager(fn func(*voice.VoiceManager)) bool {
+	vm := v.voiceManager
+	if vm == nil || vm.State() == voice.VoiceDisconnected {
+		return false
+	}
+
+	fn(vm)
+	return true
+}
+
+func (v *View) joinVoiceChannel(channel *discord.Channel) {
+	if v.voiceManager == nil {
+		return
+	}
+
+	v.prepareVoiceJoinUI(channel)
+
+	go func() {
+		// Join handles leaving the previous channel internally.
+		ctx := context.Background()
+		if err := v.voiceManager.Join(ctx, channel.GuildID, channel.ID); err != nil {
+			slog.Error("failed to join voice channel", "err", err, "channel_id", channel.ID)
+			v.app.QueueUpdateDraw(func() {
+				v.voicePanel.clear()
+				v.voicePanel.setChannelName(channel.Name)
+				v.voicePanel.setError(err.Error())
+				v.updateVoiceStatus()
+			})
+			return
+		}
+
+		// Brief delay to let the voice state propagate to the cabinet.
+		time.Sleep(500 * time.Millisecond)
+
+		v.app.QueueUpdateDraw(func() {
+			v.loadVoiceParticipants(channel.GuildID, channel.ID)
+			v.updateVoiceStatus()
+		})
+	}()
 }
 
 func (v *View) HandleEvent(event tcell.Event) tview.Command {

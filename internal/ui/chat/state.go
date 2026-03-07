@@ -7,6 +7,7 @@ import (
 
 	"github.com/ayn2op/discordo/internal/http"
 	"github.com/ayn2op/discordo/internal/notifications"
+	"github.com/ayn2op/discordo/internal/voice"
 	"github.com/ayn2op/tview"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
@@ -48,6 +49,41 @@ func (v *View) OpenState(token string) error {
 		v.state.AddHandler(v.onTypingStart)
 	}
 
+	// Initialize voice
+	if err := voice.InitAudio(); err != nil {
+		slog.Error("failed to initialize audio", "err", err)
+	}
+	v.voiceManager = voice.NewVoiceManager(v.state, voice.Config{
+		InputDevice:   v.cfg.Voice.InputDevice,
+		OutputDevice:  v.cfg.Voice.OutputDevice,
+		InputVolume:   v.cfg.Voice.InputVolume,
+		OutputVolume:  v.cfg.Voice.OutputVolume,
+		VoiceActivity: v.cfg.Voice.VoiceActivity,
+		NoiseGate:     v.cfg.Voice.NoiseGate,
+	})
+
+	v.voiceManager.OnStateChange(func(s voice.VoiceState) {
+		v.app.QueueUpdateDraw(func() {
+			v.updateVoiceStatus()
+		})
+	})
+	v.voiceManager.OnSpeakingChange(func(userID discord.UserID, speaking bool) {
+		v.app.QueueUpdateDraw(func() {
+			v.voicePanel.setSpeaking(userID, speaking)
+			v.updateVoiceStatus()
+		})
+	})
+	v.voiceManager.OnParticipantChange(func() {
+		v.app.QueueUpdateDraw(func() {
+			if v.voiceManager.State() == voice.VoiceConnected {
+				v.loadVoiceParticipants(v.voiceManager.GuildID(), v.voiceManager.ChannelID())
+			}
+			v.updateVoiceStatus()
+		})
+	})
+
+	v.state.AddHandler(v.onVoiceStateUpdate)
+
 	v.state.StateLog = func(err error) {
 		slog.Error("state log", "err", err)
 	}
@@ -57,6 +93,14 @@ func (v *View) OpenState(token string) error {
 }
 
 func (v *View) CloseState() error {
+	if v.voiceManager != nil {
+		v.voiceManager.Close()
+		v.voiceManager = nil
+	}
+	if err := voice.TerminateAudio(); err != nil {
+		slog.Error("failed to terminate audio", "err", err)
+	}
+
 	if v.state == nil {
 		return nil
 	}
@@ -142,6 +186,7 @@ func (v *View) onReady(event *gateway.ReadyEvent) {
 			}
 		}
 
+		v.guildsTree.pruneVoiceVisibility()
 		v.guildsTree.SetCurrentNode(root)
 		v.app.SetFocus(v.guildsTree)
 	})
@@ -239,4 +284,78 @@ func (v *View) onTypingStart(event *gateway.TypingStartEvent) {
 	}
 
 	v.addTyper(event.UserID)
+}
+
+func (v *View) onVoiceStateUpdate(event *gateway.VoiceStateUpdateEvent) {
+	if v.state == nil {
+		return
+	}
+
+	v.app.QueueUpdateDraw(func() {
+		if event.GuildID.IsValid() {
+			v.guildsTree.refreshVoiceChannelUsersForGuild(event.GuildID)
+		}
+
+		if v.voiceManager == nil {
+			return
+		}
+
+		guildID := v.voiceManager.GuildID()
+		channelID := v.voiceManager.ChannelID()
+		if v.voiceManager.State() == voice.VoiceDisconnected || !guildID.IsValid() || event.GuildID != guildID {
+			return
+		}
+
+		v.loadVoiceParticipants(guildID, channelID)
+		v.updateVoiceStatus()
+	})
+}
+
+func (v *View) loadVoiceParticipants(guildID discord.GuildID, channelID discord.ChannelID) {
+	v.voicePanel.clear()
+
+	voiceStates, err := v.state.Cabinet.VoiceStates(guildID)
+	if err != nil {
+		slog.Error("failed to get voice states", "err", err)
+		return
+	}
+
+	for _, vs := range voiceStates {
+		if vs.ChannelID != channelID {
+			continue
+		}
+
+		v.voicePanel.addParticipant(vs.UserID, v.resolveVoiceParticipantName(guildID, vs))
+		v.voicePanel.setParticipantMuted(vs.UserID, vs.SelfMute || vs.Mute)
+		v.voicePanel.setParticipantDeafened(vs.UserID, vs.SelfDeaf || vs.Deaf)
+	}
+
+	channel, err := v.state.Cabinet.Channel(channelID)
+	if err == nil {
+		v.voicePanel.setChannelName(channel.Name)
+	}
+	v.voicePanel.setError("")
+}
+
+func (v *View) resolveVoiceParticipantName(guildID discord.GuildID, voiceState discord.VoiceState) string {
+	resolveDisplayName := func(member *discord.Member) string {
+		if member.Nick != "" {
+			return member.Nick
+		}
+		return member.User.DisplayOrUsername()
+	}
+
+	if voiceState.Member != nil {
+		if name := resolveDisplayName(voiceState.Member); name != "" {
+			return name
+		}
+	}
+
+	if member, err := v.state.Cabinet.Member(guildID, voiceState.UserID); err == nil {
+		if name := resolveDisplayName(member); name != "" {
+			return name
+		}
+	}
+
+	return voiceState.UserID.String()
 }

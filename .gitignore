@@ -11,3 +11,7 @@ result
 # direnv (devs should have this file locally)
 .direnv/
 .envrc
+
+# Local debug logs
+firebase-debug.log
+voice_debug.log
