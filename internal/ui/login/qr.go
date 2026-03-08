@@ -340,7 +340,7 @@ func (q *qrLogin) run(ctx context.Context) {
 					return
 				}
 				q.setText("Authenticating...\n\nPlease wait")
-				token, err := exchangeTicket(ctx, p.Ticket, q.fingerprint, q.privKey)
+				token, err := exchangeTicket(p.Ticket, q.fingerprint, q.privKey)
 				if err != nil {
 					q.setText("Ticket exchange failed: " + err.Error())
 					q.fail(err)
@@ -390,7 +390,7 @@ func renderQR(content string) ([]tview.Line, error) {
 	return builder.Finish(), nil
 }
 
-func exchangeTicket(ctx context.Context, ticket string, fingerprint string, priv *rsa.PrivateKey) (string, error) {
+func exchangeTicket(ticket string, fingerprint string, priv *rsa.PrivateKey) (string, error) {
 	if ticket == "" {
 		return "", errors.New("empty ticket")
 	}
