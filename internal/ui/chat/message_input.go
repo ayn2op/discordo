@@ -496,7 +496,7 @@ func (ul userList) Len() int {
 	return len(ul)
 }
 
-// channelHasUser checks if a user has permission to view the specified channel
+// channelHasUser checks if a user has permission to view the specified channel.
 func channelHasUser(state *ningen.State, channelID discord.ChannelID, userID discord.UserID) bool {
 	perms, err := state.Permissions(channelID, userID)
 	if err != nil {
@@ -622,7 +622,6 @@ func (mi *messageInput) addMentionUser(user *discord.User) {
 	})
 }
 
-// used by chatView
 func (mi *messageInput) removeMentionsList() {
 	mi.chatView.HideLayer(mentionsListLayerName)
 }

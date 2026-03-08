@@ -774,7 +774,7 @@ func unescapeMarkdownEscapes(s string) string {
 	var b strings.Builder
 	b.Grow(len(s))
 
-	for i := 0; i < len(s); i++ {
+	for i := range len(s) {
 		if s[i] == '\\' && i+1 < len(s) && isMarkdownEscapable(s[i+1]) {
 			continue
 		}

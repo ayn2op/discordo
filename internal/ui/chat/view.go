@@ -418,7 +418,7 @@ func (v *View) updateFooter() {
 
 		switch len(names) {
 		case 1:
-			footer = fmt.Sprintf("%s is typing...", names[0])
+			footer = names[0] + " is typing..."
 		case 2:
 			footer = fmt.Sprintf("%s and %s are typing...", names[0], names[1])
 		case 3:

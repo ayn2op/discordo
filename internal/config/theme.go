@@ -31,10 +31,6 @@ func (aw *AlignmentWrapper) UnmarshalTOML(v any) error {
 
 type StyleWrapper struct{ tcell.Style }
 
-func NewStyleWrapper(style tcell.Style) StyleWrapper {
-	return StyleWrapper{Style: style}
-}
-
 func (sw *StyleWrapper) UnmarshalTOML(v any) error {
 	m, ok := v.(map[string]any)
 	if !ok {
@@ -64,7 +60,6 @@ func (sw *StyleWrapper) UnmarshalTOML(v any) error {
 						sw.parseAttr(s)
 					}
 				}
-
 			}
 		case "underline":
 			if s, ok := val.(string); ok {
@@ -176,14 +171,14 @@ func (vw *ScrollBarVisibilityWrapper) UnmarshalTOML(val any) error {
 	return nil
 }
 
-type HelpTheme struct {
-	ShortKeyStyle  StyleWrapper `toml:"short_key_style"`
-	ShortDescStyle StyleWrapper `toml:"short_desc_style"`
-	FullKeyStyle   StyleWrapper `toml:"full_key_style"`
-	FullDescStyle  StyleWrapper `toml:"full_desc_style"`
-}
-
 type (
+	HelpTheme struct {
+		ShortKeyStyle  StyleWrapper `toml:"short_key_style"`
+		ShortDescStyle StyleWrapper `toml:"short_desc_style"`
+		FullKeyStyle   StyleWrapper `toml:"full_key_style"`
+		FullDescStyle  StyleWrapper `toml:"full_desc_style"`
+	}
+
 	ThemeStyle struct {
 		NormalStyle StyleWrapper `toml:"normal_style"`
 		ActiveStyle StyleWrapper `toml:"active_style"`
