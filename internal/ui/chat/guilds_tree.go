@@ -436,7 +436,11 @@ func (gt *guildsTree) yankID() {
 	// Reference of a tree node in the guilds tree is its ID.
 	// discord.Snowflake (discord.GuildID and discord.ChannelID) have the String method.
 	if id, ok := node.GetReference().(fmt.Stringer); ok {
-		go clipboard.Write(clipboard.FmtText, []byte(id.String()))
+		go func() {
+			if err := clipboard.Write(clipboard.FmtText, []byte(id.String())); err != nil {
+				slog.Error("failed to copy node id", "err", err)
+			}
+		}()
 	}
 }
 

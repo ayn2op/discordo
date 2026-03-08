@@ -69,8 +69,19 @@ func newMessageInput(cfg *config.Config, chatView *View) *messageInput {
 	mi.
 		SetPlaceholder(tview.NewLine(tview.NewSegment("Select a channel to start chatting", tcell.StyleDefault.Dim(true)))).
 		SetClipboard(
-			func(s string) { clipboard.Write(clipboard.FmtText, []byte(s)) },
-			func() string { return string(clipboard.Read(clipboard.FmtText)) },
+			func(s string) {
+				if err := clipboard.Write(clipboard.FmtText, []byte(s)); err != nil {
+					slog.Error("failed to write clipboard text", "err", err)
+				}
+			},
+			func() string {
+				data, err := clipboard.Read(clipboard.FmtText)
+				if err != nil {
+					slog.Error("failed to read clipboard text", "err", err)
+					return ""
+				}
+				return string(data)
+			},
 		).
 		SetDisabled(true)
 
@@ -187,7 +198,12 @@ func (mi *messageInput) HandleEvent(event tcell.Event) tview.Command {
 }
 
 func (mi *messageInput) paste() {
-	if data := clipboard.Read(clipboard.FmtImage); data != nil {
+	data, err := clipboard.Read(clipboard.FmtImage)
+	if err != nil {
+		slog.Error("failed to read clipboard image", "err", err)
+		return
+	}
+	if data != nil {
 		name := "clipboard.png"
 		mi.attach(name, bytes.NewReader(data))
 	}

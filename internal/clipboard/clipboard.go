@@ -1,10 +1,10 @@
 package clipboard
 
-import designClipb "github.com/ayn2op/clipboard"
+import "github.com/ayn2op/clipboard"
 
-type Format = designClipb.Format
+type Format = clipboard.Format
 
 const (
-	FmtText  Format = designClipb.FmtText
-	FmtImage        = designClipb.FmtImage
+	FmtText  Format = clipboard.FmtText
+	FmtImage        = clipboard.FmtImage
 )
