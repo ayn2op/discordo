@@ -2,7 +2,7 @@
 
 package clipboard
 
-import designClipb "golang.design/x/clipboard"
+import designClipb "github.com/ayn2op/clipboard"
 
 var (
 	Init  = designClipb.Init

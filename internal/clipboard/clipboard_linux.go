@@ -4,7 +4,7 @@ package clipboard
 
 import (
 	"bytes"
-	designClipb "golang.design/x/clipboard"
+	designClipb "github.com/ayn2op/clipboard"
 	"log/slog"
 	"os"
 	"os/exec"
