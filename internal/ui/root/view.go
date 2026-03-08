@@ -72,10 +72,11 @@ func (v *View) HandleEvent(event tcell.Event) tview.Command {
 			v.suspend()
 			return nil
 		case keybind.Matches(event, v.cfg.Keybinds.Quit.Keybind):
+			var innerCmd tview.Command
 			if v.inner != nil {
-				return v.inner.HandleEvent(chat.NewQuitEvent())
+				innerCmd = v.inner.HandleEvent(chat.NewQuitEvent())
 			}
-			return tview.QuitCommand{}
+			return tview.BatchCommand{innerCmd, tview.QuitCommand{}}
 		}
 	}
 
