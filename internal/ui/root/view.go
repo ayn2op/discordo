@@ -6,6 +6,7 @@ import (
 	"github.com/ayn2op/discordo/internal/ui/chat"
 	"github.com/ayn2op/discordo/internal/ui/login"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/help"
 	"github.com/ayn2op/tview/keybind"
 	"github.com/gdamore/tcell/v3"
 )
@@ -13,34 +14,68 @@ import (
 const tokenEnvVarKey = "DISCORDO_TOKEN"
 
 type View struct {
-	app   *tview.Application
-	inner tview.Primitive
-	cfg   *config.Config
+	app      *tview.Application
+	rootFlex *tview.Flex // inner + help
+	inner    tview.Primitive
+	help     *help.Help
+
+	cfg *config.Config
 }
 
 func NewView(cfg *config.Config, app *tview.Application) *View {
-	return &View{
-		app: app,
+	v := &View{
+		app:      app,
+		rootFlex: tview.NewFlex(),
+		help:     help.New(),
+
 		cfg: cfg,
 	}
+
+	v.rootFlex.SetDirection(tview.FlexRow)
+
+	styles := help.DefaultStyles()
+	styles.ShortKeyStyle = cfg.Theme.Help.ShortKeyStyle.Style
+	styles.ShortDescStyle = cfg.Theme.Help.ShortDescStyle.Style
+	styles.FullKeyStyle = cfg.Theme.Help.FullKeyStyle.Style
+	styles.FullDescStyle = cfg.Theme.Help.FullDescStyle.Style
+	v.help.SetStyles(styles)
+
+	v.help.SetKeyMap(v)
+	v.help.SetCompactModifiers(cfg.Help.CompactModifiers)
+	v.help.SetShortSeparator(cfg.Help.Separator)
+	v.help.SetBorderPadding(0, 0, cfg.Help.Padding[0], cfg.Help.Padding[1])
+	v.buildLayout()
+	return v
 }
 
 func (v *View) showLoginView() tview.Command {
 	v.inner = login.NewForm(v.app, v.cfg)
+	v.buildLayout()
 	return v.inner.HandleEvent(tview.NewInitEvent())
 }
 
 func (v *View) showChatView(token string) tview.Command {
 	v.inner = chat.NewView(v.app, v.cfg, token)
+	v.buildLayout()
 	return v.inner.HandleEvent(tview.NewInitEvent())
+}
+
+func (v *View) buildLayout() {
+	v.rootFlex.Clear()
+
+	content := v.inner
+	if content == nil {
+		content = tview.NewBox()
+	}
+	v.rootFlex.AddItem(content, 0, 1, true)
+	v.rootFlex.AddItem(v.help, 1, 0, false)
+	v.updateHelpHeight()
 }
 
 var _ tview.Primitive = (*View)(nil)
 
 func (v *View) Draw(screen tcell.Screen) {
-	if v.inner != nil {
-		v.inner.Draw(screen)
-	}
+	v.rootFlex.Draw(screen)
 }
 
 func (v *View) HandleEvent(event tcell.Event) tview.Command {
@@ -68,6 +103,10 @@ func (v *View) HandleEvent(event tcell.Event) tview.Command {
 
 	case *tview.KeyEvent:
 		switch {
+		case keybind.Matches(event, v.cfg.Keybinds.ToggleHelp.Keybind):
+			v.help.SetShowAll(!v.help.ShowAll())
+			v.updateHelpHeight()
+			return tview.RedrawCommand{}
 		case keybind.Matches(event, v.cfg.Keybinds.Suspend.Keybind):
 			v.suspend()
 			return nil
@@ -86,17 +125,20 @@ func (v *View) HandleEvent(event tcell.Event) tview.Command {
 	return nil
 }
 
-func (v *View) GetRect() (int, int, int, int) {
-	if v.inner != nil {
-		return v.inner.GetRect()
+func (v *View) updateHelpHeight() {
+	height := 1
+	if v.help.ShowAll() {
+		height = max(len(v.help.FullHelpLines(v.FullHelp(), 0)), 1)
 	}
-	return 0, 0, 0, 0
+	v.rootFlex.ResizeItem(v.help, height, 0)
+}
+
+func (v *View) GetRect() (int, int, int, int) {
+	return v.rootFlex.GetRect()
 }
 
 func (v *View) SetRect(x int, y int, width int, height int) {
-	if v.inner != nil {
-		v.inner.SetRect(x, y, width, height)
-	}
+	v.rootFlex.SetRect(x, y, width, height)
 }
 
 func (v *View) Focus(delegate func(p tview.Primitive)) {

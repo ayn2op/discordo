@@ -52,7 +52,7 @@ func (v *View) baseShortHelp() []keybind.Keybind {
 	if !v.messageInput.GetDisabled() {
 		short = append(short, cfg.FocusMessageInput.Keybind)
 	}
-	short = append(short, cfg.ToggleGuildsTree.Keybind, cfg.ToggleChannelsPicker.Keybind, cfg.ToggleHelp.Keybind)
+	short = append(short, cfg.ToggleGuildsTree.Keybind, cfg.ToggleChannelsPicker.Keybind)
 	return short
 }
 
@@ -66,6 +66,6 @@ func (v *View) baseFullHelp() [][]keybind.Keybind {
 		focus,
 		{cfg.FocusPrevious.Keybind, cfg.FocusNext.Keybind},
 		{cfg.ToggleGuildsTree.Keybind, cfg.ToggleChannelsPicker.Keybind},
-		{cfg.ToggleHelp.Keybind, cfg.Suspend.Keybind, cfg.Logout.Keybind, cfg.Quit.Keybind},
+		{cfg.Logout.Keybind},
 	}
 }

@@ -9,7 +9,6 @@ import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
-	"github.com/ayn2op/tview/help"
 	"github.com/ayn2op/tview/keybind"
 	"github.com/ayn2op/tview/layers"
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -39,7 +38,6 @@ type View struct {
 	messagesList   *messagesList
 	messageInput   *messageInput
 	channelsPicker *channelsPicker
-	help           *help.Help
 
 	selectedChannel   *discord.Channel
 	selectedChannelMu sync.RWMutex
@@ -73,20 +71,6 @@ func NewView(app *tview.Application, cfg *config.Config, token string) *View {
 	v.messageInput = newMessageInput(cfg, v)
 	v.channelsPicker = newChannelsPicker(cfg, v)
 	v.channelsPicker.SetCancelFunc(v.closePicker)
-
-	v.help = help.New()
-
-	styles := help.DefaultStyles()
-	styles.ShortKeyStyle = cfg.Theme.Help.ShortKeyStyle.Style
-	styles.ShortDescStyle = cfg.Theme.Help.ShortDescStyle.Style
-	styles.FullKeyStyle = cfg.Theme.Help.FullKeyStyle.Style
-	styles.FullDescStyle = cfg.Theme.Help.FullDescStyle.Style
-	v.help.SetStyles(styles)
-
-	v.help.SetKeyMap(v)
-	v.help.SetCompactModifiers(cfg.Help.CompactModifiers)
-	v.help.SetShortSeparator(cfg.Help.Separator)
-	v.help.SetBorderPadding(0, 0, cfg.Help.Padding[0], cfg.Help.Padding[1])
 
 	v.SetBackgroundLayerStyle(v.cfg.Theme.Dialog.BackgroundStyle.Style)
 	v.buildLayout()
@@ -122,10 +106,7 @@ func (v *View) buildLayout() {
 
 	v.rootFlex.
 		SetDirection(tview.FlexRow).
-		AddItem(v.mainFlex, 0, 1, true).
-		AddItem(v.help, 1, 0, false)
-
-	v.updateHelpHeight()
+		AddItem(v.mainFlex, 0, 1, true)
 	v.AddLayer(v.rootFlex, layers.WithName(flexLayerName), layers.WithResize(true), layers.WithVisible(true))
 	v.AddLayer(v.messageInput.mentionsList, layers.WithName(mentionsListLayerName), layers.WithResize(false), layers.WithVisible(false))
 }
@@ -238,10 +219,6 @@ func (v *View) HandleEvent(event tcell.Event) tview.Command {
 	case *tview.KeyEvent:
 		redraw := tview.RedrawCommand{}
 		switch {
-		case keybind.Matches(event, v.cfg.Keybinds.ToggleHelp.Keybind):
-			v.help.SetShowAll(!v.help.ShowAll())
-			v.updateHelpHeight()
-			return redraw
 		case keybind.Matches(event, v.cfg.Keybinds.FocusGuildsTree.Keybind):
 			v.messageInput.removeMentionsList()
 			v.focusGuildsTree()
@@ -319,14 +296,6 @@ func (v *View) consumeLayerCommands(command tview.Command) tview.Command {
 		return remaining[0]
 	}
 	return tview.BatchCommand(remaining)
-}
-
-func (v *View) updateHelpHeight() {
-	height := 1
-	if v.help.ShowAll() {
-		height = max(len(v.help.FullHelpLines(v.FullHelp(), 0)), 1)
-	}
-	v.rootFlex.ResizeItem(v.help, height, 0)
 }
 
 func (v *View) showConfirmModal(prompt string, buttons []string, onDone func(label string)) {
