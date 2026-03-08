@@ -1,6 +1,6 @@
 package clipboard
 
-import designClipb "golang.design/x/clipboard"
+import designClipb "github.com/ayn2op/clipboard"
 
 type Format = designClipb.Format
 

@@ -7,11 +7,11 @@ import (
 	"github.com/ayn2op/tview/layers"
 	"github.com/gdamore/tcell/v3"
 
+	"github.com/ayn2op/discordo/internal/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/keyring"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
-	"golang.design/x/clipboard"
 )
 
 const (

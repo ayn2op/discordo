@@ -10,6 +10,7 @@ require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/alecthomas/chroma/v2 v2.23.1
 	github.com/andybalholm/brotli v1.2.0
+	github.com/ayn2op/clipboard v0.0.0-20260308080338-b25f12248108
 	github.com/ayn2op/tview v0.0.0-20260304052427-7549865d186e
 	github.com/deckarep/gosx-notifier v0.0.0-20180201035817-e127226297fb
 	github.com/diamondburned/arikawa/v3 v3.6.1-0.20260308005009-475d37ffd5fa
@@ -27,7 +28,6 @@ require (
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/yuin/goldmark v1.7.16
 	github.com/zalando/go-keyring v0.2.6
-	golang.design/x/clipboard v0.7.1
 )
 
 require (
