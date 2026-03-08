@@ -12,8 +12,8 @@ require (
 	github.com/andybalholm/brotli v1.2.0
 	github.com/ayn2op/tview v0.0.0-20260304052427-7549865d186e
 	github.com/deckarep/gosx-notifier v0.0.0-20180201035817-e127226297fb
-	github.com/diamondburned/arikawa/v3 v3.6.1-0.20260226015332-783a3e8e8e86
-	github.com/diamondburned/ningen/v3 v3.0.1-0.20260226220604-93f1e60c3cdb
+	github.com/diamondburned/arikawa/v3 v3.6.1-0.20260308005009-475d37ffd5fa
+	github.com/diamondburned/ningen/v3 v3.0.1-0.20260306213430-5a08d3a709b4
 	github.com/gdamore/tcell/v3 v3.1.2
 	github.com/gen2brain/beeep v0.11.2
 	github.com/google/go-cmp v0.6.0
