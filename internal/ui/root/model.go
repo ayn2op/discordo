@@ -89,7 +89,7 @@ func (m *Model) HandleEvent(event tcell.Event) tview.Command {
 			cmd = getToken()
 		}
 		return tview.BatchCommand{
-			tview.SetTitleCommand(consts.Name),
+			tview.SetTitle(consts.Name),
 			initClipboard(),
 			cmd,
 		}
