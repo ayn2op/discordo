@@ -5,9 +5,9 @@ import (
 	"github.com/ayn2op/tview/keybind"
 )
 
-var _ help.KeyMap = (*View)(nil)
+var _ help.KeyMap = (*Model)(nil)
 
-func (v *View) ShortHelp() []keybind.Keybind {
+func (v *Model) ShortHelp() []keybind.Keybind {
 	short := make([]keybind.Keybind, 0, 16)
 	if active := v.activeKeyMap(); active != nil {
 		short = append(short, active.ShortHelp()...)
@@ -16,7 +16,7 @@ func (v *View) ShortHelp() []keybind.Keybind {
 	return short
 }
 
-func (v *View) FullHelp() [][]keybind.Keybind {
+func (v *Model) FullHelp() [][]keybind.Keybind {
 	full := make([][]keybind.Keybind, 0, 8)
 	if active := v.activeKeyMap(); active != nil {
 		full = append(full, active.FullHelp()...)
@@ -25,7 +25,7 @@ func (v *View) FullHelp() [][]keybind.Keybind {
 	return full
 }
 
-func (v *View) activeKeyMap() help.KeyMap {
+func (v *Model) activeKeyMap() help.KeyMap {
 	if v.GetVisible(channelsPickerLayerName) {
 		return v.channelsPicker
 	}
@@ -46,7 +46,7 @@ func (v *View) activeKeyMap() help.KeyMap {
 	}
 }
 
-func (v *View) baseShortHelp() []keybind.Keybind {
+func (v *Model) baseShortHelp() []keybind.Keybind {
 	cfg := v.cfg.Keybinds
 	short := []keybind.Keybind{cfg.FocusGuildsTree.Keybind, cfg.FocusMessagesList.Keybind}
 	if !v.messageInput.GetDisabled() {
@@ -56,7 +56,7 @@ func (v *View) baseShortHelp() []keybind.Keybind {
 	return short
 }
 
-func (v *View) baseFullHelp() [][]keybind.Keybind {
+func (v *Model) baseFullHelp() [][]keybind.Keybind {
 	cfg := v.cfg.Keybinds
 	focus := []keybind.Keybind{cfg.FocusGuildsTree.Keybind, cfg.FocusMessagesList.Keybind}
 	if !v.messageInput.GetDisabled() {

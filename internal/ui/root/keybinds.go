@@ -5,36 +5,36 @@ import (
 	"github.com/ayn2op/tview/keybind"
 )
 
-var _ help.KeyMap = (*View)(nil)
+var _ help.KeyMap = (*Model)(nil)
 
-func (v *View) ShortHelp() []keybind.Keybind {
+func (m *Model) ShortHelp() []keybind.Keybind {
 	global := []keybind.Keybind{
-		v.cfg.Keybinds.ToggleHelp.Keybind,
-		v.cfg.Keybinds.Suspend.Keybind,
-		v.cfg.Keybinds.Quit.Keybind,
+		m.cfg.Keybinds.ToggleHelp.Keybind,
+		m.cfg.Keybinds.Suspend.Keybind,
+		m.cfg.Keybinds.Quit.Keybind,
 	}
-	if active := v.activeKeyMap(); active != nil {
+	if active := m.activeKeyMap(); active != nil {
 		short := active.ShortHelp()
 		return append(short, global...)
 	}
 	return global
 }
 
-func (v *View) FullHelp() [][]keybind.Keybind {
+func (m *Model) FullHelp() [][]keybind.Keybind {
 	global := []keybind.Keybind{
-		v.cfg.Keybinds.ToggleHelp.Keybind,
-		v.cfg.Keybinds.Suspend.Keybind,
-		v.cfg.Keybinds.Quit.Keybind,
+		m.cfg.Keybinds.ToggleHelp.Keybind,
+		m.cfg.Keybinds.Suspend.Keybind,
+		m.cfg.Keybinds.Quit.Keybind,
 	}
-	if active := v.activeKeyMap(); active != nil {
+	if active := m.activeKeyMap(); active != nil {
 		full := active.FullHelp()
 		return append(full, global)
 	}
 	return [][]keybind.Keybind{global}
 }
 
-func (v *View) activeKeyMap() help.KeyMap {
-	if keyMap, ok := v.inner.(help.KeyMap); ok {
+func (m *Model) activeKeyMap() help.KeyMap {
+	if keyMap, ok := m.inner.(help.KeyMap); ok {
 		return keyMap
 	}
 	return nil

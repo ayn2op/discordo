@@ -20,7 +20,7 @@ import (
 	"github.com/diamondburned/ningen/v3"
 )
 
-func (v *View) OpenState(token string) error {
+func (v *Model) OpenState(token string) error {
 	identifyProps := http.IdentifyProperties()
 	gateway.DefaultIdentity = identifyProps
 	gateway.DefaultPresence = &gateway.UpdatePresenceCommand{
@@ -56,14 +56,14 @@ func (v *View) OpenState(token string) error {
 	return v.state.Open(context.Background())
 }
 
-func (v *View) CloseState() error {
+func (v *Model) CloseState() error {
 	if v.state == nil {
 		return nil
 	}
 	return v.state.Close()
 }
 
-func (v *View) onRequest(r httpdriver.Request) error {
+func (v *Model) onRequest(r httpdriver.Request) error {
 	if req, ok := r.(*httpdriver.DefaultRequest); ok {
 		slog.Debug("new HTTP request", "method", req.Method, "url", req.URL)
 	}
@@ -71,7 +71,7 @@ func (v *View) onRequest(r httpdriver.Request) error {
 	return nil
 }
 
-func (v *View) onRaw(event *ws.RawEvent) {
+func (v *Model) onRaw(event *ws.RawEvent) {
 	slog.Debug(
 		"new raw event",
 		"code", event.OriginalCode,
@@ -80,7 +80,7 @@ func (v *View) onRaw(event *ws.RawEvent) {
 	)
 }
 
-func (v *View) onReady(event *gateway.ReadyEvent) {
+func (v *Model) onReady(event *gateway.ReadyEvent) {
 	v.app.QueueUpdateDraw(func() {
 		// Rebuild indexes from scratch so reconnects and account switches do not
 		// retain pointers to detached tree nodes.
@@ -147,7 +147,7 @@ func (v *View) onReady(event *gateway.ReadyEvent) {
 	})
 }
 
-func (v *View) onMessageCreate(message *gateway.MessageCreateEvent) {
+func (v *Model) onMessageCreate(message *gateway.MessageCreateEvent) {
 	selectedChannel := v.SelectedChannel()
 	if selectedChannel != nil && selectedChannel.ID == message.ChannelID {
 		v.removeTyper(message.Author.ID)
@@ -161,7 +161,7 @@ func (v *View) onMessageCreate(message *gateway.MessageCreateEvent) {
 	}
 }
 
-func (v *View) onMessageUpdate(message *gateway.MessageUpdateEvent) {
+func (v *Model) onMessageUpdate(message *gateway.MessageUpdateEvent) {
 	if selected := v.SelectedChannel(); selected != nil && selected.ID == message.ChannelID {
 		index := slices.IndexFunc(v.messagesList.messages, func(m discord.Message) bool {
 			return m.ID == message.ID
@@ -176,7 +176,7 @@ func (v *View) onMessageUpdate(message *gateway.MessageUpdateEvent) {
 	}
 }
 
-func (v *View) onMessageDelete(message *gateway.MessageDeleteEvent) {
+func (v *Model) onMessageDelete(message *gateway.MessageDeleteEvent) {
 	if selected := v.SelectedChannel(); selected != nil && selected.ID == message.ChannelID {
 		prevCursor := v.messagesList.Cursor()
 		deletedIndex := slices.IndexFunc(v.messagesList.messages, func(m discord.Message) bool {
@@ -215,15 +215,15 @@ func (v *View) onMessageDelete(message *gateway.MessageDeleteEvent) {
 	}
 }
 
-func (v *View) onGuildMembersChunk(event *gateway.GuildMembersChunkEvent) {
+func (v *Model) onGuildMembersChunk(event *gateway.GuildMembersChunkEvent) {
 	v.messagesList.setFetchingChunk(false, uint(len(event.Members)))
 }
 
-func (v *View) onGuildMemberRemove(event *gateway.GuildMemberRemoveEvent) {
+func (v *Model) onGuildMemberRemove(event *gateway.GuildMemberRemoveEvent) {
 	v.messageInput.cache.Invalidate(event.GuildID.String()+" "+event.User.Username, v.state.MemberState.SearchLimit)
 }
 
-func (v *View) onTypingStart(event *gateway.TypingStartEvent) {
+func (v *Model) onTypingStart(event *gateway.TypingStartEvent) {
 	selectedChannel := v.SelectedChannel()
 	if selectedChannel == nil {
 		return

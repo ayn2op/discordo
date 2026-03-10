@@ -64,7 +64,7 @@ func Run() error {
 
 	tview.Styles = tview.Theme{}
 	app := tview.NewApplication()
-	app.SetRoot(root.NewView(cfg, app))
+	app.SetRoot(root.NewModel(cfg, app))
 	app.SetScreen(screen)
 	return app.Run()
 }

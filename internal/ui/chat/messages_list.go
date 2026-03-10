@@ -43,7 +43,7 @@ import (
 type messagesList struct {
 	*tview.List
 	cfg      *config.Config
-	chatView *View
+	chatView *Model
 	messages []discord.Message
 	// rows is the virtual list model rendered by tview (message rows +
 	// date-separator rows). It is rebuilt lazily when rowsDirty is true.
@@ -79,7 +79,7 @@ type messagesListRow struct {
 	timestamp    discord.Timestamp
 }
 
-func newMessagesList(cfg *config.Config, chatView *View) *messagesList {
+func newMessagesList(cfg *config.Config, chatView *Model) *messagesList {
 	ml := &messagesList{
 		List:     tview.NewList(),
 		cfg:      cfg,

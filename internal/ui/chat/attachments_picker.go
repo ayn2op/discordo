@@ -17,13 +17,13 @@ type attachmentItem struct {
 type attachmentsPicker struct {
 	*picker.Picker
 	cfg      *config.Config
-	chatView *View
+	chatView *Model
 	items    []attachmentItem
 }
 
 var _ help.KeyMap = (*attachmentsPicker)(nil)
 
-func newAttachmentsPicker(cfg *config.Config, chatView *View) *attachmentsPicker {
+func newAttachmentsPicker(cfg *config.Config, chatView *Model) *attachmentsPicker {
 	ap := &attachmentsPicker{
 		Picker:   picker.New(),
 		cfg:      cfg,

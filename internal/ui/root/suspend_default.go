@@ -2,4 +2,4 @@
 
 package root
 
-func (v *View) suspend() {}
+func (m *Model) suspend() {}

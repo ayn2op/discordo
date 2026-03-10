@@ -2,10 +2,10 @@ package root
 
 import (
 	"log/slog"
-	"os"
 
 	"github.com/ayn2op/discordo/internal/clipboard"
 	"github.com/ayn2op/discordo/internal/keyring"
+	"github.com/ayn2op/tview"
 	"github.com/gdamore/tcell/v3"
 )
 
@@ -20,30 +20,57 @@ func newTokenEvent(token string) *tokenEvent {
 	return event
 }
 
-func getToken() tcell.Event {
-	token := os.Getenv(tokenEnvVarKey)
-	if token == "" {
-		tok, err := keyring.GetToken()
+func tokenCommand(token string) tview.Command {
+	return tview.EventCommand(func() tcell.Event {
+		return newTokenEvent(token)
+	})
+}
+
+type loginEvent struct{ tcell.EventTime }
+
+func newLoginEvent() *loginEvent {
+	event := &loginEvent{}
+	event.SetEventNow()
+	return event
+}
+
+func getToken() tview.Command {
+	return tview.EventCommand(func() tcell.Event {
+		token, err := keyring.GetToken()
 		if err != nil {
 			slog.Info("failed to retrieve token from keyring", "err", err)
+			return newLoginEvent()
 		}
-		token = tok
-	}
-	return newTokenEvent(token)
+		return newTokenEvent(token)
+	})
 }
 
-func deleteToken() tcell.Event {
-	if err := keyring.DeleteToken(); err != nil {
-		slog.Error("failed to delete token from keyring", "err", err)
-		return tcell.NewEventError(err)
-	}
-	return nil
+func setToken(token string) tview.Command {
+	return tview.EventCommand(func() tcell.Event {
+		if err := keyring.SetToken(token); err != nil {
+			slog.Error("failed to set token to keyring", "err", err)
+			return tcell.NewEventError(err)
+		}
+		return nil
+	})
 }
 
-func initClipboard() tcell.Event {
-	if err := clipboard.Init(); err != nil {
-		slog.Error("failed to init clipboard", "err", err)
-		return tcell.NewEventError(err)
-	}
-	return nil
+func deleteToken() tview.Command {
+	return tview.EventCommand(func() tcell.Event {
+		if err := keyring.DeleteToken(); err != nil {
+			slog.Error("failed to delete token from keyring", "err", err)
+			return tcell.NewEventError(err)
+		}
+		return nil
+	})
+}
+
+func initClipboard() tview.Command {
+	return tview.EventCommand(func() tcell.Event {
+		if err := clipboard.Init(); err != nil {
+			slog.Error("failed to init clipboard", "err", err)
+			return tcell.NewEventError(err)
+		}
+		return nil
+	})
 }
