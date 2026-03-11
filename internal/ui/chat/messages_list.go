@@ -883,7 +883,7 @@ func (ml *messagesList) HandleEvent(event tcell.Event) tview.Command {
 			return nil
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Open.Keybind):
 			ml.open()
-			return nil
+			return redraw
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Reply.Keybind):
 			ml.reply(false)
 			return redraw
