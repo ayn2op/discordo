@@ -13,6 +13,7 @@ import (
 	"github.com/diamondburned/ningen/v3/discordmd"
 	"github.com/gdamore/tcell/v3"
 	"github.com/yuin/goldmark/ast"
+	"github.com/rivo/uniseg"
 )
 
 type Renderer struct {
@@ -20,6 +21,8 @@ type Renderer struct {
 
 	listIx     *int
 	listNested int
+
+	spoil bool
 }
 
 const codeBlockIndent = "    "
@@ -28,9 +31,10 @@ func NewRenderer(cfg *config.Config) *Renderer {
 	return &Renderer{cfg: cfg}
 }
 
-func (r *Renderer) RenderLines(source []byte, node ast.Node, base tcell.Style) []tview.Line {
+func (r *Renderer) RenderLines(source []byte, node ast.Node, base tcell.Style, showSpoiler bool) []tview.Line {
 	r.listIx = nil
 	r.listNested = 0
+	r.spoil = false
 
 	builder := tview.NewLineBuilder()
 	styleStack := []tcell.Style{base}
@@ -61,7 +65,7 @@ func (r *Renderer) RenderLines(source []byte, node ast.Node, base tcell.Style) [
 			}
 		case *ast.Text:
 			if entering {
-				builder.Write(string(node.Segment.Value(source)), currentStyle())
+				builder.Write(r.checkAndSpoil(string(node.Segment.Value(source))), currentStyle())
 				switch {
 				case node.HardLineBreak():
 					builder.NewLine()
@@ -77,20 +81,25 @@ func (r *Renderer) RenderLines(source []byte, node ast.Node, base tcell.Style) [
 			}
 		case *ast.AutoLink:
 			if entering {
+				style := currentStyle()
 				url := string(node.URL(source))
-				style := ui.MergeStyle(currentStyle(), theme.URLStyle.Style).Url(url)
-				builder.Write(url, style)
+				if !r.spoil {
+					style = ui.MergeStyle(style, theme.URLStyle.Style).Url(url)
+				}
+				builder.Write(r.checkAndSpoil(url), style)
 			}
 		case *ast.Link:
-			if entering {
-				url := string(node.Destination)
-				linkDepth++
-				pushStyle(ui.MergeStyle(currentStyle(), theme.URLStyle.Style).Url(url))
-			} else {
-				if linkDepth > 0 {
-					linkDepth--
+			if !r.spoil {
+				if entering {
+					url := string(node.Destination)
+					linkDepth++
+					pushStyle(ui.MergeStyle(currentStyle(), theme.URLStyle.Style).Url(url))
+				} else {
+					if linkDepth > 0 {
+						linkDepth--
+					}
+					popStyle()
 				}
-				popStyle()
 			}
 		case *ast.List:
 			if node.IsOrdered() {
@@ -119,24 +128,58 @@ func (r *Renderer) RenderLines(source []byte, node ast.Node, base tcell.Style) [
 				builder.NewLine()
 			}
 		case *discordmd.Inline:
-			if entering {
-				pushStyle(applyInlineAttr(currentStyle(), node.Attr, linkDepth > 0))
+			if node.Attr.Has(discordmd.AttrSpoiler) && !showSpoiler {
+				r.spoil = entering
 			} else {
-				popStyle()
+				if entering {
+					pushStyle(r.applyInlineAttr(currentStyle(), node.Attr, linkDepth > 0))
+				} else {
+					popStyle()
+				}
 			}
 		case *discordmd.Mention:
 			if entering {
-				builder.Write(mentionText(node), ui.MergeStyle(currentStyle(), theme.MentionStyle.Style))
+				style := currentStyle()
+				if !r.spoil {
+					style = ui.MergeStyle(style, theme.MentionStyle.Style)
+					style = style.Bold(true)
+				}
+				builder.Write(r.checkAndSpoil(mentionText(node)), style)
 			}
 		case *discordmd.Emoji:
 			if entering {
-				builder.Write(":"+node.Name+":", ui.MergeStyle(currentStyle(), theme.EmojiStyle.Style))
+				style := currentStyle()
+				if !r.spoil {
+					style = ui.MergeStyle(style, theme.EmojiStyle.Style)
+				}
+				builder.Write(r.checkAndSpoil(":"+node.Name+":"), style)
 			}
 		}
 		return ast.WalkContinue, nil
 	})
 
 	return builder.Finish()
+}
+
+func (r *Renderer) applyInlineAttr(style tcell.Style, attr discordmd.Attribute, inLink bool) tcell.Style {
+	switch attr {
+	case discordmd.AttrBold:
+		return style.Bold(true)
+	case discordmd.AttrItalics:
+		return style.Italic(true)
+	case discordmd.AttrUnderline:
+		return style.Underline(true)
+	case discordmd.AttrStrikethrough:
+		return style.StrikeThrough(true)
+	case discordmd.AttrMonospace:
+		if inLink {
+			return style
+		}
+		return style.Reverse(true)
+	case discordmd.AttrSpoiler:
+		return r.cfg.Theme.MessagesList.ShownSpoilerStyle.Style
+	}
+	return style
 }
 
 func (r *Renderer) renderFencedCodeBlock(builder *tview.LineBuilder, source []byte, node *ast.FencedCodeBlock, base tcell.Style) {
@@ -264,23 +307,9 @@ func mentionText(node *discordmd.Mention) string {
 	}
 }
 
-func applyInlineAttr(style tcell.Style, attr discordmd.Attribute, inLink bool) tcell.Style {
-	switch attr {
-	case discordmd.AttrBold:
-		return style.Bold(true)
-	case discordmd.AttrItalics:
-		return style.Italic(true)
-	case discordmd.AttrUnderline:
-		return style.Underline(true)
-	case discordmd.AttrStrikethrough:
-		return style.StrikeThrough(true)
-	case discordmd.AttrMonospace:
-		// Avoid reverse-video inside links. Link labels like `hash` should still
-		// look like links, not highlighted blocks.
-		if inLink {
-			return style
-		}
-		return style.Reverse(true)
+func (r *Renderer) checkAndSpoil(s string) string {
+	if r.spoil {
+		return strings.Repeat(r.cfg.Theme.MessagesList.SpoilCharacter, uniseg.StringWidth(s))
 	}
-	return style
+	return s
 }
