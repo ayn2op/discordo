@@ -72,3 +72,10 @@ Discordo uses the default configuration if a configuration file is not found in 
 
 > [!IMPORTANT]
 > Automated user accounts or "self-bots" are against Discord's Terms of Service. I am not responsible for any loss caused by using "self-bots" or Discordo.
+
+## License
+
+Copyright (C) 2025-present ayn2op
+
+This project is licensed under the GNU General Public License v3.0 (GPL-3.0).
+See the [LICENSE](./LICENSE) file for the full license text.

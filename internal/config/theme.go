@@ -31,56 +31,80 @@ func (aw *AlignmentWrapper) UnmarshalTOML(v any) error {
 
 type StyleWrapper struct{ tcell.Style }
 
-func NewStyleWrapper(style tcell.Style) StyleWrapper {
-	return StyleWrapper{Style: style}
-}
-
 func (sw *StyleWrapper) UnmarshalTOML(v any) error {
 	m, ok := v.(map[string]any)
 	if !ok {
 		return errInvalidType
 	}
 
+	// Reset on new styles
+	sw.Style = tcell.StyleDefault
+
 	for key, val := range m {
 		switch key {
 		case "foreground":
-			s, ok := val.(string)
-			if !ok {
-				continue
+			if s, ok := val.(string); ok {
+				sw.Style = sw.Foreground(tcell.GetColor(s))
 			}
-
-			color := tcell.GetColor(s)
-			sw.Style = sw.Foreground(color)
 		case "background":
-			s, ok := val.(string)
-			if !ok {
-				continue
+			if s, ok := val.(string); ok {
+				sw.Style = sw.Background(tcell.GetColor(s))
 			}
-
-			color := tcell.GetColor(s)
-			sw.Style = sw.Background(color)
 		case "attributes":
-			var attrs tcell.AttrMask
 			switch val := val.(type) {
 			case string:
-				attrs |= stringToAttrMask(val)
+				sw.parseAttr(val)
 			case []any:
 				for _, attr := range val {
-					s, ok := attr.(string)
-					if !ok {
-						continue
+					if s, ok := attr.(string); ok {
+						sw.parseAttr(s)
 					}
-
-					attrs |= stringToAttrMask(s)
 				}
-
 			}
-
-			sw.Style = sw.Attributes(attrs)
+		case "underline":
+			if s, ok := val.(string); ok {
+				switch s {
+				case "":
+					sw.Style = sw.Underline(tcell.UnderlineStyleNone)
+				case "solid":
+					sw.Style = sw.Underline(tcell.UnderlineStyleSolid)
+				case "double":
+					sw.Style = sw.Underline(tcell.UnderlineStyleDouble)
+				case "curly":
+					sw.Style = sw.Underline(tcell.UnderlineStyleCurly)
+				case "dotted":
+					sw.Style = sw.Underline(tcell.UnderlineStyleDotted)
+				case "dashed":
+					sw.Style = sw.Underline(tcell.UnderlineStyleDashed)
+				}
+			}
+		case "underline_color":
+			if s, ok := val.(string); ok {
+				sw.Style = sw.Underline(tcell.GetColor(s))
+			}
 		}
 	}
 
 	return nil
+}
+
+func (sw *StyleWrapper) parseAttr(s string) {
+	switch s {
+	case "underline":
+		sw.Style = sw.Underline(true)
+	case "bold":
+		sw.Style = sw.Bold(true)
+	case "blink":
+		sw.Style = sw.Blink(true)
+	case "reverse":
+		sw.Style = sw.Reverse(true)
+	case "dim":
+		sw.Style = sw.Dim(true)
+	case "italic":
+		sw.Style = sw.Italic(true)
+	case "strikethrough":
+		sw.Style = sw.StrikeThrough(true)
+	}
 }
 
 type BorderSetWrapper struct{ tview.BorderSet }
@@ -147,14 +171,14 @@ func (vw *ScrollBarVisibilityWrapper) UnmarshalTOML(val any) error {
 	return nil
 }
 
-type HelpTheme struct {
-	ShortKeyStyle  StyleWrapper `toml:"short_key_style"`
-	ShortDescStyle StyleWrapper `toml:"short_desc_style"`
-	FullKeyStyle   StyleWrapper `toml:"full_key_style"`
-	FullDescStyle  StyleWrapper `toml:"full_desc_style"`
-}
-
 type (
+	HelpTheme struct {
+		ShortKeyStyle  StyleWrapper `toml:"short_key_style"`
+		ShortDescStyle StyleWrapper `toml:"short_desc_style"`
+		FullKeyStyle   StyleWrapper `toml:"full_key_style"`
+		FullDescStyle  StyleWrapper `toml:"full_desc_style"`
+	}
+
 	ThemeStyle struct {
 		NormalStyle StyleWrapper `toml:"normal_style"`
 		ActiveStyle StyleWrapper `toml:"active_style"`
@@ -180,9 +204,19 @@ type (
 	}
 
 	GuildsTreeTheme struct {
-		AutoExpandFolders bool   `toml:"auto_expand_folders"`
-		Graphics          bool   `toml:"graphics"`
-		GraphicsColor     string `toml:"graphics_color"`
+		AutoExpandFolders bool              `toml:"auto_expand_folders"`
+		Graphics          bool              `toml:"graphics"`
+		GraphicsColor     string            `toml:"graphics_color"`
+		Indents           GuildsTreeIndents `toml:"indents"`
+	}
+
+	GuildsTreeIndents struct {
+		Guild    int `toml:"guild"`
+		Category int `toml:"category"`
+		Channel  int `toml:"channel"`
+		Forum    int `toml:"forum"`
+		GroupDM  int `toml:"group_dm"`
+		DM       int `toml:"dm"`
 	}
 
 	MessagesListTheme struct {
@@ -196,6 +230,19 @@ type (
 
 		MessageStyle         StyleWrapper `toml:"message_style"`
 		SelectedMessageStyle StyleWrapper `toml:"selected_message_style"`
+
+		Embeds MessagesListEmbedsTheme `toml:"embeds"`
+	}
+
+	MessagesListEmbedsTheme struct {
+		ProviderStyle    StyleWrapper `toml:"provider_style"`
+		AuthorStyle      StyleWrapper `toml:"author_style"`
+		TitleStyle       StyleWrapper `toml:"title_style"`
+		DescriptionStyle StyleWrapper `toml:"description_style"`
+		FieldNameStyle   StyleWrapper `toml:"field_name_style"`
+		FieldValueStyle  StyleWrapper `toml:"field_value_style"`
+		FooterStyle      StyleWrapper `toml:"footer_style"`
+		URLStyle         StyleWrapper `toml:"url_style"`
 	}
 
 	MentionsListTheme struct {
@@ -227,22 +274,3 @@ type (
 		Help         HelpTheme         `toml:"help"`
 	}
 )
-
-func stringToAttrMask(s string) tcell.AttrMask {
-	switch s {
-	case "bold":
-		return tcell.AttrBold
-	case "blink":
-		return tcell.AttrBlink
-	case "reverse":
-		return tcell.AttrReverse
-	case "dim":
-		return tcell.AttrDim
-	case "italic":
-		return tcell.AttrItalic
-	case "strikethrough":
-		return tcell.AttrStrikeThrough
-	default:
-		return tcell.AttrNone
-	}
-}

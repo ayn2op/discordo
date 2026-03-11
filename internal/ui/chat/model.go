@@ -7,10 +7,8 @@ import (
 	"time"
 
 	"github.com/ayn2op/discordo/internal/config"
-	"github.com/ayn2op/discordo/internal/keyring"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
-	"github.com/ayn2op/tview/help"
 	"github.com/ayn2op/tview/keybind"
 	"github.com/ayn2op/tview/layers"
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -29,7 +27,7 @@ const (
 	channelsPickerLayerName  = "channelsPicker"
 )
 
-type View struct {
+type Model struct {
 	*layers.Layers
 
 	rootFlex  *tview.Flex
@@ -40,7 +38,6 @@ type View struct {
 	messagesList   *messagesList
 	messageInput   *messageInput
 	channelsPicker *channelsPicker
-	help           *help.Help
 
 	selectedChannel   *discord.Channel
 	selectedChannelMu sync.RWMutex
@@ -48,15 +45,17 @@ type View struct {
 	typersMu sync.RWMutex
 	typers   map[discord.UserID]*time.Timer
 
+	confirmModalDone          func(label string)
+	confirmModalPreviousFocus tview.Primitive
+
 	app   *tview.Application
 	cfg   *config.Config
 	state *ningen.State
-
-	onLogout func()
+	token string
 }
 
-func NewView(app *tview.Application, cfg *config.Config, onLogout func()) *View {
-	v := &View{
+func NewView(app *tview.Application, cfg *config.Config, token string) *Model {
+	v := &Model{
 		Layers: layers.New(),
 
 		rootFlex:  tview.NewFlex(),
@@ -65,9 +64,9 @@ func NewView(app *tview.Application, cfg *config.Config, onLogout func()) *View 
 
 		typers: make(map[discord.UserID]*time.Timer),
 
-		app:      app,
-		cfg:      cfg,
-		onLogout: onLogout,
+		app:   app,
+		cfg:   cfg,
+		token: token,
 	}
 
 	v.guildsTree = newGuildsTree(cfg, v)
@@ -76,38 +75,24 @@ func NewView(app *tview.Application, cfg *config.Config, onLogout func()) *View 
 	v.channelsPicker = newChannelsPicker(cfg, v)
 	v.channelsPicker.SetCancelFunc(v.closePicker)
 
-	v.help = help.New()
-
-	styles := help.DefaultStyles()
-	styles.ShortKeyStyle = cfg.Theme.Help.ShortKeyStyle.Style
-	styles.ShortDescStyle = cfg.Theme.Help.ShortDescStyle.Style
-	styles.FullKeyStyle = cfg.Theme.Help.FullKeyStyle.Style
-	styles.FullDescStyle = cfg.Theme.Help.FullDescStyle.Style
-	v.help.SetStyles(styles)
-
-	v.help.SetKeyMap(v)
-	v.help.SetCompactModifiers(cfg.Help.CompactModifiers)
-	v.help.SetShortSeparator(cfg.Help.Separator)
-	v.help.SetBorderPadding(0, 0, cfg.Help.Padding[0], cfg.Help.Padding[1])
-
 	v.SetBackgroundLayerStyle(v.cfg.Theme.Dialog.BackgroundStyle.Style)
 	v.buildLayout()
 	return v
 }
 
-func (v *View) SelectedChannel() *discord.Channel {
+func (v *Model) SelectedChannel() *discord.Channel {
 	v.selectedChannelMu.RLock()
 	defer v.selectedChannelMu.RUnlock()
 	return v.selectedChannel
 }
 
-func (v *View) SetSelectedChannel(channel *discord.Channel) {
+func (v *Model) SetSelectedChannel(channel *discord.Channel) {
 	v.selectedChannelMu.Lock()
 	v.selectedChannel = channel
 	v.selectedChannelMu.Unlock()
 }
 
-func (v *View) buildLayout() {
+func (v *Model) buildLayout() {
 	v.Clear()
 	v.rootFlex.Clear()
 	v.rightFlex.Clear()
@@ -124,14 +109,12 @@ func (v *View) buildLayout() {
 
 	v.rootFlex.
 		SetDirection(tview.FlexRow).
-		AddItem(v.mainFlex, 0, 1, true).
-		AddItem(v.help, 1, 0, false)
-
-	v.updateHelpHeight()
+		AddItem(v.mainFlex, 0, 1, true)
 	v.AddLayer(v.rootFlex, layers.WithName(flexLayerName), layers.WithResize(true), layers.WithVisible(true))
+	v.AddLayer(v.messageInput.mentionsList, layers.WithName(mentionsListLayerName), layers.WithResize(false), layers.WithVisible(false))
 }
 
-func (v *View) togglePicker() {
+func (v *Model) togglePicker() {
 	if v.HasLayer(channelsPickerLayerName) {
 		v.closePicker()
 	} else {
@@ -139,7 +122,7 @@ func (v *View) togglePicker() {
 	}
 }
 
-func (v *View) openPicker() {
+func (v *Model) openPicker() {
 	v.AddLayer(
 		ui.Centered(v.channelsPicker, v.cfg.Picker.Width, v.cfg.Picker.Height),
 		layers.WithName(channelsPickerLayerName),
@@ -150,12 +133,12 @@ func (v *View) openPicker() {
 	v.channelsPicker.update()
 }
 
-func (v *View) closePicker() {
+func (v *Model) closePicker() {
 	v.RemoveLayer(channelsPickerLayerName)
 	v.channelsPicker.Update()
 }
 
-func (v *View) toggleGuildsTree() {
+func (v *Model) toggleGuildsTree() {
 	// The guilds tree is visible if the number of items is two.
 	if v.mainFlex.GetItemCount() == 2 {
 		v.mainFlex.RemoveItem(v.guildsTree)
@@ -168,7 +151,7 @@ func (v *View) toggleGuildsTree() {
 	}
 }
 
-func (v *View) focusGuildsTree() bool {
+func (v *Model) focusGuildsTree() bool {
 	// The guilds tree is not hidden if the number of items is two.
 	if v.mainFlex.GetItemCount() == 2 {
 		v.app.SetFocus(v.guildsTree)
@@ -178,7 +161,7 @@ func (v *View) focusGuildsTree() bool {
 	return false
 }
 
-func (v *View) focusMessageInput() bool {
+func (v *Model) focusMessageInput() bool {
 	if !v.messageInput.GetDisabled() {
 		v.app.SetFocus(v.messageInput)
 		return true
@@ -187,7 +170,7 @@ func (v *View) focusMessageInput() bool {
 	return false
 }
 
-func (v *View) focusPrevious() {
+func (v *Model) focusPrevious() {
 	switch v.app.GetFocus() {
 	case v.messagesList: // Handle both a.messagesList and a.flex as well as other edge cases (if there is).
 		if v.focusGuildsTree() {
@@ -204,7 +187,7 @@ func (v *View) focusPrevious() {
 	}
 }
 
-func (v *View) focusNext() {
+func (v *Model) focusNext() {
 	switch v.app.GetFocus() {
 	case v.messagesList:
 		if v.focusMessageInput() {
@@ -221,84 +204,124 @@ func (v *View) focusNext() {
 	}
 }
 
-func (v *View) handleInput(event *tcell.EventKey) *tcell.EventKey {
-	switch {
-	case keybind.Matches(event, v.cfg.Keybinds.ToggleHelp.Keybind):
-		v.help.SetShowAll(!v.help.ShowAll())
-		v.updateHelpHeight()
-		return nil
-	case keybind.Matches(event, v.cfg.Keybinds.FocusGuildsTree.Keybind):
-		v.messageInput.removeMentionsList()
-		v.focusGuildsTree()
-		return nil
-	case keybind.Matches(event, v.cfg.Keybinds.FocusMessagesList.Keybind):
-		v.messageInput.removeMentionsList()
-		v.app.SetFocus(v.messagesList)
-		return nil
-	case keybind.Matches(event, v.cfg.Keybinds.FocusMessageInput.Keybind):
-		v.focusMessageInput()
-		return nil
-	case keybind.Matches(event, v.cfg.Keybinds.FocusPrevious.Keybind):
-		v.focusPrevious()
-		return nil
-	case keybind.Matches(event, v.cfg.Keybinds.FocusNext.Keybind):
-		v.focusNext()
-		return nil
-	case keybind.Matches(event, v.cfg.Keybinds.Logout.Keybind):
-		if v.onLogout != nil {
-			v.onLogout()
-		}
-
-		if err := keyring.DeleteToken(); err != nil {
-			slog.Error("failed to delete token from keyring", "err", err)
+func (v *Model) HandleEvent(event tcell.Event) tview.Command {
+	switch event := event.(type) {
+	case *tview.InitEvent:
+		return tview.EventCommand(func() tcell.Event {
+			if err := v.OpenState(v.token); err != nil {
+				slog.Error("failed to open chat state", "err", err)
+				return tcell.NewEventError(err)
+			}
 			return nil
+		})
+	case *QuitEvent:
+		return tview.BatchCommand{
+			v.closeState(),
+			tview.Quit(),
 		}
-
-		return nil
-	case keybind.Matches(event, v.cfg.Keybinds.ToggleGuildsTree.Keybind):
-		v.toggleGuildsTree()
-		return nil
-	case keybind.Matches(event, v.cfg.Keybinds.ToggleChannelsPicker.Keybind):
-		v.togglePicker()
-		return nil
-	}
-
-	return event
-}
-
-func (v *View) InputHandler(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
-	event = v.handleInput(event)
-	if event == nil {
-		return
-	}
-	v.Layers.InputHandler(event, setFocus)
-}
-
-func (v *View) updateHelpHeight() {
-	height := 1
-	if v.help.ShowAll() {
-		height = len(v.help.FullHelpLines(v.FullHelp(), 0))
-		if height < 1 {
-			height = 1
+	case *tview.ModalDoneEvent:
+		if v.HasLayer(confirmModalLayerName) {
+			v.RemoveLayer(confirmModalLayerName)
+			if v.confirmModalPreviousFocus != nil {
+				v.app.SetFocus(v.confirmModalPreviousFocus)
+			}
+			onDone := v.confirmModalDone
+			v.confirmModalDone = nil
+			v.confirmModalPreviousFocus = nil
+			if onDone != nil {
+				onDone(event.ButtonLabel)
+			}
+			return tview.RedrawCommand{}
+		}
+	case *tview.KeyEvent:
+		redraw := tview.RedrawCommand{}
+		switch {
+		case keybind.Matches(event, v.cfg.Keybinds.FocusGuildsTree.Keybind):
+			v.messageInput.removeMentionsList()
+			v.focusGuildsTree()
+			return redraw
+		case keybind.Matches(event, v.cfg.Keybinds.FocusMessagesList.Keybind):
+			v.messageInput.removeMentionsList()
+			v.app.SetFocus(v.messagesList)
+			return redraw
+		case keybind.Matches(event, v.cfg.Keybinds.FocusMessageInput.Keybind):
+			v.focusMessageInput()
+			return redraw
+		case keybind.Matches(event, v.cfg.Keybinds.FocusPrevious.Keybind):
+			v.focusPrevious()
+			return redraw
+		case keybind.Matches(event, v.cfg.Keybinds.FocusNext.Keybind):
+			v.focusNext()
+			return redraw
+		case keybind.Matches(event, v.cfg.Keybinds.Logout.Keybind):
+			return tview.BatchCommand{v.closeState(), v.logout()}
+		case keybind.Matches(event, v.cfg.Keybinds.ToggleGuildsTree.Keybind):
+			v.toggleGuildsTree()
+			return redraw
+		case keybind.Matches(event, v.cfg.Keybinds.ToggleChannelsPicker.Keybind):
+			v.togglePicker()
+			return redraw
 		}
 	}
-	v.rootFlex.ResizeItem(v.help, height, 0)
+	cmd := v.Layers.HandleEvent(event)
+	return v.consumeLayerCommands(cmd)
 }
 
-func (v *View) showConfirmModal(prompt string, buttons []string, onDone func(label string)) {
-	previousFocus := v.app.GetFocus()
+func (v *Model) consumeLayerCommands(command tview.Command) tview.Command {
+	if command == nil {
+		return nil
+	}
+
+	var commands []tview.Command
+	switch c := command.(type) {
+	case tview.BatchCommand:
+		commands = c
+	default:
+		commands = []tview.Command{c}
+	}
+
+	remaining := make([]tview.Command, 0, len(commands))
+	for _, cmd := range commands {
+		switch c := cmd.(type) {
+		case layers.OpenLayerCommand:
+			if v.HasLayer(c.Name) {
+				v.ShowLayer(c.Name).SendToFront(c.Name)
+			}
+			continue
+		case layers.CloseLayerCommand:
+			if v.HasLayer(c.Name) {
+				v.HideLayer(c.Name)
+			}
+			continue
+		case layers.ToggleLayerCommand:
+			if v.HasLayer(c.Name) {
+				if v.GetVisible(c.Name) {
+					v.HideLayer(c.Name)
+				} else {
+					v.ShowLayer(c.Name).SendToFront(c.Name)
+				}
+			}
+			continue
+		}
+		remaining = append(remaining, cmd)
+	}
+
+	if len(remaining) == 0 {
+		return nil
+	}
+	if len(remaining) == 1 {
+		return remaining[0]
+	}
+	return tview.BatchCommand(remaining)
+}
+
+func (v *Model) showConfirmModal(prompt string, buttons []string, onDone func(label string)) {
+	v.confirmModalPreviousFocus = v.app.GetFocus()
+	v.confirmModalDone = onDone
 
 	modal := tview.NewModal().
 		SetText(prompt).
-		AddButtons(buttons).
-		SetDoneFunc(func(_ int, buttonLabel string) {
-			v.RemoveLayer(confirmModalLayerName)
-			v.app.SetFocus(previousFocus)
-
-			if onDone != nil {
-				onDone(buttonLabel)
-			}
-		})
+		AddButtons(buttons)
 	v.
 		AddLayer(
 			ui.Centered(modal, 0, 0),
@@ -310,30 +333,25 @@ func (v *View) showConfirmModal(prompt string, buttons []string, onDone func(lab
 		SendToFront(confirmModalLayerName)
 }
 
-func (v *View) onReadUpdate(event *read.UpdateEvent) {
-	// Use indexed node lookup to avoid walking the whole tree on every read
-	// event. This runs frequently while reading/typing across channels.
-	var updated bool
-	if event.GuildID.IsValid() {
-		if guildNode := v.guildsTree.findNodeByReference(event.GuildID); guildNode != nil {
-			v.guildsTree.setNodeLineStyle(guildNode, v.guildsTree.getGuildNodeStyle(event.GuildID))
-			updated = true
+func (v *Model) onReadUpdate(event *read.UpdateEvent) {
+	v.app.QueueUpdateDraw(func() {
+		// Use indexed node lookup to avoid walking the whole tree on every read
+		// event. This runs frequently while reading/typing across channels.
+		if event.GuildID.IsValid() {
+			if guildNode := v.guildsTree.findNodeByReference(event.GuildID); guildNode != nil {
+				v.guildsTree.setNodeLineStyle(guildNode, v.guildsTree.getGuildNodeStyle(event.GuildID))
+			}
 		}
-	}
 
-	// Channel style is always updated for the target channel regardless of
-	// whether it's in a guild or DM.
-	if channelNode := v.guildsTree.findNodeByReference(event.ChannelID); channelNode != nil {
-		v.guildsTree.setNodeLineStyle(channelNode, v.guildsTree.getChannelNodeStyle(event.ChannelID))
-		updated = true
-	}
-
-	if updated {
-		v.app.Draw()
-	}
+		// Channel style is always updated for the target channel regardless of
+		// whether it's in a guild or DM.
+		if channelNode := v.guildsTree.findNodeByReference(event.ChannelID); channelNode != nil {
+			v.guildsTree.setNodeLineStyle(channelNode, v.guildsTree.getChannelNodeStyle(event.ChannelID))
+		}
+	})
 }
 
-func (v *View) clearTypers() {
+func (v *Model) clearTypers() {
 	v.typersMu.Lock()
 	for _, timer := range v.typers {
 		timer.Stop()
@@ -343,7 +361,7 @@ func (v *View) clearTypers() {
 	v.updateFooter()
 }
 
-func (v *View) addTyper(userID discord.UserID) {
+func (v *Model) addTyper(userID discord.UserID) {
 	v.typersMu.Lock()
 	typer, ok := v.typers[userID]
 	if ok {
@@ -357,7 +375,7 @@ func (v *View) addTyper(userID discord.UserID) {
 	v.updateFooter()
 }
 
-func (v *View) removeTyper(userID discord.UserID) {
+func (v *Model) removeTyper(userID discord.UserID) {
 	v.typersMu.Lock()
 	if typer, ok := v.typers[userID]; ok {
 		typer.Stop()
@@ -367,7 +385,7 @@ func (v *View) removeTyper(userID discord.UserID) {
 	v.updateFooter()
 }
 
-func (v *View) updateFooter() {
+func (v *Model) updateFooter() {
 	selectedChannel := v.SelectedChannel()
 	if selectedChannel == nil {
 		return
@@ -410,7 +428,7 @@ func (v *View) updateFooter() {
 
 		switch len(names) {
 		case 1:
-			footer = fmt.Sprintf("%s is typing...", names[0])
+			footer = names[0] + " is typing..."
 		case 2:
 			footer = fmt.Sprintf("%s and %s are typing...", names[0], names[1])
 		case 3:

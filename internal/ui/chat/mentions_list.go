@@ -39,7 +39,7 @@ func (m *mentionsList) append(item mentionsListItem) {
 
 func (m *mentionsList) clear() {
 	m.items = nil
-	m.List.Clear()
+	m.Clear()
 }
 
 func (m *mentionsList) rebuild() {

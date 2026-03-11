@@ -20,7 +20,7 @@ import (
 	"github.com/diamondburned/ningen/v3"
 )
 
-func (v *View) OpenState(token string) error {
+func (v *Model) OpenState(token string) error {
 	identifyProps := http.IdentifyProperties()
 	gateway.DefaultIdentity = identifyProps
 	gateway.DefaultPresence = &gateway.UpdatePresenceCommand{
@@ -53,17 +53,17 @@ func (v *View) OpenState(token string) error {
 	}
 
 	v.state.OnRequest = append(v.state.OnRequest, httputil.WithHeaders(http.Headers()), v.onRequest)
-	return v.state.Open(context.TODO())
+	return v.state.Open(context.Background())
 }
 
-func (v *View) CloseState() error {
+func (v *Model) CloseState() error {
 	if v.state == nil {
 		return nil
 	}
 	return v.state.Close()
 }
 
-func (v *View) onRequest(r httpdriver.Request) error {
+func (v *Model) onRequest(r httpdriver.Request) error {
 	if req, ok := r.(*httpdriver.DefaultRequest); ok {
 		slog.Debug("new HTTP request", "method", req.Method, "url", req.URL)
 	}
@@ -71,7 +71,7 @@ func (v *View) onRequest(r httpdriver.Request) error {
 	return nil
 }
 
-func (v *View) onRaw(event *ws.RawEvent) {
+func (v *Model) onRaw(event *ws.RawEvent) {
 	slog.Debug(
 		"new raw event",
 		"code", event.OriginalCode,
@@ -80,73 +80,74 @@ func (v *View) onRaw(event *ws.RawEvent) {
 	)
 }
 
-func (v *View) onReady(event *gateway.ReadyEvent) {
-	// Rebuild indexes from scratch so reconnects and account switches do not
-	// retain stale pointers to detached tree nodes.
-	v.guildsTree.resetNodeIndex()
+func (v *Model) onReady(event *gateway.ReadyEvent) {
+	v.app.QueueUpdateDraw(func() {
+		// Rebuild indexes from scratch so reconnects and account switches do not
+		// retain pointers to detached tree nodes.
+		v.guildsTree.resetNodeIndex()
 
-	dmNode := tview.NewTreeNode("Direct Messages").SetReference(dmNode{}).SetExpandable(true).SetExpanded(false)
-	v.guildsTree.dmRootNode = dmNode
+		dmNode := tview.NewTreeNode("Direct Messages").SetReference(dmNode{}).SetExpandable(true).SetExpanded(false)
+		v.guildsTree.dmRootNode = dmNode
 
-	root := v.guildsTree.
-		GetRoot().
-		ClearChildren().
-		AddChild(dmNode)
+		root := v.guildsTree.
+			GetRoot().
+			ClearChildren().
+			AddChild(dmNode)
 
-	// Track guilds already in folders to find orphans (newly joined guilds may not be synced to GuildFolders yet but always appear in GuildPositions)
-	guildsInFolders := make(map[discord.GuildID]bool)
-	for _, folder := range event.UserSettings.GuildFolders {
-		for _, guildID := range folder.GuildIDs {
-			guildsInFolders[guildID] = true
-		}
-	}
-
-	// Build index of all available guilds.
-	guildsByID := make(map[discord.GuildID]*gateway.GuildCreateEvent, len(event.Guilds))
-	for index := range event.Guilds {
-		guildsByID[event.Guilds[index].ID] = &event.Guilds[index]
-	}
-
-	// Use GuildPositions for ordering (it's the canonical order).
-	// Guilds not in any folder are "orphans" - add them directly to root.
-	positions := event.UserSettings.GuildPositions
-	// Fallback: GuildPositions shouldn't be nil but handle gracefully
-	if len(positions) == 0 {
-		positions = make([]discord.GuildID, 0, len(event.Guilds))
-		for _, guildEvent := range event.Guilds {
-			positions = append(positions, guildEvent.ID)
-		}
-	}
-
-	for _, guildID := range positions {
-		// Already handled in folder processing below
-		if guildsInFolders[guildID] {
-			continue
-		}
-
-		// Orphan guild - add directly to root in order
-		if guildEvent, ok := guildsByID[guildID]; ok {
-			v.guildsTree.createGuildNode(root, guildEvent.Guild)
-		}
-	}
-
-	// Process folders (real folders and single-guild "folders")
-	for _, folder := range event.UserSettings.GuildFolders {
-		if folder.ID == 0 && len(folder.GuildIDs) == 1 {
-			if guild, ok := guildsByID[folder.GuildIDs[0]]; ok {
-				v.guildsTree.createGuildNode(root, guild.Guild)
+		// Track guilds already in folders to find orphans (newly joined guilds may not be synced to GuildFolders yet but always appear in GuildPositions)
+		guildsInFolders := make(map[discord.GuildID]bool)
+		for _, folder := range event.UserSettings.GuildFolders {
+			for _, guildID := range folder.GuildIDs {
+				guildsInFolders[guildID] = true
 			}
-		} else {
-			v.guildsTree.createFolderNode(folder, guildsByID)
 		}
-	}
 
-	v.guildsTree.SetCurrentNode(root)
-	v.app.SetFocus(v.guildsTree)
-	v.app.Draw()
+		// Build index of all available guilds.
+		guildsByID := make(map[discord.GuildID]*gateway.GuildCreateEvent, len(event.Guilds))
+		for index := range event.Guilds {
+			guildsByID[event.Guilds[index].ID] = &event.Guilds[index]
+		}
+
+		// Use GuildPositions for ordering (it's the canonical order).
+		// Guilds not in any folder are "orphans" - add them directly to root.
+		positions := event.UserSettings.GuildPositions
+		// Fallback: GuildPositions shouldn't be nil but handle gracefully
+		if len(positions) == 0 {
+			positions = make([]discord.GuildID, 0, len(event.Guilds))
+			for _, guildEvent := range event.Guilds {
+				positions = append(positions, guildEvent.ID)
+			}
+		}
+
+		for _, guildID := range positions {
+			// Already handled in folder processing below
+			if guildsInFolders[guildID] {
+				continue
+			}
+
+			// Orphan guild - add directly to root in order
+			if guildEvent, ok := guildsByID[guildID]; ok {
+				v.guildsTree.createGuildNode(root, guildEvent.Guild)
+			}
+		}
+
+		// Process folders (real folders and single-guild "folders")
+		for _, folder := range event.UserSettings.GuildFolders {
+			if folder.ID == 0 && len(folder.GuildIDs) == 1 {
+				if guild, ok := guildsByID[folder.GuildIDs[0]]; ok {
+					v.guildsTree.createGuildNode(root, guild.Guild)
+				}
+			} else {
+				v.guildsTree.createFolderNode(folder, guildsByID)
+			}
+		}
+
+		v.guildsTree.SetCurrentNode(root)
+		v.app.SetFocus(v.guildsTree)
+	})
 }
 
-func (v *View) onMessageCreate(message *gateway.MessageCreateEvent) {
+func (v *Model) onMessageCreate(message *gateway.MessageCreateEvent) {
 	selectedChannel := v.SelectedChannel()
 	if selectedChannel != nil && selectedChannel.ID == message.ChannelID {
 		v.removeTyper(message.Author.ID)
@@ -160,7 +161,7 @@ func (v *View) onMessageCreate(message *gateway.MessageCreateEvent) {
 	}
 }
 
-func (v *View) onMessageUpdate(message *gateway.MessageUpdateEvent) {
+func (v *Model) onMessageUpdate(message *gateway.MessageUpdateEvent) {
 	if selected := v.SelectedChannel(); selected != nil && selected.ID == message.ChannelID {
 		index := slices.IndexFunc(v.messagesList.messages, func(m discord.Message) bool {
 			return m.ID == message.ID
@@ -175,7 +176,7 @@ func (v *View) onMessageUpdate(message *gateway.MessageUpdateEvent) {
 	}
 }
 
-func (v *View) onMessageDelete(message *gateway.MessageDeleteEvent) {
+func (v *Model) onMessageDelete(message *gateway.MessageDeleteEvent) {
 	if selected := v.SelectedChannel(); selected != nil && selected.ID == message.ChannelID {
 		prevCursor := v.messagesList.Cursor()
 		deletedIndex := slices.IndexFunc(v.messagesList.messages, func(m discord.Message) bool {
@@ -214,15 +215,15 @@ func (v *View) onMessageDelete(message *gateway.MessageDeleteEvent) {
 	}
 }
 
-func (v *View) onGuildMembersChunk(event *gateway.GuildMembersChunkEvent) {
+func (v *Model) onGuildMembersChunk(event *gateway.GuildMembersChunkEvent) {
 	v.messagesList.setFetchingChunk(false, uint(len(event.Members)))
 }
 
-func (v *View) onGuildMemberRemove(event *gateway.GuildMemberRemoveEvent) {
+func (v *Model) onGuildMemberRemove(event *gateway.GuildMemberRemoveEvent) {
 	v.messageInput.cache.Invalidate(event.GuildID.String()+" "+event.User.Username, v.state.MemberState.SearchLimit)
 }
 
-func (v *View) onTypingStart(event *gateway.TypingStartEvent) {
+func (v *Model) onTypingStart(event *gateway.TypingStartEvent) {
 	selectedChannel := v.SelectedChannel()
 	if selectedChannel == nil {
 		return

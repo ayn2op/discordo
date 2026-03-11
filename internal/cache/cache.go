@@ -31,7 +31,7 @@ func (c *Cache) Get(query string) uint {
 // the search limit.
 // "aa", "ab", "ac", ..., "ay" // where length is longer than the limit
 // if "ay" leaves, then "az" would not be loaded becaue it would not be
-// returned by the search results because of the search limit
+// returned by the search results because of the search limit.
 func (c *Cache) Invalidate(name string, limit uint) {
 	for name != "" {
 		if c.Exists(name) && c.Get(name) >= limit {
