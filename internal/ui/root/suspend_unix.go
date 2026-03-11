@@ -8,8 +8,8 @@ import (
 	"syscall"
 )
 
-func (v *View) suspend() {
-	v.app.Suspend(func() {
+func (m *Model) suspend() {
+	m.app.Suspend(func() {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, syscall.SIGCONT)
 		defer signal.Stop(c)

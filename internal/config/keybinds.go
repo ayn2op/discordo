@@ -24,6 +24,10 @@ func (k *Keybind) UnmarshalTOML(value any) error {
 		}
 		k.SetKeys(keys...)
 	}
+	// Keep displayed help key aligned with configured key(s).
+	if keys := k.Keys(); len(keys) > 0 {
+		k.SetHelp(keys[0], k.Help().Desc)
+	}
 	return nil
 }
 
@@ -129,6 +133,92 @@ type Keybinds struct {
 	Quit   Keybind `toml:"quit"`
 }
 
+func defaultPickerKeybinds() PickerKeybinds {
+	return PickerKeybinds{
+		NavigationKeybinds: NavigationKeybinds{
+			Up:     newKeybind("ctrl+p", "up"),
+			Down:   newKeybind("ctrl+n", "down"),
+			Top:    newKeybind("home", "top"),
+			Bottom: newKeybind("end", "bottom"),
+		},
+		Cancel: newKeybind("esc", "cancel"),
+		Select: newKeybind("enter", "sel"),
+	}
+}
+
+func defaultNavigationKeybinds() NavigationKeybinds {
+	return NavigationKeybinds{
+		Up:     newKeybind("k", "up"),
+		Down:   newKeybind("j", "down"),
+		Top:    newKeybind("g", "top"),
+		Bottom: newKeybind("G", "bottom"),
+	}
+}
+
+func defaultGuildsTreeKeybinds() GuildsTreeKeybinds {
+	return GuildsTreeKeybinds{
+		NavigationKeybinds: defaultNavigationKeybinds(),
+		SelectCurrent:      newKeybind("enter", "sel"),
+		YankID:             newKeybind("i", "copy id"),
+		CollapseParentNode: newKeybind("-", "collapse"),
+		MoveToParentNode:   newKeybind("p", "parent"),
+	}
+}
+
+func defaultMessagesListKeybinds() MessagesListKeybinds {
+	return MessagesListKeybinds{
+		SelectionKeybinds: SelectionKeybinds{
+			SelectUp:     newKeybind("k", "up"),
+			SelectDown:   newKeybind("j", "down"),
+			SelectTop:    newKeybind("g", "top"),
+			SelectBottom: newKeybind("G", "bottom"),
+		},
+		ScrollKeybinds: ScrollKeybinds{
+			ScrollUp:     newKeybind("K", "scroll up"),
+			ScrollDown:   newKeybind("J", "scroll down"),
+			ScrollTop:    newKeybind("home", "scroll top"),
+			ScrollBottom: newKeybind("end", "scroll bottom"),
+		},
+		SelectReply:  newKeybind("s", "sel reply"),
+		Reply:        newKeybind("R", "reply"),
+		ReplyMention: newKeybind("r", "@reply"),
+		Cancel:       newKeybind("esc", "cancel"),
+		Edit:         newKeybind("e", "edit"),
+		Delete:       newKeybind("D", "force delete"),
+		DeleteConfirm: newKeybind(
+			"d",
+			"delete",
+		),
+		Open:        newKeybind("o", "open"),
+		YankContent: newKeybind("y", "copy text"),
+		YankURL:     newKeybind("u", "copy url"),
+		YankID:      newKeybind("i", "copy id"),
+	}
+}
+
+func defaultMessageInputKeybinds() MessageInputKeybinds {
+	return MessageInputKeybinds{
+		Paste:          newKeybind("ctrl+v", "paste"),
+		Send:           newKeybind("enter", "send"),
+		Cancel:         newKeybind("esc", "cancel"),
+		TabComplete:    newKeybind("tab", "complete"),
+		Undo:           newKeybind("ctrl+u", "undo"),
+		OpenEditor:     newKeybind("ctrl+e", "editor"),
+		OpenFilePicker: newKeybind("ctrl+\\", "attach"),
+	}
+}
+
+func defaultMentionsListKeybinds() MentionsListKeybinds {
+	return MentionsListKeybinds{
+		NavigationKeybinds: NavigationKeybinds{
+			Up:     newKeybind("ctrl+p", "up"),
+			Down:   newKeybind("ctrl+n", "down"),
+			Top:    newKeybind("home", "top"),
+			Bottom: newKeybind("end", "bottom"),
+		},
+	}
+}
+
 func defaultKeybinds() Keybinds {
 	return Keybinds{
 		ToggleGuildsTree:     newKeybind("ctrl+b", "toggle guilds"),
@@ -146,72 +236,10 @@ func defaultKeybinds() Keybinds {
 		Logout: newKeybind("ctrl+d", "logout"),
 		Quit:   newKeybind("ctrl+c", "quit"),
 
-		Picker: PickerKeybinds{
-			NavigationKeybinds: NavigationKeybinds{
-				Up:     newKeybind("ctrl+p", "up"),
-				Down:   newKeybind("ctrl+n", "down"),
-				Top:    newKeybind("home", "top"),
-				Bottom: newKeybind("end", "bottom"),
-			},
-			Cancel: newKeybind("esc", "cancel"),
-			Select: newKeybind("enter", "sel"),
-		},
-		GuildsTree: GuildsTreeKeybinds{
-			NavigationKeybinds: NavigationKeybinds{
-				Up:     newKeybind("k", "up"),
-				Down:   newKeybind("j", "down"),
-				Top:    newKeybind("g", "top"),
-				Bottom: newKeybind("G", "bottom"),
-			},
-			SelectCurrent:      newKeybind("enter", "sel"),
-			YankID:             newKeybind("i", "copy id"),
-			CollapseParentNode: newKeybind("-", "collapse"),
-			MoveToParentNode:   newKeybind("p", "parent"),
-		},
-		MessagesList: MessagesListKeybinds{
-			SelectionKeybinds: SelectionKeybinds{
-				SelectUp:     newKeybind("k", "up"),
-				SelectDown:   newKeybind("j", "down"),
-				SelectTop:    newKeybind("g", "top"),
-				SelectBottom: newKeybind("G", "bottom"),
-			},
-			ScrollKeybinds: ScrollKeybinds{
-				ScrollUp:     newKeybind("K", "scroll up"),
-				ScrollDown:   newKeybind("J", "scroll down"),
-				ScrollTop:    newKeybind("home", "scroll top"),
-				ScrollBottom: newKeybind("end", "scroll bottom"),
-			},
-			SelectReply:  newKeybind("s", "sel reply"),
-			Reply:        newKeybind("R", "reply"),
-			ReplyMention: newKeybind("r", "@reply"),
-			Cancel:       newKeybind("esc", "cancel"),
-			Edit:         newKeybind("e", "edit"),
-			Delete:       newKeybind("D", "force delete"),
-			DeleteConfirm: newKeybind(
-				"d",
-				"delete",
-			),
-			Open:        newKeybind("o", "open"),
-			YankContent: newKeybind("y", "copy text"),
-			YankURL:     newKeybind("u", "copy url"),
-			YankID:      newKeybind("i", "copy id"),
-		},
-		MessageInput: MessageInputKeybinds{
-			Paste:          newKeybind("ctrl+v", "paste"),
-			Send:           newKeybind("enter", "send"),
-			Cancel:         newKeybind("esc", "cancel"),
-			TabComplete:    newKeybind("tab", "complete"),
-			Undo:           newKeybind("ctrl+u", "undo"),
-			OpenEditor:     newKeybind("ctrl+e", "editor"),
-			OpenFilePicker: newKeybind("ctrl+\\", "attach"),
-		},
-		MentionsList: MentionsListKeybinds{
-			NavigationKeybinds: NavigationKeybinds{
-				Up:     newKeybind("ctrl+p", "up"),
-				Down:   newKeybind("ctrl+n", "down"),
-				Top:    newKeybind("home", "top"),
-				Bottom: newKeybind("end", "bottom"),
-			},
-		},
+		Picker:       defaultPickerKeybinds(),
+		GuildsTree:   defaultGuildsTreeKeybinds(),
+		MessagesList: defaultMessagesListKeybinds(),
+		MessageInput: defaultMessageInputKeybinds(),
+		MentionsList: defaultMentionsListKeybinds(),
 	}
 }

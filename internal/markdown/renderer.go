@@ -38,6 +38,7 @@ func (r *Renderer) RenderLines(source []byte, node ast.Node, base tcell.Style, s
 
 	builder := tview.NewLineBuilder()
 	styleStack := []tcell.Style{base}
+	linkDepth := 0
 
 	currentStyle := func() tcell.Style {
 		return styleStack[len(styleStack)-1]
@@ -81,16 +82,22 @@ func (r *Renderer) RenderLines(source []byte, node ast.Node, base tcell.Style, s
 		case *ast.AutoLink:
 			if entering {
 				style := currentStyle()
+				url := string(node.URL(source))
 				if !r.spoil {
-					style = ui.MergeStyle(style, theme.URLStyle.Style)
+					style = ui.MergeStyle(style, theme.URLStyle.Style).Url(url)
 				}
-				builder.Write(r.checkAndSpoil(string(node.URL(source))), style)
+				builder.Write(r.checkAndSpoil(url), style)
 			}
 		case *ast.Link:
 			if !r.spoil {
 				if entering {
-					pushStyle(ui.MergeStyle(currentStyle(), theme.URLStyle.Style))
+					url := string(node.Destination)
+					linkDepth++
+					pushStyle(ui.MergeStyle(currentStyle(), theme.URLStyle.Style).Url(url))
 				} else {
+					if linkDepth > 0 {
+						linkDepth--
+					}
 					popStyle()
 				}
 			}
@@ -125,7 +132,7 @@ func (r *Renderer) RenderLines(source []byte, node ast.Node, base tcell.Style, s
 				r.spoil = entering
 			} else {
 				if entering {
-					pushStyle(r.applyInlineAttr(currentStyle(), node.Attr))
+					pushStyle(r.applyInlineAttr(currentStyle(), node.Attr, linkDepth > 0))
 				} else {
 					popStyle()
 				}
@@ -154,7 +161,7 @@ func (r *Renderer) RenderLines(source []byte, node ast.Node, base tcell.Style, s
 	return builder.Finish()
 }
 
-func (r *Renderer) applyInlineAttr(style tcell.Style, attr discordmd.Attribute) tcell.Style {
+func (r *Renderer) applyInlineAttr(style tcell.Style, attr discordmd.Attribute, inLink bool) tcell.Style {
 	switch attr {
 	case discordmd.AttrBold:
 		return style.Bold(true)
@@ -165,6 +172,9 @@ func (r *Renderer) applyInlineAttr(style tcell.Style, attr discordmd.Attribute) 
 	case discordmd.AttrStrikethrough:
 		return style.StrikeThrough(true)
 	case discordmd.AttrMonospace:
+		if inLink {
+			return style
+		}
 		return style.Reverse(true)
 	case discordmd.AttrSpoiler:
 		return r.cfg.Theme.MessagesList.ShownSpoilerStyle.Style

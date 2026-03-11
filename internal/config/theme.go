@@ -31,10 +31,6 @@ func (aw *AlignmentWrapper) UnmarshalTOML(v any) error {
 
 type StyleWrapper struct{ tcell.Style }
 
-func NewStyleWrapper(style tcell.Style) StyleWrapper {
-	return StyleWrapper{Style: style}
-}
-
 func (sw *StyleWrapper) UnmarshalTOML(v any) error {
 	m, ok := v.(map[string]any)
 	if !ok {
@@ -64,17 +60,22 @@ func (sw *StyleWrapper) UnmarshalTOML(v any) error {
 						sw.parseAttr(s)
 					}
 				}
-
 			}
 		case "underline":
 			if s, ok := val.(string); ok {
 				switch s {
-				case "": sw.Style = sw.Underline(tcell.UnderlineStyleNone)
-				case "solid": sw.Style = sw.Underline(tcell.UnderlineStyleSolid)
-				case "double": sw.Style = sw.Underline(tcell.UnderlineStyleDouble)
-				case "curly": sw.Style = sw.Underline(tcell.UnderlineStyleCurly)
-				case "dotted": sw.Style = sw.Underline(tcell.UnderlineStyleDotted)
-				case "dashed": sw.Style = sw.Underline(tcell.UnderlineStyleDashed)
+				case "":
+					sw.Style = sw.Underline(tcell.UnderlineStyleNone)
+				case "solid":
+					sw.Style = sw.Underline(tcell.UnderlineStyleSolid)
+				case "double":
+					sw.Style = sw.Underline(tcell.UnderlineStyleDouble)
+				case "curly":
+					sw.Style = sw.Underline(tcell.UnderlineStyleCurly)
+				case "dotted":
+					sw.Style = sw.Underline(tcell.UnderlineStyleDotted)
+				case "dashed":
+					sw.Style = sw.Underline(tcell.UnderlineStyleDashed)
 				}
 			}
 		case "underline_color":
@@ -170,14 +171,14 @@ func (vw *ScrollBarVisibilityWrapper) UnmarshalTOML(val any) error {
 	return nil
 }
 
-type HelpTheme struct {
-	ShortKeyStyle  StyleWrapper `toml:"short_key_style"`
-	ShortDescStyle StyleWrapper `toml:"short_desc_style"`
-	FullKeyStyle   StyleWrapper `toml:"full_key_style"`
-	FullDescStyle  StyleWrapper `toml:"full_desc_style"`
-}
-
 type (
+	HelpTheme struct {
+		ShortKeyStyle  StyleWrapper `toml:"short_key_style"`
+		ShortDescStyle StyleWrapper `toml:"short_desc_style"`
+		FullKeyStyle   StyleWrapper `toml:"full_key_style"`
+		FullDescStyle  StyleWrapper `toml:"full_desc_style"`
+	}
+
 	ThemeStyle struct {
 		NormalStyle StyleWrapper `toml:"normal_style"`
 		ActiveStyle StyleWrapper `toml:"active_style"`
@@ -231,6 +232,19 @@ type (
 
 		MessageStyle         StyleWrapper `toml:"message_style"`
 		SelectedMessageStyle StyleWrapper `toml:"selected_message_style"`
+
+		Embeds MessagesListEmbedsTheme `toml:"embeds"`
+	}
+
+	MessagesListEmbedsTheme struct {
+		ProviderStyle    StyleWrapper `toml:"provider_style"`
+		AuthorStyle      StyleWrapper `toml:"author_style"`
+		TitleStyle       StyleWrapper `toml:"title_style"`
+		DescriptionStyle StyleWrapper `toml:"description_style"`
+		FieldNameStyle   StyleWrapper `toml:"field_name_style"`
+		FieldValueStyle  StyleWrapper `toml:"field_value_style"`
+		FooterStyle      StyleWrapper `toml:"footer_style"`
+		URLStyle         StyleWrapper `toml:"url_style"`
 	}
 
 	MentionsListTheme struct {

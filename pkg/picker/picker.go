@@ -148,33 +148,36 @@ func (p *Picker) onInputChanged(text string) {
 	p.setFilteredItems(fuzzied)
 }
 
-func (p *Picker) InputHandler(event *tcell.EventKey) tview.Command {
-	consume := tview.BatchCommand{tview.RedrawCommand{}, tview.ConsumeEventCommand{}}
-
-	if p.keyMap != nil {
-		switch {
-		case keybind.Matches(event, p.keyMap.Up):
-			p.list.InputHandler(tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone))
-			return consume
-		case keybind.Matches(event, p.keyMap.Down):
-			p.list.InputHandler(tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone))
-			return consume
-		case keybind.Matches(event, p.keyMap.Top):
-			p.list.InputHandler(tcell.NewEventKey(tcell.KeyHome, "", tcell.ModNone))
-			return consume
-		case keybind.Matches(event, p.keyMap.Bottom):
-			p.list.InputHandler(tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone))
-			return consume
-		case keybind.Matches(event, p.keyMap.Select):
-			p.onListSelected(p.list.Cursor())
-			return consume
-		case keybind.Matches(event, p.keyMap.Cancel):
-			if p.onCancel != nil {
-				p.onCancel()
+func (p *Picker) HandleEvent(event tcell.Event) tview.Command {
+	switch event := event.(type) {
+	case *tview.KeyEvent:
+		redraw := tview.RedrawCommand{}
+		if p.keyMap != nil {
+			switch {
+			case keybind.Matches(event, p.keyMap.Up):
+				p.list.HandleEvent(tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone))
+				return redraw
+			case keybind.Matches(event, p.keyMap.Down):
+				p.list.HandleEvent(tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone))
+				return redraw
+			case keybind.Matches(event, p.keyMap.Top):
+				p.list.HandleEvent(tcell.NewEventKey(tcell.KeyHome, "", tcell.ModNone))
+				return redraw
+			case keybind.Matches(event, p.keyMap.Bottom):
+				p.list.HandleEvent(tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone))
+				return redraw
+			case keybind.Matches(event, p.keyMap.Select):
+				p.onListSelected(p.list.Cursor())
+				return redraw
+			case keybind.Matches(event, p.keyMap.Cancel):
+				if p.onCancel != nil {
+					p.onCancel()
+				}
+				return redraw
 			}
-			return consume
 		}
-	}
 
-	return p.Flex.InputHandler(event)
+		return p.Flex.HandleEvent(event)
+	}
+	return p.Flex.HandleEvent(event)
 }

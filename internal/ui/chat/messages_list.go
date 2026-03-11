@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"slices"
@@ -32,6 +33,7 @@ import (
 	"github.com/diamondburned/ningen/v3/discordmd"
 	"github.com/gdamore/tcell/v3"
 	"github.com/gdamore/tcell/v3/color"
+	"github.com/rivo/uniseg"
 	"github.com/skratchdot/open-golang/open"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/parser"
@@ -41,7 +43,7 @@ import (
 type messagesList struct {
 	*tview.List
 	cfg      *config.Config
-	chatView *View
+	chatView *Model
 	messages []discord.Message
 	// rows is the virtual list model rendered by tview (message rows +
 	// date-separator rows). It is rebuilt lazily when rowsDirty is true.
@@ -79,7 +81,7 @@ type messagesListRow struct {
 	timestamp    discord.Timestamp
 }
 
-func newMessagesList(cfg *config.Config, chatView *View) *messagesList {
+func newMessagesList(cfg *config.Config, chatView *Model) *messagesList {
 	ml := &messagesList{
 		List:     tview.NewList(),
 		cfg:      cfg,
@@ -437,32 +439,45 @@ func (ml *messagesList) memberForMessage(message discord.Message) *discord.Membe
 }
 
 func (ml *messagesList) drawContent(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style, showSpoiler bool) {
-	c := []byte(message.Content)
-	if ml.chatView.cfg.Markdown.Enabled {
-		root := discordmd.ParseWithMessage(c, *ml.chatView.state.Cabinet, &message, false)
-		lines := ml.renderer.RenderLines(c, root, baseStyle, showSpoiler)
-		if builder.HasCurrentLine() {
-			startsWithCodeBlock := false
+	lines, root := ml.renderContentLines(message, baseStyle, showSpoiler)
+	if ml.chatView.cfg.Markdown.Enabled && builder.HasCurrentLine() {
+		startsWithCodeBlock := false
+		if root != nil {
 			if first := root.FirstChild(); first != nil {
 				_, startsWithCodeBlock = first.(*ast.FencedCodeBlock)
 			}
+		}
 
-			if startsWithCodeBlock {
-				// Keep code blocks visually separate from "timestamp + author".
-				builder.NewLine()
-				for len(lines) > 0 && len(lines[0]) == 0 {
-					lines = lines[1:]
-				}
-			} else {
-				for len(lines) > 1 && len(lines[0]) == 0 {
-					lines = lines[1:]
-				}
+		if startsWithCodeBlock {
+			// Keep code blocks visually separate from "timestamp + author".
+			builder.NewLine()
+			for len(lines) > 0 && len(lines[0]) == 0 {
+				lines = lines[1:]
+			}
+		} else {
+			for len(lines) > 1 && len(lines[0]) == 0 {
+				lines = lines[1:]
 			}
 		}
-		builder.AppendLines(lines)
-	} else {
-		builder.Write(message.Content, baseStyle)
 	}
+	builder.AppendLines(lines)
+}
+
+func (ml *messagesList) renderContentLines(message discord.Message, baseStyle tcell.Style, showSpoiler bool) ([]tview.Line, ast.Node) {
+	return ml.renderContentLinesWithMarkdown(message, baseStyle, false, showSpoiler)
+}
+
+func (ml *messagesList) renderContentLinesWithMarkdown(message discord.Message, baseStyle tcell.Style, forceMarkdown bool, showSpoiler bool) ([]tview.Line, ast.Node) {
+	// Keep one rendering path for both normal messages and embed fragments so we preserve mention/link parsing behavior consistently across both.
+	if forceMarkdown || ml.chatView.cfg.Markdown.Enabled {
+		c := []byte(message.Content)
+		root := discordmd.ParseWithMessage(c, *ml.chatView.state.Cabinet, &message, false)
+		return ml.renderer.RenderLines(c, root, baseStyle, showSpoiler), root
+	}
+
+	b := tview.NewLineBuilder()
+	b.Write(message.Content, baseStyle)
+	return b.Finish(), nil
 }
 
 func (ml *messagesList) drawSnapshotContent(builder *tview.LineBuilder, parent discord.Message, snapshot discord.MessageSnapshotMessage, baseStyle tcell.Style, showSpoiler bool) {
@@ -498,6 +513,8 @@ func (ml *messagesList) drawDefaultMessage(builder *tview.LineBuilder, message d
 		builder.Write(" (edited)", dimStyle)
 	}
 
+	ml.drawEmbeds(builder, message, baseStyle)
+
 	attachmentStyle := ui.MergeStyle(baseStyle, ml.cfg.Theme.MessagesList.AttachmentStyle.Style)
 	for _, a := range message.Attachments {
 		builder.NewLine()
@@ -506,6 +523,301 @@ func (ml *messagesList) drawDefaultMessage(builder *tview.LineBuilder, message d
 		} else {
 			builder.Write(a.Filename, attachmentStyle)
 		}
+	}
+}
+
+func (ml *messagesList) drawEmbeds(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style) {
+	if len(message.Embeds) == 0 {
+		return
+	}
+
+	contentListURLs := extractURLs(message.Content)
+	contentURLs := make(map[string]struct{}, len(contentListURLs))
+	for _, u := range contentListURLs {
+		contentURLs[u] = struct{}{}
+	}
+
+	lineStyles := embedLineStyles(baseStyle, ml.cfg.Theme.MessagesList.Embeds)
+	defaultBarStyle := baseStyle.Dim(true)
+	prefixText := "  ▎ "
+	prefixWidth := tview.TaggedStringWidth(prefixText)
+	_, _, innerWidth, _ := ml.GetInnerRect()
+	// Wrap against the current list viewport. This keeps embed wrapping stable even when sidebars/panes are resized.
+	wrapWidth := max(innerWidth-prefixWidth, 1)
+
+	for _, embed := range message.Embeds {
+		lines := embedLines(embed, contentURLs)
+		if len(lines) == 0 {
+			continue
+		}
+
+		embedContentLines := make([]tview.Line, 0, len(lines)*2)
+		barStyle := defaultBarStyle
+		if embed.Color != discord.NullColor && embed.Color != 0 {
+			barStyle = barStyle.Foreground(tcell.NewHexColor(int32(embed.Color.Uint32())))
+		}
+		prefix := tview.NewSegment(prefixText, barStyle)
+		builder.NewLine()
+		for _, line := range lines {
+			if strings.TrimSpace(line.Text) == "" {
+				continue
+			}
+			msg := message
+			msg.Content = line.Text
+			lineStyle := lineStyles[line.Kind]
+			// Embed descriptions are always markdown-rendered to match Discord's rich embed semantics, even when message markdown is globally disabled.
+			rendered, _ := ml.renderContentLinesWithMarkdown(msg, lineStyle, line.Kind == embedLineDescription, true)
+			for _, renderedLine := range rendered {
+				if line.URL != "" {
+					renderedLine = lineWithURL(renderedLine, line.URL)
+				}
+				// Prefix must be applied after wrapping so every visual line keeps the embed bar marker ("▎"), not only the first logical line.
+				for _, wrapped := range wrapStyledLine(renderedLine, wrapWidth) {
+					prefixed := make(tview.Line, 0, len(wrapped)+1)
+					prefixed = append(prefixed, prefix)
+					prefixed = append(prefixed, wrapped...)
+					embedContentLines = append(embedContentLines, prefixed)
+				}
+			}
+		}
+
+		if len(embedContentLines) > 0 {
+			builder.AppendLines(embedContentLines)
+		}
+	}
+}
+
+func wrapStyledLine(line tview.Line, width int) []tview.Line {
+	if width <= 0 {
+		return []tview.Line{line}
+	}
+	if len(line) == 0 {
+		return []tview.Line{line}
+	}
+
+	lines := make([]tview.Line, 0, 2)
+	current := make(tview.Line, 0, len(line))
+	currentWidth := 0
+
+	pushSegment := func(text string, style tcell.Style) {
+		if text == "" {
+			return
+		}
+		if n := len(current); n > 0 && current[n-1].Style == style {
+			current[n-1].Text += text
+			return
+		}
+		current = append(current, tview.Segment{Text: text, Style: style})
+	}
+
+	flush := func() {
+		lineCopy := make(tview.Line, len(current))
+		copy(lineCopy, current)
+		lines = append(lines, lineCopy)
+		current = current[:0]
+		currentWidth = 0
+	}
+
+	for _, segment := range line {
+		state := -1
+		rest := segment.Text
+		for len(rest) > 0 {
+			cluster, nextRest, boundaries, nextState := uniseg.StepString(rest, state)
+			state = nextState
+			rest = nextRest
+			if cluster == "" {
+				continue
+			}
+
+			// Use grapheme width (not rune count) so wrapping stays correct with wide glyphs, emoji, and combining characters.
+			clusterWidth := graphemeClusterWidth(boundaries)
+			if currentWidth > 0 && currentWidth+clusterWidth > width {
+				flush()
+			}
+			pushSegment(cluster, segment.Style)
+			currentWidth += clusterWidth
+
+			if currentWidth >= width {
+				flush()
+			}
+		}
+	}
+
+	if len(current) > 0 {
+		flush()
+	}
+	if len(lines) == 0 {
+		return []tview.Line{{}}
+	}
+	return lines
+}
+
+func graphemeClusterWidth(boundaries int) int {
+	return boundaries >> uniseg.ShiftWidth
+}
+
+func lineWithURL(line tview.Line, rawURL string) tview.Line {
+	out := make(tview.Line, len(line))
+	for i, segment := range line {
+		out[i] = segment
+		out[i].Style = out[i].Style.Url(rawURL)
+	}
+	return out
+}
+
+type embedLine struct {
+	Text string
+	Kind embedLineKind
+	URL  string
+}
+
+type embedLineKind uint8
+
+const (
+	// Keep this ordering stable: drawEmbeds indexes precomputed style slots by this enum.
+	embedLineProvider embedLineKind = iota
+	embedLineAuthor
+	embedLineTitle
+	embedLineDescription
+	embedLineFieldName
+	embedLineFieldValue
+	embedLineFooter
+	embedLineURL
+)
+
+func embedLineStyles(baseStyle tcell.Style, theme config.MessagesListEmbedsTheme) [8]tcell.Style {
+	styles := [8]tcell.Style{}
+	styles[embedLineProvider] = ui.MergeStyle(baseStyle, theme.ProviderStyle.Style)
+	styles[embedLineAuthor] = ui.MergeStyle(baseStyle, theme.AuthorStyle.Style)
+	styles[embedLineTitle] = ui.MergeStyle(baseStyle, theme.TitleStyle.Style)
+	styles[embedLineDescription] = ui.MergeStyle(baseStyle, theme.DescriptionStyle.Style)
+	styles[embedLineFieldName] = ui.MergeStyle(baseStyle, theme.FieldNameStyle.Style)
+	styles[embedLineFieldValue] = ui.MergeStyle(baseStyle, theme.FieldValueStyle.Style)
+	styles[embedLineFooter] = ui.MergeStyle(baseStyle, theme.FooterStyle.Style)
+	styles[embedLineURL] = ui.MergeStyle(baseStyle, theme.URLStyle.Style)
+	return styles
+}
+
+type embedLineDedupKey struct {
+	kind embedLineKind
+	text string
+}
+
+func embedLines(embed discord.Embed, contentURLs map[string]struct{}) []embedLine {
+	lines := make([]embedLine, 0, 8)
+	seen := make(map[embedLineDedupKey]struct{}, 8)
+
+	appendUnique := func(s string, kind embedLineKind, rawURL string) {
+		s = strings.TrimSpace(s)
+		if s == "" {
+			return
+		}
+		// Deduplicate by kind+text so the same value can intentionally appear in multiple semantic slots with different styles (e.g. title vs. field).
+		key := embedLineDedupKey{kind: kind, text: s}
+		if _, ok := seen[key]; ok {
+			return
+		}
+		seen[key] = struct{}{}
+		lines = append(lines, embedLine{
+			Text: s,
+			Kind: kind,
+			URL:  rawURL,
+		})
+	}
+
+	appendURL := func(url discord.URL) {
+		u := strings.TrimSpace(string(url))
+		if u == "" {
+			return
+		}
+		// Avoid duplicating links that already appear in message body content.
+		if _, ok := contentURLs[u]; ok {
+			return
+		}
+		appendUnique(linkDisplayText(u), embedLineURL, u)
+	}
+
+	if embed.Provider != nil {
+		appendUnique(embed.Provider.Name, embedLineProvider, "")
+	}
+	if embed.Author != nil {
+		appendUnique(embed.Author.Name, embedLineAuthor, "")
+	}
+	appendUnique(embed.Title, embedLineTitle, string(embed.URL))
+	// Some Discord embeds include markdown-escaped punctuation in raw payload text (e.g. "\."), so normalize for display.
+	appendUnique(unescapeMarkdownEscapes(embed.Description), embedLineDescription, "")
+
+	for _, field := range embed.Fields {
+		switch {
+		case field.Name != "" && field.Value != "":
+			appendUnique(field.Name, embedLineFieldName, "")
+			appendUnique(field.Value, embedLineFieldValue, "")
+		case field.Name != "":
+			appendUnique(field.Name, embedLineFieldName, "")
+		default:
+			appendUnique(field.Value, embedLineFieldValue, "")
+		}
+	}
+
+	if embed.Footer != nil {
+		appendUnique(embed.Footer.Text, embedLineFooter, "")
+	}
+
+	// Prefer media URLs after textual fields so previews read top-to-bottom before jumping to link targets.
+	// When a title exists, embed.URL is represented by title Style.Url metadata instead of a separate URL row.
+	if embed.Title == "" {
+		appendURL(embed.URL)
+	}
+	if embed.Image != nil {
+		appendURL(embed.Image.URL)
+	}
+	if embed.Video != nil {
+		appendURL(embed.Video.URL)
+	}
+
+	return lines
+}
+
+func linkDisplayText(raw string) string {
+	parsed, err := url.Parse(raw)
+	if err != nil || parsed.Host == "" {
+		return raw
+	}
+
+	path := strings.TrimSpace(parsed.EscapedPath())
+	switch {
+	case path == "", path == "/":
+		return parsed.Host
+	case len(path) > 48:
+		return parsed.Host + path[:45] + "..."
+	default:
+		return parsed.Host + path
+	}
+}
+
+func unescapeMarkdownEscapes(s string) string {
+	if !strings.ContainsRune(s, '\\') {
+		return s
+	}
+
+	var b strings.Builder
+	b.Grow(len(s))
+
+	for i := range len(s) {
+		if s[i] == '\\' && i+1 < len(s) && isMarkdownEscapable(s[i+1]) {
+			continue
+		}
+		b.WriteByte(s[i])
+	}
+	return b.String()
+}
+
+func isMarkdownEscapable(c byte) bool {
+	switch c {
+	case '\\', '`', '*', '_', '{', '}', '[', ']', '(', ')', '#', '+', '-', '.', '!', '|', '>', '~':
+		return true
+	default:
+		return false
 	}
 }
 
@@ -554,72 +866,73 @@ func (ml *messagesList) selectedMessage() (*discord.Message, error) {
 	return &ml.messages[cursor], nil
 }
 
-func (ml *messagesList) InputHandler(event *tcell.EventKey) tview.Command {
-	consume := tview.ConsumeEventCommand{}
-	consumeRedraw := tview.BatchCommand{tview.RedrawCommand{}, tview.ConsumeEventCommand{}}
-
-	switch {
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ScrollUp.Keybind):
-		ml.ScrollUp()
-		return consumeRedraw
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ScrollDown.Keybind):
-		ml.ScrollDown()
-		return consumeRedraw
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ScrollTop.Keybind):
-		ml.ScrollToStart()
-		return consumeRedraw
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ScrollBottom.Keybind):
-		ml.ScrollToEnd()
-		return consumeRedraw
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Cancel.Keybind):
-		ml.clearSelection()
-		return consumeRedraw
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectUp.Keybind):
-		ml.selectUp()
-		return consumeRedraw
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectDown.Keybind):
-		ml.selectDown()
-		return consumeRedraw
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectTop.Keybind):
-		ml.selectTop()
-		return consumeRedraw
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectBottom.Keybind):
-		ml.selectBottom()
-		return consumeRedraw
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectReply.Keybind):
-		ml.selectReply()
-		return consumeRedraw
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.YankID.Keybind):
-		ml.yankID()
-		return consume
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.YankContent.Keybind):
-		ml.yankContent()
-		return consume
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.YankURL.Keybind):
-		ml.yankURL()
-		return consume
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Open.Keybind):
-		ml.open()
-		return consume
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Reply.Keybind):
-		ml.reply(false)
-		return consumeRedraw
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ReplyMention.Keybind):
-		ml.reply(true)
-		return consumeRedraw
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Edit.Keybind):
-		ml.edit()
-		return consumeRedraw
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Delete.Keybind):
-		ml.delete()
-		return consumeRedraw
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.DeleteConfirm.Keybind):
-		ml.confirmDelete()
-		return consumeRedraw
+func (ml *messagesList) HandleEvent(event tcell.Event) tview.Command {
+	switch event := event.(type) {
+	case *tview.KeyEvent:
+		redraw := tview.RedrawCommand{}
+		switch {
+		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ScrollUp.Keybind):
+			ml.ScrollUp()
+			return redraw
+		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ScrollDown.Keybind):
+			ml.ScrollDown()
+			return redraw
+		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ScrollTop.Keybind):
+			ml.ScrollToStart()
+			return redraw
+		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ScrollBottom.Keybind):
+			ml.ScrollToEnd()
+			return redraw
+		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Cancel.Keybind):
+			ml.clearSelection()
+			return redraw
+		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectUp.Keybind):
+			ml.selectUp()
+			return redraw
+		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectDown.Keybind):
+			ml.selectDown()
+			return redraw
+		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectTop.Keybind):
+			ml.selectTop()
+			return redraw
+		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectBottom.Keybind):
+			ml.selectBottom()
+			return redraw
+		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectReply.Keybind):
+			ml.selectReply()
+			return redraw
+		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.YankID.Keybind):
+			ml.yankID()
+			return nil
+		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.YankContent.Keybind):
+			ml.yankContent()
+			return nil
+		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.YankURL.Keybind):
+			ml.yankURL()
+			return nil
+		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Open.Keybind):
+			ml.open()
+			return redraw
+		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Reply.Keybind):
+			ml.reply(false)
+			return redraw
+		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ReplyMention.Keybind):
+			ml.reply(true)
+			return redraw
+		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Edit.Keybind):
+			ml.edit()
+			return redraw
+		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Delete.Keybind):
+			ml.delete()
+			return redraw
+		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.DeleteConfirm.Keybind):
+			ml.confirmDelete()
+			return redraw
+		}
+		// Do not fall through to List defaults for unmatched keys.
+		return nil
 	}
-
-	// Do not fall through to List defaults for unmatched keys.
-	return consume
+	return ml.List.HandleEvent(event)
 }
 
 func (ml *messagesList) selectUp() {
@@ -738,7 +1051,11 @@ func (ml *messagesList) yankID() {
 		return
 	}
 
-	go clipboard.Write(clipboard.FmtText, []byte(msg.ID.String()))
+	go func() {
+		if err := clipboard.Write(clipboard.FmtText, []byte(msg.ID.String())); err != nil {
+			slog.Error("failed to copy message id", "err", err)
+		}
+	}()
 }
 
 func (ml *messagesList) yankContent() {
@@ -748,7 +1065,11 @@ func (ml *messagesList) yankContent() {
 		return
 	}
 
-	go clipboard.Write(clipboard.FmtText, []byte(msg.Content))
+	go func() {
+		if err := clipboard.Write(clipboard.FmtText, []byte(msg.Content)); err != nil {
+			slog.Error("failed to copy message content", "err", err)
+		}
+	}()
 }
 
 func (ml *messagesList) yankURL() {
@@ -758,7 +1079,11 @@ func (ml *messagesList) yankURL() {
 		return
 	}
 
-	go clipboard.Write(clipboard.FmtText, []byte(msg.URL()))
+	go func() {
+		if err := clipboard.Write(clipboard.FmtText, []byte(msg.URL())); err != nil {
+			slog.Error("failed to copy message url", "err", err)
+		}
+	}()
 }
 
 func (ml *messagesList) open() {
@@ -768,10 +1093,7 @@ func (ml *messagesList) open() {
 		return
 	}
 
-	var urls []string
-	if msg.Content != "" {
-		urls = extractURLs(msg.Content)
-	}
+	urls := messageURLs(*msg)
 
 	if len(urls) == 0 && len(msg.Attachments) == 0 {
 		return
@@ -813,6 +1135,42 @@ func extractURLs(content string) []string {
 
 		return ast.WalkContinue, nil
 	})
+	return urls
+}
+
+func extractEmbedURLs(embeds []discord.Embed) []string {
+	urls := make([]string, 0, len(embeds)*3)
+	for _, embed := range embeds {
+		if embed.URL != "" {
+			urls = append(urls, string(embed.URL))
+		}
+		if embed.Image != nil && embed.Image.URL != "" {
+			urls = append(urls, string(embed.Image.URL))
+		}
+		if embed.Video != nil && embed.Video.URL != "" {
+			urls = append(urls, string(embed.Video.URL))
+		}
+	}
+	return urls
+}
+
+func messageURLs(msg discord.Message) []string {
+	combined := extractURLs(msg.Content)
+	combined = append(combined, extractEmbedURLs(msg.Embeds)...)
+
+	urls := make([]string, 0, len(combined))
+	seen := make(map[string]struct{}, len(combined))
+	for _, u := range combined {
+		u = strings.TrimSpace(u)
+		if u == "" {
+			continue
+		}
+		if _, ok := seen[u]; ok {
+			continue
+		}
+		seen[u] = struct{}{}
+		urls = append(urls, u)
+	}
 	return urls
 }
 
@@ -1075,7 +1433,7 @@ func (ml *messagesList) FullHelp() [][]keybind.Keybind {
 	canOpen := false
 	if msg, err := ml.selectedMessage(); err == nil {
 		canSelectReply = msg.ReferencedMessage != nil
-		canOpen = len(extractURLs(msg.Content)) != 0 || len(msg.Attachments) != 0
+		canOpen = len(messageURLs(*msg)) != 0 || len(msg.Attachments) != 0
 
 		me, _ := ml.chatView.state.Cabinet.Me()
 		canReply = msg.Author.ID != me.ID
