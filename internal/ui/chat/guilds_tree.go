@@ -418,8 +418,7 @@ func (gt *guildsTree) HandleEvent(event tcell.Event) tview.Command {
 		case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.SelectCurrent.Keybind):
 			return handler(tcell.NewEventKey(tcell.KeyEnter, "", tcell.ModNone))
 		case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.YankID.Keybind):
-			gt.yankID()
-			return nil
+			return gt.yankID()
 		}
 		// Do not fall through to TreeView defaults for unmatched keys.
 		return nil
@@ -427,21 +426,23 @@ func (gt *guildsTree) HandleEvent(event tcell.Event) tview.Command {
 	return gt.TreeView.HandleEvent(event)
 }
 
-func (gt *guildsTree) yankID() {
+func (gt *guildsTree) yankID() tview.Command {
 	node := gt.GetCurrentNode()
 	if node == nil {
-		return
+		return nil
 	}
 
 	// Reference of a tree node in the guilds tree is its ID.
 	// discord.Snowflake (discord.GuildID and discord.ChannelID) have the String method.
 	if id, ok := node.GetReference().(fmt.Stringer); ok {
-		go func() {
+		return func() tcell.Event {
 			if err := clipboard.Write(clipboard.FmtText, []byte(id.String())); err != nil {
 				slog.Error("failed to copy node id", "err", err)
 			}
-		}()
+			return nil
+		}
 	}
+	return nil
 }
 
 func (gt *guildsTree) findNodeByReference(reference any) *tview.TreeNode {

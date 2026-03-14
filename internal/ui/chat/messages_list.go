@@ -872,14 +872,11 @@ func (ml *messagesList) HandleEvent(event tcell.Event) tview.Command {
 			ml.selectReply()
 			return nil
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.YankID.Keybind):
-			ml.yankID()
-			return nil
+			return ml.yankMessageID()
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.YankContent.Keybind):
-			ml.yankContent()
-			return nil
+			return ml.yankContent()
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.YankURL.Keybind):
-			ml.yankURL()
-			return nil
+			return ml.yankURL()
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Open.Keybind):
 			ml.open()
 			return nil
@@ -1014,46 +1011,49 @@ func (ml *messagesList) prependOlderMessages() int {
 	return len(messages)
 }
 
-func (ml *messagesList) yankID() {
+func (ml *messagesList) yankMessageID() tview.Command {
 	msg, err := ml.selectedMessage()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
-		return
+		return nil
 	}
 
-	go func() {
+	return func() tcell.Event {
 		if err := clipboard.Write(clipboard.FmtText, []byte(msg.ID.String())); err != nil {
 			slog.Error("failed to copy message id", "err", err)
 		}
-	}()
+		return nil
+	}
 }
 
-func (ml *messagesList) yankContent() {
+func (ml *messagesList) yankContent() tview.Command {
 	msg, err := ml.selectedMessage()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
-		return
+		return nil
 	}
 
-	go func() {
+	return func() tcell.Event {
 		if err := clipboard.Write(clipboard.FmtText, []byte(msg.Content)); err != nil {
 			slog.Error("failed to copy message content", "err", err)
 		}
-	}()
+		return nil
+	}
 }
 
-func (ml *messagesList) yankURL() {
+func (ml *messagesList) yankURL() tview.Command {
 	msg, err := ml.selectedMessage()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
-		return
+		return nil
 	}
 
-	go func() {
+	return func() tcell.Event {
 		if err := clipboard.Write(clipboard.FmtText, []byte(msg.URL())); err != nil {
 			slog.Error("failed to copy message url", "err", err)
 		}
-	}()
+		return nil
+	}
 }
 
 func (ml *messagesList) open() {
