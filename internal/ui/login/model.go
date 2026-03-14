@@ -22,14 +22,13 @@ const (
 type Model struct {
 	*layers.Layers
 	tabs *tabs.Model
-	app  *tview.Application
 
 	cfg            *config.Config
 	errorModalText string
 }
 
-func NewModel(app *tview.Application, cfg *config.Config) *Model {
-	tabs := tabs.NewModel([]tabs.Tab{token.NewModel(), qr.NewModel(app)})
+func NewModel(cfg *config.Config) *Model {
+	tabs := tabs.NewModel([]tabs.Tab{token.NewModel(), qr.NewModel()})
 
 	l := layers.New()
 	ui.ConfigureBox(l.Box, &cfg.Theme)
@@ -38,9 +37,7 @@ func NewModel(app *tview.Application, cfg *config.Config) *Model {
 	return &Model{
 		Layers: l,
 		tabs:   tabs,
-		app:    app,
-
-		cfg: cfg,
+		cfg:    cfg,
 	}
 }
 
@@ -48,10 +45,9 @@ func (m *Model) HandleEvent(event tcell.Event) tview.Command {
 	switch event := event.(type) {
 	case *tcell.EventError:
 		if m.HasLayer(errorLayerName) {
-			return tview.RedrawCommand{}
+			return nil
 		}
-		m.onError(event)
-		return tview.RedrawCommand{}
+		return m.showErrorDialog(event)
 	case *tview.ModalDoneEvent:
 		if !m.HasLayer(errorLayerName) {
 			return nil
@@ -61,12 +57,12 @@ func (m *Model) HandleEvent(event tcell.Event) tview.Command {
 		}
 		m.RemoveLayer(errorLayerName)
 		m.errorModalText = ""
-		return tview.RedrawCommand{}
+		return nil
 	}
 	return m.Layers.HandleEvent(event)
 }
 
-func (m *Model) onError(err error) {
+func (m *Model) showErrorDialog(err error) tview.Command {
 	slog.Error("failed to login", "err", err)
 
 	message := err.Error()
@@ -99,6 +95,5 @@ func (m *Model) onError(err error) {
 			layers.WithOverlay(),
 		).
 		SendToFront(errorLayerName)
-	modal.SetFocus(0)
-	m.app.SetFocus(modal)
+	return tview.SetFocus(modal)
 }

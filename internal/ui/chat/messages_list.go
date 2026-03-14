@@ -840,38 +840,37 @@ func (ml *messagesList) selectedMessage() (*discord.Message, error) {
 func (ml *messagesList) HandleEvent(event tcell.Event) tview.Command {
 	switch event := event.(type) {
 	case *tview.KeyEvent:
-		redraw := tview.RedrawCommand{}
 		switch {
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ScrollUp.Keybind):
 			ml.ScrollUp()
-			return redraw
+			return nil
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ScrollDown.Keybind):
 			ml.ScrollDown()
-			return redraw
+			return nil
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ScrollTop.Keybind):
 			ml.ScrollToStart()
-			return redraw
+			return nil
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ScrollBottom.Keybind):
 			ml.ScrollToEnd()
-			return redraw
+			return nil
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Cancel.Keybind):
 			ml.clearSelection()
-			return redraw
+			return nil
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectUp.Keybind):
 			ml.selectUp()
-			return redraw
+			return nil
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectDown.Keybind):
 			ml.selectDown()
-			return redraw
+			return nil
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectTop.Keybind):
 			ml.selectTop()
-			return redraw
+			return nil
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectBottom.Keybind):
 			ml.selectBottom()
-			return redraw
+			return nil
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectReply.Keybind):
 			ml.selectReply()
-			return redraw
+			return nil
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.YankID.Keybind):
 			ml.yankID()
 			return nil
@@ -883,22 +882,22 @@ func (ml *messagesList) HandleEvent(event tcell.Event) tview.Command {
 			return nil
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Open.Keybind):
 			ml.open()
-			return redraw
+			return nil
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Reply.Keybind):
 			ml.reply(false)
-			return redraw
+			return nil
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ReplyMention.Keybind):
 			ml.reply(true)
-			return redraw
+			return nil
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Edit.Keybind):
 			ml.edit()
-			return redraw
+			return nil
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Delete.Keybind):
 			ml.delete()
-			return redraw
+			return nil
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.DeleteConfirm.Keybind):
 			ml.confirmDelete()
-			return redraw
+			return nil
 		}
 		// Do not fall through to List defaults for unmatched keys.
 		return nil

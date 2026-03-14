@@ -397,13 +397,12 @@ func (gt *guildsTree) collapseParentNode(node *tview.TreeNode) {
 func (gt *guildsTree) HandleEvent(event tcell.Event) tview.Command {
 	switch event := event.(type) {
 	case *tview.KeyEvent:
-		redraw := tview.RedrawCommand{}
 		handler := gt.TreeView.HandleEvent
 
 		switch {
 		case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.CollapseParentNode.Keybind):
 			gt.collapseParentNode(gt.GetCurrentNode())
-			return redraw
+			return nil
 		case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.MoveToParentNode.Keybind):
 			return handler(tcell.NewEventKey(tcell.KeyRune, "K", tcell.ModNone))
 		case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.Up.Keybind):
@@ -412,10 +411,10 @@ func (gt *guildsTree) HandleEvent(event tcell.Event) tview.Command {
 			return handler(tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone))
 		case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.Top.Keybind):
 			gt.Move(gt.GetRowCount() * -1)
-			return redraw
+			return nil
 		case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.Bottom.Keybind):
 			gt.Move(gt.GetRowCount())
-			return redraw
+			return nil
 		case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.SelectCurrent.Keybind):
 			return handler(tcell.NewEventKey(tcell.KeyEnter, "", tcell.ModNone))
 		case keybind.Matches(event, gt.cfg.Keybinds.GuildsTree.YankID.Keybind):

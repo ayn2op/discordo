@@ -24,12 +24,6 @@ type TokenEvent struct {
 	Token string
 }
 
-func newTokenEvent(token string) *TokenEvent {
-	event := &TokenEvent{Token: token}
-	event.SetEventNow()
-	return event
-}
-
 const remoteAuthGatewayURL = "wss://remote-auth-gateway.discord.gg/?v=2"
 
 type connCreateEvent struct {
@@ -37,41 +31,33 @@ type connCreateEvent struct {
 	conn *websocket.Conn
 }
 
-func newConnCreateEvent(conn *websocket.Conn) *connCreateEvent {
-	event := &connCreateEvent{conn: conn}
-	event.SetEventNow()
-	return event
-}
-
 type connCloseEvent struct{ tcell.EventTime }
 
-func newConnCloseEvent() *connCloseEvent {
-	event := &connCloseEvent{}
-	event.SetEventNow()
-	return event
-}
-
 func (m *Model) connect() tview.Command {
-	return tview.EventCommand(func() tcell.Event {
+	return func() tcell.Event {
 		headers := http.Headers()
 		headers.Set("User-Agent", http.BrowserUserAgent)
 		conn, _, err := websocket.DefaultDialer.Dial(remoteAuthGatewayURL, headers)
 		if err != nil {
 			return tcell.NewEventError(err)
 		}
-		return newConnCreateEvent(conn)
-	})
+		event := &connCreateEvent{conn: conn}
+		event.SetEventNow()
+		return event
+	}
 }
 
 func (m *Model) close() tview.Command {
-	return tview.EventCommand(func() tcell.Event {
+	return func() tcell.Event {
 		if m.conn != nil {
 			if err := m.conn.Close(); err != nil {
 				return tcell.NewEventError(err)
 			}
 		}
-		return newConnCloseEvent()
-	})
+		event := &connCloseEvent{}
+		event.SetEventNow()
+		return event
+	}
 }
 
 type helloEvent struct {
@@ -80,21 +66,9 @@ type helloEvent struct {
 	timeoutMS         int
 }
 
-func newHelloEvent(heartbeatInterval, timeoutMS int) *helloEvent {
-	event := &helloEvent{heartbeatInterval: heartbeatInterval, timeoutMS: timeoutMS}
-	event.SetEventNow()
-	return event
-}
-
 type nonceProofEvent struct {
 	tcell.EventTime
 	encryptedNonce string
-}
-
-func newNonceProofEvent(encryptedNonce string) *nonceProofEvent {
-	event := &nonceProofEvent{encryptedNonce: encryptedNonce}
-	event.SetEventNow()
-	return event
 }
 
 type pendingRemoteInitEvent struct {
@@ -102,21 +76,9 @@ type pendingRemoteInitEvent struct {
 	fingerprint string
 }
 
-func newPendingRemoteInitEvent(fingerprint string) *pendingRemoteInitEvent {
-	event := &pendingRemoteInitEvent{fingerprint: fingerprint}
-	event.SetEventNow()
-	return event
-}
-
 type pendingTicketEvent struct {
 	tcell.EventTime
 	encryptedUserPayload string
-}
-
-func newPendingTicketEvent(encryptedUserPayload string) *pendingTicketEvent {
-	event := &pendingTicketEvent{encryptedUserPayload: encryptedUserPayload}
-	event.SetEventNow()
-	return event
 }
 
 type pendingLoginEvent struct {
@@ -124,22 +86,10 @@ type pendingLoginEvent struct {
 	ticket string
 }
 
-func newPendingLoginEvent(ticket string) *pendingLoginEvent {
-	event := &pendingLoginEvent{ticket: ticket}
-	event.SetEventNow()
-	return event
-}
-
 type cancelEvent struct{ tcell.EventTime }
 
-func newCancelEvent() *cancelEvent {
-	event := &cancelEvent{}
-	event.SetEventNow()
-	return event
-}
-
 func (m *Model) listen() tview.Command {
-	return tview.EventCommand(func() tcell.Event {
+	return func() tcell.Event {
 		if m.conn == nil {
 			return nil
 		}
@@ -165,7 +115,9 @@ func (m *Model) listen() tview.Command {
 			if err := json.Unmarshal(data, &payload); err != nil {
 				return tcell.NewEventError(err)
 			}
-			return newHelloEvent(payload.HeartbeatInterval, payload.TimeoutMS)
+			event := &helloEvent{heartbeatInterval: payload.HeartbeatInterval, timeoutMS: payload.TimeoutMS}
+			event.SetEventNow()
+			return event
 		case "nonce_proof":
 			var payload struct {
 				EncryptedNonce string `json:"encrypted_nonce"`
@@ -173,7 +125,9 @@ func (m *Model) listen() tview.Command {
 			if err := json.Unmarshal(data, &payload); err != nil {
 				return tcell.NewEventError(err)
 			}
-			return newNonceProofEvent(payload.EncryptedNonce)
+			event := &nonceProofEvent{encryptedNonce: payload.EncryptedNonce}
+			event.SetEventNow()
+			return event
 		case "pending_remote_init":
 			var payload struct {
 				Fingerprint string `json:"fingerprint"`
@@ -181,7 +135,9 @@ func (m *Model) listen() tview.Command {
 			if err := json.Unmarshal(data, &payload); err != nil {
 				return tcell.NewEventError(err)
 			}
-			return newPendingRemoteInitEvent(payload.Fingerprint)
+			event := &pendingRemoteInitEvent{fingerprint: payload.Fingerprint}
+			event.SetEventNow()
+			return event
 		case "pending_ticket":
 			var payload struct {
 				EncryptedUserPayload string `json:"encrypted_user_payload"`
@@ -189,9 +145,13 @@ func (m *Model) listen() tview.Command {
 			if err := json.Unmarshal(data, &payload); err != nil {
 				return tcell.NewEventError(err)
 			}
-			return newPendingTicketEvent(payload.EncryptedUserPayload)
+			event := &pendingTicketEvent{encryptedUserPayload: payload.EncryptedUserPayload}
+			event.SetEventNow()
+			return event
 		case "cancel":
-			return newCancelEvent()
+			event := &cancelEvent{}
+			event.SetEventNow()
+			return event
 		case "pending_login":
 			var payload struct {
 				Ticket string `json:"ticket"`
@@ -199,30 +159,28 @@ func (m *Model) listen() tview.Command {
 			if err := json.Unmarshal(data, &payload); err != nil {
 				return tcell.NewEventError(err)
 			}
-			return newPendingLoginEvent(payload.Ticket)
+			event := &pendingLoginEvent{ticket: payload.Ticket}
+			event.SetEventNow()
+			return event
 		default:
 			return nil
 		}
-	})
+	}
 }
 
 type heartbeatTickEvent struct{ tcell.EventTime }
 
-func newHeartbeatTickEvent() *heartbeatTickEvent {
-	event := &heartbeatTickEvent{}
-	event.SetEventNow()
-	return event
-}
-
 func (m *Model) heartbeat() tview.Command {
-	return tview.EventCommand(func() tcell.Event {
+	return func() tcell.Event {
 		time.Sleep(m.heartbeatInterval)
-		return newHeartbeatTickEvent()
-	})
+		event := &heartbeatTickEvent{}
+		event.SetEventNow()
+		return event
+	}
 }
 
 func (m *Model) sendHeartbeat() tview.Command {
-	return tview.EventCommand(func() tcell.Event {
+	return func() tcell.Event {
 		if m.conn == nil {
 			return nil
 		}
@@ -233,7 +191,7 @@ func (m *Model) sendHeartbeat() tview.Command {
 			return tcell.NewEventError(err)
 		}
 		return nil
-	})
+	}
 }
 
 type privateKeyEvent struct {
@@ -241,24 +199,20 @@ type privateKeyEvent struct {
 	privateKey *rsa.PrivateKey
 }
 
-func newPrivateKeyEvent(privateKey *rsa.PrivateKey) *privateKeyEvent {
-	event := &privateKeyEvent{privateKey: privateKey}
-	event.SetEventNow()
-	return event
-}
-
 func (m *Model) generatePrivateKey() tview.Command {
-	return tview.EventCommand(func() tcell.Event {
+	return func() tcell.Event {
 		privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 		if err != nil {
 			return tcell.NewEventError(err)
 		}
-		return newPrivateKeyEvent(privateKey)
-	})
+		event := &privateKeyEvent{privateKey: privateKey}
+		event.SetEventNow()
+		return event
+	}
 }
 
 func (m *Model) sendInit() tview.Command {
-	return tview.EventCommand(func() tcell.Event {
+	return func() tcell.Event {
 		if m.privateKey == nil {
 			return tcell.NewEventError(errors.New("missing private key"))
 		}
@@ -275,11 +229,11 @@ func (m *Model) sendInit() tview.Command {
 			return tcell.NewEventError(err)
 		}
 		return nil
-	})
+	}
 }
 
 func (m *Model) sendNonceProof(encryptedNonce string) tview.Command {
-	return tview.EventCommand(func() tcell.Event {
+	return func() tcell.Event {
 		decodedNonce, err := base64.StdEncoding.DecodeString(encryptedNonce)
 		if err != nil {
 			return tcell.NewEventError(err)
@@ -299,7 +253,7 @@ func (m *Model) sendNonceProof(encryptedNonce string) tview.Command {
 			return tcell.NewEventError(err)
 		}
 		return nil
-	})
+	}
 }
 
 type qrCodeEvent struct {
@@ -307,22 +261,18 @@ type qrCodeEvent struct {
 	qrCode *qrcode.QRCode
 }
 
-func newQRCodeEvent(qrCode *qrcode.QRCode) *qrCodeEvent {
-	event := &qrCodeEvent{qrCode: qrCode}
-	event.SetEventNow()
-	return event
-}
-
 func (m *Model) generateQRCode(fingerprint string) tview.Command {
-	return tview.EventCommand(func() tcell.Event {
+	return func() tcell.Event {
 		content := "https://discord.com/ra/" + fingerprint
 		qrCode, err := qrcode.New(content, qrcode.Low)
 		if err != nil {
 			return tcell.NewEventError(err)
 		}
 		qrCode.DisableBorder = true
-		return newQRCodeEvent(qrCode)
-	})
+		event := &qrCodeEvent{qrCode: qrCode}
+		event.SetEventNow()
+		return event
+	}
 }
 
 type userEvent struct {
@@ -331,14 +281,8 @@ type userEvent struct {
 	username      string
 }
 
-func newUserEvent(discriminator, username string) *userEvent {
-	event := &userEvent{discriminator: discriminator, username: username}
-	event.SetEventNow()
-	return event
-}
-
 func (m *Model) decryptUserPayload(encryptedPayload string) tview.Command {
-	return tview.EventCommand(func() tcell.Event {
+	return func() tcell.Event {
 		decodedPayload, err := base64.StdEncoding.DecodeString(encryptedPayload)
 		if err != nil {
 			return tcell.NewEventError(err)
@@ -354,12 +298,14 @@ func (m *Model) decryptUserPayload(encryptedPayload string) tview.Command {
 			return tcell.NewEventError(errors.New("invalid user payload"))
 		}
 
-		return newUserEvent(parts[1], parts[3])
-	})
+		event := &userEvent{discriminator: parts[1], username: parts[3]}
+		event.SetEventNow()
+		return event
+	}
 }
 
 func (m *Model) exchangeTicket(ticket string) tview.Command {
-	return tview.EventCommand(func() tcell.Event {
+	return func() tcell.Event {
 		headers := http.Headers()
 		headers.Set("Referer", "https://discord.com/login")
 		if m.fingerprint != "" {
@@ -383,6 +329,8 @@ func (m *Model) exchangeTicket(ticket string) tview.Command {
 		if err != nil {
 			return tcell.NewEventError(err)
 		}
-		return newTokenEvent(string(decryptedToken))
-	})
+		event := &TokenEvent{Token: string(decryptedToken)}
+		event.SetEventNow()
+		return event
+	}
 }

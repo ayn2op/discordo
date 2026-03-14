@@ -53,15 +53,15 @@ func NewModel(cfg *config.Config, app *tview.Application) *Model {
 }
 
 func (m *Model) showLogin() tview.Command {
-	m.inner = login.NewModel(m.app, m.cfg)
+	m.inner = login.NewModel(m.cfg)
 	m.buildLayout()
-	return tview.BatchCommand{m.inner.HandleEvent(tview.NewInitEvent()), tview.SetFocusCommand{Target: m}}
+	return tview.Batch(m.inner.HandleEvent(tview.NewInitEvent()), tview.SetFocus(m))
 }
 
 func (m *Model) showChat(token string) tview.Command {
 	m.inner = chat.NewView(m.app, m.cfg, token)
 	m.buildLayout()
-	return tview.BatchCommand{m.inner.HandleEvent(tview.NewInitEvent()), tview.SetFocusCommand{Target: m}}
+	return tview.Batch(m.inner.HandleEvent(tview.NewInitEvent()), tview.SetFocus(m))
 }
 
 func (m *Model) buildLayout() {
@@ -88,11 +88,11 @@ func (m *Model) HandleEvent(event tcell.Event) tview.Command {
 		} else {
 			cmd = getToken()
 		}
-		return tview.BatchCommand{
+		return tview.Batch(
 			tview.SetTitle(consts.Name),
 			initClipboard(),
 			cmd,
-		}
+		)
 
 	case *loginEvent:
 		return m.showLogin()
@@ -100,22 +100,22 @@ func (m *Model) HandleEvent(event tcell.Event) tview.Command {
 		return m.showChat(event.token)
 
 	case *token.TokenEvent:
-		return tview.BatchCommand{m.showChat(event.Token), setToken(event.Token)}
+		return tview.Batch(m.showChat(event.Token), setToken(event.Token))
 	case *qr.TokenEvent:
-		return tview.BatchCommand{m.showChat(event.Token), setToken(event.Token)}
+		return tview.Batch(m.showChat(event.Token), setToken(event.Token))
 
 	case *chat.LogoutEvent:
-		return tview.BatchCommand{
+		return tview.Batch(
 			m.showLogin(),
 			deleteToken(),
-		}
+		)
 
 	case *tview.KeyEvent:
 		switch {
 		case keybind.Matches(event, m.cfg.Keybinds.ToggleHelp.Keybind):
 			m.help.SetShowAll(!m.help.ShowAll())
 			m.updateHelpHeight()
-			return tview.RedrawCommand{}
+			return nil
 		case keybind.Matches(event, m.cfg.Keybinds.Suspend.Keybind):
 			m.suspend()
 			return nil
@@ -124,7 +124,7 @@ func (m *Model) HandleEvent(event tcell.Event) tview.Command {
 			if m.inner != nil {
 				innerCmd = m.inner.HandleEvent(chat.NewQuitEvent())
 			}
-			return tview.BatchCommand{innerCmd, tview.Quit()}
+			return tview.Batch(innerCmd, tview.Quit())
 		}
 	}
 

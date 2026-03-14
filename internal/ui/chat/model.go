@@ -203,18 +203,18 @@ func (v *Model) focusNext() {
 func (v *Model) HandleEvent(event tcell.Event) tview.Command {
 	switch event := event.(type) {
 	case *tview.InitEvent:
-		return tview.EventCommand(func() tcell.Event {
+		return func() tcell.Event {
 			if err := v.OpenState(v.token); err != nil {
 				slog.Error("failed to open chat state", "err", err)
 				return tcell.NewEventError(err)
 			}
 			return nil
-		})
+		}
 	case *QuitEvent:
-		return tview.BatchCommand{
+		return tview.Batch(
 			v.closeState(),
 			tview.Quit(),
-		}
+		)
 	case *tview.ModalDoneEvent:
 		if v.HasLayer(confirmModalLayerName) {
 			v.RemoveLayer(confirmModalLayerName)
@@ -227,88 +227,43 @@ func (v *Model) HandleEvent(event tcell.Event) tview.Command {
 			if onDone != nil {
 				onDone(event.ButtonLabel)
 			}
-			return tview.RedrawCommand{}
+			return nil
 		}
 	case *tview.KeyEvent:
-		redraw := tview.RedrawCommand{}
 		switch {
 		case keybind.Matches(event, v.cfg.Keybinds.FocusGuildsTree.Keybind):
 			v.messageInput.removeMentionsList()
 			v.focusGuildsTree()
-			return redraw
+			return nil
 		case keybind.Matches(event, v.cfg.Keybinds.FocusMessagesList.Keybind):
 			v.messageInput.removeMentionsList()
 			v.app.SetFocus(v.messagesList)
-			return redraw
+			return nil
 		case keybind.Matches(event, v.cfg.Keybinds.FocusMessageInput.Keybind):
 			v.focusMessageInput()
-			return redraw
+			return nil
 		case keybind.Matches(event, v.cfg.Keybinds.FocusPrevious.Keybind):
 			v.focusPrevious()
-			return redraw
+			return nil
 		case keybind.Matches(event, v.cfg.Keybinds.FocusNext.Keybind):
 			v.focusNext()
-			return redraw
+			return nil
 		case keybind.Matches(event, v.cfg.Keybinds.Logout.Keybind):
-			return tview.BatchCommand{v.closeState(), v.logout()}
+			return tview.Batch(v.closeState(), v.logout())
 		case keybind.Matches(event, v.cfg.Keybinds.ToggleGuildsTree.Keybind):
 			v.toggleGuildsTree()
-			return redraw
+			return nil
 		case keybind.Matches(event, v.cfg.Keybinds.ToggleChannelsPicker.Keybind):
 			v.togglePicker()
-			return redraw
+			return nil
 		}
-	}
-	cmd := v.Layers.HandleEvent(event)
-	return v.consumeLayerCommands(cmd)
-}
-
-func (v *Model) consumeLayerCommands(command tview.Command) tview.Command {
-	if command == nil {
+	case *closeLayerEvent:
+		if v.HasLayer(event.name) {
+			v.HideLayer(event.name)
+		}
 		return nil
 	}
-
-	var commands []tview.Command
-	switch c := command.(type) {
-	case tview.BatchCommand:
-		commands = c
-	default:
-		commands = []tview.Command{c}
-	}
-
-	remaining := make([]tview.Command, 0, len(commands))
-	for _, cmd := range commands {
-		switch c := cmd.(type) {
-		case layers.OpenLayerCommand:
-			if v.HasLayer(c.Name) {
-				v.ShowLayer(c.Name).SendToFront(c.Name)
-			}
-			continue
-		case layers.CloseLayerCommand:
-			if v.HasLayer(c.Name) {
-				v.HideLayer(c.Name)
-			}
-			continue
-		case layers.ToggleLayerCommand:
-			if v.HasLayer(c.Name) {
-				if v.GetVisible(c.Name) {
-					v.HideLayer(c.Name)
-				} else {
-					v.ShowLayer(c.Name).SendToFront(c.Name)
-				}
-			}
-			continue
-		}
-		remaining = append(remaining, cmd)
-	}
-
-	if len(remaining) == 0 {
-		return nil
-	}
-	if len(remaining) == 1 {
-		return remaining[0]
-	}
-	return tview.BatchCommand(remaining)
+	return v.Layers.HandleEvent(event)
 }
 
 func (v *Model) showConfirmModal(prompt string, buttons []string, onDone func(label string)) {

@@ -15,7 +15,6 @@ import (
 
 type Model struct {
 	*tview.TextView
-	app *tview.Application
 
 	conn              *websocket.Conn
 	heartbeatInterval time.Duration
@@ -26,18 +25,14 @@ type Model struct {
 	msg    string
 }
 
-func NewModel(app *tview.Application) *Model {
+func NewModel() *Model {
 	m := &Model{
 		TextView: tview.NewTextView(),
-		app:      app,
 	}
 	m.
 		SetScrollable(true).
 		SetWrap(false).
-		SetTextAlign(tview.AlignmentCenter).
-		SetChangedFunc(func() {
-			m.app.QueueUpdateDraw(func() {})
-		})
+		SetTextAlign(tview.AlignmentCenter)
 
 	m.msg = "Press Ctrl+N to open QR login"
 	return m
@@ -57,7 +52,7 @@ func (m *Model) HandleEvent(event tcell.Event) tview.Command {
 	case *tview.KeyEvent:
 		if event.Key() == tcell.KeyEsc {
 			m.msg = "Canceled"
-			return tview.BatchCommand{m.close(), tview.RedrawCommand{}}
+			return tview.Batch(m.close(), nil)
 		}
 		return m.TextView.HandleEvent(event)
 
@@ -71,21 +66,21 @@ func (m *Model) HandleEvent(event tcell.Event) tview.Command {
 
 	case *helloEvent:
 		m.heartbeatInterval = time.Duration(event.heartbeatInterval) * time.Millisecond
-		return tview.BatchCommand{m.listen(), m.heartbeat(), m.generatePrivateKey()}
+		return tview.Batch(m.listen(), m.heartbeat(), m.generatePrivateKey())
 	case *privateKeyEvent:
 		m.privateKey = event.privateKey
-		return tview.BatchCommand{m.listen(), m.sendInit()}
+		return tview.Batch(m.listen(), m.sendInit())
 	case *nonceProofEvent:
-		return tview.BatchCommand{m.listen(), m.sendNonceProof(event.encryptedNonce)}
+		return tview.Batch(m.listen(), m.sendNonceProof(event.encryptedNonce))
 	case *pendingRemoteInitEvent:
 		m.fingerprint = event.fingerprint
-		return tview.BatchCommand{m.listen(), m.generateQRCode(event.fingerprint)}
+		return tview.Batch(m.listen(), m.generateQRCode(event.fingerprint))
 	case *qrCodeEvent:
 		m.qrCode = event.qrCode
 		m.msg = "Scan this with the Discord mobile app to log in instantly."
 		return m.listen()
 	case *pendingTicketEvent:
-		return tview.BatchCommand{m.listen(), m.decryptUserPayload(event.encryptedUserPayload)}
+		return tview.Batch(m.listen(), m.decryptUserPayload(event.encryptedUserPayload))
 	case *userEvent:
 		name := event.username
 		if event.discriminator != "0" {
@@ -95,7 +90,7 @@ func (m *Model) HandleEvent(event tcell.Event) tview.Command {
 		return m.listen()
 	case *pendingLoginEvent:
 		m.msg = "Authenticating..."
-		return tview.BatchCommand{m.close(), m.exchangeTicket(event.ticket)}
+		return tview.Batch(m.close(), m.exchangeTicket(event.ticket))
 	case *cancelEvent:
 		m.msg = "Login canceled on mobile"
 		return m.close()
@@ -104,11 +99,11 @@ func (m *Model) HandleEvent(event tcell.Event) tview.Command {
 		if m.conn == nil {
 			return nil
 		}
-		return tview.BatchCommand{m.heartbeat(), m.sendHeartbeat()}
+		return tview.Batch(m.heartbeat(), m.sendHeartbeat())
 
 	case *tcell.EventError:
 		m.msg = event.Error()
-		return tview.BatchCommand{m.close(), event}
+		return tview.Batch(m.close(), tview.Command(func() tcell.Event { return event }))
 	}
 
 	return nil

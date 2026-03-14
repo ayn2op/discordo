@@ -21,7 +21,6 @@ import (
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/help"
 	"github.com/ayn2op/tview/keybind"
-	"github.com/ayn2op/tview/layers"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/state"
@@ -107,7 +106,6 @@ func (mi *messageInput) stopTypingTimer() {
 func (mi *messageInput) HandleEvent(event tcell.Event) tview.Command {
 	switch event := event.(type) {
 	case *tview.KeyEvent:
-		redraw := tview.RedrawCommand{}
 		handler := mi.TextArea.HandleEvent
 		switch {
 		case keybind.Matches(event, mi.cfg.Keybinds.MessageInput.Paste.Keybind):
@@ -119,29 +117,27 @@ func (mi *messageInput) HandleEvent(event tcell.Event) tview.Command {
 			} else {
 				mi.send()
 			}
-			return redraw
+			return nil
 		case keybind.Matches(event, mi.cfg.Keybinds.MessageInput.OpenEditor.Keybind):
-			var cmds tview.BatchCommand
+			var cmds []tview.Command
 			mi.stopTabCompletion(func(next tview.Command) {
 				if next != nil {
 					cmds = append(cmds, next)
 				}
 			})
 			mi.editor()
-			cmds = append(cmds, redraw)
-			return cmds
+			return tview.Batch(cmds...)
 		case keybind.Matches(event, mi.cfg.Keybinds.MessageInput.OpenFilePicker.Keybind):
-			var cmds tview.BatchCommand
+			var cmds []tview.Command
 			mi.stopTabCompletion(func(next tview.Command) {
 				if next != nil {
 					cmds = append(cmds, next)
 				}
 			})
 			mi.openFilePicker()
-			cmds = append(cmds, redraw)
-			return cmds
+			return tview.Batch(cmds...)
 		case keybind.Matches(event, mi.cfg.Keybinds.MessageInput.Cancel.Keybind):
-			var cmds tview.BatchCommand
+			var cmds []tview.Command
 			if mi.chat.GetVisible(mentionsListLayerName) {
 				mi.stopTabCompletion(func(next tview.Command) {
 					if next != nil {
@@ -151,11 +147,10 @@ func (mi *messageInput) HandleEvent(event tcell.Event) tview.Command {
 			} else {
 				mi.reset()
 			}
-			cmds = append(cmds, redraw)
-			return cmds
+			return tview.Batch(cmds...)
 		case keybind.Matches(event, mi.cfg.Keybinds.MessageInput.TabComplete.Keybind):
 			go mi.chat.app.QueueUpdateDraw(func() { mi.tabComplete() })
-			return redraw
+			return nil
 		case keybind.Matches(event, mi.cfg.Keybinds.MessageInput.Undo.Keybind):
 			return handler(tcell.NewEventKey(tcell.KeyCtrlZ, "", tcell.ModNone))
 		}
@@ -177,16 +172,16 @@ func (mi *messageInput) HandleEvent(event tcell.Event) tview.Command {
 				switch {
 				case keybind.Matches(event, mi.cfg.Keybinds.MentionsList.Up.Keybind):
 					mi.mentionsList.HandleEvent(tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone))
-					return redraw
+					return nil
 				case keybind.Matches(event, mi.cfg.Keybinds.MentionsList.Down.Keybind):
 					mi.mentionsList.HandleEvent(tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone))
-					return redraw
+					return nil
 				case keybind.Matches(event, mi.cfg.Keybinds.MentionsList.Top.Keybind):
 					mi.mentionsList.HandleEvent(tcell.NewEventKey(tcell.KeyHome, "", tcell.ModNone))
-					return redraw
+					return nil
 				case keybind.Matches(event, mi.cfg.Keybinds.MentionsList.Bottom.Keybind):
 					mi.mentionsList.HandleEvent(tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone))
-					return redraw
+					return nil
 				}
 			}
 
@@ -631,8 +626,8 @@ func (mi *messageInput) stopTabCompletion(emit func(tview.Command)) {
 	if mi.cfg.AutocompleteLimit > 0 {
 		mi.mentionsList.clear()
 		if emit != nil {
-			emit(layers.CloseLayerCommand{Name: mentionsListLayerName})
-			emit(tview.SetFocusCommand{Target: mi})
+			emit(closeLayer(mentionsListLayerName))
+			emit(tview.SetFocus(mi))
 		} else {
 			mi.removeMentionsList()
 			mi.chat.app.SetFocus(mi)
