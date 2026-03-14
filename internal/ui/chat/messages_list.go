@@ -887,10 +887,10 @@ func (ml *messagesList) HandleEvent(event tcell.Event) tview.Command {
 			ml.reply(true)
 			return nil
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Edit.Keybind):
-			ml.edit()
+			ml.editSelectedMessage()
 			return nil
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Delete.Keybind):
-			return ml.delete()
+			return ml.deleteSelectedMessage()
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.DeleteConfirm.Keybind):
 			ml.confirmDelete()
 			return nil
@@ -1246,7 +1246,7 @@ func (ml *messagesList) reply(mention bool) {
 	ml.chatView.app.SetFocus(ml.chatView.messageInput)
 }
 
-func (ml *messagesList) edit() {
+func (ml *messagesList) editSelectedMessage() {
 	message, err := ml.selectedMessage()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
@@ -1268,7 +1268,7 @@ func (ml *messagesList) edit() {
 func (ml *messagesList) confirmDelete() {
 	onChoice := func(choice string) {
 		if choice == "Yes" {
-			if command := ml.delete(); command != nil {
+			if command := ml.deleteSelectedMessage(); command != nil {
 				command()
 			}
 		}
@@ -1281,7 +1281,7 @@ func (ml *messagesList) confirmDelete() {
 	)
 }
 
-func (ml *messagesList) delete() tview.Command {
+func (ml *messagesList) deleteSelectedMessage() tview.Command {
 	selectedMessage, err := ml.selectedMessage()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
