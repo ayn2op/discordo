@@ -30,8 +30,9 @@ const (
 type Model struct {
 	*layers.Layers
 
-	rootFlex  *tview.Flex
-	mainFlex  *tview.Flex
+	// guildsTree (sidebar) + rightFlex
+	mainFlex *tview.Flex
+	// messagesList + messageInput
 	rightFlex *tview.Flex
 
 	guildsTree     *guildsTree
@@ -58,7 +59,6 @@ func NewView(app *tview.Application, cfg *config.Config, token string) *Model {
 	v := &Model{
 		Layers: layers.New(),
 
-		rootFlex:  tview.NewFlex(),
 		mainFlex:  tview.NewFlex(),
 		rightFlex: tview.NewFlex(),
 
@@ -94,7 +94,6 @@ func (v *Model) SetSelectedChannel(channel *discord.Channel) {
 
 func (v *Model) buildLayout() {
 	v.Clear()
-	v.rootFlex.Clear()
 	v.rightFlex.Clear()
 	v.mainFlex.Clear()
 
@@ -107,10 +106,7 @@ func (v *Model) buildLayout() {
 		AddItem(v.guildsTree, 0, 1, true).
 		AddItem(v.rightFlex, 0, 4, false)
 
-	v.rootFlex.
-		SetDirection(tview.FlexRow).
-		AddItem(v.mainFlex, 0, 1, true)
-	v.AddLayer(v.rootFlex, layers.WithName(flexLayerName), layers.WithResize(true), layers.WithVisible(true))
+	v.AddLayer(v.mainFlex, layers.WithName(flexLayerName), layers.WithResize(true), layers.WithVisible(true))
 	v.AddLayer(v.messageInput.mentionsList, layers.WithName(mentionsListLayerName), layers.WithResize(false), layers.WithVisible(false))
 }
 
