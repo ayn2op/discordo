@@ -890,8 +890,7 @@ func (ml *messagesList) HandleEvent(event tcell.Event) tview.Command {
 			ml.edit()
 			return nil
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Delete.Keybind):
-			ml.delete()
-			return nil
+			return ml.delete()
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.DeleteConfirm.Keybind):
 			ml.confirmDelete()
 			return nil
@@ -1269,7 +1268,9 @@ func (ml *messagesList) edit() {
 func (ml *messagesList) confirmDelete() {
 	onChoice := func(choice string) {
 		if choice == "Yes" {
-			ml.delete()
+			if command := ml.delete(); command != nil {
+				command()
+			}
 		}
 	}
 
@@ -1280,34 +1281,32 @@ func (ml *messagesList) confirmDelete() {
 	)
 }
 
-func (ml *messagesList) delete() {
-	msg, err := ml.selectedMessage()
+func (ml *messagesList) delete() tview.Command {
+	selectedMessage, err := ml.selectedMessage()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
-		return
+		return nil
 	}
 
-	if msg.GuildID.IsValid() {
-		me, _ := ml.chatView.state.Cabinet.Me()
-		if msg.Author.ID != me.ID && !ml.chatView.state.HasPermissions(msg.ChannelID, discord.PermissionManageMessages) {
-			slog.Error("failed to delete message; missing relevant permissions", "channel_id", msg.ChannelID, "message_id", msg.ID)
-			return
+	return func() tcell.Event {
+		if selectedMessage.GuildID.IsValid() {
+			me, _ := ml.chatView.state.Cabinet.Me()
+			if selectedMessage.Author.ID != me.ID && !ml.chatView.state.HasPermissions(selectedMessage.ChannelID, discord.PermissionManageMessages) {
+				slog.Error("failed to delete message; missing relevant permissions", "channel_id", selectedMessage.ChannelID, "message_id", selectedMessage.ID)
+				return nil
+			}
 		}
-	}
 
-	selected := ml.chatView.SelectedChannel()
-	if selected == nil {
-		return
-	}
+		if err := ml.chatView.state.DeleteMessage(selectedMessage.ChannelID, selectedMessage.ID, ""); err != nil {
+			slog.Error("failed to delete message", "channel_id", selectedMessage.ChannelID, "message_id", selectedMessage.ID, "err", err)
+			return nil
+		}
 
-	if err := ml.chatView.state.DeleteMessage(selected.ID, msg.ID, ""); err != nil {
-		slog.Error("failed to delete message", "channel_id", selected.ID, "message_id", msg.ID, "err", err)
-		return
-	}
-
-	if err := ml.chatView.state.MessageRemove(selected.ID, msg.ID); err != nil {
-		slog.Error("failed to delete message", "channel_id", selected.ID, "message_id", msg.ID, "err", err)
-		return
+		if err := ml.chatView.state.MessageRemove(selectedMessage.ChannelID, selectedMessage.ID); err != nil {
+			slog.Error("failed to delete message", "channel_id", selectedMessage.ChannelID, "message_id", selectedMessage.ID, "err", err)
+			return nil
+		}
+		return nil
 	}
 }
 
