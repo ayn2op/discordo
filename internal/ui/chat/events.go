@@ -11,19 +11,11 @@ type LogoutEvent struct{ tcell.EventTime }
 
 func (v *Model) logout() tview.Command {
 	return func() tcell.Event {
-		event := &LogoutEvent{}
-		event.SetEventNow()
-		return event
+		return &LogoutEvent{}
 	}
 }
 
 type QuitEvent struct{ tcell.EventTime }
-
-func NewQuitEvent() *QuitEvent {
-	event := &QuitEvent{}
-	event.SetEventNow()
-	return event
-}
 
 func (v *Model) closeState() tview.Command {
 	return func() tcell.Event {
@@ -42,8 +34,6 @@ type closeLayerEvent struct {
 
 func closeLayer(name string) tview.Command {
 	return func() tcell.Event {
-		event := &closeLayerEvent{name: name}
-		event.SetEventNow()
-		return event
+		return &closeLayerEvent{name: name}
 	}
 }

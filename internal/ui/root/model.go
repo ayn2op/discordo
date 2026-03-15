@@ -55,13 +55,13 @@ func NewModel(cfg *config.Config, app *tview.Application) *Model {
 func (m *Model) showLogin() tview.Command {
 	m.inner = login.NewModel(m.cfg)
 	m.buildLayout()
-	return tview.Batch(m.inner.HandleEvent(tview.NewInitEvent()), tview.SetFocus(m))
+	return tview.Batch(m.inner.HandleEvent(&tview.InitEvent{}), tview.SetFocus(m))
 }
 
 func (m *Model) showChat(token string) tview.Command {
 	m.inner = chat.NewView(m.app, m.cfg, token)
 	m.buildLayout()
-	return tview.Batch(m.inner.HandleEvent(tview.NewInitEvent()), tview.SetFocus(m))
+	return tview.Batch(m.inner.HandleEvent(&tview.InitEvent{}), tview.SetFocus(m))
 }
 
 func (m *Model) buildLayout() {
@@ -122,7 +122,7 @@ func (m *Model) HandleEvent(event tcell.Event) tview.Command {
 		case keybind.Matches(event, m.cfg.Keybinds.Quit.Keybind):
 			var innerCmd tview.Command
 			if m.inner != nil {
-				innerCmd = m.inner.HandleEvent(chat.NewQuitEvent())
+				innerCmd = m.inner.HandleEvent(&chat.QuitEvent{})
 			}
 			return tview.Batch(innerCmd, tview.Quit())
 		}

@@ -16,9 +16,7 @@ type tokenEvent struct {
 
 func tokenCommand(token string) tview.Command {
 	return func() tcell.Event {
-		event := &tokenEvent{token: token}
-		event.SetEventNow()
-		return event
+		return &tokenEvent{token: token}
 	}
 }
 
@@ -29,13 +27,9 @@ func getToken() tview.Command {
 		token, err := keyring.GetToken()
 		if err != nil {
 			slog.Info("failed to retrieve token from keyring", "err", err)
-			event := &loginEvent{}
-			event.SetEventNow()
-			return event
+			return &loginEvent{}
 		}
-		event := &tokenEvent{token: token}
-		event.SetEventNow()
-		return event
+		return &tokenEvent{token: token}
 	}
 }
 

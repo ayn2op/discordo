@@ -12,8 +12,6 @@ type TokenEvent struct {
 
 func tokenCommand(token string) tview.Command {
 	return func() tcell.Event {
-		event := &TokenEvent{Token: token}
-		event.SetEventNow()
-		return event
+		return &TokenEvent{Token: token}
 	}
 }
