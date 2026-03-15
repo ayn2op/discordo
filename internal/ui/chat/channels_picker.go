@@ -23,7 +23,9 @@ var _ help.KeyMap = (*channelsPicker)(nil)
 func newChannelsPicker(cfg *config.Config, chatView *Model) *channelsPicker {
 	cp := &channelsPicker{picker.New(), chatView}
 	cp.Box = ui.ConfigureBox(tview.NewBox(), &cfg.Theme)
-	// When a child of tview.Flex is focused, tview.Flex itself is not reported as focused. Instead, the focused child (picker) is considered focused. Therefore, we manually set the active border style on the picker to ensure it displays the correct focused appearance.
+	// When a child of the parent flex is focused, the parent layout itself is not reported as focused.
+	// Instead, the focused child (picker) is considered focused.
+	// Therefore, we manually set the active border style on the picker to ensure it displays the correct focused appearance.
 	cp.
 		SetBlurFunc(nil).
 		SetFocusFunc(nil).

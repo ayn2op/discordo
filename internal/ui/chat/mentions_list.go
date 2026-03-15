@@ -4,6 +4,7 @@ import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/list"
 	"github.com/gdamore/tcell/v3"
 )
 
@@ -14,13 +15,13 @@ type mentionsListItem struct {
 }
 
 type mentionsList struct {
-	*tview.List
+	*list.Model
 	items []mentionsListItem
 }
 
 func newMentionsList(cfg *config.Config) *mentionsList {
 	m := &mentionsList{
-		List: tview.NewList(),
+		Model: list.NewModel(),
 	}
 
 	m.Box = ui.ConfigureBox(m.Box, &cfg.Theme)
@@ -43,7 +44,7 @@ func (m *mentionsList) clear() {
 }
 
 func (m *mentionsList) rebuild() {
-	m.SetBuilder(func(index int, cursor int) tview.ListItem {
+	m.SetBuilder(func(index int, cursor int) list.Item {
 		if index < 0 || index >= len(m.items) {
 			return nil
 		}

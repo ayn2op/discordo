@@ -25,6 +25,7 @@ import (
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/help"
 	"github.com/ayn2op/tview/keybind"
+	"github.com/ayn2op/tview/list"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
@@ -41,7 +42,7 @@ import (
 )
 
 type messagesList struct {
-	*tview.List
+	*list.Model
 	cfg      *config.Config
 	chatView *Model
 	messages []discord.Message
@@ -81,7 +82,7 @@ type messagesListRow struct {
 
 func newMessagesList(cfg *config.Config, chatView *Model) *messagesList {
 	ml := &messagesList{
-		List:     tview.NewList(),
+		Model:    list.NewModel(),
 		cfg:      cfg,
 		chatView: chatView,
 		renderer: markdown.NewRenderer(cfg),
@@ -162,7 +163,7 @@ func (ml *messagesList) clearSelection() {
 	ml.SetCursor(-1)
 }
 
-func (ml *messagesList) buildItem(index int, cursor int) tview.ListItem {
+func (ml *messagesList) buildItem(index int, cursor int) list.Item {
 	ml.ensureRows()
 
 	if index < 0 || index >= len(ml.rows) {
@@ -277,7 +278,7 @@ func sameLocalDate(a discord.Timestamp, b discord.Timestamp) bool {
 // Cursor returns the selected message index, skipping separator rows.
 func (ml *messagesList) Cursor() int {
 	ml.ensureRows()
-	rowIndex := ml.List.Cursor()
+	rowIndex := ml.Model.Cursor()
 	if rowIndex < 0 || rowIndex >= len(ml.rows) {
 		return -1
 	}
@@ -291,7 +292,7 @@ func (ml *messagesList) Cursor() int {
 
 // SetCursor selects a message index and maps it to the corresponding row.
 func (ml *messagesList) SetCursor(index int) {
-	ml.List.SetCursor(ml.messageToRowIndex(index))
+	ml.Model.SetCursor(ml.messageToRowIndex(index))
 }
 
 func (ml *messagesList) messageToRowIndex(messageIndex int) int {
@@ -316,7 +317,7 @@ func (ml *messagesList) onRowCursorChanged(rowIndex int) {
 	}
 
 	target := ml.nearestMessageRowIndex(rowIndex)
-	ml.List.SetCursor(target)
+	ml.Model.SetCursor(target)
 }
 
 // nearestMessageRowIndex expects rowIndex to be within bounds.
@@ -898,7 +899,7 @@ func (ml *messagesList) HandleEvent(event tcell.Event) tview.Command {
 		// Do not fall through to List defaults for unmatched keys.
 		return nil
 	}
-	return ml.List.HandleEvent(event)
+	return ml.Model.HandleEvent(event)
 }
 
 func (ml *messagesList) selectUp() {

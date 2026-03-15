@@ -9,6 +9,7 @@ import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/flex"
 	"github.com/ayn2op/tview/keybind"
 	"github.com/ayn2op/tview/layers"
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -31,9 +32,9 @@ type Model struct {
 	*layers.Layers
 
 	// guildsTree (sidebar) + rightFlex
-	mainFlex *tview.Flex
+	mainFlex *flex.Model
 	// messagesList + messageInput
-	rightFlex *tview.Flex
+	rightFlex *flex.Model
 
 	guildsTree     *guildsTree
 	messagesList   *messagesList
@@ -59,8 +60,8 @@ func NewView(app *tview.Application, cfg *config.Config, token string) *Model {
 	v := &Model{
 		Layers: layers.New(),
 
-		mainFlex:  tview.NewFlex(),
-		rightFlex: tview.NewFlex(),
+		mainFlex:  flex.NewModel(),
+		rightFlex: flex.NewModel(),
 
 		typers: make(map[discord.UserID]*time.Timer),
 
@@ -98,7 +99,7 @@ func (v *Model) buildLayout() {
 	v.mainFlex.Clear()
 
 	v.rightFlex.
-		SetDirection(tview.FlexRow).
+		SetDirection(flex.DirectionRow).
 		AddItem(v.messagesList, 0, 1, false).
 		AddItem(v.messageInput, 3, 1, false)
 	// The guilds tree is always focused first at start-up.

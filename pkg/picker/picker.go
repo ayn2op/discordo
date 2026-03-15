@@ -2,7 +2,9 @@ package picker
 
 import (
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/flex"
 	"github.com/ayn2op/tview/keybind"
+	"github.com/ayn2op/tview/list"
 	"github.com/gdamore/tcell/v3"
 	"github.com/sahilm/fuzzy"
 )
@@ -13,9 +15,9 @@ type (
 )
 
 type Picker struct {
-	*tview.Flex
+	*flex.Model
 	input *tview.InputField
-	list  *tview.List
+	list  *list.Model
 
 	onSelected SelectedFunc
 	onCancel   CancelFunc
@@ -27,9 +29,9 @@ type Picker struct {
 
 func New() *Picker {
 	p := &Picker{
-		Flex:  tview.NewFlex(),
+		Model: flex.NewModel(),
 		input: tview.NewInputField(),
-		list:  tview.NewList(),
+		list:  list.NewModel(),
 	}
 
 	// Show a horizontal bottom border to visually separate input from list.
@@ -46,7 +48,7 @@ func New() *Picker {
 		SetBorderStyle(tcell.StyleDefault.Dim(true))
 
 	p.
-		SetDirection(tview.FlexRow).
+		SetDirection(flex.DirectionRow).
 		// bottom border + value
 		AddItem(p.input, 2, 0, true).
 		AddItem(p.list, 0, 1, false)
@@ -58,7 +60,7 @@ func New() *Picker {
 func (p *Picker) setFilteredItems(filtered Items) {
 	p.filtered = filtered
 
-	p.list.SetBuilder(func(index int, cursor int) tview.ListItem {
+	p.list.SetBuilder(func(index int, cursor int) list.Item {
 		if index < 0 || index >= len(p.filtered) {
 			return nil
 		}
@@ -86,7 +88,7 @@ func (p *Picker) SetKeyMap(keyMap *KeyMap) {
 }
 
 // SetScrollBarVisibility sets when the picker's list scrollBar is rendered.
-func (p *Picker) SetScrollBarVisibility(visibility tview.ScrollBarVisibility) {
+func (p *Picker) SetScrollBarVisibility(visibility list.ScrollBarVisibility) {
 	p.list.SetScrollBarVisibility(visibility)
 }
 
@@ -176,7 +178,7 @@ func (p *Picker) HandleEvent(event tcell.Event) tview.Command {
 			}
 		}
 
-		return p.Flex.HandleEvent(event)
+		return p.Model.HandleEvent(event)
 	}
-	return p.Flex.HandleEvent(event)
+	return p.Model.HandleEvent(event)
 }

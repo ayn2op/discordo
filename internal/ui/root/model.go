@@ -10,6 +10,7 @@ import (
 	"github.com/ayn2op/discordo/internal/ui/login/qr"
 	"github.com/ayn2op/discordo/internal/ui/login/token"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/flex"
 	"github.com/ayn2op/tview/help"
 	"github.com/ayn2op/tview/keybind"
 	"github.com/gdamore/tcell/v3"
@@ -19,7 +20,7 @@ const tokenEnvVarKey = "DISCORDO_TOKEN"
 
 type Model struct {
 	app      *tview.Application
-	rootFlex *tview.Flex // inner + help
+	rootFlex *flex.Model // inner + help
 	inner    tview.Primitive
 	help     *help.Help
 
@@ -29,13 +30,13 @@ type Model struct {
 func NewModel(cfg *config.Config, app *tview.Application) *Model {
 	m := &Model{
 		app:      app,
-		rootFlex: tview.NewFlex(),
+		rootFlex: flex.NewModel(),
 		help:     help.New(),
 
 		cfg: cfg,
 	}
 
-	m.rootFlex.SetDirection(tview.FlexRow)
+	m.rootFlex.SetDirection(flex.DirectionRow)
 
 	styles := help.DefaultStyles()
 	styles.ShortKeyStyle = cfg.Theme.Help.ShortKeyStyle.Style
