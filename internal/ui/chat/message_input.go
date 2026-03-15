@@ -536,9 +536,9 @@ func (mi *messageInput) showMentionList() {
 		borders = 1
 	}
 	l := mi.mentionsList
-	x, _, _, _ := mi.GetInnerRect()
-	_, y, _, _ := mi.GetRect()
-	_, _, maxW, maxH := mi.chat.messagesList.GetInnerRect()
+	x, _, _, _ := mi.InnerRect()
+	_, y, _, _ := mi.Rect()
+	_, _, maxW, maxH := mi.chat.messagesList.InnerRect()
 	if t := int(mi.cfg.Theme.MentionsList.MaxHeight); t != 0 {
 		maxH = min(maxH, t)
 	}

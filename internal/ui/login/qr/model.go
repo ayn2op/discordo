@@ -146,7 +146,7 @@ func (m *Model) Draw(screen tcell.Screen) {
 }
 
 func (m *Model) centerLines(lines []tview.Line) []tview.Line {
-	_, _, _, height := m.GetInnerRect()
+	_, _, _, height := m.InnerRect()
 	if height == 0 {
 		height = 40
 	}

@@ -215,7 +215,7 @@ func (ml *messagesList) drawDateSeparator(builder *tview.LineBuilder, ts discord
 	label := " " + date + " "
 	fillChar := ml.cfg.DateSeparator.Character
 	dimStyle := baseStyle.Dim(true)
-	_, _, width, _ := ml.GetInnerRect()
+	_, _, width, _ := ml.InnerRect()
 	if width <= 0 {
 		builder.Write(strings.Repeat(fillChar, 8)+label+strings.Repeat(fillChar, 8), dimStyle)
 		return
@@ -513,7 +513,7 @@ func (ml *messagesList) drawEmbeds(builder *tview.LineBuilder, message discord.M
 	defaultBarStyle := baseStyle.Dim(true)
 	prefixText := "  ▎ "
 	prefixWidth := tview.TaggedStringWidth(prefixText)
-	_, _, innerWidth, _ := ml.GetInnerRect()
+	_, _, innerWidth, _ := ml.InnerRect()
 	// Wrap against the current list viewport. This keeps embed wrapping stable even when sidebars/panes are resized.
 	wrapWidth := max(innerWidth-prefixWidth, 1)
 

@@ -34,7 +34,7 @@ func (v *Model) activeKeyMap() help.KeyMap {
 		return nil
 	}
 
-	switch v.app.GetFocus() {
+	switch v.app.Focused() {
 	case v.guildsTree:
 		return v.guildsTree
 	case v.messagesList:

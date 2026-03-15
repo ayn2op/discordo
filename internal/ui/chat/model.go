@@ -168,7 +168,7 @@ func (v *Model) focusMessageInput() bool {
 }
 
 func (v *Model) focusPrevious() {
-	switch v.app.GetFocus() {
+	switch v.app.Focused() {
 	case v.messagesList: // Handle both a.messagesList and a.flex as well as other edge cases (if there is).
 		if v.focusGuildsTree() {
 			return
@@ -185,7 +185,7 @@ func (v *Model) focusPrevious() {
 }
 
 func (v *Model) focusNext() {
-	switch v.app.GetFocus() {
+	switch v.app.Focused() {
 	case v.messagesList:
 		if v.focusMessageInput() {
 			return
@@ -268,7 +268,7 @@ func (v *Model) HandleEvent(event tcell.Event) tview.Command {
 }
 
 func (v *Model) showConfirmModal(prompt string, buttons []string, onDone func(label string)) {
-	v.confirmModalPreviousFocus = v.app.GetFocus()
+	v.confirmModalPreviousFocus = v.app.Focused()
 	v.confirmModalDone = onDone
 
 	modal := tview.NewModal().

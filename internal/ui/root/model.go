@@ -143,8 +143,8 @@ func (m *Model) updateHelpHeight() {
 	m.rootFlex.ResizeItem(m.help, height, 0)
 }
 
-func (m *Model) GetRect() (int, int, int, int) {
-	return m.rootFlex.GetRect()
+func (m *Model) Rect() (int, int, int, int) {
+	return m.rootFlex.Rect()
 }
 
 func (m *Model) SetRect(x int, y int, width int, height int) {
