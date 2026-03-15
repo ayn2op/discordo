@@ -55,7 +55,6 @@ func newGuildsTree(cfg *config.Config, chatView *Model) *guildsTree {
 		}).
 		SetGraphics(cfg.Theme.GuildsTree.Graphics).
 		SetGraphicsColor(tcell.GetColor(cfg.Theme.GuildsTree.GraphicsColor)).
-		SetSelectedFunc(gt.onSelected).
 		SetTitle("Guilds")
 
 	return gt
@@ -396,6 +395,9 @@ func (gt *guildsTree) collapseParentNode(node *tview.TreeNode) {
 
 func (gt *guildsTree) HandleEvent(event tcell.Event) tview.Command {
 	switch event := event.(type) {
+	case *tview.TreeViewSelectedEvent:
+		gt.onSelected(event.Node)
+		return nil
 	case *tview.KeyEvent:
 		handler := gt.TreeView.HandleEvent
 
