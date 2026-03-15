@@ -17,6 +17,7 @@ import (
 )
 
 type dmNode struct{}
+type dmRequestsNode struct{}
 
 type guildsTree struct {
 	*tview.TreeView
@@ -76,7 +77,7 @@ func (gt *guildsTree) ShortHelp() []keybind.Keybind {
 			}
 		} else {
 			switch node.GetReference().(type) {
-			case discord.GuildID, dmNode:
+			case discord.GuildID, dmNode, dmRequestsNode:
 				selectDesc = "expand"
 			}
 		}
@@ -107,7 +108,7 @@ func (gt *guildsTree) FullHelp() [][]keybind.Keybind {
 			}
 		} else {
 			switch node.GetReference().(type) {
-			case discord.GuildID, dmNode:
+			case discord.GuildID, dmNode, dmRequestsNode:
 				selectDesc = "expand"
 			}
 		}
@@ -373,8 +374,42 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 		}
 
 		ui.SortPrivateChannels(channels)
+
+		var friendDMs, otherDMs []discord.Channel
 		for _, c := range channels {
+			if ui.IsFriendDM(c, gt.chatView.state) {
+				friendDMs = append(friendDMs, c)
+			} else {
+				otherDMs = append(otherDMs, c)
+			}
+		}
+
+		for _, c := range friendDMs {
 			gt.createChannelNode(node, c)
+		}
+
+		if len(otherDMs) > 0 {
+			othersNode := tview.NewTreeNode(fmt.Sprintf("Others (%d)", len(otherDMs))).
+				SetReference(dmRequestsNode{}).
+				SetExpandable(true).
+				SetExpanded(false)
+			gt.setNodeLineStyle(othersNode, tcell.StyleDefault.Dim(true))
+			node.AddChild(othersNode)
+		}
+
+		node.Expand()
+	case dmRequestsNode: // "Others" (non-friend DMs) folder
+		channels, err := gt.chatView.state.PrivateChannels()
+		if err != nil {
+			slog.Error("failed to get private channels", "err", err)
+			return
+		}
+
+		ui.SortPrivateChannels(channels)
+		for _, c := range channels {
+			if !ui.IsFriendDM(c, gt.chatView.state) {
+				gt.createChannelNode(node, c)
+			}
 		}
 		node.Expand()
 	}

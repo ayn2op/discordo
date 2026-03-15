@@ -62,6 +62,18 @@ func Centered(p tview.Primitive, width, height int) tview.Primitive {
 		AddItem(p, 1, 1, 1, 1, 0, 0, true)
 }
 
+// IsFriendDM reports whether a DM channel is with a friend.
+// Group DMs always return true (they require an invite).
+func IsFriendDM(channel discord.Channel, state *ningen.State) bool {
+	if channel.Type == discord.GroupDM {
+		return true
+	}
+	if channel.Type != discord.DirectMessage || len(channel.DMRecipients) != 1 {
+		return true
+	}
+	return state.RelationshipState.RelationshipType(channel.DMRecipients[0].ID) == discord.FriendRelationship
+}
+
 func ChannelToString(channel discord.Channel, icons config.Icons, state *ningen.State) string {
 	var icon string
 	switch channel.Type {
