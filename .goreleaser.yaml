@@ -1,0 +1,61 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# NOTE: if this is not here LSPs will complain about missing version
+# (only relevant for goreleaser, does not impact actual version tags)
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: discordo-win
+    goos: [windows]
+    goarch: [amd64]
+    env:
+      - CGO_ENABLED=1
+      - CC=x86_64-w64-mingw32-gcc
+      - CXX=x86_64-w64-mingw32-g++
+
+  - id: discordo-linux
+    goos: [linux]
+    goarch: [amd64]
+    env:
+      - CGO_ENABLED=1
+      - CC=x86_64-linux-gnu-gcc
+      - CXX=x86_64-linux-gnu-g++
+
+  - id: discordo-linux-arm64
+    goos: [linux]
+    goarch: [arm64]
+    env:
+      - CGO_ENABLED=1
+      - CC=aarch64-linux-gnu-gcc
+      - CXX=aarch64-linux-gnu-g++
+
+  - id: discordo-linux-armv7
+    goos: [linux]
+    goarch: [arm]
+    goarm: ["7"]
+    env:
+      - CGO_ENABLED=1
+      - CC=arm-linux-gnueabihf-gcc
+      - CXX=arm-linux-gnueabihf-g++
+
+  - id: discordo-darwin-amd64
+    goos: [darwin]
+    goarch: [amd64]
+    env:
+      - CGO_ENABLED=1
+      - CC=o64-clang
+      - CXX=o64-clang++
+
+  - id: discordo-darwin-arm64
+    goos: [darwin]
+    goarch: [arm64]
+    env:
+      - CGO_ENABLED=1
+      - CC=oa64-clang
+      - CXX=oa64-clang++
+
+archives:
+  - formats: ["zip", "tar.gz"]

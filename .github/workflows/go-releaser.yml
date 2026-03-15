@@ -1,0 +1,20 @@
+on:
+  push:
+    tags:
+      - "*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: stable
+
+      - name: setup release environment
+        run: |-
+          echo 'GITHUB_TOKEN=${{secrets.GITHUB_TOKEN}}' > .release-env
+      - name: release publish
+        run: make release
