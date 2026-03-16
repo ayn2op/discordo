@@ -34,8 +34,8 @@ padding = [1, 1]
 separator = " • "
 
 [picker]
-width = 60
-height = 20
+width = 80
+height = 25
 
 [timestamps]
 enabled = true
@@ -201,7 +201,7 @@ graphics_color = "default"
 [theme.guilds_tree.indents]
 dm = 2
 group_dm = 1
-guild = 2      # server inside a folder
+guild = 2    # server inside a folder
 category = 1
 channel = 2
 forum = 2
