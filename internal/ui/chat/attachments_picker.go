@@ -16,7 +16,7 @@ type attachmentItem struct {
 }
 
 type attachmentsPicker struct {
-	*picker.Picker
+	*picker.Model
 	cfg      *config.Config
 	chatView *Model
 	items    []attachmentItem
@@ -26,7 +26,7 @@ var _ help.KeyMap = (*attachmentsPicker)(nil)
 
 func newAttachmentsPicker(cfg *config.Config, chatView *Model) *attachmentsPicker {
 	ap := &attachmentsPicker{
-		Picker:   picker.New(),
+		Model:    picker.NewModel(),
 		cfg:      cfg,
 		chatView: chatView,
 	}
@@ -92,7 +92,7 @@ func (ap *attachmentsPicker) HandleEvent(event tcell.Event) tview.Command {
 		return nil
 	}
 
-	return ap.Picker.HandleEvent(event)
+	return ap.Model.HandleEvent(event)
 }
 
 func (ap *attachmentsPicker) ShortHelp() []keybind.Keybind {

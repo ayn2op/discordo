@@ -15,14 +15,14 @@ import (
 )
 
 type channelsPicker struct {
-	*picker.Picker
+	*picker.Model
 	chatView *Model
 }
 
 var _ help.KeyMap = (*channelsPicker)(nil)
 
 func newChannelsPicker(cfg *config.Config, chatView *Model) *channelsPicker {
-	cp := &channelsPicker{picker.New(), chatView}
+	cp := &channelsPicker{picker.NewModel(), chatView}
 	cp.Box = ui.ConfigureBox(tview.NewBox(), &cfg.Theme)
 	// When a child of the parent flex is focused, the parent layout itself is not reported as focused.
 	// Instead, the focused child (picker) is considered focused.
@@ -84,7 +84,7 @@ func (cp *channelsPicker) HandleEvent(event tcell.Event) tview.Command {
 		cp.chatView.closePicker()
 		return nil
 	}
-	return cp.Picker.HandleEvent(event)
+	return cp.Model.HandleEvent(event)
 }
 
 func (cp *channelsPicker) update() {
