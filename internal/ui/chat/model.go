@@ -56,8 +56,8 @@ type Model struct {
 	token string
 }
 
-func NewView(app *tview.Application, cfg *config.Config, token string) *Model {
-	v := &Model{
+func NewModel(app *tview.Application, cfg *config.Config, token string) *Model {
+	m := &Model{
 		Layers: layers.New(),
 
 		mainFlex:  flex.NewModel(),
@@ -70,15 +70,15 @@ func NewView(app *tview.Application, cfg *config.Config, token string) *Model {
 		token: token,
 	}
 
-	v.guildsTree = newGuildsTree(cfg, v)
-	v.messagesList = newMessagesList(cfg, v)
-	v.messageInput = newMessageInput(cfg, v)
-	v.channelsPicker = newChannelsPicker(cfg, v)
-	v.channelsPicker.SetCancelFunc(v.closePicker)
+	m.guildsTree = newGuildsTree(cfg, m)
+	m.messagesList = newMessagesList(cfg, m)
+	m.messageInput = newMessageInput(cfg, m)
+	m.channelsPicker = newChannelsPicker(cfg, m)
+	m.channelsPicker.SetCancelFunc(m.closePicker)
 
-	v.SetBackgroundLayerStyle(v.cfg.Theme.Dialog.BackgroundStyle.Style)
-	v.buildLayout()
-	return v
+	m.SetBackgroundLayerStyle(m.cfg.Theme.Dialog.BackgroundStyle.Style)
+	m.buildLayout()
+	return m
 }
 
 func (m *Model) SelectedChannel() *discord.Channel {
@@ -108,7 +108,12 @@ func (m *Model) buildLayout() {
 		AddItem(m.rightFlex, 0, 4, false)
 
 	m.AddLayer(m.mainFlex, layers.WithName(flexLayerName), layers.WithResize(true), layers.WithVisible(true))
-	m.AddLayer(m.messageInput.mentionsList, layers.WithName(mentionsListLayerName), layers.WithResize(false), layers.WithVisible(false))
+	m.AddLayer(
+		m.messageInput.mentionsList,
+		layers.WithName(mentionsListLayerName),
+		layers.WithResize(false),
+		layers.WithVisible(false),
+	)
 }
 
 func (m *Model) togglePicker() {
@@ -135,70 +140,80 @@ func (m *Model) closePicker() {
 	m.channelsPicker.Update()
 }
 
-func (m *Model) toggleGuildsTree() {
+func (m *Model) toggleGuildsTree() tview.Command {
 	// The guilds tree is visible if the number of items is two.
 	if m.mainFlex.GetItemCount() == 2 {
 		m.mainFlex.RemoveItem(m.guildsTree)
 		if m.guildsTree.HasFocus() {
-			m.app.SetFocus(m.mainFlex)
+			return tview.SetFocus(m.mainFlex)
 		}
 	} else {
 		m.buildLayout()
-		m.app.SetFocus(m.guildsTree)
+		return tview.SetFocus(m.guildsTree)
 	}
+	return nil
 }
 
-func (m *Model) focusGuildsTree() bool {
+func (m *Model) focusGuildsTree() tview.Command {
 	// The guilds tree is not hidden if the number of items is two.
 	if m.mainFlex.GetItemCount() == 2 {
-		m.app.SetFocus(m.guildsTree)
-		return true
+		return tview.SetFocus(m.guildsTree)
 	}
-
-	return false
+	return nil
 }
 
-func (m *Model) focusMessageInput() bool {
+func (m *Model) focusMessageInput() tview.Command {
 	if !m.messageInput.GetDisabled() {
-		m.app.SetFocus(m.messageInput)
-		return true
+		return tview.SetFocus(m.messageInput)
 	}
-
-	return false
+	return nil
 }
 
-func (m *Model) focusPrevious() {
+func (m *Model) focusMessagesList() tview.Command {
+	return tview.SetFocus(m.messagesList)
+}
+
+func (m *Model) focusPrevious() tview.Command {
 	switch m.app.Focused() {
-	case m.messagesList: // Handle both a.messagesList and a.flex as well as other edge cases (if there is).
-		if m.focusGuildsTree() {
-			return
-		}
-		fallthrough
 	case m.guildsTree:
-		if m.focusMessageInput() {
-			return
+		if cmd := m.focusMessageInput(); cmd != nil {
+			return cmd
 		}
-		fallthrough
-	case m.messageInput:
-		m.app.SetFocus(m.messagesList)
-	}
-}
-
-func (m *Model) focusNext() {
-	switch m.app.Focused() {
+		return m.focusMessagesList()
 	case m.messagesList:
-		if m.focusMessageInput() {
-			return
+		// Fallback when guilds/input are unavailable.
+		if cmd := m.focusGuildsTree(); cmd != nil {
+			return cmd
 		}
-		fallthrough
-	case m.messageInput: // Handle both a.messageInput and a.flex as well as other edge cases (if there is).
-		if m.focusGuildsTree() {
-			return
+		if cmd := m.focusMessageInput(); cmd != nil {
+			return cmd
 		}
-		fallthrough
-	case m.guildsTree:
-		m.app.SetFocus(m.messagesList)
+		return m.focusMessagesList()
+	case m.messageInput:
+		return m.focusMessagesList()
 	}
+	return nil
+}
+
+func (m *Model) focusNext() tview.Command {
+	switch m.app.Focused() {
+	case m.guildsTree:
+		return m.focusMessagesList()
+	case m.messagesList:
+		// Fallback when input/guilds are unavailable.
+		if cmd := m.focusMessageInput(); cmd != nil {
+			return cmd
+		}
+		if cmd := m.focusGuildsTree(); cmd != nil {
+			return cmd
+		}
+	case m.messageInput:
+		if cmd := m.focusGuildsTree(); cmd != nil {
+			return cmd
+		}
+		return m.focusMessagesList()
+	}
+	return nil
 }
 
 func (m *Model) HandleEvent(event tcell.Event) tview.Command {
@@ -219,8 +234,9 @@ func (m *Model) HandleEvent(event tcell.Event) tview.Command {
 	case *tview.ModalDoneEvent:
 		if m.HasLayer(confirmModalLayerName) {
 			m.RemoveLayer(confirmModalLayerName)
+			var focusCmd tview.Command
 			if m.confirmModalPreviousFocus != nil {
-				m.app.SetFocus(m.confirmModalPreviousFocus)
+				focusCmd = tview.SetFocus(m.confirmModalPreviousFocus)
 			}
 			onDone := m.confirmModalDone
 			m.confirmModalDone = nil
@@ -228,35 +244,32 @@ func (m *Model) HandleEvent(event tcell.Event) tview.Command {
 			if onDone != nil {
 				onDone(event.ButtonLabel)
 			}
-			return nil
+			return focusCmd
 		}
 	case *tview.KeyEvent:
 		switch {
 		case keybind.Matches(event, m.cfg.Keybinds.FocusGuildsTree.Keybind):
 			m.messageInput.removeMentionsList()
-			m.focusGuildsTree()
-			return nil
+			return m.focusGuildsTree()
 		case keybind.Matches(event, m.cfg.Keybinds.FocusMessagesList.Keybind):
 			m.messageInput.removeMentionsList()
-			m.app.SetFocus(m.messagesList)
-			return nil
+			return m.focusMessagesList()
 		case keybind.Matches(event, m.cfg.Keybinds.FocusMessageInput.Keybind):
-			m.focusMessageInput()
-			return nil
+			return m.focusMessageInput()
+
 		case keybind.Matches(event, m.cfg.Keybinds.FocusPrevious.Keybind):
-			m.focusPrevious()
-			return nil
+			return m.focusPrevious()
 		case keybind.Matches(event, m.cfg.Keybinds.FocusNext.Keybind):
-			m.focusNext()
-			return nil
-		case keybind.Matches(event, m.cfg.Keybinds.Logout.Keybind):
-			return tview.Batch(m.closeState(), m.logout())
+			return m.focusNext()
+
 		case keybind.Matches(event, m.cfg.Keybinds.ToggleGuildsTree.Keybind):
-			m.toggleGuildsTree()
-			return nil
+			return m.toggleGuildsTree()
 		case keybind.Matches(event, m.cfg.Keybinds.ToggleChannelsPicker.Keybind):
 			m.togglePicker()
 			return nil
+
+		case keybind.Matches(event, m.cfg.Keybinds.Logout.Keybind):
+			return tview.Batch(m.closeState(), m.logout())
 		}
 	case *closeLayerEvent:
 		if m.HasLayer(event.name) {

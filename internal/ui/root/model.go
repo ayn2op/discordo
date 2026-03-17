@@ -60,7 +60,7 @@ func (m *Model) showLogin() tview.Command {
 }
 
 func (m *Model) showChat(token string) tview.Command {
-	m.inner = chat.NewView(m.app, m.cfg, token)
+	m.inner = chat.NewModel(m.app, m.cfg, token)
 	m.buildLayout()
 	return tview.Batch(m.inner.HandleEvent(&tview.InitEvent{}), tview.SetFocus(m))
 }
