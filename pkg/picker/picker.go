@@ -9,19 +9,15 @@ import (
 	"github.com/sahilm/fuzzy"
 )
 
-type (
-	SelectedFunc func(item Item)
-	CancelFunc   func()
-)
+// bottom border + value
+const inputHeight = 2
 
 type Picker struct {
 	*flex.Model
 	input *tview.InputField
 	list  *list.Model
 
-	onSelected SelectedFunc
-	onCancel   CancelFunc
-	keyMap     *KeyMap
+	keyMap *KeyMap
 
 	items    Items
 	filtered Items
@@ -49,8 +45,7 @@ func New() *Picker {
 
 	p.
 		SetDirection(flex.DirectionRow).
-		// bottom border + value
-		AddItem(p.input, 2, 0, true).
+		AddItem(p.input, inputHeight, 0, true).
 		AddItem(p.list, 0, 1, false)
 
 	p.Update()
@@ -97,14 +92,6 @@ func (p *Picker) SetScrollBar(scrollBar *tview.ScrollBar) {
 	p.list.SetScrollBar(scrollBar)
 }
 
-func (p *Picker) SetSelectedFunc(onSelected SelectedFunc) {
-	p.onSelected = onSelected
-}
-
-func (p *Picker) SetCancelFunc(onCancel CancelFunc) {
-	p.onCancel = onCancel
-}
-
 func (p *Picker) ClearInput() {
 	p.input.SetText("")
 }
@@ -126,15 +113,6 @@ func (p *Picker) AddItem(item Item) {
 func (p *Picker) Update() {
 	p.ClearInput()
 	p.onInputChanged("")
-}
-
-func (p *Picker) onListSelected(index int) {
-	if p.onSelected != nil {
-		if index >= 0 && index < len(p.filtered) {
-			item := p.filtered[index]
-			p.onSelected(item)
-		}
-	}
 }
 
 func (p *Picker) onInputChanged(text string) {
@@ -167,14 +145,11 @@ func (p *Picker) HandleEvent(event tcell.Event) tview.Command {
 			case keybind.Matches(event, p.keyMap.Bottom):
 				p.list.HandleEvent(tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone))
 				return nil
+
 			case keybind.Matches(event, p.keyMap.Select):
-				p.onListSelected(p.list.Cursor())
-				return nil
+				return p._select()
 			case keybind.Matches(event, p.keyMap.Cancel):
-				if p.onCancel != nil {
-					p.onCancel()
-				}
-				return nil
+				return cancel()
 			}
 		}
 

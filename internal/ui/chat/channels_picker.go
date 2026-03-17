@@ -11,6 +11,7 @@ import (
 	"github.com/ayn2op/tview/help"
 	"github.com/ayn2op/tview/keybind"
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/gdamore/tcell/v3"
 )
 
 type channelsPicker struct {
@@ -34,7 +35,6 @@ func newChannelsPicker(cfg *config.Config, chatView *Model) *channelsPicker {
 		SetTitleStyle(cfg.Theme.Title.ActiveStyle.Style).
 		SetFooterStyle(cfg.Theme.Footer.ActiveStyle.Style)
 
-	cp.SetSelectedFunc(cp.onSelected)
 	cp.SetTitle("Channels")
 	cp.SetScrollBarVisibility(cfg.Theme.ScrollBar.Visibility.ScrollBarVisibility)
 	cp.SetScrollBar(tview.NewScrollBar().
@@ -52,31 +52,39 @@ func newChannelsPicker(cfg *config.Config, chatView *Model) *channelsPicker {
 	return cp
 }
 
-func (cp *channelsPicker) onSelected(item picker.Item) {
-	channelID, ok := item.Reference.(discord.ChannelID)
-	if !ok || !channelID.IsValid() {
-		return
-	}
+func (cp *channelsPicker) HandleEvent(event tcell.Event) tview.Command {
+	switch event := event.(type) {
+	case *picker.SelectedEvent:
+		channelID, ok := event.Reference.(discord.ChannelID)
+		if !ok || !channelID.IsValid() {
+			return nil
+		}
 
-	channel, err := cp.chatView.state.Cabinet.Channel(channelID)
-	if err != nil {
-		slog.Error("failed to get channel from state", "err", err, "channel_id", channelID)
-		return
-	}
+		channel, err := cp.chatView.state.Cabinet.Channel(channelID)
+		if err != nil {
+			slog.Error("failed to get channel from state", "err", err, "channel_id", channelID)
+			return nil
+		}
 
-	node := cp.chatView.guildsTree.findNodeByChannelID(channel.ID)
-	if node == nil {
-		slog.Error("failed to locate channel in tree", "channel_id", channel.ID)
-		return
-	}
+		node := cp.chatView.guildsTree.findNodeByChannelID(channel.ID)
+		if node == nil {
+			slog.Error("failed to locate channel in tree", "channel_id", channel.ID)
+			return nil
+		}
 
-	cp.chatView.guildsTree.expandPathToNode(node)
-	cp.chatView.guildsTree.SetCurrentNode(node)
-	if channel.Type != discord.GuildCategory {
-		cp.chatView.guildsTree.onSelected(node)
+		cp.chatView.guildsTree.expandPathToNode(node)
+		cp.chatView.guildsTree.SetCurrentNode(node)
+		if channel.Type != discord.GuildCategory {
+			cp.chatView.guildsTree.onSelected(node)
+		}
+		cp.chatView.closePicker()
+		cp.chatView.focusMessageInput()
+		return nil
+	case *picker.CancelEvent:
+		cp.chatView.closePicker()
+		return nil
 	}
-	cp.chatView.closePicker()
-	cp.chatView.focusMessageInput()
+	return cp.Picker.HandleEvent(event)
 }
 
 func (cp *channelsPicker) update() {

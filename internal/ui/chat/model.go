@@ -74,7 +74,6 @@ func NewModel(app *tview.Application, cfg *config.Config, token string) *Model {
 	m.messagesList = newMessagesList(cfg, m)
 	m.messageInput = newMessageInput(cfg, m)
 	m.channelsPicker = newChannelsPicker(cfg, m)
-	m.channelsPicker.SetCancelFunc(m.closePicker)
 
 	m.SetBackgroundLayerStyle(m.cfg.Theme.Dialog.BackgroundStyle.Style)
 	m.buildLayout()
