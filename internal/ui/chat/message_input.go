@@ -104,9 +104,9 @@ func (mi *messageInput) stopTypingTimer() {
 }
 
 func (mi *messageInput) HandleEvent(event tcell.Event) tview.Command {
+	handler := mi.TextArea.HandleEvent
 	switch event := event.(type) {
 	case *tview.KeyEvent:
-		handler := mi.TextArea.HandleEvent
 		switch {
 		case keybind.Matches(event, mi.cfg.Keybinds.MessageInput.Paste.Keybind):
 			mi.paste()
@@ -171,26 +171,20 @@ func (mi *messageInput) HandleEvent(event tcell.Event) tview.Command {
 			if mi.chat.GetVisible(mentionsListLayerName) {
 				switch {
 				case keybind.Matches(event, mi.cfg.Keybinds.MentionsList.Up.Keybind):
-					mi.mentionsList.HandleEvent(tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone))
-					return nil
+					return mi.mentionsList.HandleEvent(tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone))
 				case keybind.Matches(event, mi.cfg.Keybinds.MentionsList.Down.Keybind):
-					mi.mentionsList.HandleEvent(tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone))
-					return nil
+					return mi.mentionsList.HandleEvent(tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone))
 				case keybind.Matches(event, mi.cfg.Keybinds.MentionsList.Top.Keybind):
-					mi.mentionsList.HandleEvent(tcell.NewEventKey(tcell.KeyHome, "", tcell.ModNone))
-					return nil
+					return mi.mentionsList.HandleEvent(tcell.NewEventKey(tcell.KeyHome, "", tcell.ModNone))
 				case keybind.Matches(event, mi.cfg.Keybinds.MentionsList.Bottom.Keybind):
-					mi.mentionsList.HandleEvent(tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone))
-					return nil
+					return mi.mentionsList.HandleEvent(tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone))
 				}
 			}
 
 			go mi.chat.app.QueueUpdateDraw(func() { mi.tabSuggestion() })
 		}
-
-		return handler(event)
 	}
-	return mi.TextArea.HandleEvent(event)
+	return handler(event)
 }
 
 func (mi *messageInput) paste() {

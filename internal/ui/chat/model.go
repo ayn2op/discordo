@@ -113,6 +113,7 @@ func (m *Model) buildLayout() {
 		layers.WithName(mentionsListLayerName),
 		layers.WithResize(false),
 		layers.WithVisible(false),
+		layers.WithEnabled(false),
 	)
 }
 
