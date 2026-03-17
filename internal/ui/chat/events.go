@@ -9,7 +9,7 @@ import (
 
 type LogoutEvent struct{ tcell.EventTime }
 
-func (v *Model) logout() tview.Command {
+func (m *Model) logout() tview.Command {
 	return func() tcell.Event {
 		return &LogoutEvent{}
 	}
@@ -17,11 +17,13 @@ func (v *Model) logout() tview.Command {
 
 type QuitEvent struct{ tcell.EventTime }
 
-func (v *Model) closeState() tview.Command {
+func (m *Model) closeState() tview.Command {
 	return func() tcell.Event {
-		if err := v.CloseState(); err != nil {
-			slog.Error("failed to close the session", "err", err)
-			return tcell.NewEventError(err)
+		if m.state != nil {
+			if err := m.state.Close(); err != nil {
+				slog.Error("failed to close the session", "err", err)
+				return tcell.NewEventError(err)
+			}
 		}
 		return nil
 	}
