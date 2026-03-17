@@ -14,10 +14,10 @@ func newSelectedEvent(item Item) *SelectedEvent {
 	return &SelectedEvent{Item: item}
 }
 
-func (p *Picker) _select() tview.Command {
-	index := p.list.Cursor()
-	if index >= 0 && index < len(p.filtered) {
-		item := p.filtered[index]
+func (m *Model) _select() tview.Command {
+	index := m.list.Cursor()
+	if index >= 0 && index < len(m.filtered) {
+		item := m.filtered[index]
 		return func() tcell.Event {
 			return newSelectedEvent(item)
 		}
