@@ -7,6 +7,7 @@ import (
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/help"
 	"github.com/ayn2op/tview/keybind"
+	"github.com/gdamore/tcell/v3"
 )
 
 type attachmentItem struct {
@@ -39,8 +40,6 @@ func newAttachmentsPicker(cfg *config.Config, chatView *Model) *attachmentsPicke
 		SetFooterStyle(cfg.Theme.Footer.ActiveStyle.Style)
 
 	ap.SetTitle("Attachments")
-	ap.SetSelectedFunc(ap.onSelected)
-	ap.SetCancelFunc(ap.close)
 	ap.SetKeyMap(&picker.KeyMap{
 		Cancel: cfg.Keybinds.Picker.Cancel.Keybind,
 		Up:     cfg.Keybinds.Picker.Up.Keybind,
@@ -70,21 +69,30 @@ func (ap *attachmentsPicker) SetItems(items []attachmentItem) {
 	ap.Update()
 }
 
-func (ap *attachmentsPicker) onSelected(item picker.Item) {
-	index, ok := item.Reference.(int)
-	if !ok {
-		return
-	}
-	if index < 0 || index >= len(ap.items) {
-		return
-	}
-	ap.items[index].open()
-	ap.close()
-}
-
 func (ap *attachmentsPicker) close() {
 	ap.chatView.RemoveLayer(attachmentsListLayerName)
 	ap.chatView.app.SetFocus(ap.chatView.messagesList)
+}
+
+func (ap *attachmentsPicker) HandleEvent(event tcell.Event) tview.Command {
+	switch event := event.(type) {
+	case *picker.SelectedEvent:
+		index, ok := event.Reference.(int)
+		if !ok {
+			return nil
+		}
+		if index < 0 || index >= len(ap.items) {
+			return nil
+		}
+		ap.items[index].open()
+		ap.close()
+		return nil
+	case *picker.CancelEvent:
+		ap.close()
+		return nil
+	}
+
+	return ap.Picker.HandleEvent(event)
 }
 
 func (ap *attachmentsPicker) ShortHelp() []keybind.Keybind {
