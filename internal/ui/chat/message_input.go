@@ -103,7 +103,7 @@ func (mi *messageInput) stopTypingTimer() {
 	}
 }
 
-func (mi *messageInput) HandleEvent(event tcell.Event) tview.Command {
+func (mi *messageInput) HandleEvent(event tview.Event) tview.Command {
 	handler := mi.TextArea.HandleEvent
 	switch event := event.(type) {
 	case *tview.KeyEvent:

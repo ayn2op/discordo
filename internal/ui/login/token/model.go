@@ -3,7 +3,6 @@ package token
 import (
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/tabs"
-	"github.com/gdamore/tcell/v3"
 )
 
 type Model struct {
@@ -23,7 +22,7 @@ func (m *Model) Label() string {
 	return "Token"
 }
 
-func (m *Model) HandleEvent(event tcell.Event) tview.Command {
+func (m *Model) HandleEvent(event tview.Event) tview.Command {
 	switch event.(type) {
 	case *tview.FormSubmitEvent:
 		token := m.GetFormItem(0).(*tview.InputField).GetText()

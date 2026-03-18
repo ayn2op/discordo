@@ -21,7 +21,7 @@ const tokenEnvVarKey = "DISCORDO_TOKEN"
 type Model struct {
 	app      *tview.Application
 	rootFlex *flex.Model // inner + help
-	inner    tview.Primitive
+	inner    tview.Model
 	help     *help.Help
 
 	cfg *config.Config
@@ -74,13 +74,13 @@ func (m *Model) buildLayout() {
 	m.updateHelpHeight()
 }
 
-var _ tview.Primitive = (*Model)(nil)
+var _ tview.Model = (*Model)(nil)
 
 func (m *Model) Draw(screen tcell.Screen) {
 	m.rootFlex.Draw(screen)
 }
 
-func (m *Model) HandleEvent(event tcell.Event) tview.Command {
+func (m *Model) HandleEvent(event tview.Event) tview.Command {
 	switch event := event.(type) {
 	case *tview.InitEvent:
 		var cmd tview.Command
@@ -151,7 +151,7 @@ func (m *Model) SetRect(x int, y int, width int, height int) {
 	m.rootFlex.SetRect(x, y, width, height)
 }
 
-func (m *Model) Focus(delegate func(p tview.Primitive)) {
+func (m *Model) Focus(delegate func(tview.Model)) {
 	if m.inner != nil {
 		delegate(m.inner)
 	}

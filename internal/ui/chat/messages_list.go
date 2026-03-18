@@ -838,7 +838,7 @@ func (ml *messagesList) selectedMessage() (*discord.Message, error) {
 	return &ml.messages[cursor], nil
 }
 
-func (ml *messagesList) HandleEvent(event tcell.Event) tview.Command {
+func (ml *messagesList) HandleEvent(event tview.Event) tview.Command {
 	switch event := event.(type) {
 	case *tview.KeyEvent:
 		switch {
@@ -1018,7 +1018,7 @@ func (ml *messagesList) yankMessageID() tview.Command {
 		return nil
 	}
 
-	return func() tcell.Event {
+	return func() tview.Event {
 		if err := clipboard.Write(clipboard.FmtText, []byte(msg.ID.String())); err != nil {
 			slog.Error("failed to copy message id", "err", err)
 		}
@@ -1033,7 +1033,7 @@ func (ml *messagesList) yankContent() tview.Command {
 		return nil
 	}
 
-	return func() tcell.Event {
+	return func() tview.Event {
 		if err := clipboard.Write(clipboard.FmtText, []byte(msg.Content)); err != nil {
 			slog.Error("failed to copy message content", "err", err)
 		}
@@ -1048,7 +1048,7 @@ func (ml *messagesList) yankURL() tview.Command {
 		return nil
 	}
 
-	return func() tcell.Event {
+	return func() tview.Event {
 		if err := clipboard.Write(clipboard.FmtText, []byte(msg.URL())); err != nil {
 			slog.Error("failed to copy message url", "err", err)
 		}
@@ -1289,7 +1289,7 @@ func (ml *messagesList) deleteSelectedMessage() tview.Command {
 		return nil
 	}
 
-	return func() tcell.Event {
+	return func() tview.Event {
 		if selectedMessage.GuildID.IsValid() {
 			me, _ := ml.chatView.state.Cabinet.Me()
 			if selectedMessage.Author.ID != me.ID && !ml.chatView.state.HasPermissions(selectedMessage.ChannelID, discord.PermissionManageMessages) {

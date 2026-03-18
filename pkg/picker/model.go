@@ -128,7 +128,7 @@ func (m *Model) onInputChanged(text string) {
 	m.setFilteredItems(fuzzied)
 }
 
-func (m *Model) HandleEvent(event tcell.Event) tview.Command {
+func (m *Model) HandleEvent(event tview.Event) tview.Command {
 	switch event := event.(type) {
 	case *tview.KeyEvent:
 		if m.keyMap != nil {

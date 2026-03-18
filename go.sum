@@ -16,8 +16,8 @@ github.com/andybalholm/brotli v1.2.0 h1:ukwgCxwYrmACq68yiUqwIWnGY0cTPox/M94sVwTo
 github.com/andybalholm/brotli v1.2.0/go.mod h1:rzTDkvFWvIrjDXZHkuS16NPggd91W3kUSvPlQ1pLaKY=
 github.com/ayn2op/clipboard v0.0.0-20260308203959-c5ad7df3fc97 h1:WujETUV+v0DEJyZgjeLzQvihWyL80c0Tg4qf0dDo+Io=
 github.com/ayn2op/clipboard v0.0.0-20260308203959-c5ad7df3fc97/go.mod h1:3kFnpNCa3dF6WryzOMCDao7PfZ7DTCh+pievlfuwV80=
-github.com/ayn2op/tview v0.0.0-20260315074416-50a7d9c11304 h1:IbClNDuGoPrJtP4WkKr/iLXIxsR1WKSSJH46wLM0azM=
-github.com/ayn2op/tview v0.0.0-20260315074416-50a7d9c11304/go.mod h1:IXZrCv1VAZyWPdKDUJYs9ZYFiJ1GmCQUo9tLjQWoSnU=
+github.com/ayn2op/tview v0.0.0-20260318010246-0993cedfe0c2 h1:AMOGrvQ1+TnDRuKC2Jnr+H1WL4bq8GSNd2GDxvy3dig=
+github.com/ayn2op/tview v0.0.0-20260318010246-0993cedfe0c2/go.mod h1:IXZrCv1VAZyWPdKDUJYs9ZYFiJ1GmCQUo9tLjQWoSnU=
 github.com/danieljoos/wincred v1.2.3 h1:v7dZC2x32Ut3nEfRH+vhoZGvN72+dQ/snVXo/vMFLdQ=
 github.com/danieljoos/wincred v1.2.3/go.mod h1:6qqX0WNrS4RzPZ1tnroDzq9kY3fu1KwE7MRLQK4X0bs=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

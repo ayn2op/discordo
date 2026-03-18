@@ -41,7 +41,7 @@ func NewModel(cfg *config.Config) *Model {
 	}
 }
 
-func (m *Model) HandleEvent(event tcell.Event) tview.Command {
+func (m *Model) HandleEvent(event tview.Event) tview.Command {
 	switch event := event.(type) {
 	case *tcell.EventError:
 		if m.HasLayer(errorLayerName) {

@@ -55,11 +55,11 @@ func ConfigureBox(box *tview.Box, cfg *config.Theme) *tview.Box {
 }
 
 // Centered creates a new grid with provided primitive aligned in the center.
-func Centered(p tview.Primitive, width, height int) tview.Primitive {
+func Centered(m tview.Model, width, height int) tview.Model {
 	return tview.NewGrid().
 		SetColumns(0, width, 0).
 		SetRows(0, height, 0).
-		AddItem(p, 1, 1, 1, 1, 0, 0, true)
+		AddItem(m, 1, 1, 1, 1, 0, 0, true)
 }
 
 func ChannelToString(channel discord.Channel, icons config.Icons, state *ningen.State) string {
