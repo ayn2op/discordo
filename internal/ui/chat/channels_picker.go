@@ -11,7 +11,6 @@ import (
 	"github.com/ayn2op/tview/help"
 	"github.com/ayn2op/tview/keybind"
 	"github.com/diamondburned/arikawa/v3/discord"
-	"github.com/gdamore/tcell/v3"
 )
 
 type channelsPicker struct {
@@ -52,7 +51,7 @@ func newChannelsPicker(cfg *config.Config, chatView *Model) *channelsPicker {
 	return cp
 }
 
-func (cp *channelsPicker) HandleEvent(event tcell.Event) tview.Command {
+func (cp *channelsPicker) HandleEvent(event tview.Event) tview.Command {
 	switch event := event.(type) {
 	case *picker.SelectedEvent:
 		channelID, ok := event.Reference.(discord.ChannelID)

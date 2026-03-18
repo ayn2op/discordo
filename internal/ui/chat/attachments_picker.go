@@ -7,7 +7,6 @@ import (
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/help"
 	"github.com/ayn2op/tview/keybind"
-	"github.com/gdamore/tcell/v3"
 )
 
 type attachmentItem struct {
@@ -74,7 +73,7 @@ func (ap *attachmentsPicker) close() {
 	ap.chatView.app.SetFocus(ap.chatView.messagesList)
 }
 
-func (ap *attachmentsPicker) HandleEvent(event tcell.Event) tview.Command {
+func (ap *attachmentsPicker) HandleEvent(event tview.Event) tview.Command {
 	switch event := event.(type) {
 	case *picker.SelectedEvent:
 		index, ok := event.Reference.(int)

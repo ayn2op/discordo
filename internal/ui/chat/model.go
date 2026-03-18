@@ -48,7 +48,7 @@ type Model struct {
 	typers   map[discord.UserID]*time.Timer
 
 	confirmModalDone          func(label string)
-	confirmModalPreviousFocus tview.Primitive
+	confirmModalPreviousFocus tview.Model
 
 	app   *tview.Application
 	cfg   *config.Config
@@ -216,10 +216,10 @@ func (m *Model) focusNext() tview.Command {
 	return nil
 }
 
-func (m *Model) HandleEvent(event tcell.Event) tview.Command {
+func (m *Model) HandleEvent(event tview.Event) tview.Command {
 	switch event := event.(type) {
 	case *tview.InitEvent:
-		return func() tcell.Event {
+		return func() tview.Event {
 			if err := m.OpenState(m.token); err != nil {
 				slog.Error("failed to open chat state", "err", err)
 				return tcell.NewEventError(err)

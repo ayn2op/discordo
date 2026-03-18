@@ -393,7 +393,7 @@ func (gt *guildsTree) collapseParentNode(node *tview.TreeNode) {
 		})
 }
 
-func (gt *guildsTree) HandleEvent(event tcell.Event) tview.Command {
+func (gt *guildsTree) HandleEvent(event tview.Event) tview.Command {
 	switch event := event.(type) {
 	case *tview.TreeViewSelectedEvent:
 		gt.onSelected(event.Node)
@@ -437,7 +437,7 @@ func (gt *guildsTree) yankID() tview.Command {
 	// Reference of a tree node in the guilds tree is its ID.
 	// discord.Snowflake (discord.GuildID and discord.ChannelID) have the String method.
 	if id, ok := node.GetReference().(fmt.Stringer); ok {
-		return func() tcell.Event {
+		return func() tview.Event {
 			if err := clipboard.Write(clipboard.FmtText, []byte(id.String())); err != nil {
 				slog.Error("failed to copy node id", "err", err)
 			}
