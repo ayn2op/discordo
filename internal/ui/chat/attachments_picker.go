@@ -2,11 +2,9 @@ package chat
 
 import (
 	"github.com/ayn2op/discordo/internal/config"
-	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/help"
 	"github.com/ayn2op/tview/keybind"
-	"github.com/ayn2op/tview/list"
 	"github.com/ayn2op/tview/picker"
 )
 
@@ -30,45 +28,21 @@ func newAttachmentsPicker(cfg *config.Config, chatView *Model) *attachmentsPicke
 		cfg:      cfg,
 		chatView: chatView,
 	}
-	ap.Box = ui.ConfigureBox(tview.NewBox(), &cfg.Theme)
-	ap.
-		SetBlurFunc(nil).
-		SetFocusFunc(nil).
-		SetBorderSet(cfg.Theme.Border.ActiveSet.BorderSet).
-		SetBorderStyle(cfg.Theme.Border.ActiveStyle.Style).
-		SetTitleStyle(cfg.Theme.Title.ActiveStyle.Style).
-		SetFooterStyle(cfg.Theme.Footer.ActiveStyle.Style)
-
-	ap.SetTitle("Attachments")
-	ap.SetKeybinds(picker.Keybinds{
-		Cancel: cfg.Keybinds.Picker.Cancel.Keybind,
-		Keybinds: list.Keybinds{
-			SelectUp:     cfg.Keybinds.Picker.Up.Keybind,
-			SelectDown:   cfg.Keybinds.Picker.Down.Keybind,
-			SelectTop:    cfg.Keybinds.Picker.Top.Keybind,
-			SelectBottom: cfg.Keybinds.Picker.Bottom.Keybind,
-		},
-		Select: cfg.Keybinds.Picker.Select.Keybind,
-	})
-	ap.SetScrollBarVisibility(cfg.Theme.ScrollBar.Visibility.ScrollBarVisibility)
-	ap.SetScrollBar(tview.NewScrollBar().
-		SetTrackStyle(cfg.Theme.ScrollBar.TrackStyle.Style).
-		SetThumbStyle(cfg.Theme.ScrollBar.ThumbStyle.Style).
-		SetGlyphSet(cfg.Theme.ScrollBar.GlyphSet.GlyphSet))
+	ConfigurePicker(ap.Model, cfg, "Attachments")
 	return ap
 }
 
 func (ap *attachmentsPicker) SetItems(items []attachmentItem) {
 	ap.items = items
-	ap.ClearItems()
+	pickerItems := make(picker.Items, 0, len(items))
 	for i, item := range items {
-		ap.AddItem(picker.Item{
+		pickerItems = append(pickerItems, picker.Item{
 			Text:       item.label,
 			FilterText: item.label,
 			Reference:  i,
 		})
 	}
-	ap.Update()
+	ap.Model.SetItems(pickerItems)
 }
 
 func (ap *attachmentsPicker) close() {
