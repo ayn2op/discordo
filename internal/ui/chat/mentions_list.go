@@ -24,8 +24,8 @@ func newMentionsList(cfg *config.Config) *mentionsList {
 		Model: list.NewModel(),
 	}
 	m.SetKeybinds(list.Keybinds{
-		Up:   cfg.Keybinds.MentionsList.Up.Keybind,
-		Down: cfg.Keybinds.MentionsList.Down.Keybind,
+		SelectUp:   cfg.Keybinds.MentionsList.Up.Keybind,
+		SelectDown: cfg.Keybinds.MentionsList.Down.Keybind,
 	})
 
 	m.Box = ui.ConfigureBox(m.Box, &cfg.Theme)

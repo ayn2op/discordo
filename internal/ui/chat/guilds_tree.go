@@ -350,7 +350,7 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 		gt.chat.messagesList.reset()
 		gt.chat.messagesList.setTitle(*channel)
 		gt.chat.messagesList.setMessages(messages)
-		gt.chat.messagesList.ScrollToEnd()
+		gt.chat.messagesList.ScrollBottom()
 
 		hasNoPerm := channel.Type != discord.DirectMessage && channel.Type != discord.GroupDM && !gt.chat.state.HasPermissions(channel.ID, discord.PermissionSendMessages)
 		gt.chat.messageInput.SetDisabled(hasNoPerm)

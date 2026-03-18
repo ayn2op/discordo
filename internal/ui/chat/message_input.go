@@ -239,7 +239,7 @@ func (mi *messageInput) send() {
 	}
 	mi.reset()
 	mi.chat.messagesList.clearSelection()
-	mi.chat.messagesList.ScrollToEnd()
+	mi.chat.messagesList.ScrollBottom()
 }
 
 func (mi *messageInput) processText(channel *discord.Channel, src []byte) string {
