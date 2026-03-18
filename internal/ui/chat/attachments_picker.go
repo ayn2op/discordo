@@ -3,10 +3,10 @@ package chat
 import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/ui"
-	"github.com/ayn2op/discordo/pkg/picker"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/help"
 	"github.com/ayn2op/tview/keybind"
+	"github.com/ayn2op/tview/picker"
 )
 
 type attachmentItem struct {
@@ -39,7 +39,7 @@ func newAttachmentsPicker(cfg *config.Config, chatView *Model) *attachmentsPicke
 		SetFooterStyle(cfg.Theme.Footer.ActiveStyle.Style)
 
 	ap.SetTitle("Attachments")
-	ap.SetKeyMap(&picker.KeyMap{
+	ap.SetKeybinds(picker.Keybinds{
 		Cancel: cfg.Keybinds.Picker.Cancel.Keybind,
 		Up:     cfg.Keybinds.Picker.Up.Keybind,
 		Down:   cfg.Keybinds.Picker.Down.Keybind,

@@ -6,10 +6,10 @@ import (
 
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/ui"
-	"github.com/ayn2op/discordo/pkg/picker"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/help"
 	"github.com/ayn2op/tview/keybind"
+	"github.com/ayn2op/tview/picker"
 	"github.com/diamondburned/arikawa/v3/discord"
 )
 
@@ -40,7 +40,7 @@ func newChannelsPicker(cfg *config.Config, chatView *Model) *channelsPicker {
 		SetTrackStyle(cfg.Theme.ScrollBar.TrackStyle.Style).
 		SetThumbStyle(cfg.Theme.ScrollBar.ThumbStyle.Style).
 		SetGlyphSet(cfg.Theme.ScrollBar.GlyphSet.GlyphSet))
-	cp.SetKeyMap(&picker.KeyMap{
+	cp.SetKeybinds(picker.Keybinds{
 		Cancel: cfg.Keybinds.Picker.Cancel.Keybind,
 		Up:     cfg.Keybinds.Picker.Up.Keybind,
 		Down:   cfg.Keybinds.Picker.Down.Keybind,
