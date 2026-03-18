@@ -9,7 +9,6 @@ import (
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/help"
 	"github.com/ayn2op/tview/keybind"
-	"github.com/ayn2op/tview/list"
 	"github.com/ayn2op/tview/picker"
 	"github.com/diamondburned/arikawa/v3/discord"
 )
@@ -23,34 +22,7 @@ var _ help.KeyMap = (*channelsPicker)(nil)
 
 func newChannelsPicker(cfg *config.Config, chatView *Model) *channelsPicker {
 	cp := &channelsPicker{picker.NewModel(), chatView}
-	cp.Box = ui.ConfigureBox(tview.NewBox(), &cfg.Theme)
-	// When a child of the parent flex is focused, the parent layout itself is not reported as focused.
-	// Instead, the focused child (picker) is considered focused.
-	// Therefore, we manually set the active border style on the picker to ensure it displays the correct focused appearance.
-	cp.
-		SetBlurFunc(nil).
-		SetFocusFunc(nil).
-		SetBorderSet(cfg.Theme.Border.ActiveSet.BorderSet).
-		SetBorderStyle(cfg.Theme.Border.ActiveStyle.Style).
-		SetTitleStyle(cfg.Theme.Title.ActiveStyle.Style).
-		SetFooterStyle(cfg.Theme.Footer.ActiveStyle.Style)
-
-	cp.SetTitle("Channels")
-	cp.SetScrollBarVisibility(cfg.Theme.ScrollBar.Visibility.ScrollBarVisibility)
-	cp.SetScrollBar(tview.NewScrollBar().
-		SetTrackStyle(cfg.Theme.ScrollBar.TrackStyle.Style).
-		SetThumbStyle(cfg.Theme.ScrollBar.ThumbStyle.Style).
-		SetGlyphSet(cfg.Theme.ScrollBar.GlyphSet.GlyphSet))
-	cp.SetKeybinds(picker.Keybinds{
-		Cancel: cfg.Keybinds.Picker.Cancel.Keybind,
-		Keybinds: list.Keybinds{
-			SelectUp:     cfg.Keybinds.Picker.Up.Keybind,
-			SelectDown:   cfg.Keybinds.Picker.Down.Keybind,
-			SelectTop:    cfg.Keybinds.Picker.Top.Keybind,
-			SelectBottom: cfg.Keybinds.Picker.Bottom.Keybind,
-		},
-		Select: cfg.Keybinds.Picker.Select.Keybind,
-	})
+	ConfigurePicker(cp.Model, cfg, "Channels")
 	return cp
 }
 
@@ -90,7 +62,7 @@ func (cp *channelsPicker) HandleEvent(event tview.Event) tview.Command {
 }
 
 func (cp *channelsPicker) update() {
-	cp.ClearItems()
+	var items picker.Items
 	state := cp.chatView.state
 
 	privateChannels, err := state.Cabinet.PrivateChannels()
@@ -101,7 +73,7 @@ func (cp *channelsPicker) update() {
 
 	ui.SortPrivateChannels(privateChannels)
 	for _, channel := range privateChannels {
-		cp.addChannel(nil, channel)
+		items = append(items, cp.channelItem(nil, channel))
 	}
 
 	guilds, err := state.Cabinet.Guilds()
@@ -118,14 +90,14 @@ func (cp *channelsPicker) update() {
 		}
 
 		for _, channel := range channels {
-			cp.addChannel(&guild, channel)
+			items = append(items, cp.channelItem(&guild, channel))
 		}
 	}
 
-	cp.Update()
+	cp.Model.SetItems(items)
 }
 
-func (cp *channelsPicker) addChannel(guild *discord.Guild, channel discord.Channel) {
+func (cp *channelsPicker) channelItem(guild *discord.Guild, channel discord.Channel) picker.Item {
 	var b strings.Builder
 	b.WriteString(ui.ChannelToString(channel, cp.chatView.cfg.Icons, cp.chatView.state))
 
@@ -135,7 +107,7 @@ func (cp *channelsPicker) addChannel(guild *discord.Guild, channel discord.Chann
 	}
 
 	name := b.String()
-	cp.AddItem(picker.Item{Text: name, FilterText: name, Reference: channel.ID})
+	return picker.Item{Text: name, FilterText: name, Reference: channel.ID}
 }
 
 func (cp *channelsPicker) ShortHelp() []keybind.Keybind {
