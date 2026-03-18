@@ -95,6 +95,12 @@ func newMessagesList(cfg *config.Config, chatView *Model) *messagesList {
 	ml.SetBuilder(ml.buildItem)
 	ml.SetChangedFunc(ml.onRowCursorChanged)
 	ml.SetTrackEnd(true)
+	ml.SetKeybinds(list.Keybinds{
+		ScrollUp:     cfg.Keybinds.MessagesList.ScrollUp.Keybind,
+		ScrollDown:   cfg.Keybinds.MessagesList.ScrollDown.Keybind,
+		ScrollTop:    cfg.Keybinds.MessagesList.ScrollTop.Keybind,
+		ScrollBottom: cfg.Keybinds.MessagesList.ScrollBottom.Keybind,
+	})
 	ml.SetScrollBarVisibility(cfg.Theme.ScrollBar.Visibility.ScrollBarVisibility)
 	ml.SetScrollBar(tview.NewScrollBar().
 		SetTrackStyle(cfg.Theme.ScrollBar.TrackStyle.Style).
@@ -842,18 +848,6 @@ func (ml *messagesList) HandleEvent(event tview.Event) tview.Command {
 	switch event := event.(type) {
 	case *tview.KeyEvent:
 		switch {
-		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ScrollUp.Keybind):
-			ml.ScrollUp()
-			return nil
-		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ScrollDown.Keybind):
-			ml.ScrollDown()
-			return nil
-		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ScrollTop.Keybind):
-			ml.ScrollToStart()
-			return nil
-		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ScrollBottom.Keybind):
-			ml.ScrollToEnd()
-			return nil
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Cancel.Keybind):
 			ml.clearSelection()
 			return nil
@@ -896,8 +890,7 @@ func (ml *messagesList) HandleEvent(event tview.Event) tview.Command {
 			ml.confirmDelete()
 			return nil
 		}
-		// Do not fall through to List defaults for unmatched keys.
-		return nil
+		return ml.Model.HandleEvent(event)
 	}
 	return ml.Model.HandleEvent(event)
 }

@@ -23,6 +23,10 @@ func newMentionsList(cfg *config.Config) *mentionsList {
 	m := &mentionsList{
 		Model: list.NewModel(),
 	}
+	m.SetKeybinds(list.Keybinds{
+		SelectUp:   cfg.Keybinds.MentionsList.Up.Keybind,
+		SelectDown: cfg.Keybinds.MentionsList.Down.Keybind,
+	})
 
 	m.Box = ui.ConfigureBox(m.Box, &cfg.Theme)
 	m.SetSnapToItems(true).SetTitle("Mentions")

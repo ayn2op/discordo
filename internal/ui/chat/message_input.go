@@ -169,16 +169,7 @@ func (mi *messageInput) HandleEvent(event tview.Event) tview.Command {
 
 		if mi.cfg.AutocompleteLimit > 0 {
 			if mi.chat.GetVisible(mentionsListLayerName) {
-				switch {
-				case keybind.Matches(event, mi.cfg.Keybinds.MentionsList.Up.Keybind):
-					return mi.mentionsList.HandleEvent(tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone))
-				case keybind.Matches(event, mi.cfg.Keybinds.MentionsList.Down.Keybind):
-					return mi.mentionsList.HandleEvent(tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone))
-				case keybind.Matches(event, mi.cfg.Keybinds.MentionsList.Top.Keybind):
-					return mi.mentionsList.HandleEvent(tcell.NewEventKey(tcell.KeyHome, "", tcell.ModNone))
-				case keybind.Matches(event, mi.cfg.Keybinds.MentionsList.Bottom.Keybind):
-					return mi.mentionsList.HandleEvent(tcell.NewEventKey(tcell.KeyEnd, "", tcell.ModNone))
-				}
+				mi.mentionsList.HandleEvent(event)
 			}
 
 			go mi.chat.app.QueueUpdateDraw(func() { mi.tabSuggestion() })
@@ -248,7 +239,7 @@ func (mi *messageInput) send() {
 	}
 	mi.reset()
 	mi.chat.messagesList.clearSelection()
-	mi.chat.messagesList.ScrollToEnd()
+	mi.chat.messagesList.ScrollBottom()
 }
 
 func (mi *messageInput) processText(channel *discord.Channel, src []byte) string {
