@@ -37,6 +37,12 @@ type gatewayEvent struct {
 	gateway.Event
 }
 
+func (m *Model) listen() tview.Command {
+	return func() tview.Event {
+		return &gatewayEvent{Event: <-m.events}
+	}
+}
+
 type channelLoadedEvent struct {
 	tcell.EventTime
 	Channel  discord.Channel
@@ -53,10 +59,8 @@ type olderMessagesLoadedEvent struct {
 	Older     []discord.Message
 }
 
-func (m *Model) listen() tview.Command {
-	return func() tview.Event {
-		return &gatewayEvent{Event: <-m.events}
-	}
+func newOlderMessagesLoadedEvent(channelID discord.ChannelID, older []discord.Message) *olderMessagesLoadedEvent {
+	return &olderMessagesLoadedEvent{ChannelID: channelID, Older: older}
 }
 
 type LogoutEvent struct{ tcell.EventTime }
