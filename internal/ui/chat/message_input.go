@@ -169,7 +169,7 @@ func (mi *messageInput) HandleEvent(event tview.Event) tview.Command {
 
 		if mi.cfg.AutocompleteLimit > 0 {
 			if mi.chat.GetVisible(mentionsListLayerName) {
-				mi.mentionsList.HandleEvent(event)
+				return mi.mentionsList.HandleEvent(event)
 			}
 
 			go mi.chat.app.QueueUpdateDraw(func() { mi.tabSuggestion() })
