@@ -18,6 +18,8 @@ github.com/ayn2op/clipboard v0.0.0-20260308203959-c5ad7df3fc97 h1:WujETUV+v0DEJy
 github.com/ayn2op/clipboard v0.0.0-20260308203959-c5ad7df3fc97/go.mod h1:3kFnpNCa3dF6WryzOMCDao7PfZ7DTCh+pievlfuwV80=
 github.com/ayn2op/tview v0.0.0-20260318094340-298d0ba151a8 h1:po9BL01TxfLjrGARciJGuUMIlHFS7SCX0lE8Jxr6CHg=
 github.com/ayn2op/tview v0.0.0-20260318094340-298d0ba151a8/go.mod h1:xgkca32kuEswK7Kzkfk3Pk24WHcKPjqK4xGmDi9QqOY=
+github.com/ayn2op/tview v0.0.0-20260318215741-357b7f7b54cc h1:rY7HumWWSzHRfQN/FcEBwAyZ4uGIJKlowopCae17Lgc=
+github.com/ayn2op/tview v0.0.0-20260318215741-357b7f7b54cc/go.mod h1:xgkca32kuEswK7Kzkfk3Pk24WHcKPjqK4xGmDi9QqOY=
 github.com/danieljoos/wincred v1.2.3 h1:v7dZC2x32Ut3nEfRH+vhoZGvN72+dQ/snVXo/vMFLdQ=
 github.com/danieljoos/wincred v1.2.3/go.mod h1:6qqX0WNrS4RzPZ1tnroDzq9kY3fu1KwE7MRLQK4X0bs=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
@@ -109,6 +111,8 @@ github.com/xyproto/randomstring v1.0.5/go.mod h1:rgmS5DeNXLivK7YprL0pY+lTuhNQW3i
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
 github.com/yuin/goldmark v1.7.16 h1:n+CJdUxaFMiDUNnWC3dMWCIQJSkxH4uz3ZwQBkAlVNE=
 github.com/yuin/goldmark v1.7.16/go.mod h1:ip/1k0VRfGynBgxOz0yCqHrbZXhcjxyuS66Brc7iBKg=
+github.com/yuin/goldmark v1.7.17 h1:p36OVWwRb246iHxA/U4p8OPEpOTESm4n+g+8t0EE5uA=
+github.com/yuin/goldmark v1.7.17/go.mod h1:ip/1k0VRfGynBgxOz0yCqHrbZXhcjxyuS66Brc7iBKg=
 github.com/zalando/go-keyring v0.2.6 h1:r7Yc3+H+Ux0+M72zacZoItR3UDxeWfKTcabvkI8ua9s=
 github.com/zalando/go-keyring v0.2.6/go.mod h1:2TCrxYrbUNYfNS/Kgy/LSrkSQzZ5UPVH85RwfczwvcI=
 go.uber.org/goleak v1.3.0 h1:2K3zAYmnTNqV73imy9J1T3WC+gmCePx2hEGkimedGto=
