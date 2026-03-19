@@ -12,7 +12,6 @@ import (
 
 func (m *Model) openState() tview.Command {
 	return func() tview.Event {
-		m.state.AddHandler(m.events)
 		if err := m.state.Open(context.Background()); err != nil {
 			slog.Error("failed to open chat state", "err", err)
 			return tcell.NewEventError(err)

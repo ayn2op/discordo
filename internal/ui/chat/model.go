@@ -72,7 +72,6 @@ func NewModel(app *tview.Application, cfg *config.Config, token string) *Model {
 		mainFlex:  flex.NewModel(),
 		rightFlex: flex.NewModel(),
 
-		events: make(chan gateway.Event),
 		typers: make(map[discord.UserID]*time.Timer),
 
 		app: app,
@@ -97,6 +96,8 @@ func NewModel(app *tview.Application, cfg *config.Config, token string) *Model {
 	state := state.NewFromSession(session, defaultstore.New())
 	m.state = ningen.FromState(state)
 
+	m.events = make(chan gateway.Event)
+	m.state.AddHandler(m.events)
 	m.state.StateLog = func(err error) {
 		slog.Error("state log", "err", err)
 	}
