@@ -22,7 +22,7 @@ type Model struct {
 	app      *tview.Application
 	rootFlex *flex.Model // inner + help
 	inner    tview.Model
-	help     *help.Help
+	help     *help.Model
 
 	cfg *config.Config
 }
@@ -31,7 +31,7 @@ func NewModel(cfg *config.Config, app *tview.Application) *Model {
 	m := &Model{
 		app:      app,
 		rootFlex: flex.NewModel(),
-		help:     help.New(),
+		help:     help.NewModel(),
 
 		cfg: cfg,
 	}
@@ -39,10 +39,10 @@ func NewModel(cfg *config.Config, app *tview.Application) *Model {
 	m.rootFlex.SetDirection(flex.DirectionRow)
 
 	styles := help.DefaultStyles()
-	styles.ShortKeyStyle = cfg.Theme.Help.ShortKeyStyle.Style
-	styles.ShortDescStyle = cfg.Theme.Help.ShortDescStyle.Style
-	styles.FullKeyStyle = cfg.Theme.Help.FullKeyStyle.Style
-	styles.FullDescStyle = cfg.Theme.Help.FullDescStyle.Style
+	styles.ShortKey = cfg.Theme.Help.ShortKeyStyle.Style
+	styles.ShortDesc = cfg.Theme.Help.ShortDescStyle.Style
+	styles.FullKey = cfg.Theme.Help.FullKeyStyle.Style
+	styles.FullDesc = cfg.Theme.Help.FullDescStyle.Style
 	m.help.SetStyles(styles)
 
 	m.help.SetKeyMap(m)
