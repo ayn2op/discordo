@@ -118,7 +118,12 @@ func (m *Model) notify(message gateway.MessageCreateEvent) tview.Command {
 }
 
 func (m *Model) onMessageUpdate(message *gateway.MessageUpdateEvent) {
-	if selected := m.SelectedChannel(); selected != nil && selected.ID == message.ChannelID {
+	selectedChannel := m.SelectedChannel()
+	if selectedChannel == nil {
+		return
+	}
+
+	if selectedChannel.ID == message.ChannelID {
 		index := slices.IndexFunc(m.messagesList.messages, func(m discord.Message) bool {
 			return m.ID == message.ID
 		})
