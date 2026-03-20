@@ -5,67 +5,67 @@ import (
 	"github.com/ayn2op/tview/keybind"
 )
 
-var _ help.KeyMap = (*View)(nil)
+var _ help.KeyMap = (*Model)(nil)
 
-func (v *View) ShortHelp() []keybind.Keybind {
+func (m *Model) ShortHelp() []keybind.Keybind {
 	short := make([]keybind.Keybind, 0, 16)
-	if active := v.activeKeyMap(); active != nil {
+	if active := m.activeKeyMap(); active != nil {
 		short = append(short, active.ShortHelp()...)
 	}
-	short = append(short, v.baseShortHelp()...)
+	short = append(short, m.baseShortHelp()...)
 	return short
 }
 
-func (v *View) FullHelp() [][]keybind.Keybind {
+func (m *Model) FullHelp() [][]keybind.Keybind {
 	full := make([][]keybind.Keybind, 0, 8)
-	if active := v.activeKeyMap(); active != nil {
+	if active := m.activeKeyMap(); active != nil {
 		full = append(full, active.FullHelp()...)
 	}
-	full = append(full, v.baseFullHelp()...)
+	full = append(full, m.baseFullHelp()...)
 	return full
 }
 
-func (v *View) activeKeyMap() help.KeyMap {
-	if v.GetVisible(channelsPickerLayerName) {
-		return v.channelsPicker
+func (m *Model) activeKeyMap() help.KeyMap {
+	if m.GetVisible(channelsPickerLayerName) {
+		return m.channelsPicker
 	}
 
-	if v.app == nil {
+	if m.app == nil {
 		return nil
 	}
 
-	switch v.app.GetFocus() {
-	case v.guildsTree:
-		return v.guildsTree
-	case v.messagesList:
-		return v.messagesList
-	case v.messageInput:
-		return v.messageInput
+	switch m.app.Focused() {
+	case m.guildsTree:
+		return m.guildsTree
+	case m.messagesList:
+		return m.messagesList
+	case m.messageInput:
+		return m.messageInput
 	default:
 		return nil
 	}
 }
 
-func (v *View) baseShortHelp() []keybind.Keybind {
-	cfg := v.cfg.Keybinds
+func (m *Model) baseShortHelp() []keybind.Keybind {
+	cfg := m.cfg.Keybinds
 	short := []keybind.Keybind{cfg.FocusGuildsTree.Keybind, cfg.FocusMessagesList.Keybind}
-	if !v.messageInput.GetDisabled() {
+	if !m.messageInput.GetDisabled() {
 		short = append(short, cfg.FocusMessageInput.Keybind)
 	}
-	short = append(short, cfg.ToggleGuildsTree.Keybind, cfg.ToggleChannelsPicker.Keybind, cfg.ToggleHelp.Keybind)
+	short = append(short, cfg.ToggleGuildsTree.Keybind, cfg.ToggleChannelsPicker.Keybind)
 	return short
 }
 
-func (v *View) baseFullHelp() [][]keybind.Keybind {
-	cfg := v.cfg.Keybinds
+func (m *Model) baseFullHelp() [][]keybind.Keybind {
+	cfg := m.cfg.Keybinds
 	focus := []keybind.Keybind{cfg.FocusGuildsTree.Keybind, cfg.FocusMessagesList.Keybind}
-	if !v.messageInput.GetDisabled() {
+	if !m.messageInput.GetDisabled() {
 		focus = append(focus, cfg.FocusMessageInput.Keybind)
 	}
 	return [][]keybind.Keybind{
 		focus,
 		{cfg.FocusPrevious.Keybind, cfg.FocusNext.Keybind},
 		{cfg.ToggleGuildsTree.Keybind, cfg.ToggleChannelsPicker.Keybind},
-		{cfg.ToggleHelp.Keybind, cfg.Suspend.Keybind, cfg.Logout.Keybind, cfg.Quit.Keybind},
+		{cfg.Logout.Keybind},
 	}
 }

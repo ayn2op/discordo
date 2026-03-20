@@ -1,77 +1,27 @@
 package chat
 
 import (
-	"context"
 	"log/slog"
 	"slices"
 
-	"github.com/ayn2op/discordo/internal/http"
 	"github.com/ayn2op/discordo/internal/notifications"
 	"github.com/ayn2op/tview"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
-	"github.com/diamondburned/arikawa/v3/session"
-	"github.com/diamondburned/arikawa/v3/state"
-	"github.com/diamondburned/arikawa/v3/state/store/defaultstore"
-	"github.com/diamondburned/arikawa/v3/utils/handler"
-	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/diamondburned/arikawa/v3/utils/httputil/httpdriver"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
-	"github.com/diamondburned/ningen/v3"
+	"github.com/diamondburned/ningen/v3/states/read"
+	"github.com/gdamore/tcell/v3"
 )
 
-func (v *View) OpenState(token string) error {
-	identifyProps := http.IdentifyProperties()
-	gateway.DefaultIdentity = identifyProps
-	gateway.DefaultPresence = &gateway.UpdatePresenceCommand{
-		Status: v.cfg.Status,
-	}
-
-	id := gateway.DefaultIdentifier(token)
-	id.Compress = false
-
-	session := session.NewCustom(id, http.NewClient(token), handler.New())
-	state := state.NewFromSession(session, defaultstore.New())
-	v.state = ningen.FromState(state)
-
-	// Handlers
-	v.state.AddHandler(v.onRaw)
-	v.state.AddHandler(v.onReady)
-	v.state.AddHandler(v.onMessageCreate)
-	v.state.AddHandler(v.onMessageUpdate)
-	v.state.AddHandler(v.onMessageDelete)
-	v.state.AddHandler(v.onReadUpdate)
-	v.state.AddHandler(v.onGuildMembersChunk)
-	v.state.AddHandler(v.onGuildMemberRemove)
-
-	if v.cfg.TypingIndicator.Receive {
-		v.state.AddHandler(v.onTypingStart)
-	}
-
-	v.state.StateLog = func(err error) {
-		slog.Error("state log", "err", err)
-	}
-
-	v.state.OnRequest = append(v.state.OnRequest, httputil.WithHeaders(http.Headers()), v.onRequest)
-	return v.state.Open(context.TODO())
-}
-
-func (v *View) CloseState() error {
-	if v.state == nil {
-		return nil
-	}
-	return v.state.Close()
-}
-
-func (v *View) onRequest(r httpdriver.Request) error {
+func (m *Model) onRequest(r httpdriver.Request) error {
 	if req, ok := r.(*httpdriver.DefaultRequest); ok {
 		slog.Debug("new HTTP request", "method", req.Method, "url", req.URL)
 	}
-
 	return nil
 }
 
-func (v *View) onRaw(event *ws.RawEvent) {
+func (m *Model) onRaw(event *ws.RawEvent) {
 	slog.Debug(
 		"new raw event",
 		"code", event.OriginalCode,
@@ -80,20 +30,21 @@ func (v *View) onRaw(event *ws.RawEvent) {
 	)
 }
 
-func (v *View) onReady(event *gateway.ReadyEvent) {
+func (m *Model) onReady(event *gateway.ReadyEvent) tview.Command {
 	// Rebuild indexes from scratch so reconnects and account switches do not
-	// retain stale pointers to detached tree nodes.
-	v.guildsTree.resetNodeIndex()
+	// retain pointers to detached tree nodes.
+	m.guildsTree.resetNodeIndex()
 
 	dmNode := tview.NewTreeNode("Direct Messages").SetReference(dmNode{}).SetExpandable(true).SetExpanded(false)
-	v.guildsTree.dmRootNode = dmNode
+	m.guildsTree.dmRootNode = dmNode
 
-	root := v.guildsTree.
+	root := m.guildsTree.
 		GetRoot().
 		ClearChildren().
 		AddChild(dmNode)
 
-	// Track guilds already in folders to find orphans (newly joined guilds may not be synced to GuildFolders yet but always appear in GuildPositions)
+	// Track guilds already in folders to find orphans.
+	// Newly joined guilds may not be synced to GuildFolders yet but always appear in guild positions.
 	guildsInFolders := make(map[discord.GuildID]bool)
 	for _, folder := range event.UserSettings.GuildFolders {
 		for _, guildID := range folder.GuildIDs {
@@ -126,7 +77,7 @@ func (v *View) onReady(event *gateway.ReadyEvent) {
 
 		// Orphan guild - add directly to root in order
 		if guildEvent, ok := guildsByID[guildID]; ok {
-			v.guildsTree.createGuildNode(root, guildEvent.Guild)
+			m.guildsTree.createGuildNode(root, guildEvent.Guild)
 		}
 	}
 
@@ -134,60 +85,72 @@ func (v *View) onReady(event *gateway.ReadyEvent) {
 	for _, folder := range event.UserSettings.GuildFolders {
 		if folder.ID == 0 && len(folder.GuildIDs) == 1 {
 			if guild, ok := guildsByID[folder.GuildIDs[0]]; ok {
-				v.guildsTree.createGuildNode(root, guild.Guild)
+				m.guildsTree.createGuildNode(root, guild.Guild)
 			}
 		} else {
-			v.guildsTree.createFolderNode(folder, guildsByID)
+			m.guildsTree.createFolderNode(folder, guildsByID)
 		}
 	}
 
-	v.guildsTree.SetCurrentNode(root)
-	v.app.SetFocus(v.guildsTree)
-	v.app.Draw()
+	m.guildsTree.SetCurrentNode(root)
+	return tview.SetFocus(m.guildsTree)
 }
 
-func (v *View) onMessageCreate(message *gateway.MessageCreateEvent) {
-	selectedChannel := v.SelectedChannel()
+func (m *Model) onMessageCreate(message *gateway.MessageCreateEvent) tview.Command {
+	selectedChannel := m.SelectedChannel()
 	if selectedChannel != nil && selectedChannel.ID == message.ChannelID {
-		v.removeTyper(message.Author.ID)
-		v.app.QueueUpdateDraw(func() {
-			v.messagesList.addMessage(message.Message)
-		})
-	} else {
-		if err := notifications.Notify(v.state, message, v.cfg); err != nil {
+		m.removeTyper(message.Author.ID)
+		m.messagesList.addMessage(message.Message)
+		return nil
+	}
+
+	return m.notify(*message)
+}
+
+func (m *Model) notify(message gateway.MessageCreateEvent) tview.Command {
+	return func() tview.Event {
+		if err := notifications.Notify(m.state, message, m.cfg); err != nil {
 			slog.Error("failed to notify", "err", err, "channel_id", message.ChannelID, "message_id", message.ID)
+			return tcell.NewEventError(err)
 		}
+		return nil
 	}
 }
 
-func (v *View) onMessageUpdate(message *gateway.MessageUpdateEvent) {
-	if selected := v.SelectedChannel(); selected != nil && selected.ID == message.ChannelID {
-		index := slices.IndexFunc(v.messagesList.messages, func(m discord.Message) bool {
+func (m *Model) onMessageUpdate(message *gateway.MessageUpdateEvent) {
+	selectedChannel := m.SelectedChannel()
+	if selectedChannel == nil {
+		return
+	}
+
+	if selectedChannel.ID == message.ChannelID {
+		index := slices.IndexFunc(m.messagesList.messages, func(m discord.Message) bool {
 			return m.ID == message.ID
 		})
 		if index < 0 {
 			return
 		}
 
-		v.app.QueueUpdateDraw(func() {
-			v.messagesList.setMessage(index, message.Message)
-		})
+		m.messagesList.setMessage(index, message.Message)
 	}
 }
 
-func (v *View) onMessageDelete(message *gateway.MessageDeleteEvent) {
-	if selected := v.SelectedChannel(); selected != nil && selected.ID == message.ChannelID {
-		prevCursor := v.messagesList.Cursor()
-		deletedIndex := slices.IndexFunc(v.messagesList.messages, func(m discord.Message) bool {
+func (m *Model) onMessageDelete(message *gateway.MessageDeleteEvent) {
+	selectedChannel := m.SelectedChannel()
+	if selectedChannel == nil {
+		return
+	}
+
+	if selectedChannel.ID == message.ChannelID {
+		prevCursor := m.messagesList.Cursor()
+		deletedIndex := slices.IndexFunc(m.messagesList.messages, func(m discord.Message) bool {
 			return m.ID == message.ID
 		})
 		if deletedIndex < 0 {
 			return
 		}
 
-		v.app.QueueUpdateDraw(func() {
-			v.messagesList.deleteMessage(deletedIndex)
-		})
+		m.messagesList.deleteMessage(deletedIndex)
 
 		// Keep cursor stable when possible after removal.
 		newCursor := prevCursor
@@ -195,7 +158,7 @@ func (v *View) onMessageDelete(message *gateway.MessageDeleteEvent) {
 			// Prefer previous item; fall forward if we deleted the first.
 			newCursor = deletedIndex - 1
 			if newCursor < 0 {
-				if deletedIndex < len(v.messagesList.messages) {
+				if deletedIndex < len(m.messagesList.messages) {
 					newCursor = deletedIndex
 				} else {
 					newCursor = -1
@@ -207,23 +170,21 @@ func (v *View) onMessageDelete(message *gateway.MessageDeleteEvent) {
 		}
 		if newCursor != prevCursor {
 			// Avoid redundant cursor updates if nothing changed.
-			v.app.QueueUpdateDraw(func() {
-				v.messagesList.SetCursor(newCursor)
-			})
+			m.messagesList.SetCursor(newCursor)
 		}
 	}
 }
 
-func (v *View) onGuildMembersChunk(event *gateway.GuildMembersChunkEvent) {
-	v.messagesList.setFetchingChunk(false, uint(len(event.Members)))
+func (m *Model) onGuildMembersChunk(event *gateway.GuildMembersChunkEvent) {
+	m.messagesList.setFetchingChunk(false, uint(len(event.Members)))
 }
 
-func (v *View) onGuildMemberRemove(event *gateway.GuildMemberRemoveEvent) {
-	v.messageInput.cache.Invalidate(event.GuildID.String()+" "+event.User.Username, v.state.MemberState.SearchLimit)
+func (m *Model) onGuildMemberRemove(event *gateway.GuildMemberRemoveEvent) {
+	m.messageInput.cache.Invalidate(event.GuildID.String()+" "+event.User.Username, m.state.MemberState.SearchLimit)
 }
 
-func (v *View) onTypingStart(event *gateway.TypingStartEvent) {
-	selectedChannel := v.SelectedChannel()
+func (m *Model) onTypingStart(event *gateway.TypingStartEvent) {
+	selectedChannel := m.SelectedChannel()
 	if selectedChannel == nil {
 		return
 	}
@@ -232,10 +193,26 @@ func (v *View) onTypingStart(event *gateway.TypingStartEvent) {
 		return
 	}
 
-	me, _ := v.state.Cabinet.Me()
+	me, _ := m.state.Cabinet.Me()
 	if event.UserID == me.ID {
 		return
 	}
 
-	v.addTyper(event.UserID)
+	m.addTyper(event.UserID)
+}
+
+func (m *Model) onReadUpdate(event *read.UpdateEvent) {
+	// Use indexed node lookup to avoid walking the whole tree on every read
+	// event. This runs frequently while reading/typing across channels.
+	if event.GuildID.IsValid() {
+		if guildNode := m.guildsTree.findNodeByReference(event.GuildID); guildNode != nil {
+			m.guildsTree.setNodeLineStyle(guildNode, m.guildsTree.getGuildNodeStyle(event.GuildID))
+		}
+	}
+
+	// Channel style is always updated for the target channel regardless of
+	// whether it's in a guild or DM.
+	if channelNode := m.guildsTree.findNodeByReference(event.ChannelID); channelNode != nil {
+		m.guildsTree.setNodeLineStyle(channelNode, m.guildsTree.getChannelNodeStyle(event.ChannelID))
+	}
 }

@@ -8,7 +8,9 @@ import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/logger"
 	"github.com/ayn2op/discordo/internal/ui/root"
+	"github.com/ayn2op/tview"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
+	"github.com/gdamore/tcell/v3"
 )
 
 var (
@@ -45,5 +47,24 @@ func Run() error {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
-	return root.NewView(cfg).Run()
+	screen, err := tcell.NewScreen()
+	if err != nil {
+		return fmt.Errorf("failed to create screen: %w", err)
+	}
+
+	if err := screen.Init(); err != nil {
+		return fmt.Errorf("failed to init screen: %w", err)
+	}
+
+	if cfg.Mouse {
+		screen.EnableMouse()
+	}
+	screen.EnablePaste()
+	screen.EnableFocus()
+
+	tview.Styles = tview.Theme{}
+	app := tview.NewApplication()
+	app.SetRoot(root.NewModel(cfg, app))
+	app.SetScreen(screen)
+	return app.Run()
 }

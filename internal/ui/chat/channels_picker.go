@@ -6,79 +6,63 @@ import (
 
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/ui"
-	"github.com/ayn2op/discordo/pkg/picker"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/help"
 	"github.com/ayn2op/tview/keybind"
+	"github.com/ayn2op/tview/picker"
 	"github.com/diamondburned/arikawa/v3/discord"
 )
 
 type channelsPicker struct {
-	*picker.Picker
-	chatView *View
+	*picker.Model
+	chatView *Model
 }
 
 var _ help.KeyMap = (*channelsPicker)(nil)
 
-func newChannelsPicker(cfg *config.Config, chatView *View) *channelsPicker {
-	cp := &channelsPicker{picker.New(), chatView}
-	cp.Box = ui.ConfigureBox(tview.NewBox(), &cfg.Theme)
-	// When a child of tview.Flex is focused, tview.Flex itself is not reported as focused. Instead, the focused child (picker) is considered focused. Therefore, we manually set the active border style on the picker to ensure it displays the correct focused appearance.
-	cp.
-		SetBlurFunc(nil).
-		SetFocusFunc(nil).
-		SetBorderSet(cfg.Theme.Border.ActiveSet.BorderSet).
-		SetBorderStyle(cfg.Theme.Border.ActiveStyle.Style).
-		SetTitleStyle(cfg.Theme.Title.ActiveStyle.Style).
-		SetFooterStyle(cfg.Theme.Footer.ActiveStyle.Style)
-
-	cp.SetSelectedFunc(cp.onSelected)
-	cp.SetTitle("Channels")
-	cp.SetScrollBarVisibility(cfg.Theme.ScrollBar.Visibility.ScrollBarVisibility)
-	cp.SetScrollBar(tview.NewScrollBar().
-		SetTrackStyle(cfg.Theme.ScrollBar.TrackStyle.Style).
-		SetThumbStyle(cfg.Theme.ScrollBar.ThumbStyle.Style).
-		SetGlyphSet(cfg.Theme.ScrollBar.GlyphSet.GlyphSet))
-	cp.SetKeyMap(&picker.KeyMap{
-		Cancel: cfg.Keybinds.Picker.Cancel.Keybind,
-		Up:     cfg.Keybinds.Picker.Up.Keybind,
-		Down:   cfg.Keybinds.Picker.Down.Keybind,
-		Top:    cfg.Keybinds.Picker.Top.Keybind,
-		Bottom: cfg.Keybinds.Picker.Bottom.Keybind,
-		Select: cfg.Keybinds.Picker.Select.Keybind,
-	})
+func newChannelsPicker(cfg *config.Config, chatView *Model) *channelsPicker {
+	cp := &channelsPicker{picker.NewModel(), chatView}
+	ConfigurePicker(cp.Model, cfg, "Channels")
 	return cp
 }
 
-func (cp *channelsPicker) onSelected(item picker.Item) {
-	channelID, ok := item.Reference.(discord.ChannelID)
-	if !ok || !channelID.IsValid() {
-		return
-	}
+func (cp *channelsPicker) HandleEvent(event tview.Event) tview.Command {
+	switch event := event.(type) {
+	case *picker.SelectedEvent:
+		channelID, ok := event.Reference.(discord.ChannelID)
+		if !ok || !channelID.IsValid() {
+			return nil
+		}
 
-	channel, err := cp.chatView.state.Cabinet.Channel(channelID)
-	if err != nil {
-		slog.Error("failed to get channel from state", "err", err, "channel_id", channelID)
-		return
-	}
+		channel, err := cp.chatView.state.Cabinet.Channel(channelID)
+		if err != nil {
+			slog.Error("failed to get channel from state", "err", err, "channel_id", channelID)
+			return nil
+		}
 
-	node := cp.chatView.guildsTree.findNodeByChannelID(channel.ID)
-	if node == nil {
-		slog.Error("failed to locate channel in tree", "channel_id", channel.ID)
-		return
-	}
+		node := cp.chatView.guildsTree.findNodeByChannelID(channel.ID)
+		if node == nil {
+			slog.Error("failed to locate channel in tree", "channel_id", channel.ID)
+			return nil
+		}
 
-	cp.chatView.guildsTree.expandPathToNode(node)
-	cp.chatView.guildsTree.SetCurrentNode(node)
-	if channel.Type != discord.GuildCategory {
-		cp.chatView.guildsTree.onSelected(node)
+		cp.chatView.guildsTree.expandPathToNode(node)
+		cp.chatView.guildsTree.SetCurrentNode(node)
+		var selectCmd tview.Command
+		if channel.Type != discord.GuildCategory {
+			selectCmd = cp.chatView.guildsTree.onSelected(node)
+		}
+		cp.chatView.closePicker()
+		return selectCmd
+	case *picker.CancelEvent:
+		cp.chatView.closePicker()
+		return nil
 	}
-	cp.chatView.closePicker()
-	cp.chatView.focusMessageInput()
+	return cp.Model.HandleEvent(event)
 }
 
 func (cp *channelsPicker) update() {
-	cp.ClearItems()
+	var items picker.Items
 	state := cp.chatView.state
 
 	privateChannels, err := state.Cabinet.PrivateChannels()
@@ -89,7 +73,7 @@ func (cp *channelsPicker) update() {
 
 	ui.SortPrivateChannels(privateChannels)
 	for _, channel := range privateChannels {
-		cp.addChannel(nil, channel)
+		items = append(items, cp.channelItem(nil, channel))
 	}
 
 	guilds, err := state.Cabinet.Guilds()
@@ -106,16 +90,16 @@ func (cp *channelsPicker) update() {
 		}
 
 		for _, channel := range channels {
-			cp.addChannel(&guild, channel)
+			items = append(items, cp.channelItem(&guild, channel))
 		}
 	}
 
-	cp.Update()
+	cp.Model.SetItems(items)
 }
 
-func (cp *channelsPicker) addChannel(guild *discord.Guild, channel discord.Channel) {
+func (cp *channelsPicker) channelItem(guild *discord.Guild, channel discord.Channel) picker.Item {
 	var b strings.Builder
-	b.WriteString(ui.ChannelToString(channel, cp.chatView.cfg.Icons))
+	b.WriteString(ui.ChannelToString(channel, cp.chatView.cfg.Icons, cp.chatView.state))
 
 	if guild != nil {
 		b.WriteString(" - ")
@@ -123,7 +107,7 @@ func (cp *channelsPicker) addChannel(guild *discord.Guild, channel discord.Chann
 	}
 
 	name := b.String()
-	cp.AddItem(picker.Item{Text: name, FilterText: name, Reference: channel.ID})
+	return picker.Item{Text: name, FilterText: name, Reference: channel.ID}
 }
 
 func (cp *channelsPicker) ShortHelp() []keybind.Keybind {

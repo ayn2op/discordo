@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"slices"
@@ -24,6 +25,7 @@ import (
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/help"
 	"github.com/ayn2op/tview/keybind"
+	"github.com/ayn2op/tview/list"
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
@@ -32,6 +34,7 @@ import (
 	"github.com/diamondburned/ningen/v3/discordmd"
 	"github.com/gdamore/tcell/v3"
 	"github.com/gdamore/tcell/v3/color"
+	"github.com/rivo/uniseg"
 	"github.com/skratchdot/open-golang/open"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/parser"
@@ -39,9 +42,9 @@ import (
 )
 
 type messagesList struct {
-	*tview.List
+	*list.Model
 	cfg      *config.Config
-	chatView *View
+	chatView *Model
 	messages []discord.Message
 	// rows is the virtual list model rendered by tview (message rows +
 	// date-separator rows). It is rebuilt lazily when rowsDirty is true.
@@ -77,9 +80,9 @@ type messagesListRow struct {
 	timestamp    discord.Timestamp
 }
 
-func newMessagesList(cfg *config.Config, chatView *View) *messagesList {
+func newMessagesList(cfg *config.Config, chatView *Model) *messagesList {
 	ml := &messagesList{
-		List:     tview.NewList(),
+		Model:    list.NewModel(),
 		cfg:      cfg,
 		chatView: chatView,
 		renderer: markdown.NewRenderer(cfg),
@@ -92,6 +95,12 @@ func newMessagesList(cfg *config.Config, chatView *View) *messagesList {
 	ml.SetBuilder(ml.buildItem)
 	ml.SetChangedFunc(ml.onRowCursorChanged)
 	ml.SetTrackEnd(true)
+	ml.SetKeybinds(list.Keybinds{
+		ScrollUp:     cfg.Keybinds.MessagesList.ScrollUp.Keybind,
+		ScrollDown:   cfg.Keybinds.MessagesList.ScrollDown.Keybind,
+		ScrollTop:    cfg.Keybinds.MessagesList.ScrollTop.Keybind,
+		ScrollBottom: cfg.Keybinds.MessagesList.ScrollBottom.Keybind,
+	})
 	ml.SetScrollBarVisibility(cfg.Theme.ScrollBar.Visibility.ScrollBarVisibility)
 	ml.SetScrollBar(tview.NewScrollBar().
 		SetTrackStyle(cfg.Theme.ScrollBar.TrackStyle.Style).
@@ -112,7 +121,7 @@ func (ml *messagesList) reset() {
 }
 
 func (ml *messagesList) setTitle(channel discord.Channel) {
-	title := ui.ChannelToString(channel, ml.cfg.Icons)
+	title := ui.ChannelToString(channel, ml.cfg.Icons, ml.chatView.state)
 	if topic := channel.Topic; topic != "" {
 		title += " - " + topic
 	}
@@ -127,7 +136,6 @@ func (ml *messagesList) setMessages(messages []discord.Message) {
 	// New channel payload / refetch: replace the cache wholesale to keep it in
 	// lockstep with the current message slice.
 	clear(ml.itemByID)
-	ml.MarkDirty()
 }
 
 func (ml *messagesList) addMessage(message discord.Message) {
@@ -135,7 +143,6 @@ func (ml *messagesList) addMessage(message discord.Message) {
 	ml.invalidateRows()
 	// Defensive invalidation for ID reuse/edits delivered out-of-order.
 	delete(ml.itemByID, message.ID)
-	ml.MarkDirty()
 }
 
 func (ml *messagesList) setMessage(index int, message discord.Message) {
@@ -146,7 +153,6 @@ func (ml *messagesList) setMessage(index int, message discord.Message) {
 	ml.messages[index] = message
 	delete(ml.itemByID, message.ID)
 	ml.invalidateRows()
-	ml.MarkDirty()
 }
 
 func (ml *messagesList) deleteMessage(index int) {
@@ -157,14 +163,13 @@ func (ml *messagesList) deleteMessage(index int) {
 	delete(ml.itemByID, ml.messages[index].ID)
 	ml.messages = append(ml.messages[:index], ml.messages[index+1:]...)
 	ml.invalidateRows()
-	ml.MarkDirty()
 }
 
 func (ml *messagesList) clearSelection() {
 	ml.SetCursor(-1)
 }
 
-func (ml *messagesList) buildItem(index int, cursor int) tview.ListItem {
+func (ml *messagesList) buildItem(index int, cursor int) list.Item {
 	ml.ensureRows()
 
 	if index < 0 || index >= len(ml.rows) {
@@ -216,7 +221,7 @@ func (ml *messagesList) drawDateSeparator(builder *tview.LineBuilder, ts discord
 	label := " " + date + " "
 	fillChar := ml.cfg.DateSeparator.Character
 	dimStyle := baseStyle.Dim(true)
-	_, _, width, _ := ml.GetInnerRect()
+	_, _, width, _ := ml.InnerRect()
 	if width <= 0 {
 		builder.Write(strings.Repeat(fillChar, 8)+label+strings.Repeat(fillChar, 8), dimStyle)
 		return
@@ -238,7 +243,8 @@ func (ml *messagesList) rebuildRows() {
 	rows := make([]messagesListRow, 0, len(ml.messages)*2)
 
 	for i := range ml.messages {
-		if ml.cfg.DateSeparator.Enabled && i > 0 && !sameLocalDate(ml.messages[i-1].Timestamp, ml.messages[i].Timestamp) {
+		// Always show a date separator before the first message, and between messages on different days.
+		if ml.cfg.DateSeparator.Enabled && (i == 0 || !sameLocalDate(ml.messages[i-1].Timestamp, ml.messages[i].Timestamp)) {
 			rows = append(rows, messagesListRow{
 				kind:      messagesListRowSeparator,
 				timestamp: ml.messages[i].Timestamp,
@@ -278,7 +284,7 @@ func sameLocalDate(a discord.Timestamp, b discord.Timestamp) bool {
 // Cursor returns the selected message index, skipping separator rows.
 func (ml *messagesList) Cursor() int {
 	ml.ensureRows()
-	rowIndex := ml.List.Cursor()
+	rowIndex := ml.Model.Cursor()
 	if rowIndex < 0 || rowIndex >= len(ml.rows) {
 		return -1
 	}
@@ -292,7 +298,7 @@ func (ml *messagesList) Cursor() int {
 
 // SetCursor selects a message index and maps it to the corresponding row.
 func (ml *messagesList) SetCursor(index int) {
-	ml.List.SetCursor(ml.messageToRowIndex(index))
+	ml.Model.SetCursor(ml.messageToRowIndex(index))
 }
 
 func (ml *messagesList) messageToRowIndex(messageIndex int) int {
@@ -317,7 +323,7 @@ func (ml *messagesList) onRowCursorChanged(rowIndex int) {
 	}
 
 	target := ml.nearestMessageRowIndex(rowIndex)
-	ml.List.SetCursor(target)
+	ml.Model.SetCursor(target)
 }
 
 // nearestMessageRowIndex expects rowIndex to be within bounds.
@@ -411,32 +417,45 @@ func (ml *messagesList) memberForMessage(message discord.Message) *discord.Membe
 }
 
 func (ml *messagesList) drawContent(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style) {
-	c := []byte(message.Content)
-	if ml.chatView.cfg.Markdown.Enabled {
-		root := discordmd.ParseWithMessage(c, *ml.chatView.state.Cabinet, &message, false)
-		lines := ml.renderer.RenderLines(c, root, baseStyle)
-		if builder.HasCurrentLine() {
-			startsWithCodeBlock := false
+	lines, root := ml.renderContentLines(message, baseStyle)
+	if ml.chatView.cfg.Markdown.Enabled && builder.HasCurrentLine() {
+		startsWithCodeBlock := false
+		if root != nil {
 			if first := root.FirstChild(); first != nil {
 				_, startsWithCodeBlock = first.(*ast.FencedCodeBlock)
 			}
+		}
 
-			if startsWithCodeBlock {
-				// Keep code blocks visually separate from "timestamp + author".
-				builder.NewLine()
-				for len(lines) > 0 && len(lines[0]) == 0 {
-					lines = lines[1:]
-				}
-			} else {
-				for len(lines) > 1 && len(lines[0]) == 0 {
-					lines = lines[1:]
-				}
+		if startsWithCodeBlock {
+			// Keep code blocks visually separate from "timestamp + author".
+			builder.NewLine()
+			for len(lines) > 0 && len(lines[0]) == 0 {
+				lines = lines[1:]
+			}
+		} else {
+			for len(lines) > 1 && len(lines[0]) == 0 {
+				lines = lines[1:]
 			}
 		}
-		builder.AppendLines(lines)
-	} else {
-		builder.Write(message.Content, baseStyle)
 	}
+	builder.AppendLines(lines)
+}
+
+func (ml *messagesList) renderContentLines(message discord.Message, baseStyle tcell.Style) ([]tview.Line, ast.Node) {
+	return ml.renderContentLinesWithMarkdown(message, baseStyle, false)
+}
+
+func (ml *messagesList) renderContentLinesWithMarkdown(message discord.Message, baseStyle tcell.Style, forceMarkdown bool) ([]tview.Line, ast.Node) {
+	// Keep one rendering path for both normal messages and embed fragments so we preserve mention/link parsing behavior consistently across both.
+	if forceMarkdown || ml.chatView.cfg.Markdown.Enabled {
+		c := []byte(message.Content)
+		root := discordmd.ParseWithMessage(c, *ml.chatView.state.Cabinet, &message, false)
+		return ml.renderer.RenderLines(c, root, baseStyle), root
+	}
+
+	b := tview.NewLineBuilder()
+	b.Write(message.Content, baseStyle)
+	return b.Finish(), nil
 }
 
 func (ml *messagesList) drawSnapshotContent(builder *tview.LineBuilder, parent discord.Message, snapshot discord.MessageSnapshotMessage, baseStyle tcell.Style) {
@@ -472,6 +491,8 @@ func (ml *messagesList) drawDefaultMessage(builder *tview.LineBuilder, message d
 		builder.Write(" (edited)", dimStyle)
 	}
 
+	ml.drawEmbeds(builder, message, baseStyle)
+
 	attachmentStyle := ui.MergeStyle(baseStyle, ml.cfg.Theme.MessagesList.AttachmentStyle.Style)
 	for _, a := range message.Attachments {
 		builder.NewLine()
@@ -480,6 +501,301 @@ func (ml *messagesList) drawDefaultMessage(builder *tview.LineBuilder, message d
 		} else {
 			builder.Write(a.Filename, attachmentStyle)
 		}
+	}
+}
+
+func (ml *messagesList) drawEmbeds(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style) {
+	if len(message.Embeds) == 0 {
+		return
+	}
+
+	contentListURLs := extractURLs(message.Content)
+	contentURLs := make(map[string]struct{}, len(contentListURLs))
+	for _, u := range contentListURLs {
+		contentURLs[u] = struct{}{}
+	}
+
+	lineStyles := embedLineStyles(baseStyle, ml.cfg.Theme.MessagesList.Embeds)
+	defaultBarStyle := baseStyle.Dim(true)
+	prefixText := "  ▎ "
+	prefixWidth := tview.TaggedStringWidth(prefixText)
+	_, _, innerWidth, _ := ml.InnerRect()
+	// Wrap against the current list viewport. This keeps embed wrapping stable even when sidebars/panes are resized.
+	wrapWidth := max(innerWidth-prefixWidth, 1)
+
+	for _, embed := range message.Embeds {
+		lines := embedLines(embed, contentURLs)
+		if len(lines) == 0 {
+			continue
+		}
+
+		embedContentLines := make([]tview.Line, 0, len(lines)*2)
+		barStyle := defaultBarStyle
+		if embed.Color != discord.NullColor && embed.Color != 0 {
+			barStyle = barStyle.Foreground(tcell.NewHexColor(int32(embed.Color.Uint32())))
+		}
+		prefix := tview.NewSegment(prefixText, barStyle)
+		builder.NewLine()
+		for _, line := range lines {
+			if strings.TrimSpace(line.Text) == "" {
+				continue
+			}
+			msg := message
+			msg.Content = line.Text
+			lineStyle := lineStyles[line.Kind]
+			// Embed descriptions are always markdown-rendered to match Discord's rich embed semantics, even when message markdown is globally disabled.
+			rendered, _ := ml.renderContentLinesWithMarkdown(msg, lineStyle, line.Kind == embedLineDescription)
+			for _, renderedLine := range rendered {
+				if line.URL != "" {
+					renderedLine = lineWithURL(renderedLine, line.URL)
+				}
+				// Prefix must be applied after wrapping so every visual line keeps the embed bar marker ("▎"), not only the first logical line.
+				for _, wrapped := range wrapStyledLine(renderedLine, wrapWidth) {
+					prefixed := make(tview.Line, 0, len(wrapped)+1)
+					prefixed = append(prefixed, prefix)
+					prefixed = append(prefixed, wrapped...)
+					embedContentLines = append(embedContentLines, prefixed)
+				}
+			}
+		}
+
+		if len(embedContentLines) > 0 {
+			builder.AppendLines(embedContentLines)
+		}
+	}
+}
+
+func wrapStyledLine(line tview.Line, width int) []tview.Line {
+	if width <= 0 {
+		return []tview.Line{line}
+	}
+	if len(line) == 0 {
+		return []tview.Line{line}
+	}
+
+	lines := make([]tview.Line, 0, 2)
+	current := make(tview.Line, 0, len(line))
+	currentWidth := 0
+
+	pushSegment := func(text string, style tcell.Style) {
+		if text == "" {
+			return
+		}
+		if n := len(current); n > 0 && current[n-1].Style == style {
+			current[n-1].Text += text
+			return
+		}
+		current = append(current, tview.Segment{Text: text, Style: style})
+	}
+
+	flush := func() {
+		lineCopy := make(tview.Line, len(current))
+		copy(lineCopy, current)
+		lines = append(lines, lineCopy)
+		current = current[:0]
+		currentWidth = 0
+	}
+
+	for _, segment := range line {
+		state := -1
+		rest := segment.Text
+		for len(rest) > 0 {
+			cluster, nextRest, boundaries, nextState := uniseg.StepString(rest, state)
+			state = nextState
+			rest = nextRest
+			if cluster == "" {
+				continue
+			}
+
+			// Use grapheme width (not rune count) so wrapping stays correct with wide glyphs, emoji, and combining characters.
+			clusterWidth := graphemeClusterWidth(boundaries)
+			if currentWidth > 0 && currentWidth+clusterWidth > width {
+				flush()
+			}
+			pushSegment(cluster, segment.Style)
+			currentWidth += clusterWidth
+
+			if currentWidth >= width {
+				flush()
+			}
+		}
+	}
+
+	if len(current) > 0 {
+		flush()
+	}
+	if len(lines) == 0 {
+		return []tview.Line{{}}
+	}
+	return lines
+}
+
+func graphemeClusterWidth(boundaries int) int {
+	return boundaries >> uniseg.ShiftWidth
+}
+
+func lineWithURL(line tview.Line, rawURL string) tview.Line {
+	out := make(tview.Line, len(line))
+	for i, segment := range line {
+		out[i] = segment
+		out[i].Style = out[i].Style.Url(rawURL)
+	}
+	return out
+}
+
+type embedLine struct {
+	Text string
+	Kind embedLineKind
+	URL  string
+}
+
+type embedLineKind uint8
+
+const (
+	// Keep this ordering stable: drawEmbeds indexes precomputed style slots by this enum.
+	embedLineProvider embedLineKind = iota
+	embedLineAuthor
+	embedLineTitle
+	embedLineDescription
+	embedLineFieldName
+	embedLineFieldValue
+	embedLineFooter
+	embedLineURL
+)
+
+func embedLineStyles(baseStyle tcell.Style, theme config.MessagesListEmbedsTheme) [8]tcell.Style {
+	styles := [8]tcell.Style{}
+	styles[embedLineProvider] = ui.MergeStyle(baseStyle, theme.ProviderStyle.Style)
+	styles[embedLineAuthor] = ui.MergeStyle(baseStyle, theme.AuthorStyle.Style)
+	styles[embedLineTitle] = ui.MergeStyle(baseStyle, theme.TitleStyle.Style)
+	styles[embedLineDescription] = ui.MergeStyle(baseStyle, theme.DescriptionStyle.Style)
+	styles[embedLineFieldName] = ui.MergeStyle(baseStyle, theme.FieldNameStyle.Style)
+	styles[embedLineFieldValue] = ui.MergeStyle(baseStyle, theme.FieldValueStyle.Style)
+	styles[embedLineFooter] = ui.MergeStyle(baseStyle, theme.FooterStyle.Style)
+	styles[embedLineURL] = ui.MergeStyle(baseStyle, theme.URLStyle.Style)
+	return styles
+}
+
+type embedLineDedupKey struct {
+	kind embedLineKind
+	text string
+}
+
+func embedLines(embed discord.Embed, contentURLs map[string]struct{}) []embedLine {
+	lines := make([]embedLine, 0, 8)
+	seen := make(map[embedLineDedupKey]struct{}, 8)
+
+	appendUnique := func(s string, kind embedLineKind, rawURL string) {
+		s = strings.TrimSpace(s)
+		if s == "" {
+			return
+		}
+		// Deduplicate by kind+text so the same value can intentionally appear in multiple semantic slots with different styles (e.g. title vs. field).
+		key := embedLineDedupKey{kind: kind, text: s}
+		if _, ok := seen[key]; ok {
+			return
+		}
+		seen[key] = struct{}{}
+		lines = append(lines, embedLine{
+			Text: s,
+			Kind: kind,
+			URL:  rawURL,
+		})
+	}
+
+	appendURL := func(url discord.URL) {
+		u := strings.TrimSpace(string(url))
+		if u == "" {
+			return
+		}
+		// Avoid duplicating links that already appear in message body content.
+		if _, ok := contentURLs[u]; ok {
+			return
+		}
+		appendUnique(linkDisplayText(u), embedLineURL, u)
+	}
+
+	if embed.Provider != nil {
+		appendUnique(embed.Provider.Name, embedLineProvider, "")
+	}
+	if embed.Author != nil {
+		appendUnique(embed.Author.Name, embedLineAuthor, "")
+	}
+	appendUnique(embed.Title, embedLineTitle, string(embed.URL))
+	// Some Discord embeds include markdown-escaped punctuation in raw payload text (e.g. "\."), so normalize for display.
+	appendUnique(unescapeMarkdownEscapes(embed.Description), embedLineDescription, "")
+
+	for _, field := range embed.Fields {
+		switch {
+		case field.Name != "" && field.Value != "":
+			appendUnique(field.Name, embedLineFieldName, "")
+			appendUnique(field.Value, embedLineFieldValue, "")
+		case field.Name != "":
+			appendUnique(field.Name, embedLineFieldName, "")
+		default:
+			appendUnique(field.Value, embedLineFieldValue, "")
+		}
+	}
+
+	if embed.Footer != nil {
+		appendUnique(embed.Footer.Text, embedLineFooter, "")
+	}
+
+	// Prefer media URLs after textual fields so previews read top-to-bottom before jumping to link targets.
+	// When a title exists, embed.URL is represented by title Style.Url metadata instead of a separate URL row.
+	if embed.Title == "" {
+		appendURL(embed.URL)
+	}
+	if embed.Image != nil {
+		appendURL(embed.Image.URL)
+	}
+	if embed.Video != nil {
+		appendURL(embed.Video.URL)
+	}
+
+	return lines
+}
+
+func linkDisplayText(raw string) string {
+	parsed, err := url.Parse(raw)
+	if err != nil || parsed.Host == "" {
+		return raw
+	}
+
+	path := strings.TrimSpace(parsed.EscapedPath())
+	switch {
+	case path == "", path == "/":
+		return parsed.Host
+	case len(path) > 48:
+		return parsed.Host + path[:45] + "..."
+	default:
+		return parsed.Host + path
+	}
+}
+
+func unescapeMarkdownEscapes(s string) string {
+	if !strings.ContainsRune(s, '\\') {
+		return s
+	}
+
+	var b strings.Builder
+	b.Grow(len(s))
+
+	for i := range len(s) {
+		if s[i] == '\\' && i+1 < len(s) && isMarkdownEscapable(s[i+1]) {
+			continue
+		}
+		b.WriteByte(s[i])
+	}
+	return b.String()
+}
+
+func isMarkdownEscapable(c byte) bool {
+	switch c {
+	case '\\', '`', '*', '_', '{', '}', '[', ']', '(', ')', '#', '+', '-', '.', '!', '|', '>', '~':
+		return true
+	default:
+		return false
 	}
 }
 
@@ -528,84 +844,75 @@ func (ml *messagesList) selectedMessage() (*discord.Message, error) {
 	return &ml.messages[cursor], nil
 }
 
-func (ml *messagesList) handleInput(event *tcell.EventKey) *tcell.EventKey {
-	switch {
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ScrollUp.Keybind):
-		ml.ScrollUp()
-		return nil
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ScrollDown.Keybind):
-		ml.ScrollDown()
-		return nil
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ScrollTop.Keybind):
-		ml.ScrollToStart()
-		return nil
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ScrollBottom.Keybind):
-		ml.ScrollToEnd()
-		return nil
+func (ml *messagesList) HandleEvent(event tview.Event) tview.Command {
+	switch event := event.(type) {
+	case *tview.KeyEvent:
+		switch {
+		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Cancel.Keybind):
+			ml.clearSelection()
+			return nil
+		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectUp.Keybind):
+			return ml.selectUp()
+		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectDown.Keybind):
+			ml.selectDown()
+			return nil
+		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectTop.Keybind):
+			ml.selectTop()
+			return nil
+		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectBottom.Keybind):
+			ml.selectBottom()
+			return nil
+		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectReply.Keybind):
+			ml.selectReply()
+			return nil
+		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.YankID.Keybind):
+			return ml.yankMessageID()
+		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.YankContent.Keybind):
+			return ml.yankContent()
+		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.YankURL.Keybind):
+			return ml.yankURL()
+		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Open.Keybind):
+			ml.open()
+			return nil
+		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Reply.Keybind):
+			ml.reply(false)
+			return nil
+		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ReplyMention.Keybind):
+			ml.reply(true)
+			return nil
+		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Edit.Keybind):
+			ml.editSelectedMessage()
+			return nil
+		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Delete.Keybind):
+			return ml.deleteSelectedMessage()
+		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.DeleteConfirm.Keybind):
+			ml.confirmDelete()
+			return nil
+		}
+		return ml.Model.HandleEvent(event)
 
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Cancel.Keybind):
-		ml.clearSelection()
-		return nil
+	case *olderMessagesLoadedEvent:
+		selectedChannel := ml.chatView.SelectedChannel()
+		if selectedChannel == nil || selectedChannel.ID != event.ChannelID {
+			return nil
+		}
 
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectUp.Keybind):
-		ml.selectUp()
-		return nil
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectDown.Keybind):
-		ml.selectDown()
-		return nil
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectTop.Keybind):
-		ml.selectTop()
-		return nil
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectBottom.Keybind):
-		ml.selectBottom()
-		return nil
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectReply.Keybind):
-		ml.selectReply()
-		return nil
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.YankID.Keybind):
-		ml.yankID()
-		return nil
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.YankContent.Keybind):
-		ml.yankContent()
-		return nil
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.YankURL.Keybind):
-		ml.yankURL()
-		return nil
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Open.Keybind):
-		ml.open()
-		return nil
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Reply.Keybind):
-		ml.reply(false)
-		return nil
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.ReplyMention.Keybind):
-		ml.reply(true)
-		return nil
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Edit.Keybind):
-		ml.edit()
-		return nil
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.Delete.Keybind):
-		ml.delete()
-		return nil
-	case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.DeleteConfirm.Keybind):
-		ml.confirmDelete()
+		// Defensive invalidation if Discord returns overlapping windows.
+		for _, message := range event.Older {
+			delete(ml.itemByID, message.ID)
+		}
+		ml.messages = slices.Concat(event.Older, ml.messages)
+		ml.invalidateRows()
+		ml.SetCursor(len(event.Older) - 1)
 		return nil
 	}
-
-	return event
+	return ml.Model.HandleEvent(event)
 }
 
-func (ml *messagesList) InputHandler(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
-	event = ml.handleInput(event)
-	if event == nil {
-		return
-	}
-	ml.List.InputHandler(event, setFocus)
-}
-
-func (ml *messagesList) selectUp() {
+func (ml *messagesList) selectUp() tview.Command {
 	messages := ml.messages
 	if len(messages) == 0 {
-		return
+		return nil
 	}
 
 	cursor := ml.Cursor()
@@ -615,14 +922,11 @@ func (ml *messagesList) selectUp() {
 	case cursor > 0:
 		cursor--
 	case cursor == 0:
-		added := ml.prependOlderMessages()
-		if added == 0 {
-			return
-		}
-		cursor = added - 1
+		return ml.fetchOlderMessages()
 	}
 
 	ml.SetCursor(cursor)
+	return nil
 }
 
 func (ml *messagesList) selectDown() {
@@ -677,69 +981,78 @@ func (ml *messagesList) selectReply() {
 	}
 }
 
-func (ml *messagesList) prependOlderMessages() int {
+func (ml *messagesList) fetchOlderMessages() tview.Command {
 	selectedChannel := ml.chatView.SelectedChannel()
 	if selectedChannel == nil {
-		return 0
+		return nil
 	}
 
 	channelID := selectedChannel.ID
 	before := ml.messages[0].ID
 	limit := uint(ml.cfg.MessagesLimit)
-	messages, err := ml.chatView.state.MessagesBefore(channelID, before, limit)
-	if err != nil {
-		slog.Error("failed to fetch older messages", "err", err)
-		return 0
-	}
-	if len(messages) == 0 {
-		return 0
-	}
+	return func() tview.Event {
+		messages, err := ml.chatView.state.MessagesBefore(channelID, before, limit)
+		if err != nil {
+			slog.Error("failed to fetch older messages", "err", err)
+			return nil
+		}
+		if len(messages) == 0 {
+			return nil
+		}
 
-	if guildID := selectedChannel.GuildID; guildID.IsValid() {
-		ml.requestGuildMembers(guildID, messages)
-	}
+		if guildID := selectedChannel.GuildID; guildID.IsValid() {
+			ml.requestGuildMembers(guildID, messages)
+		}
 
-	older := slices.Clone(messages)
-	slices.Reverse(older)
-
-	// Defensive invalidation if Discord returns overlapping windows.
-	for _, message := range older {
-		delete(ml.itemByID, message.ID)
+		older := slices.Clone(messages)
+		slices.Reverse(older)
+		return newOlderMessagesLoadedEvent(channelID, older)
 	}
-	ml.messages = slices.Concat(older, ml.messages)
-	ml.invalidateRows()
-	ml.MarkDirty()
-	return len(messages)
 }
 
-func (ml *messagesList) yankID() {
+func (ml *messagesList) yankMessageID() tview.Command {
 	msg, err := ml.selectedMessage()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
-		return
+		return nil
 	}
 
-	go clipboard.Write(clipboard.FmtText, []byte(msg.ID.String()))
+	return func() tview.Event {
+		if err := clipboard.Write(clipboard.FmtText, []byte(msg.ID.String())); err != nil {
+			slog.Error("failed to copy message id", "err", err)
+		}
+		return nil
+	}
 }
 
-func (ml *messagesList) yankContent() {
+func (ml *messagesList) yankContent() tview.Command {
 	msg, err := ml.selectedMessage()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
-		return
+		return nil
 	}
 
-	go clipboard.Write(clipboard.FmtText, []byte(msg.Content))
+	return func() tview.Event {
+		if err := clipboard.Write(clipboard.FmtText, []byte(msg.Content)); err != nil {
+			slog.Error("failed to copy message content", "err", err)
+		}
+		return nil
+	}
 }
 
-func (ml *messagesList) yankURL() {
+func (ml *messagesList) yankURL() tview.Command {
 	msg, err := ml.selectedMessage()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
-		return
+		return nil
 	}
 
-	go clipboard.Write(clipboard.FmtText, []byte(msg.URL()))
+	return func() tview.Event {
+		if err := clipboard.Write(clipboard.FmtText, []byte(msg.URL())); err != nil {
+			slog.Error("failed to copy message url", "err", err)
+		}
+		return nil
+	}
 }
 
 func (ml *messagesList) open() {
@@ -749,10 +1062,7 @@ func (ml *messagesList) open() {
 		return
 	}
 
-	var urls []string
-	if msg.Content != "" {
-		urls = extractURLs(msg.Content)
-	}
+	urls := messageURLs(*msg)
 
 	if len(urls) == 0 && len(msg.Attachments) == 0 {
 		return
@@ -797,6 +1107,42 @@ func extractURLs(content string) []string {
 	return urls
 }
 
+func extractEmbedURLs(embeds []discord.Embed) []string {
+	urls := make([]string, 0, len(embeds)*3)
+	for _, embed := range embeds {
+		if embed.URL != "" {
+			urls = append(urls, string(embed.URL))
+		}
+		if embed.Image != nil && embed.Image.URL != "" {
+			urls = append(urls, string(embed.Image.URL))
+		}
+		if embed.Video != nil && embed.Video.URL != "" {
+			urls = append(urls, string(embed.Video.URL))
+		}
+	}
+	return urls
+}
+
+func messageURLs(msg discord.Message) []string {
+	combined := extractURLs(msg.Content)
+	combined = append(combined, extractEmbedURLs(msg.Embeds)...)
+
+	urls := make([]string, 0, len(combined))
+	seen := make(map[string]struct{}, len(combined))
+	for _, u := range combined {
+		u = strings.TrimSpace(u)
+		if u == "" {
+			continue
+		}
+		if _, ok := seen[u]; ok {
+			continue
+		}
+		seen[u] = struct{}{}
+		urls = append(urls, u)
+	}
+	return urls
+}
+
 func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord.Attachment) {
 	var items []attachmentItem
 	for _, a := range attachments {
@@ -824,13 +1170,13 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 
 	ml.chatView.
 		AddLayer(
-			ui.Centered(ml.attachmentsPicker, 0, 0),
-			layers.WithName(attachmentsListLayerName),
+			ui.Centered(ml.attachmentsPicker, ml.cfg.Picker.Width, ml.cfg.Picker.Height),
+			layers.WithName(attachmentsPickerLayerName),
 			layers.WithResize(true),
 			layers.WithVisible(true),
 			layers.WithOverlay(),
 		).
-		SendToFront(attachmentsListLayerName)
+		SendToFront(attachmentsPickerLayerName)
 	ml.chatView.app.SetFocus(ml.attachmentsPicker)
 }
 
@@ -900,7 +1246,7 @@ func (ml *messagesList) reply(mention bool) {
 	ml.chatView.app.SetFocus(ml.chatView.messageInput)
 }
 
-func (ml *messagesList) edit() {
+func (ml *messagesList) editSelectedMessage() {
 	message, err := ml.selectedMessage()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
@@ -922,7 +1268,9 @@ func (ml *messagesList) edit() {
 func (ml *messagesList) confirmDelete() {
 	onChoice := func(choice string) {
 		if choice == "Yes" {
-			ml.delete()
+			if command := ml.deleteSelectedMessage(); command != nil {
+				command()
+			}
 		}
 	}
 
@@ -933,34 +1281,32 @@ func (ml *messagesList) confirmDelete() {
 	)
 }
 
-func (ml *messagesList) delete() {
-	msg, err := ml.selectedMessage()
+func (ml *messagesList) deleteSelectedMessage() tview.Command {
+	selectedMessage, err := ml.selectedMessage()
 	if err != nil {
 		slog.Error("failed to get selected message", "err", err)
-		return
+		return nil
 	}
 
-	if msg.GuildID.IsValid() {
-		me, _ := ml.chatView.state.Cabinet.Me()
-		if msg.Author.ID != me.ID && !ml.chatView.state.HasPermissions(msg.ChannelID, discord.PermissionManageMessages) {
-			slog.Error("failed to delete message; missing relevant permissions", "channel_id", msg.ChannelID, "message_id", msg.ID)
-			return
+	return func() tview.Event {
+		if selectedMessage.GuildID.IsValid() {
+			me, _ := ml.chatView.state.Cabinet.Me()
+			if selectedMessage.Author.ID != me.ID && !ml.chatView.state.HasPermissions(selectedMessage.ChannelID, discord.PermissionManageMessages) {
+				slog.Error("failed to delete message; missing relevant permissions", "channel_id", selectedMessage.ChannelID, "message_id", selectedMessage.ID)
+				return nil
+			}
 		}
-	}
 
-	selected := ml.chatView.SelectedChannel()
-	if selected == nil {
-		return
-	}
+		if err := ml.chatView.state.DeleteMessage(selectedMessage.ChannelID, selectedMessage.ID, ""); err != nil {
+			slog.Error("failed to delete message", "channel_id", selectedMessage.ChannelID, "message_id", selectedMessage.ID, "err", err)
+			return nil
+		}
 
-	if err := ml.chatView.state.DeleteMessage(selected.ID, msg.ID, ""); err != nil {
-		slog.Error("failed to delete message", "channel_id", selected.ID, "message_id", msg.ID, "err", err)
-		return
-	}
-
-	if err := ml.chatView.state.MessageRemove(selected.ID, msg.ID); err != nil {
-		slog.Error("failed to delete message", "channel_id", selected.ID, "message_id", msg.ID, "err", err)
-		return
+		if err := ml.chatView.state.MessageRemove(selectedMessage.ChannelID, selectedMessage.ID); err != nil {
+			slog.Error("failed to delete message", "channel_id", selectedMessage.ChannelID, "message_id", selectedMessage.ID, "err", err)
+			return nil
+		}
+		return nil
 	}
 }
 
@@ -984,7 +1330,7 @@ func (ml *messagesList) requestGuildMembers(guildID discord.GuildID, messages []
 	}
 
 	if len(usersToFetch) > 0 {
-		err := ml.chatView.state.SendGateway(context.TODO(), &gateway.RequestGuildMembersCommand{
+		err := ml.chatView.state.SendGateway(context.Background(), &gateway.RequestGuildMembersCommand{
 			GuildIDs: []discord.GuildID{guildID},
 			UserIDs:  usersToFetch,
 		})
@@ -1056,7 +1402,7 @@ func (ml *messagesList) FullHelp() [][]keybind.Keybind {
 	canOpen := false
 	if msg, err := ml.selectedMessage(); err == nil {
 		canSelectReply = msg.ReferencedMessage != nil
-		canOpen = len(extractURLs(msg.Content)) != 0 || len(msg.Attachments) != 0
+		canOpen = len(messageURLs(*msg)) != 0 || len(msg.Attachments) != 0
 
 		me, _ := ml.chatView.state.Cabinet.Me()
 		canReply = msg.Author.ID != me.ID
