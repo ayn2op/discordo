@@ -15,7 +15,7 @@ import (
 	"github.com/diamondburned/ningen/v3"
 )
 
-func Notify(state *ningen.State, message *gateway.MessageCreateEvent, cfg *config.Config) error {
+func Notify(state *ningen.State, message gateway.MessageCreateEvent, cfg *config.Config) error {
 	if !cfg.Notifications.Enabled || cfg.Status == discord.DoNotDisturbStatus {
 		return nil
 	}
