@@ -11,7 +11,7 @@ require (
 	github.com/alecthomas/chroma/v2 v2.23.1
 	github.com/andybalholm/brotli v1.2.0
 	github.com/ayn2op/clipboard v0.0.0-20260308203959-c5ad7df3fc97
-	github.com/ayn2op/tview v0.0.0-20260318094340-298d0ba151a8
+	github.com/ayn2op/tview v0.0.0-20260320054125-de17d441f27e
 	github.com/deckarep/gosx-notifier v0.0.0-20180201035817-e127226297fb
 	github.com/diamondburned/arikawa/v3 v3.6.1-0.20260311205148-176ad9b9440f
 	github.com/diamondburned/ningen/v3 v3.0.1-0.20260306213430-5a08d3a709b4
@@ -26,7 +26,7 @@ require (
 	github.com/sahilm/fuzzy v0.1.1
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
-	github.com/yuin/goldmark v1.7.16
+	github.com/yuin/goldmark v1.7.17
 	github.com/zalando/go-keyring v0.2.6
 )
 
