@@ -29,7 +29,7 @@ func (m *Model) onRaw(event *ws.RawEvent) {
 	)
 }
 
-func (m *Model) onReady(event *gateway.ReadyEvent) {
+func (m *Model) onReady(event *gateway.ReadyEvent) tview.Command {
 	// Rebuild indexes from scratch so reconnects and account switches do not
 	// retain pointers to detached tree nodes.
 	m.guildsTree.resetNodeIndex()
@@ -92,7 +92,7 @@ func (m *Model) onReady(event *gateway.ReadyEvent) {
 	}
 
 	m.guildsTree.SetCurrentNode(root)
-	m.app.SetFocus(m.guildsTree)
+	return tview.SetFocus(m.guildsTree)
 }
 
 func (m *Model) onMessageCreate(message *gateway.MessageCreateEvent) {
