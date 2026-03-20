@@ -1170,7 +1170,7 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 
 	ml.chatView.
 		AddLayer(
-			ui.Centered(ml.attachmentsPicker, 0, 0),
+			ui.Centered(ml.attachmentsPicker, ml.cfg.Picker.Width, ml.cfg.Picker.Height),
 			layers.WithName(attachmentsListLayerName),
 			layers.WithResize(true),
 			layers.WithVisible(true),
