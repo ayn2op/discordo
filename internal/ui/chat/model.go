@@ -257,7 +257,7 @@ func (m *Model) HandleEvent(event tview.Event) tview.Command {
 			return tview.Batch(m.onReady(event), m.listen())
 
 		case *gateway.MessageCreateEvent:
-			m.onMessageCreate(event)
+			return tview.Batch(m.onMessageCreate(event), m.listen())
 		case *gateway.MessageUpdateEvent:
 			m.onMessageUpdate(event)
 		case *gateway.MessageDeleteEvent:

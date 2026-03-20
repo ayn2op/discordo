@@ -11,6 +11,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/httputil/httpdriver"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/diamondburned/ningen/v3/states/read"
+	"github.com/gdamore/tcell/v3"
 )
 
 func (m *Model) onRequest(r httpdriver.Request) error {
@@ -95,15 +96,24 @@ func (m *Model) onReady(event *gateway.ReadyEvent) tview.Command {
 	return tview.SetFocus(m.guildsTree)
 }
 
-func (m *Model) onMessageCreate(message *gateway.MessageCreateEvent) {
+func (m *Model) onMessageCreate(message *gateway.MessageCreateEvent) tview.Command {
 	selectedChannel := m.SelectedChannel()
 	if selectedChannel != nil && selectedChannel.ID == message.ChannelID {
 		m.removeTyper(message.Author.ID)
 		m.messagesList.addMessage(message.Message)
-	} else {
+		return nil
+	}
+
+	return m.notify(*message)
+}
+
+func (m *Model) notify(message gateway.MessageCreateEvent) tview.Command {
+	return func() tview.Event {
 		if err := notifications.Notify(m.state, message, m.cfg); err != nil {
 			slog.Error("failed to notify", "err", err, "channel_id", message.ChannelID, "message_id", message.ID)
+			return tcell.NewEventError(err)
 		}
+		return nil
 	}
 }
 
