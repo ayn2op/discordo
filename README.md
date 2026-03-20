@@ -98,9 +98,9 @@ Use `-log-path` to change the path, and `-log-level` (`debug`, `info`, `warn`, o
 > [!IMPORTANT]
 > It is a requirement to have docker installed, as we rely on a docker image of `goreleaser-cross` to enable cross comp.
 
-GoReleaser requires that semver tag is make and/or pushed to remote to fully work. Tag can either be `vx.x.x` or `x.x.x`
+GoReleaser requires that SemVer tag is made and/or pushed to remote to fully work. Tag can either be `vx.x.x` or `x.x.x`
 
-To test GoReleaser you can run `make release-dry-run`. This still requires a tag to be present that follows semver. This command is the best to test changes to the go-releaser config file
+To test GoReleaser you can run `make release-dry-run`. This still requires a tag to be present that follows SemVer. This command is the best to test changes to the go-releaser config file
 
 The workflow file named `go-releaser.yml` will run `make release` when a tag has been pushed to remote and it will upload the built artifacts which are `zip` and `tar.gz` files.
 
