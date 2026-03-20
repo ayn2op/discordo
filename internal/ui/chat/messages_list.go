@@ -1171,12 +1171,12 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 	ml.chatView.
 		AddLayer(
 			ui.Centered(ml.attachmentsPicker, ml.cfg.Picker.Width, ml.cfg.Picker.Height),
-			layers.WithName(attachmentsListLayerName),
+			layers.WithName(attachmentsPickerLayerName),
 			layers.WithResize(true),
 			layers.WithVisible(true),
 			layers.WithOverlay(),
 		).
-		SendToFront(attachmentsListLayerName)
+		SendToFront(attachmentsPickerLayerName)
 	ml.chatView.app.SetFocus(ml.attachmentsPicker)
 }
 

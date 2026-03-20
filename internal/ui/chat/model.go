@@ -29,11 +29,12 @@ import (
 const typingDuration = 10 * time.Second
 
 const (
-	flexLayerName            = "flex"
-	mentionsListLayerName    = "mentionsList"
-	attachmentsListLayerName = "attachmentsList"
-	confirmModalLayerName    = "confirmModal"
-	channelsPickerLayerName  = "channelsPicker"
+	flexLayerName         = "flex"
+	mentionsListLayerName = "mentionsList"
+	confirmModalLayerName = "confirmModal"
+
+	channelsPickerLayerName    = "channelsPicker"
+	attachmentsPickerLayerName = "attachmentsPicker"
 )
 
 type Model struct {
