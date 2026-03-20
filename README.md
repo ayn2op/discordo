@@ -78,7 +78,7 @@ Discordo uses the default configuration if a configuration file is not found in 
 > [!IMPORTANT]
 > It is a requirement to have docker installed, as we rely on a docker image of `goreleaser-cross` to enable cross comp.
 
-GoReleaser requires that SemVer tag is made and/or pushed to remote to fully work. Tag can either be `vx.x.x` or `x.x.x`
+GoReleaser requires that a SemVer tag is made and/or pushed to remote to fully work. Tag can either be `vx.x.x` or `x.x.x`
 
 To test GoReleaser you can run `make release-dry-run`. This still requires a tag to be present that follows SemVer. This command is the best to test changes to the go-releaser config file
 
