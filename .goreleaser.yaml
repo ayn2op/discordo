@@ -18,44 +18,44 @@ builds:
 
   - id: discordo-linux
     goos: [linux]
-    goarch: [amd64]
-    env:
-      - CGO_ENABLED=1
-      - CC=x86_64-linux-gnu-gcc
-      - CXX=x86_64-linux-gnu-g++
-
-  - id: discordo-linux-arm64
-    goos: [linux]
-    goarch: [arm64]
-    env:
-      - CGO_ENABLED=1
-      - CC=aarch64-linux-gnu-gcc
-      - CXX=aarch64-linux-gnu-g++
-
-  - id: discordo-linux-armv7
-    goos: [linux]
-    goarch: [arm]
+    goarch: [amd64, arm64, arm]
     goarm: ["7"]
     env:
       - CGO_ENABLED=1
-      - CC=arm-linux-gnueabihf-gcc
-      - CXX=arm-linux-gnueabihf-g++
+    overrides:
+      - goarch: amd64
+        goos: linux
+        env:
+          - CC=x86_64-linux-gnu-gcc
+          - CXX=x86_64-linux-gnu-g++
+      - goarch: arm64
+        goos: linux
+        env:
+          - CC=aarch64-linux-gnu-gcc
+          - CXX=aarch64-linux-gnu-g++
+      - goarch: arm
+        goos: linux
+        goarm: "7"
+        env:
+          - CC=arm-linux-gnueabihf-gcc
+          - CXX=arm-linux-gnueabihf-g++
 
-  - id: discordo-darwin-amd64
+  - id: discordo-darwin
     goos: [darwin]
-    goarch: [amd64]
+    goarch: [amd64, arm64]
     env:
       - CGO_ENABLED=1
-      - CC=o64-clang
-      - CXX=o64-clang++
-
-  - id: discordo-darwin-arm64
-    goos: [darwin]
-    goarch: [arm64]
-    env:
-      - CGO_ENABLED=1
-      - CC=oa64-clang
-      - CXX=oa64-clang++
+    overrides:
+      - goos: darwin
+        goarch: amd64
+        env:
+          - CC=o64-clang
+          - CXX=o64-clang++
+      - goarch: arm64
+        goos: darwin
+        env:
+          - CC=oa64-clang
+          - CXX=oa64-clang++
 
 archives:
   - formats: ["zip", "tar.gz"]
