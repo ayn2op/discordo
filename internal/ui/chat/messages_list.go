@@ -896,6 +896,7 @@ func (ml *messagesList) HandleEvent(event tview.Event) tview.Command {
 		if selectedChannel == nil || selectedChannel.ID != event.ChannelID {
 			return nil
 		}
+		prevCursor := ml.Cursor()
 
 		// Defensive invalidation if Discord returns overlapping windows.
 		for _, message := range event.Older {
@@ -903,7 +904,17 @@ func (ml *messagesList) HandleEvent(event tview.Event) tview.Command {
 		}
 		ml.messages = slices.Concat(event.Older, ml.messages)
 		ml.invalidateRows()
-		ml.SetCursor(len(event.Older) - 1)
+
+		switch {
+		case prevCursor == 0:
+			// Preserve "SelectUp at top" semantics: move to the next older message.
+			ml.SetCursor(len(event.Older) - 1)
+		case prevCursor > 0:
+			// Keep selection on the same message after prepend shifts indexes.
+			ml.SetCursor(prevCursor + len(event.Older))
+		default:
+			ml.SetCursor(prevCursor)
+		}
 		return nil
 	}
 	return ml.Model.HandleEvent(event)
