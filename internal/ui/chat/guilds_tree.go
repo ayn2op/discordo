@@ -277,10 +277,10 @@ func (gt *guildsTree) createChannelNodes(node *tview.TreeNode, channels []discor
 	}
 }
 
-func (gt *guildsTree) onSelected(node *tview.TreeNode) {
+func (gt *guildsTree) onSelected(node *tview.TreeNode) tview.Command {
 	if len(node.GetChildren()) != 0 {
 		node.SetExpanded(!node.IsExpanded())
-		return
+		return nil
 	}
 
 	switch ref := node.GetReference().(type) {
@@ -290,17 +290,18 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 		channels, err := gt.chat.state.Cabinet.Channels(ref)
 		if err != nil {
 			slog.Error("failed to get channels", "err", err, "guild_id", ref)
-			return
+			return nil
 		}
 
 		ui.SortGuildChannels(channels)
 		gt.createChannelNodes(node, channels)
 		node.Expand()
+		return nil
 	case discord.ChannelID:
 		channel, err := gt.chat.state.Cabinet.Channel(ref)
 		if err != nil {
 			slog.Error("failed to get channel from state", "err", err, "channel_id", ref)
-			return
+			return nil
 		}
 
 		// Handle forum channels differently - they contain threads, not direct messages
@@ -309,7 +310,7 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 			allChannels, err := gt.chat.state.Cabinet.Channels(channel.GuildID)
 			if err != nil {
 				slog.Error("failed to get channels for forum threads", "err", err, "guild_id", channel.GuildID)
-				return
+				return nil
 			}
 
 			// Filter for threads that belong to this forum channel
@@ -327,14 +328,34 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 				gt.createChannelNode(node, thread)
 			}
 			node.Expand()
-			return
+			return nil
 		}
 
-		limit := gt.cfg.MessagesLimit
-		messages, err := gt.chat.state.Messages(channel.ID, uint(limit))
+		return gt.loadChannel(*channel)
+	case dmNode: // Direct messages folder
+		channels, err := gt.chat.state.PrivateChannels()
+		if err != nil {
+			slog.Error("failed to get private channels", "err", err)
+			return nil
+		}
+
+		ui.SortPrivateChannels(channels)
+		for _, c := range channels {
+			gt.createChannelNode(node, c)
+		}
+		node.Expand()
+		return nil
+	}
+	return nil
+}
+
+func (gt *guildsTree) loadChannel(channel discord.Channel) tview.Command {
+	limit := uint(gt.cfg.MessagesLimit)
+	return func() tview.Event {
+		messages, err := gt.chat.state.Messages(channel.ID, limit)
 		if err != nil {
 			slog.Error("failed to get messages", "err", err, "channel_id", channel.ID, "limit", limit)
-			return
+			return nil
 		}
 
 		go gt.chat.state.ReadState.MarkRead(channel.ID, channel.LastMessageID)
@@ -343,39 +364,7 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) {
 			gt.chat.messagesList.requestGuildMembers(guildID, messages)
 		}
 
-		gt.chat.SetSelectedChannel(channel)
-		gt.chat.clearTypers()
-		gt.chat.messageInput.stopTypingTimer()
-
-		gt.chat.messagesList.reset()
-		gt.chat.messagesList.setTitle(*channel)
-		gt.chat.messagesList.setMessages(messages)
-		gt.chat.messagesList.ScrollBottom()
-
-		hasNoPerm := channel.Type != discord.DirectMessage && channel.Type != discord.GroupDM && !gt.chat.state.HasPermissions(channel.ID, discord.PermissionSendMessages)
-		gt.chat.messageInput.SetDisabled(hasNoPerm)
-		var text string
-		if hasNoPerm {
-			text = "You do not have permission to send messages in this channel."
-		} else {
-			text = "Message..."
-			if gt.cfg.AutoFocus {
-				gt.chat.app.SetFocus(gt.chat.messageInput)
-			}
-		}
-		gt.chat.messageInput.SetPlaceholder(tview.NewLine(tview.NewSegment(text, tcell.StyleDefault.Dim(true))))
-	case dmNode: // Direct messages folder
-		channels, err := gt.chat.state.PrivateChannels()
-		if err != nil {
-			slog.Error("failed to get private channels", "err", err)
-			return
-		}
-
-		ui.SortPrivateChannels(channels)
-		for _, c := range channels {
-			gt.createChannelNode(node, c)
-		}
-		node.Expand()
+		return newChannelLoadedEvent(channel, messages)
 	}
 }
 
@@ -396,8 +385,7 @@ func (gt *guildsTree) collapseParentNode(node *tview.TreeNode) {
 func (gt *guildsTree) HandleEvent(event tview.Event) tview.Command {
 	switch event := event.(type) {
 	case *tview.TreeViewSelectedEvent:
-		gt.onSelected(event.Node)
-		return nil
+		return gt.onSelected(event.Node)
 	case *tview.KeyEvent:
 		handler := gt.TreeView.HandleEvent
 

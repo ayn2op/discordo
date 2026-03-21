@@ -7,12 +7,20 @@ import (
 	"time"
 
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/http"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/flex"
 	"github.com/ayn2op/tview/keybind"
 	"github.com/ayn2op/tview/layers"
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/arikawa/v3/session"
+	"github.com/diamondburned/arikawa/v3/state"
+	"github.com/diamondburned/arikawa/v3/state/store/defaultstore"
+	"github.com/diamondburned/arikawa/v3/utils/handler"
+	"github.com/diamondburned/arikawa/v3/utils/httputil"
+	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/diamondburned/ningen/v3"
 	"github.com/diamondburned/ningen/v3/states/read"
 	"github.com/gdamore/tcell/v3"
@@ -21,11 +29,12 @@ import (
 const typingDuration = 10 * time.Second
 
 const (
-	flexLayerName            = "flex"
-	mentionsListLayerName    = "mentionsList"
-	attachmentsListLayerName = "attachmentsList"
-	confirmModalLayerName    = "confirmModal"
-	channelsPickerLayerName  = "channelsPicker"
+	flexLayerName         = "flex"
+	mentionsListLayerName = "mentionsList"
+	confirmModalLayerName = "confirmModal"
+
+	channelsPickerLayerName    = "channelsPicker"
+	attachmentsPickerLayerName = "attachmentsPicker"
 )
 
 type Model struct {
@@ -44,16 +53,17 @@ type Model struct {
 	selectedChannel   *discord.Channel
 	selectedChannelMu sync.RWMutex
 
-	typersMu sync.RWMutex
-	typers   map[discord.UserID]*time.Timer
-
 	confirmModalDone          func(label string)
 	confirmModalPreviousFocus tview.Model
 
-	app   *tview.Application
-	cfg   *config.Config
-	state *ningen.State
-	token string
+	state  *ningen.State
+	events chan gateway.Event
+
+	typersMu sync.RWMutex
+	typers   map[discord.UserID]*time.Timer
+
+	app *tview.Application
+	cfg *config.Config
 }
 
 func NewModel(app *tview.Application, cfg *config.Config, token string) *Model {
@@ -65,15 +75,34 @@ func NewModel(app *tview.Application, cfg *config.Config, token string) *Model {
 
 		typers: make(map[discord.UserID]*time.Timer),
 
-		app:   app,
-		cfg:   cfg,
-		token: token,
+		app: app,
+		cfg: cfg,
 	}
 
 	m.guildsTree = newGuildsTree(cfg, m)
 	m.messagesList = newMessagesList(cfg, m)
 	m.messageInput = newMessageInput(cfg, m)
 	m.channelsPicker = newChannelsPicker(cfg, m)
+
+	identifyProps := http.IdentifyProperties()
+	gateway.DefaultIdentity = identifyProps
+	gateway.DefaultPresence = &gateway.UpdatePresenceCommand{
+		Status: m.cfg.Status,
+	}
+
+	id := gateway.DefaultIdentifier(token)
+	id.Compress = false
+
+	session := session.NewCustom(id, http.NewClient(token), handler.New())
+	state := state.NewFromSession(session, defaultstore.New())
+	m.state = ningen.FromState(state)
+
+	m.events = make(chan gateway.Event)
+	m.state.AddHandler(m.events)
+	m.state.StateLog = func(err error) {
+		slog.Error("state log", "err", err)
+	}
+	m.state.OnRequest = append(m.state.OnRequest, httputil.WithHeaders(http.Headers()), m.onRequest)
 
 	m.SetBackgroundLayerStyle(m.cfg.Theme.Dialog.BackgroundStyle.Style)
 	m.buildLayout()
@@ -219,13 +248,67 @@ func (m *Model) focusNext() tview.Command {
 func (m *Model) HandleEvent(event tview.Event) tview.Command {
 	switch event := event.(type) {
 	case *tview.InitEvent:
-		return func() tview.Event {
-			if err := m.OpenState(m.token); err != nil {
-				slog.Error("failed to open chat state", "err", err)
-				return tcell.NewEventError(err)
+		return tview.Batch(m.openState(), m.listen())
+	case *gatewayEvent:
+		switch event := event.Event.(type) {
+		case *ws.RawEvent:
+			m.onRaw(event)
+
+		case *gateway.ReadyEvent:
+			return tview.Batch(m.onReady(event), m.listen())
+
+		case *gateway.MessageCreateEvent:
+			return tview.Batch(m.onMessageCreate(event), m.listen())
+		case *gateway.MessageUpdateEvent:
+			m.onMessageUpdate(event)
+		case *gateway.MessageDeleteEvent:
+			m.onMessageDelete(event)
+
+		case *gateway.GuildMembersChunkEvent:
+			m.onGuildMembersChunk(event)
+		case *gateway.GuildMemberRemoveEvent:
+			m.onGuildMemberRemove(event)
+
+		case *gateway.TypingStartEvent:
+			if m.cfg.TypingIndicator.Receive {
+				m.onTypingStart(event)
 			}
+
+		case *read.UpdateEvent:
+			m.onReadUpdate(event)
+		}
+		return m.listen()
+	case *channelLoadedEvent:
+		node := m.guildsTree.GetCurrentNode()
+		if node == nil {
 			return nil
 		}
+		channelID, ok := node.GetReference().(discord.ChannelID)
+		if !ok || channelID != event.Channel.ID {
+			return nil
+		}
+
+		m.SetSelectedChannel(&event.Channel)
+		m.clearTypers()
+		m.messageInput.stopTypingTimer()
+
+		m.messagesList.reset()
+		m.messagesList.setTitle(event.Channel)
+		m.messagesList.setMessages(event.Messages)
+		m.messagesList.ScrollBottom()
+
+		hasNoPerm := event.Channel.Type != discord.DirectMessage && event.Channel.Type != discord.GroupDM && !m.state.HasPermissions(event.Channel.ID, discord.PermissionSendMessages)
+		m.messageInput.SetDisabled(hasNoPerm)
+		text := "Message..."
+
+		var focusCommand tview.Command
+		if hasNoPerm {
+			text = "You do not have permission to send messages in this channel."
+		} else if m.cfg.AutoFocus {
+			focusCommand = m.focusMessageInput()
+		}
+		m.messageInput.SetPlaceholder(tview.NewLine(tview.NewSegment(text, tcell.StyleDefault.Dim(true))))
+		return focusCommand
 	case *QuitEvent:
 		return tview.Batch(
 			m.closeState(),
@@ -296,24 +379,6 @@ func (m *Model) showConfirmModal(prompt string, buttons []string, onDone func(la
 			layers.WithOverlay(),
 		).
 		SendToFront(confirmModalLayerName)
-}
-
-func (m *Model) onReadUpdate(event *read.UpdateEvent) {
-	m.app.QueueUpdateDraw(func() {
-		// Use indexed node lookup to avoid walking the whole tree on every read
-		// event. This runs frequently while reading/typing across channels.
-		if event.GuildID.IsValid() {
-			if guildNode := m.guildsTree.findNodeByReference(event.GuildID); guildNode != nil {
-				m.guildsTree.setNodeLineStyle(guildNode, m.guildsTree.getGuildNodeStyle(event.GuildID))
-			}
-		}
-
-		// Channel style is always updated for the target channel regardless of
-		// whether it's in a guild or DM.
-		if channelNode := m.guildsTree.findNodeByReference(event.ChannelID); channelNode != nil {
-			m.guildsTree.setNodeLineStyle(channelNode, m.guildsTree.getChannelNodeStyle(event.ChannelID))
-		}
-	})
 }
 
 func (m *Model) clearTypers() {
@@ -403,5 +468,5 @@ func (m *Model) updateFooter() {
 		}
 	}
 
-	go m.app.QueueUpdateDraw(func() { m.messagesList.SetFooter(footer) })
+	m.messagesList.SetFooter(footer)
 }

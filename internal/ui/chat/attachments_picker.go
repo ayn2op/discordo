@@ -46,7 +46,7 @@ func (ap *attachmentsPicker) SetItems(items []attachmentItem) {
 }
 
 func (ap *attachmentsPicker) close() {
-	ap.chatView.RemoveLayer(attachmentsListLayerName)
+	ap.chatView.RemoveLayer(attachmentsPickerLayerName)
 	ap.chatView.app.SetFocus(ap.chatView.messagesList)
 }
 

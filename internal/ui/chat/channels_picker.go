@@ -48,12 +48,12 @@ func (cp *channelsPicker) HandleEvent(event tview.Event) tview.Command {
 
 		cp.chatView.guildsTree.expandPathToNode(node)
 		cp.chatView.guildsTree.SetCurrentNode(node)
+		var selectCmd tview.Command
 		if channel.Type != discord.GuildCategory {
-			cp.chatView.guildsTree.onSelected(node)
+			selectCmd = cp.chatView.guildsTree.onSelected(node)
 		}
 		cp.chatView.closePicker()
-		cp.chatView.focusMessageInput()
-		return nil
+		return selectCmd
 	case *picker.CancelEvent:
 		cp.chatView.closePicker()
 		return nil

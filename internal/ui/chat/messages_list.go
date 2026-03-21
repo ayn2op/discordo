@@ -979,8 +979,7 @@ func (ml *messagesList) HandleEvent(event tview.Event) tview.Command {
 			ml.clearSelection()
 			return nil
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectUp.Keybind):
-			ml.selectUp()
-			return nil
+			return ml.selectUp()
 		case keybind.Matches(event, ml.cfg.Keybinds.MessagesList.SelectDown.Keybind):
 			ml.selectDown()
 			return nil
@@ -1018,14 +1017,29 @@ func (ml *messagesList) HandleEvent(event tview.Event) tview.Command {
 			return nil
 		}
 		return ml.Model.HandleEvent(event)
+
+	case *olderMessagesLoadedEvent:
+		selectedChannel := ml.chatView.SelectedChannel()
+		if selectedChannel == nil || selectedChannel.ID != event.ChannelID {
+			return nil
+		}
+
+		// Defensive invalidation if Discord returns overlapping windows.
+		for _, message := range event.Older {
+			delete(ml.itemByID, message.ID)
+		}
+		ml.messages = slices.Concat(event.Older, ml.messages)
+		ml.invalidateRows()
+		ml.SetCursor(len(event.Older) - 1)
+		return nil
 	}
 	return ml.Model.HandleEvent(event)
 }
 
-func (ml *messagesList) selectUp() {
+func (ml *messagesList) selectUp() tview.Command {
 	messages := ml.messages
 	if len(messages) == 0 {
-		return
+		return nil
 	}
 
 	cursor := ml.Cursor()
@@ -1035,14 +1049,11 @@ func (ml *messagesList) selectUp() {
 	case cursor > 0:
 		cursor--
 	case cursor == 0:
-		added := ml.prependOlderMessages()
-		if added == 0 {
-			return
-		}
-		cursor = added - 1
+		return ml.fetchOlderMessages()
 	}
 
 	ml.SetCursor(cursor)
+	return nil
 }
 
 func (ml *messagesList) selectDown() {
@@ -1097,38 +1108,33 @@ func (ml *messagesList) selectReply() {
 	}
 }
 
-func (ml *messagesList) prependOlderMessages() int {
+func (ml *messagesList) fetchOlderMessages() tview.Command {
 	selectedChannel := ml.chatView.SelectedChannel()
 	if selectedChannel == nil {
-		return 0
+		return nil
 	}
 
 	channelID := selectedChannel.ID
 	before := ml.messages[0].ID
 	limit := uint(ml.cfg.MessagesLimit)
-	messages, err := ml.chatView.state.MessagesBefore(channelID, before, limit)
-	if err != nil {
-		slog.Error("failed to fetch older messages", "err", err)
-		return 0
-	}
-	if len(messages) == 0 {
-		return 0
-	}
+	return func() tview.Event {
+		messages, err := ml.chatView.state.MessagesBefore(channelID, before, limit)
+		if err != nil {
+			slog.Error("failed to fetch older messages", "err", err)
+			return nil
+		}
+		if len(messages) == 0 {
+			return nil
+		}
 
-	if guildID := selectedChannel.GuildID; guildID.IsValid() {
-		ml.requestGuildMembers(guildID, messages)
-	}
+		if guildID := selectedChannel.GuildID; guildID.IsValid() {
+			ml.requestGuildMembers(guildID, messages)
+		}
 
-	older := slices.Clone(messages)
-	slices.Reverse(older)
-
-	// Defensive invalidation if Discord returns overlapping windows.
-	for _, message := range older {
-		delete(ml.itemByID, message.ID)
+		older := slices.Clone(messages)
+		slices.Reverse(older)
+		return newOlderMessagesLoadedEvent(channelID, older)
 	}
-	ml.messages = slices.Concat(older, ml.messages)
-	ml.invalidateRows()
-	return len(messages)
 }
 
 func (ml *messagesList) yankMessageID() tview.Command {
@@ -1291,13 +1297,13 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 
 	ml.chatView.
 		AddLayer(
-			ui.Centered(ml.attachmentsPicker, 0, 0),
-			layers.WithName(attachmentsListLayerName),
+			ui.Centered(ml.attachmentsPicker, ml.cfg.Picker.Width, ml.cfg.Picker.Height),
+			layers.WithName(attachmentsPickerLayerName),
 			layers.WithResize(true),
 			layers.WithVisible(true),
 			layers.WithOverlay(),
 		).
-		SendToFront(attachmentsListLayerName)
+		SendToFront(attachmentsPickerLayerName)
 	ml.chatView.app.SetFocus(ml.attachmentsPicker)
 }
 
