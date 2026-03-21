@@ -1,0 +1,61 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# NOTE: if this is not here LSPs will complain about missing version
+# (only relevant for goreleaser, does not impact actual version tags)
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: discordo-win
+    goos: [windows]
+    goarch: [amd64]
+    env:
+      - CGO_ENABLED=1
+      - CC=x86_64-w64-mingw32-gcc
+      - CXX=x86_64-w64-mingw32-g++
+
+  - id: discordo-linux
+    goos: [linux]
+    goarch: [amd64, arm64, arm]
+    goarm: ["7"]
+    env:
+      - CGO_ENABLED=1
+    overrides:
+      - goarch: amd64
+        goos: linux
+        env:
+          - CC=x86_64-linux-gnu-gcc
+          - CXX=x86_64-linux-gnu-g++
+      - goarch: arm64
+        goos: linux
+        env:
+          - CC=aarch64-linux-gnu-gcc
+          - CXX=aarch64-linux-gnu-g++
+      - goarch: arm
+        goos: linux
+        goarm: "7"
+        env:
+          - CC=arm-linux-gnueabihf-gcc
+          - CXX=arm-linux-gnueabihf-g++
+
+  - id: discordo-darwin
+    goos: [darwin]
+    goarch: [amd64, arm64]
+    env:
+      - CGO_ENABLED=1
+    overrides:
+      - goos: darwin
+        goarch: amd64
+        env:
+          - CC=o64-clang
+          - CXX=o64-clang++
+      - goarch: arm64
+        goos: darwin
+        env:
+          - CC=oa64-clang
+          - CXX=oa64-clang++
+
+archives:
+  - formats: ["zip", "tar.gz"]
