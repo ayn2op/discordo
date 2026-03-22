@@ -30,10 +30,6 @@ func (m *Model) activeKeyMap() help.KeyMap {
 		return m.channelsPicker
 	}
 
-	if m.app == nil {
-		return nil
-	}
-
 	switch m.app.Focused() {
 	case m.guildsTree:
 		return m.guildsTree
