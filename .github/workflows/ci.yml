@@ -28,6 +28,9 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt install libx11-dev
 
+      - name: Generate
+        run: go generate ./...
+
       - name: Test
         run: go test -v ./...
 
