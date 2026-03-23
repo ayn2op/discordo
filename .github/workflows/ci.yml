@@ -30,10 +30,8 @@ jobs:
 
       - name: Generate
         run: go generate ./...
-
       - name: Test
         run: go test -v ./...
-
       - name: Build
         run: go build -trimpath -ldflags=-s .
 
