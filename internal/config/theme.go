@@ -10,9 +10,9 @@ import (
 
 var errInvalidType = errors.New("invalid type")
 
-type AlignmentWrapper struct{ tview.Alignment }
+type Alignment struct{ tview.Alignment }
 
-func (aw *AlignmentWrapper) UnmarshalTOML(v any) error {
+func (a *Alignment) UnmarshalTOML(v any) error {
 	s, ok := v.(string)
 	if !ok {
 		return errInvalidType
@@ -20,68 +20,68 @@ func (aw *AlignmentWrapper) UnmarshalTOML(v any) error {
 
 	switch s {
 	case "left":
-		aw.Alignment = tview.AlignmentLeft
+		a.Alignment = tview.AlignmentLeft
 	case "center":
-		aw.Alignment = tview.AlignmentCenter
+		a.Alignment = tview.AlignmentCenter
 	case "right":
-		aw.Alignment = tview.AlignmentRight
+		a.Alignment = tview.AlignmentRight
 	}
 
 	return nil
 }
 
-type StyleWrapper struct{ tcell.Style }
+type Style struct{ tcell.Style }
 
-func (sw *StyleWrapper) UnmarshalTOML(v any) error {
-	m, ok := v.(map[string]any)
+func (s *Style) UnmarshalTOML(value any) error {
+	m, ok := value.(map[string]any)
 	if !ok {
 		return errInvalidType
 	}
 
 	// Reset on new styles
-	sw.Style = tcell.StyleDefault
+	s.Style = tcell.StyleDefault
 
 	for key, val := range m {
 		switch key {
 		case "foreground":
-			if s, ok := val.(string); ok {
-				sw.Style = sw.Foreground(tcell.GetColor(s))
+			if str, ok := val.(string); ok {
+				s.Style = s.Foreground(tcell.GetColor(str))
 			}
 		case "background":
-			if s, ok := val.(string); ok {
-				sw.Style = sw.Background(tcell.GetColor(s))
+			if str, ok := val.(string); ok {
+				s.Style = s.Background(tcell.GetColor(str))
 			}
 		case "attributes":
 			switch val := val.(type) {
 			case string:
-				sw.parseAttr(val)
+				s.parseAttr(val)
 			case []any:
 				for _, attr := range val {
-					if s, ok := attr.(string); ok {
-						sw.parseAttr(s)
+					if str, ok := attr.(string); ok {
+						s.parseAttr(str)
 					}
 				}
 			}
 		case "underline":
-			if s, ok := val.(string); ok {
-				switch s {
+			if str, ok := val.(string); ok {
+				switch str {
 				case "":
-					sw.Style = sw.Underline(tcell.UnderlineStyleNone)
+					s.Style = s.Underline(tcell.UnderlineStyleNone)
 				case "solid":
-					sw.Style = sw.Underline(tcell.UnderlineStyleSolid)
+					s.Style = s.Underline(tcell.UnderlineStyleSolid)
 				case "double":
-					sw.Style = sw.Underline(tcell.UnderlineStyleDouble)
+					s.Style = s.Underline(tcell.UnderlineStyleDouble)
 				case "curly":
-					sw.Style = sw.Underline(tcell.UnderlineStyleCurly)
+					s.Style = s.Underline(tcell.UnderlineStyleCurly)
 				case "dotted":
-					sw.Style = sw.Underline(tcell.UnderlineStyleDotted)
+					s.Style = s.Underline(tcell.UnderlineStyleDotted)
 				case "dashed":
-					sw.Style = sw.Underline(tcell.UnderlineStyleDashed)
+					s.Style = s.Underline(tcell.UnderlineStyleDashed)
 				}
 			}
 		case "underline_color":
-			if s, ok := val.(string); ok {
-				sw.Style = sw.Underline(tcell.GetColor(s))
+			if str, ok := val.(string); ok {
+				s.Style = s.Underline(tcell.GetColor(str))
 			}
 		}
 	}
@@ -89,7 +89,7 @@ func (sw *StyleWrapper) UnmarshalTOML(v any) error {
 	return nil
 }
 
-func (sw *StyleWrapper) parseAttr(s string) {
+func (sw *Style) parseAttr(s string) {
 	switch s {
 	case "underline":
 		sw.Style = sw.Underline(true)
@@ -108,9 +108,9 @@ func (sw *StyleWrapper) parseAttr(s string) {
 	}
 }
 
-type BorderSetWrapper struct{ tview.BorderSet }
+type BorderSet struct{ tview.BorderSet }
 
-func (bw *BorderSetWrapper) UnmarshalTOML(val any) error {
+func (bs *BorderSet) UnmarshalTOML(val any) error {
 	s, ok := val.(string)
 	if !ok {
 		return errInvalidType
@@ -118,23 +118,23 @@ func (bw *BorderSetWrapper) UnmarshalTOML(val any) error {
 
 	switch s {
 	case "hidden":
-		bw.BorderSet = tview.BorderSetHidden()
+		bs.BorderSet = tview.BorderSetHidden()
 	case "plain":
-		bw.BorderSet = tview.BorderSetPlain()
+		bs.BorderSet = tview.BorderSetPlain()
 	case "round":
-		bw.BorderSet = tview.BorderSetRound()
+		bs.BorderSet = tview.BorderSetRound()
 	case "thick":
-		bw.BorderSet = tview.BorderSetThick()
+		bs.BorderSet = tview.BorderSetThick()
 	case "double":
-		bw.BorderSet = tview.BorderSetDouble()
+		bs.BorderSet = tview.BorderSetDouble()
 	}
 
 	return nil
 }
 
-type GlyphSetWrapper struct{ tview.GlyphSet }
+type GlyphSet struct{ tview.GlyphSet }
 
-func (gw *GlyphSetWrapper) UnmarshalTOML(val any) error {
+func (gs *GlyphSet) UnmarshalTOML(val any) error {
 	s, ok := val.(string)
 	if !ok {
 		return errInvalidType
@@ -142,19 +142,19 @@ func (gw *GlyphSetWrapper) UnmarshalTOML(val any) error {
 
 	switch s {
 	case "minimal":
-		gw.GlyphSet = tview.MinimalGlyphSet()
+		gs.GlyphSet = tview.MinimalGlyphSet()
 	case "box_drawing", "boxdrawing", "box":
-		gw.GlyphSet = tview.BoxDrawingGlyphSet()
+		gs.GlyphSet = tview.BoxDrawingGlyphSet()
 	case "unicode":
-		gw.GlyphSet = tview.UnicodeGlyphSet()
+		gs.GlyphSet = tview.UnicodeGlyphSet()
 	}
 
 	return nil
 }
 
-type ScrollBarVisibilityWrapper struct{ list.ScrollBarVisibility }
+type ScrollBarVisibility struct{ list.ScrollBarVisibility }
 
-func (vw *ScrollBarVisibilityWrapper) UnmarshalTOML(val any) error {
+func (sbv *ScrollBarVisibility) UnmarshalTOML(val any) error {
 	s, ok := val.(string)
 	if !ok {
 		return errInvalidType
@@ -162,11 +162,11 @@ func (vw *ScrollBarVisibilityWrapper) UnmarshalTOML(val any) error {
 
 	switch s {
 	case "automatic", "auto":
-		vw.ScrollBarVisibility = list.ScrollBarVisibilityAutomatic
+		sbv.ScrollBarVisibility = list.ScrollBarVisibilityAutomatic
 	case "always":
-		vw.ScrollBarVisibility = list.ScrollBarVisibilityAlways
+		sbv.ScrollBarVisibility = list.ScrollBarVisibilityAlways
 	case "never", "hidden", "off":
-		vw.ScrollBarVisibility = list.ScrollBarVisibilityNever
+		sbv.ScrollBarVisibility = list.ScrollBarVisibilityNever
 	}
 
 	return nil
@@ -174,34 +174,35 @@ func (vw *ScrollBarVisibilityWrapper) UnmarshalTOML(val any) error {
 
 type (
 	HelpTheme struct {
-		ShortKeyStyle  StyleWrapper `toml:"short_key_style"`
-		ShortDescStyle StyleWrapper `toml:"short_desc_style"`
-		FullKeyStyle   StyleWrapper `toml:"full_key_style"`
-		FullDescStyle  StyleWrapper `toml:"full_desc_style"`
+		ShortKeyStyle  Style `toml:"short_key_style"`
+		ShortDescStyle Style `toml:"short_desc_style"`
+		FullKeyStyle   Style `toml:"full_key_style"`
+		FullDescStyle  Style `toml:"full_desc_style"`
 	}
 
 	ThemeStyle struct {
-		NormalStyle StyleWrapper `toml:"normal_style"`
-		ActiveStyle StyleWrapper `toml:"active_style"`
+		NormalStyle Style `toml:"normal_style"`
+		ActiveStyle Style `toml:"active_style"`
 	}
 
 	TitleTheme struct {
 		ThemeStyle
-		Alignment AlignmentWrapper `toml:"alignment"`
+		Alignment Alignment `toml:"alignment"`
 	}
 
 	FooterTheme struct {
 		ThemeStyle
-		Alignment AlignmentWrapper `toml:"alignment"`
+		Alignment Alignment `toml:"alignment"`
 	}
 
 	BorderTheme struct {
 		ThemeStyle
-		Enabled bool   `toml:"enabled"`
+		Enabled bool `toml:"enabled"`
+		// Border padding order: [top, right, bottom, left].
 		Padding [4]int `toml:"padding"`
 
-		NormalSet BorderSetWrapper `toml:"normal_set"`
-		ActiveSet BorderSetWrapper `toml:"active_set"`
+		NormalSet BorderSet `toml:"normal_set"`
+		ActiveSet BorderSet `toml:"active_set"`
 	}
 
 	GuildsTreeTheme struct {
@@ -221,29 +222,29 @@ type (
 	}
 
 	MessagesListTheme struct {
-		ReplyIndicator     string       `toml:"reply_indicator"`
-		ForwardedIndicator string       `toml:"forwarded_indicator"`
-		AuthorStyle        StyleWrapper `toml:"author_style"`
-		MentionStyle       StyleWrapper `toml:"mention_style"`
-		EmojiStyle         StyleWrapper `toml:"emoji_style"`
-		URLStyle           StyleWrapper `toml:"url_style"`
-		AttachmentStyle    StyleWrapper `toml:"attachment_style"`
+		ReplyIndicator     string `toml:"reply_indicator"`
+		ForwardedIndicator string `toml:"forwarded_indicator"`
+		AuthorStyle        Style  `toml:"author_style"`
+		MentionStyle       Style  `toml:"mention_style"`
+		EmojiStyle         Style  `toml:"emoji_style"`
+		URLStyle           Style  `toml:"url_style"`
+		AttachmentStyle    Style  `toml:"attachment_style"`
 
-		MessageStyle         StyleWrapper `toml:"message_style"`
-		SelectedMessageStyle StyleWrapper `toml:"selected_message_style"`
+		MessageStyle         Style `toml:"message_style"`
+		SelectedMessageStyle Style `toml:"selected_message_style"`
 
 		Embeds MessagesListEmbedsTheme `toml:"embeds"`
 	}
 
 	MessagesListEmbedsTheme struct {
-		ProviderStyle    StyleWrapper `toml:"provider_style"`
-		AuthorStyle      StyleWrapper `toml:"author_style"`
-		TitleStyle       StyleWrapper `toml:"title_style"`
-		DescriptionStyle StyleWrapper `toml:"description_style"`
-		FieldNameStyle   StyleWrapper `toml:"field_name_style"`
-		FieldValueStyle  StyleWrapper `toml:"field_value_style"`
-		FooterStyle      StyleWrapper `toml:"footer_style"`
-		URLStyle         StyleWrapper `toml:"url_style"`
+		ProviderStyle    Style `toml:"provider_style"`
+		AuthorStyle      Style `toml:"author_style"`
+		TitleStyle       Style `toml:"title_style"`
+		DescriptionStyle Style `toml:"description_style"`
+		FieldNameStyle   Style `toml:"field_name_style"`
+		FieldValueStyle  Style `toml:"field_value_style"`
+		FooterStyle      Style `toml:"footer_style"`
+		URLStyle         Style `toml:"url_style"`
 	}
 
 	MentionsListTheme struct {
@@ -252,15 +253,15 @@ type (
 	}
 
 	DialogTheme struct {
-		Style           StyleWrapper `toml:"style"`
-		BackgroundStyle StyleWrapper `toml:"background_style"`
+		Style           Style `toml:"style"`
+		BackgroundStyle Style `toml:"background_style"`
 	}
 
 	ScrollBarTheme struct {
-		Visibility ScrollBarVisibilityWrapper `toml:"visibility"`
-		GlyphSet   GlyphSetWrapper            `toml:"glyph_set"`
-		TrackStyle StyleWrapper               `toml:"track_style"`
-		ThumbStyle StyleWrapper               `toml:"thumb_style"`
+		Visibility ScrollBarVisibility `toml:"visibility"`
+		GlyphSet   GlyphSet            `toml:"glyph_set"`
+		TrackStyle Style               `toml:"track_style"`
+		ThumbStyle Style               `toml:"thumb_style"`
 	}
 
 	Theme struct {
@@ -275,3 +276,114 @@ type (
 		Help         HelpTheme         `toml:"help"`
 	}
 )
+
+func defaultTheme() Theme {
+	return Theme{
+		Title: TitleTheme{
+			ThemeStyle: ThemeStyle{
+				NormalStyle: styleAttrs("dim"),
+				ActiveStyle: styleColorAttrs("green", "bold"),
+			},
+			Alignment: Alignment{Alignment: tview.AlignmentLeft},
+		},
+		Footer: FooterTheme{
+			ThemeStyle: ThemeStyle{
+				NormalStyle: styleAttrs("dim"),
+				ActiveStyle: styleColorAttrs("green", "bold"),
+			},
+			Alignment: Alignment{Alignment: tview.AlignmentLeft},
+		},
+		Border: BorderTheme{
+			ThemeStyle: ThemeStyle{
+				NormalStyle: styleAttrs("dim"),
+				ActiveStyle: styleColorAttrs("green", "bold"),
+			},
+			Enabled:   true,
+			Padding:   [4]int{0, 0, 1, 1},
+			NormalSet: BorderSet{BorderSet: tview.BorderSetRound()},
+			ActiveSet: BorderSet{BorderSet: tview.BorderSetRound()},
+		},
+		GuildsTree: GuildsTreeTheme{
+			AutoExpandFolders: true,
+			Graphics:          true,
+			GraphicsColor:     "default",
+			Indents: GuildsTreeIndents{
+				DM:       2,
+				GroupDM:  1,
+				Guild:    2,
+				Category: 1,
+				Channel:  2,
+				Forum:    2,
+			},
+		},
+		ScrollBar: ScrollBarTheme{
+			Visibility: ScrollBarVisibility{ScrollBarVisibility: list.ScrollBarVisibilityAutomatic},
+			GlyphSet:   GlyphSet{GlyphSet: tview.UnicodeGlyphSet()},
+			TrackStyle: styleAttrs("dim"),
+			ThumbStyle: defaultStyle(),
+		},
+		MessagesList: MessagesListTheme{
+			ReplyIndicator:     ">",
+			ForwardedIndicator: "<",
+			AuthorStyle:        defaultStyle(),
+			MentionStyle:       styleColorAttrs("blue", "bold"),
+			EmojiStyle:         styleColor("green"),
+			URLStyle:           styleColor("blue"),
+			AttachmentStyle:    styleColor("yellow"),
+			MessageStyle:       defaultStyle(),
+			SelectedMessageStyle: Style{
+				Style: tcell.StyleDefault.Reverse(true),
+			},
+			Embeds: MessagesListEmbedsTheme{
+				ProviderStyle:    styleAttrs("dim", "italic"),
+				AuthorStyle:      styleAttrs("italic"),
+				TitleStyle:       styleColorAttrs("blue", "bold"),
+				DescriptionStyle: styleAttrs("dim"),
+				FieldNameStyle:   styleAttrs("bold", "underline"),
+				FieldValueStyle:  defaultStyle(),
+				FooterStyle:      styleAttrs("dim", "italic"),
+				URLStyle: Style{
+					Style: tcell.StyleDefault.Foreground(tcell.GetColor("blue")).Underline(tcell.UnderlineStyleSolid),
+				},
+			},
+		},
+		MentionsList: MentionsListTheme{
+			MinWidth:  20,
+			MaxHeight: 0,
+		},
+		Dialog: DialogTheme{
+			Style:           defaultStyle(),
+			BackgroundStyle: styleAttrs("dim"),
+		},
+		Help: HelpTheme{
+			ShortKeyStyle:  styleAttrs("dim"),
+			ShortDescStyle: defaultStyle(),
+			FullKeyStyle:   styleAttrs("dim"),
+			FullDescStyle:  defaultStyle(),
+		},
+	}
+}
+
+func defaultStyle() Style {
+	return Style{Style: tcell.StyleDefault}
+}
+
+func styleColor(color string) Style {
+	return Style{Style: tcell.StyleDefault.Foreground(tcell.GetColor(color))}
+}
+
+func styleColorAttrs(color string, attrs ...string) Style {
+	s := styleColor(color)
+	for _, attr := range attrs {
+		s.parseAttr(attr)
+	}
+	return s
+}
+
+func styleAttrs(attrs ...string) Style {
+	s := defaultStyle()
+	for _, attr := range attrs {
+		s.parseAttr(attr)
+	}
+	return s
+}

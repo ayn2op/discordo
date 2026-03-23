@@ -39,7 +39,9 @@ type (
 	}
 
 	TypingIndicator struct {
-		Send    bool `toml:"send"`
+		// Whether to send typing status or not.
+		Send bool `toml:"send"`
+		// Whether to receive typing status or not.
 		Receive bool `toml:"receive"`
 	}
 
@@ -64,14 +66,20 @@ type (
 	}
 
 	MarkdownConfig struct {
-		Enabled bool   `toml:"enabled"`
-		Theme   string `toml:"theme"`
+		// Whether to parse and render markdown in messages or not.
+		Enabled bool `toml:"enabled"`
+		// The theme for fenced code blocks.
+		// Available themes: https://xyproto.github.io/splash/docs.
+		Theme string `toml:"theme"`
 	}
 
 	HelpConfig struct {
-		CompactModifiers bool   `toml:"compact_modifiers"`
-		Padding          [2]int `toml:"padding"`
-		Separator        string `toml:"separator"`
+		// Show compact key modifiers in help, e.g. "^x" instead of "ctrl+x".
+		CompactModifiers bool `toml:"compact_modifiers"`
+		// The horizontal padding around help content: [left, right].
+		Padding [2]int `toml:"padding"`
+		// The visual separator between keybinds.
+		Separator string `toml:"separator"`
 	}
 
 	SidebarMarkersConfig struct {
@@ -83,38 +91,131 @@ type (
 	SidebarConfig struct {
 		Markers SidebarMarkersConfig `toml:"markers"`
 	}
-
-	Config struct {
-		AutoFocus bool   `toml:"auto_focus"`
-		Mouse     bool   `toml:"mouse"`
-		Editor    string `toml:"editor"`
-
-		Status              discord.Status `toml:"status"`
-		HideBlockedUsers    bool           `toml:"hide_blocked_users"`
-		ShowAttachmentLinks bool           `toml:"show_attachment_links"`
-
-		// Use 0 to disable
-		AutocompleteLimit uint8 `toml:"autocomplete_limit"`
-		MessagesLimit     uint8 `toml:"messages_limit"`
-
-		Markdown        MarkdownConfig  `toml:"markdown"`
-		Help            HelpConfig      `toml:"help"`
-		Picker          PickerConfig    `toml:"picker"`
-		Timestamps      Timestamps      `toml:"timestamps"`
-		DateSeparator   DateSeparator   `toml:"date_separator"`
-		Notifications   Notifications   `toml:"notifications"`
-		TypingIndicator TypingIndicator `toml:"typing_indicator"`
-		Sidebar         SidebarConfig   `toml:"sidebar"`
-
-		Icons Icons `toml:"icons"`
-
-		Keybinds Keybinds `toml:"keybinds"`
-		Theme    Theme    `toml:"theme"`
-	}
 )
 
-//go:embed config.toml
-var defaultCfg []byte
+//go:generate go run ./cmd/generate.go
+type Config struct {
+	// Whether to focus the message input automatically when a channel is selected.
+	// Set to false to preview channels without moving focus.
+	AutoFocus bool `toml:"auto_focus"`
+	// Whether to enable mouse or not.
+	Mouse bool `toml:"mouse"`
+	// The program to open when the `message_input.editor` keybind is pressed.
+	// Set it to an empty value to use `$EDITOR` environment variable.
+	Editor string `toml:"editor"`
+	// "default" (unknown), "online", "dnd", "idle", "invisible", "offline"
+	Status discord.Status `toml:"status"`
+
+	HideBlockedUsers    bool `toml:"hide_blocked_users"`
+	ShowAttachmentLinks bool `toml:"show_attachment_links"`
+
+	// The maximum number of members to populate in the mentions list.
+	// Set to 0 to disable.
+	AutocompleteLimit uint8 `toml:"autocomplete_limit"`
+	// The number of messages to fetch when a text-based channel is selected from guilds tree.
+	// The minimum and maximum value is 1 and 100, respectively.
+	MessagesLimit uint8 `toml:"messages_limit"`
+
+	Markdown        MarkdownConfig  `toml:"markdown"`
+	Help            HelpConfig      `toml:"help"`
+	Picker          PickerConfig    `toml:"picker"`
+	Timestamps      Timestamps      `toml:"timestamps"`
+	DateSeparator   DateSeparator   `toml:"date_separator"`
+	Notifications   Notifications   `toml:"notifications"`
+	TypingIndicator TypingIndicator `toml:"typing_indicator"`
+	Sidebar         SidebarConfig   `toml:"sidebar"`
+
+	Icons Icons `toml:"icons"`
+	// Each keybind field accepts either a string or a list of strings.
+	// Type: `Keybind = string or []string`.
+	// ```toml
+	// [keybinds]
+	// quit = "ctrl+q"
+	// # or,
+	// quit = ["ctrl+q", "ctrl+c", "q", ...]
+	// ```
+	Keybinds Keybinds `toml:"keybinds"`
+	// Types:
+	// Alignment = "left" | "center" | "right"
+	// Attributes = string | []string
+	// Style = { foreground?, background?, attributes?, underline?, underline_color? }
+	// BorderSet = "hidden" | "plain" | "round" | "thick" | "double"
+	// GlyphSet = "minimal" | "box_drawing" | "boxdrawing" | "box" | "unicode"
+	// ScrollBarVisibility = "automatic" | "auto" | "always" | "never" | "hidden" | "off"
+	Theme Theme `toml:"theme"`
+}
+
+func defaultConfig() Config {
+	return Config{
+		AutoFocus: true,
+		Mouse:     true,
+		Editor:    "default",
+		Status:    "default",
+
+		HideBlockedUsers:    true,
+		ShowAttachmentLinks: true,
+
+		AutocompleteLimit: 20,
+		MessagesLimit:     50,
+
+		Markdown: MarkdownConfig{
+			Enabled: true,
+			Theme:   "monokai",
+		},
+		Help: HelpConfig{
+			CompactModifiers: true,
+			Padding:          [2]int{1, 1},
+			Separator:        " • ",
+		},
+		Picker: PickerConfig{
+			Width:  80,
+			Height: 25,
+		},
+		Timestamps: Timestamps{
+			Enabled: true,
+			Format:  "3:04PM",
+		},
+		DateSeparator: DateSeparator{
+			Enabled:   true,
+			Format:    "January 2, 2006",
+			Character: "─",
+		},
+		Notifications: Notifications{
+			Enabled:  true,
+			Duration: 0,
+			Sound: Sound{
+				Enabled:    true,
+				OnlyOnPing: true,
+			},
+		},
+		TypingIndicator: TypingIndicator{
+			Send:    true,
+			Receive: true,
+		},
+		Sidebar: SidebarConfig{
+			Markers: SidebarMarkersConfig{
+				Expanded:  "▾ ",
+				Collapsed: "▸ ",
+				Leaf:      "",
+			},
+		},
+
+		Icons: Icons{
+			GuildCategory:           "",
+			GuildText:               "#",
+			GuildVoice:              "♪ ",
+			GuildStageVoice:         "♪ ",
+			GuildAnnouncementThread: "a-",
+			GuildPublicThread:       "› ",
+			GuildPrivateThread:      "› ",
+			GuildAnnouncement:       "a-",
+			GuildForum:              "≡ ",
+			GuildStore:              "s-",
+		},
+		Keybinds: defaultKeybinds(),
+		Theme:    defaultTheme(),
+	}
+}
 
 func DefaultPath() string {
 	path, err := os.UserConfigDir()
@@ -131,12 +232,7 @@ func DefaultPath() string {
 
 // Load reads the configuration file and parses it.
 func Load(path string) (*Config, error) {
-	cfg := Config{
-		Keybinds: defaultKeybinds(),
-	}
-	if err := toml.Unmarshal(defaultCfg, &cfg); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal default config: %w", err)
-	}
+	cfg := defaultConfig()
 
 	file, err := os.Open(path)
 	if os.IsNotExist(err) {
