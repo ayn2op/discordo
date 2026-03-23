@@ -16,7 +16,7 @@ import (
 )
 
 func Notify(state *ningen.State, message gateway.MessageCreateEvent, cfg *config.Config) error {
-	if !cfg.Notifications.Enabled || cfg.Status == discord.DoNotDisturbStatus {
+	if !cfg.Notifications.Enabled || discord.Status(cfg.Status) == discord.DoNotDisturbStatus {
 		return nil
 	}
 

@@ -87,7 +87,7 @@ func NewModel(app *tview.Application, cfg *config.Config, token string) *Model {
 	identifyProps := http.IdentifyProperties()
 	gateway.DefaultIdentity = identifyProps
 	gateway.DefaultPresence = &gateway.UpdatePresenceCommand{
-		Status: m.cfg.Status,
+		Status: discord.Status(m.cfg.Status),
 	}
 
 	id := gateway.DefaultIdentifier(token)

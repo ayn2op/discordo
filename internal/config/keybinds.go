@@ -31,97 +31,95 @@ func (k *Keybind) UnmarshalTOML(value any) error {
 	return nil
 }
 
-func newKeybind(key, desc string) Keybind {
-	return Keybind{
-		Keybind: keybind.NewKeybind(
-			keybind.WithKeys(key),
-			keybind.WithHelp(key, desc),
-		),
-	}
-}
-
 type NavigationKeybinds struct {
-	Up     Keybind `toml:"up"`
-	Down   Keybind `toml:"down"`
-	Top    Keybind `toml:"top"`
-	Bottom Keybind `toml:"bottom"`
+	Up     Keybind `toml:"up" default:"k" help:"up"`
+	Down   Keybind `toml:"down" default:"j" help:"down"`
+	Top    Keybind `toml:"top" default:"g" help:"top"`
+	Bottom Keybind `toml:"bottom" default:"G" help:"bottom"`
 }
 
 type ScrollKeybinds struct {
-	ScrollUp     Keybind `toml:"scroll_up"`
-	ScrollDown   Keybind `toml:"scroll_down"`
-	ScrollTop    Keybind `toml:"scroll_top"`
-	ScrollBottom Keybind `toml:"scroll_bottom"`
+	ScrollUp     Keybind `toml:"scroll_up" default:"K" help:"scroll up"`
+	ScrollDown   Keybind `toml:"scroll_down" default:"J" help:"scroll down"`
+	ScrollTop    Keybind `toml:"scroll_top" default:"home" help:"scroll top"`
+	ScrollBottom Keybind `toml:"scroll_bottom" default:"end" help:"scroll bottom"`
 }
 
 type SelectionKeybinds struct {
-	SelectUp     Keybind `toml:"select_up"`
-	SelectDown   Keybind `toml:"select_down"`
-	SelectTop    Keybind `toml:"select_top"`
-	SelectBottom Keybind `toml:"select_bottom"`
+	SelectUp     Keybind `toml:"select_up" default:"k" help:"up"`
+	SelectDown   Keybind `toml:"select_down" default:"j" help:"down"`
+	SelectTop    Keybind `toml:"select_top" default:"g" help:"top"`
+	SelectBottom Keybind `toml:"select_bottom" default:"G" help:"bottom"`
 }
 
 type PickerKeybinds struct {
-	NavigationKeybinds
-	Select Keybind `toml:"select"`
-	Cancel Keybind `toml:"cancel"`
+	Up     Keybind `toml:"up" default:"ctrl+p" help:"up"`
+	Down   Keybind `toml:"down" default:"ctrl+n" help:"down"`
+	Top    Keybind `toml:"top" default:"home" help:"top"`
+	Bottom Keybind `toml:"bottom" default:"end" help:"bottom"`
+	Select Keybind `toml:"select" default:"enter" help:"sel"`
+	Cancel Keybind `toml:"cancel" default:"esc" help:"cancel"`
 }
 
 type GuildsTreeKeybinds struct {
 	NavigationKeybinds
-	SelectCurrent Keybind `toml:"select_current"`
-	YankID        Keybind `toml:"yank_id"`
 
-	CollapseParentNode Keybind `toml:"collapse_parent_node"`
-	MoveToParentNode   Keybind `toml:"move_to_parent_node"`
+	SelectCurrent Keybind `toml:"select_current" default:"enter" help:"sel"`
+	YankID        Keybind `toml:"yank_id" default:"i" help:"copy id"`
+
+	CollapseParentNode Keybind `toml:"collapse_parent_node" default:"-" help:"collapse"`
+	MoveToParentNode   Keybind `toml:"move_to_parent_node" default:"p" help:"parent"`
 }
 
 type MessagesListKeybinds struct {
 	SelectionKeybinds
 	ScrollKeybinds
 
-	SelectReply  Keybind `toml:"select_reply"`
-	Reply        Keybind `toml:"reply"`
-	ReplyMention Keybind `toml:"reply_mention"`
+	SelectReply  Keybind `toml:"select_reply" default:"s" help:"sel reply"`
+	Reply        Keybind `toml:"reply" default:"R" help:"reply"`
+	ReplyMention Keybind `toml:"reply_mention" default:"r" help:"@reply"`
 
-	Cancel        Keybind `toml:"cancel"`
-	Edit          Keybind `toml:"edit"`
-	Delete        Keybind `toml:"delete"`
-	DeleteConfirm Keybind `toml:"delete_confirm"`
-	Open          Keybind `toml:"open"`
+	Cancel        Keybind `toml:"cancel" default:"esc" help:"cancel"`
+	Edit          Keybind `toml:"edit" default:"e" help:"edit"`
+	Delete        Keybind `toml:"delete" default:"D" help:"force delete"`
+	DeleteConfirm Keybind `toml:"delete_confirm" default:"d" help:"delete"`
+	Open          Keybind `toml:"open" default:"o" help:"open"`
 
-	YankContent Keybind `toml:"yank_content"`
-	YankURL     Keybind `toml:"yank_url"`
-	YankID      Keybind `toml:"yank_id"`
+	YankContent Keybind `toml:"yank_content" default:"y" help:"copy text"`
+	YankURL     Keybind `toml:"yank_url" default:"u" help:"copy url"`
+	YankID      Keybind `toml:"yank_id" default:"i" help:"copy id"`
 }
 
 type MessageInputKeybinds struct {
-	Paste       Keybind `toml:"paste"`
-	Send        Keybind `toml:"send"`
-	Cancel      Keybind `toml:"cancel"`
-	TabComplete Keybind `toml:"tab_complete"`
-	Undo        Keybind `toml:"undo"`
+	Paste       Keybind `toml:"paste" default:"ctrl+v" help:"paste"`
+	Send        Keybind `toml:"send" default:"enter" help:"send"`
+	Cancel      Keybind `toml:"cancel" default:"esc" help:"cancel"`
+	TabComplete Keybind `toml:"tab_complete" default:"tab" help:"complete"`
+	Undo        Keybind `toml:"undo" default:"ctrl+u" help:"undo"`
 
-	OpenEditor     Keybind `toml:"open_editor"`
-	OpenFilePicker Keybind `toml:"open_file_picker"`
+	OpenEditor     Keybind `toml:"open_editor" default:"ctrl+e" help:"editor"`
+	OpenFilePicker Keybind `toml:"open_file_picker" default:"ctrl+\\" help:"attach"`
 }
 
 type MentionsListKeybinds struct {
-	NavigationKeybinds
+	Up     Keybind `toml:"up" default:"ctrl+p" help:"up"`
+	Down   Keybind `toml:"down" default:"ctrl+n" help:"down"`
+	Top    Keybind `toml:"top" default:"home" help:"top"`
+	Bottom Keybind `toml:"bottom" default:"end" help:"bottom"`
 }
 
 type Keybinds struct {
-	ToggleGuildsTree     Keybind `toml:"toggle_guilds_tree"`
-	ToggleChannelsPicker Keybind `toml:"toggle_channels_picker"`
-	ToggleHelp           Keybind `toml:"toggle_help"`
-	Suspend              Keybind `toml:"suspend"`
+	ToggleGuildsTree     Keybind `toml:"toggle_guilds_tree" default:"ctrl+b" help:"toggle guilds"`
+	ToggleChannelsPicker Keybind `toml:"toggle_channels_picker" default:"ctrl+k" help:"channels picker"`
+	ToggleHelp           Keybind `toml:"toggle_help" default:"ctrl+." help:"help"`
+	Suspend              Keybind `toml:"suspend" default:"ctrl+z" help:"suspend"`
 
-	FocusGuildsTree   Keybind `toml:"focus_guilds_tree"`
-	FocusMessagesList Keybind `toml:"focus_messages_list"`
-	FocusMessageInput Keybind `toml:"focus_message_input"`
+	FocusGuildsTree   Keybind `toml:"focus_guilds_tree" default:"ctrl+g" help:"guilds"`
+	FocusMessagesList Keybind `toml:"focus_messages_list" default:"ctrl+t" help:"messages"`
+	FocusMessageInput Keybind `toml:"focus_message_input" default:"ctrl+i" help:"input"`
 
-	FocusPrevious Keybind `toml:"focus_previous"`
-	FocusNext     Keybind `toml:"focus_next"`
+	FocusPrevious Keybind `toml:"focus_previous" default:"ctrl+h" help:"focus prev"`
+	FocusNext     Keybind `toml:"focus_next" default:"ctrl+l" help:"focus next"`
 
 	Picker       PickerKeybinds       `toml:"picker"`
 	GuildsTree   GuildsTreeKeybinds   `toml:"guilds_tree"`
@@ -129,117 +127,6 @@ type Keybinds struct {
 	MessageInput MessageInputKeybinds `toml:"message_input"`
 	MentionsList MentionsListKeybinds `toml:"mentions_list"`
 
-	Logout Keybind `toml:"logout"`
-	Quit   Keybind `toml:"quit"`
-}
-
-func defaultPickerKeybinds() PickerKeybinds {
-	return PickerKeybinds{
-		NavigationKeybinds: NavigationKeybinds{
-			Up:     newKeybind("ctrl+p", "up"),
-			Down:   newKeybind("ctrl+n", "down"),
-			Top:    newKeybind("home", "top"),
-			Bottom: newKeybind("end", "bottom"),
-		},
-		Cancel: newKeybind("esc", "cancel"),
-		Select: newKeybind("enter", "sel"),
-	}
-}
-
-func defaultNavigationKeybinds() NavigationKeybinds {
-	return NavigationKeybinds{
-		Up:     newKeybind("k", "up"),
-		Down:   newKeybind("j", "down"),
-		Top:    newKeybind("g", "top"),
-		Bottom: newKeybind("G", "bottom"),
-	}
-}
-
-func defaultGuildsTreeKeybinds() GuildsTreeKeybinds {
-	return GuildsTreeKeybinds{
-		NavigationKeybinds: defaultNavigationKeybinds(),
-		SelectCurrent:      newKeybind("enter", "sel"),
-		YankID:             newKeybind("i", "copy id"),
-		CollapseParentNode: newKeybind("-", "collapse"),
-		MoveToParentNode:   newKeybind("p", "parent"),
-	}
-}
-
-func defaultMessagesListKeybinds() MessagesListKeybinds {
-	return MessagesListKeybinds{
-		SelectionKeybinds: SelectionKeybinds{
-			SelectUp:     newKeybind("k", "up"),
-			SelectDown:   newKeybind("j", "down"),
-			SelectTop:    newKeybind("g", "top"),
-			SelectBottom: newKeybind("G", "bottom"),
-		},
-		ScrollKeybinds: ScrollKeybinds{
-			ScrollUp:     newKeybind("K", "scroll up"),
-			ScrollDown:   newKeybind("J", "scroll down"),
-			ScrollTop:    newKeybind("home", "scroll top"),
-			ScrollBottom: newKeybind("end", "scroll bottom"),
-		},
-		SelectReply:  newKeybind("s", "sel reply"),
-		Reply:        newKeybind("R", "reply"),
-		ReplyMention: newKeybind("r", "@reply"),
-		Cancel:       newKeybind("esc", "cancel"),
-		Edit:         newKeybind("e", "edit"),
-		Delete:       newKeybind("D", "force delete"),
-		DeleteConfirm: newKeybind(
-			"d",
-			"delete",
-		),
-		Open:        newKeybind("o", "open"),
-		YankContent: newKeybind("y", "copy text"),
-		YankURL:     newKeybind("u", "copy url"),
-		YankID:      newKeybind("i", "copy id"),
-	}
-}
-
-func defaultMessageInputKeybinds() MessageInputKeybinds {
-	return MessageInputKeybinds{
-		Paste:          newKeybind("ctrl+v", "paste"),
-		Send:           newKeybind("enter", "send"),
-		Cancel:         newKeybind("esc", "cancel"),
-		TabComplete:    newKeybind("tab", "complete"),
-		Undo:           newKeybind("ctrl+u", "undo"),
-		OpenEditor:     newKeybind("ctrl+e", "editor"),
-		OpenFilePicker: newKeybind("ctrl+\\", "attach"),
-	}
-}
-
-func defaultMentionsListKeybinds() MentionsListKeybinds {
-	return MentionsListKeybinds{
-		NavigationKeybinds: NavigationKeybinds{
-			Up:     newKeybind("ctrl+p", "up"),
-			Down:   newKeybind("ctrl+n", "down"),
-			Top:    newKeybind("home", "top"),
-			Bottom: newKeybind("end", "bottom"),
-		},
-	}
-}
-
-func defaultKeybinds() Keybinds {
-	return Keybinds{
-		ToggleGuildsTree:     newKeybind("ctrl+b", "toggle guilds"),
-		ToggleChannelsPicker: newKeybind("ctrl+k", "channels picker"),
-		ToggleHelp:           newKeybind("ctrl+.", "help"),
-		Suspend:              newKeybind("ctrl+z", "suspend"),
-
-		FocusGuildsTree:   newKeybind("ctrl+g", "guilds"),
-		FocusMessagesList: newKeybind("ctrl+t", "messages"),
-		FocusMessageInput: newKeybind("ctrl+i", "input"),
-
-		FocusPrevious: newKeybind("ctrl+h", "focus prev"),
-		FocusNext:     newKeybind("ctrl+l", "focus next"),
-
-		Logout: newKeybind("ctrl+d", "logout"),
-		Quit:   newKeybind("ctrl+c", "quit"),
-
-		Picker:       defaultPickerKeybinds(),
-		GuildsTree:   defaultGuildsTreeKeybinds(),
-		MessagesList: defaultMessagesListKeybinds(),
-		MessageInput: defaultMessageInputKeybinds(),
-		MentionsList: defaultMentionsListKeybinds(),
-	}
+	Logout Keybind `toml:"logout" default:"ctrl+d" help:"logout"`
+	Quit   Keybind `toml:"quit" default:"ctrl+c" help:"quit"`
 }
