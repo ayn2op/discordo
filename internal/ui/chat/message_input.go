@@ -169,7 +169,13 @@ func (mi *messageInput) HandleEvent(event tview.Event) tview.Command {
 
 		if mi.cfg.AutocompleteLimit > 0 {
 			if mi.chat.GetVisible(mentionsListLayerName) {
-				return mi.mentionsList.HandleEvent(event)
+				keybinds := mi.cfg.Keybinds.MentionsList
+				if keybind.Matches(event, keybinds.Up.Keybind) ||
+					keybind.Matches(event, keybinds.Down.Keybind) ||
+					keybind.Matches(event, keybinds.Top.Keybind) ||
+					keybind.Matches(event, keybinds.Bottom.Keybind) {
+					return mi.mentionsList.HandleEvent(event)
+				}
 			}
 
 			go mi.chat.app.QueueUpdateDraw(func() { mi.tabSuggestion() })
@@ -509,10 +515,13 @@ func (mi *messageInput) searchMember(gID discord.GuildID, name string) {
 	}
 
 	mi.lastSearch = time.Now()
-	mi.chat.messagesList.waitForChunkEvent()
-	mi.chat.messagesList.setFetchingChunk(true, 0)
-	mi.chat.state.MemberState.SearchMember(gID, name)
-	mi.cache.Create(key, mi.chat.messagesList.waitForChunkEvent())
+	go func() {
+		mi.chat.messagesList.waitForChunkEvent()
+		mi.chat.messagesList.setFetchingChunk(true, 0)
+		mi.chat.state.MemberState.SearchMember(gID, name)
+		mi.cache.Create(key, mi.chat.messagesList.waitForChunkEvent())
+		mi.chat.app.QueueUpdateDraw(func() { mi.tabSuggestion() })
+	}()
 }
 
 func (mi *messageInput) showMentionList() {
