@@ -197,6 +197,12 @@ auto_expand_folders = true
 graphics = true
 graphics_color = "default"
 
+# Direct-message recipient presence styles.
+online_style = { foreground = "green" }
+idle_style = { foreground = "yellow" }
+dnd_style = { foreground = "red" }
+offline_style = { foreground = "gray" }
+
 # Guilds tree indentation for different item types
 [theme.guilds_tree.indents]
 dm = 2

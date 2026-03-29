@@ -182,14 +182,37 @@ func (gt *guildsTree) unreadStyle(indication ningen.UnreadIndication) tcell.Styl
 	return style
 }
 
-func (gt *guildsTree) getGuildNodeStyle(guildID discord.GuildID) tcell.Style {
+func (gt *guildsTree) guildNodeStyle(guildID discord.GuildID) tcell.Style {
 	indication := gt.chat.state.GuildIsUnread(guildID, ningen.GuildUnreadOpts{UnreadOpts: ningen.UnreadOpts{IncludeMutedCategories: true}})
 	return gt.unreadStyle(indication)
 }
 
-func (gt *guildsTree) getChannelNodeStyle(channelID discord.ChannelID) tcell.Style {
-	indication := gt.chat.state.ChannelIsUnread(channelID, ningen.UnreadOpts{IncludeMutedCategories: true})
-	return gt.unreadStyle(indication)
+func (gt *guildsTree) channelNodeStyle(channel discord.Channel) tcell.Style {
+	unread := gt.unreadStyle(gt.chat.state.ChannelIsUnread(channel.ID, ningen.UnreadOpts{IncludeMutedCategories: true}))
+	if channel.Type != discord.DirectMessage || len(channel.DMRecipients) != 1 {
+		return unread
+	}
+
+	recipient := channel.DMRecipients[0]
+	presence, err := gt.chat.state.Cabinet.Presence(discord.NullGuildID, recipient.ID)
+	if err != nil {
+		return ui.MergeStyle(gt.dmStatusStyle(discord.OfflineStatus), unread)
+	}
+
+	return ui.MergeStyle(gt.dmStatusStyle(presence.Status), unread)
+}
+
+func (gt *guildsTree) dmStatusStyle(status discord.Status) tcell.Style {
+	switch status {
+	case discord.DoNotDisturbStatus:
+		return gt.cfg.Theme.GuildsTree.DNDStyle.Style
+	case discord.IdleStatus:
+		return gt.cfg.Theme.GuildsTree.IdleStyle.Style
+	case discord.OnlineStatus:
+		return gt.cfg.Theme.GuildsTree.OnlineStyle.Style
+	default:
+		return gt.cfg.Theme.GuildsTree.OfflineStyle.Style
+	}
 }
 
 func (gt *guildsTree) createGuildNode(n *tview.TreeNode, guild discord.Guild) {
@@ -198,7 +221,7 @@ func (gt *guildsTree) createGuildNode(n *tview.TreeNode, guild discord.Guild) {
 		SetExpandable(true).
 		SetExpanded(false).
 		SetIndent(gt.cfg.Theme.GuildsTree.Indents.Guild)
-	gt.setNodeLineStyle(guildNode, gt.getGuildNodeStyle(guild.ID))
+	gt.setNodeLineStyle(guildNode, gt.guildNodeStyle(guild.ID))
 	n.AddChild(guildNode)
 	gt.guildNodeByID[guild.ID] = guildNode
 }
@@ -209,7 +232,7 @@ func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Ch
 	}
 
 	channelNode := tview.NewTreeNode(ui.ChannelToString(channel, gt.cfg.Icons, gt.chat.state)).SetReference(channel.ID)
-	gt.setNodeLineStyle(channelNode, gt.getChannelNodeStyle(channel.ID))
+	gt.setNodeLineStyle(channelNode, gt.channelNodeStyle(channel))
 	switch channel.Type {
 	case discord.DirectMessage:
 		channelNode.SetIndent(gt.cfg.Theme.GuildsTree.Indents.DM)
@@ -226,7 +249,6 @@ func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Ch
 	}
 	node.AddChild(channelNode)
 	gt.channelNodeByID[channel.ID] = channelNode
-	gt.setNodeLineStyle(channelNode, gt.getChannelNodeStyle(channel.ID))
 }
 
 func (gt *guildsTree) setNodeLineStyle(node *tview.TreeNode, style tcell.Style) {

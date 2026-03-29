@@ -209,6 +209,11 @@ type (
 		Graphics          bool              `toml:"graphics"`
 		GraphicsColor     string            `toml:"graphics_color"`
 		Indents           GuildsTreeIndents `toml:"indents"`
+
+		OnlineStyle  StyleWrapper `toml:"online_style"`
+		IdleStyle    StyleWrapper `toml:"idle_style"`
+		DNDStyle     StyleWrapper `toml:"dnd_style"`
+		OfflineStyle StyleWrapper `toml:"offline_style"`
 	}
 
 	GuildsTreeIndents struct {

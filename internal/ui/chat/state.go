@@ -10,6 +10,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/httputil/httpdriver"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
+	"github.com/diamondburned/ningen/v3"
 	"github.com/diamondburned/ningen/v3/states/read"
 	"github.com/gdamore/tcell/v3"
 )
@@ -206,13 +207,19 @@ func (m *Model) onReadUpdate(event *read.UpdateEvent) {
 	// event. This runs frequently while reading/typing across channels.
 	if event.GuildID.IsValid() {
 		if guildNode := m.guildsTree.findNodeByReference(event.GuildID); guildNode != nil {
-			m.guildsTree.setNodeLineStyle(guildNode, m.guildsTree.getGuildNodeStyle(event.GuildID))
+			m.guildsTree.setNodeLineStyle(guildNode, m.guildsTree.guildNodeStyle(event.GuildID))
 		}
 	}
 
 	// Channel style is always updated for the target channel regardless of
 	// whether it's in a guild or DM.
 	if channelNode := m.guildsTree.findNodeByReference(event.ChannelID); channelNode != nil {
-		m.guildsTree.setNodeLineStyle(channelNode, m.guildsTree.getChannelNodeStyle(event.ChannelID))
+		channel, err := m.state.Cabinet.Channel(event.ChannelID)
+		if err != nil {
+			indication := m.state.ChannelIsUnread(event.ChannelID, ningen.UnreadOpts{IncludeMutedCategories: true})
+			m.guildsTree.setNodeLineStyle(channelNode, m.guildsTree.unreadStyle(indication))
+			return
+		}
+		m.guildsTree.setNodeLineStyle(channelNode, m.guildsTree.channelNodeStyle(*channel))
 	}
 }
