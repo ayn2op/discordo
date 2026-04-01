@@ -613,7 +613,10 @@ func (mi *messageInput) addMentionUser(user *discord.User) {
 }
 
 func (mi *messageInput) removeMentionsList() {
-	mi.chat.HideLayer(mentionsListLayerName)
+	// Make sure that the layer is visible before hiding it to avoid a refocus in the parent.
+	if mi.chat.GetVisible(mentionsListLayerName) {
+		mi.chat.HideLayer(mentionsListLayerName)
+	}
 }
 
 func (mi *messageInput) stopTabCompletion(emit func(tview.Command)) {
