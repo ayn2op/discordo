@@ -50,8 +50,10 @@ func (cp *channelsPicker) Update(msg tview.Msg) tview.Cmd {
 		cp.chat.guildsTree.expandPathToNode(node)
 		cp.chat.guildsTree.SetCurrentNode(node)
 		var selectCmd tview.Cmd
-		if channel.Type != discord.GuildCategory {
+		if cp.chat.guildsTree.isContainerChannel(*channel) {
 			selectCmd = cp.chat.guildsTree.onSelected(node)
+		} else {
+			selectCmd = cp.chat.guildsTree.openChannelNode(node, *channel)
 		}
 		cp.chat.closePicker()
 		return selectCmd

@@ -60,26 +60,61 @@ func newGuildsTree(cfg *config.Config, chat *Model) *guildsTree {
 	return gt
 }
 
+func (gt *guildsTree) isContainerChannel(channel discord.Channel) bool {
+	switch channel.Type {
+	case discord.GuildCategory, discord.GuildForum:
+		return true
+	default:
+		return false
+	}
+}
+
+func (gt *guildsTree) isActiveChannel(channelID discord.ChannelID) bool {
+	selected := gt.chat.SelectedChannel()
+	return selected != nil && selected.ID == channelID
+}
+
+func (gt *guildsTree) selectActionDesc(node *tview.TreeNode, fallback string) string {
+	if node == nil {
+		return fallback
+	}
+
+	switch ref := node.GetReference().(type) {
+	case discord.GuildID, dmNode:
+		if len(node.GetChildren()) > 0 && node.IsExpanded() {
+			return "collapse"
+		}
+		return "expand"
+	case discord.ChannelID:
+		channel, err := gt.chat.state.Cabinet.Channel(ref)
+		if err != nil {
+			return fallback
+		}
+
+		if gt.isContainerChannel(*channel) {
+			if len(node.GetChildren()) > 0 && node.IsExpanded() {
+				return "collapse"
+			}
+			return "expand"
+		}
+
+		if len(node.GetChildren()) > 0 && gt.isActiveChannel(channel.ID) {
+			if node.IsExpanded() {
+				return "collapse"
+			}
+			return "expand"
+		}
+	}
+
+	return fallback
+}
+
 func (gt *guildsTree) ShortHelp() []keybind.Keybind {
 	cfg := gt.cfg.Keybinds.GuildsTree
 	selectCurrent := cfg.SelectCurrent.Keybind
 	collapseParent := cfg.CollapseParentNode.Keybind
 	selectHelp := selectCurrent.Help()
-	selectDesc := selectHelp.Desc
-	if node := gt.GetCurrentNode(); node != nil {
-		if len(node.GetChildren()) > 0 {
-			if node.IsExpanded() {
-				selectDesc = "collapse"
-			} else {
-				selectDesc = "expand"
-			}
-		} else {
-			switch node.GetReference().(type) {
-			case discord.GuildID, dmNode:
-				selectDesc = "expand"
-			}
-		}
-	}
+	selectDesc := gt.selectActionDesc(gt.GetCurrentNode(), selectHelp.Desc)
 	selectCurrent.SetHelp(selectHelp.Key, selectDesc)
 	collapseHelp := collapseParent.Help()
 	collapseParent.SetHelp(collapseHelp.Key, "collapse parent")
@@ -96,21 +131,7 @@ func (gt *guildsTree) FullHelp() [][]keybind.Keybind {
 	selectCurrent := cfg.SelectCurrent.Keybind
 	collapseParent := cfg.CollapseParentNode.Keybind
 	selectHelp := selectCurrent.Help()
-	selectDesc := selectHelp.Desc
-	if node := gt.GetCurrentNode(); node != nil {
-		if len(node.GetChildren()) > 0 {
-			if node.IsExpanded() {
-				selectDesc = "collapse"
-			} else {
-				selectDesc = "expand"
-			}
-		} else {
-			switch node.GetReference().(type) {
-			case discord.GuildID, dmNode:
-				selectDesc = "expand"
-			}
-		}
-	}
+	selectDesc := gt.selectActionDesc(gt.GetCurrentNode(), selectHelp.Desc)
 	selectCurrent.SetHelp(selectHelp.Key, selectDesc)
 	collapseHelp := collapseParent.Help()
 	collapseParent.SetHelp(collapseHelp.Key, "collapse parent")
@@ -299,9 +320,13 @@ func (gt *guildsTree) createChannelNodes(node *tview.TreeNode, channels []discor
 	}
 }
 
-func (gt *guildsTree) onSelected(node *tview.TreeNode) tview.Cmd {
+func (gt *guildsTree) toggleNode(node *tview.TreeNode) {
+	node.SetExpanded(!node.IsExpanded())
+}
+
+func (gt *guildsTree) selectLazyContainerNode(node *tview.TreeNode) tview.Cmd {
 	if len(node.GetChildren()) != 0 {
-		node.SetExpanded(!node.IsExpanded())
+		gt.toggleNode(node)
 		return nil
 	}
 
@@ -318,42 +343,6 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) tview.Cmd {
 		ui.SortGuildChannels(channels)
 		gt.createChannelNodes(node, channels)
 		node.Expand()
-		return nil
-	case discord.ChannelID:
-		channel, err := gt.chat.state.Cabinet.Channel(ref)
-		if err != nil {
-			slog.Error("failed to get channel from state", "err", err, "channel_id", ref)
-			return nil
-		}
-
-		// Handle forum channels differently - they contain threads, not direct messages
-		if channel.Type == discord.GuildForum {
-			// Get all channels from the guild - this includes active threads from GuildCreateEvent
-			allChannels, err := gt.chat.state.Cabinet.Channels(channel.GuildID)
-			if err != nil {
-				slog.Error("failed to get channels for forum threads", "err", err, "guild_id", channel.GuildID)
-				return nil
-			}
-
-			// Filter for threads that belong to this forum channel
-			var forumThreads []discord.Channel
-			for _, ch := range allChannels {
-				if ch.ParentID == channel.ID && (ch.Type == discord.GuildPublicThread ||
-					ch.Type == discord.GuildPrivateThread ||
-					ch.Type == discord.GuildAnnouncementThread) {
-					forumThreads = append(forumThreads, ch)
-				}
-			}
-
-			// Add threads as child nodes
-			for _, thread := range forumThreads {
-				gt.createChannelNode(node, thread)
-			}
-			node.Expand()
-			return nil
-		}
-
-		return gt.loadChannel(*channel)
 	case dmNode: // Direct messages folder
 		channels, err := gt.chat.state.PrivateChannels()
 		if err != nil {
@@ -366,7 +355,74 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) tview.Cmd {
 			gt.createChannelNode(node, c)
 		}
 		node.Expand()
+	}
+
+	return nil
+}
+
+func (gt *guildsTree) selectForumNode(node *tview.TreeNode, channel discord.Channel) tview.Cmd {
+	if len(node.GetChildren()) != 0 {
+		gt.toggleNode(node)
 		return nil
+	}
+
+	// Get all channels from the guild - this includes active threads from GuildCreateEvent.
+	allChannels, err := gt.chat.state.Cabinet.Channels(channel.GuildID)
+	if err != nil {
+		slog.Error("failed to get channels for forum threads", "err", err, "guild_id", channel.GuildID)
+		return nil
+	}
+
+	for _, ch := range allChannels {
+		if ch.ParentID != channel.ID {
+			continue
+		}
+		switch ch.Type {
+		case discord.GuildPublicThread, discord.GuildPrivateThread, discord.GuildAnnouncementThread:
+			if gt.channelNodeByID[ch.ID] == nil {
+				gt.createChannelNode(node, ch)
+			}
+		}
+	}
+	node.Expand()
+	return nil
+}
+
+func (gt *guildsTree) openChannelNode(node *tview.TreeNode, channel discord.Channel) tview.Cmd {
+	if len(node.GetChildren()) != 0 {
+		node.Expand()
+	}
+
+	return gt.loadChannel(channel)
+}
+
+func (gt *guildsTree) onSelected(node *tview.TreeNode) tview.Cmd {
+	switch ref := node.GetReference().(type) {
+	case discord.GuildID, dmNode:
+		return gt.selectLazyContainerNode(node)
+	case discord.ChannelID:
+		channel, err := gt.chat.state.Cabinet.Channel(ref)
+		if err != nil {
+			slog.Error("failed to get channel from state", "err", err, "channel_id", ref)
+			return nil
+		}
+
+		switch channel.Type {
+		case discord.GuildCategory:
+			gt.toggleNode(node)
+			return nil
+		case discord.GuildForum:
+			return gt.selectForumNode(node, *channel)
+		}
+
+		// Re-selecting the already-open parent channel uses Enter to toggle its
+		// thread children; otherwise Enter opens the channel itself.
+		if len(node.GetChildren()) != 0 && gt.isActiveChannel(channel.ID) {
+			gt.toggleNode(node)
+			return nil
+		}
+
+		return gt.openChannelNode(node, *channel)
 	}
 	return nil
 }
