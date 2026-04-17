@@ -35,6 +35,7 @@ func Run() error {
 	if err := logger.Load(*logPath, level); err != nil {
 		return fmt.Errorf("failed to load logger: %w", err)
 	}
+	defer logger.Close()
 
 	cfg, err := config.Load(*configPath)
 	if err != nil {
