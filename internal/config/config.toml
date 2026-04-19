@@ -68,6 +68,15 @@ expanded = "▾ "
 collapsed = "▸ "
 leaf = ""
 
+# Indentation for different item types.
+[sidebar.indents]
+dm = 2
+group_dm = 1
+guild = 2
+category = 1
+channel = 2
+forum = 2
+
 [icons]
 guild_category = ""
 guild_text = "#"
@@ -202,15 +211,6 @@ online_style = { foreground = "green" }
 idle_style = { foreground = "yellow" }
 dnd_style = { foreground = "red" }
 offline_style = { foreground = "gray" }
-
-# Guilds tree indentation for different item types
-[theme.guilds_tree.indents]
-dm = 2
-group_dm = 1
-guild = 2    # server inside a folder
-category = 1
-channel = 2
-forum = 2
 
 [theme.scroll_bar]
 visibility = "auto"
