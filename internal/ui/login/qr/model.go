@@ -2,7 +2,6 @@ package qr
 
 import (
 	"crypto/rsa"
-	"fmt"
 	"strings"
 	"time"
 
@@ -46,62 +45,62 @@ func (m *Model) Label() string {
 
 func (m *Model) Update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
-	case *tview.InitMsg:
+	case tview.InitMsg:
 		m.msg = "Connecting to Remote Auth Gateway..."
 		return m.connect()
-	case *tview.KeyMsg:
+	case tview.KeyMsg:
 		if msg.Key() == tcell.KeyEsc {
 			m.msg = "Canceled"
 			return tview.Batch(m.close(), nil)
 		}
 		return m.TextView.Update(msg)
 
-	case *connCreateMsg:
+	case connCreateMsg:
 		m.conn = msg.conn
 		m.msg = "Connected. Handshaking..."
 		return m.listen()
-	case *connCloseMsg:
+	case connCloseMsg:
 		m.conn = nil
 		return nil
 
-	case *helloMsg:
+	case helloMsg:
 		m.heartbeatInterval = time.Duration(msg.heartbeatInterval) * time.Millisecond
 		return tview.Batch(m.listen(), m.heartbeat(), m.generatePrivateKey())
-	case *privateKeyMsg:
+	case privateKeyMsg:
 		m.privateKey = msg.privateKey
 		return tview.Batch(m.listen(), m.sendInit())
-	case *nonceProofMsg:
+	case nonceProofMsg:
 		return tview.Batch(m.listen(), m.sendNonceProof(msg.encryptedNonce))
-	case *pendingRemoteInitMsg:
+	case pendingRemoteInitMsg:
 		m.fingerprint = msg.fingerprint
 		return tview.Batch(m.listen(), m.generateQRCode(msg.fingerprint))
-	case *qrCodeMsg:
+	case qrCodeMsg:
 		m.qrCode = msg.qrCode
 		m.msg = "Scan this with the Discord mobile app to log in instantly."
 		return m.listen()
-	case *pendingTicketMsg:
+	case pendingTicketMsg:
 		return tview.Batch(m.listen(), m.decryptUserPayload(msg.encryptedUserPayload))
-	case *userMsg:
+	case userMsg:
 		name := msg.username
 		if msg.discriminator != "0" {
 			name += "#" + msg.discriminator
 		}
-		m.msg = fmt.Sprintf("Check your phone! Logging in as %s", name)
+		m.msg = "Check your phone! Logging in as " + name
 		return m.listen()
-	case *pendingLoginMsg:
+	case pendingLoginMsg:
 		m.msg = "Authenticating..."
 		return tview.Batch(m.close(), m.exchangeTicket(msg.ticket))
-	case *cancelMsg:
+	case cancelMsg:
 		m.msg = "Login canceled on mobile"
 		return m.close()
 
-	case *heartbeatTickMsg:
+	case heartbeatTickMsg:
 		if m.conn == nil {
 			return nil
 		}
 		return tview.Batch(m.heartbeat(), m.sendHeartbeat())
 
-	case *errMsg:
+	case errMsg:
 		m.msg = msg.err.Error()
 		return m.close()
 	}

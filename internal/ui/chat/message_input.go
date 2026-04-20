@@ -54,15 +54,15 @@ type messageInput struct {
 	typingTimer   *time.Timer
 }
 
-type tabSuggestMsg struct{ tcell.EventTime }
+type tabSuggestMsg struct{}
 
 var _ help.KeyMap = (*messageInput)(nil)
 
-func newMessageInput(cfg *config.Config, chatView *Model) *messageInput {
+func newMessageInput(cfg *config.Config, chat *Model) *messageInput {
 	mi := &messageInput{
 		TextArea:        tview.NewTextArea(),
 		cfg:             cfg,
-		chat:            chatView,
+		chat:            chat,
 		sendMessageData: &api.SendMessageData{},
 		cache:           cache.NewCache(),
 		mentionsList:    newMentionsList(cfg),
@@ -108,9 +108,9 @@ func (mi *messageInput) stopTypingTimer() {
 func (mi *messageInput) Update(msg tview.Msg) tview.Cmd {
 	handler := mi.TextArea.Update
 	switch msg := msg.(type) {
-	case *tabSuggestMsg:
+	case tabSuggestMsg:
 		return mi.tabSuggest()
-	case *tview.KeyMsg:
+	case tview.KeyMsg:
 		switch {
 		case keybind.Matches(msg, mi.cfg.Keybinds.MessageInput.Paste.Keybind):
 			mi.paste()
@@ -512,7 +512,7 @@ func (mi *messageInput) searchMember(gID discord.GuildID, name string) tview.Cmd
 		mi.chat.messagesList.setFetchingChunk(true, 0)
 		mi.chat.state.MemberState.SearchMember(gID, name)
 		mi.cache.Create(key, mi.chat.messagesList.waitForChunkEvent())
-		return &tabSuggestMsg{}
+		return tabSuggestMsg{}
 	}
 }
 
@@ -726,8 +726,12 @@ func (mi *messageInput) FullHelp() [][]keybind.Keybind {
 
 	cfg := mi.cfg.Keybinds.MessageInput
 	openEditor := []keybind.Keybind{cfg.Paste.Keybind, cfg.OpenEditor.Keybind}
-	if selected := mi.chat.SelectedChannel(); selected != nil && mi.chat.state.HasPermissions(selected.ID, discord.PermissionAttachFiles) {
-		openEditor = append(openEditor, cfg.OpenFilePicker.Keybind)
+
+	selectedChannel := mi.chat.SelectedChannel()
+	if selectedChannel != nil {
+		if hasPerm := mi.chat.state.HasPermissions(selectedChannel.ID, discord.PermissionAttachFiles); hasPerm {
+			openEditor = append(openEditor, cfg.OpenFilePicker.Keybind)
+		}
 	}
 
 	return [][]keybind.Keybind{

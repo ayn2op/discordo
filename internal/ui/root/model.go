@@ -56,13 +56,13 @@ func NewModel(cfg *config.Config, app *tview.Application) *Model {
 func (m *Model) showLogin() tview.Cmd {
 	m.inner = login.NewModel(m.cfg)
 	m.buildLayout()
-	return tview.Batch(m.inner.Update(&tview.InitMsg{}), tview.SetFocus(m))
+	return tview.Batch(m.inner.Update(tview.InitMsg{}), tview.SetFocus(m))
 }
 
 func (m *Model) showChat(token string) tview.Cmd {
 	m.inner = chat.NewModel(m.app, m.cfg, token)
 	m.buildLayout()
-	return tview.Batch(m.inner.Update(&tview.InitMsg{}), tview.SetFocus(m))
+	return tview.Batch(m.inner.Update(tview.InitMsg{}), tview.SetFocus(m))
 }
 
 func (m *Model) buildLayout() {
@@ -82,7 +82,7 @@ func (m *Model) Draw(screen tcell.Screen) {
 
 func (m *Model) Update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
-	case *tview.InitMsg:
+	case tview.InitMsg:
 		var cmd tview.Cmd
 		if token := os.Getenv(tokenEnvVarKey); token != "" {
 			cmd = tokenCommand(token)
@@ -95,23 +95,23 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 			cmd,
 		)
 
-	case *loginMsg:
+	case loginMsg:
 		return m.showLogin()
-	case *tokenMsg:
-		return m.showChat(msg.token)
+	case tokenMsg:
+		return m.showChat(string(msg))
 
-	case *token.TokenMsg:
-		return tview.Batch(m.showChat(msg.Token), setToken(msg.Token))
-	case *qr.TokenMsg:
-		return tview.Batch(m.showChat(msg.Token), setToken(msg.Token))
+	case token.TokenMsg:
+		return tview.Batch(m.showChat(string(msg)), setToken(string(msg)))
+	case qr.TokenMsg:
+		return tview.Batch(m.showChat(string(msg)), setToken(string(msg)))
 
-	case *chat.LogoutMsg:
+	case chat.LogoutMsg:
 		return tview.Batch(
 			m.showLogin(),
 			deleteToken(),
 		)
 
-	case *tview.KeyMsg:
+	case tview.KeyMsg:
 		switch {
 		case keybind.Matches(msg, m.cfg.Keybinds.ToggleHelp.Keybind):
 			m.help.SetShowAll(!m.help.ShowAll())
@@ -123,7 +123,7 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		case keybind.Matches(msg, m.cfg.Keybinds.Quit.Keybind):
 			var innerCmd tview.Cmd
 			if m.inner != nil {
-				innerCmd = m.inner.Update(&chat.QuitMsg{})
+				innerCmd = m.inner.Update(chat.QuitMsg{})
 			}
 			return tview.Batch(innerCmd, tview.Quit())
 		}

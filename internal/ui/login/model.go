@@ -43,12 +43,12 @@ func NewModel(cfg *config.Config) *Model {
 
 func (m *Model) Update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
-	case *errMsg:
+	case errMsg:
 		if m.HasLayer(errorLayerName) {
 			return nil
 		}
 		return m.showErrorDialog(msg.err)
-	case *tview.ModalDoneMsg:
+	case tview.ModalDoneMsg:
 		if !m.HasLayer(errorLayerName) {
 			return nil
 		}

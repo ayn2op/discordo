@@ -13,20 +13,14 @@ import (
 	"github.com/gdamore/tcell/v3"
 )
 
-var (
-	configPath string
-	logPath    string
-	logLevel   string
-)
-
 func Run() error {
-	flag.StringVar(&configPath, "config-path", config.DefaultPath(), "path of the configuration file")
-	flag.StringVar(&logPath, "log-path", logger.DefaultPath(), "path of the log file")
-	flag.StringVar(&logLevel, "log-level", "info", "log level")
+	configPath := flag.String("config-path", config.DefaultPath(), "path of the configuration file")
+	logPath := flag.String("log-path", logger.DefaultPath(), "path of the log file")
+	logLevel := flag.String("log-level", "info", "log level")
 	flag.Parse()
 
 	var level slog.Level
-	switch logLevel {
+	switch *logLevel {
 	case "debug":
 		ws.EnableRawEvents = true
 		level = slog.LevelDebug
@@ -38,11 +32,13 @@ func Run() error {
 		level = slog.LevelError
 	}
 
-	if err := logger.Load(logPath, level); err != nil {
+	logFile, err := logger.Load(*logPath, level)
+	if err != nil {
 		return fmt.Errorf("failed to load logger: %w", err)
 	}
+	defer logFile.Close()
 
-	cfg, err := config.Load(configPath)
+	cfg, err := config.Load(*configPath)
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
@@ -63,8 +59,7 @@ func Run() error {
 	screen.EnableFocus()
 
 	tview.Styles = tview.Theme{}
-	app := tview.NewApplication()
+	app := tview.NewApplication(tview.WithScreen(screen))
 	app.SetRoot(root.NewModel(cfg, app))
-	app.SetScreen(screen)
 	return app.Run()
 }

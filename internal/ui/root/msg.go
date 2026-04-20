@@ -6,30 +6,26 @@ import (
 	"github.com/ayn2op/discordo/internal/clipboard"
 	"github.com/ayn2op/discordo/internal/keyring"
 	"github.com/ayn2op/tview"
-	"github.com/gdamore/tcell/v3"
 )
 
-type tokenMsg struct {
-	tcell.EventTime
-	token string
-}
+type tokenMsg string
 
 func tokenCommand(token string) tview.Cmd {
 	return func() tview.Msg {
-		return &tokenMsg{token: token}
+		return tokenMsg(token)
 	}
 }
 
-type loginMsg struct{ tcell.EventTime }
+type loginMsg struct{}
 
 func getToken() tview.Cmd {
 	return func() tview.Msg {
 		token, err := keyring.GetToken()
 		if err != nil {
 			slog.Info("failed to retrieve token from keyring", "err", err)
-			return &loginMsg{}
+			return loginMsg{}
 		}
-		return &tokenMsg{token: token}
+		return tokenMsg(token)
 	}
 }
 

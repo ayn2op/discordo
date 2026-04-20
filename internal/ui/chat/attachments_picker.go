@@ -15,19 +15,15 @@ type attachmentItem struct {
 
 type attachmentsPicker struct {
 	*picker.Model
-	cfg      *config.Config
-	chatView *Model
-	items    []attachmentItem
+	cfg   *config.Config
+	chat  *Model
+	items []attachmentItem
 }
 
 var _ help.KeyMap = (*attachmentsPicker)(nil)
 
-func newAttachmentsPicker(cfg *config.Config, chatView *Model) *attachmentsPicker {
-	ap := &attachmentsPicker{
-		Model:    picker.NewModel(),
-		cfg:      cfg,
-		chatView: chatView,
-	}
+func newAttachmentsPicker(cfg *config.Config, chat *Model) *attachmentsPicker {
+	ap := &attachmentsPicker{Model: picker.NewModel(), cfg: cfg, chat: chat}
 	ConfigurePicker(ap.Model, cfg, "Attachments")
 	return ap
 }
@@ -47,13 +43,13 @@ func (ap *attachmentsPicker) SetItems(items []attachmentItem) {
 
 func (ap *attachmentsPicker) close() tview.Cmd {
 
-	ap.chatView.RemoveLayer(attachmentsPickerLayerName)
-	return tview.SetFocus(ap.chatView.messagesList)
+	ap.chat.RemoveLayer(attachmentsPickerLayerName)
+	return tview.SetFocus(ap.chat.messagesList)
 }
 
 func (ap *attachmentsPicker) Update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
-	case *picker.SelectedMsg:
+	case picker.SelectedMsg:
 		index, ok := msg.Reference.(int)
 		if !ok {
 			return nil
@@ -63,7 +59,7 @@ func (ap *attachmentsPicker) Update(msg tview.Msg) tview.Cmd {
 		}
 		ap.items[index].open()
 		return ap.close()
-	case *picker.CancelMsg:
+	case picker.CancelMsg:
 		return ap.close()
 	}
 

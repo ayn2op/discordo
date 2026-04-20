@@ -44,7 +44,7 @@ import (
 type messagesList struct {
 	*list.Model
 	cfg      *config.Config
-	chatView *Model
+	chat     *Model
 	messages []discord.Message
 	// rows is the virtual list model rendered by tview (message rows +
 	// date-separator rows). It is rebuilt lazily when rowsDirty is true.
@@ -80,15 +80,15 @@ type messagesListRow struct {
 	timestamp    discord.Timestamp
 }
 
-func newMessagesList(cfg *config.Config, chatView *Model) *messagesList {
+func newMessagesList(cfg *config.Config, chat *Model) *messagesList {
 	ml := &messagesList{
 		Model:    list.NewModel(),
 		cfg:      cfg,
-		chatView: chatView,
+		chat:     chat,
 		renderer: markdown.NewRenderer(cfg),
 		itemByID: make(map[discord.MessageID]*tview.TextView),
 	}
-	ml.attachmentsPicker = newAttachmentsPicker(cfg, chatView)
+	ml.attachmentsPicker = newAttachmentsPicker(cfg, chat)
 
 	ml.Box = ui.ConfigureBox(ml.Box, &cfg.Theme)
 	ml.SetTitle("Messages")
@@ -121,7 +121,7 @@ func (ml *messagesList) reset() {
 }
 
 func (ml *messagesList) setTitle(channel discord.Channel) {
-	title := ui.ChannelToString(channel, ml.cfg.Icons, ml.chatView.state)
+	title := ui.ChannelToString(channel, ml.cfg.Icons, ml.chat.state)
 	if topic := channel.Topic; topic != "" {
 		title += " - " + topic
 	}
@@ -242,18 +242,18 @@ func (ml *messagesList) drawDateSeparator(builder *tview.LineBuilder, ts discord
 func (ml *messagesList) rebuildRows() {
 	rows := make([]messagesListRow, 0, len(ml.messages)*2)
 
-	for i := range ml.messages {
+	for index := range ml.messages {
 		// Always show a date separator before the first message, and between messages on different days.
-		if ml.cfg.DateSeparator.Enabled && (i == 0 || !sameLocalDate(ml.messages[i-1].Timestamp, ml.messages[i].Timestamp)) {
+		if ml.cfg.DateSeparator.Enabled && (index == 0 || !sameLocalDate(ml.messages[index-1].Timestamp, ml.messages[index].Timestamp)) {
 			rows = append(rows, messagesListRow{
 				kind:      messagesListRowSeparator,
-				timestamp: ml.messages[i].Timestamp,
+				timestamp: ml.messages[index].Timestamp,
 			})
 		}
 
 		rows = append(rows, messagesListRow{
 			kind:         messagesListRowMessage,
-			messageIndex: i,
+			messageIndex: index,
 		})
 	}
 
@@ -343,7 +343,7 @@ func (ml *messagesList) nearestMessageRowIndex(rowIndex int) int {
 
 func (ml *messagesList) writeMessage(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style) {
 	if ml.cfg.HideBlockedUsers {
-		isBlocked := ml.chatView.state.UserIsBlocked(message.Author.ID)
+		isBlocked := ml.chat.state.UserIsBlocked(message.Author.ID)
 		if isBlocked {
 			builder.Write("Blocked message", baseStyle.Foreground(color.Red).Bold(true))
 			return
@@ -390,7 +390,7 @@ func (ml *messagesList) drawAuthor(builder *tview.LineBuilder, message discord.M
 		}
 
 		color, ok := state.MemberColor(member, func(id discord.RoleID) *discord.Role {
-			r, _ := ml.chatView.state.Cabinet.Role(message.GuildID, id)
+			r, _ := ml.chat.state.Cabinet.Role(message.GuildID, id)
 			return r
 		})
 		if ok {
@@ -408,7 +408,7 @@ func (ml *messagesList) memberForMessage(message discord.Message) *discord.Membe
 		return nil
 	}
 
-	member, err := ml.chatView.state.Cabinet.Member(message.GuildID, message.Author.ID)
+	member, err := ml.chat.state.Cabinet.Member(message.GuildID, message.Author.ID)
 	if err != nil {
 		slog.Error("failed to get member from state", "guild_id", message.GuildID, "member_id", message.Author.ID, "err", err)
 		return nil
@@ -418,7 +418,7 @@ func (ml *messagesList) memberForMessage(message discord.Message) *discord.Membe
 
 func (ml *messagesList) drawContent(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style) {
 	lines, root := ml.renderContentLines(message, baseStyle)
-	if ml.chatView.cfg.Markdown.Enabled && builder.HasCurrentLine() {
+	if ml.cfg.Markdown.Enabled && builder.HasCurrentLine() {
 		startsWithCodeBlock := false
 		if root != nil {
 			if first := root.FirstChild(); first != nil {
@@ -447,9 +447,9 @@ func (ml *messagesList) renderContentLines(message discord.Message, baseStyle tc
 
 func (ml *messagesList) renderContentLinesWithMarkdown(message discord.Message, baseStyle tcell.Style, forceMarkdown bool) ([]tview.Line, ast.Node) {
 	// Keep one rendering path for both normal messages and embed fragments so we preserve mention/link parsing behavior consistently across both.
-	if forceMarkdown || ml.chatView.cfg.Markdown.Enabled {
+	if forceMarkdown || ml.cfg.Markdown.Enabled {
 		c := []byte(message.Content)
-		root := discordmd.ParseWithMessage(c, *ml.chatView.state.Cabinet, &message, false)
+		root := discordmd.ParseWithMessage(c, *ml.chat.state.Cabinet, &message, false)
 		return ml.renderer.RenderLines(c, root, baseStyle), root
 	}
 
@@ -532,7 +532,7 @@ func (ml *messagesList) drawEmbeds(builder *tview.LineBuilder, message discord.M
 		embedContentLines := make([]tview.Line, 0, len(lines)*2)
 		barStyle := defaultBarStyle
 		if embed.Color != discord.NullColor && embed.Color != 0 {
-			barStyle = barStyle.Foreground(tcell.NewHexColor(int32(embed.Color.Uint32())))
+			barStyle = barStyle.Foreground(tcell.NewHexColor(int32(embed.Color)))
 		}
 		prefix := tview.NewSegment(prefixText, barStyle)
 		builder.NewLine()
@@ -846,7 +846,7 @@ func (ml *messagesList) selectedMessage() (*discord.Message, error) {
 
 func (ml *messagesList) Update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
-	case *tview.KeyMsg:
+	case tview.KeyMsg:
 		switch {
 		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.Cancel.Keybind):
 			ml.clearSelection()
@@ -887,8 +887,8 @@ func (ml *messagesList) Update(msg tview.Msg) tview.Cmd {
 		}
 		return ml.Model.Update(msg)
 
-	case *olderMessagesLoadedMsg:
-		selectedChannel := ml.chatView.SelectedChannel()
+	case olderMessagesLoadedMsg:
+		selectedChannel := ml.chat.SelectedChannel()
 		if selectedChannel == nil || selectedChannel.ID != msg.ChannelID {
 			return nil
 		}
@@ -989,7 +989,7 @@ func (ml *messagesList) selectReply() {
 }
 
 func (ml *messagesList) fetchOlderMessages() tview.Cmd {
-	selectedChannel := ml.chatView.SelectedChannel()
+	selectedChannel := ml.chat.SelectedChannel()
 	if selectedChannel == nil {
 		return nil
 	}
@@ -998,7 +998,7 @@ func (ml *messagesList) fetchOlderMessages() tview.Cmd {
 	before := ml.messages[0].ID
 	limit := uint(ml.cfg.MessagesLimit)
 	return func() tview.Msg {
-		messages, err := ml.chatView.state.MessagesBefore(channelID, before, limit)
+		messages, err := ml.chat.state.MessagesBefore(channelID, before, limit)
 		if err != nil {
 			slog.Error("failed to fetch older messages", "err", err)
 			return nil
@@ -1176,7 +1176,7 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 	}
 	ml.attachmentsPicker.SetItems(items)
 
-	ml.chatView.
+	ml.chat.
 		AddLayer(
 			ui.Centered(ml.attachmentsPicker, ml.cfg.Picker.Width, ml.cfg.Picker.Height),
 			layers.WithName(attachmentsPickerLayerName),
@@ -1239,7 +1239,7 @@ func (ml *messagesList) reply(mention bool) tview.Cmd {
 		name = member.Nick
 	}
 
-	data := ml.chatView.messageInput.sendMessageData
+	data := ml.chat.messageInput.sendMessageData
 	data.Reference = &discord.MessageReference{MessageID: message.ID}
 	data.AllowedMentions = &api.AllowedMentions{RepliedUser: option.False}
 
@@ -1249,9 +1249,9 @@ func (ml *messagesList) reply(mention bool) tview.Cmd {
 		title = "[@] " + title
 	}
 
-	ml.chatView.messageInput.sendMessageData = data
-	ml.chatView.messageInput.SetTitle(title + name)
-	return tview.SetFocus(ml.chatView.messageInput)
+	ml.chat.messageInput.sendMessageData = data
+	ml.chat.messageInput.SetTitle(title + name)
+	return tview.SetFocus(ml.chat.messageInput)
 }
 
 func (ml *messagesList) editSelectedMessage() tview.Cmd {
@@ -1261,16 +1261,16 @@ func (ml *messagesList) editSelectedMessage() tview.Cmd {
 		return nil
 	}
 
-	me, _ := ml.chatView.state.Cabinet.Me()
+	me, _ := ml.chat.state.Cabinet.Me()
 	if message.Author.ID != me.ID {
 		slog.Error("failed to edit message; not the author", "channel_id", message.ChannelID, "message_id", message.ID)
 		return nil
 	}
 
-	ml.chatView.messageInput.SetTitle("Editing")
-	ml.chatView.messageInput.edit = true
-	ml.chatView.messageInput.SetText(message.Content, true)
-	return tview.SetFocus(ml.chatView.messageInput)
+	ml.chat.messageInput.SetTitle("Editing")
+	ml.chat.messageInput.edit = true
+	ml.chat.messageInput.SetText(message.Content, true)
+	return tview.SetFocus(ml.chat.messageInput)
 }
 
 func (ml *messagesList) confirmDelete() {
@@ -1282,7 +1282,7 @@ func (ml *messagesList) confirmDelete() {
 		}
 	}
 
-	ml.chatView.showConfirmModal(
+	ml.chat.showConfirmModal(
 		"Are you sure you want to delete this message?",
 		[]string{"Yes", "No"},
 		onChoice,
@@ -1298,19 +1298,19 @@ func (ml *messagesList) deleteSelectedMessage() tview.Cmd {
 
 	return func() tview.Msg {
 		if selectedMessage.GuildID.IsValid() {
-			me, _ := ml.chatView.state.Cabinet.Me()
-			if selectedMessage.Author.ID != me.ID && !ml.chatView.state.HasPermissions(selectedMessage.ChannelID, discord.PermissionManageMessages) {
+			me, _ := ml.chat.state.Cabinet.Me()
+			if selectedMessage.Author.ID != me.ID && !ml.chat.state.HasPermissions(selectedMessage.ChannelID, discord.PermissionManageMessages) {
 				slog.Error("failed to delete message; missing relevant permissions", "channel_id", selectedMessage.ChannelID, "message_id", selectedMessage.ID)
 				return nil
 			}
 		}
 
-		if err := ml.chatView.state.DeleteMessage(selectedMessage.ChannelID, selectedMessage.ID, ""); err != nil {
+		if err := ml.chat.state.DeleteMessage(selectedMessage.ChannelID, selectedMessage.ID, ""); err != nil {
 			slog.Error("failed to delete message", "channel_id", selectedMessage.ChannelID, "message_id", selectedMessage.ID, "err", err)
 			return nil
 		}
 
-		if err := ml.chatView.state.MessageRemove(selectedMessage.ChannelID, selectedMessage.ID); err != nil {
+		if err := ml.chat.state.MessageRemove(selectedMessage.ChannelID, selectedMessage.ID); err != nil {
 			slog.Error("failed to delete message", "channel_id", selectedMessage.ChannelID, "message_id", selectedMessage.ID, "err", err)
 			return nil
 		}
@@ -1328,7 +1328,7 @@ func (ml *messagesList) requestGuildMembers(guildID discord.GuildID, messages []
 			continue
 		}
 
-		if member, _ := ml.chatView.state.Cabinet.Member(guildID, message.Author.ID); member == nil {
+		if member, _ := ml.chat.state.Cabinet.Member(guildID, message.Author.ID); member == nil {
 			userID := message.Author.ID
 			if _, ok := seen[userID]; !ok {
 				seen[userID] = struct{}{}
@@ -1338,7 +1338,7 @@ func (ml *messagesList) requestGuildMembers(guildID discord.GuildID, messages []
 	}
 
 	if len(usersToFetch) > 0 {
-		err := ml.chatView.state.SendGateway(context.Background(), &gateway.RequestGuildMembersCommand{
+		err := ml.chat.state.SendGateway(context.Background(), &gateway.RequestGuildMembersCommand{
 			GuildIDs: []discord.GuildID{guildID},
 			UserIDs:  usersToFetch,
 		})
@@ -1391,7 +1391,7 @@ func (ml *messagesList) ShortHelp() []keybind.Keybind {
 	}
 
 	if msg, err := ml.selectedMessage(); err == nil {
-		me, _ := ml.chatView.state.Cabinet.Me()
+		me, _ := ml.chat.state.Cabinet.Me()
 		if msg.Author.ID != me.ID {
 			help = append(help, cfg.Reply.Keybind)
 		}
@@ -1412,13 +1412,13 @@ func (ml *messagesList) FullHelp() [][]keybind.Keybind {
 		canSelectReply = msg.ReferencedMessage != nil
 		canOpen = len(messageURLs(*msg)) != 0 || len(msg.Attachments) != 0
 
-		me, _ := ml.chatView.state.Cabinet.Me()
+		me, _ := ml.chat.state.Cabinet.Me()
 		canReply = msg.Author.ID != me.ID
 		canEdit = msg.Author.ID == me.ID
 		canDelete = canEdit
 		if !canDelete {
-			selected := ml.chatView.SelectedChannel()
-			canDelete = selected != nil && ml.chatView.state.HasPermissions(selected.ID, discord.PermissionManageMessages)
+			selected := ml.chat.SelectedChannel()
+			canDelete = selected != nil && ml.chat.state.HasPermissions(selected.ID, discord.PermissionManageMessages)
 		}
 	}
 

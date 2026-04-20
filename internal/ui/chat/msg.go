@@ -7,7 +7,6 @@ import (
 	"github.com/ayn2op/tview"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
-	"github.com/gdamore/tcell/v3"
 )
 
 func (m *Model) openState() tview.Cmd {
@@ -33,38 +32,35 @@ func (m *Model) closeState() tview.Cmd {
 }
 
 type gatewayEventMsg struct {
-	tcell.EventTime
 	gateway.Event
 }
 
 func (m *Model) listen() tview.Cmd {
 	return func() tview.Msg {
-		return &gatewayEventMsg{Event: <-m.events}
+		return gatewayEventMsg{Event: <-m.events}
 	}
 }
 
 type channelLoadedMsg struct {
-	tcell.EventTime
 	Channel  discord.Channel
 	Messages []discord.Message
 }
 
 type olderMessagesLoadedMsg struct {
-	tcell.EventTime
 	ChannelID discord.ChannelID
 	Older     []discord.Message
 }
 
-func newOlderMessagesLoadedMsg(channelID discord.ChannelID, older []discord.Message) *olderMessagesLoadedMsg {
-	return &olderMessagesLoadedMsg{ChannelID: channelID, Older: older}
+func newOlderMessagesLoadedMsg(channelID discord.ChannelID, older []discord.Message) olderMessagesLoadedMsg {
+	return olderMessagesLoadedMsg{ChannelID: channelID, Older: older}
 }
 
-type LogoutMsg struct{ tcell.EventTime }
+type LogoutMsg struct{}
 
 func (m *Model) logout() tview.Cmd {
 	return func() tview.Msg {
-		return &LogoutMsg{}
+		return LogoutMsg{}
 	}
 }
 
-type QuitMsg struct{ tcell.EventTime }
+type QuitMsg struct{}

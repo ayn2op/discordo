@@ -247,9 +247,9 @@ func (m *Model) focusNext() tview.Cmd {
 
 func (m *Model) Update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
-	case *tview.InitMsg:
+	case tview.InitMsg:
 		return tview.Batch(m.openState(), m.listen())
-	case *gatewayEventMsg:
+	case gatewayEventMsg:
 		switch eventMsg := msg.Event.(type) {
 		case *ws.RawEvent:
 			m.onRaw(eventMsg)
@@ -278,7 +278,7 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 			m.onReadUpdate(eventMsg)
 		}
 		return m.listen()
-	case *channelLoadedMsg:
+	case channelLoadedMsg:
 		node := m.guildsTree.GetCurrentNode()
 		if node == nil {
 			return nil
@@ -297,11 +297,13 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		m.messagesList.setMessages(msg.Messages)
 		m.messagesList.ScrollBottom()
 
-		hasNoPerm := msg.Channel.Type != discord.DirectMessage && msg.Channel.Type != discord.GroupDM && !m.state.HasPermissions(msg.Channel.ID, discord.PermissionSendMessages)
+		isDM := msg.Channel.Type == discord.DirectMessage || msg.Channel.Type == discord.GroupDM
+		hasNoPerm := !isDM && !m.state.HasPermissions(msg.Channel.ID, discord.PermissionSendMessages)
 		m.messageInput.SetDisabled(hasNoPerm)
-		text := "Message..."
 
-		var focusCmd tview.Cmd
+		text := "Message..."
+		focusCmd := tview.Cmd(nil)
+
 		if hasNoPerm {
 			text = "You do not have permission to send messages in this channel."
 		} else if m.cfg.AutoFocus {
@@ -309,12 +311,12 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		}
 		m.messageInput.SetPlaceholder(tview.NewLine(tview.NewSegment(text, tcell.StyleDefault.Dim(true))))
 		return focusCmd
-	case *QuitMsg:
+	case QuitMsg:
 		return tview.Batch(
 			m.closeState(),
 			tview.Quit(),
 		)
-	case *tview.ModalDoneMsg:
+	case tview.ModalDoneMsg:
 		if m.HasLayer(confirmModalLayerName) {
 			m.RemoveLayer(confirmModalLayerName)
 			var focusCmd tview.Cmd
@@ -329,7 +331,7 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 			}
 			return focusCmd
 		}
-	case *tview.KeyMsg:
+	case tview.KeyMsg:
 		switch {
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusGuildsTree.Keybind):
 			m.messageInput.removeMentionsList()
@@ -354,7 +356,7 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		case keybind.Matches(msg, m.cfg.Keybinds.Logout.Keybind):
 			return tview.Batch(m.closeState(), m.logout())
 		}
-	case *tabSuggestMsg:
+	case tabSuggestMsg:
 		// Member search completes in a command goroutine; resume suggestion
 		// generation on the update loop to keep UI mutations serialized.
 		return m.messageInput.Update(msg)

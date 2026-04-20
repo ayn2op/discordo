@@ -68,6 +68,15 @@ expanded = "▾ "
 collapsed = "▸ "
 leaf = ""
 
+# Indentation for different item types.
+[sidebar.indents]
+dm = 2
+group_dm = 1
+guild = 2
+category = 1
+channel = 2
+forum = 2
+
 [icons]
 guild_category = ""
 guild_text = "#"
@@ -83,6 +92,9 @@ guild_store = "s-"
 # Global shortcuts
 # Esc: Reset message selection or close the channel selection popup.
 [keybinds]
+# Hide/show the guilds tree.
+toggle_guilds_tree = "ctrl+b"
+toggle_channels_picker = "ctrl+k"
 toggle_help = "ctrl+."
 focus_guilds_tree = "ctrl+g"
 focus_messages_list = "ctrl+t"
@@ -90,8 +102,6 @@ focus_message_input = "ctrl+i"
 # Cycle focus between the widgets.
 focus_previous = "ctrl+h"
 focus_next = "ctrl+l"
-# Hide/show the guilds tree.
-toggle_guilds_tree = "ctrl+b"
 # Log out and remove the authentication token from keyring.
 # Requires re-login upon restart.
 logout = "ctrl+d"
@@ -99,7 +109,6 @@ suspend = "ctrl+z"
 quit = "ctrl+c"
 
 [keybinds.picker]
-toggle = "ctrl+k"
 cancel = "esc"
 up = "ctrl+p"
 down = "ctrl+n"
@@ -202,15 +211,6 @@ online_style = { foreground = "green" }
 idle_style = { foreground = "yellow" }
 dnd_style = { foreground = "red" }
 offline_style = { foreground = "gray" }
-
-# Guilds tree indentation for different item types
-[theme.guilds_tree.indents]
-dm = 2
-group_dm = 1
-guild = 2    # server inside a folder
-category = 1
-channel = 2
-forum = 2
 
 [theme.scroll_bar]
 visibility = "auto"

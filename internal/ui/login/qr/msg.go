@@ -14,33 +14,27 @@ import (
 	"github.com/ayn2op/discordo/internal/http"
 	"github.com/ayn2op/tview"
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
-	"github.com/gdamore/tcell/v3"
 	"github.com/gorilla/websocket"
 	"github.com/skip2/go-qrcode"
 )
 
 type errMsg struct {
-	tcell.EventTime
 	err error
 }
 
-func newErrMsg(err error) *errMsg {
-	return &errMsg{err: err}
+func newErrMsg(err error) errMsg {
+	return errMsg{err: err}
 }
 
-type TokenMsg struct {
-	tcell.EventTime
-	Token string
-}
+type TokenMsg string
 
 const remoteAuthGatewayURL = "wss://remote-auth-gateway.discord.gg/?v=2"
 
 type connCreateMsg struct {
-	tcell.EventTime
 	conn *websocket.Conn
 }
 
-type connCloseMsg struct{ tcell.EventTime }
+type connCloseMsg struct{}
 
 func (m *Model) connect() tview.Cmd {
 	return func() tview.Msg {
@@ -50,7 +44,7 @@ func (m *Model) connect() tview.Cmd {
 		if err != nil {
 			return newErrMsg(err)
 		}
-		return &connCreateMsg{conn: conn}
+		return connCreateMsg{conn: conn}
 	}
 }
 
@@ -61,37 +55,32 @@ func (m *Model) close() tview.Cmd {
 				return newErrMsg(err)
 			}
 		}
-		return &connCloseMsg{}
+		return connCloseMsg{}
 	}
 }
 
 type helloMsg struct {
-	tcell.EventTime
 	heartbeatInterval int
 	timeoutMS         int
 }
 
 type nonceProofMsg struct {
-	tcell.EventTime
 	encryptedNonce string
 }
 
 type pendingRemoteInitMsg struct {
-	tcell.EventTime
 	fingerprint string
 }
 
 type pendingTicketMsg struct {
-	tcell.EventTime
 	encryptedUserPayload string
 }
 
 type pendingLoginMsg struct {
-	tcell.EventTime
 	ticket string
 }
 
-type cancelMsg struct{ tcell.EventTime }
+type cancelMsg struct{}
 
 func (m *Model) listen() tview.Cmd {
 	return func() tview.Msg {
@@ -120,7 +109,7 @@ func (m *Model) listen() tview.Cmd {
 			if err := json.Unmarshal(data, &payload); err != nil {
 				return newErrMsg(err)
 			}
-			return &helloMsg{heartbeatInterval: payload.HeartbeatInterval, timeoutMS: payload.TimeoutMS}
+			return helloMsg{heartbeatInterval: payload.HeartbeatInterval, timeoutMS: payload.TimeoutMS}
 		case "nonce_proof":
 			var payload struct {
 				EncryptedNonce string `json:"encrypted_nonce"`
@@ -128,7 +117,7 @@ func (m *Model) listen() tview.Cmd {
 			if err := json.Unmarshal(data, &payload); err != nil {
 				return newErrMsg(err)
 			}
-			return &nonceProofMsg{encryptedNonce: payload.EncryptedNonce}
+			return nonceProofMsg{encryptedNonce: payload.EncryptedNonce}
 		case "pending_remote_init":
 			var payload struct {
 				Fingerprint string `json:"fingerprint"`
@@ -136,7 +125,7 @@ func (m *Model) listen() tview.Cmd {
 			if err := json.Unmarshal(data, &payload); err != nil {
 				return newErrMsg(err)
 			}
-			return &pendingRemoteInitMsg{fingerprint: payload.Fingerprint}
+			return pendingRemoteInitMsg{fingerprint: payload.Fingerprint}
 		case "pending_ticket":
 			var payload struct {
 				EncryptedUserPayload string `json:"encrypted_user_payload"`
@@ -144,9 +133,9 @@ func (m *Model) listen() tview.Cmd {
 			if err := json.Unmarshal(data, &payload); err != nil {
 				return newErrMsg(err)
 			}
-			return &pendingTicketMsg{encryptedUserPayload: payload.EncryptedUserPayload}
+			return pendingTicketMsg{encryptedUserPayload: payload.EncryptedUserPayload}
 		case "cancel":
-			return &cancelMsg{}
+			return cancelMsg{}
 		case "pending_login":
 			var payload struct {
 				Ticket string `json:"ticket"`
@@ -154,19 +143,19 @@ func (m *Model) listen() tview.Cmd {
 			if err := json.Unmarshal(data, &payload); err != nil {
 				return newErrMsg(err)
 			}
-			return &pendingLoginMsg{ticket: payload.Ticket}
+			return pendingLoginMsg{ticket: payload.Ticket}
 		default:
 			return nil
 		}
 	}
 }
 
-type heartbeatTickMsg struct{ tcell.EventTime }
+type heartbeatTickMsg struct{}
 
 func (m *Model) heartbeat() tview.Cmd {
 	return func() tview.Msg {
 		time.Sleep(m.heartbeatInterval)
-		return &heartbeatTickMsg{}
+		return heartbeatTickMsg{}
 	}
 }
 
@@ -186,7 +175,6 @@ func (m *Model) sendHeartbeat() tview.Cmd {
 }
 
 type privateKeyMsg struct {
-	tcell.EventTime
 	privateKey *rsa.PrivateKey
 }
 
@@ -196,7 +184,7 @@ func (m *Model) generatePrivateKey() tview.Cmd {
 		if err != nil {
 			return newErrMsg(err)
 		}
-		return &privateKeyMsg{privateKey: privateKey}
+		return privateKeyMsg{privateKey: privateKey}
 	}
 }
 
@@ -246,7 +234,6 @@ func (m *Model) sendNonceProof(encryptedNonce string) tview.Cmd {
 }
 
 type qrCodeMsg struct {
-	tcell.EventTime
 	qrCode *qrcode.QRCode
 }
 
@@ -258,12 +245,11 @@ func (m *Model) generateQRCode(fingerprint string) tview.Cmd {
 			return newErrMsg(err)
 		}
 		qrCode.DisableBorder = true
-		return &qrCodeMsg{qrCode: qrCode}
+		return qrCodeMsg{qrCode: qrCode}
 	}
 }
 
 type userMsg struct {
-	tcell.EventTime
 	discriminator string
 	username      string
 }
@@ -285,7 +271,7 @@ func (m *Model) decryptUserPayload(encryptedPayload string) tview.Cmd {
 			return newErrMsg(errors.New("invalid user payload"))
 		}
 
-		return &userMsg{discriminator: parts[1], username: parts[3]}
+		return userMsg{discriminator: parts[1], username: parts[3]}
 	}
 }
 
@@ -314,6 +300,6 @@ func (m *Model) exchangeTicket(ticket string) tview.Cmd {
 		if err != nil {
 			return newErrMsg(err)
 		}
-		return &TokenMsg{Token: string(decryptedToken)}
+		return TokenMsg(string(decryptedToken))
 	}
 }

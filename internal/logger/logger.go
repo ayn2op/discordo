@@ -2,6 +2,7 @@ package logger
 
 import (
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -16,18 +17,18 @@ func DefaultPath() string {
 }
 
 // Load opens the log file and configures default logger.
-func Load(path string, level slog.Level) error {
+func Load(path string, level slog.Level) (io.Closer, error) {
 	if err := os.MkdirAll(filepath.Dir(path), os.ModePerm); err != nil {
-		return err
+		return nil, err
 	}
 
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.ModePerm)
 	if err != nil {
-		return fmt.Errorf("failed to open log file: %w", err)
+		return nil, fmt.Errorf("failed to open log file: %w", err)
 	}
 
 	opts := &slog.HandlerOptions{Level: level}
 	handler := slog.NewTextHandler(file, opts)
 	slog.SetDefault(slog.New(handler))
-	return nil
+	return file, nil
 }

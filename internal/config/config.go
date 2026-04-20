@@ -80,8 +80,18 @@ type (
 		Leaf      string `toml:"leaf"`
 	}
 
+	SidebarIndentsConfig struct {
+		Guild    int `toml:"guild"`
+		Category int `toml:"category"`
+		Channel  int `toml:"channel"`
+		Forum    int `toml:"forum"`
+		GroupDM  int `toml:"group_dm"`
+		DM       int `toml:"dm"`
+	}
+
 	SidebarConfig struct {
 		Markers SidebarMarkersConfig `toml:"markers"`
+		Indents SidebarIndentsConfig `toml:"indents"`
 	}
 
 	Config struct {

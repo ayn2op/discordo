@@ -24,7 +24,7 @@ func (m *Model) Label() string {
 
 func (m *Model) Update(msg tview.Msg) tview.Cmd {
 	switch msg.(type) {
-	case *tview.FormSubmitMsg:
+	case tview.FormSubmitMsg:
 		token := m.GetFormItem(0).(*tview.InputField).GetText()
 		if token == "" {
 			return nil

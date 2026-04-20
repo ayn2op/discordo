@@ -34,11 +34,11 @@ type guildsTree struct {
 
 var _ help.KeyMap = (*guildsTree)(nil)
 
-func newGuildsTree(cfg *config.Config, chatView *Model) *guildsTree {
+func newGuildsTree(cfg *config.Config, chat *Model) *guildsTree {
 	gt := &guildsTree{
 		TreeView: tview.NewTreeView(),
 		cfg:      cfg,
-		chat:     chatView,
+		chat:     chat,
 
 		guildNodeByID:   make(map[discord.GuildID]*tview.TreeNode),
 		channelNodeByID: make(map[discord.ChannelID]*tview.TreeNode),
@@ -220,7 +220,7 @@ func (gt *guildsTree) createGuildNode(n *tview.TreeNode, guild discord.Guild) {
 		SetReference(guild.ID).
 		SetExpandable(true).
 		SetExpanded(false).
-		SetIndent(gt.cfg.Theme.GuildsTree.Indents.Guild)
+		SetIndent(gt.cfg.Sidebar.Indents.Guild)
 	gt.setNodeLineStyle(guildNode, gt.guildNodeStyle(guild.ID))
 	n.AddChild(guildNode)
 	gt.guildNodeByID[guild.ID] = guildNode
@@ -231,21 +231,22 @@ func (gt *guildsTree) createChannelNode(node *tview.TreeNode, channel discord.Ch
 		return
 	}
 
+	indents := gt.cfg.Sidebar.Indents
 	channelNode := tview.NewTreeNode(ui.ChannelToString(channel, gt.cfg.Icons, gt.chat.state)).SetReference(channel.ID)
 	gt.setNodeLineStyle(channelNode, gt.channelNodeStyle(channel))
 	switch channel.Type {
 	case discord.DirectMessage:
-		channelNode.SetIndent(gt.cfg.Theme.GuildsTree.Indents.DM)
+		channelNode.SetIndent(indents.DM)
 	case discord.GroupDM:
-		channelNode.SetIndent(gt.cfg.Theme.GuildsTree.Indents.GroupDM)
+		channelNode.SetIndent(indents.GroupDM)
 	case discord.GuildCategory:
-		channelNode.SetIndent(gt.cfg.Theme.GuildsTree.Indents.Category)
+		channelNode.SetIndent(indents.Category)
 		channelNode.SetExpandable(true).SetExpanded(true)
 	case discord.GuildForum:
-		channelNode.SetIndent(gt.cfg.Theme.GuildsTree.Indents.Forum)
+		channelNode.SetIndent(indents.Forum)
 		channelNode.SetExpandable(true).SetExpanded(false)
 	default:
-		channelNode.SetIndent(gt.cfg.Theme.GuildsTree.Indents.Channel)
+		channelNode.SetIndent(indents.Channel)
 	}
 	node.AddChild(channelNode)
 	gt.channelNodeByID[channel.ID] = channelNode
@@ -385,7 +386,7 @@ func (gt *guildsTree) loadChannel(channel discord.Channel) tview.Cmd {
 		if guildID := channel.GuildID; guildID.IsValid() {
 			gt.chat.messagesList.requestGuildMembers(guildID, messages)
 		}
-		return &channelLoadedMsg{Channel: channel, Messages: messages}
+		return channelLoadedMsg{Channel: channel, Messages: messages}
 	}
 }
 
@@ -405,9 +406,9 @@ func (gt *guildsTree) collapseParentNode(node *tview.TreeNode) {
 
 func (gt *guildsTree) Update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
-	case *tview.TreeViewSelectedMsg:
+	case tview.TreeViewSelectedMsg:
 		return gt.onSelected(msg.Node)
-	case *tview.KeyMsg:
+	case tview.KeyMsg:
 		handler := gt.TreeView.Update
 		switch {
 		case keybind.Matches(msg, gt.cfg.Keybinds.GuildsTree.CollapseParentNode.Keybind):

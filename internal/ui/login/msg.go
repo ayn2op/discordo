@@ -5,11 +5,9 @@ import (
 
 	"github.com/ayn2op/discordo/internal/clipboard"
 	"github.com/ayn2op/tview"
-	"github.com/gdamore/tcell/v3"
 )
 
 type errMsg struct {
-	tcell.EventTime
 	err error
 }
 
