@@ -1,0 +1,6 @@
+[workspace]
+resolver = "3"
+members = ["config", "tea", "tui"]
+
+[workspace.package]
+publish = false

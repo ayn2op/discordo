@@ -1,0 +1,17 @@
+[package]
+name = "tui"
+version = "0.1.0"
+edition = "2024"
+publish.workspace = true
+
+[dependencies]
+config = { path = "../config" }
+tea = { path = "../tea" }
+anyhow = "1.0.102"
+ratatui = "0.30.0"
+tokio = { version = "1.52.3", features = ["rt-multi-thread", "macros"] }
+crossterm = "0.29.0"
+keyring = "4.0.0"
+keyring-core = "1.0.0"
+ratatui-textarea = "0.9.1"
+strum = { version = "0.28.0", features = ["derive"] }
