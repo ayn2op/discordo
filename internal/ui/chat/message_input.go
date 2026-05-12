@@ -156,17 +156,7 @@ func (mi *messageInput) Update(msg tview.Msg) tview.Cmd {
 			return handler(tcell.NewEventKey(tcell.KeyCtrlZ, "", tcell.ModNone))
 		}
 
-		if mi.cfg.TypingIndicator.Send && mi.typingTimer == nil {
-			mi.typingTimer = time.AfterFunc(typingDuration, func() {
-				mi.typingTimerMu.Lock()
-				mi.typingTimer = nil
-				mi.typingTimerMu.Unlock()
-			})
-
-			if selectedChannel := mi.chat.SelectedChannel(); selectedChannel != nil {
-				go mi.chat.state.Typing(selectedChannel.ID)
-			}
-		}
+		typingCmd := mi.sendTyping()
 
 		if mi.cfg.AutocompleteLimit > 0 {
 			if mi.chat.GetVisible(mentionsListLayerName) {
@@ -175,13 +165,14 @@ func (mi *messageInput) Update(msg tview.Msg) tview.Cmd {
 					keybind.Matches(msg, keybinds.Down.Keybind) ||
 					keybind.Matches(msg, keybinds.Top.Keybind) ||
 					keybind.Matches(msg, keybinds.Bottom.Keybind) {
-					return mi.mentionsList.Update(msg)
+					return tview.Batch(typingCmd, mi.mentionsList.Update(msg))
 				}
 			}
 
 			// Apply key edits first, then recompute autocomplete through Msg/Cmd.
-			return tview.Sequence(handler(msg), mi.tabSuggest())
+			return tview.Batch(typingCmd, tview.Sequence(handler(msg), mi.tabSuggest()))
 		}
+		return tview.Batch(typingCmd, handler(msg))
 	}
 	return handler(msg)
 }
@@ -241,6 +232,28 @@ func closeFiles(files []sendpart.File) tview.Cmd {
 				closer.Close()
 			}
 		}
+		return nil
+	}
+}
+
+func (mi *messageInput) sendTyping() tview.Cmd {
+	if !mi.cfg.TypingIndicator.Send || mi.typingTimer != nil {
+		return nil
+	}
+
+	mi.typingTimer = time.AfterFunc(typingDuration, func() {
+		mi.typingTimerMu.Lock()
+		mi.typingTimer = nil
+		mi.typingTimerMu.Unlock()
+	})
+
+	selectedChannel := mi.chat.SelectedChannel()
+	if selectedChannel == nil {
+		return nil
+	}
+	channelID := selectedChannel.ID
+	return func() tview.Msg {
+		mi.chat.state.Typing(channelID)
 		return nil
 	}
 }
