@@ -34,7 +34,10 @@ import (
 	"github.com/yuin/goldmark/ast"
 )
 
-const tmpFilePattern = consts.Name + "_*.md"
+const (
+	tmpFilePattern      = consts.Name + "_*.md"
+	imageAttachmentName = "clipboard.png"
+)
 
 var mentionRegex = regexp.MustCompile("@[a-zA-Z0-9._]+")
 
@@ -110,11 +113,17 @@ func (mi *messageInput) Update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
 	case tabSuggestMsg:
 		return mi.tabSuggest()
+	case imagePastedMsg:
+		if len(msg) == 0 {
+			return nil
+		}
+		mi.attach(imageAttachmentName, bytes.NewReader(msg))
+		return nil
+
 	case tview.KeyMsg:
 		switch {
 		case keybind.Matches(msg, mi.cfg.Keybinds.MessageInput.Paste.Keybind):
-			mi.paste()
-			return handler(tcell.NewEventKey(tcell.KeyCtrlV, "", tcell.ModNone))
+			return tview.Sequence(mi.pasteImage(), handler(tcell.NewEventKey(tcell.KeyCtrlV, "", tcell.ModNone)))
 		case keybind.Matches(msg, mi.cfg.Keybinds.MessageInput.Send.Keybind):
 			if mi.chat.GetVisible(mentionsListLayerName) {
 				return mi.tabComplete()
@@ -173,15 +182,16 @@ func (mi *messageInput) Update(msg tview.Msg) tview.Cmd {
 	return handler(msg)
 }
 
-func (mi *messageInput) paste() {
-	data, err := clipboard.Read(clipboard.FmtImage)
-	if err != nil {
-		slog.Error("failed to read clipboard image", "err", err)
-		return
-	}
-	if data != nil {
-		name := "clipboard.png"
-		mi.attach(name, bytes.NewReader(data))
+type imagePastedMsg []byte
+
+func (mi *messageInput) pasteImage() tview.Cmd {
+	return func() tview.Msg {
+		data, err := clipboard.Read(clipboard.FmtImage)
+		if err != nil {
+			slog.Error("failed to read clipboard image", "err", err)
+			return nil
+		}
+		return imagePastedMsg(data)
 	}
 }
 
