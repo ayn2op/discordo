@@ -147,9 +147,8 @@ func (mi *messageInput) Update(msg tview.Msg) tview.Cmd {
 		case keybind.Matches(msg, mi.cfg.Keybinds.MessageInput.Cancel.Keybind):
 			if mi.chat.GetVisible(mentionsListLayerName) {
 				return mi.stopTabCompletion()
-			} else {
-				mi.reset()
 			}
+			mi.reset()
 			return nil
 		case keybind.Matches(msg, mi.cfg.Keybinds.MessageInput.TabComplete.Keybind):
 			return mi.tabComplete()
