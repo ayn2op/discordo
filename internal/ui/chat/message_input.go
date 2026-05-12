@@ -119,6 +119,15 @@ func (mi *messageInput) Update(msg tview.Msg) tview.Cmd {
 		}
 		mi.attach(imageAttachmentName, bytes.NewReader(msg))
 		return nil
+	case filesPickedMsg:
+		selected := mi.chat.SelectedChannel()
+		if selected == nil || selected.ID != msg.channelID {
+			return closeFiles(msg.files)
+		}
+		for _, file := range msg.files {
+			mi.attach(file.Name, file.Reader)
+		}
+		return nil
 
 	case tview.KeyMsg:
 		switch {
@@ -136,9 +145,7 @@ func (mi *messageInput) Update(msg tview.Msg) tview.Cmd {
 			mi.editor()
 			return cmd
 		case keybind.Matches(msg, mi.cfg.Keybinds.MessageInput.OpenFilePicker.Keybind):
-			cmd := mi.stopTabCompletion()
-			mi.openFilePicker()
-			return cmd
+			return tview.Sequence(mi.stopTabCompletion(), mi.pickFiles())
 		case keybind.Matches(msg, mi.cfg.Keybinds.MessageInput.Cancel.Keybind):
 			if mi.chat.GetVisible(mentionsListLayerName) {
 				return mi.stopTabCompletion()
@@ -192,6 +199,52 @@ func (mi *messageInput) pasteImage() tview.Cmd {
 			return nil
 		}
 		return imagePastedMsg(data)
+	}
+}
+
+type filesPickedMsg struct {
+	channelID discord.ChannelID
+	files     []sendpart.File
+}
+
+func (mi *messageInput) pickFiles() tview.Cmd {
+	selected := mi.chat.SelectedChannel()
+	if selected == nil {
+		return nil
+	}
+	channelID := selected.ID
+
+	return func() tview.Msg {
+		paths, err := zenity.SelectFileMultiple()
+		if err != nil {
+			slog.Error("failed to open file dialog", "err", err)
+			return nil
+		}
+
+		files := make([]sendpart.File, 0, len(paths))
+		for _, path := range paths {
+			file, err := os.Open(path)
+			if err != nil {
+				slog.Error("failed to open file", "path", path, "err", err)
+				continue
+			}
+			files = append(files, sendpart.File{Name: filepath.Base(path), Reader: file})
+		}
+		if len(files) == 0 {
+			return nil
+		}
+		return filesPickedMsg{channelID: channelID, files: files}
+	}
+}
+
+func closeFiles(files []sendpart.File) tview.Cmd {
+	return func() tview.Msg {
+		for _, file := range files {
+			if closer, ok := file.Reader.(io.Closer); ok {
+				closer.Close()
+			}
+		}
+		return nil
 	}
 }
 
@@ -670,29 +723,6 @@ func (mi *messageInput) editor() {
 	}
 
 	mi.SetText(strings.TrimSpace(string(msg)), true)
-}
-
-func (mi *messageInput) openFilePicker() {
-	if mi.chat.SelectedChannel() == nil {
-		return
-	}
-
-	paths, err := zenity.SelectFileMultiple()
-	if err != nil {
-		slog.Error("failed to open file dialog", "err", err)
-		return
-	}
-
-	for _, path := range paths {
-		file, err := os.Open(path)
-		if err != nil {
-			slog.Error("failed to open file", "path", path, "err", err)
-			continue
-		}
-
-		name := filepath.Base(path)
-		mi.attach(name, file)
-	}
 }
 
 func (mi *messageInput) attach(name string, reader io.Reader) {
