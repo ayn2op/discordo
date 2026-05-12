@@ -1077,14 +1077,13 @@ func (ml *messagesList) open() tview.Cmd {
 
 	if len(urls)+len(msg.Attachments) == 1 {
 		if len(urls) == 1 {
-			go ml.openURL(urls[0])
+			return ml.openURL(urls[0])
 		} else {
 			attachment := msg.Attachments[0]
 			if strings.HasPrefix(attachment.ContentType, "image/") {
-				go ml.openAttachment(msg.Attachments[0])
-			} else {
-				go ml.openURL(attachment.URL)
+				return ml.openAttachment(attachment)
 			}
+			return ml.openURL(attachment.URL)
 		}
 	} else {
 		return ml.showAttachmentsList(urls, msg.Attachments)
@@ -1155,23 +1154,20 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 	var items []attachmentItem
 	for _, a := range attachments {
 		attachment := a
-		action := func() {
-			if strings.HasPrefix(attachment.ContentType, "image/") {
-				go ml.openAttachment(attachment)
-			} else {
-				go ml.openURL(attachment.URL)
-			}
+		open := ml.openURL(attachment.URL)
+		if strings.HasPrefix(attachment.ContentType, "image/") {
+			open = ml.openAttachment(attachment)
 		}
 		items = append(items, attachmentItem{
 			label: attachment.Filename,
-			open:  action,
+			open:  open,
 		})
 	}
 	for _, u := range urls {
 		url := u
 		items = append(items, attachmentItem{
 			label: url,
-			open:  func() { go ml.openURL(url) },
+			open:  ml.openURL(url),
 		})
 	}
 	ml.attachmentsPicker.SetItems(items)
@@ -1188,48 +1184,54 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 	return tview.SetFocus(ml.attachmentsPicker)
 }
 
-func (ml *messagesList) openAttachment(attachment discord.Attachment) {
-	resp, err := http.Get(attachment.URL)
-	if err != nil {
-		slog.Error("failed to fetch the attachment", "err", err, "url", attachment.URL)
-		return
-	}
-	defer resp.Body.Close()
+func (ml *messagesList) openAttachment(attachment discord.Attachment) tview.Cmd {
+	return func() tview.Msg {
+		resp, err := http.Get(attachment.URL)
+		if err != nil {
+			slog.Error("failed to fetch the attachment", "err", err, "url", attachment.URL)
+			return nil
+		}
+		defer resp.Body.Close()
 
-	path := filepath.Join(consts.CacheDir(), "attachments")
-	if err := os.MkdirAll(path, os.ModePerm); err != nil {
-		slog.Error("failed to create attachments dir", "err", err, "path", path)
-		return
-	}
+		path := filepath.Join(consts.CacheDir(), "attachments")
+		if err := os.MkdirAll(path, os.ModePerm); err != nil {
+			slog.Error("failed to create attachments dir", "err", err, "path", path)
+			return nil
+		}
 
-	root, err := os.OpenRoot(path)
-	if err != nil {
-		slog.Error("failed to open attachments dir", "err", err, "path", path)
-		return
-	}
-	defer root.Close()
+		root, err := os.OpenRoot(path)
+		if err != nil {
+			slog.Error("failed to open attachments dir", "err", err, "path", path)
+			return nil
+		}
+		defer root.Close()
 
-	file, err := root.Create(attachment.Filename)
-	if err != nil {
-		slog.Error("failed to create attachment file", "err", err, "filename", attachment.Filename)
-		return
-	}
-	defer file.Close()
+		file, err := root.Create(attachment.Filename)
+		if err != nil {
+			slog.Error("failed to create attachment file", "err", err, "filename", attachment.Filename)
+			return nil
+		}
+		defer file.Close()
 
-	if _, err := io.Copy(file, resp.Body); err != nil {
-		slog.Error("failed to copy attachment to file", "err", err)
-		return
-	}
+		if _, err := io.Copy(file, resp.Body); err != nil {
+			slog.Error("failed to copy attachment to file", "err", err)
+			return nil
+		}
 
-	if err := open.Start(file.Name()); err != nil {
-		slog.Error("failed to open attachment file", "err", err, "path", file.Name())
-		return
+		if err := open.Start(file.Name()); err != nil {
+			slog.Error("failed to open attachment file", "err", err, "path", file.Name())
+			return nil
+		}
+		return nil
 	}
 }
 
-func (ml *messagesList) openURL(url string) {
-	if err := open.Start(url); err != nil {
-		slog.Error("failed to open URL", "err", err, "url", url)
+func (ml *messagesList) openURL(url string) tview.Cmd {
+	return func() tview.Msg {
+		if err := open.Start(url); err != nil {
+			slog.Error("failed to open URL", "err", err, "url", url)
+		}
+		return nil
 	}
 }
 

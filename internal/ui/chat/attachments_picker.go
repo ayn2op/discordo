@@ -10,7 +10,7 @@ import (
 
 type attachmentItem struct {
 	label string
-	open  func()
+	open  tview.Cmd
 }
 
 type attachmentsPicker struct {
@@ -57,8 +57,7 @@ func (ap *attachmentsPicker) Update(msg tview.Msg) tview.Cmd {
 		if index < 0 || index >= len(ap.items) {
 			return nil
 		}
-		ap.items[index].open()
-		return ap.close()
+		return tview.Sequence(ap.items[index].open, ap.close())
 	case picker.CancelMsg:
 		return ap.close()
 	}
