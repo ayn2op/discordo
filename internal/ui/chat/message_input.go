@@ -136,10 +136,8 @@ func (mi *messageInput) Update(msg tview.Msg) tview.Cmd {
 		case keybind.Matches(msg, mi.cfg.Keybinds.MessageInput.Send.Keybind):
 			if mi.chat.GetVisible(mentionsListLayerName) {
 				return mi.tabComplete()
-			} else {
-				mi.send()
 			}
-			return nil
+			return mi.send()
 		case keybind.Matches(msg, mi.cfg.Keybinds.MessageInput.OpenEditor.Keybind):
 			cmd := mi.stopTabCompletion()
 			mi.editor()
@@ -248,47 +246,30 @@ func closeFiles(files []sendpart.File) tview.Cmd {
 	}
 }
 
-func (mi *messageInput) send() {
+func (mi *messageInput) send() tview.Cmd {
 	selected := mi.chat.SelectedChannel()
 	if selected == nil {
-		return
+		return nil
 	}
 
 	text := strings.TrimSpace(mi.GetText())
 	if text == "" && len(mi.sendMessageData.Files) == 0 {
-		return
+		return nil
 	}
 
-	// Close attached files on return
-	defer func() {
-		for _, file := range mi.sendMessageData.Files {
-			if closer, ok := file.Reader.(io.Closer); ok {
-				closer.Close()
-			}
-		}
-	}()
-
 	text = mi.processText(selected, []byte(text))
+	data := *mi.sendMessageData
+	data.Files = slices.Clone(data.Files)
 
-	if mi.edit {
-		m, err := mi.chat.messagesList.selectedMessage()
+	var editMessage discord.Message
+	edit := mi.edit
+	if edit {
+		message, err := mi.chat.messagesList.selectedMessage()
 		if err != nil {
 			slog.Error("failed to get selected message", "err", err)
-			return
+			return nil
 		}
-
-		data := api.EditMessageData{Content: option.NewNullableString(text)}
-		if _, err := mi.chat.state.EditMessageComplex(m.ChannelID, m.ID, data); err != nil {
-			slog.Error("failed to edit message", "err", err)
-		}
-
-		mi.edit = false
-	} else {
-		data := mi.sendMessageData
-		data.Content = text
-		if _, err := mi.chat.state.SendMessageComplex(selected.ID, *data); err != nil {
-			slog.Error("failed to send message in channel", "channel_id", selected.ID, "err", err)
-		}
+		editMessage = *message
 	}
 
 	if mi.typingTimer != nil {
@@ -298,6 +279,22 @@ func (mi *messageInput) send() {
 	mi.reset()
 	mi.chat.messagesList.clearSelection()
 	mi.chat.messagesList.ScrollBottom()
+
+	return func() tview.Msg {
+		defer closeFiles(data.Files)()
+		if edit {
+			editData := api.EditMessageData{Content: option.NewNullableString(text)}
+			if _, err := mi.chat.state.EditMessageComplex(editMessage.ChannelID, editMessage.ID, editData); err != nil {
+				slog.Error("failed to edit message", "err", err)
+			}
+			return nil
+		}
+		data.Content = text
+		if _, err := mi.chat.state.SendMessageComplex(selected.ID, data); err != nil {
+			slog.Error("failed to send message in channel", "channel_id", selected.ID, "err", err)
+		}
+		return nil
+	}
 }
 
 func (mi *messageInput) processText(channel *discord.Channel, src []byte) string {
