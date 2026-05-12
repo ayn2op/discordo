@@ -85,7 +85,7 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 	case tview.InitMsg:
 		var cmd tview.Cmd
 		if token := os.Getenv(tokenEnvVarKey); token != "" {
-			cmd = tokenCommand(token)
+			cmd = tokenCmd(token)
 		} else {
 			cmd = getToken()
 		}
