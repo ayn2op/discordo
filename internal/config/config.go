@@ -184,15 +184,9 @@ func applyDefaults(cfg *Config) {
 	if cfg.DateSeparator.Format == "" {
 		cfg.DateSeparator.Format = "January 2, 2006"
 	}
-	if cfg.DateSeparator.Character == "" {
+	if r, _ := utf8.DecodeRuneInString(cfg.DateSeparator.Character); r == utf8.RuneError {
 		cfg.DateSeparator.Character = "─"
-		return
+	} else {
+		cfg.DateSeparator.Character = string(r)
 	}
-
-	r, _ := utf8.DecodeRuneInString(cfg.DateSeparator.Character)
-	if r == utf8.RuneError {
-		cfg.DateSeparator.Character = "─"
-		return
-	}
-	cfg.DateSeparator.Character = string(r)
 }

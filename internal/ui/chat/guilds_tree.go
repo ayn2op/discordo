@@ -435,9 +435,8 @@ func (gt *guildsTree) expandPathToNode(node *tview.TreeNode) {
 
 var _ help.KeyMap = (*guildsTree)(nil)
 
-func (gt *guildsTree) ShortHelp() []keybind.Keybind {
-	cfg := gt.cfg.Keybinds.GuildsTree
-	selectCurrent := cfg.SelectCurrent.Keybind
+func (gt *guildsTree) selectCurrentKeybind() keybind.Keybind {
+	selectCurrent := gt.cfg.Keybinds.GuildsTree.SelectCurrent.Keybind
 	selectHelp := selectCurrent.Help()
 	selectDesc := selectHelp.Desc
 	if node := gt.GetCurrentNode(); node != nil {
@@ -455,8 +454,12 @@ func (gt *guildsTree) ShortHelp() []keybind.Keybind {
 		}
 	}
 	selectCurrent.SetHelp(selectHelp.Key, selectDesc)
+	return selectCurrent
+}
 
-	shortHelp := []keybind.Keybind{cfg.Up.Keybind, cfg.Down.Keybind, selectCurrent}
+func (gt *guildsTree) ShortHelp() []keybind.Keybind {
+	cfg := gt.cfg.Keybinds.GuildsTree
+	shortHelp := []keybind.Keybind{cfg.Up.Keybind, cfg.Down.Keybind, gt.selectCurrentKeybind()}
 	if gt.canCollapseParent(gt.GetCurrentNode()) {
 		shortHelp = append(shortHelp, cfg.CollapseParentNode.Keybind)
 	}
@@ -465,26 +468,7 @@ func (gt *guildsTree) ShortHelp() []keybind.Keybind {
 
 func (gt *guildsTree) FullHelp() [][]keybind.Keybind {
 	cfg := gt.cfg.Keybinds.GuildsTree
-	selectCurrent := cfg.SelectCurrent.Keybind
-	selectHelp := selectCurrent.Help()
-	selectDesc := selectHelp.Desc
-	if node := gt.GetCurrentNode(); node != nil {
-		if len(node.GetChildren()) > 0 {
-			if node.IsExpanded() {
-				selectDesc = "collapse"
-			} else {
-				selectDesc = "expand"
-			}
-		} else {
-			switch node.GetReference().(type) {
-			case discord.GuildID, dmNode:
-				selectDesc = "expand"
-			}
-		}
-	}
-	selectCurrent.SetHelp(selectHelp.Key, selectDesc)
-
-	selectGroup := []keybind.Keybind{selectCurrent, cfg.MoveToParentNode.Keybind}
+	selectGroup := []keybind.Keybind{gt.selectCurrentKeybind(), cfg.MoveToParentNode.Keybind}
 	selectGroup = append(selectGroup, gt.collapseKeybinds()...)
 
 	return [][]keybind.Keybind{
