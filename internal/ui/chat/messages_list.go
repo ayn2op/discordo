@@ -1088,7 +1088,6 @@ func (ml *messagesList) open() tview.Cmd {
 	} else {
 		return ml.showAttachmentsList(urls, msg.Attachments)
 	}
-	return nil
 }
 
 func extractURLs(content string) []string {
