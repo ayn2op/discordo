@@ -102,6 +102,8 @@ func (mi *messageInput) reset() {
 }
 
 func (mi *messageInput) stopTypingTimer() {
+	mi.typingTimerMu.Lock()
+	defer mi.typingTimerMu.Unlock()
 	if mi.typingTimer != nil {
 		mi.typingTimer.Stop()
 		mi.typingTimer = nil
@@ -237,15 +239,21 @@ func closeFiles(files []sendpart.File) tview.Cmd {
 }
 
 func (mi *messageInput) sendTyping() tview.Cmd {
-	if !mi.cfg.TypingIndicator.Send || mi.typingTimer != nil {
+	if !mi.cfg.TypingIndicator.Send {
 		return nil
 	}
 
+	mi.typingTimerMu.Lock()
+	if mi.typingTimer != nil {
+		mi.typingTimerMu.Unlock()
+		return nil
+	}
 	mi.typingTimer = time.AfterFunc(typingDuration, func() {
 		mi.typingTimerMu.Lock()
 		mi.typingTimer = nil
 		mi.typingTimerMu.Unlock()
 	})
+	mi.typingTimerMu.Unlock()
 
 	selectedChannel := mi.chat.SelectedChannel()
 	if selectedChannel == nil {
@@ -284,10 +292,7 @@ func (mi *messageInput) send() tview.Cmd {
 		editMessage = *message
 	}
 
-	if mi.typingTimer != nil {
-		mi.typingTimer.Stop()
-		mi.typingTimer = nil
-	}
+	mi.stopTypingTimer()
 	mi.reset()
 	mi.chat.messagesList.clearSelection()
 	mi.chat.messagesList.ScrollBottom()
