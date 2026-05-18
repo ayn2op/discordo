@@ -749,12 +749,17 @@ func (mi *messageInput) attach(name string, reader io.Reader) {
 	mi.SetFooter("Attached " + humanJoin(names))
 }
 
+func (mi *messageInput) canAttachFiles() bool {
+	selected := mi.chat.SelectedChannel()
+	return selected != nil && mi.chat.state.HasPermissions(selected.ID, discord.PermissionAttachFiles)
+}
+
 func (mi *messageInput) ShortHelp() []keybind.Keybind {
 	if mi.chat.GetVisible(mentionsListLayerName) {
 		cfg := mi.cfg.Keybinds.MentionsList
 		icfg := mi.cfg.Keybinds.MessageInput
 		short := []keybind.Keybind{cfg.Up.Keybind, cfg.Down.Keybind, icfg.Cancel.Keybind}
-		if selected := mi.chat.SelectedChannel(); selected != nil && mi.chat.state.HasPermissions(selected.ID, discord.PermissionAttachFiles) {
+		if mi.canAttachFiles() {
 			short = append(short, icfg.OpenFilePicker.Keybind)
 		}
 		return short
@@ -762,7 +767,7 @@ func (mi *messageInput) ShortHelp() []keybind.Keybind {
 
 	cfg := mi.cfg.Keybinds.MessageInput
 	short := []keybind.Keybind{cfg.Send.Keybind, cfg.Cancel.Keybind, cfg.Paste.Keybind, cfg.OpenEditor.Keybind}
-	if selected := mi.chat.SelectedChannel(); selected != nil && mi.chat.state.HasPermissions(selected.ID, discord.PermissionAttachFiles) {
+	if mi.canAttachFiles() {
 		short = append(short, cfg.OpenFilePicker.Keybind)
 	}
 	return short
@@ -781,11 +786,8 @@ func (mi *messageInput) FullHelp() [][]keybind.Keybind {
 	cfg := mi.cfg.Keybinds.MessageInput
 	openEditor := []keybind.Keybind{cfg.Paste.Keybind, cfg.OpenEditor.Keybind}
 
-	selectedChannel := mi.chat.SelectedChannel()
-	if selectedChannel != nil {
-		if hasPerm := mi.chat.state.HasPermissions(selectedChannel.ID, discord.PermissionAttachFiles); hasPerm {
-			openEditor = append(openEditor, cfg.OpenFilePicker.Keybind)
-		}
+	if mi.canAttachFiles() {
+		openEditor = append(openEditor, cfg.OpenFilePicker.Keybind)
 	}
 
 	return [][]keybind.Keybind{

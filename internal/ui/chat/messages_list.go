@@ -1013,7 +1013,7 @@ func (ml *messagesList) fetchOlderMessages() tview.Cmd {
 
 		older := slices.Clone(messages)
 		slices.Reverse(older)
-		return newOlderMessagesLoadedMsg(channelID, older)
+		return olderMessagesLoadedMsg{ChannelID: channelID, Older: older}
 	}
 }
 

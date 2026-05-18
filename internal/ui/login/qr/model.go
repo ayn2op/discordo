@@ -51,7 +51,7 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 	case tview.KeyMsg:
 		if msg.Key() == tcell.KeyEsc {
 			m.msg = "Canceled"
-			return tview.Batch(m.close(), nil)
+			return m.close()
 		}
 		return m.TextView.Update(msg)
 

@@ -46,10 +46,6 @@ type olderMessagesLoadedMsg struct {
 	Older     []discord.Message
 }
 
-func newOlderMessagesLoadedMsg(channelID discord.ChannelID, older []discord.Message) olderMessagesLoadedMsg {
-	return olderMessagesLoadedMsg{ChannelID: channelID, Older: older}
-}
-
 type LogoutMsg struct{}
 
 func (m *Model) logout() tview.Cmd {
