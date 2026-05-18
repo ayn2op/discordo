@@ -14,8 +14,8 @@ github.com/andybalholm/brotli v1.2.1 h1:R+f5xP285VArJDRgowrfb9DqL18yVK0gKAW/F+eT
 github.com/andybalholm/brotli v1.2.1/go.mod h1:rzTDkvFWvIrjDXZHkuS16NPggd91W3kUSvPlQ1pLaKY=
 github.com/ayn2op/clipboard v0.0.0-20260308203959-c5ad7df3fc97 h1:WujETUV+v0DEJyZgjeLzQvihWyL80c0Tg4qf0dDo+Io=
 github.com/ayn2op/clipboard v0.0.0-20260308203959-c5ad7df3fc97/go.mod h1:3kFnpNCa3dF6WryzOMCDao7PfZ7DTCh+pievlfuwV80=
-github.com/ayn2op/tview v0.0.0-20260505203159-135c30590e98 h1:C1b9nZC/O5v1pg46NAQJaudWA9xKk7FWGcylfxaDL7s=
-github.com/ayn2op/tview v0.0.0-20260505203159-135c30590e98/go.mod h1:K4qMjKIPIYbOM7aP7dXFRdTrAtVbpWPPT8Q93+DBfKI=
+github.com/ayn2op/tview v0.0.0-20260518023109-03ba9fc985b3 h1:C0TqOk1z+HozivyiXEvZsD1mpztI15thXFZzxHumTEo=
+github.com/ayn2op/tview v0.0.0-20260518023109-03ba9fc985b3/go.mod h1:iOI0nEHAzgBFbED6yCJ5k8ID1Zd2R9QSXW6S2JE27Nk=
 github.com/clipperhouse/displaywidth v0.11.0 h1:lBc6kY44VFw+TDx4I8opi/EtL9m20WSEFgwIwO+UVM8=
 github.com/clipperhouse/displaywidth v0.11.0/go.mod h1:bkrFNkf81G8HyVqmKGxsPufD3JhNl3dSqnGhOoSD/o0=
 github.com/clipperhouse/uax29/v2 v2.7.0 h1:+gs4oBZ2gPfVrKPthwbMzWZDaAFPGYK72F0NJv2v7Vk=

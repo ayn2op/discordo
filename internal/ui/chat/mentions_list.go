@@ -23,6 +23,7 @@ func newMentionsList(cfg *config.Config) *mentionsList {
 	m := &mentionsList{
 		Model: list.NewModel(),
 	}
+	m.SetSelectedStyle(tcell.StyleDefault.Reverse(true))
 	m.SetKeybinds(list.Keybinds{
 		SelectUp:     cfg.Keybinds.MentionsList.Up.Keybind,
 		SelectDown:   cfg.Keybinds.MentionsList.Down.Keybind,
@@ -50,16 +51,13 @@ func (m *mentionsList) clear() {
 }
 
 func (m *mentionsList) rebuild() {
-	m.SetBuilder(func(index int, cursor int) list.Item {
+	m.SetBuilder(func(index int) list.Item {
 		if index < 0 || index >= len(m.items) {
 			return nil
 		}
 
 		item := m.items[index]
 		style := item.style
-		if index == cursor {
-			style = style.Reverse(true)
-		}
 		line := tview.NewLine(tview.NewSegment(item.displayText, style))
 
 		return tview.NewTextView().

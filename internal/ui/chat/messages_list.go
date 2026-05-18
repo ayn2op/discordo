@@ -52,7 +52,7 @@ type messagesList struct {
 	rowsDirty bool
 
 	renderer *markdown.Renderer
-	// itemByID caches unselected message TextViews.
+	// itemByID caches rendered message TextViews.
 	itemByID map[discord.MessageID]*tview.TextView
 
 	attachmentsPicker *attachmentsPicker
@@ -95,6 +95,7 @@ func newMessagesList(cfg *config.Config, chat *Model) *messagesList {
 	ml.SetBuilder(ml.buildItem)
 	ml.SetChangedFunc(ml.onRowCursorChanged)
 	ml.SetTrackEnd(true)
+	ml.SetSelectedStyle(cfg.Theme.MessagesList.SelectedMessageStyle.Style)
 	ml.SetKeybinds(list.Keybinds{
 		ScrollUp:     cfg.Keybinds.MessagesList.ScrollUp.Keybind,
 		ScrollDown:   cfg.Keybinds.MessagesList.ScrollDown.Keybind,
@@ -169,7 +170,7 @@ func (ml *messagesList) clearSelection() {
 	ml.SetCursor(-1)
 }
 
-func (ml *messagesList) buildItem(index int, cursor int) list.Item {
+func (ml *messagesList) buildItem(index int) list.Item {
 	ml.ensureRows()
 
 	if index < 0 || index >= len(ml.rows) {
@@ -181,14 +182,10 @@ func (ml *messagesList) buildItem(index int, cursor int) list.Item {
 		return ml.buildSeparatorItem(row.timestamp)
 	}
 
+	// The list applies the selection style at draw time, so a message is
+	// rendered once and reused for every cursor position. Cursor moves no
+	// longer re-parse markdown or re-run syntax highlighting.
 	message := ml.messages[row.messageIndex]
-	if index == cursor {
-		return tview.NewTextView().
-			SetWrap(true).
-			SetWordWrap(true).
-			SetLines(ml.renderMessage(message, ml.cfg.Theme.MessagesList.SelectedMessageStyle.Style))
-	}
-
 	item, ok := ml.itemByID[message.ID]
 	if !ok {
 		item = tview.NewTextView().
@@ -416,8 +413,12 @@ func (ml *messagesList) memberForMessage(message discord.Message) *discord.Membe
 	return member
 }
 
-func (ml *messagesList) drawContent(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style) {
-	lines, root := ml.renderContentLines(message, baseStyle)
+// drawContent renders the message body and returns the parsed markdown AST
+// together with the source bytes it indexes into, so callers can reuse them
+// instead of re-parsing the same content (see drawEmbeds). root is nil when
+// markdown rendering is disabled.
+func (ml *messagesList) drawContent(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style) (ast.Node, []byte) {
+	lines, root, source := ml.renderContentLines(message, baseStyle)
 	if ml.cfg.Markdown.Enabled && builder.HasCurrentLine() {
 		startsWithCodeBlock := false
 		if root != nil {
@@ -439,23 +440,24 @@ func (ml *messagesList) drawContent(builder *tview.LineBuilder, message discord.
 		}
 	}
 	builder.AppendLines(lines)
+	return root, source
 }
 
-func (ml *messagesList) renderContentLines(message discord.Message, baseStyle tcell.Style) ([]tview.Line, ast.Node) {
+func (ml *messagesList) renderContentLines(message discord.Message, baseStyle tcell.Style) ([]tview.Line, ast.Node, []byte) {
 	return ml.renderContentLinesWithMarkdown(message, baseStyle, false)
 }
 
-func (ml *messagesList) renderContentLinesWithMarkdown(message discord.Message, baseStyle tcell.Style, forceMarkdown bool) ([]tview.Line, ast.Node) {
+func (ml *messagesList) renderContentLinesWithMarkdown(message discord.Message, baseStyle tcell.Style, forceMarkdown bool) ([]tview.Line, ast.Node, []byte) {
 	// Keep one rendering path for both normal messages and embed fragments so we preserve mention/link parsing behavior consistently across both.
 	if forceMarkdown || ml.cfg.Markdown.Enabled {
 		c := []byte(message.Content)
 		root := discordmd.ParseWithMessage(c, *ml.chat.state.Cabinet, &message, false)
-		return ml.renderer.RenderLines(c, root, baseStyle), root
+		return ml.renderer.RenderLines(c, root, baseStyle), root, c
 	}
 
 	b := tview.NewLineBuilder()
 	b.Write(message.Content, baseStyle)
-	return b.Finish(), nil
+	return b.Finish(), nil, nil
 }
 
 func (ml *messagesList) drawSnapshotContent(builder *tview.LineBuilder, parent discord.Message, snapshot discord.MessageSnapshotMessage, baseStyle tcell.Style) {
@@ -484,14 +486,14 @@ func (ml *messagesList) drawDefaultMessage(builder *tview.LineBuilder, message d
 	}
 
 	ml.drawAuthor(builder, message, baseStyle)
-	ml.drawContent(builder, message, baseStyle)
+	contentRoot, contentSource := ml.drawContent(builder, message, baseStyle)
 
 	if message.EditedTimestamp.IsValid() {
 		dimStyle := baseStyle.Dim(true)
 		builder.Write(" (edited)", dimStyle)
 	}
 
-	ml.drawEmbeds(builder, message, baseStyle)
+	ml.drawEmbeds(builder, message, baseStyle, contentRoot, contentSource)
 
 	attachmentStyle := ui.MergeStyle(baseStyle, ml.cfg.Theme.MessagesList.AttachmentStyle.Style)
 	for _, a := range message.Attachments {
@@ -504,12 +506,20 @@ func (ml *messagesList) drawDefaultMessage(builder *tview.LineBuilder, message d
 	}
 }
 
-func (ml *messagesList) drawEmbeds(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style) {
+func (ml *messagesList) drawEmbeds(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style, contentRoot ast.Node, contentSource []byte) {
 	if len(message.Embeds) == 0 {
 		return
 	}
 
-	contentListURLs := extractURLs(message.Content)
+	// Embed URLs are deduplicated against links already shown in the message
+	// body. Reuse the body's parsed AST when markdown is enabled; only the
+	// markdown-disabled path (no AST) has to parse the content here.
+	var contentListURLs []string
+	if contentRoot != nil {
+		contentListURLs = urlsFromAST(contentRoot, contentSource)
+	} else {
+		contentListURLs = extractURLs(message.Content)
+	}
 	contentURLs := make(map[string]struct{}, len(contentListURLs))
 	for _, u := range contentListURLs {
 		contentURLs[u] = struct{}{}
@@ -544,7 +554,7 @@ func (ml *messagesList) drawEmbeds(builder *tview.LineBuilder, message discord.M
 			msg.Content = line.Text
 			lineStyle := lineStyles[line.Kind]
 			// Embed descriptions are always markdown-rendered to match Discord's rich embed semantics, even when message markdown is globally disabled.
-			rendered, _ := ml.renderContentLinesWithMarkdown(msg, lineStyle, line.Kind == embedLineDescription)
+			rendered, _, _ := ml.renderContentLinesWithMarkdown(msg, lineStyle, line.Kind == embedLineDescription)
 			for _, renderedLine := range rendered {
 				if line.URL != "" {
 					renderedLine = lineWithURL(renderedLine, line.URL)
@@ -1096,7 +1106,13 @@ func extractURLs(content string) []string {
 		parser.WithBlockParsers(discordmd.BlockParsers()...),
 		parser.WithInlineParsers(discordmd.InlineParserWithLink()...),
 	).Parse(text.NewReader(src))
+	return urlsFromAST(node, src)
+}
 
+// urlsFromAST collects link destinations from an already-parsed markdown AST.
+// src must be the byte slice the node was parsed from (AutoLink resolves its
+// URL against it).
+func urlsFromAST(node ast.Node, src []byte) []string {
 	var urls []string
 	ast.Walk(node, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if entering {
