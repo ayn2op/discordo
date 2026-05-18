@@ -11,11 +11,11 @@ require (
 	github.com/alecthomas/chroma/v2 v2.24.1
 	github.com/andybalholm/brotli v1.2.1
 	github.com/ayn2op/clipboard v0.0.0-20260308203959-c5ad7df3fc97
-	github.com/ayn2op/tview v0.0.0-20260518023109-03ba9fc985b3
+	github.com/ayn2op/tview v0.0.0-20260518065412-67dde5e23f28
 	github.com/deckarep/gosx-notifier v0.0.0-20180201035817-e127226297fb
-	github.com/diamondburned/arikawa/v3 v3.6.1-0.20260311205148-176ad9b9440f
+	github.com/diamondburned/arikawa/v3 v3.6.1-0.20260518050745-b430932b3ee1
 	github.com/diamondburned/ningen/v3 v3.0.1-0.20260306213430-5a08d3a709b4
-	github.com/gdamore/tcell/v3 v3.4.0
+	github.com/gdamore/tcell/v3 v3.4.1-0.20260518052729-a8f959fc4712
 	github.com/gen2brain/beeep v0.11.2
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0
