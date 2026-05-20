@@ -59,6 +59,8 @@ type SelectionKeybinds struct {
 	SelectDown   Keybind `toml:"select_down"`
 	SelectTop    Keybind `toml:"select_top"`
 	SelectBottom Keybind `toml:"select_bottom"`
+	SelectPageUp   Keybind `toml:"select_page_up"`
+	SelectPageDown Keybind `toml:"select_page_down"`
 }
 
 type PickerKeybinds struct {
@@ -69,6 +71,7 @@ type PickerKeybinds struct {
 
 type GuildsTreeKeybinds struct {
 	NavigationKeybinds
+	SelectionKeybinds
 	SelectCurrent Keybind `toml:"select_current"`
 	YankID        Keybind `toml:"yank_id"`
 
@@ -159,6 +162,10 @@ func defaultNavigationKeybinds() NavigationKeybinds {
 func defaultGuildsTreeKeybinds() GuildsTreeKeybinds {
 	return GuildsTreeKeybinds{
 		NavigationKeybinds: defaultNavigationKeybinds(),
+		SelectionKeybinds: SelectionKeybinds{
+			SelectPageUp:   newKeybind("K", "page up"),
+			SelectPageDown: newKeybind("J", "page down"),
+		},
 		SelectCurrent:      newKeybind("enter", "select"),
 		YankID:             newKeybind("i", "copy id"),
 

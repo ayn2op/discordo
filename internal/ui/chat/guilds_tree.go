@@ -339,6 +339,10 @@ func (gt *guildsTree) Update(msg tview.Msg) tview.Cmd {
 			return nil
 		case keybind.Matches(msg, gt.cfg.Keybinds.GuildsTree.MoveToParentNode.Keybind):
 			return handler(tcell.NewEventKey(tcell.KeyRune, "K", tcell.ModNone))
+		case keybind.Matches(msg, gt.cfg.Keybinds.GuildsTree.SelectionKeybinds.SelectPageUp.Keybind):
+			return handler(tcell.NewEventKey(tcell.KeyPgUp, "", tcell.ModNone))
+		case keybind.Matches(msg, gt.cfg.Keybinds.GuildsTree.SelectionKeybinds.SelectPageDown.Keybind):
+			return handler(tcell.NewEventKey(tcell.KeyPgDn, "", tcell.ModNone))
 		case keybind.Matches(msg, gt.cfg.Keybinds.GuildsTree.Up.Keybind):
 			return handler(tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone))
 		case keybind.Matches(msg, gt.cfg.Keybinds.GuildsTree.Down.Keybind):
@@ -473,6 +477,7 @@ func (gt *guildsTree) FullHelp() [][]keybind.Keybind {
 
 	return [][]keybind.Keybind{
 		{cfg.Up.Keybind, cfg.Down.Keybind, cfg.Top.Keybind, cfg.Bottom.Keybind},
+		{cfg.SelectionKeybinds.SelectPageUp.Keybind, cfg.SelectionKeybinds.SelectPageDown.Keybind},
 		selectGroup,
 		{cfg.YankID.Keybind},
 	}

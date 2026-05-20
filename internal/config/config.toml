@@ -122,6 +122,9 @@ up = "k"
 down = "j"
 top = "g"
 bottom = "G"
+# Move the highlighted guild tree item by page.
+select_page_up = "K"
+select_page_down = "J"
 # Select the currently highlighted text-based channel or expand a guild or channel.
 select_current = "enter"
 yank_id = "i"
