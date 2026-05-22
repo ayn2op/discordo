@@ -111,7 +111,6 @@ func (m *Model) notify(message gateway.MessageCreateEvent) tview.Cmd {
 	return func() tview.Msg {
 		if err := notifications.Notify(m.state, message, m.cfg); err != nil {
 			slog.Error("failed to notify", "err", err, "channel_id", message.ChannelID, "message_id", message.ID)
-			return nil
 		}
 		return nil
 	}
@@ -119,59 +118,51 @@ func (m *Model) notify(message gateway.MessageCreateEvent) tview.Cmd {
 
 func (m *Model) onMessageUpdate(message *gateway.MessageUpdateEvent) {
 	selectedChannel := m.SelectedChannel()
-	if selectedChannel == nil {
+	if selectedChannel == nil || selectedChannel.ID != message.ChannelID {
 		return
 	}
 
-	if selectedChannel.ID == message.ChannelID {
-		index := slices.IndexFunc(m.messagesList.messages, func(m discord.Message) bool {
-			return m.ID == message.ID
-		})
-		if index < 0 {
-			return
-		}
-
-		m.messagesList.setMessage(index, message.Message)
+	index := slices.IndexFunc(m.messagesList.messages, func(m discord.Message) bool {
+		return m.ID == message.ID
+	})
+	if index < 0 {
+		return
 	}
+
+	m.messagesList.setMessage(index, message.Message)
 }
 
 func (m *Model) onMessageDelete(message *gateway.MessageDeleteEvent) {
 	selectedChannel := m.SelectedChannel()
-	if selectedChannel == nil {
+	if selectedChannel == nil || selectedChannel.ID != message.ChannelID {
 		return
 	}
 
-	if selectedChannel.ID == message.ChannelID {
-		prevCursor := m.messagesList.Cursor()
-		deletedIndex := slices.IndexFunc(m.messagesList.messages, func(m discord.Message) bool {
-			return m.ID == message.ID
-		})
-		if deletedIndex < 0 {
-			return
-		}
+	prevCursor := m.messagesList.Cursor()
+	deletedIndex := slices.IndexFunc(m.messagesList.messages, func(m discord.Message) bool {
+		return m.ID == message.ID
+	})
+	if deletedIndex < 0 {
+		return
+	}
 
-		m.messagesList.deleteMessage(deletedIndex)
+	m.messagesList.deleteMessage(deletedIndex)
 
-		// Keep cursor stable when possible after removal.
-		newCursor := prevCursor
-		if prevCursor == deletedIndex {
-			// Prefer previous item; fall forward if we deleted the first.
-			newCursor = deletedIndex - 1
-			if newCursor < 0 {
-				if deletedIndex < len(m.messagesList.messages) {
-					newCursor = deletedIndex
-				} else {
-					newCursor = -1
-				}
-			}
-		} else if prevCursor > deletedIndex {
-			// Shift back since the list shrank before the cursor.
-			newCursor = prevCursor - 1
+	// Keep the cursor on the same logical item after removal.
+	newCursor := prevCursor
+	switch {
+	case prevCursor > deletedIndex:
+		// The list shrank before the cursor, so shift back.
+		newCursor = prevCursor - 1
+	case prevCursor == deletedIndex:
+		// Prefer the previous item; fall forward if we deleted the first.
+		newCursor = deletedIndex - 1
+		if newCursor < 0 {
+			newCursor = min(deletedIndex, len(m.messagesList.messages)-1)
 		}
-		if newCursor != prevCursor {
-			// Avoid redundant cursor updates if nothing changed.
-			m.messagesList.SetCursor(newCursor)
-		}
+	}
+	if newCursor != prevCursor {
+		m.messagesList.SetCursor(newCursor)
 	}
 }
 
@@ -185,11 +176,7 @@ func (m *Model) onGuildMemberRemove(event *gateway.GuildMemberRemoveEvent) {
 
 func (m *Model) onTypingStart(event *gateway.TypingStartEvent) {
 	selectedChannel := m.SelectedChannel()
-	if selectedChannel == nil {
-		return
-	}
-
-	if selectedChannel.ID != event.ChannelID {
+	if selectedChannel == nil || selectedChannel.ID != event.ChannelID {
 		return
 	}
 
