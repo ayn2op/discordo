@@ -161,20 +161,20 @@ func (r *Renderer) renderFencedCodeBlock(builder *tview.LineBuilder, source []by
 		lexer = lexers.Fallback
 	}
 
-	// At this point, it should be noted that some lexers can be extremely chatty.
-	// To mitigate this, use the coalescing lexer to coalesce runs of identical token types into a single token.
+	// Some lexers emit many tiny tokens; coalesce runs of the same type.
 	lexer = chroma.Coalesce(lexer)
 
-	// Show a fallback header when the language is omitted or unknown.
-	headerStyle := base.Dim(true)
-	if analyzed {
-		builder.Write(codeBlockIndent+"code: analyzed", headerStyle)
-		builder.NewLine()
-	} else if language == "" {
-		builder.Write(codeBlockIndent+"code", headerStyle)
-		builder.NewLine()
-	} else if !declaredLanguageSupported {
-		builder.Write(codeBlockIndent+"code: "+language, headerStyle)
+	var header string
+	switch {
+	case analyzed:
+		header = "code: analyzed"
+	case language == "":
+		header = "code"
+	case !declaredLanguageSupported:
+		header = "code: " + language
+	}
+	if header != "" {
+		builder.Write(codeBlockIndent+header, base.Dim(true))
 		builder.NewLine()
 	}
 
