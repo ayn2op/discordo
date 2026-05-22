@@ -10,7 +10,7 @@ type Cache struct {
 }
 
 func NewCache() *Cache {
-	return &Cache{items: sync.Map{}}
+	return &Cache{}
 }
 
 func (c *Cache) Create(query string, value uint) {
@@ -34,11 +34,14 @@ func (c *Cache) Get(query string) uint {
 // returned by the search results because of the search limit.
 func (c *Cache) Invalidate(name string, limit uint) {
 	for name != "" {
-		if c.Exists(name) && c.Get(name) >= limit {
+		if v, ok := c.items.Load(name); ok && v.(uint) >= limit {
+			// This query, and every shorter prefix of it, may now be missing
+			// results, so drop the whole chain to force a fresh search.
 			for name != "" {
 				c.items.Delete(name)
 				name = name[:len(name)-1]
 			}
+			return
 		}
 		name = name[:len(name)-1]
 	}
