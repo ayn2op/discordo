@@ -218,6 +218,15 @@ func (gt *guildsTree) createChannelNodes(node *tview.TreeNode, channels []discor
 	}
 }
 
+func isThread(t discord.ChannelType) bool {
+	switch t {
+	case discord.GuildPublicThread, discord.GuildPrivateThread, discord.GuildAnnouncementThread:
+		return true
+	default:
+		return false
+	}
+}
+
 func (gt *guildsTree) onSelected(node *tview.TreeNode) tview.Cmd {
 	if len(node.GetChildren()) != 0 {
 		node.SetExpanded(!node.IsExpanded())
@@ -245,28 +254,18 @@ func (gt *guildsTree) onSelected(node *tview.TreeNode) tview.Cmd {
 			return nil
 		}
 
-		// Handle forum channels differently - they contain threads, not direct messages
+		// Forums contain threads, not messages; load the threads as children.
 		if channel.Type == discord.GuildForum {
-			// Get all channels from the guild - this includes active threads from GuildCreateEvent
 			allChannels, err := gt.chat.state.Cabinet.Channels(channel.GuildID)
 			if err != nil {
 				slog.Error("failed to get channels for forum threads", "err", err, "guild_id", channel.GuildID)
 				return nil
 			}
 
-			// Filter for threads that belong to this forum channel
-			var forumThreads []discord.Channel
 			for _, ch := range allChannels {
-				if ch.ParentID == channel.ID && (ch.Type == discord.GuildPublicThread ||
-					ch.Type == discord.GuildPrivateThread ||
-					ch.Type == discord.GuildAnnouncementThread) {
-					forumThreads = append(forumThreads, ch)
+				if ch.ParentID == channel.ID && isThread(ch.Type) {
+					gt.createChannelNode(node, ch)
 				}
-			}
-
-			// Add threads as child nodes
-			for _, thread := range forumThreads {
-				gt.createChannelNode(node, thread)
 			}
 			node.Expand()
 			return nil
