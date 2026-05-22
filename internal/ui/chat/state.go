@@ -148,21 +148,23 @@ func (m *Model) onMessageDelete(message *gateway.MessageDeleteEvent) {
 
 	m.messagesList.deleteMessage(deletedIndex)
 
-	// Keep the cursor on the same logical item after removal.
-	newCursor := prevCursor
-	switch {
-	case prevCursor > deletedIndex:
-		// The list shrank before the cursor, so shift back.
-		newCursor = prevCursor - 1
-	case prevCursor == deletedIndex:
-		// Prefer the previous item; fall forward if we deleted the first.
-		newCursor = deletedIndex - 1
-		if newCursor < 0 {
-			newCursor = min(deletedIndex, len(m.messagesList.messages)-1)
-		}
-	}
+	newCursor := cursorAfterDelete(prevCursor, deletedIndex, len(m.messagesList.messages))
 	if newCursor != prevCursor {
 		m.messagesList.SetCursor(newCursor)
+	}
+}
+
+func cursorAfterDelete(prevCursor, deletedIndex, remaining int) int {
+	switch {
+	case prevCursor > deletedIndex:
+		return prevCursor - 1
+	case prevCursor == deletedIndex:
+		if prev := deletedIndex - 1; prev >= 0 {
+			return prev
+		}
+		return min(deletedIndex, remaining-1)
+	default:
+		return prevCursor
 	}
 }
 
