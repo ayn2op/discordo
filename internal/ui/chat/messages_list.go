@@ -1080,24 +1080,20 @@ func (ml *messagesList) open() tview.Cmd {
 	}
 
 	urls := messageURLs(*msg)
-
-	if len(urls) == 0 && len(msg.Attachments) == 0 {
+	switch total := len(urls) + len(msg.Attachments); {
+	case total == 0:
 		return nil
+	case total > 1:
+		return ml.showAttachmentsList(urls, msg.Attachments)
+	case len(urls) == 1:
+		return ml.openURL(urls[0])
 	}
 
-	if len(urls)+len(msg.Attachments) == 1 {
-		if len(urls) == 1 {
-			return ml.openURL(urls[0])
-		} else {
-			attachment := msg.Attachments[0]
-			if strings.HasPrefix(attachment.ContentType, "image/") {
-				return ml.openAttachment(attachment)
-			}
-			return ml.openURL(attachment.URL)
-		}
-	} else {
-		return ml.showAttachmentsList(urls, msg.Attachments)
+	attachment := msg.Attachments[0]
+	if strings.HasPrefix(attachment.ContentType, "image/") {
+		return ml.openAttachment(attachment)
 	}
+	return ml.openURL(attachment.URL)
 }
 
 func extractURLs(content string) []string {
