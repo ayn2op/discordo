@@ -146,20 +146,13 @@ func Load(path string) (*Config, error) {
 	}
 
 	file, err := os.Open(path)
-	if os.IsNotExist(err) {
-		slog.Info(
-			"config file does not exist, falling back to the default config",
-			"path",
-			path,
-			"err",
-			err,
-		)
-	} else {
-		if err != nil {
-			return nil, fmt.Errorf("failed to open config file: %w", err)
-		}
+	switch {
+	case os.IsNotExist(err):
+		slog.Info("config file does not exist, falling back to the default config", "path", path, "err", err)
+	case err != nil:
+		return nil, fmt.Errorf("failed to open config file: %w", err)
+	default:
 		defer file.Close()
-
 		if _, err := toml.NewDecoder(file).Decode(&cfg); err != nil {
 			return nil, fmt.Errorf("failed to decode config: %w", err)
 		}
