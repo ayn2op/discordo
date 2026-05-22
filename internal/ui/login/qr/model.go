@@ -108,6 +108,21 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 	return nil
 }
 
+// halfBlock packs a vertical pair of QR pixels into one glyph, fitting two
+// bitmap rows into a single terminal row.
+func halfBlock(top, bottom bool) rune {
+	switch [2]bool{top, bottom} {
+	case [2]bool{true, true}:
+		return '█'
+	case [2]bool{true, false}:
+		return '▀'
+	case [2]bool{false, true}:
+		return '▄'
+	default:
+		return ' '
+	}
+}
+
 func (m *Model) View(screen tcell.Screen) {
 	var contents []string
 	if m.qrCode != nil {
@@ -116,19 +131,8 @@ func (m *Model) View(screen tcell.Screen) {
 		for y := 0; y < len(bitmap); y += 2 {
 			for x := range bitmap[y] {
 				top := bitmap[y][x]
-				bottom := false
-				if y+1 < len(bitmap) {
-					bottom = bitmap[y+1][x]
-				}
-				if top && bottom {
-					b.WriteString("█")
-				} else if top && !bottom {
-					b.WriteString("▀")
-				} else if !top && bottom {
-					b.WriteString("▄")
-				} else {
-					b.WriteByte(' ')
-				}
+				bottom := y+1 < len(bitmap) && bitmap[y+1][x]
+				b.WriteRune(halfBlock(top, bottom))
 			}
 			b.WriteByte('\n')
 		}
