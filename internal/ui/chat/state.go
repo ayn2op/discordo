@@ -52,7 +52,6 @@ func (m *Model) onReady(event *gateway.ReadyEvent) tview.Cmd {
 		}
 	}
 
-	// Build index of all available guilds.
 	guildsByID := make(map[discord.GuildID]*gateway.GuildCreateEvent, len(event.Guilds))
 	for index := range event.Guilds {
 		guildsByID[event.Guilds[index].ID] = &event.Guilds[index]
@@ -61,7 +60,7 @@ func (m *Model) onReady(event *gateway.ReadyEvent) tview.Cmd {
 	// Use GuildPositions for ordering (it's the canonical order).
 	// Guilds not in any folder are "orphans" - add them directly to root.
 	positions := event.UserSettings.GuildPositions
-	// Fallback: GuildPositions shouldn't be nil but handle gracefully
+	// GuildPositions is normally set; fall back to event order if not.
 	if len(positions) == 0 {
 		positions = make([]discord.GuildID, 0, len(event.Guilds))
 		for _, guildEvent := range event.Guilds {
@@ -70,12 +69,11 @@ func (m *Model) onReady(event *gateway.ReadyEvent) tview.Cmd {
 	}
 
 	for _, guildID := range positions {
-		// Already handled in folder processing below
+		// Already handled in folder processing below.
 		if guildsInFolders[guildID] {
 			continue
 		}
 
-		// Orphan guild - add directly to root in order
 		if guildEvent, ok := guildsByID[guildID]; ok {
 			m.guildsTree.createGuildNode(root, guildEvent.Guild)
 		}
