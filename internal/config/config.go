@@ -129,10 +129,7 @@ var defaultCfg []byte
 func DefaultPath() string {
 	path, err := os.UserConfigDir()
 	if err != nil {
-		slog.Info(
-			"user config dir cannot be determined; falling back to the current dir",
-			"err", err,
-		)
+		slog.Info("user config dir cannot be determined; falling back to the current dir", "err", err)
 		path = "."
 	}
 
