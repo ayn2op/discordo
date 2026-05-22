@@ -385,10 +385,12 @@ func (mi *messageInput) expandMentions(c *discord.Channel, src []byte) []byte {
 	})
 }
 
+func isMentionChar(r rune) bool {
+	return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '.'
+}
+
 func (mi *messageInput) tabComplete() tview.Cmd {
-	posEnd, name, r := mi.GetWordUnderCursor(func(r rune) bool {
-		return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '.'
-	})
+	posEnd, name, r := mi.GetWordUnderCursor(isMentionChar)
 	if r != '@' {
 		return mi.stopTabCompletion()
 	}
@@ -438,9 +440,7 @@ func (mi *messageInput) tabComplete() tview.Cmd {
 }
 
 func (mi *messageInput) tabSuggest() tview.Cmd {
-	_, name, r := mi.GetWordUnderCursor(func(r rune) bool {
-		return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '.'
-	})
+	_, name, r := mi.GetWordUnderCursor(isMentionChar)
 	if r != '@' {
 		return mi.stopTabCompletion()
 	}
