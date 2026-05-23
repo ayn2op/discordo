@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	"github.com/BurntSushi/toml"
@@ -64,6 +65,38 @@ func TestLoad(t *testing.T) {
 		if cfg.Mouse != false {
 			t.Fatalf("got = %v, want = false", cfg.Mouse)
 		}
+	})
+
+	// Keys live in config.toml, descriptions in defaultKeybinds(); fail if either is missing.
+	t.Run("default keybinds are fully populated", func(t *testing.T) {
+		cfg, err := Load(filepath.Join(t.TempDir(), "missing.toml"))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		var walk func(path string, v reflect.Value)
+		walk = func(path string, v reflect.Value) {
+			rt := v.Type()
+			for i := range rt.NumField() {
+				fv, name := v.Field(i), path+rt.Field(i).Name
+				if kb, ok := fv.Interface().(Keybind); ok {
+					if len(kb.Keys()) == 0 {
+						t.Errorf("%s: no keys (missing from config.toml?)", name)
+					}
+					if kb.Help().Desc == "" {
+						t.Errorf("%s: no help description (missing from defaultKeybinds?)", name)
+					}
+					if kb.Help().Key == "" {
+						t.Errorf("%s: help key not populated from config.toml", name)
+					}
+					continue
+				}
+				if fv.Kind() == reflect.Struct {
+					walk(name+".", fv)
+				}
+			}
+		}
+		walk("Keybinds.", reflect.ValueOf(cfg.Keybinds))
 	})
 
 	t.Run("open with bad path returns error (!= ErrNotExist)", func(t *testing.T) {
