@@ -122,8 +122,8 @@ func (mi *messageInput) Update(msg tview.Msg) tview.Cmd {
 		mi.attach(imageAttachmentName, bytes.NewReader(msg))
 		return nil
 	case filesPickedMsg:
-		selected := mi.chat.SelectedChannel()
-		if selected == nil || selected.ID != msg.channelID {
+		selectedChannel, ok := mi.chat.SelectedChannel()
+		if !ok || selectedChannel.ID != msg.channelID {
 			return closeFiles(msg.files)
 		}
 		for _, file := range msg.files {
@@ -198,11 +198,11 @@ type filesPickedMsg struct {
 }
 
 func (mi *messageInput) pickFiles() tview.Cmd {
-	selected := mi.chat.SelectedChannel()
-	if selected == nil {
+	selectedChannel, ok := mi.chat.SelectedChannel()
+	if !ok {
 		return nil
 	}
-	channelID := selected.ID
+	channelID := selectedChannel.ID
 
 	return func() tview.Msg {
 		paths, err := zenity.SelectFileMultiple()
@@ -255,8 +255,8 @@ func (mi *messageInput) sendTyping() tview.Cmd {
 	})
 	mi.typingTimerMu.Unlock()
 
-	selectedChannel := mi.chat.SelectedChannel()
-	if selectedChannel == nil {
+	selectedChannel, ok := mi.chat.SelectedChannel()
+	if !ok {
 		return nil
 	}
 	channelID := selectedChannel.ID
@@ -267,8 +267,8 @@ func (mi *messageInput) sendTyping() tview.Cmd {
 }
 
 func (mi *messageInput) send() tview.Cmd {
-	selected := mi.chat.SelectedChannel()
-	if selected == nil {
+	selectedChannel, ok := mi.chat.SelectedChannel()
+	if !ok {
 		return nil
 	}
 
@@ -277,19 +277,18 @@ func (mi *messageInput) send() tview.Cmd {
 		return nil
 	}
 
-	text = mi.processText(selected, []byte(text))
+	text = mi.processText(selectedChannel, []byte(text))
 	data := *mi.sendMessageData
 	data.Files = slices.Clone(data.Files)
 
 	var editMessage discord.Message
 	edit := mi.edit
 	if edit {
-		message, err := mi.chat.messagesList.selectedMessage()
-		if err != nil {
-			slog.Error("failed to get selected message", "err", err)
+		selectedMessage, ok := mi.chat.messagesList.selectedMessage()
+		if !ok {
 			return nil
 		}
-		editMessage = *message
+		editMessage = *selectedMessage
 	}
 
 	mi.stopTypingTimer()
@@ -307,8 +306,8 @@ func (mi *messageInput) send() tview.Cmd {
 			return nil
 		}
 		data.Content = text
-		if _, err := mi.chat.state.SendMessageComplex(selected.ID, data); err != nil {
-			slog.Error("failed to send message in channel", "channel_id", selected.ID, "err", err)
+		if _, err := mi.chat.state.SendMessageComplex(selectedChannel.ID, data); err != nil {
+			slog.Error("failed to send message in channel", "channel_id", selectedChannel.ID, "err", err)
 		}
 		return nil
 	}
@@ -396,15 +395,15 @@ func (mi *messageInput) tabComplete() tview.Cmd {
 	}
 	pos := posEnd - (len(name) + 1)
 
-	selected := mi.chat.SelectedChannel()
-	if selected == nil {
+	selectedChannel, ok := mi.chat.SelectedChannel()
+	if !ok {
 		return nil
 	}
-	gID := selected.GuildID
+	gID := selectedChannel.GuildID
 
 	if mi.cfg.AutocompleteLimit == 0 {
 		if !gID.IsValid() {
-			users := selected.DMRecipients
+			users := selectedChannel.DMRecipients
 			res := fuzzy.FindFrom(name, userList(users))
 			if len(res) > 0 {
 				mi.Replace(pos, posEnd, "@"+users[res[0].Index].Username+" ")
@@ -419,7 +418,7 @@ func (mi *messageInput) tabComplete() tview.Cmd {
 
 			res := fuzzy.FindFrom(name, memberList(members))
 			for _, r := range res {
-				if channelHasUser(mi.chat.state, selected.ID, members[r.Index].User.ID) {
+				if channelHasUser(mi.chat.state, selectedChannel.ID, members[r.Index].User.ID) {
 					mi.Replace(pos, posEnd, "@"+members[r.Index].User.Username+" ")
 					return cmd
 				}
@@ -431,7 +430,7 @@ func (mi *messageInput) tabComplete() tview.Cmd {
 	if mi.mentionsList.itemCount() == 0 {
 		return nil
 	}
-	name, ok := mi.mentionsList.selectedInsertText()
+	name, ok = mi.mentionsList.selectedInsertText()
 	if !ok {
 		return nil
 	}
@@ -444,12 +443,12 @@ func (mi *messageInput) tabSuggest() tview.Cmd {
 	if r != '@' {
 		return mi.stopTabCompletion()
 	}
-	selected := mi.chat.SelectedChannel()
-	if selected == nil {
+	selectedChannel, ok := mi.chat.SelectedChannel()
+	if !ok {
 		return nil
 	}
-	gID := selected.GuildID
-	cID := selected.ID
+	gID := selectedChannel.GuildID
+	cID := selectedChannel.ID
 	mi.mentionsList.clear()
 
 	var shown map[string]struct{}
@@ -476,7 +475,7 @@ func (mi *messageInput) tabSuggest() tview.Cmd {
 				mi.addMentionUser(&m.Author)
 			}
 		} else {
-			users := selected.DMRecipients
+			users := selectedChannel.DMRecipients
 			me, _ := mi.chat.state.Cabinet.Me()
 			users = append(users, *me)
 			res := fuzzy.FindFrom(name, userList(users))
@@ -750,8 +749,8 @@ func (mi *messageInput) attach(name string, reader io.Reader) {
 }
 
 func (mi *messageInput) canAttachFiles() bool {
-	selected := mi.chat.SelectedChannel()
-	return selected != nil && mi.chat.state.HasPermissions(selected.ID, discord.PermissionAttachFiles)
+	selectedChannel, ok := mi.chat.SelectedChannel()
+	return ok && mi.chat.state.HasPermissions(selectedChannel.ID, discord.PermissionAttachFiles)
 }
 
 func (mi *messageInput) ShortHelp() []keybind.Keybind {

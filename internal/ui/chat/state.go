@@ -95,8 +95,8 @@ func (m *Model) onReady(event *gateway.ReadyEvent) tview.Cmd {
 }
 
 func (m *Model) onMessageCreate(message *gateway.MessageCreateEvent) tview.Cmd {
-	selectedChannel := m.SelectedChannel()
-	if selectedChannel != nil && selectedChannel.ID == message.ChannelID {
+	selectedChannel, ok := m.SelectedChannel()
+	if ok && selectedChannel.ID == message.ChannelID {
 		m.removeTyper(message.Author.ID)
 		m.messagesList.addMessage(message.Message)
 		return nil
@@ -115,8 +115,8 @@ func (m *Model) notify(message gateway.MessageCreateEvent) tview.Cmd {
 }
 
 func (m *Model) onMessageUpdate(message *gateway.MessageUpdateEvent) {
-	selectedChannel := m.SelectedChannel()
-	if selectedChannel == nil || selectedChannel.ID != message.ChannelID {
+	selectedChannel, ok := m.SelectedChannel()
+	if !ok || selectedChannel.ID != message.ChannelID {
 		return
 	}
 
@@ -131,8 +131,8 @@ func (m *Model) onMessageUpdate(message *gateway.MessageUpdateEvent) {
 }
 
 func (m *Model) onMessageDelete(message *gateway.MessageDeleteEvent) {
-	selectedChannel := m.SelectedChannel()
-	if selectedChannel == nil || selectedChannel.ID != message.ChannelID {
+	selectedChannel, ok := m.SelectedChannel()
+	if !ok || selectedChannel.ID != message.ChannelID {
 		return
 	}
 
@@ -175,8 +175,8 @@ func (m *Model) onGuildMemberRemove(event *gateway.GuildMemberRemoveEvent) {
 }
 
 func (m *Model) onTypingStart(event *gateway.TypingStartEvent) {
-	selectedChannel := m.SelectedChannel()
-	if selectedChannel == nil || selectedChannel.ID != event.ChannelID {
+	selectedChannel, ok := m.SelectedChannel()
+	if !ok || selectedChannel.ID != event.ChannelID {
 		return
 	}
 

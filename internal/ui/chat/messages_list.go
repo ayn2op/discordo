@@ -2,7 +2,6 @@ package chat
 
 import (
 	"context"
-	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -841,17 +840,17 @@ func (ml *messagesList) drawPinnedMessage(builder *tview.LineBuilder, message di
 	builder.Write(" pinned a message.", baseStyle)
 }
 
-func (ml *messagesList) selectedMessage() (*discord.Message, error) {
+func (ml *messagesList) selectedMessage() (*discord.Message, bool) {
 	if len(ml.messages) == 0 {
-		return nil, errors.New("no messages available")
+		return nil, false
 	}
 
 	cursor := ml.Cursor()
 	if cursor == -1 || cursor >= len(ml.messages) {
-		return nil, errors.New("no message is currently selected")
+		return nil, false
 	}
 
-	return &ml.messages[cursor], nil
+	return &ml.messages[cursor], true
 }
 
 func (ml *messagesList) Update(msg tview.Msg) tview.Cmd {
@@ -898,8 +897,8 @@ func (ml *messagesList) Update(msg tview.Msg) tview.Cmd {
 		return ml.Model.Update(msg)
 
 	case olderMessagesLoadedMsg:
-		selectedChannel := ml.chat.SelectedChannel()
-		if selectedChannel == nil || selectedChannel.ID != msg.ChannelID {
+		selectedChannel, ok := ml.chat.SelectedChannel()
+		if !ok || selectedChannel.ID != msg.ChannelID {
 			return nil
 		}
 		prevCursor := ml.Cursor()
@@ -999,8 +998,8 @@ func (ml *messagesList) selectReply() {
 }
 
 func (ml *messagesList) fetchOlderMessages() tview.Cmd {
-	selectedChannel := ml.chat.SelectedChannel()
-	if selectedChannel == nil {
+	selectedChannel, ok := ml.chat.SelectedChannel()
+	if !ok {
 		return nil
 	}
 
@@ -1028,14 +1027,13 @@ func (ml *messagesList) fetchOlderMessages() tview.Cmd {
 }
 
 func (ml *messagesList) yankMessageID() tview.Cmd {
-	msg, err := ml.selectedMessage()
-	if err != nil {
-		slog.Error("failed to get selected message", "err", err)
+	selectedMessage, ok := ml.selectedMessage()
+	if !ok {
 		return nil
 	}
 
 	return func() tview.Msg {
-		if err := clipboard.Write(clipboard.FmtText, []byte(msg.ID.String())); err != nil {
+		if err := clipboard.Write(clipboard.FmtText, []byte(selectedMessage.ID.String())); err != nil {
 			slog.Error("failed to copy message id", "err", err)
 		}
 		return nil
@@ -1043,14 +1041,13 @@ func (ml *messagesList) yankMessageID() tview.Cmd {
 }
 
 func (ml *messagesList) yankContent() tview.Cmd {
-	msg, err := ml.selectedMessage()
-	if err != nil {
-		slog.Error("failed to get selected message", "err", err)
+	selectedMessage, ok := ml.selectedMessage()
+	if !ok {
 		return nil
 	}
 
 	return func() tview.Msg {
-		if err := clipboard.Write(clipboard.FmtText, []byte(msg.Content)); err != nil {
+		if err := clipboard.Write(clipboard.FmtText, []byte(selectedMessage.Content)); err != nil {
 			slog.Error("failed to copy message content", "err", err)
 		}
 		return nil
@@ -1058,14 +1055,13 @@ func (ml *messagesList) yankContent() tview.Cmd {
 }
 
 func (ml *messagesList) yankURL() tview.Cmd {
-	msg, err := ml.selectedMessage()
-	if err != nil {
-		slog.Error("failed to get selected message", "err", err)
+	selectedMessage, ok := ml.selectedMessage()
+	if !ok {
 		return nil
 	}
 
 	return func() tview.Msg {
-		if err := clipboard.Write(clipboard.FmtText, []byte(msg.URL())); err != nil {
+		if err := clipboard.Write(clipboard.FmtText, []byte(selectedMessage.URL())); err != nil {
 			slog.Error("failed to copy message url", "err", err)
 		}
 		return nil
@@ -1073,23 +1069,22 @@ func (ml *messagesList) yankURL() tview.Cmd {
 }
 
 func (ml *messagesList) open() tview.Cmd {
-	msg, err := ml.selectedMessage()
-	if err != nil {
-		slog.Error("failed to get selected message", "err", err)
+	selectedMessage, ok := ml.selectedMessage()
+	if !ok {
 		return nil
 	}
 
-	urls := messageURLs(*msg)
-	switch total := len(urls) + len(msg.Attachments); {
+	urls := messageURLs(*selectedMessage)
+	switch total := len(urls) + len(selectedMessage.Attachments); {
 	case total == 0:
 		return nil
 	case total > 1:
-		return ml.showAttachmentsList(urls, msg.Attachments)
+		return ml.showAttachmentsList(urls, selectedMessage.Attachments)
 	case len(urls) == 1:
 		return ml.openURL(urls[0])
 	}
 
-	attachment := msg.Attachments[0]
+	attachment := selectedMessage.Attachments[0]
 	if strings.HasPrefix(attachment.ContentType, "image/") {
 		return ml.openAttachment(attachment)
 	}
@@ -1247,19 +1242,18 @@ func (ml *messagesList) openURL(url string) tview.Cmd {
 }
 
 func (ml *messagesList) reply(mention bool) tview.Cmd {
-	message, err := ml.selectedMessage()
-	if err != nil {
-		slog.Error("failed to get selected message", "err", err)
+	selectedMessage, ok := ml.selectedMessage()
+	if !ok {
 		return nil
 	}
 
-	name := message.Author.DisplayOrUsername()
-	if member := ml.memberForMessage(*message); member != nil && member.Nick != "" {
+	name := selectedMessage.Author.DisplayOrUsername()
+	if member := ml.memberForMessage(*selectedMessage); member != nil && member.Nick != "" {
 		name = member.Nick
 	}
 
 	data := ml.chat.messageInput.sendMessageData
-	data.Reference = &discord.MessageReference{MessageID: message.ID}
+	data.Reference = &discord.MessageReference{MessageID: selectedMessage.ID}
 	data.AllowedMentions = &api.AllowedMentions{RepliedUser: option.False}
 
 	title := "Replying to "
@@ -1274,21 +1268,20 @@ func (ml *messagesList) reply(mention bool) tview.Cmd {
 }
 
 func (ml *messagesList) editSelectedMessage() tview.Cmd {
-	message, err := ml.selectedMessage()
-	if err != nil {
-		slog.Error("failed to get selected message", "err", err)
+	selectedMessage, ok := ml.selectedMessage()
+	if !ok {
 		return nil
 	}
 
 	me, _ := ml.chat.state.Cabinet.Me()
-	if message.Author.ID != me.ID {
-		slog.Error("failed to edit message; not the author", "channel_id", message.ChannelID, "message_id", message.ID)
+	if selectedMessage.Author.ID != me.ID {
+		slog.Error("failed to edit message; not the author", "channel_id", selectedMessage.ChannelID, "message_id", selectedMessage.ID)
 		return nil
 	}
 
 	ml.chat.messageInput.SetTitle("Editing")
 	ml.chat.messageInput.edit = true
-	ml.chat.messageInput.SetText(message.Content, true)
+	ml.chat.messageInput.SetText(selectedMessage.Content, true)
 	return tview.SetFocus(ml.chat.messageInput)
 }
 
@@ -1309,9 +1302,8 @@ func (ml *messagesList) confirmDelete() {
 }
 
 func (ml *messagesList) deleteSelectedMessage() tview.Cmd {
-	selectedMessage, err := ml.selectedMessage()
-	if err != nil {
-		slog.Error("failed to get selected message", "err", err)
+	selectedMessage, ok := ml.selectedMessage()
+	if !ok {
 		return nil
 	}
 
@@ -1409,9 +1401,9 @@ func (ml *messagesList) ShortHelp() []keybind.Keybind {
 		cfg.Cancel.Keybind,
 	}
 
-	if msg, err := ml.selectedMessage(); err == nil {
+	if selectedMessage, ok := ml.selectedMessage(); ok {
 		me, _ := ml.chat.state.Cabinet.Me()
-		if msg.Author.ID != me.ID {
+		if selectedMessage.Author.ID != me.ID {
 			help = append(help, cfg.Reply.Keybind)
 		}
 	}
@@ -1427,17 +1419,17 @@ func (ml *messagesList) FullHelp() [][]keybind.Keybind {
 	canEdit := false
 	canDelete := false
 	canOpen := false
-	if msg, err := ml.selectedMessage(); err == nil {
-		canSelectReply = msg.ReferencedMessage != nil
-		canOpen = len(messageURLs(*msg)) != 0 || len(msg.Attachments) != 0
+	if selectedMessage, ok := ml.selectedMessage(); ok {
+		canSelectReply = selectedMessage.ReferencedMessage != nil
+		canOpen = len(messageURLs(*selectedMessage)) != 0 || len(selectedMessage.Attachments) != 0
 
 		me, _ := ml.chat.state.Cabinet.Me()
-		canReply = msg.Author.ID != me.ID
-		canEdit = msg.Author.ID == me.ID
+		canReply = selectedMessage.Author.ID != me.ID
+		canEdit = selectedMessage.Author.ID == me.ID
 		canDelete = canEdit
 		if !canDelete {
-			selected := ml.chat.SelectedChannel()
-			canDelete = selected != nil && ml.chat.state.HasPermissions(selected.ID, discord.PermissionManageMessages)
+			selectedChannel, ok := ml.chat.SelectedChannel()
+			canDelete = ok && ml.chat.state.HasPermissions(selectedChannel.ID, discord.PermissionManageMessages)
 		}
 	}
 

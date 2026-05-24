@@ -110,10 +110,10 @@ func NewModel(app *tview.Application, cfg *config.Config, token string) *Model {
 	return m
 }
 
-func (m *Model) SelectedChannel() *discord.Channel {
+func (m *Model) SelectedChannel() (*discord.Channel, bool) {
 	m.selectedChannelMu.RLock()
 	defer m.selectedChannelMu.RUnlock()
-	return m.selectedChannel
+	return m.selectedChannel, m.selectedChannel != nil
 }
 
 func (m *Model) SetSelectedChannel(channel *discord.Channel) {
@@ -415,8 +415,8 @@ func (m *Model) removeTyper(userID discord.UserID) {
 }
 
 func (m *Model) updateFooter() {
-	selectedChannel := m.SelectedChannel()
-	if selectedChannel == nil {
+	selectedChannel, ok := m.SelectedChannel()
+	if !ok {
 		return
 	}
 	guildID := selectedChannel.GuildID
