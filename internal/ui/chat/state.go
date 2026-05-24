@@ -180,8 +180,7 @@ func (m *Model) onTypingStart(event *gateway.TypingStartEvent) {
 		return
 	}
 
-	me, _ := m.state.Cabinet.Me()
-	if event.UserID == me.ID {
+	if m.isMe(event.UserID) {
 		return
 	}
 

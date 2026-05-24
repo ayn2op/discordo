@@ -1273,8 +1273,7 @@ func (ml *messagesList) editSelectedMessage() tview.Cmd {
 		return nil
 	}
 
-	me, _ := ml.chat.state.Cabinet.Me()
-	if selectedMessage.Author.ID != me.ID {
+	if !ml.chat.isMe(selectedMessage.Author.ID) {
 		slog.Error("failed to edit message; not the author", "channel_id", selectedMessage.ChannelID, "message_id", selectedMessage.ID)
 		return nil
 	}
@@ -1309,8 +1308,7 @@ func (ml *messagesList) deleteSelectedMessage() tview.Cmd {
 
 	return func() tview.Msg {
 		if selectedMessage.GuildID.IsValid() {
-			me, _ := ml.chat.state.Cabinet.Me()
-			if selectedMessage.Author.ID != me.ID && !ml.chat.state.HasPermissions(selectedMessage.ChannelID, discord.PermissionManageMessages) {
+			if !ml.chat.isMe(selectedMessage.Author.ID) && !ml.chat.state.HasPermissions(selectedMessage.ChannelID, discord.PermissionManageMessages) {
 				slog.Error("failed to delete message; missing relevant permissions", "channel_id", selectedMessage.ChannelID, "message_id", selectedMessage.ID)
 				return nil
 			}
@@ -1402,8 +1400,7 @@ func (ml *messagesList) ShortHelp() []keybind.Keybind {
 	}
 
 	if selectedMessage, ok := ml.selectedMessage(); ok {
-		me, _ := ml.chat.state.Cabinet.Me()
-		if selectedMessage.Author.ID != me.ID {
+		if !ml.chat.isMe(selectedMessage.Author.ID) {
 			help = append(help, cfg.Reply.Keybind)
 		}
 	}
@@ -1423,9 +1420,8 @@ func (ml *messagesList) FullHelp() [][]keybind.Keybind {
 		canSelectReply = selectedMessage.ReferencedMessage != nil
 		canOpen = len(messageURLs(*selectedMessage)) != 0 || len(selectedMessage.Attachments) != 0
 
-		me, _ := ml.chat.state.Cabinet.Me()
-		canReply = selectedMessage.Author.ID != me.ID
-		canEdit = selectedMessage.Author.ID == me.ID
+		canEdit = ml.chat.isMe(selectedMessage.Author.ID)
+		canReply = !canEdit
 		canDelete = canEdit
 		if !canDelete {
 			selectedChannel, ok := ml.chat.SelectedChannel()

@@ -122,6 +122,11 @@ func (m *Model) SetSelectedChannel(channel *discord.Channel) {
 	m.selectedChannelMu.Unlock()
 }
 
+func (m *Model) isMe(id discord.UserID) bool {
+	me, _ := m.state.Cabinet.Me()
+	return me != nil && id == me.ID
+}
+
 func (m *Model) buildLayout() {
 	m.Clear()
 	m.rightFlex.Clear()
