@@ -22,7 +22,7 @@ func init() {
 	}
 
 	cacheDir = filepath.Join(userCacheDir, Name)
-	if err := os.MkdirAll(cacheDir, os.ModePerm); err != nil {
+	if err := os.MkdirAll(cacheDir, 0755); err != nil {
 		slog.Error("failed to create cache dir", "err", err, "path", cacheDir)
 	}
 }

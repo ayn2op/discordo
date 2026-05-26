@@ -571,7 +571,7 @@ func (mi *messageInput) searchMember(gID discord.GuildID, name string) tview.Cmd
 	// everything starting with "ab". This will still be true even if a new
 	// member joins because arikawa loads new members into the state.
 	if k := key[:len(key)-1]; mi.cache.Exists(k) {
-		if c := mi.cache.Get(k); c < mi.chat.state.MemberState.SearchLimit {
+		if c, ok := mi.cache.Get(k); ok && c < mi.chat.state.MemberState.SearchLimit {
 			mi.cache.Create(key, c)
 			return nil
 		}

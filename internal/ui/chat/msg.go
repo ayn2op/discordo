@@ -3,6 +3,8 @@ package chat
 import (
 	"context"
 	"log/slog"
+	"math"
+	"time"
 
 	"github.com/ayn2op/tview"
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -55,3 +57,39 @@ func (m *Model) logout() tview.Cmd {
 }
 
 type QuitMsg struct{}
+
+// reconnectWithBackoff attempts to reconnect to the Discord gateway with
+// exponential backoff. It retries up to maxReconnectAttempts times.
+func (m *Model) reconnectWithBackoff() tview.Cmd {
+	const (
+		maxReconnectAttempts = 5
+		baseDelay            = 2 * time.Second
+		maxDelay             = 60 * time.Second
+	)
+
+	return func() tview.Msg {
+		for attempt := 0; attempt < maxReconnectAttempts; attempt++ {
+			if m.connected {
+				return nil
+			}
+
+			slog.Info("attempting to reconnect", "attempt", attempt+1, "max_attempts", maxReconnectAttempts)
+			if err := m.state.Open(context.Background()); err != nil {
+				slog.Error("reconnection failed", "attempt", attempt+1, "err", err)
+
+				delay := time.Duration(math.Min(
+					float64(baseDelay)*math.Pow(2, float64(attempt)),
+					float64(maxDelay),
+				))
+				time.Sleep(delay)
+				continue
+			}
+
+			slog.Info("reconnection successful", "attempt", attempt+1)
+			return nil
+		}
+
+		slog.Error("failed to reconnect after maximum attempts", "attempts", maxReconnectAttempts)
+		return nil
+	}
+}

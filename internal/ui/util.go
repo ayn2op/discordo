@@ -141,6 +141,7 @@ func MergeStyle(base, overlay tcell.Style) tcell.Style {
 	if bg == tcell.ColorDefault {
 		bg = base.GetBackground()
 	}
+
 	style := base.Foreground(fg).Background(bg)
 	style = style.Bold(base.HasBold() || overlay.HasBold())
 	style = style.Dim(base.HasDim() || overlay.HasDim())
@@ -148,8 +149,6 @@ func MergeStyle(base, overlay tcell.Style) tcell.Style {
 	style = style.Blink(base.HasBlink() || overlay.HasBlink())
 	style = style.Reverse(base.HasReverse() || overlay.HasReverse())
 	style = style.StrikeThrough(base.HasStrikeThrough() || overlay.HasStrikeThrough())
-	if base.HasUnderline() || overlay.HasUnderline() {
-		style = style.Underline(true)
-	}
+	style = style.Underline(base.HasUnderline() || overlay.HasUnderline())
 	return style
 }

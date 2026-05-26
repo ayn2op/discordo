@@ -2,6 +2,7 @@ package config
 
 import (
 	_ "embed"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -147,7 +148,7 @@ func Load(path string) (*Config, error) {
 
 	file, err := os.Open(path)
 	switch {
-	case os.IsNotExist(err):
+	case errors.Is(err, os.ErrNotExist):
 		slog.Info("config file does not exist, falling back to the default config", "path", path, "err", err)
 	case err != nil:
 		return nil, fmt.Errorf("failed to open config file: %w", err)
@@ -178,5 +179,38 @@ func applyDefaults(cfg *Config) {
 		cfg.DateSeparator.Character = "─"
 	} else {
 		cfg.DateSeparator.Character = string(r)
+	}
+
+	validateRanges(cfg)
+}
+
+func validateRanges(cfg *Config) {
+	const (
+		minMessagesLimit     = 1
+		maxMessagesLimit     = 100
+		minAutocompleteLimit = 0
+		maxAutocompleteLimit = 100
+		minPickerWidth       = 10
+		minPickerHeight      = 5
+	)
+
+	if cfg.MessagesLimit < minMessagesLimit || cfg.MessagesLimit > maxMessagesLimit {
+		slog.Warn("messages_limit out of range, using default", "value", cfg.MessagesLimit, "min", minMessagesLimit, "max", maxMessagesLimit)
+		cfg.MessagesLimit = 50
+	}
+
+	if cfg.AutocompleteLimit < minAutocompleteLimit || cfg.AutocompleteLimit > maxAutocompleteLimit {
+		slog.Warn("autocomplete_limit out of range, using default", "value", cfg.AutocompleteLimit, "min", minAutocompleteLimit, "max", maxAutocompleteLimit)
+		cfg.AutocompleteLimit = 20
+	}
+
+	if cfg.Picker.Width < minPickerWidth {
+		slog.Warn("picker.width too small, using minimum", "value", cfg.Picker.Width, "min", minPickerWidth)
+		cfg.Picker.Width = minPickerWidth
+	}
+
+	if cfg.Picker.Height < minPickerHeight {
+		slog.Warn("picker.height too small, using minimum", "value", cfg.Picker.Height, "min", minPickerHeight)
+		cfg.Picker.Height = minPickerHeight
 	}
 }

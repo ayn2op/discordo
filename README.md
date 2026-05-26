@@ -50,7 +50,7 @@ go build .
 Set the value of the `DISCORDO_TOKEN` environment variable to the authentication token to log in with.
 
 ```sh
-DISCORDO_TOKEN="OTI2MDU5NTQxNDE2Nzc5ODA2.Yc2KKA.2iZ-5JxgxG-9Ub8GHzBSn-NJjNg" discordo
+DISCORDO_TOKEN="YOUR_DISCORD_TOKEN_HERE" discordo
 ```
 
 ### QR (UI)

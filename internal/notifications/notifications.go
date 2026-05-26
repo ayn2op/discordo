@@ -1,6 +1,7 @@
 package notifications
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -75,7 +76,7 @@ func Notify(state *ningen.State, message gateway.MessageCreateEvent, cfg *config
 
 func getCachedProfileImage(avatarHash discord.Hash, url string) (string, error) {
 	path := filepath.Join(consts.CacheDir(), "avatars")
-	if err := os.MkdirAll(path, os.ModePerm); err != nil {
+	if err := os.MkdirAll(path, 0755); err != nil {
 		return "", err
 	}
 
@@ -90,7 +91,7 @@ func getCachedProfileImage(avatarHash discord.Hash, url string) (string, error) 
 	switch {
 	case err == nil:
 		return filepath.Join(path, filename), nil
-	case os.IsNotExist(err):
+	case errors.Is(err, os.ErrNotExist):
 		file, err := root.Create(filename)
 		if err != nil {
 			return "", err

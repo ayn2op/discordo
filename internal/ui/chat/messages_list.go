@@ -71,6 +71,10 @@ type messagesListRowKind uint8
 const (
 	messagesListRowMessage messagesListRowKind = iota
 	messagesListRowSeparator
+
+	// maxCachedMessages is the maximum number of messages to keep in memory.
+	// When exceeded, oldest messages are dropped.
+	maxCachedMessages = 1000
 )
 
 type messagesListRow struct {
@@ -140,9 +144,42 @@ func (ml *messagesList) setMessages(messages []discord.Message) {
 
 func (ml *messagesList) addMessage(message discord.Message) {
 	ml.messages = append(ml.messages, message)
-	ml.invalidateRows()
+	ml.trimMessages()
 	// Defensive invalidation for ID reuse/edits delivered out-of-order.
 	delete(ml.itemByID, message.ID)
+
+	// Fast path: append rows incrementally instead of full rebuild when possible.
+	if !ml.rowsDirty && len(ml.rows) > 0 {
+		lastRow := ml.rows[len(ml.rows)-1]
+		lastMsgIndex := lastRow.messageIndex
+		if lastMsgIndex == len(ml.messages)-2 {
+			// Append separator if needed.
+			if ml.cfg.DateSeparator.Enabled && !sameLocalDate(ml.messages[lastMsgIndex].Timestamp, message.Timestamp) {
+				ml.rows = append(ml.rows, messagesListRow{
+					kind:      messagesListRowSeparator,
+					timestamp: message.Timestamp,
+				})
+			}
+			ml.rows = append(ml.rows, messagesListRow{
+				kind:         messagesListRowMessage,
+				messageIndex: len(ml.messages) - 1,
+			})
+			return
+		}
+	}
+	ml.invalidateRows()
+}
+
+func (ml *messagesList) trimMessages() {
+	if len(ml.messages) <= maxCachedMessages {
+		return
+	}
+	// Remove oldest messages from the beginning (messages are in reverse chronological order).
+	toRemove := len(ml.messages) - maxCachedMessages
+	for _, msg := range ml.messages[:toRemove] {
+		delete(ml.itemByID, msg.ID)
+	}
+	ml.messages = ml.messages[toRemove:]
 }
 
 func (ml *messagesList) setMessage(index int, message discord.Message) {

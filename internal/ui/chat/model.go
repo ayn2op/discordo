@@ -62,6 +62,10 @@ type Model struct {
 	typersMu sync.RWMutex
 	typers   map[discord.UserID]*time.Timer
 
+	// connected indicates whether the WebSocket gateway is currently connected.
+	connected   bool
+	connectedMu sync.RWMutex
+
 	app *tview.Application
 	cfg *config.Config
 }
@@ -102,6 +106,7 @@ func NewModel(app *tview.Application, cfg *config.Config, token string) *Model {
 	m.state.AddHandler(m.events)
 	m.state.StateLog = func(err error) {
 		slog.Error("state log", "err", err)
+		m.setConnected(false)
 	}
 	m.state.OnRequest = append(m.state.OnRequest, httputil.WithHeaders(http.Headers()), m.onRequest)
 
@@ -208,45 +213,83 @@ func (m *Model) focusMessagesList() tview.Cmd {
 	return tview.SetFocus(m.messagesList)
 }
 
+// focusTargets defines the ordered list of focusable widgets for navigation.
+func (m *Model) focusTargets() []tview.Model {
+	return []tview.Model{m.guildsTree, m.messagesList, m.messageInput}
+}
+
 func (m *Model) focusPrevious() tview.Cmd {
-	switch m.app.Focused() {
-	case m.guildsTree:
-		if cmd := m.focusMessageInput(); cmd != nil {
-			return cmd
+	targets := m.focusTargets()
+	current := m.app.Focused()
+
+	// Find current index.
+	idx := -1
+	for i, t := range targets {
+		if t == current {
+			idx = i
+			break
 		}
-		return m.focusMessagesList()
-	case m.messagesList:
-		// Fallback when guilds/input are unavailable.
-		if cmd := m.focusGuildsTree(); cmd != nil {
-			return cmd
+	}
+	if idx < 0 {
+		return nil
+	}
+
+	// Try previous targets in reverse order, wrapping around.
+	for i := 1; i <= len(targets); i++ {
+		target := targets[(idx-i+len(targets))%len(targets)]
+		if cmd := tview.SetFocus(target); cmd != nil {
+			// Verify the target can actually receive focus.
+			switch target {
+			case m.guildsTree:
+				if m.mainFlex.GetItemCount() == 2 {
+					return cmd
+				}
+			case m.messageInput:
+				if !m.messageInput.GetDisabled() {
+					return cmd
+				}
+			default:
+				return cmd
+			}
 		}
-		if cmd := m.focusMessageInput(); cmd != nil {
-			return cmd
-		}
-		return m.focusMessagesList()
-	case m.messageInput:
-		return m.focusMessagesList()
 	}
 	return nil
 }
 
 func (m *Model) focusNext() tview.Cmd {
-	switch m.app.Focused() {
-	case m.guildsTree:
-		return m.focusMessagesList()
-	case m.messagesList:
-		// Fallback when input/guilds are unavailable.
-		if cmd := m.focusMessageInput(); cmd != nil {
-			return cmd
+	targets := m.focusTargets()
+	current := m.app.Focused()
+
+	// Find current index.
+	idx := -1
+	for i, t := range targets {
+		if t == current {
+			idx = i
+			break
 		}
-		if cmd := m.focusGuildsTree(); cmd != nil {
-			return cmd
+	}
+	if idx < 0 {
+		return nil
+	}
+
+	// Try next targets in order, wrapping around.
+	for i := 1; i <= len(targets); i++ {
+		target := targets[(idx+i)%len(targets)]
+		if cmd := tview.SetFocus(target); cmd != nil {
+			// Verify the target can actually receive focus.
+			switch target {
+			case m.guildsTree:
+				if m.mainFlex.GetItemCount() == 2 {
+					return cmd
+				}
+			case m.messageInput:
+				if !m.messageInput.GetDisabled() {
+					return cmd
+				}
+			default:
+				return cmd
+			}
 		}
-	case m.messageInput:
-		if cmd := m.focusGuildsTree(); cmd != nil {
-			return cmd
-		}
-		return m.focusMessagesList()
 	}
 	return nil
 }
@@ -261,6 +304,7 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 			m.onRaw(eventMsg)
 
 		case *gateway.ReadyEvent:
+			m.setConnected(true)
 			return tview.Batch(m.onReady(eventMsg), m.listen())
 
 		case *gateway.MessageCreateEvent:
@@ -419,6 +463,19 @@ func (m *Model) removeTyper(userID discord.UserID) {
 	m.updateFooter()
 }
 
+func (m *Model) setConnected(connected bool) {
+	m.connectedMu.Lock()
+	m.connected = connected
+	m.connectedMu.Unlock()
+	m.updateFooter()
+}
+
+func (m *Model) IsConnected() bool {
+	m.connectedMu.RLock()
+	defer m.connectedMu.RUnlock()
+	return m.connected
+}
+
 func (m *Model) updateFooter() {
 	selectedChannel, ok := m.SelectedChannel()
 	if !ok {
@@ -470,6 +527,13 @@ func (m *Model) updateFooter() {
 		default:
 			footer = "Several people are typing..."
 		}
+	}
+
+	if !m.IsConnected() {
+		if footer != "" {
+			footer += " | "
+		}
+		footer += "[Disconnected]"
 	}
 
 	m.messagesList.SetFooter(footer)

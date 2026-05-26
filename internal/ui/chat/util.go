@@ -42,8 +42,7 @@ func ConfigurePicker(model *picker.Model, cfg *config.Config, title string) {
 }
 
 func humanJoin(items []string) string {
-	count := len(items)
-	switch count {
+	switch len(items) {
 	case 0:
 		return ""
 	case 1:
@@ -51,6 +50,6 @@ func humanJoin(items []string) string {
 	case 2:
 		return items[0] + " and " + items[1]
 	default:
-		return strings.Join(items[:count-1], ", ") + ", and " + items[count-1]
+		return strings.Join(items[:len(items)-1], ", ") + ", and " + items[len(items)-1]
 	}
 }

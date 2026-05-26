@@ -22,9 +22,13 @@ func (c *Cache) Exists(query string) (ok bool) {
 	return
 }
 
-func (c *Cache) Get(query string) uint {
-	i, _ := c.items.Load(query)
-	return i.(uint)
+func (c *Cache) Get(query string) (uint, bool) {
+	i, ok := c.items.Load(query)
+	if !ok {
+		return 0, false
+	}
+	v, ok := i.(uint)
+	return v, ok
 }
 
 // Invalidate is only needed when a member leaves and the search query reaches
