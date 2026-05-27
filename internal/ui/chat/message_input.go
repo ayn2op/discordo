@@ -153,7 +153,10 @@ func (mi *messageInput) Update(msg tview.Msg) tview.Cmd {
 			mi.reset()
 			return nil
 		case keybind.Matches(msg, mi.cfg.Keybinds.MessageInput.TabComplete.Keybind):
-			return mi.tabComplete()
+			if mi.chat.GetVisible(mentionsListLayerName) {
+				return mi.tabComplete()
+			}
+			return handler(msg)
 		case keybind.Matches(msg, mi.cfg.Keybinds.MessageInput.Undo.Keybind):
 			return handler(tcell.NewEventKey(tcell.KeyCtrlZ, "", tcell.ModNone))
 		}
