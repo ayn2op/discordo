@@ -97,6 +97,7 @@ type MessagesListKeybinds struct {
 type MessageInputKeybinds struct {
 	Paste       Keybind `toml:"paste"`
 	Send        Keybind `toml:"send"`
+	Newline     Keybind `toml:"newline"`
 	Cancel      Keybind `toml:"cancel"`
 	TabComplete Keybind `toml:"tab_complete"`
 	Undo        Keybind `toml:"undo"`
@@ -198,6 +199,7 @@ func defaultMessageInputKeybinds() MessageInputKeybinds {
 	return MessageInputKeybinds{
 		Paste:          desc("paste"),
 		Send:           desc("send"),
+		Newline:        desc("nl"),
 		Cancel:         desc("cancel"),
 		TabComplete:    desc("complete"),
 		Undo:           desc("undo"),

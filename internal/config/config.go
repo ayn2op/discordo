@@ -74,6 +74,12 @@ type (
 		Separator        string `toml:"separator"`
 	}
 
+	MessageInputConfig struct {
+		// MaxHeight caps how tall (in newline-separated rows) the input grows before it starts scrolling internally.
+		// Must be >= 1; values <= 0 fall back to the default.
+		MaxHeight int `toml:"max_height"`
+	}
+
 	SidebarMarkersConfig struct {
 		Expanded  string `toml:"expanded"`
 		Collapsed string `toml:"collapsed"`
@@ -107,14 +113,15 @@ type (
 		AutocompleteLimit uint8 `toml:"autocomplete_limit"`
 		MessagesLimit     uint8 `toml:"messages_limit"`
 
-		Markdown        MarkdownConfig  `toml:"markdown"`
-		Help            HelpConfig      `toml:"help"`
-		Picker          PickerConfig    `toml:"picker"`
-		Timestamps      Timestamps      `toml:"timestamps"`
-		DateSeparator   DateSeparator   `toml:"date_separator"`
-		Notifications   Notifications   `toml:"notifications"`
-		TypingIndicator TypingIndicator `toml:"typing_indicator"`
-		Sidebar         SidebarConfig   `toml:"sidebar"`
+		Markdown        MarkdownConfig     `toml:"markdown"`
+		Help            HelpConfig         `toml:"help"`
+		Picker          PickerConfig       `toml:"picker"`
+		Timestamps      Timestamps         `toml:"timestamps"`
+		DateSeparator   DateSeparator      `toml:"date_separator"`
+		Notifications   Notifications      `toml:"notifications"`
+		TypingIndicator TypingIndicator    `toml:"typing_indicator"`
+		Sidebar         SidebarConfig      `toml:"sidebar"`
+		MessageInput    MessageInputConfig `toml:"message_input"`
 
 		Icons Icons `toml:"icons"`
 
@@ -169,6 +176,10 @@ func applyDefaults(cfg *Config) {
 
 	if cfg.Status == "default" {
 		cfg.Status = discord.UnknownStatus
+	}
+
+	if cfg.MessageInput.MaxHeight <= 0 {
+		cfg.MessageInput.MaxHeight = 10
 	}
 
 	if cfg.DateSeparator.Format == "" {

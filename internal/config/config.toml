@@ -20,6 +20,11 @@ autocomplete_limit = 20
 # The number of messages to fetch when a text-based channel is selected from guilds tree. The minimum and maximum value is 1 and 100, respectively.
 messages_limit = 50
 
+[message_input]
+# Maximum height (in newline-separated rows) the message input grows to before it starts scrolling internally.
+# Set to 1 for a fixed single-line input.
+max_height = 10
+
 [markdown]
 # Whether to parse and render markdown in messages or not.
 enabled = true
@@ -159,11 +164,12 @@ yank_url = "u"
 yank_id = "i"
 
 # Only while typing a message
-# Alt+Enter: Insert a new line to the current text.
 [keybinds.message_input]
-# paste from clipboard (supports both text and images)
+# Paste from clipboard (supports both text and images)
 paste = "ctrl+v"
 send = "enter"
+# Insert a new line at the cursor.
+newline = "shift+enter"
 # Remove existing text or cancel reply.
 cancel = "esc"
 # Complete usernames when mentioning

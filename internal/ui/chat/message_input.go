@@ -93,12 +93,74 @@ func newMessageInput(cfg *config.Config, chat *Model) *messageInput {
 	return mi
 }
 
+// forwardToTextArea passes a key event to the embedded TextArea then resizes for the new content.
+// SetChangedFunc isn't used: it fires inside replace's defer, before truncateLines/findCursor, so it would observe stale state.
+func (mi *messageInput) forwardToTextArea(ev *tcell.EventKey) tview.Cmd {
+	cmd := mi.TextArea.Update(ev)
+	mi.resizeForContent()
+	return cmd
+}
+
+// resizeForContent fits the input to its newline count, capped at MessageInput.MaxHeight and at the parent flex's height (leaving at least 1 row for the messages list), then pins the scroll offset to the new visible window.
+// Safe to call after every edit; ResizeItem and SetOffset are both idempotent.
+func (mi *messageInput) resizeForContent() {
+	if mi.chat == nil || mi.chat.rightFlex == nil {
+		return
+	}
+	_, _, _, outerH := mi.Rect()
+	_, _, _, innerH := mi.InnerRect()
+	frame := outerH - innerH // border + title/footer + padding rows
+	_, _, _, parentH := mi.chat.rightFlex.InnerRect()
+
+	visible := min(
+		strings.Count(mi.GetText(), "\n")+1,   // newline-driven height
+		max(mi.cfg.MessageInput.MaxHeight, 1), // user-configured cap
+		max(parentH-frame-1, 1),               // available room, reserving 1 row for messages
+	)
+	mi.chat.rightFlex.ResizeItem(mi, visible+frame, 1) // outer height = inner content + frame
+
+	// Sync the textarea's inner height so the next keystroke's cursor clamping uses the new size.
+	mi.SetVisibleSize(0, visible)
+
+	// Clamp scroll: when content overflows, pin the bottom row to the end of the text so backspacing the last newline doesn't leave a blank trailing row; once everything fits, reset to (0,0).
+	total := mi.LineCount(0)
+	row, col := mi.GetOffset()
+	maxOff := max(total-visible, 0) // last valid rowOffset that still shows real content on the bottom row
+	if row > maxOff {
+		mi.SetOffset(maxOff, col)
+	} else if total <= visible && (row != 0 || col != 0) {
+		mi.SetOffset(0, 0)
+	}
+}
+
 func (mi *messageInput) reset() {
 	mi.edit = false
 	mi.sendMessageData = &api.SendMessageData{}
 	mi.SetTitle("")
 	mi.SetFooter("")
 	mi.SetText("", true)
+}
+
+// The following overrides wrap the embedded TextArea/Box methods to auto-resize when callers change text or chrome.
+
+func (mi *messageInput) SetText(text string, cursorAtTheEnd bool) *tview.TextArea {
+	defer mi.resizeForContent()
+	return mi.TextArea.SetText(text, cursorAtTheEnd)
+}
+
+func (mi *messageInput) Replace(start, end int, text string) *tview.TextArea {
+	defer mi.resizeForContent()
+	return mi.TextArea.Replace(start, end, text)
+}
+
+func (mi *messageInput) SetTitle(title string) *tview.Box {
+	defer mi.resizeForContent()
+	return mi.Box.SetTitle(title)
+}
+
+func (mi *messageInput) SetFooter(footer string) *tview.Box {
+	defer mi.resizeForContent()
+	return mi.Box.SetFooter(footer)
 }
 
 func (mi *messageInput) stopTypingTimer() {
@@ -111,7 +173,6 @@ func (mi *messageInput) stopTypingTimer() {
 }
 
 func (mi *messageInput) Update(msg tview.Msg) tview.Cmd {
-	handler := mi.TextArea.Update
 	switch msg := msg.(type) {
 	case tabSuggestMsg:
 		return mi.tabSuggest()
@@ -134,7 +195,9 @@ func (mi *messageInput) Update(msg tview.Msg) tview.Cmd {
 	case tview.KeyMsg:
 		switch {
 		case keybind.Matches(msg, mi.cfg.Keybinds.MessageInput.Paste.Keybind):
-			return tview.Sequence(mi.pasteImage(), handler(tcell.NewEventKey(tcell.KeyCtrlV, "", tcell.ModNone)))
+			return tview.Sequence(mi.pasteImage(), mi.forwardToTextArea(tcell.NewEventKey(tcell.KeyCtrlV, "", tcell.ModNone)))
+		case keybind.Matches(msg, mi.cfg.Keybinds.MessageInput.Newline.Keybind):
+			return mi.forwardToTextArea(tcell.NewEventKey(tcell.KeyEnter, "", tcell.ModNone))
 		case keybind.Matches(msg, mi.cfg.Keybinds.MessageInput.Send.Keybind):
 			if mi.chat.GetVisible(mentionsListLayerName) {
 				return mi.tabComplete()
@@ -155,7 +218,7 @@ func (mi *messageInput) Update(msg tview.Msg) tview.Cmd {
 		case keybind.Matches(msg, mi.cfg.Keybinds.MessageInput.TabComplete.Keybind):
 			return mi.tabComplete()
 		case keybind.Matches(msg, mi.cfg.Keybinds.MessageInput.Undo.Keybind):
-			return handler(tcell.NewEventKey(tcell.KeyCtrlZ, "", tcell.ModNone))
+			return mi.forwardToTextArea(tcell.NewEventKey(tcell.KeyCtrlZ, "", tcell.ModNone))
 		}
 
 		typingCmd := mi.sendTyping()
@@ -172,11 +235,11 @@ func (mi *messageInput) Update(msg tview.Msg) tview.Cmd {
 			}
 
 			// Apply key edits first, then recompute autocomplete through Msg/Cmd.
-			return tview.Batch(typingCmd, tview.Sequence(handler(msg), mi.tabSuggest()))
+			return tview.Batch(typingCmd, tview.Sequence(mi.forwardToTextArea(msg), mi.tabSuggest()))
 		}
-		return tview.Batch(typingCmd, handler(msg))
+		return tview.Batch(typingCmd, mi.forwardToTextArea(msg))
 	}
-	return handler(msg)
+	return mi.TextArea.Update(msg)
 }
 
 type imagePastedMsg []byte
@@ -765,7 +828,7 @@ func (mi *messageInput) ShortHelp() []keybind.Keybind {
 	}
 
 	cfg := mi.cfg.Keybinds.MessageInput
-	short := []keybind.Keybind{cfg.Send.Keybind, cfg.Cancel.Keybind, cfg.Paste.Keybind, cfg.OpenEditor.Keybind}
+	short := []keybind.Keybind{cfg.Send.Keybind, cfg.Newline.Keybind, cfg.Cancel.Keybind, cfg.Paste.Keybind, cfg.OpenEditor.Keybind}
 	if mi.canAttachFiles() {
 		short = append(short, cfg.OpenFilePicker.Keybind)
 	}
@@ -790,7 +853,7 @@ func (mi *messageInput) FullHelp() [][]keybind.Keybind {
 	}
 
 	return [][]keybind.Keybind{
-		{cfg.Send.Keybind, cfg.Cancel.Keybind, cfg.TabComplete.Keybind, cfg.Undo.Keybind},
+		{cfg.Send.Keybind, cfg.Newline.Keybind, cfg.Cancel.Keybind, cfg.TabComplete.Keybind, cfg.Undo.Keybind},
 		openEditor,
 	}
 }
