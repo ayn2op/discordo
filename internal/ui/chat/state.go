@@ -6,6 +6,7 @@ import (
 
 	"github.com/ayn2op/discordo/internal/notifications"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/tree"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/httputil/httpdriver"
@@ -35,7 +36,7 @@ func (m *Model) onReady(event *gateway.ReadyEvent) tview.Cmd {
 	// retain pointers to detached tree nodes.
 	m.guildsTree.resetNodeIndex()
 
-	dmNode := tview.NewTreeNode("Direct Messages").SetReference(dmNode{}).SetExpandable(true).SetExpanded(false)
+	dmNode := tree.NewNode("Direct Messages").SetReference(dmNode{}).SetExpandable(true).SetExpanded(false)
 	m.guildsTree.dmRootNode = dmNode
 
 	root := m.guildsTree.
