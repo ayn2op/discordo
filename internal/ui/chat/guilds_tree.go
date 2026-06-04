@@ -55,6 +55,14 @@ func newGuildsTree(cfg *config.Config, chat *Model) *guildsTree {
 		SetGraphics(cfg.Theme.GuildsTree.Graphics).
 		SetGraphicsColor(tcell.GetColor(cfg.Theme.GuildsTree.GraphicsColor)).
 		SetTitle("Guilds")
+	gt.SetKeybinds(tree.Keybinds{
+		Up:           cfg.Keybinds.GuildsTree.Up.Keybind,
+		Down:         cfg.Keybinds.GuildsTree.Down.Keybind,
+		Top:          cfg.Keybinds.GuildsTree.Top.Keybind,
+		Bottom:       cfg.Keybinds.GuildsTree.Bottom.Keybind,
+		MoveToParent: cfg.Keybinds.GuildsTree.MoveToParentNode.Keybind,
+		Select:       cfg.Keybinds.GuildsTree.SelectCurrent.Keybind,
+	})
 
 	return gt
 }
@@ -327,7 +335,6 @@ func (gt *guildsTree) Update(msg tview.Msg) tview.Cmd {
 	case tree.SelectedMsg:
 		return gt.onSelected(msg.Node)
 	case tview.KeyMsg:
-		handler := gt.Model.Update
 		switch {
 		case keybind.Matches(msg, gt.cfg.Keybinds.GuildsTree.CollapseAll.Keybind):
 			for _, node := range gt.GetRoot().GetChildren() {
@@ -337,25 +344,9 @@ func (gt *guildsTree) Update(msg tview.Msg) tview.Cmd {
 		case keybind.Matches(msg, gt.cfg.Keybinds.GuildsTree.CollapseParentNode.Keybind):
 			gt.collapseParentNode(gt.GetCurrentNode())
 			return nil
-		case keybind.Matches(msg, gt.cfg.Keybinds.GuildsTree.MoveToParentNode.Keybind):
-			return handler(tcell.NewEventKey(tcell.KeyRune, "K", tcell.ModNone))
-		case keybind.Matches(msg, gt.cfg.Keybinds.GuildsTree.Up.Keybind):
-			return handler(tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone))
-		case keybind.Matches(msg, gt.cfg.Keybinds.GuildsTree.Down.Keybind):
-			return handler(tcell.NewEventKey(tcell.KeyDown, "", tcell.ModNone))
-		case keybind.Matches(msg, gt.cfg.Keybinds.GuildsTree.Top.Keybind):
-			gt.Move(gt.GetRowCount() * -1)
-			return nil
-		case keybind.Matches(msg, gt.cfg.Keybinds.GuildsTree.Bottom.Keybind):
-			gt.Move(gt.GetRowCount())
-			return nil
-		case keybind.Matches(msg, gt.cfg.Keybinds.GuildsTree.SelectCurrent.Keybind):
-			return handler(tcell.NewEventKey(tcell.KeyEnter, "", tcell.ModNone))
 		case keybind.Matches(msg, gt.cfg.Keybinds.GuildsTree.YankID.Keybind):
 			return gt.yankID()
 		}
-		// Do not fall through to defaults for unmatched keys.
-		return nil
 	}
 	return gt.Model.Update(msg)
 }

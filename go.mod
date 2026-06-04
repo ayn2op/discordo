@@ -11,7 +11,7 @@ require (
 	github.com/alecthomas/chroma/v2 v2.26.1
 	github.com/andybalholm/brotli v1.2.1
 	github.com/ayn2op/clipboard v0.0.0-20260308203959-c5ad7df3fc97
-	github.com/ayn2op/tview v0.0.0-20260603033754-03ce043930ff
+	github.com/ayn2op/tview v0.0.0-20260604212409-7075d4e3251a
 	github.com/deckarep/gosx-notifier v0.0.0-20180201035817-e127226297fb
 	github.com/diamondburned/arikawa/v3 v3.6.1-0.20260518050745-b430932b3ee1
 	github.com/diamondburned/ningen/v3 v3.0.1-0.20260306213430-5a08d3a709b4
@@ -54,7 +54,7 @@ require (
 	github.com/tadvi/systray v0.0.0-20190226123456-11a2b8fa57af // indirect
 	github.com/twmb/murmur3 v1.1.8 // indirect
 	go4.org v0.0.0-20260112195520-a5071408f32f // indirect
-	golang.org/x/exp/shiny v0.0.0-20260529124908-c761662dc8c9 // indirect
+	golang.org/x/exp/shiny v0.0.0-20260603202125-055de637280b // indirect
 	golang.org/x/image v0.41.0 // indirect
 	golang.org/x/mobile v0.0.0-20260602190626-68735029466e // indirect
 	golang.org/x/sys v0.45.0 // indirect
