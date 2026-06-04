@@ -8,7 +8,6 @@ import (
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
 	"github.com/ayn2op/discordo/internal/config"
-	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
 	"github.com/diamondburned/ningen/v3/discordmd"
 	"github.com/gdamore/tcell/v3"
@@ -78,14 +77,14 @@ func (r *Renderer) RenderLines(source []byte, node ast.Node, base tcell.Style) [
 		case *ast.AutoLink:
 			if entering {
 				url := string(node.URL(source))
-				style := ui.MergeStyle(currentStyle(), theme.URLStyle.Style).Url(url)
+				style := tview.MergeStyle(currentStyle(), theme.URLStyle.Style).Url(url)
 				builder.Write(url, style)
 			}
 		case *ast.Link:
 			if entering {
 				url := string(node.Destination)
 				linkDepth++
-				pushStyle(ui.MergeStyle(currentStyle(), theme.URLStyle.Style).Url(url))
+				pushStyle(tview.MergeStyle(currentStyle(), theme.URLStyle.Style).Url(url))
 			} else {
 				if linkDepth > 0 {
 					linkDepth--
@@ -126,11 +125,11 @@ func (r *Renderer) RenderLines(source []byte, node ast.Node, base tcell.Style) [
 			}
 		case *discordmd.Mention:
 			if entering {
-				builder.Write(mentionText(node), ui.MergeStyle(currentStyle(), theme.MentionStyle.Style))
+				builder.Write(mentionText(node), tview.MergeStyle(currentStyle(), theme.MentionStyle.Style))
 			}
 		case *discordmd.Emoji:
 			if entering {
-				builder.Write(":"+node.Name+":", ui.MergeStyle(currentStyle(), theme.EmojiStyle.Style))
+				builder.Write(":"+node.Name+":", tview.MergeStyle(currentStyle(), theme.EmojiStyle.Style))
 			}
 		}
 		return ast.WalkContinue, nil

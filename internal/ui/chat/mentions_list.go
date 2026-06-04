@@ -6,6 +6,7 @@ import (
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/list"
 	"github.com/gdamore/tcell/v3"
+	"github.com/rivo/uniseg"
 )
 
 type mentionsListItem struct {
@@ -90,7 +91,7 @@ func (m *mentionsList) selectedInsertText() (string, bool) {
 func (m *mentionsList) maxDisplayWidth() int {
 	width := 0
 	for _, item := range m.items {
-		width = max(width, tview.TaggedStringWidth(item.displayText))
+		width = max(width, uniseg.StringWidth(item.displayText))
 	}
 	return width
 }

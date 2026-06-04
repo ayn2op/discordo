@@ -494,7 +494,7 @@ func (ml *messagesList) drawDefaultMessage(builder *tview.LineBuilder, message d
 
 	ml.drawEmbeds(builder, message, baseStyle, contentRoot, contentSource)
 
-	attachmentStyle := ui.MergeStyle(baseStyle, ml.cfg.Theme.MessagesList.AttachmentStyle.Style)
+	attachmentStyle := tview.MergeStyle(baseStyle, ml.cfg.Theme.MessagesList.AttachmentStyle.Style)
 	for _, a := range message.Attachments {
 		builder.NewLine()
 		if ml.cfg.ShowAttachmentLinks {
@@ -527,7 +527,7 @@ func (ml *messagesList) drawEmbeds(builder *tview.LineBuilder, message discord.M
 	lineStyles := embedLineStyles(baseStyle, ml.cfg.Theme.MessagesList.Embeds)
 	defaultBarStyle := baseStyle.Dim(true)
 	prefixText := "  ▎ "
-	prefixWidth := tview.TaggedStringWidth(prefixText)
+	prefixWidth := uniseg.StringWidth(prefixText)
 	_, _, innerWidth, _ := ml.InnerRect()
 	// Wrap against the current list viewport. This keeps embed wrapping stable even when sidebars/panes are resized.
 	wrapWidth := max(innerWidth-prefixWidth, 1)
@@ -674,14 +674,14 @@ const (
 
 func embedLineStyles(baseStyle tcell.Style, theme config.MessagesListEmbedsTheme) [8]tcell.Style {
 	styles := [8]tcell.Style{}
-	styles[embedLineProvider] = ui.MergeStyle(baseStyle, theme.ProviderStyle.Style)
-	styles[embedLineAuthor] = ui.MergeStyle(baseStyle, theme.AuthorStyle.Style)
-	styles[embedLineTitle] = ui.MergeStyle(baseStyle, theme.TitleStyle.Style)
-	styles[embedLineDescription] = ui.MergeStyle(baseStyle, theme.DescriptionStyle.Style)
-	styles[embedLineFieldName] = ui.MergeStyle(baseStyle, theme.FieldNameStyle.Style)
-	styles[embedLineFieldValue] = ui.MergeStyle(baseStyle, theme.FieldValueStyle.Style)
-	styles[embedLineFooter] = ui.MergeStyle(baseStyle, theme.FooterStyle.Style)
-	styles[embedLineURL] = ui.MergeStyle(baseStyle, theme.URLStyle.Style)
+	styles[embedLineProvider] = tview.MergeStyle(baseStyle, theme.ProviderStyle.Style)
+	styles[embedLineAuthor] = tview.MergeStyle(baseStyle, theme.AuthorStyle.Style)
+	styles[embedLineTitle] = tview.MergeStyle(baseStyle, theme.TitleStyle.Style)
+	styles[embedLineDescription] = tview.MergeStyle(baseStyle, theme.DescriptionStyle.Style)
+	styles[embedLineFieldName] = tview.MergeStyle(baseStyle, theme.FieldNameStyle.Style)
+	styles[embedLineFieldValue] = tview.MergeStyle(baseStyle, theme.FieldValueStyle.Style)
+	styles[embedLineFooter] = tview.MergeStyle(baseStyle, theme.FooterStyle.Style)
+	styles[embedLineURL] = tview.MergeStyle(baseStyle, theme.URLStyle.Style)
 	return styles
 }
 

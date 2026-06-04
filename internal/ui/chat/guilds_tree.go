@@ -123,10 +123,10 @@ func (gt *guildsTree) channelNodeStyle(channel discord.Channel) tcell.Style {
 	recipient := channel.DMRecipients[0]
 	presence, err := gt.chat.state.Cabinet.Presence(discord.NullGuildID, recipient.ID)
 	if err != nil {
-		return ui.MergeStyle(gt.dmStatusStyle(discord.OfflineStatus), unread)
+		return tview.MergeStyle(gt.dmStatusStyle(discord.OfflineStatus), unread)
 	}
 
-	return ui.MergeStyle(gt.dmStatusStyle(presence.Status), unread)
+	return tview.MergeStyle(gt.dmStatusStyle(presence.Status), unread)
 }
 
 func (gt *guildsTree) dmStatusStyle(status discord.Status) tcell.Style {
