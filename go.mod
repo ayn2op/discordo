@@ -11,7 +11,7 @@ require (
 	github.com/alecthomas/chroma/v2 v2.26.1
 	github.com/andybalholm/brotli v1.2.1
 	github.com/ayn2op/clipboard v0.0.0-20260308203959-c5ad7df3fc97
-	github.com/ayn2op/tview v0.0.0-20260604231822-b8038457d689
+	github.com/ayn2op/tview v0.0.0-20260605002252-83e7d1653671
 	github.com/deckarep/gosx-notifier v0.0.0-20180201035817-e127226297fb
 	github.com/diamondburned/arikawa/v3 v3.6.1-0.20260518050745-b430932b3ee1
 	github.com/diamondburned/ningen/v3 v3.0.1-0.20260306213430-5a08d3a709b4
@@ -37,7 +37,7 @@ require (
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/danieljoos/wincred v1.2.3 // indirect
 	github.com/dchest/jsmin v1.0.0 // indirect
-	github.com/dlclark/regexp2/v2 v2.1.1 // indirect
+	github.com/dlclark/regexp2/v2 v2.1.2 // indirect
 	github.com/esiqveland/notify v0.13.3 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
