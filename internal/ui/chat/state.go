@@ -172,7 +172,7 @@ func (m *Model) onGuildMembersChunk(event *gateway.GuildMembersChunkEvent) {
 }
 
 func (m *Model) onGuildMemberRemove(event *gateway.GuildMemberRemoveEvent) {
-	m.messageInput.cache.Invalidate(event.GuildID.String()+" "+event.User.Username, m.state.MemberState.SearchLimit)
+	m.composer.cache.Invalidate(event.GuildID.String()+" "+event.User.Username, m.state.MemberState.SearchLimit)
 }
 
 func (m *Model) onTypingStart(event *gateway.TypingStartEvent) {
