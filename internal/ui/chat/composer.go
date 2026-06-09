@@ -419,13 +419,13 @@ func (c *composer) processText(channel *discord.Channel, src []byte) string {
 	return string(src)
 }
 
-func (c *composer) expandMentions(ch *discord.Channel, src []byte) []byte {
+func (c *composer) expandMentions(channel *discord.Channel, src []byte) []byte {
 	state := c.chat.state
 	return mentionRegex.ReplaceAllFunc(src, func(input []byte) []byte {
 		output := input
 		name := string(input[1:])
-		if ch.Type == discord.DirectMessage || ch.Type == discord.GroupDM {
-			for _, user := range ch.DMRecipients {
+		if channel.Type == discord.DirectMessage || channel.Type == discord.GroupDM {
+			for _, user := range channel.DMRecipients {
 				if strings.EqualFold(user.Username, name) {
 					return []byte(user.ID.Mention())
 				}
@@ -437,9 +437,9 @@ func (c *composer) expandMentions(ch *discord.Channel, src []byte) []byte {
 			}
 			return output
 		}
-		state.MemberStore.Each(ch.GuildID, func(m *discord.Member) bool {
+		state.MemberStore.Each(channel.GuildID, func(m *discord.Member) bool {
 			if strings.EqualFold(m.User.Username, name) {
-				if channelHasUser(state, ch.ID, m.User.ID) {
+				if channelHasUser(state, channel.ID, m.User.ID) {
 					output = []byte(m.User.ID.Mention())
 				}
 				return true
