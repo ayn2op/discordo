@@ -94,7 +94,7 @@ type MessagesListKeybinds struct {
 	YankID      Keybind `toml:"yank_id"`
 }
 
-type MessageInputKeybinds struct {
+type ComposerKeybinds struct {
 	Paste       Keybind `toml:"paste"`
 	Send        Keybind `toml:"send"`
 	Newline     Keybind `toml:"newline"`
@@ -118,7 +118,7 @@ type Keybinds struct {
 
 	FocusGuildsTree   Keybind `toml:"focus_guilds_tree"`
 	FocusMessagesList Keybind `toml:"focus_messages_list"`
-	FocusMessageInput Keybind `toml:"focus_message_input"`
+	FocusComposer     Keybind `toml:"focus_composer"`
 
 	FocusPrevious Keybind `toml:"focus_previous"`
 	FocusNext     Keybind `toml:"focus_next"`
@@ -126,7 +126,7 @@ type Keybinds struct {
 	Picker       PickerKeybinds       `toml:"picker"`
 	GuildsTree   GuildsTreeKeybinds   `toml:"guilds_tree"`
 	MessagesList MessagesListKeybinds `toml:"messages_list"`
-	MessageInput MessageInputKeybinds `toml:"message_input"`
+	Composer     ComposerKeybinds     `toml:"composer"`
 	MentionsList MentionsListKeybinds `toml:"mentions_list"`
 
 	Logout Keybind `toml:"logout"`
@@ -195,8 +195,8 @@ func defaultMessagesListKeybinds() MessagesListKeybinds {
 	}
 }
 
-func defaultMessageInputKeybinds() MessageInputKeybinds {
-	return MessageInputKeybinds{
+func defaultComposerKeybinds() ComposerKeybinds {
+	return ComposerKeybinds{
 		Paste:          desc("paste"),
 		Send:           desc("send"),
 		Newline:        desc("nl"),
@@ -228,7 +228,7 @@ func defaultKeybinds() Keybinds {
 
 		FocusGuildsTree:   desc("guilds"),
 		FocusMessagesList: desc("messages"),
-		FocusMessageInput: desc("input"),
+		FocusComposer:     desc("composer"),
 
 		FocusPrevious: desc("focus prev"),
 		FocusNext:     desc("focus next"),
@@ -239,7 +239,7 @@ func defaultKeybinds() Keybinds {
 		Picker:       defaultPickerKeybinds(),
 		GuildsTree:   defaultGuildsTreeKeybinds(),
 		MessagesList: defaultMessagesListKeybinds(),
-		MessageInput: defaultMessageInputKeybinds(),
+		Composer:     defaultComposerKeybinds(),
 		MentionsList: defaultMentionsListKeybinds(),
 	}
 }

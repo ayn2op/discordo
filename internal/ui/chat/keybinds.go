@@ -35,8 +35,8 @@ func (m *Model) activeKeyMap() help.KeyMap {
 		return m.guildsTree
 	case m.messagesList:
 		return m.messagesList
-	case m.messageInput:
-		return m.messageInput
+	case m.composer:
+		return m.composer
 	default:
 		return nil
 	}
@@ -45,8 +45,8 @@ func (m *Model) activeKeyMap() help.KeyMap {
 func (m *Model) baseShortHelp() []keybind.Keybind {
 	cfg := m.cfg.Keybinds
 	short := []keybind.Keybind{cfg.FocusGuildsTree.Keybind, cfg.FocusMessagesList.Keybind}
-	if !m.messageInput.GetDisabled() {
-		short = append(short, cfg.FocusMessageInput.Keybind)
+	if !m.composer.GetDisabled() {
+		short = append(short, cfg.FocusComposer.Keybind)
 	}
 	short = append(short, cfg.ToggleGuildsTree.Keybind, cfg.ToggleChannelsPicker.Keybind)
 	return short
@@ -55,8 +55,8 @@ func (m *Model) baseShortHelp() []keybind.Keybind {
 func (m *Model) baseFullHelp() [][]keybind.Keybind {
 	cfg := m.cfg.Keybinds
 	focus := []keybind.Keybind{cfg.FocusGuildsTree.Keybind, cfg.FocusMessagesList.Keybind}
-	if !m.messageInput.GetDisabled() {
-		focus = append(focus, cfg.FocusMessageInput.Keybind)
+	if !m.composer.GetDisabled() {
+		focus = append(focus, cfg.FocusComposer.Keybind)
 	}
 	return [][]keybind.Keybind{
 		focus,

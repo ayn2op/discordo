@@ -1252,7 +1252,7 @@ func (ml *messagesList) reply(mention bool) tview.Cmd {
 		name = member.Nick
 	}
 
-	data := ml.chat.messageInput.sendMessageData
+	data := ml.chat.composer.sendMessageData
 	data.Reference = &discord.MessageReference{MessageID: selectedMessage.ID}
 	data.AllowedMentions = &api.AllowedMentions{RepliedUser: option.False}
 
@@ -1262,9 +1262,9 @@ func (ml *messagesList) reply(mention bool) tview.Cmd {
 		title = "[@] " + title
 	}
 
-	ml.chat.messageInput.sendMessageData = data
-	ml.chat.messageInput.SetTitle(title + name)
-	return tview.SetFocus(ml.chat.messageInput)
+	ml.chat.composer.sendMessageData = data
+	ml.chat.composer.SetTitle(title + name)
+	return tview.SetFocus(ml.chat.composer)
 }
 
 func (ml *messagesList) editSelectedMessage() tview.Cmd {
@@ -1278,10 +1278,10 @@ func (ml *messagesList) editSelectedMessage() tview.Cmd {
 		return nil
 	}
 
-	ml.chat.messageInput.SetTitle("Editing")
-	ml.chat.messageInput.edit = true
-	ml.chat.messageInput.SetText(selectedMessage.Content, true)
-	return tview.SetFocus(ml.chat.messageInput)
+	ml.chat.composer.SetTitle("Editing")
+	ml.chat.composer.edit = true
+	ml.chat.composer.SetText(selectedMessage.Content, true)
+	return tview.SetFocus(ml.chat.composer)
 }
 
 func (ml *messagesList) confirmDelete() {
