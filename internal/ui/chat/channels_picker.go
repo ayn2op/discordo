@@ -113,13 +113,13 @@ func (cp *channelsPicker) channelItem(guild *discord.Guild, channel discord.Chan
 
 func (cp *channelsPicker) ShortHelp() []keybind.Keybind {
 	cfg := cp.cfg.Keybinds.Picker
-	return []keybind.Keybind{cfg.Up.Keybind, cfg.Down.Keybind, cfg.Select.Keybind, cfg.Cancel.Keybind}
+	return []keybind.Keybind{cfg.SelectUp.Keybind, cfg.SelectDown.Keybind, cfg.Select.Keybind, cfg.Cancel.Keybind}
 }
 
 func (cp *channelsPicker) FullHelp() [][]keybind.Keybind {
 	cfg := cp.cfg.Keybinds.Picker
 	return [][]keybind.Keybind{
-		{cfg.Up.Keybind, cfg.Down.Keybind, cfg.Top.Keybind, cfg.Bottom.Keybind},
+		{cfg.SelectUp.Keybind, cfg.SelectDown.Keybind, cfg.SelectTop.Keybind, cfg.SelectBottom.Keybind},
 		{cfg.Select.Keybind, cfg.Cancel.Keybind},
 	}
 }

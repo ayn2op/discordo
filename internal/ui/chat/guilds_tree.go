@@ -56,10 +56,10 @@ func newGuildsTree(cfg *config.Config, chat *Model) *guildsTree {
 		SetGraphicsColor(tcell.GetColor(cfg.Theme.GuildsTree.GraphicsColor)).
 		SetTitle("Guilds")
 	gt.SetKeybinds(tree.Keybinds{
-		Up:           cfg.Keybinds.GuildsTree.Up.Keybind,
-		Down:         cfg.Keybinds.GuildsTree.Down.Keybind,
-		Top:          cfg.Keybinds.GuildsTree.Top.Keybind,
-		Bottom:       cfg.Keybinds.GuildsTree.Bottom.Keybind,
+		Up:           cfg.Keybinds.GuildsTree.SelectUp.Keybind,
+		Down:         cfg.Keybinds.GuildsTree.SelectDown.Keybind,
+		Top:          cfg.Keybinds.GuildsTree.SelectTop.Keybind,
+		Bottom:       cfg.Keybinds.GuildsTree.SelectBottom.Keybind,
 		MoveToParent: cfg.Keybinds.GuildsTree.MoveToParentNode.Keybind,
 		Select:       cfg.Keybinds.GuildsTree.SelectCurrent.Keybind,
 	})
@@ -450,7 +450,7 @@ func (gt *guildsTree) selectCurrentKeybind() keybind.Keybind {
 
 func (gt *guildsTree) ShortHelp() []keybind.Keybind {
 	cfg := gt.cfg.Keybinds.GuildsTree
-	shortHelp := []keybind.Keybind{cfg.Up.Keybind, cfg.Down.Keybind, gt.selectCurrentKeybind()}
+	shortHelp := []keybind.Keybind{cfg.SelectUp.Keybind, cfg.SelectDown.Keybind, gt.selectCurrentKeybind()}
 	if gt.canCollapseParent(gt.GetCurrentNode()) {
 		shortHelp = append(shortHelp, cfg.CollapseParentNode.Keybind)
 	}
@@ -463,7 +463,7 @@ func (gt *guildsTree) FullHelp() [][]keybind.Keybind {
 	selectGroup = append(selectGroup, gt.collapseKeybinds()...)
 
 	return [][]keybind.Keybind{
-		{cfg.Up.Keybind, cfg.Down.Keybind, cfg.Top.Keybind, cfg.Bottom.Keybind},
+		{cfg.SelectUp.Keybind, cfg.SelectDown.Keybind, cfg.SelectTop.Keybind, cfg.SelectBottom.Keybind},
 		selectGroup,
 		{cfg.YankID.Keybind},
 	}

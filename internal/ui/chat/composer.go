@@ -229,10 +229,10 @@ func (c *composer) Update(msg tview.Msg) tview.Cmd {
 		if c.cfg.AutocompleteLimit > 0 {
 			if c.chat.GetVisible(mentionsListLayerName) {
 				keybinds := c.cfg.Keybinds.MentionsList
-				if keybind.Matches(msg, keybinds.Up.Keybind) ||
-					keybind.Matches(msg, keybinds.Down.Keybind) ||
-					keybind.Matches(msg, keybinds.Top.Keybind) ||
-					keybind.Matches(msg, keybinds.Bottom.Keybind) {
+				if keybind.Matches(msg, keybinds.SelectUp.Keybind) ||
+					keybind.Matches(msg, keybinds.SelectDown.Keybind) ||
+					keybind.Matches(msg, keybinds.SelectTop.Keybind) ||
+					keybind.Matches(msg, keybinds.SelectBottom.Keybind) {
 					return tview.Batch(typingCmd, c.mentionsList.Update(msg))
 				}
 			}
@@ -823,7 +823,7 @@ func (c *composer) ShortHelp() []keybind.Keybind {
 	if c.chat.GetVisible(mentionsListLayerName) {
 		cfg := c.cfg.Keybinds.MentionsList
 		ccfg := c.cfg.Keybinds.Composer
-		short := []keybind.Keybind{cfg.Up.Keybind, cfg.Down.Keybind, ccfg.Cancel.Keybind}
+		short := []keybind.Keybind{cfg.SelectUp.Keybind, cfg.SelectDown.Keybind, ccfg.Cancel.Keybind}
 		if c.canAttachFiles() {
 			short = append(short, ccfg.OpenFilePicker.Keybind)
 		}
@@ -843,7 +843,7 @@ func (c *composer) FullHelp() [][]keybind.Keybind {
 		mcfg := c.cfg.Keybinds.MentionsList
 		ccfg := c.cfg.Keybinds.Composer
 		return [][]keybind.Keybind{
-			{mcfg.Up.Keybind, mcfg.Down.Keybind, mcfg.Top.Keybind, mcfg.Bottom.Keybind},
+			{mcfg.SelectUp.Keybind, mcfg.SelectDown.Keybind, mcfg.SelectTop.Keybind, mcfg.SelectBottom.Keybind},
 			{ccfg.TabComplete.Keybind, ccfg.Cancel.Keybind},
 		}
 	}

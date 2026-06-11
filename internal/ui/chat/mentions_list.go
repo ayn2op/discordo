@@ -26,10 +26,10 @@ func newMentionsList(cfg *config.Config) *mentionsList {
 	}
 	m.SetSelectedStyle(tcell.StyleDefault.Reverse(true))
 	m.SetKeybinds(list.Keybinds{
-		SelectUp:     cfg.Keybinds.MentionsList.Up.Keybind,
-		SelectDown:   cfg.Keybinds.MentionsList.Down.Keybind,
-		SelectTop:    cfg.Keybinds.MentionsList.Top.Keybind,
-		SelectBottom: cfg.Keybinds.MentionsList.Bottom.Keybind,
+		SelectUp:     cfg.Keybinds.MentionsList.SelectUp.Keybind,
+		SelectDown:   cfg.Keybinds.MentionsList.SelectDown.Keybind,
+		SelectTop:    cfg.Keybinds.MentionsList.SelectTop.Keybind,
+		SelectBottom: cfg.Keybinds.MentionsList.SelectBottom.Keybind,
 	})
 
 	m.Box = ui.ConfigureBox(m.Box, &cfg.Theme)

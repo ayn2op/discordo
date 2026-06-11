@@ -32,10 +32,10 @@ func ConfigurePicker(model *picker.Model, cfg *config.Config, title string) {
 	model.SetKeybinds(picker.Keybinds{
 		Cancel: cfg.Keybinds.Picker.Cancel.Keybind,
 		Keybinds: list.Keybinds{
-			SelectUp:     cfg.Keybinds.Picker.Up.Keybind,
-			SelectDown:   cfg.Keybinds.Picker.Down.Keybind,
-			SelectTop:    cfg.Keybinds.Picker.Top.Keybind,
-			SelectBottom: cfg.Keybinds.Picker.Bottom.Keybind,
+			SelectUp:     cfg.Keybinds.Picker.SelectUp.Keybind,
+			SelectDown:   cfg.Keybinds.Picker.SelectDown.Keybind,
+			SelectTop:    cfg.Keybinds.Picker.SelectTop.Keybind,
+			SelectBottom: cfg.Keybinds.Picker.SelectBottom.Keybind,
 		},
 		Select: cfg.Keybinds.Picker.Select.Keybind,
 	})
