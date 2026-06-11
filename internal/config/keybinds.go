@@ -38,13 +38,6 @@ func desc(s string) Keybind {
 	}
 }
 
-type NavigationKeybinds struct {
-	Up     Keybind `toml:"up"`
-	Down   Keybind `toml:"down"`
-	Top    Keybind `toml:"top"`
-	Bottom Keybind `toml:"bottom"`
-}
-
 type ScrollKeybinds struct {
 	ScrollUp     Keybind `toml:"scroll_up"`
 	ScrollDown   Keybind `toml:"scroll_down"`
@@ -60,13 +53,13 @@ type SelectionKeybinds struct {
 }
 
 type PickerKeybinds struct {
-	NavigationKeybinds
+	SelectionKeybinds
 	Select Keybind `toml:"select"`
 	Cancel Keybind `toml:"cancel"`
 }
 
 type GuildsTreeKeybinds struct {
-	NavigationKeybinds
+	SelectionKeybinds
 	SelectCurrent Keybind `toml:"select_current"`
 	YankID        Keybind `toml:"yank_id"`
 
@@ -107,7 +100,7 @@ type ComposerKeybinds struct {
 }
 
 type MentionsListKeybinds struct {
-	NavigationKeybinds
+	SelectionKeybinds
 }
 
 type Keybinds struct {
@@ -133,33 +126,28 @@ type Keybinds struct {
 	Quit   Keybind `toml:"quit"`
 }
 
-func defaultPickerKeybinds() PickerKeybinds {
-	return PickerKeybinds{
-		NavigationKeybinds: NavigationKeybinds{
-			Up:     desc("up"),
-			Down:   desc("down"),
-			Top:    desc("top"),
-			Bottom: desc("btm"),
-		},
-		Cancel: desc("cancel"),
-		Select: desc("sel"),
+func defaultSelectionKeybinds() SelectionKeybinds {
+	return SelectionKeybinds{
+		SelectUp:     desc("up"),
+		SelectDown:   desc("down"),
+		SelectTop:    desc("top"),
+		SelectBottom: desc("btm"),
 	}
 }
 
-func defaultNavigationKeybinds() NavigationKeybinds {
-	return NavigationKeybinds{
-		Up:     desc("up"),
-		Down:   desc("down"),
-		Top:    desc("top"),
-		Bottom: desc("btm"),
+func defaultPickerKeybinds() PickerKeybinds {
+	return PickerKeybinds{
+		SelectionKeybinds: defaultSelectionKeybinds(),
+		Cancel:            desc("cancel"),
+		Select:            desc("sel"),
 	}
 }
 
 func defaultGuildsTreeKeybinds() GuildsTreeKeybinds {
 	return GuildsTreeKeybinds{
-		NavigationKeybinds: defaultNavigationKeybinds(),
-		SelectCurrent:      desc("select"),
-		YankID:             desc("copy id"),
+		SelectionKeybinds: defaultSelectionKeybinds(),
+		SelectCurrent:     desc("select"),
+		YankID:            desc("copy id"),
 
 		CollapseAll:        desc("collapse all"),
 		CollapseParentNode: desc("collapse parent"),
@@ -169,12 +157,7 @@ func defaultGuildsTreeKeybinds() GuildsTreeKeybinds {
 
 func defaultMessagesListKeybinds() MessagesListKeybinds {
 	return MessagesListKeybinds{
-		SelectionKeybinds: SelectionKeybinds{
-			SelectUp:     desc("up"),
-			SelectDown:   desc("down"),
-			SelectTop:    desc("top"),
-			SelectBottom: desc("btm"),
-		},
+		SelectionKeybinds: defaultSelectionKeybinds(),
 		ScrollKeybinds: ScrollKeybinds{
 			ScrollUp:     desc("scr up"),
 			ScrollDown:   desc("scr down"),
@@ -210,12 +193,7 @@ func defaultComposerKeybinds() ComposerKeybinds {
 
 func defaultMentionsListKeybinds() MentionsListKeybinds {
 	return MentionsListKeybinds{
-		NavigationKeybinds: NavigationKeybinds{
-			Up:     desc("up"),
-			Down:   desc("down"),
-			Top:    desc("top"),
-			Bottom: desc("btm"),
-		},
+		SelectionKeybinds: defaultSelectionKeybinds(),
 	}
 }
 

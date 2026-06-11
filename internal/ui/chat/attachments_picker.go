@@ -67,13 +67,13 @@ func (ap *attachmentsPicker) Update(msg tview.Msg) tview.Cmd {
 
 func (ap *attachmentsPicker) ShortHelp() []keybind.Keybind {
 	cfg := ap.cfg.Keybinds.Picker
-	return []keybind.Keybind{cfg.Up.Keybind, cfg.Down.Keybind, cfg.Select.Keybind, cfg.Cancel.Keybind}
+	return []keybind.Keybind{cfg.SelectUp.Keybind, cfg.SelectDown.Keybind, cfg.Select.Keybind, cfg.Cancel.Keybind}
 }
 
 func (ap *attachmentsPicker) FullHelp() [][]keybind.Keybind {
 	cfg := ap.cfg.Keybinds.Picker
 	return [][]keybind.Keybind{
-		{cfg.Up.Keybind, cfg.Down.Keybind, cfg.Top.Keybind, cfg.Bottom.Keybind},
+		{cfg.SelectUp.Keybind, cfg.SelectDown.Keybind, cfg.SelectTop.Keybind, cfg.SelectBottom.Keybind},
 		{cfg.Select.Keybind, cfg.Cancel.Keybind},
 	}
 }

@@ -115,18 +115,18 @@ quit = "ctrl+c"
 
 [keybinds.picker]
 cancel = "esc"
-up = "ctrl+p"
-down = "ctrl+n"
-top = "home"
-bottom = "end"
+select_up = "ctrl+p"
+select_down = "ctrl+n"
+select_top = "home"
+select_bottom = "end"
 select = "enter"
 
 # Only while focusing on the guilds tree
 [keybinds.guilds_tree]
-up = "k"
-down = "j"
-top = "g"
-bottom = "G"
+select_up = "k"
+select_down = "j"
+select_top = "g"
+select_bottom = "G"
 # Select the currently highlighted text-based channel or expand a guild or channel.
 select_current = "enter"
 yank_id = "i"
@@ -180,10 +180,10 @@ open_editor = "ctrl+e"
 open_file_picker = "ctrl+\\"
 
 [keybinds.mentions_list]
-up = "ctrl+p"
-down = "ctrl+n"
-top = "home"
-bottom = "end"
+select_up = "ctrl+p"
+select_down = "ctrl+n"
+select_top = "home"
+select_bottom = "end"
 
 # style = { foreground = "", background = "", attributes = "" or ["",""],  underline = "", underline_color = "" }
 [theme.title]
