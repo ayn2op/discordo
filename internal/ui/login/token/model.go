@@ -11,7 +11,7 @@ type Model struct {
 
 func NewModel() *Model {
 	form := tview.NewForm().
-		AddPasswordField("Token", "", 0, 0, nil).
+		AddPasswordField("Token", "", 0, 0).
 		AddButton("Login")
 	return &Model{Form: form}
 }
@@ -25,7 +25,7 @@ func (m *Model) Label() string {
 func (m *Model) Update(msg tview.Msg) tview.Cmd {
 	switch msg.(type) {
 	case tview.FormSubmitMsg:
-		token := m.GetFormItem(0).(*tview.InputField).GetText()
+		token := m.GetFormItem(0).(*tview.InputField).Text()
 		if token == "" {
 			return nil
 		}

@@ -113,9 +113,9 @@ func (c *composer) resizeForContent() {
 	_, _, _, parentH := c.chat.rightFlex.InnerRect()
 
 	visible := min(
-		strings.Count(c.GetText(), "\n")+1, // newline-driven height
-		max(c.cfg.Composer.MaxHeight, 1),   // user-configured cap
-		max(parentH-frame-1, 1),            // available room, reserving 1 row for messages
+		strings.Count(c.Text(), "\n")+1,  // newline-driven height
+		max(c.cfg.Composer.MaxHeight, 1), // user-configured cap
+		max(parentH-frame-1, 1),          // available room, reserving 1 row for messages
 	)
 	c.chat.rightFlex.ResizeItem(c, visible+frame, 1) // outer height = inner content + frame
 
@@ -338,7 +338,7 @@ func (c *composer) send() tview.Cmd {
 		return nil
 	}
 
-	text := strings.TrimSpace(c.GetText())
+	text := strings.TrimSpace(c.Text())
 	if text == "" && len(c.sendMessageData.Files) == 0 {
 		return nil
 	}
@@ -771,7 +771,7 @@ func (c *composer) editor() {
 	defer file.Close()
 	defer os.Remove(file.Name())
 
-	file.WriteString(c.GetText())
+	file.WriteString(c.Text())
 
 	if c.cfg.Editor == "" {
 		slog.Warn("Attempt to open file with editor, but no editor is set")
