@@ -138,8 +138,8 @@ func (m *Model) buildLayout() {
 		AddItem(m.composer, 3, 1, false)
 	// The guilds tree is always focused first at start-up.
 	m.mainFlex.
-		AddItem(m.guildsTree, 0, m.cfg.Sidebar.Width, true).
-		AddItem(m.rightFlex, 0, 100-m.cfg.Sidebar.Width, false)
+		AddItem(m.guildsTree, 0, m.cfg.Sidebar.WidthPercent, true).
+		AddItem(m.rightFlex, 0, 100-m.cfg.Sidebar.WidthPercent, false)
 
 	m.AddLayer(m.mainFlex, layers.WithName(flexLayerName), layers.WithResize(true), layers.WithVisible(true))
 	m.AddLayer(
