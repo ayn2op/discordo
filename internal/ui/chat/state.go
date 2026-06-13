@@ -40,7 +40,7 @@ func (m *Model) onReady(event *gateway.ReadyEvent) tview.Cmd {
 	m.guildsTree.dmRootNode = dmNode
 
 	root := m.guildsTree.
-		GetRoot().
+		Root().
 		ClearChildren().
 		AddChild(dmNode)
 

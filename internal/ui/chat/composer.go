@@ -124,7 +124,7 @@ func (c *composer) resizeForContent() {
 
 	// Clamp scroll: when content overflows, pin the bottom row to the end of the text so backspacing the last newline doesn't leave a blank trailing row; once everything fits, reset to (0,0).
 	total := c.LineCount(0)
-	row, col := c.GetOffset()
+	row, col := c.Offset()
 	maxOff := max(total-visible, 0) // last valid rowOffset that still shows real content on the bottom row
 	if row > maxOff {
 		c.SetOffset(maxOff, col)

@@ -45,7 +45,7 @@ func (m *Model) activeKeyMap() help.KeyMap {
 func (m *Model) baseShortHelp() []keybind.Keybind {
 	cfg := m.cfg.Keybinds
 	short := []keybind.Keybind{cfg.FocusGuildsTree.Keybind, cfg.FocusMessagesList.Keybind}
-	if !m.composer.GetDisabled() {
+	if !m.composer.Disabled() {
 		short = append(short, cfg.FocusComposer.Keybind)
 	}
 	short = append(short, cfg.ToggleGuildsTree.Keybind, cfg.ToggleChannelsPicker.Keybind)
@@ -55,7 +55,7 @@ func (m *Model) baseShortHelp() []keybind.Keybind {
 func (m *Model) baseFullHelp() [][]keybind.Keybind {
 	cfg := m.cfg.Keybinds
 	focus := []keybind.Keybind{cfg.FocusGuildsTree.Keybind, cfg.FocusMessagesList.Keybind}
-	if !m.composer.GetDisabled() {
+	if !m.composer.Disabled() {
 		focus = append(focus, cfg.FocusComposer.Keybind)
 	}
 	return [][]keybind.Keybind{
