@@ -96,6 +96,8 @@ type (
 	}
 
 	SidebarConfig struct {
+		// Width is the fixed width (in columns) of the guillds tree sidebar.
+		Width int `toml:"width"`
 		Markers SidebarMarkersConfig `toml:"markers"`
 		Indents SidebarIndentsConfig `toml:"indents"`
 	}
@@ -180,6 +182,14 @@ func applyDefaults(cfg *Config) {
 
 	if cfg.Composer.MaxHeight <= 0 {
 		cfg.Composer.MaxHeight = 10
+	}
+
+	if cfg.Sidebar.Width <= 0 || cfg.Sidebar.Width >= 100 {
+		// these guidelines are simply to guarantee functionality;
+		// there's no guarantee that there's functional utility in
+		// setting an extremely low width, but that's for the
+		// user to decide.
+		cfg.Sidebar.Width = 20
 	}
 
 	if cfg.DateSeparator.Format == "" {

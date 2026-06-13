@@ -68,6 +68,11 @@ send = true
 # Whether to receive typing status or not.
 receive = true
 
+[sidebar]
+# The relative width of the guilds tree sidebar
+# The default proportion is 20%
+width = 20
+
 [sidebar.markers]
 expanded = "▾ "
 collapsed = "▸ "
