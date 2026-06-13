@@ -96,8 +96,8 @@ type (
 	}
 
 	SidebarConfig struct {
-		// Width is the fixed width (in columns) of the guillds tree sidebar.
-		Width int `toml:"width"`
+		// Width is the ratio (%) of the guilds tree sidebar.
+		Width   int                  `toml:"width"`
 		Markers SidebarMarkersConfig `toml:"markers"`
 		Indents SidebarIndentsConfig `toml:"indents"`
 	}
