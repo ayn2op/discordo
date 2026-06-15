@@ -9,6 +9,8 @@ import (
 	"github.com/google/uuid"
 )
 
+//go:generate go run generator.go
+
 const (
 	OS        = "Windows"
 	OSVersion = "10"
@@ -17,8 +19,7 @@ const (
 	BrowserVersion   = "143.0.0.0"
 	BrowserUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " + Browser + "/" + BrowserVersion + " Safari/537.36"
 
-	ClientBuildNumber = 482285
-	Locale            = discord.EnglishUS
+	Locale = discord.EnglishUS
 )
 
 func IdentifyProperties() gateway.IdentifyProperties {

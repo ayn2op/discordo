@@ -3,6 +3,8 @@ package http
 import (
 	"log/slog"
 	stdHttp "net/http"
+
+	"github.com/diamondburned/arikawa/v3/api"
 )
 
 func Headers() stdHttp.Header {
@@ -11,9 +13,10 @@ func Headers() stdHttp.Header {
 	headers.Set("Accept", "*/*")
 	headers.Set("Accept-Encoding", "gzip, deflate, br, zstd")
 	headers.Set("Accept-Language", "en-US,en;q=0.9")
-	headers.Set("Origin", "https://discord.com")
+	headers.Set("Origin", api.BaseEndpoint)
 	headers.Set("Priority", "u=0, i")
 	headers.Set("Referer", "https://discord.com/channels/@me")
+
 	headers.Set("Sec-Fetch-Dest", "empty")
 	headers.Set("Sec-Fetch-Mode", "cors")
 	headers.Set("Sec-Fetch-Site", "same-origin")
