@@ -96,8 +96,11 @@ type (
 	}
 
 	SidebarConfig struct {
-		Markers SidebarMarkersConfig `toml:"markers"`
-		Indents SidebarIndentsConfig `toml:"indents"`
+		// WidthPercent is the percentage (%) of the total
+		// window width that the guilds tree sidebar occupies
+		WidthPercent   int                  `toml:"width_percent"`
+		Markers        SidebarMarkersConfig `toml:"markers"`
+		Indents        SidebarIndentsConfig `toml:"indents"`
 	}
 
 	Config struct {
@@ -180,6 +183,14 @@ func applyDefaults(cfg *Config) {
 
 	if cfg.Composer.MaxHeight <= 0 {
 		cfg.Composer.MaxHeight = 10
+	}
+
+	if cfg.Sidebar.WidthPercent <= 0 || cfg.Sidebar.WidthPercent >= 100 {
+		// these guidelines are simply to guarantee functionality;
+		// there's no guarantee that there's functional utility in
+		// setting an extremely low width, but that's for the
+		// user to decide.
+		cfg.Sidebar.WidthPercent = 20
 	}
 
 	if cfg.DateSeparator.Format == "" {

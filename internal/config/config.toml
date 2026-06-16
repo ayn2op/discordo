@@ -68,6 +68,11 @@ send = true
 # Whether to receive typing status or not.
 receive = true
 
+[sidebar]
+# Percentage (%) of the available width used by the guilds tree sidebar.
+# Valid values are 1-99. Invalid values fall back to 20.
+width_percent = 20
+
 [sidebar.markers]
 expanded = "▾ "
 collapsed = "▸ "
