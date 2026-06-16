@@ -16,7 +16,7 @@ func Headers() stdHttp.Header {
 	headers.Set("Accept-Encoding", "gzip, deflate, br, zstd")
 	headers.Set("Accept-Language", "en-US,en;q=0.9")
 	headers.Set("Origin", api.BaseEndpoint)
-	headers.Set("Priority", "u=0, i")
+	headers.Set("Priority", "u=1, i")
 	headers.Set("Referer", "https://discord.com/channels/@me")
 
 	headers.Set("Sec-Fetch-Dest", "empty")
