@@ -92,6 +92,7 @@ func NewModel(app *tview.Application, cfg *config.Config, token string) *Model {
 
 	id := gateway.DefaultIdentifier(token)
 	id.Compress = false
+	id.LargeThreshold = 0
 
 	session := session.NewCustom(id, http.NewClient(token), handler.New())
 	state := state.NewFromSession(session, defaultstore.New())
