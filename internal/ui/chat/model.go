@@ -84,15 +84,10 @@ func NewModel(app *tview.Application, cfg *config.Config, token string) *Model {
 	m.composer = newComposer(cfg, m)
 	m.channelsPicker = newChannelsPicker(cfg, m)
 
-	identifyProps := http.IdentifyProperties()
-	gateway.DefaultIdentity = identifyProps
-	gateway.DefaultPresence = &gateway.UpdatePresenceCommand{
-		Status: m.cfg.Status,
-	}
-
-	id := gateway.DefaultIdentifier(token)
-	id.Compress = false
-	id.LargeThreshold = 0
+	id := gateway.NewIdentifier(gateway.IdentifyCommand{
+		Token:      token,
+		Properties: http.IdentifyProperties(),
+	})
 
 	session := session.NewCustom(id, http.NewClient(token), handler.New())
 	state := state.NewFromSession(session, defaultstore.New())

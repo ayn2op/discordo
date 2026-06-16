@@ -96,11 +96,10 @@ type (
 	}
 
 	SidebarConfig struct {
-		// WidthPercent is the percentage (%) of the total
-		// window width that the guilds tree sidebar occupies
-		WidthPercent   int                  `toml:"width_percent"`
-		Markers        SidebarMarkersConfig `toml:"markers"`
-		Indents        SidebarIndentsConfig `toml:"indents"`
+		// WidthPercent is the percentage of the total window width that the guilds tree (sidebar) occupies.
+		WidthPercent int                  `toml:"width_percent"`
+		Markers      SidebarMarkersConfig `toml:"markers"`
+		Indents      SidebarIndentsConfig `toml:"indents"`
 	}
 
 	Config struct {
