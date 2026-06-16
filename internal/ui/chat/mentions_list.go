@@ -35,7 +35,7 @@ func newMentionsList(cfg *config.Config) *mentionsList {
 	m.Box = ui.ConfigureBox(m.Box, &cfg.Theme)
 	m.SetSnapToItems(true).SetTitle("Mentions")
 
-	b := m.GetBorderSet()
+	b := m.BorderSet()
 	b.BottomLeft, b.BottomRight = b.BottomT, b.BottomT
 	m.SetBorderSet(b)
 

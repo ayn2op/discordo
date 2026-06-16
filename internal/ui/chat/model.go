@@ -198,7 +198,7 @@ func (m *Model) focusGuildsTree() tview.Cmd {
 }
 
 func (m *Model) focusComposer() tview.Cmd {
-	if !m.composer.GetDisabled() {
+	if !m.composer.Disabled() {
 		return tview.SetFocus(m.composer)
 	}
 	return nil
@@ -285,11 +285,11 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		}
 		return m.listen()
 	case channelLoadedMsg:
-		node := m.guildsTree.GetCurrentNode()
+		node := m.guildsTree.CurrentNode()
 		if node == nil {
 			return nil
 		}
-		channelID, ok := node.GetReference().(discord.ChannelID)
+		channelID, ok := node.Reference().(discord.ChannelID)
 		if !ok || channelID != msg.Channel.ID {
 			return nil
 		}
