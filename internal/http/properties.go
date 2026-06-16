@@ -1,9 +1,6 @@
 package http
 
 import (
-	"encoding/base64"
-	"encoding/json"
-
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/google/uuid"
@@ -22,7 +19,7 @@ const (
 	Locale = discord.EnglishUS
 )
 
-func IdentifyProperties() gateway.IdentifyProperties {
+func CommonProperties() gateway.IdentifyProperties {
 	return gateway.IdentifyProperties{
 		gateway.IdentifyDevice: "",
 
@@ -33,39 +30,33 @@ func IdentifyProperties() gateway.IdentifyProperties {
 		"browser_version":       BrowserVersion,
 		"browser_user_agent":    BrowserUserAgent,
 
-		"client_build_number":         ClientBuildNumber,
-		"client_event_source":         nil,
-		"client_app_state":            "focused",
-		"client_launch_id":            uuid.NewString(),
-		"client_heartbeat_session_id": uuid.NewString(),
+		"client_build_number": ClientBuildNumber,
+		"client_event_source": nil,
+		"client_launch_id":    uuid.NewString(),
 
-		"launch_signature": generateLaunchSignature(),
-		"system_locale":    Locale,
-		"release_channel":  "stable",
-		"has_client_mods":  false,
+		"system_locale":   Locale,
+		"release_channel": "stable",
+		"has_client_mods": false,
 
 		"referrer":                 "",
 		"referrer_current":         "",
 		"referring_domain":         "",
 		"referring_domain_current": "",
-
-		// These properties are only sent when identifying with the gateway and are not included in the X-Super-Properties header.
-		"is_fast_connect":         false,
-		"gateway_connect_reasons": "AppSkeleton",
 	}
 }
 
-func getSuperProps() (string, error) {
-	props := IdentifyProperties()
-	delete(props, "is_fast_connect")
-	delete(props, "gateway_connect_reasons")
+func IdentifyProperties() gateway.IdentifyProperties {
+	props := CommonProperties()
+	props["is_fast_connect"] = true
+	return props
+}
 
-	raw, err := json.Marshal(props)
-	if err != nil {
-		return "", err
-	}
-
-	return base64.StdEncoding.EncodeToString(raw), nil
+func XSuperProperties() gateway.IdentifyProperties {
+	props := CommonProperties()
+	props["client_app_state"] = "focused"
+	props["client_heartbeat_session_id"] = uuid.NewString()
+	props["launch_signature"] = generateLaunchSignature()
+	return props
 }
 
 func generateLaunchSignature() string {

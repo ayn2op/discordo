@@ -1,6 +1,8 @@
 package http
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"log/slog"
 	stdHttp "net/http"
 
@@ -24,11 +26,11 @@ func Headers() stdHttp.Header {
 	headers.Set("X-Debug-Options", "bugReporterEnabled")
 	headers.Set("X-Discord-Locale", string(Locale))
 
-	superProps, err := getSuperProps()
+	superProps, err := json.Marshal(XSuperProperties())
 	if err != nil {
-		slog.Error("failed to get super props", "err", err)
+		slog.Error("failed to marshal super props", "err", err)
 	} else {
-		headers.Set("X-Super-Properties", superProps)
+		headers.Set("X-Super-Properties", base64.StdEncoding.EncodeToString(superProps))
 	}
 
 	return headers
