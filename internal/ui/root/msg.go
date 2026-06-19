@@ -3,9 +3,9 @@ package root
 import (
 	"log/slog"
 
-	"github.com/ayn2op/discordo/internal/clipboard"
 	"github.com/ayn2op/discordo/internal/keyring"
 	"github.com/ayn2op/tview"
+	"golang.design/x/clipboard"
 )
 
 type tokenMsg string

@@ -14,7 +14,6 @@ import (
 	"unicode"
 
 	"github.com/ayn2op/discordo/internal/cache"
-	"github.com/ayn2op/discordo/internal/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/ui"
@@ -32,6 +31,7 @@ import (
 	"github.com/ncruces/zenity"
 	"github.com/sahilm/fuzzy"
 	"github.com/yuin/goldmark/ast"
+	"golang.design/x/clipboard"
 )
 
 const (
@@ -80,12 +80,7 @@ func newComposer(cfg *config.Config, chat *Model) *composer {
 				}
 			},
 			func() string {
-				data, err := clipboard.Read(clipboard.FmtText)
-				if err != nil {
-					slog.Error("failed to read clipboard text", "err", err)
-					return ""
-				}
-				return string(data)
+				return string(clipboard.Read(clipboard.FmtText))
 			},
 		).
 		SetDisabled(true)
@@ -249,11 +244,7 @@ type imagePastedMsg []byte
 
 func (c *composer) pasteImage() tview.Cmd {
 	return func() tview.Msg {
-		data, err := clipboard.Read(clipboard.FmtImage)
-		if err != nil {
-			slog.Error("failed to read clipboard image", "err", err)
-			return nil
-		}
+		data := clipboard.Read(clipboard.FmtImage)
 		return imagePastedMsg(data)
 	}
 }

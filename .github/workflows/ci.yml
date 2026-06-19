@@ -26,10 +26,6 @@ jobs:
         with:
           go-version: stable
 
-      - name: Install libx11-dev for clipboard support
-        if: runner.os == 'Linux'
-        run: sudo apt install libx11-dev
-
       - name: Test
         run: go test -v ./...
 

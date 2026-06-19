@@ -33,10 +33,6 @@ cd discordo
 go build .
 ```
 
-### Wayland clipboard support
-
-`wl-clipboard` is required for clipboard support.
-
 ## Usage
 
 ### Token (UI, recommended)

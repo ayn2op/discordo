@@ -16,7 +16,6 @@ import (
 
 	"github.com/ayn2op/tview/layers"
 
-	"github.com/ayn2op/discordo/internal/clipboard"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/markdown"
@@ -38,6 +37,7 @@ import (
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/text"
+	"golang.design/x/clipboard"
 )
 
 type messagesList struct {
