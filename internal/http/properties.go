@@ -1,8 +1,8 @@
 package http
 
 import (
-	"github.com/diamondburned/arikawa/v3/discord"
-	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/ayn2op/arikawa/v3/discord"
+	"github.com/ayn2op/arikawa/v3/gateway"
 	"github.com/google/uuid"
 )
 

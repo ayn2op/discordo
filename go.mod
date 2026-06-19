@@ -4,17 +4,15 @@ go 1.26.0
 
 // replace github.com/ayn2op/tview => ../tview
 
-// replace github.com/diamondburned/arikawa/v3 => ../arikawa
-
 require (
 	github.com/BurntSushi/toml v1.6.0
-	github.com/alecthomas/chroma/v2 v2.26.1
+	github.com/alecthomas/chroma/v2 v2.27.0
 	github.com/andybalholm/brotli v1.2.1
+	github.com/ayn2op/arikawa/v3 v3.0.0-20260619211231-9a7da0c518de
+	github.com/ayn2op/ningen/v3 v3.0.1-0.20260619214224-6a89f2062a83
 	github.com/ayn2op/tview v0.0.0-20260613222404-bc6acaaf92ef
 	github.com/deckarep/gosx-notifier v0.0.0-20180201035817-e127226297fb
-	github.com/diamondburned/arikawa/v3 v3.6.1-0.20260518050745-b430932b3ee1
-	github.com/diamondburned/ningen/v3 v3.0.1-0.20260306213430-5a08d3a709b4
-	github.com/gdamore/tcell/v3 v3.4.1-0.20260609012553-a1597cf05c72
+	github.com/gdamore/tcell/v3 v3.4.1-0.20260615224921-944dbd8c2c4f
 	github.com/gen2brain/beeep v0.11.2
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0
@@ -37,7 +35,7 @@ require (
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/danieljoos/wincred v1.2.3 // indirect
 	github.com/dchest/jsmin v1.0.0 // indirect
-	github.com/dlclark/regexp2/v2 v2.2.1 // indirect
+	github.com/dlclark/regexp2/v2 v2.2.2 // indirect
 	github.com/ebitengine/purego v0.10.1 // indirect
 	github.com/esiqveland/notify v0.13.3 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
@@ -57,7 +55,7 @@ require (
 	go4.org v0.0.0-20260112195520-a5071408f32f // indirect
 	golang.design/x/x11 v0.2.0 // indirect
 	golang.org/x/exp/shiny v0.0.0-20260611194520-c48552f49976 // indirect
-	golang.org/x/image v0.42.0 // indirect
+	golang.org/x/image v0.43.0 // indirect
 	golang.org/x/mobile v0.0.0-20260611195102-4dd8f1dbf5d2 // indirect
 	golang.org/x/sys v0.46.0 // indirect
 	golang.org/x/term v0.44.0 // indirect

@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	stdHttp "net/http"
 
-	"github.com/diamondburned/arikawa/v3/api"
+	"github.com/ayn2op/arikawa/v3/api"
 )
 
 func Headers() stdHttp.Header {

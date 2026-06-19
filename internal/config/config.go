@@ -9,8 +9,8 @@ import (
 	"unicode/utf8"
 
 	"github.com/BurntSushi/toml"
+	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/discordo/internal/consts"
-	"github.com/diamondburned/arikawa/v3/discord"
 )
 
 const fileName = "config.toml"

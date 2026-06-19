@@ -4,13 +4,13 @@ import (
 	"log/slog"
 	"strings"
 
+	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/help"
 	"github.com/ayn2op/tview/keybind"
 	"github.com/ayn2op/tview/picker"
-	"github.com/diamondburned/arikawa/v3/discord"
 )
 
 type channelsPicker struct {

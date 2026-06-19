@@ -5,10 +5,10 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
-	"github.com/diamondburned/arikawa/v3/discord"
-	"github.com/diamondburned/ningen/v3"
 )
 
 // ConfigureBox configures the provided box according to the provided theme.

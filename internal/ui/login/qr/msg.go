@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ayn2op/arikawa/v3/utils/httputil"
 	"github.com/ayn2op/discordo/internal/http"
 	"github.com/ayn2op/tview"
-	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/gorilla/websocket"
 	"github.com/skip2/go-qrcode"
 )

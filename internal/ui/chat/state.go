@@ -4,15 +4,15 @@ import (
 	"log/slog"
 	"slices"
 
+	"github.com/ayn2op/arikawa/v3/discord"
+	"github.com/ayn2op/arikawa/v3/gateway"
+	"github.com/ayn2op/arikawa/v3/utils/httputil/httpdriver"
+	"github.com/ayn2op/arikawa/v3/utils/ws"
 	"github.com/ayn2op/discordo/internal/notifications"
+	"github.com/ayn2op/ningen/v3"
+	"github.com/ayn2op/ningen/v3/states/read"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/tree"
-	"github.com/diamondburned/arikawa/v3/discord"
-	"github.com/diamondburned/arikawa/v3/gateway"
-	"github.com/diamondburned/arikawa/v3/utils/httputil/httpdriver"
-	"github.com/diamondburned/arikawa/v3/utils/ws"
-	"github.com/diamondburned/ningen/v3"
-	"github.com/diamondburned/ningen/v3/states/read"
 )
 
 func (m *Model) onRequest(r httpdriver.Request) error {

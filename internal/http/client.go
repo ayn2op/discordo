@@ -3,9 +3,9 @@ package http
 import (
 	"net/http"
 
-	"github.com/diamondburned/arikawa/v3/api"
-	"github.com/diamondburned/arikawa/v3/utils/httputil"
-	"github.com/diamondburned/arikawa/v3/utils/httputil/httpdriver"
+	"github.com/ayn2op/arikawa/v3/api"
+	"github.com/ayn2op/arikawa/v3/utils/httputil"
+	"github.com/ayn2op/arikawa/v3/utils/httputil/httpdriver"
 )
 
 func NewClient(token string) *api.Client {
