@@ -12,7 +12,7 @@ require (
 	github.com/ayn2op/ningen/v3 v3.0.1-0.20260619214224-6a89f2062a83
 	github.com/ayn2op/tview v0.0.0-20260613222404-bc6acaaf92ef
 	github.com/deckarep/gosx-notifier v0.0.0-20180201035817-e127226297fb
-	github.com/gdamore/tcell/v3 v3.4.1-0.20260615224921-944dbd8c2c4f
+	github.com/gdamore/tcell/v3 v3.4.1-0.20260622222730-9143438d7830
 	github.com/gen2brain/beeep v0.11.2
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0
@@ -37,7 +37,7 @@ require (
 	github.com/dchest/jsmin v1.0.0 // indirect
 	github.com/dlclark/regexp2/v2 v2.2.2 // indirect
 	github.com/ebitengine/purego v0.10.1 // indirect
-	github.com/esiqveland/notify v0.13.3 // indirect
+	github.com/esiqveland/notify v0.14.0 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/godbus/dbus/v5 v5.2.2 // indirect
