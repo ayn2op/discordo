@@ -16,8 +16,8 @@ github.com/ayn2op/arikawa/v3 v3.0.0-20260619211231-9a7da0c518de h1:j5qhTMT9t09g7
 github.com/ayn2op/arikawa/v3 v3.0.0-20260619211231-9a7da0c518de/go.mod h1:96vOKCn1rSdu7xJrCrKdwYzlgDZ5NmV9cMtPAeGHlGM=
 github.com/ayn2op/ningen/v3 v3.0.1-0.20260619214224-6a89f2062a83 h1:Dqap/VgsdiL0CNSBd+H845ZG5y2K3SJ8ji3F5oMTYIE=
 github.com/ayn2op/ningen/v3 v3.0.1-0.20260619214224-6a89f2062a83/go.mod h1:uMv/8i6wn0p4paqT2Tf1S4nn5dCoNIs4w1UWvODwvf0=
-github.com/ayn2op/tview v0.0.0-20260613222404-bc6acaaf92ef h1:25kloMP4wqA8h5MQBRrPQ9/8O8OzNn0y2fr9gIudFS0=
-github.com/ayn2op/tview v0.0.0-20260613222404-bc6acaaf92ef/go.mod h1:CaEiemJYKtmWqR0khyMI3HzVIia6B61jOPcLeZ7y4xk=
+github.com/ayn2op/tview v0.0.0-20260629024449-7e4be8158020 h1:YwwkisfiH/xYFSMUIeKr2eitwBVWWDAOp2jO9YmZ6i8=
+github.com/ayn2op/tview v0.0.0-20260629024449-7e4be8158020/go.mod h1:1yInEvjT85k/Ac1TNxRUm1UTwiqHT094M0030GAooJk=
 github.com/clipperhouse/displaywidth v0.11.0 h1:lBc6kY44VFw+TDx4I8opi/EtL9m20WSEFgwIwO+UVM8=
 github.com/clipperhouse/displaywidth v0.11.0/go.mod h1:bkrFNkf81G8HyVqmKGxsPufD3JhNl3dSqnGhOoSD/o0=
 github.com/clipperhouse/uax29/v2 v2.7.0 h1:+gs4oBZ2gPfVrKPthwbMzWZDaAFPGYK72F0NJv2v7Vk=
