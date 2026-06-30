@@ -264,22 +264,24 @@ func mentionText(node *discordmd.Mention) string {
 }
 
 func applyInlineAttr(style tcell.Style, attr discordmd.Attribute, inLink bool) tcell.Style {
-	switch attr {
-	case discordmd.AttrBold:
-		return style.Bold(true)
-	case discordmd.AttrItalics:
-		return style.Italic(true)
-	case discordmd.AttrUnderline:
-		return style.Underline(true)
-	case discordmd.AttrStrikethrough:
-		return style.StrikeThrough(true)
-	case discordmd.AttrMonospace:
+	if attr&discordmd.AttrBold != 0 {
+		style = style.Bold(true)
+	}
+	if attr&discordmd.AttrItalics != 0 {
+		style = style.Italic(true)
+	}
+	if attr&discordmd.AttrUnderline != 0 {
+		style = style.Underline(true)
+	}
+	if attr&discordmd.AttrStrikethrough != 0 {
+		style = style.StrikeThrough(true)
+	}
+	if attr&discordmd.AttrMonospace != 0 {
 		// Avoid reverse-video inside links. Link labels like `hash` should still
 		// look like links, not highlighted blocks.
-		if inLink {
-			return style
+		if !inLink {
+			style = style.Reverse(true)
 		}
-		return style.Reverse(true)
 	}
 	return style
 }
