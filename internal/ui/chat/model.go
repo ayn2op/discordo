@@ -264,6 +264,8 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 			return tview.Batch(m.onMessageCreate(eventMsg), m.listen())
 		case *gateway.MessageUpdateEvent:
 			m.onMessageUpdate(eventMsg)
+		case *gateway.PresenceUpdateEvent:
+			m.onPresenceUpdate(eventMsg)
 		case *gateway.MessageDeleteEvent:
 			m.onMessageDelete(eventMsg)
 
