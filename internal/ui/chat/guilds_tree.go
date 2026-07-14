@@ -75,18 +75,13 @@ func (gt *guildsTree) resetNodeIndex() {
 }
 
 func (gt *guildsTree) UpdateDMNodeStyle(userID discord.UserID) {
-	channels, err := gt.chat.state.PrivateChannels()
+	channel, err := gt.chat.state.Cabinet.CreatePrivateChannel(userID)
 	if err != nil {
 		return
 	}
-	for _, ch := range channels {
-		if ch.Type == discord.DirectMessage && len(ch.DMRecipients) == 1 && ch.DMRecipients[0].ID == userID {
-			node := gt.channelNodeByID[ch.ID]
-			if node != nil {
-				gt.setNodeLineStyle(node, gt.channelNodeStyle(ch))
-			}
-			return
-		}
+	node := gt.channelNodeByID[channel.ID]
+	if node != nil {
+		gt.setNodeLineStyle(node, gt.channelNodeStyle(*channel))
 	}
 }
 
