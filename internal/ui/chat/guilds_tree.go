@@ -84,7 +84,6 @@ func (gt *guildsTree) UpdateDMNodeStyle(userID discord.UserID) {
 			node := gt.channelNodeByID[ch.ID]
 			if node != nil {
 				gt.setNodeLineStyle(node, gt.channelNodeStyle(ch))
-				gt.chat.channelsPicker.update()
 			}
 			return
 		}
