@@ -17,7 +17,7 @@ jobs:
         run: |
           docker run \
           --rm \
-          -e 'GITHUB_TOKEN${{secrets.GITHUB_TOKEN}}' \
+          -e 'GITHUB_TOKEN=${{secrets.GITHUB_TOKEN}}' \
           -v /var/run/docker.sock:/var/run/docker.sock \
           -v `pwd`:/go/src/github.com/ayn2op/discordo \
           -w /go/src/github.com/ayn2op/discordo \
