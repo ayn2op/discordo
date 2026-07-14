@@ -13,8 +13,13 @@ jobs:
         with:
           go-version: stable
 
-      - name: setup release environment
-        run: |-
-          echo 'GITHUB_TOKEN=${{secrets.GITHUB_TOKEN}}' > .release-env
       - name: release publish
-        run: make release
+        run: |
+          docker run \
+          --rm \
+          -e 'GITHUB_TOKEN${{secrets.GITHUB_TOKEN}}' \
+          -v /var/run/docker.sock:/var/run/docker.sock \
+          -v `pwd`:/go/src/github.com/ayn2op/discordo \
+          -w /go/src/github.com/ayn2op/discordo \
+          ghcr.io/goreleaser-cross:latest \
+          release --clean
