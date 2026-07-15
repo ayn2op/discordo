@@ -67,6 +67,8 @@ The configuration file allows you to configure and customize the behavior, keybi
 
 Discordo uses the default configuration if a configuration file is not found in the aforementioned path; however, the default configuration file is not written to the path. [The default configuration can be found here](./internal/config/config.toml).
 
+## Disclaimer
+
 > [!IMPORTANT]
 > Automated user accounts or "self-bots" are against Discord's Terms of Service. I am not responsible for any loss caused by using "self-bots" or Discordo.
 
