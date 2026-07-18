@@ -116,7 +116,7 @@ func (m *Model) notify(message gateway.MessageCreateEvent) tview.Cmd {
 }
 
 func (m *Model) onPresenceUpdate(presence *gateway.PresenceUpdateEvent) {
-	m.guildsTree.UpdateDMNodeStyle(presence.User.ID)
+	m.guildsTree.updateDMNodeStyle(presence.User.ID)
 }
 
 func (m *Model) onMessageUpdate(message *gateway.MessageUpdateEvent) {

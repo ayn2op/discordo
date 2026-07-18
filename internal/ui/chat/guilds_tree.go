@@ -74,15 +74,17 @@ func (gt *guildsTree) resetNodeIndex() {
 	gt.dmRootNode = nil
 }
 
-func (gt *guildsTree) UpdateDMNodeStyle(userID discord.UserID) {
+func (gt *guildsTree) updateDMNodeStyle(userID discord.UserID) {
 	channel, err := gt.chat.state.Cabinet.CreatePrivateChannel(userID)
 	if err != nil {
 		return
 	}
-	node := gt.channelNodeByID[channel.ID]
-	if node != nil {
-		gt.setNodeLineStyle(node, gt.channelNodeStyle(*channel))
+
+	node, ok := gt.channelNodeByID[channel.ID]
+	if node == nil || !ok {
+		return
 	}
+	gt.setNodeLineStyle(node, gt.channelNodeStyle(*channel))
 }
 
 func (gt *guildsTree) createFolderNode(folder gateway.GuildFolder, guildsByID map[discord.GuildID]*gateway.GuildCreateEvent) {
