@@ -74,6 +74,19 @@ func (gt *guildsTree) resetNodeIndex() {
 	gt.dmRootNode = nil
 }
 
+func (gt *guildsTree) updateDMNodeStyle(userID discord.UserID) {
+	channel, err := gt.chat.state.Cabinet.CreatePrivateChannel(userID)
+	if err != nil {
+		return
+	}
+
+	node, ok := gt.channelNodeByID[channel.ID]
+	if node == nil || !ok {
+		return
+	}
+	gt.setNodeLineStyle(node, gt.channelNodeStyle(*channel))
+}
+
 func (gt *guildsTree) createFolderNode(folder gateway.GuildFolder, guildsByID map[discord.GuildID]*gateway.GuildCreateEvent) {
 	name := "Folder"
 	if folder.Name != "" {
@@ -358,9 +371,7 @@ func (gt *guildsTree) yankID() tview.Cmd {
 	// discord.Snowflake (discord.GuildID and discord.ChannelID) have the String method.
 	if id, ok := node.Reference().(fmt.Stringer); ok {
 		return func() tview.Msg {
-			if err := clipboard.Write(clipboard.FmtText, []byte(id.String())); err != nil {
-				slog.Error("failed to copy node id", "err", err)
-			}
+			_ = clipboard.Write(clipboard.FmtText, []byte(id.String()))
 			return nil
 		}
 	}

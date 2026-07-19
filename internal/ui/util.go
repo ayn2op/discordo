@@ -9,6 +9,7 @@ import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/grid"
 )
 
 // ConfigureBox configures the provided box according to the provided theme.
@@ -55,7 +56,7 @@ func ConfigureBox(box *tview.Box, cfg *config.Theme) *tview.Box {
 
 // Centered creates a new grid with provided primitive aligned in the center.
 func Centered(m tview.Model, width, height int) tview.Model {
-	return tview.NewGrid().
+	return grid.NewModel().
 		SetColumns(0, width, 0).
 		SetRows(0, height, 0).
 		AddItem(m, 1, 1, 1, 1, 0, 0, true)

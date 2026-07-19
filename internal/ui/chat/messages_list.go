@@ -1024,9 +1024,7 @@ func (ml *messagesList) yankMessageID() tview.Cmd {
 	}
 
 	return func() tview.Msg {
-		if err := clipboard.Write(clipboard.FmtText, []byte(selectedMessage.ID.String())); err != nil {
-			slog.Error("failed to copy message id", "err", err)
-		}
+		_ = clipboard.Write(clipboard.FmtText, []byte(selectedMessage.ID.String()))
 		return nil
 	}
 }
@@ -1038,9 +1036,7 @@ func (ml *messagesList) yankContent() tview.Cmd {
 	}
 
 	return func() tview.Msg {
-		if err := clipboard.Write(clipboard.FmtText, []byte(selectedMessage.Content)); err != nil {
-			slog.Error("failed to copy message content", "err", err)
-		}
+		_ = clipboard.Write(clipboard.FmtText, []byte(selectedMessage.Content))
 		return nil
 	}
 }
@@ -1052,9 +1048,7 @@ func (ml *messagesList) yankURL() tview.Cmd {
 	}
 
 	return func() tview.Msg {
-		if err := clipboard.Write(clipboard.FmtText, []byte(selectedMessage.URL())); err != nil {
-			slog.Error("failed to copy message url", "err", err)
-		}
+		_ = clipboard.Write(clipboard.FmtText, []byte(selectedMessage.URL()))
 		return nil
 	}
 }
@@ -1284,7 +1278,7 @@ func (ml *messagesList) confirmDelete() {
 		}
 	}
 
-	ml.chat.showConfirmModal(
+	ml.chat.showConfirmDialog(
 		"Are you sure you want to delete this message?",
 		[]string{"Yes", "No"},
 		onChoice,

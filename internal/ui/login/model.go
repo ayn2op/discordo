@@ -3,6 +3,7 @@ package login
 import (
 	"log/slog"
 
+	"github.com/ayn2op/tview/frame"
 	"github.com/ayn2op/tview/layers"
 	"github.com/ayn2op/tview/tabs"
 	"github.com/gdamore/tcell/v3"
@@ -23,8 +24,8 @@ type Model struct {
 	*layers.Layers
 	tabs *tabs.Model
 
-	cfg            *config.Config
-	errorModalText string
+	cfg             *config.Config
+	errorDialogText string
 }
 
 func NewModel(cfg *config.Config) *Model {
@@ -48,15 +49,22 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 			return nil
 		}
 		return m.showErrorDialog(msg.err)
-	case tview.ModalDoneMsg:
+	case tview.FormSubmitMsg:
+		if !m.HasLayer(errorLayerName) {
+			break
+		}
+		if msg.ButtonIndex == 0 {
+			return setClipboard(m.errorDialogText)
+		}
+		m.RemoveLayer(errorLayerName)
+		m.errorDialogText = ""
+		return nil
+	case tview.FormCancelMsg:
 		if !m.HasLayer(errorLayerName) {
 			return nil
 		}
-		if msg.ButtonIndex == 0 {
-			return setClipboard(m.errorModalText)
-		}
 		m.RemoveLayer(errorLayerName)
-		m.errorModalText = ""
+		m.errorDialogText = ""
 		return nil
 	}
 	return m.Layers.Update(msg)
@@ -66,34 +74,43 @@ func (m *Model) showErrorDialog(err error) tview.Cmd {
 	slog.Error("failed to login", "err", err)
 
 	message := err.Error()
-	m.errorModalText = message
-	modal := tview.NewModal().
-		SetText(message).
-		AddButtons([]string{"Copy", "Close"})
+	m.errorDialogText = message
+	form := tview.NewForm().
+		SetButtonsAlignment(tview.AlignmentCenter).
+		AddButton("Copy").
+		AddButton("Close")
+	dialog := frame.NewModel(form).SetBorders(0, 0, 1, 0, 0, 0)
+	for _, line := range tview.WordWrap(message, 80) {
+		dialog.AddText(line, true, tview.AlignmentCenter, tview.Styles.PrimaryTextColor)
+	}
 	{
 		bg := m.cfg.Theme.Dialog.Style.GetBackground()
 		buttonStyle := m.cfg.Theme.Dialog.Style.Style
 		if bg != tcell.ColorDefault {
-			modal.SetBackgroundColor(bg)
+			form.SetBackgroundColor(bg)
+			dialog.SetBackgroundColor(bg)
 			buttonStyle = buttonStyle.Background(bg)
 		}
 		fg := m.cfg.Theme.Dialog.Style.GetForeground()
 		if fg != tcell.ColorDefault {
-			modal.SetTextColor(fg)
+			dialog.Clear()
+			for _, line := range tview.WordWrap(message, 80) {
+				dialog.AddText(line, true, tview.AlignmentCenter, fg)
+			}
 			buttonStyle = buttonStyle.Foreground(fg)
 		}
 		// Keep button styles aligned with dialog content and still show focus.
-		modal.SetButtonStyle(buttonStyle)
-		modal.SetButtonActivatedStyle(buttonStyle.Reverse(true))
+		form.SetButtonStyle(buttonStyle)
+		form.SetButtonActivatedStyle(buttonStyle.Reverse(true))
 	}
 	m.
 		AddLayer(
-			ui.Centered(modal, 0, 0),
+			ui.Centered(dialog, 0, 0),
 			layers.WithName(errorLayerName),
 			layers.WithResize(true),
 			layers.WithVisible(true),
 			layers.WithOverlay(),
 		).
 		SendToFront(errorLayerName)
-	return tview.SetFocus(modal)
+	return tview.SetFocus(dialog)
 }

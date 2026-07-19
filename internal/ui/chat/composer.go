@@ -24,6 +24,7 @@ import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/ui"
+	"github.com/ayn2op/discordo/internal/ui/chat/mentionslist"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/ningen/v3/discordmd"
 	"github.com/ayn2op/tview"
@@ -53,7 +54,7 @@ type composer struct {
 	edit            bool
 	sendMessageData *api.SendMessageData
 	cache           *cache.Cache
-	mentionsList    *mentionsList
+	mentionsList    *mentionslist.Model
 	lastSearch      time.Time
 
 	typingTimerMu sync.Mutex
@@ -71,20 +72,14 @@ func newComposer(cfg *config.Config, chat *Model) *composer {
 		chat:            chat,
 		sendMessageData: &api.SendMessageData{},
 		cache:           cache.NewCache(),
-		mentionsList:    newMentionsList(cfg),
+		mentionsList:    mentionslist.NewModel(cfg),
 	}
 	c.Box = ui.ConfigureBox(c.Box, &cfg.Theme)
 	c.
 		SetPlaceholder(tview.NewLine(tview.NewSegment("Select a channel to start chatting", tcell.StyleDefault.Dim(true)))).
 		SetClipboard(
-			func(s string) {
-				if err := clipboard.Write(clipboard.FmtText, []byte(s)); err != nil {
-					slog.Error("failed to write clipboard text", "err", err)
-				}
-			},
-			func() string {
-				return string(clipboard.Read(clipboard.FmtText))
-			},
+			func(s string) { _ = clipboard.Write(clipboard.FmtText, []byte(s)) },
+			func() string { return string(clipboard.Read(clipboard.FmtText)) },
 		).
 		SetDisabled(true)
 
@@ -487,10 +482,10 @@ func (c *composer) tabComplete() tview.Cmd {
 		}
 		return nil
 	}
-	if c.mentionsList.itemCount() == 0 {
+	if c.mentionsList.ItemCount() == 0 {
 		return nil
 	}
-	name, ok = c.mentionsList.selectedInsertText()
+	name, ok = c.mentionsList.SelectedInsertText()
 	if !ok {
 		return nil
 	}
@@ -509,7 +504,7 @@ func (c *composer) tabSuggest() tview.Cmd {
 	}
 	gID := selectedChannel.GuildID
 	cID := selectedChannel.ID
-	c.mentionsList.clear()
+	c.mentionsList.Clear()
 
 	var shown map[string]struct{}
 	var userDone struct{}
@@ -577,16 +572,16 @@ func (c *composer) tabSuggest() tview.Cmd {
 				break
 			}
 		}
-		if c.mentionsList.itemCount() == 0 {
+		if c.mentionsList.ItemCount() == 0 {
 			return tview.Batch(c.stopTabCompletion(), searchCmd)
 		}
 	}
 
-	if c.mentionsList.itemCount() == 0 {
+	if c.mentionsList.ItemCount() == 0 {
 		return c.stopTabCompletion()
 	}
 
-	c.mentionsList.rebuild()
+	c.mentionsList.Rebuild()
 	return c.showMentionsList()
 }
 
@@ -687,14 +682,14 @@ func (c *composer) showMentionsList() tview.Cmd {
 	if t := int(c.cfg.Theme.MentionsList.MaxHeight); t != 0 {
 		maxH = min(maxH, t)
 	}
-	count := c.mentionsList.itemCount() + borders
+	count := c.mentionsList.ItemCount() + borders
 	h := min(count, maxH) + borders + c.cfg.Theme.Border.Padding[1]
 	y -= h
 	w := int(c.cfg.Theme.MentionsList.MinWidth)
 	if w == 0 {
 		w = maxW
 	} else {
-		w = max(w, c.mentionsList.maxDisplayWidth())
+		w = max(w, c.mentionsList.MaxDisplayWidth())
 
 		w = min(w+borders*2, maxW)
 		_, col, _, _ := c.GetCursor()
@@ -734,12 +729,12 @@ func (c *composer) addMentionMember(gID discord.GuildID, m *discord.Member) bool
 		style = style.Dim(true)
 	}
 
-	c.mentionsList.append(mentionsListItem{
-		insertText:  m.User.Username,
-		displayText: name,
-		style:       style,
+	c.mentionsList.Append(mentionslist.Item{
+		InsertText:  m.User.Username,
+		DisplayText: name,
+		Style:       style,
 	})
-	return c.mentionsList.itemCount() > int(c.cfg.AutocompleteLimit)
+	return c.mentionsList.ItemCount() > int(c.cfg.AutocompleteLimit)
 }
 
 func (c *composer) addMentionUser(user *discord.User) {
@@ -756,10 +751,10 @@ func (c *composer) addMentionUser(user *discord.User) {
 		style = style.Dim(true)
 	}
 
-	c.mentionsList.append(mentionsListItem{
-		insertText:  user.Username,
-		displayText: name,
-		style:       style,
+	c.mentionsList.Append(mentionslist.Item{
+		InsertText:  user.Username,
+		DisplayText: name,
+		Style:       style,
 	})
 }
 
@@ -772,7 +767,7 @@ func (c *composer) removeMentionsList() {
 
 func (c *composer) stopTabCompletion() tview.Cmd {
 	if c.cfg.AutocompleteLimit > 0 {
-		c.mentionsList.clear()
+		c.mentionsList.Clear()
 		c.removeMentionsList()
 		return tview.SetFocus(c)
 	}
@@ -840,7 +835,7 @@ func (c *composer) ShortHelp() []keybind.Keybind {
 	if c.chat.GetVisible(mentionsListLayerName) {
 		cfg := c.cfg.Keybinds.MentionsList
 		ccfg := c.cfg.Keybinds.Composer
-		short := []keybind.Keybind{cfg.SelectUp.Keybind, cfg.SelectDown.Keybind, ccfg.Cancel.Keybind}
+		short := []keybind.Keybind{cfg.SelectUp.Keybind, cfg.SelectDown.Keybind, ccfg.TabComplete.Keybind, ccfg.Cancel.Keybind}
 		if c.canAttachFiles() {
 			short = append(short, ccfg.OpenFilePicker.Keybind)
 		}
@@ -873,7 +868,7 @@ func (c *composer) FullHelp() [][]keybind.Keybind {
 	}
 
 	return [][]keybind.Keybind{
-		{cfg.Send.Keybind, cfg.Newline.Keybind, cfg.Cancel.Keybind, cfg.TabComplete.Keybind, cfg.Undo.Keybind},
+		{cfg.Send.Keybind, cfg.Newline.Keybind, cfg.Cancel.Keybind, cfg.Undo.Keybind},
 		openEditor,
 	}
 }

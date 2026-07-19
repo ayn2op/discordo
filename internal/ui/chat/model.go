@@ -21,6 +21,7 @@ import (
 	"github.com/ayn2op/ningen/v3/states/read"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/flex"
+	"github.com/ayn2op/tview/frame"
 	"github.com/ayn2op/tview/keybind"
 	"github.com/ayn2op/tview/layers"
 	"github.com/gdamore/tcell/v3"
@@ -29,9 +30,9 @@ import (
 const typingDuration = 10 * time.Second
 
 const (
-	flexLayerName         = "flex"
-	mentionsListLayerName = "mentionsList"
-	confirmModalLayerName = "confirmModal"
+	flexLayerName          = "flex"
+	mentionsListLayerName  = "mentionsList"
+	confirmDialogLayerName = "confirmDialog"
 
 	channelsPickerLayerName    = "channelsPicker"
 	attachmentsPickerLayerName = "attachmentsPicker"
@@ -53,8 +54,8 @@ type Model struct {
 	selectedChannel   *discord.Channel
 	selectedChannelMu sync.RWMutex
 
-	confirmModalDone          func(label string)
-	confirmModalPreviousFocus tview.Model
+	confirmDialogDone          func(label string)
+	confirmDialogPreviousFocus tview.Model
 
 	state  *ningen.State
 	events chan gateway.Event
@@ -263,6 +264,8 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 			return tview.Batch(m.onMessageCreate(eventMsg), m.listen())
 		case *gateway.MessageUpdateEvent:
 			m.onMessageUpdate(eventMsg)
+		case *gateway.PresenceUpdateEvent:
+			m.onPresenceUpdate(eventMsg)
 		case *gateway.MessageDeleteEvent:
 			m.onMessageDelete(eventMsg)
 
@@ -318,18 +321,33 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		return focusCmd
 	case QuitMsg:
 		return m.closeState()
-	case tview.ModalDoneMsg:
-		if m.HasLayer(confirmModalLayerName) {
-			m.RemoveLayer(confirmModalLayerName)
+	case tview.FormSubmitMsg:
+		if m.HasLayer(confirmDialogLayerName) {
+			m.RemoveLayer(confirmDialogLayerName)
 			var focusCmd tview.Cmd
-			if m.confirmModalPreviousFocus != nil {
-				focusCmd = tview.SetFocus(m.confirmModalPreviousFocus)
+			if m.confirmDialogPreviousFocus != nil {
+				focusCmd = tview.SetFocus(m.confirmDialogPreviousFocus)
 			}
-			onDone := m.confirmModalDone
-			m.confirmModalDone = nil
-			m.confirmModalPreviousFocus = nil
+			onDone := m.confirmDialogDone
+			m.confirmDialogDone = nil
+			m.confirmDialogPreviousFocus = nil
 			if onDone != nil {
 				onDone(msg.ButtonLabel)
+			}
+			return focusCmd
+		}
+	case tview.FormCancelMsg:
+		if m.HasLayer(confirmDialogLayerName) {
+			m.RemoveLayer(confirmDialogLayerName)
+			var focusCmd tview.Cmd
+			if m.confirmDialogPreviousFocus != nil {
+				focusCmd = tview.SetFocus(m.confirmDialogPreviousFocus)
+			}
+			onDone := m.confirmDialogDone
+			m.confirmDialogDone = nil
+			m.confirmDialogPreviousFocus = nil
+			if onDone != nil {
+				onDone("")
 			}
 			return focusCmd
 		}
@@ -366,22 +384,27 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 	return m.Layers.Update(msg)
 }
 
-func (m *Model) showConfirmModal(prompt string, buttons []string, onDone func(label string)) {
-	m.confirmModalPreviousFocus = m.app.Focused()
-	m.confirmModalDone = onDone
+func (m *Model) showConfirmDialog(prompt string, buttons []string, onDone func(label string)) {
+	m.confirmDialogPreviousFocus = m.app.Focused()
+	m.confirmDialogDone = onDone
 
-	modal := tview.NewModal().
-		SetText(prompt).
-		AddButtons(buttons)
+	form := tview.NewForm().SetButtonsAlignment(tview.AlignmentCenter)
+	for _, button := range buttons {
+		form.AddButton(button)
+	}
+	dialog := frame.NewModel(form).SetBorders(0, 0, 1, 0, 0, 0)
+	for _, line := range tview.WordWrap(prompt, 80) {
+		dialog.AddText(line, true, tview.AlignmentCenter, tview.Styles.PrimaryTextColor)
+	}
 	m.
 		AddLayer(
-			ui.Centered(modal, 0, 0),
-			layers.WithName(confirmModalLayerName),
+			ui.Centered(dialog, 0, 0),
+			layers.WithName(confirmDialogLayerName),
 			layers.WithResize(true),
 			layers.WithVisible(true),
 			layers.WithOverlay(),
 		).
-		SendToFront(confirmModalLayerName)
+		SendToFront(confirmDialogLayerName)
 }
 
 func (m *Model) clearTypers() {

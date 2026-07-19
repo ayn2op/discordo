@@ -44,24 +44,35 @@ func (m *Model) activeKeyMap() help.KeyMap {
 
 func (m *Model) baseShortHelp() []keybind.Keybind {
 	cfg := m.cfg.Keybinds
-	short := []keybind.Keybind{cfg.FocusGuildsTree.Keybind, cfg.FocusMessagesList.Keybind}
-	if !m.composer.Disabled() {
-		short = append(short, cfg.FocusComposer.Keybind)
-	}
+	short := m.focusHelp()
 	short = append(short, cfg.ToggleGuildsTree.Keybind, cfg.ToggleChannelsPicker.Keybind)
 	return short
 }
 
 func (m *Model) baseFullHelp() [][]keybind.Keybind {
 	cfg := m.cfg.Keybinds
-	focus := []keybind.Keybind{cfg.FocusGuildsTree.Keybind, cfg.FocusMessagesList.Keybind}
-	if !m.composer.Disabled() {
-		focus = append(focus, cfg.FocusComposer.Keybind)
-	}
 	return [][]keybind.Keybind{
-		focus,
+		m.focusHelp(),
 		{cfg.FocusPrevious.Keybind, cfg.FocusNext.Keybind},
 		{cfg.ToggleGuildsTree.Keybind, cfg.ToggleChannelsPicker.Keybind},
 		{cfg.Logout.Keybind},
 	}
+}
+
+func (m *Model) focusHelp() []keybind.Keybind {
+	kbs := m.cfg.Keybinds
+	focused := m.app.Focused()
+	focusKbs := make([]keybind.Keybind, 0, 3)
+
+	if focused != m.guildsTree {
+		focusKbs = append(focusKbs, kbs.FocusGuildsTree.Keybind)
+	}
+	if focused != m.messagesList {
+		focusKbs = append(focusKbs, kbs.FocusMessagesList.Keybind)
+	}
+	if !m.composer.Disabled() && focused != m.composer {
+		focusKbs = append(focusKbs, kbs.FocusComposer.Keybind)
+	}
+
+	return focusKbs
 }
