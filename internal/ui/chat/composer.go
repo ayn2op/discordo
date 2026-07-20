@@ -31,6 +31,7 @@ import (
 	"github.com/ayn2op/tview/help"
 	"github.com/ayn2op/tview/keybind"
 	"github.com/gdamore/tcell/v3"
+	"github.com/kyokomi/emoji/v2"
 	"github.com/ncruces/zenity"
 	"github.com/sahilm/fuzzy"
 	"github.com/yuin/goldmark/ast"
@@ -331,6 +332,8 @@ func (c *composer) send() tview.Cmd {
 	if text == "" && len(c.sendMessageData.Files) == 0 {
 		return nil
 	}
+
+	text = emoji.Sprint(text)
 
 	text = c.processText(selectedChannel, []byte(text))
 	data := *c.sendMessageData

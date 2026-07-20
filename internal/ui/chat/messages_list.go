@@ -368,6 +368,59 @@ func (ml *messagesList) drawTimestamps(builder *tview.LineBuilder, ts discord.Ti
 	builder.Write(ml.formatTimestamp(ts)+" ", dimStyle)
 }
 
+func (ml *messagesList) getStatusIndicator(message discord.Message) string {
+	if message.WebhookID.IsValid() {
+		return ""
+	}
+
+	guildID := message.GuildID
+
+	if !guildID.IsValid() {
+		guildID = discord.NullGuildID // Fallback to null guild ID for DMs and group DMs
+	}
+
+	presence, err := ml.chat.state.Cabinet.Presence(guildID, message.Author.ID)
+	if err != nil {
+		return ""
+	}
+
+	var statusKey string
+	switch presence.Status {
+	case discord.DoNotDisturbStatus:
+		statusKey = "dnd"
+	case discord.IdleStatus:
+		statusKey = "idle"
+	case discord.OnlineStatus:
+		statusKey = "online"
+	default:
+		statusKey = "offline"
+	}
+
+	if indicator, ok := ml.cfg.Theme.MessagesList.StatusIndicators[statusKey]; ok {
+		return indicator
+	}
+	return ""
+}
+
+func (ml *messagesList) updateUserMessages(userID discord.UserID) {
+	for _, msg := range ml.messages {
+		if msg.Author.ID == userID {
+			if tv, ok := ml.itemByID[msg.ID]; ok {
+				newLines := ml.renderMessage(msg, ml.cfg.Theme.MessagesList.MessageStyle.Style)
+				tv.SetLines(newLines)
+			}
+		}
+
+		// for reply messages
+		if msg.ReferencedMessage != nil && msg.ReferencedMessage.Author.ID == userID {
+			if tv, ok := ml.itemByID[msg.ID]; ok {
+				newLines := ml.renderMessage(msg, ml.cfg.Theme.MessagesList.MessageStyle.Style)
+				tv.SetLines(newLines)
+			}
+		}
+	}
+}
+
 func (ml *messagesList) drawAuthor(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style) {
 	name := message.Author.DisplayOrUsername()
 	foreground := tcell.ColorDefault
@@ -388,6 +441,13 @@ func (ml *messagesList) drawAuthor(builder *tview.LineBuilder, message discord.M
 
 	style := baseStyle.Foreground(foreground).Bold(true)
 	builder.Write(name+" ", style)
+
+	if indicator := ml.getStatusIndicator(message); indicator != "" {
+		whiteStyle := baseStyle.Foreground(color.White)
+		builder.Write("(", whiteStyle)
+		builder.Write(indicator, style)
+		builder.Write(") ", whiteStyle)
+	}
 }
 
 func (ml *messagesList) memberForMessage(message discord.Message) *discord.Member {
