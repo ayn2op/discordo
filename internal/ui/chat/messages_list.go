@@ -404,15 +404,7 @@ func (ml *messagesList) getStatusIndicator(message discord.Message) string {
 
 func (ml *messagesList) updateUserMessages(userID discord.UserID) {
 	for _, msg := range ml.messages {
-		if msg.Author.ID == userID {
-			if tv, ok := ml.itemByID[msg.ID]; ok {
-				newLines := ml.renderMessage(msg, ml.cfg.Theme.MessagesList.MessageStyle.Style)
-				tv.SetLines(newLines)
-			}
-		}
-
-		// for reply messages
-		if msg.ReferencedMessage != nil && msg.ReferencedMessage.Author.ID == userID {
+		if (msg.Author.ID == userID) || (msg.ReferencedMessage != nil && msg.ReferencedMessage.Author.ID == userID) {
 			if tv, ok := ml.itemByID[msg.ID]; ok {
 				newLines := ml.renderMessage(msg, ml.cfg.Theme.MessagesList.MessageStyle.Style)
 				tv.SetLines(newLines)
