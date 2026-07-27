@@ -239,6 +239,7 @@ mention_style = { foreground = "blue", attributes = "bold" }
 emoji_style = { foreground = "green" }
 url_style = { foreground = "blue" }
 attachment_style = { foreground = "yellow" }
+status_indicators = { online = "🟢", offline = "⚪", dnd = "🔴", idle = "🟡" }
 message_style = {}
 selected_message_style = { attributes = "reverse" }
 

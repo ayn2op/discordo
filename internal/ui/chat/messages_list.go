@@ -368,6 +368,46 @@ func (ml *messagesList) drawTimestamps(builder *tview.LineBuilder, ts discord.Ti
 	builder.Write(ml.formatTimestamp(ts)+" ", dimStyle)
 }
 
+func (ml *messagesList) statusIndicator(message discord.Message) string {
+	if message.WebhookID.IsValid() {
+		return ""
+	}
+
+	guildID := message.GuildID
+	if !guildID.IsValid() {
+		guildID = discord.NullGuildID
+	}
+
+	presence, err := ml.chat.state.Cabinet.Presence(guildID, message.Author.ID)
+	if err != nil {
+		return ml.cfg.Theme.MessagesList.StatusIndicators[string(discord.OfflineStatus)]
+	}
+
+	status := presence.Status
+	if status == discord.UnknownStatus || status == discord.InvisibleStatus {
+		status = discord.OfflineStatus
+	}
+	return ml.cfg.Theme.MessagesList.StatusIndicators[string(status)]
+}
+
+func (ml *messagesList) updateUserMessages(userID discord.UserID) {
+	style := ml.cfg.Theme.MessagesList.MessageStyle.Style
+
+	for _, message := range ml.messages {
+		isAuthor := message.Author.ID == userID
+		isReplyAuthor := message.ReferencedMessage != nil &&
+			message.ReferencedMessage.Author.ID == userID
+
+		if !isAuthor && !isReplyAuthor {
+			continue
+		}
+
+		if view := ml.itemByID[message.ID]; view != nil {
+			view.SetLines(ml.renderMessage(message, style))
+		}
+	}
+}
+
 func (ml *messagesList) drawAuthor(builder *tview.LineBuilder, message discord.Message, baseStyle tcell.Style) {
 	name := message.Author.DisplayOrUsername()
 	foreground := tcell.ColorDefault
@@ -388,6 +428,11 @@ func (ml *messagesList) drawAuthor(builder *tview.LineBuilder, message discord.M
 
 	style := baseStyle.Foreground(foreground).Bold(true)
 	builder.Write(name+" ", style)
+
+	if indicator := ml.statusIndicator(message); indicator != "" {
+		indicatorStyle := baseStyle.Foreground(color.White)
+		builder.Write("("+indicator+") ", indicatorStyle)
+	}
 }
 
 func (ml *messagesList) memberForMessage(message discord.Message) *discord.Member {
