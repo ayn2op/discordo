@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -356,6 +357,30 @@ func (ml *messagesList) writeMessage(builder *tview.LineBuilder, message discord
 	default:
 		ml.drawTimestamps(builder, message.Timestamp, baseStyle)
 		ml.drawAuthor(builder, message, baseStyle)
+	}
+	ml.drawReactions(builder, message.Reactions, baseStyle)
+}
+
+func (ml *messagesList) drawReactions(builder *tview.LineBuilder, reactions []discord.Reaction, baseStyle tcell.Style) {
+	if len(reactions) == 0 {
+		return
+	}
+
+	builder.NewLine()
+	for i, reaction := range reactions {
+		if i > 0 {
+			builder.Write("  ", baseStyle)
+		}
+
+		name := reaction.Emoji.Name
+		if reaction.Emoji.IsCustom() {
+			name = ":" + name + ":"
+		}
+		style := ml.cfg.Theme.MessagesList.ReactionStyle.Style
+		if reaction.Me {
+			style = ml.cfg.Theme.MessagesList.OwnReactionStyle.Style
+		}
+		builder.Write(name+" "+strconv.Itoa(reaction.Count), tview.MergeStyle(baseStyle, style))
 	}
 }
 
