@@ -21,9 +21,9 @@ import (
 	"github.com/ayn2op/ningen/v3/states/read"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/flex"
-	"github.com/ayn2op/tview/frame"
 	"github.com/ayn2op/tview/keybind"
 	"github.com/ayn2op/tview/layers"
+	"github.com/ayn2op/tview/modal"
 	"github.com/gdamore/tcell/v3"
 )
 
@@ -329,7 +329,7 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		return focusCmd
 	case QuitMsg:
 		return m.closeState()
-	case tview.FormSubmitMsg:
+	case modal.DoneMsg:
 		if m.HasLayer(confirmDialogLayerName) {
 			m.RemoveLayer(confirmDialogLayerName)
 			var focusCmd tview.Cmd
@@ -344,22 +344,10 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 			}
 			return focusCmd
 		}
-	case tview.FormCancelMsg:
-		if m.HasLayer(confirmDialogLayerName) {
-			m.RemoveLayer(confirmDialogLayerName)
-			var focusCmd tview.Cmd
-			if m.confirmDialogPreviousFocus != nil {
-				focusCmd = tview.SetFocus(m.confirmDialogPreviousFocus)
-			}
-			onDone := m.confirmDialogDone
-			m.confirmDialogDone = nil
-			m.confirmDialogPreviousFocus = nil
-			if onDone != nil {
-				onDone("")
-			}
-			return focusCmd
-		}
 	case tview.KeyMsg:
+		if m.ModalActive() {
+			return m.Layers.Update(msg)
+		}
 		switch {
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusGuildsTree.Keybind):
 			m.composer.removeMentionsList()
@@ -392,21 +380,18 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 	return m.Layers.Update(msg)
 }
 
+func (m *Model) ModalActive() bool {
+	return m.HasLayer(confirmDialogLayerName) || m.HasLayer(channelsPickerLayerName) || m.HasLayer(attachmentsPickerLayerName)
+}
+
 func (m *Model) showConfirmDialog(prompt string, buttons []string, onDone func(label string)) {
 	m.confirmDialogPreviousFocus = m.app.Focused()
 	m.confirmDialogDone = onDone
 
-	form := tview.NewForm().SetButtonsAlignment(tview.AlignmentCenter)
-	for _, button := range buttons {
-		form.AddButton(button)
-	}
-	dialog := frame.NewModel(form).SetBorders(0, 0, 1, 0, 0, 0)
-	for _, line := range tview.WordWrap(prompt, 80) {
-		dialog.AddText(line, true, tview.AlignmentCenter, tview.Styles.PrimaryTextColor)
-	}
+	dialog := modal.NewModel().SetText(prompt).AddButtons(buttons)
 	m.
 		AddLayer(
-			ui.Centered(dialog, 0, 0),
+			dialog,
 			layers.WithName(confirmDialogLayerName),
 			layers.WithResize(true),
 			layers.WithVisible(true),

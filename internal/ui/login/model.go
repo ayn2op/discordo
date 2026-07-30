@@ -3,8 +3,8 @@ package login
 import (
 	"log/slog"
 
-	"github.com/ayn2op/tview/frame"
 	"github.com/ayn2op/tview/layers"
+	"github.com/ayn2op/tview/modal"
 	"github.com/ayn2op/tview/tabs"
 	"github.com/gdamore/tcell/v3"
 
@@ -49,7 +49,7 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 			return nil
 		}
 		return m.showErrorDialog(msg.err)
-	case tview.FormSubmitMsg:
+	case modal.DoneMsg:
 		if !m.HasLayer(errorLayerName) {
 			break
 		}
@@ -59,15 +59,12 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		m.RemoveLayer(errorLayerName)
 		m.errorDialogText = ""
 		return nil
-	case tview.FormCancelMsg:
-		if !m.HasLayer(errorLayerName) {
-			return nil
-		}
-		m.RemoveLayer(errorLayerName)
-		m.errorDialogText = ""
-		return nil
 	}
 	return m.Layers.Update(msg)
+}
+
+func (m *Model) ModalActive() bool {
+	return m.HasLayer(errorLayerName)
 }
 
 func (m *Model) showErrorDialog(err error) tview.Cmd {
@@ -75,37 +72,24 @@ func (m *Model) showErrorDialog(err error) tview.Cmd {
 
 	message := err.Error()
 	m.errorDialogText = message
-	form := tview.NewForm().
-		SetButtonsAlignment(tview.AlignmentCenter).
-		AddButton("Copy").
-		AddButton("Close")
-	dialog := frame.NewModel(form).SetBorders(0, 0, 1, 0, 0, 0)
-	for _, line := range tview.WordWrap(message, 80) {
-		dialog.AddText(line, true, tview.AlignmentCenter, tview.Styles.PrimaryTextColor)
-	}
+	dialog := modal.NewModel().SetText(message).AddButtons([]string{"Copy", "Close"})
 	{
 		bg := m.cfg.Theme.Dialog.Style.GetBackground()
 		buttonStyle := m.cfg.Theme.Dialog.Style.Style
 		if bg != tcell.ColorDefault {
-			form.SetBackgroundColor(bg)
 			dialog.SetBackgroundColor(bg)
 			buttonStyle = buttonStyle.Background(bg)
 		}
 		fg := m.cfg.Theme.Dialog.Style.GetForeground()
 		if fg != tcell.ColorDefault {
-			dialog.Clear()
-			for _, line := range tview.WordWrap(message, 80) {
-				dialog.AddText(line, true, tview.AlignmentCenter, fg)
-			}
+			dialog.SetTextColor(fg)
 			buttonStyle = buttonStyle.Foreground(fg)
 		}
-		// Keep button styles aligned with dialog content and still show focus.
-		form.SetButtonStyle(buttonStyle)
-		form.SetButtonActivatedStyle(buttonStyle.Reverse(true))
+		dialog.SetButtonStyle(buttonStyle).SetButtonActivatedStyle(buttonStyle.Reverse(true))
 	}
 	m.
 		AddLayer(
-			ui.Centered(dialog, 0, 0),
+			dialog,
 			layers.WithName(errorLayerName),
 			layers.WithResize(true),
 			layers.WithVisible(true),

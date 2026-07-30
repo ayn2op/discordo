@@ -112,6 +112,9 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		)
 
 	case tview.KeyMsg:
+		if modal, ok := m.inner.(interface{ ModalActive() bool }); ok && modal.ModalActive() {
+			break
+		}
 		switch {
 		case keybind.Matches(msg, m.cfg.Keybinds.ToggleHelp.Keybind):
 			m.help.SetShowAll(!m.help.ShowAll())
