@@ -157,6 +157,21 @@ func (m *Model) onMessageDelete(message *gateway.MessageDeleteEvent) {
 	}
 }
 
+func (m *Model) onMessageReaction(channelID discord.ChannelID, messageID discord.MessageID) {
+	selectedChannel, ok := m.SelectedChannel()
+	if !ok || selectedChannel.ID != channelID {
+		return
+	}
+
+	index := slices.IndexFunc(m.messagesList.messages, func(message discord.Message) bool {
+		return message.ID == messageID
+	})
+	message, err := m.state.Cabinet.Message(channelID, messageID)
+	if index >= 0 && err == nil {
+		m.messagesList.setMessage(index, *message)
+	}
+}
+
 func cursorAfterDelete(prevCursor, deletedIndex, remaining int) int {
 	switch {
 	case prevCursor > deletedIndex:

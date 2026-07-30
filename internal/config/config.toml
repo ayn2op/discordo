@@ -239,6 +239,8 @@ mention_style = { foreground = "blue", attributes = "bold" }
 emoji_style = { foreground = "green" }
 url_style = { foreground = "blue" }
 attachment_style = { foreground = "yellow" }
+reaction_style = { attributes = "dim" }
+own_reaction_style = { attributes = "bold" }
 message_style = {}
 selected_message_style = { attributes = "reverse" }
 
