@@ -23,16 +23,14 @@ import (
 	"github.com/ayn2op/tview/flex"
 	"github.com/ayn2op/tview/keybind"
 	"github.com/ayn2op/tview/layers"
-	"github.com/ayn2op/tview/modal"
 	"github.com/gdamore/tcell/v3"
 )
 
 const typingDuration = 10 * time.Second
 
 const (
-	flexLayerName          = "flex"
-	mentionsListLayerName  = "mentionsList"
-	confirmDialogLayerName = "confirmDialog"
+	flexLayerName         = "flex"
+	mentionsListLayerName = "mentionsList"
 
 	channelsPickerLayerName    = "channelsPicker"
 	attachmentsPickerLayerName = "attachmentsPicker"
@@ -53,9 +51,6 @@ type Model struct {
 
 	selectedChannel   *discord.Channel
 	selectedChannelMu sync.RWMutex
-
-	confirmDialogDone          func(label string)
-	confirmDialogPreviousFocus tview.Model
 
 	state  *ningen.State
 	events chan gateway.Event
@@ -327,27 +322,11 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 			return tview.Batch(focusCmd, m.messagesList.requestGuildMembers(msg.Channel.GuildID, msg.Messages))
 		}
 		return focusCmd
+	case deleteMessageMsg:
+		return m.messagesList.deleteMessageRequest(discord.Message(msg))
 	case QuitMsg:
 		return m.closeState()
-	case modal.DoneMsg:
-		if m.HasLayer(confirmDialogLayerName) {
-			m.RemoveLayer(confirmDialogLayerName)
-			var focusCmd tview.Cmd
-			if m.confirmDialogPreviousFocus != nil {
-				focusCmd = tview.SetFocus(m.confirmDialogPreviousFocus)
-			}
-			onDone := m.confirmDialogDone
-			m.confirmDialogDone = nil
-			m.confirmDialogPreviousFocus = nil
-			if onDone != nil {
-				onDone(msg.ButtonLabel)
-			}
-			return focusCmd
-		}
 	case tview.KeyMsg:
-		if m.ModalActive() {
-			return m.Layers.Update(msg)
-		}
 		switch {
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusGuildsTree.Keybind):
 			m.composer.removeMentionsList()
@@ -378,26 +357,6 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		return m.composer.Update(msg)
 	}
 	return m.Layers.Update(msg)
-}
-
-func (m *Model) ModalActive() bool {
-	return m.HasLayer(confirmDialogLayerName) || m.HasLayer(channelsPickerLayerName) || m.HasLayer(attachmentsPickerLayerName)
-}
-
-func (m *Model) showConfirmDialog(prompt string, buttons []string, onDone func(label string)) {
-	m.confirmDialogPreviousFocus = m.app.Focused()
-	m.confirmDialogDone = onDone
-
-	dialog := modal.NewModel().SetText(prompt).AddButtons(buttons)
-	m.
-		AddLayer(
-			dialog,
-			layers.WithName(confirmDialogLayerName),
-			layers.WithResize(true),
-			layers.WithVisible(true),
-			layers.WithOverlay(),
-		).
-		SendToFront(confirmDialogLayerName)
 }
 
 func (m *Model) clearTypers() {
