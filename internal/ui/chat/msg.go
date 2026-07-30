@@ -46,6 +46,8 @@ type olderMessagesLoadedMsg struct {
 	Older     []discord.Message
 }
 
+type deleteMessageMsg discord.Message
+
 type LogoutMsg struct{}
 
 func (m *Model) logout() tview.Cmd {

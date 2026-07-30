@@ -21,7 +21,6 @@ import (
 	"github.com/ayn2op/ningen/v3/states/read"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/flex"
-	"github.com/ayn2op/tview/frame"
 	"github.com/ayn2op/tview/keybind"
 	"github.com/ayn2op/tview/layers"
 	"github.com/gdamore/tcell/v3"
@@ -30,9 +29,8 @@ import (
 const typingDuration = 10 * time.Second
 
 const (
-	flexLayerName          = "flex"
-	mentionsListLayerName  = "mentionsList"
-	confirmDialogLayerName = "confirmDialog"
+	flexLayerName         = "flex"
+	mentionsListLayerName = "mentionsList"
 
 	channelsPickerLayerName    = "channelsPicker"
 	attachmentsPickerLayerName = "attachmentsPicker"
@@ -53,9 +51,6 @@ type Model struct {
 
 	selectedChannel   *discord.Channel
 	selectedChannelMu sync.RWMutex
-
-	confirmDialogDone          func(label string)
-	confirmDialogPreviousFocus tview.Model
 
 	state  *ningen.State
 	events chan gateway.Event
@@ -327,38 +322,10 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 			return tview.Batch(focusCmd, m.messagesList.requestGuildMembers(msg.Channel.GuildID, msg.Messages))
 		}
 		return focusCmd
+	case deleteMessageMsg:
+		return m.messagesList.deleteMessageRequest(discord.Message(msg))
 	case QuitMsg:
 		return m.closeState()
-	case tview.FormSubmitMsg:
-		if m.HasLayer(confirmDialogLayerName) {
-			m.RemoveLayer(confirmDialogLayerName)
-			var focusCmd tview.Cmd
-			if m.confirmDialogPreviousFocus != nil {
-				focusCmd = tview.SetFocus(m.confirmDialogPreviousFocus)
-			}
-			onDone := m.confirmDialogDone
-			m.confirmDialogDone = nil
-			m.confirmDialogPreviousFocus = nil
-			if onDone != nil {
-				onDone(msg.ButtonLabel)
-			}
-			return focusCmd
-		}
-	case tview.FormCancelMsg:
-		if m.HasLayer(confirmDialogLayerName) {
-			m.RemoveLayer(confirmDialogLayerName)
-			var focusCmd tview.Cmd
-			if m.confirmDialogPreviousFocus != nil {
-				focusCmd = tview.SetFocus(m.confirmDialogPreviousFocus)
-			}
-			onDone := m.confirmDialogDone
-			m.confirmDialogDone = nil
-			m.confirmDialogPreviousFocus = nil
-			if onDone != nil {
-				onDone("")
-			}
-			return focusCmd
-		}
 	case tview.KeyMsg:
 		switch {
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusGuildsTree.Keybind):
@@ -390,29 +357,6 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		return m.composer.Update(msg)
 	}
 	return m.Layers.Update(msg)
-}
-
-func (m *Model) showConfirmDialog(prompt string, buttons []string, onDone func(label string)) {
-	m.confirmDialogPreviousFocus = m.app.Focused()
-	m.confirmDialogDone = onDone
-
-	form := tview.NewForm().SetButtonsAlignment(tview.AlignmentCenter)
-	for _, button := range buttons {
-		form.AddButton(button)
-	}
-	dialog := frame.NewModel(form).SetBorders(0, 0, 1, 0, 0, 0)
-	for _, line := range tview.WordWrap(prompt, 80) {
-		dialog.AddText(line, true, tview.AlignmentCenter, tview.Styles.PrimaryTextColor)
-	}
-	m.
-		AddLayer(
-			ui.Centered(dialog, 0, 0),
-			layers.WithName(confirmDialogLayerName),
-			layers.WithResize(true),
-			layers.WithVisible(true),
-			layers.WithOverlay(),
-		).
-		SendToFront(confirmDialogLayerName)
 }
 
 func (m *Model) clearTypers() {

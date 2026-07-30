@@ -9,6 +9,8 @@ type errMsg struct {
 	err error
 }
 
+type copyErrorMsg string
+
 func setClipboard(content string) tview.Cmd {
 	return func() tview.Msg {
 		_ = clipboard.Write(clipboard.FmtText, []byte(content))

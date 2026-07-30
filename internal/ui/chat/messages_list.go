@@ -908,8 +908,7 @@ func (ml *messagesList) Update(msg tview.Msg) tview.Cmd {
 		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.Delete.Keybind):
 			return ml.deleteSelectedMessage()
 		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.DeleteConfirm.Keybind):
-			ml.confirmDelete()
-			return nil
+			return ml.confirmDelete()
 		}
 		return ml.Model.Update(msg)
 
@@ -1294,19 +1293,16 @@ func (ml *messagesList) editSelectedMessage() tview.Cmd {
 	return tview.SetFocus(ml.chat.composer)
 }
 
-func (ml *messagesList) confirmDelete() {
-	onChoice := func(choice string) {
-		if choice == "Yes" {
-			if cmd := ml.deleteSelectedMessage(); cmd != nil {
-				cmd()
-			}
-		}
+func (ml *messagesList) confirmDelete() tview.Cmd {
+	selectedMessage, ok := ml.selectedMessage()
+	if !ok {
+		return nil
 	}
-
-	ml.chat.showConfirmDialog(
+	message := *selectedMessage
+	return ui.ShowModal(
 		"Are you sure you want to delete this message?",
-		[]string{"Yes", "No"},
-		onChoice,
+		ui.ModalButton{Label: "Yes", Result: deleteMessageMsg(message)},
+		ui.ModalButton{Label: "No"},
 	)
 }
 
@@ -1315,22 +1311,25 @@ func (ml *messagesList) deleteSelectedMessage() tview.Cmd {
 	if !ok {
 		return nil
 	}
+	return ml.deleteMessageRequest(*selectedMessage)
+}
 
+func (ml *messagesList) deleteMessageRequest(message discord.Message) tview.Cmd {
 	return func() tview.Msg {
-		if selectedMessage.GuildID.IsValid() {
-			if !ml.chat.isMe(selectedMessage.Author.ID) && !ml.chat.state.HasPermissions(selectedMessage.ChannelID, discord.PermissionManageMessages) {
-				slog.Error("failed to delete message; missing relevant permissions", "channel_id", selectedMessage.ChannelID, "message_id", selectedMessage.ID)
+		if message.GuildID.IsValid() {
+			if !ml.chat.isMe(message.Author.ID) && !ml.chat.state.HasPermissions(message.ChannelID, discord.PermissionManageMessages) {
+				slog.Error("failed to delete message; missing relevant permissions", "channel_id", message.ChannelID, "message_id", message.ID)
 				return nil
 			}
 		}
 
-		if err := ml.chat.state.DeleteMessage(selectedMessage.ChannelID, selectedMessage.ID, ""); err != nil {
-			slog.Error("failed to delete message", "channel_id", selectedMessage.ChannelID, "message_id", selectedMessage.ID, "err", err)
+		if err := ml.chat.state.DeleteMessage(message.ChannelID, message.ID, ""); err != nil {
+			slog.Error("failed to delete message", "channel_id", message.ChannelID, "message_id", message.ID, "err", err)
 			return nil
 		}
 
-		if err := ml.chat.state.MessageRemove(selectedMessage.ChannelID, selectedMessage.ID); err != nil {
-			slog.Error("failed to delete message", "channel_id", selectedMessage.ChannelID, "message_id", selectedMessage.ID, "err", err)
+		if err := ml.chat.state.MessageRemove(message.ChannelID, message.ID); err != nil {
+			slog.Error("failed to delete message", "channel_id", message.ChannelID, "message_id", message.ID, "err", err)
 			return nil
 		}
 		return nil
