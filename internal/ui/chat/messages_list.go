@@ -1295,7 +1295,7 @@ func (ml *messagesList) editSelectedMessage() tview.Cmd {
 
 func (ml *messagesList) confirmDelete() tview.Cmd {
 	selectedMessage, ok := ml.selectedMessage()
-	if !ok {
+	if !ok || !ml.canDeleteMessage(*selectedMessage) {
 		return nil
 	}
 	message := *selectedMessage
@@ -1316,11 +1316,9 @@ func (ml *messagesList) deleteSelectedMessage() tview.Cmd {
 
 func (ml *messagesList) deleteMessageRequest(message discord.Message) tview.Cmd {
 	return func() tview.Msg {
-		if message.GuildID.IsValid() {
-			if !ml.chat.isMe(message.Author.ID) && !ml.chat.state.HasPermissions(message.ChannelID, discord.PermissionManageMessages) {
-				slog.Error("failed to delete message; missing relevant permissions", "channel_id", message.ChannelID, "message_id", message.ID)
-				return nil
-			}
+		if !ml.canDeleteMessage(message) {
+			slog.Error("failed to delete message; missing relevant permissions", "channel_id", message.ChannelID, "message_id", message.ID)
+			return nil
 		}
 
 		if err := ml.chat.state.DeleteMessage(message.ChannelID, message.ID, ""); err != nil {
@@ -1334,6 +1332,11 @@ func (ml *messagesList) deleteMessageRequest(message discord.Message) tview.Cmd 
 		}
 		return nil
 	}
+}
+
+func (ml *messagesList) canDeleteMessage(message discord.Message) bool {
+	return ml.chat.isMe(message.Author.ID) ||
+		(message.GuildID.IsValid() && ml.chat.state.HasPermissions(message.ChannelID, discord.PermissionManageMessages))
 }
 
 func (ml *messagesList) requestGuildMembers(guildID discord.GuildID, messages []discord.Message) tview.Cmd {
@@ -1405,11 +1408,7 @@ func (ml *messagesList) FullHelp() [][]keybind.Keybind {
 
 		canEdit = ml.chat.isMe(selectedMessage.Author.ID)
 		canReply = !canEdit
-		canDelete = canEdit
-		if !canDelete {
-			selectedChannel, ok := ml.chat.SelectedChannel()
-			canDelete = ok && ml.chat.state.HasPermissions(selectedChannel.ID, discord.PermissionManageMessages)
-		}
+		canDelete = ml.canDeleteMessage(*selectedMessage)
 	}
 
 	actions := make([]keybind.Keybind, 0, 4)
