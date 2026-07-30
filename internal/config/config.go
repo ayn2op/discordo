@@ -65,8 +65,9 @@ type (
 	}
 
 	MarkdownConfig struct {
-		Enabled bool   `toml:"enabled"`
-		Theme   string `toml:"theme"`
+		Enabled      bool   `toml:"enabled"`
+		MaskSpoilers bool   `toml:"mask_spoilers"`
+		Theme        string `toml:"theme"`
 	}
 
 	HelpConfig struct {

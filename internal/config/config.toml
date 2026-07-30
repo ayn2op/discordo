@@ -28,6 +28,8 @@ max_height = 10
 [markdown]
 # Whether to parse and render markdown in messages or not.
 enabled = true
+# Replace spoiler contents with a placeholder.
+mask_spoilers = false
 # Theme for fenced code blocks. Available themes: https://xyproto.github.io/splash/docs
 theme = "monokai"
 
