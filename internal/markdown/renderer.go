@@ -118,6 +118,12 @@ func (r *Renderer) RenderLines(source []byte, node ast.Node, base tcell.Style) [
 				builder.NewLine()
 			}
 		case *discordmd.Inline:
+			if r.cfg.Markdown.MaskSpoilers && node.Attr&discordmd.AttrSpoiler != 0 {
+				if entering {
+					builder.Write("[spoiler]", currentStyle())
+				}
+				return ast.WalkSkipChildren, nil
+			}
 			if entering {
 				pushStyle(applyInlineAttr(currentStyle(), node.Attr, linkDepth > 0))
 			} else {
