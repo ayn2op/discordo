@@ -17,7 +17,13 @@ func Run() error {
 	configPath := flag.String("config-path", config.DefaultPath(), "path of the configuration file")
 	logPath := flag.String("log-path", logger.DefaultPath(), "path of the log file")
 	logLevel := flag.String("log-level", "info", "log level")
+	showVersion := flag.Bool("version", false, "print version and exit")
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Printf("%s\n", buildVersion())
+		return nil
+	}
 
 	var level slog.Level
 	switch *logLevel {
