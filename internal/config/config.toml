@@ -12,6 +12,7 @@ status = "default"
 
 hide_blocked_users = true
 show_attachment_links = true
+colored_member_names = true
 
 # Max members to be in the mention autocomplete suggestions list
 # Note: Use autocomplete_limit = 0 to disable.
