@@ -29,14 +29,7 @@ type (
 	}
 
 	Notifications struct {
-		Enabled  bool  `toml:"enabled"`
-		Duration int   `toml:"duration"`
-		Sound    Sound `toml:"sound"`
-	}
-
-	Sound struct {
-		Enabled    bool `toml:"enabled"`
-		OnlyOnPing bool `toml:"only_on_ping"`
+		Enabled bool `toml:"enabled"`
 	}
 
 	TypingIndicator struct {
