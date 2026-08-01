@@ -58,11 +58,6 @@ character = "─"
 
 [notifications]
 enabled = true
-# The duration of the sound. Set the value to `0` to use default duration. This is only supported on Unix and Windows.
-duration = 0
-[notifications.sound]
-enabled = true
-only_on_ping = true
 
 [typing_indicator]
 # Whether to send typing status or not.

@@ -8,7 +8,6 @@ import (
 	"github.com/ayn2op/arikawa/v3/gateway"
 	"github.com/ayn2op/arikawa/v3/utils/httputil/httpdriver"
 	"github.com/ayn2op/arikawa/v3/utils/ws"
-	"github.com/ayn2op/discordo/internal/notifications"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/ningen/v3/states/read"
 	"github.com/ayn2op/tview"
@@ -108,10 +107,47 @@ func (m *Model) onMessageCreate(message *gateway.MessageCreateEvent) tview.Cmd {
 
 func (m *Model) notify(message gateway.MessageCreateEvent) tview.Cmd {
 	return func() tview.Msg {
-		if err := notifications.Notify(m.state, message, m.cfg); err != nil {
-			slog.Error("failed to notify", "err", err, "channel_id", message.ChannelID, "message_id", message.ID)
+		if !m.cfg.Notifications.Enabled || m.cfg.Status == discord.DoNotDisturbStatus {
+			return nil
 		}
-		return nil
+
+		mentions := m.state.MessageMentions(&message.Message)
+		if mentions == 0 {
+			return nil
+		}
+
+		// Handle sent files
+		content := message.Content
+		if message.Content == "" && len(message.Attachments) > 0 {
+			content = "Uploaded " + message.Attachments[0].Filename
+		}
+
+		if content == "" {
+			return nil
+		}
+
+		title := message.Author.DisplayOrUsername()
+		channel, err := m.state.Cabinet.Channel(message.ChannelID)
+		if err != nil {
+			slog.Error("failed to get channel from state", "err", err, "channel_id", message.ChannelID)
+			return nil
+		}
+
+		if channel.GuildID.IsValid() {
+			guild, err := m.state.Cabinet.Guild(channel.GuildID)
+			if err != nil {
+				slog.Error("failed to get guild from state", "err", err, "guild_id", channel.GuildID)
+				return nil
+			}
+
+			if member := message.Member; member != nil && member.Nick != "" {
+				title = member.Nick
+			}
+
+			title += " (#" + channel.Name + ", " + guild.Name + ")"
+		}
+
+		return tview.Notify(title, content)()
 	}
 }
 

@@ -11,9 +11,7 @@ require (
 	github.com/ayn2op/arikawa/v3 v3.0.0-20260708075022-9cc760fe507e
 	github.com/ayn2op/ningen/v3 v3.0.1-0.20260708075321-0ba1ffc70bd6
 	github.com/ayn2op/tview v0.0.0-20260730175844-eae642abc285
-	github.com/deckarep/gosx-notifier v0.0.0-20180201035817-e127226297fb
 	github.com/gdamore/tcell/v3 v3.4.1
-	github.com/gen2brain/beeep v0.11.2
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
@@ -29,7 +27,6 @@ require (
 )
 
 require (
-	git.sr.ht/~jackmordaunt/go-toast v1.1.2 // indirect
 	github.com/akavel/rsrc v0.10.2 // indirect
 	github.com/clipperhouse/displaywidth v0.11.0 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
@@ -37,20 +34,13 @@ require (
 	github.com/dchest/jsmin v1.0.0 // indirect
 	github.com/dlclark/regexp2/v2 v2.5.2 // indirect
 	github.com/ebitengine/purego v0.10.2 // indirect
-	github.com/esiqveland/notify v0.14.0 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
-	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/godbus/dbus/v5 v5.2.2 // indirect
 	github.com/gorilla/schema v1.4.1 // indirect
-	github.com/jackmordaunt/icns/v3 v3.0.1 // indirect
 	github.com/josephspurrier/goversioninfo v1.7.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.0 // indirect
-	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/randall77/makefat v0.0.0-20260406194835-1b91746796b7 // indirect
-	github.com/sergeymakinen/go-bmp v1.0.0 // indirect
-	github.com/sergeymakinen/go-ico v1.0.0 // indirect
-	github.com/tadvi/systray v0.0.0-20190226123456-11a2b8fa57af // indirect
 	github.com/twmb/murmur3 v1.1.8 // indirect
 	go4.org v0.0.0-20260112195520-a5071408f32f // indirect
 	golang.design/x/x11 v0.2.0 // indirect
