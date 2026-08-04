@@ -3,6 +3,7 @@ package http
 import (
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/arikawa/v3/gateway"
+	"github.com/ayn2op/discordo/internal/tls"
 	"github.com/google/uuid"
 )
 
@@ -11,13 +12,12 @@ import (
 const (
 	OS        = "Windows"
 	OSVersion = "10"
-
-	Browser          = "Chrome"
-	BrowserVersion   = "143.0.0.0"
-	BrowserUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " + Browser + "/" + BrowserVersion + " Safari/537.36"
-
-	Locale = discord.EnglishUS
+	Locale    = discord.EnglishUS
 )
+
+func BrowserUserAgent() string {
+	return "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " + tls.BrowserName() + "/" + tls.BrowserVersion() + " Safari/537.36"
+}
 
 func CommonProperties() gateway.IdentifyProperties {
 	return gateway.IdentifyProperties{
@@ -26,9 +26,9 @@ func CommonProperties() gateway.IdentifyProperties {
 		gateway.IdentifyOS: OS,
 		"os_version":       OSVersion,
 
-		gateway.IdentifyBrowser: Browser,
-		"browser_version":       BrowserVersion,
-		"browser_user_agent":    BrowserUserAgent,
+		gateway.IdentifyBrowser: tls.BrowserName(),
+		"browser_version":       tls.BrowserVersion(),
+		"browser_user_agent":    BrowserUserAgent(),
 
 		"client_build_number": ClientBuildNumber,
 		"client_event_source": nil,
