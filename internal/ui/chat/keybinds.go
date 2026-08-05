@@ -29,6 +29,9 @@ func (m *Model) activeKeyMap() help.KeyMap {
 	if m.GetVisible(channelsPickerLayerName) {
 		return m.channelsPicker
 	}
+	if m.GetVisible(attachmentsPickerLayerName) {
+		return m.messagesList.attachmentsPicker
+	}
 
 	switch m.app.Focused() {
 	case m.guildsTree:

@@ -25,6 +25,7 @@ import (
 	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/markdown"
 	"github.com/ayn2op/discordo/internal/ui"
+	"github.com/ayn2op/discordo/internal/ui/chat/attachmentspicker"
 	"github.com/ayn2op/ningen/v3/discordmd"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/help"
@@ -54,7 +55,7 @@ type messagesList struct {
 	// itemByID caches rendered message TextViews.
 	itemByID map[discord.MessageID]*tview.TextView
 
-	attachmentsPicker *attachmentsPicker
+	attachmentsPicker *attachmentspicker.Model
 }
 
 var _ help.KeyMap = (*messagesList)(nil)
@@ -80,7 +81,7 @@ func newMessagesList(cfg *config.Config, chat *Model) *messagesList {
 		renderer: markdown.NewRenderer(cfg),
 		itemByID: make(map[discord.MessageID]*tview.TextView),
 	}
-	ml.attachmentsPicker = newAttachmentsPicker(cfg, chat)
+	ml.attachmentsPicker = attachmentspicker.NewModel(cfg)
 
 	ui.ConfigureBox(ml.Box, &cfg.Theme)
 	ml.SetTitle("Messages")
@@ -1166,23 +1167,23 @@ func messageURLs(msg discord.Message) []string {
 }
 
 func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord.Attachment) tview.Cmd {
-	var items []attachmentItem
+	var items []attachmentspicker.Item
 	for _, a := range attachments {
 		attachment := a
 		open := ml.openURL(attachment.URL)
 		if strings.HasPrefix(attachment.ContentType, "image/") {
 			open = ml.openAttachment(attachment)
 		}
-		items = append(items, attachmentItem{
-			label: attachment.Filename,
-			open:  open,
+		items = append(items, attachmentspicker.Item{
+			Label: attachment.Filename,
+			Open:  open,
 		})
 	}
 	for _, u := range urls {
 		url := u
-		items = append(items, attachmentItem{
-			label: url,
-			open:  ml.openURL(url),
+		items = append(items, attachmentspicker.Item{
+			Label: url,
+			Open:  ml.openURL(url),
 		})
 	}
 	ml.attachmentsPicker.SetItems(items)

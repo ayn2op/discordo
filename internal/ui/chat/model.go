@@ -18,6 +18,7 @@ import (
 	clientgateway "github.com/ayn2op/discordo/internal/gateway"
 	"github.com/ayn2op/discordo/internal/http"
 	"github.com/ayn2op/discordo/internal/ui"
+	"github.com/ayn2op/discordo/internal/ui/chat/attachmentspicker"
 	"github.com/ayn2op/discordo/internal/ui/chat/channelspicker"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/ningen/v3/states/read"
@@ -168,6 +169,11 @@ func (m *Model) openPicker() {
 func (m *Model) closePicker() {
 	m.RemoveLayer(channelsPickerLayerName)
 	m.channelsPicker.Refresh()
+}
+
+func (m *Model) closeAttachmentsPicker() tview.Cmd {
+	m.RemoveLayer(attachmentsPickerLayerName)
+	return tview.SetFocus(m.messagesList)
 }
 
 func (m *Model) navigateToChannel(channelID discord.ChannelID) tview.Cmd {
@@ -354,6 +360,10 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 	case channelspicker.CancelMsg:
 		m.closePicker()
 		return nil
+	case attachmentspicker.SelectedMsg:
+		return tview.Sequence(msg.Open, m.closeAttachmentsPicker())
+	case attachmentspicker.CancelMsg:
+		return m.closeAttachmentsPicker()
 	case QuitMsg:
 		return m.closeState()
 	case tview.KeyMsg:
