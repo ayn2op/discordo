@@ -18,6 +18,7 @@ import (
 	clientgateway "github.com/ayn2op/discordo/internal/gateway"
 	"github.com/ayn2op/discordo/internal/http"
 	"github.com/ayn2op/discordo/internal/ui"
+	"github.com/ayn2op/discordo/internal/ui/chat/channelspicker"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/ningen/v3/states/read"
 	"github.com/ayn2op/tview"
@@ -48,7 +49,7 @@ type Model struct {
 	guildsTree     *guildsTree
 	messagesList   *messagesList
 	composer       *composer
-	channelsPicker *channelsPicker
+	channelsPicker *channelspicker.Model
 
 	selectedChannel   *discord.Channel
 	selectedChannelMu sync.RWMutex
@@ -79,7 +80,7 @@ func NewModel(app *tview.Application, cfg *config.Config, token string) *Model {
 	m.guildsTree = newGuildsTree(cfg, m)
 	m.messagesList = newMessagesList(cfg, m)
 	m.composer = newComposer(cfg, m)
-	m.channelsPicker = newChannelsPicker(cfg, m)
+	m.channelsPicker = channelspicker.NewModel(cfg)
 
 	id := gateway.NewIdentifier(gateway.IdentifyCommand{
 		Token:      token,
@@ -161,12 +162,34 @@ func (m *Model) openPicker() {
 		layers.WithVisible(true),
 		layers.WithOverlay(),
 	).SendToFront(channelsPickerLayerName)
-	m.channelsPicker.update()
+	m.channelsPicker.RefreshChannels(m.state)
 }
 
 func (m *Model) closePicker() {
 	m.RemoveLayer(channelsPickerLayerName)
 	m.channelsPicker.Refresh()
+}
+
+func (m *Model) navigateToChannel(channelID discord.ChannelID) tview.Cmd {
+	channel, err := m.state.Cabinet.Channel(channelID)
+	if err != nil {
+		slog.Error("failed to get channel from state", "err", err, "channel_id", channelID)
+		return nil
+	}
+
+	node := m.guildsTree.findNodeByChannelID(channel.ID)
+	if node == nil {
+		slog.Error("failed to locate channel in tree", "channel_id", channel.ID)
+		return nil
+	}
+
+	m.guildsTree.expandPathToNode(node)
+	m.guildsTree.SetCurrentNode(node)
+	m.closePicker()
+	if channel.Type != discord.GuildCategory {
+		return m.guildsTree.onSelected(node)
+	}
+	return nil
 }
 
 func (m *Model) toggleGuildsTree() tview.Cmd {
@@ -326,6 +349,11 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		return focusCmd
 	case deleteMessageMsg:
 		return m.messagesList.deleteMessageRequest(discord.Message(msg))
+	case channelspicker.SelectedMsg:
+		return m.navigateToChannel(msg.ChannelID)
+	case channelspicker.CancelMsg:
+		m.closePicker()
+		return nil
 	case QuitMsg:
 		return m.closeState()
 	case tview.KeyMsg:

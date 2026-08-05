@@ -2,6 +2,7 @@ package chat
 
 import (
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/help"
 	"github.com/ayn2op/tview/keybind"
@@ -24,7 +25,7 @@ var _ help.KeyMap = (*attachmentsPicker)(nil)
 
 func newAttachmentsPicker(cfg *config.Config, chat *Model) *attachmentsPicker {
 	ap := &attachmentsPicker{Model: picker.NewModel(), cfg: cfg, chat: chat}
-	ConfigurePicker(ap.Model, cfg, "Attachments")
+	ui.ConfigurePicker(ap.Model, cfg, "Attachments")
 	return ap
 }
 
