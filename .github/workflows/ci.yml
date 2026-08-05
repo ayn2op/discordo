@@ -27,7 +27,16 @@ jobs:
           go-version: stable
 
       - name: Test
-        run: go test -v ./...
+        if: ${{ matrix.os != 'windows-11-arm' }}
+        run: |
+          go test -race -v ./...
+          go test -race -v -tags no_spoof_tls_fingerprint ./...
+      # -race is not supported on windows/arm64.
+      - name: Test
+        if: ${{ matrix.os == 'windows-11-arm' }}
+        run: |
+          go test -v ./...
+          go test -v -tags no_spoof_tls_fingerprint ./...
 
       - name: Build
         run: go build -trimpath -ldflags=-s .

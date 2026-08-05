@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/ayn2op/arikawa/v3/utils/httputil"
+	"github.com/ayn2op/discordo/internal/gateway"
 	"github.com/ayn2op/discordo/internal/http"
 	"github.com/ayn2op/tview"
 	"github.com/gorilla/websocket"
@@ -39,8 +40,9 @@ type connCloseMsg struct{}
 func (m *Model) connect() tview.Cmd {
 	return func() tview.Msg {
 		headers := http.Headers()
-		headers.Set("User-Agent", http.BrowserUserAgent)
-		conn, _, err := websocket.DefaultDialer.Dial(remoteAuthGatewayURL, headers)
+		headers.Set("User-Agent", http.BrowserUserAgent())
+		dialer := gateway.NewDialer()
+		conn, _, err := dialer.Dial(remoteAuthGatewayURL, headers)
 		if err != nil {
 			return newErrMsg(err)
 		}

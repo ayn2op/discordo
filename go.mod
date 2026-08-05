@@ -11,6 +11,8 @@ require (
 	github.com/ayn2op/arikawa/v3 v3.0.0-20260708075022-9cc760fe507e
 	github.com/ayn2op/ningen/v3 v3.0.1-0.20260708075321-0ba1ffc70bd6
 	github.com/ayn2op/tview v0.0.0-20260803165347-d8123f4ec53c
+	github.com/bogdanfinn/fhttp v0.6.8
+	github.com/bogdanfinn/tls-client v1.15.1
 	github.com/gdamore/tcell/v3 v3.4.1
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0
@@ -28,6 +30,11 @@ require (
 
 require (
 	github.com/akavel/rsrc v0.10.2 // indirect
+	github.com/bdandy/go-errors v1.2.2 // indirect
+	github.com/bdandy/go-socks4 v1.2.3 // indirect
+	github.com/bogdanfinn/quic-go-utls v1.0.9-utls // indirect
+	github.com/bogdanfinn/utls v1.7.7-barnius // indirect
+	github.com/bogdanfinn/websocket v1.5.5-barnius // indirect
 	github.com/clipperhouse/displaywidth v0.11.0 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/danieljoos/wincred v1.2.3 // indirect
@@ -40,13 +47,17 @@ require (
 	github.com/josephspurrier/goversioninfo v1.7.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/randall77/makefat v0.0.0-20260406194835-1b91746796b7 // indirect
+	github.com/tam7t/hpkp v0.0.0-20160821193359-2b70b4024ed5 // indirect
 	github.com/twmb/murmur3 v1.1.8 // indirect
 	go4.org v0.0.0-20260112195520-a5071408f32f // indirect
 	golang.design/x/x11 v0.2.0 // indirect
+	golang.org/x/crypto v0.54.0 // indirect
 	golang.org/x/exp/shiny v0.0.0-20260727155853-b88d891fe743 // indirect
 	golang.org/x/image v0.44.0 // indirect
 	golang.org/x/mobile v0.0.0-20260730202154-c700fe717e6e // indirect
+	golang.org/x/net v0.57.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/term v0.45.0 // indirect
 	golang.org/x/text v0.40.0 // indirect

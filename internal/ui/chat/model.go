@@ -15,6 +15,7 @@ import (
 	"github.com/ayn2op/arikawa/v3/utils/httputil"
 	"github.com/ayn2op/arikawa/v3/utils/ws"
 	"github.com/ayn2op/discordo/internal/config"
+	clientgateway "github.com/ayn2op/discordo/internal/gateway"
 	"github.com/ayn2op/discordo/internal/http"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/ningen/v3"
@@ -85,7 +86,8 @@ func NewModel(app *tview.Application, cfg *config.Config, token string) *Model {
 		Properties: http.IdentifyProperties(),
 	})
 
-	session := session.NewCustom(id, http.NewClient(token), handler.New())
+	session := session.NewWithGateway(clientgateway.New(id), handler.New())
+	session.Client = http.NewClient(token)
 	state := state.NewFromSession(session, defaultstore.New())
 	m.state = ningen.FromState(state)
 	m.state.DontWaitForReady = true
