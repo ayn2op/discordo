@@ -71,7 +71,7 @@ func newComposer(cfg *config.Config, chat *Model) *composer {
 		cfg:             cfg,
 		chat:            chat,
 		sendMessageData: &api.SendMessageData{},
-		cache:           cache.NewCache(),
+		cache:           cache.New(),
 		mentionsList:    mentionslist.NewModel(cfg),
 	}
 	c.Box = ui.ConfigureBox(c.Box, &cfg.Theme)

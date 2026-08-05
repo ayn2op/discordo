@@ -9,7 +9,7 @@ type Cache struct {
 	items sync.Map
 }
 
-func NewCache() *Cache {
+func New() *Cache {
 	return &Cache{}
 }
 
