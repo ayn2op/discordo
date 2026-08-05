@@ -82,7 +82,7 @@ func newMessagesList(cfg *config.Config, chat *Model) *messagesList {
 	}
 	ml.attachmentsPicker = newAttachmentsPicker(cfg, chat)
 
-	ml.Box = ui.ConfigureBox(ml.Box, &cfg.Theme)
+	ui.ConfigureBox(ml.Box, &cfg.Theme)
 	ml.SetTitle("Messages")
 	ml.SetBuilder(ml.buildItem)
 	ml.SetChangedFunc(ml.onRowCursorChanged)

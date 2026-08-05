@@ -74,7 +74,7 @@ func newComposer(cfg *config.Config, chat *Model) *composer {
 		cache:           cache.New(),
 		mentionsList:    mentionslist.NewModel(cfg),
 	}
-	c.Box = ui.ConfigureBox(c.Box, &cfg.Theme)
+	ui.ConfigureBox(c.Box, &cfg.Theme)
 	c.
 		SetPlaceholder(tview.NewLine(tview.NewSegment("Select a channel to start chatting", tcell.StyleDefault.Dim(true)))).
 		SetClipboard(

@@ -15,7 +15,7 @@ import (
 )
 
 // ConfigureBox configures the provided box according to the provided theme.
-func ConfigureBox(box *tview.Box, cfg *config.Theme) *tview.Box {
+func ConfigureBox(box *tview.Box, cfg *config.Theme) {
 	border := cfg.Border
 	normalBorderStyle, activeBorderStyle := border.NormalStyle.Style, border.ActiveStyle.Style
 	normalBorderSet, activeBorderSet := border.NormalSet.BorderSet, border.ActiveSet.BorderSet
@@ -52,12 +52,11 @@ func ConfigureBox(box *tview.Box, cfg *config.Theme) *tview.Box {
 	if border.Enabled {
 		box.SetBorders(tview.BordersAll)
 	}
-
-	return box
 }
 
 func ConfigurePicker(model *picker.Model, cfg *config.Config, title string) {
-	model.Box = ConfigureBox(tview.NewBox(), &cfg.Theme)
+	model.Box = tview.NewBox()
+	ConfigureBox(model.Box, &cfg.Theme)
 	// When a child of the parent flex is focused, the parent layout itself is not reported as focused.
 	// Instead, the focused child (picker) is considered focused.
 	// Therefore, we manually set the active border style on the picker to ensure it displays the correct focused appearance.

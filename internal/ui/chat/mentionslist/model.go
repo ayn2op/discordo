@@ -16,7 +16,7 @@ type Model struct {
 
 func NewModel(cfg *config.Config) *Model {
 	l := list.NewModel()
-	l.Box = ui.ConfigureBox(l.Box, &cfg.Theme)
+	ui.ConfigureBox(l.Box, &cfg.Theme)
 	l.
 		SetSelectedStyle(tcell.StyleDefault.Reverse(true)).
 		SetSnapToItems(true).

@@ -42,8 +42,7 @@ func newGuildsTree(cfg *config.Config, chat *Model) *guildsTree {
 		guildNodeByID:   make(map[discord.GuildID]*tree.Node),
 		channelNodeByID: make(map[discord.ChannelID]*tree.Node),
 	}
-
-	gt.Box = ui.ConfigureBox(gt.Box, &cfg.Theme)
+	ui.ConfigureBox(gt.Box, &cfg.Theme)
 	gt.
 		SetRoot(tree.NewNode("")).
 		SetTopLevel(1).
