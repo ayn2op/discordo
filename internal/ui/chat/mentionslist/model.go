@@ -10,7 +10,7 @@ import (
 )
 
 type Model struct {
-	list  *list.Model
+	*list.Model
 	items []Item
 }
 
@@ -34,7 +34,7 @@ func NewModel(cfg *config.Config) *Model {
 	b.BottomLeft, b.BottomRight = b.BottomT, b.BottomT
 	l.SetBorderSet(b)
 
-	return &Model{list: l}
+	return &Model{Model: l}
 }
 
 func (m *Model) Append(item Item) {
@@ -43,7 +43,7 @@ func (m *Model) Append(item Item) {
 
 func (m *Model) Clear() {
 	m.items = nil
-	m.list.Clear()
+	m.Model.Clear()
 }
 
 func (m *Model) ItemCount() int {
@@ -51,7 +51,7 @@ func (m *Model) ItemCount() int {
 }
 
 func (m *Model) SelectedInsertText() (string, bool) {
-	index := m.list.Cursor()
+	index := m.Cursor()
 	if index < 0 || index >= len(m.items) {
 		return "", false
 	}
@@ -67,7 +67,7 @@ func (m *Model) MaxDisplayWidth() int {
 }
 
 func (m *Model) Rebuild() {
-	m.list.SetBuilder(func(index int) list.Item {
+	m.SetBuilder(func(index int) list.Item {
 		if index < 0 || index >= len(m.items) {
 			return nil
 		}
@@ -83,38 +83,10 @@ func (m *Model) Rebuild() {
 	})
 
 	if len(m.items) == 0 {
-		m.list.SetCursor(-1)
+		m.SetCursor(-1)
 		return
 	}
-	m.list.SetCursor(0)
+	m.SetCursor(0)
 }
 
 var _ tview.Model = (*Model)(nil)
-
-func (m *Model) Blur() {
-	m.list.Blur()
-}
-
-func (m *Model) Focus(delegate func(tview.Model)) {
-	m.list.Focus(delegate)
-}
-
-func (m *Model) HasFocus() bool {
-	return m.list.HasFocus()
-}
-
-func (m *Model) Rect() (int, int, int, int) {
-	return m.list.Rect()
-}
-
-func (m *Model) SetRect(x int, y int, width int, height int) {
-	m.list.SetRect(x, y, width, height)
-}
-
-func (m *Model) Update(msg tview.Msg) tview.Cmd {
-	return m.list.Update(msg)
-}
-
-func (m *Model) View(screen tcell.Screen) {
-	m.list.View(screen)
-}
