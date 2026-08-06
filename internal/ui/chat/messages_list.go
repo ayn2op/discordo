@@ -516,7 +516,9 @@ func (ml *messagesList) drawDefaultMessage(builder *tview.LineBuilder, message d
 	for _, a := range message.Attachments {
 		builder.NewLine()
 		if ml.cfg.ShowAttachmentLinks {
-			builder.Write(a.Filename+":\n"+a.URL, attachmentStyle)
+			builder.Write(a.Filename+":", attachmentStyle)
+			builder.NewLine()
+			builder.Write(a.URL, attachmentStyle.Url(a.URL))
 		} else {
 			builder.Write(a.Filename, attachmentStyle)
 		}
