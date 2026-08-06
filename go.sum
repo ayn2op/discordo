@@ -14,8 +14,8 @@ github.com/ayn2op/arikawa/v3 v3.0.0-20260708075022-9cc760fe507e h1:rsMifRXwxkbha
 github.com/ayn2op/arikawa/v3 v3.0.0-20260708075022-9cc760fe507e/go.mod h1:gqklpHK7WHYTzpd1ZY6Ho/p9GURBghzBCzRiBYpaUP8=
 github.com/ayn2op/ningen/v3 v3.0.1-0.20260708075321-0ba1ffc70bd6 h1:/khHm6G+GWwXpmwA8bJoaXoUhubqMEUG6spjZsnklIw=
 github.com/ayn2op/ningen/v3 v3.0.1-0.20260708075321-0ba1ffc70bd6/go.mod h1:vqLIvETLkjc2vIgQzVEBqpGNCrgNe7YJqS9TUAJsXRI=
-github.com/ayn2op/tview v0.0.0-20260805051036-f8d695faec51 h1:hvyPcZcLG6dEAVXNpsMSWj93oJ1TIcDkJ+2eBcT1Yi0=
-github.com/ayn2op/tview v0.0.0-20260805051036-f8d695faec51/go.mod h1:bJZdl/FfspPLEW3nuX6ubt7YbmDoSj7f2IoWH37w1NE=
+github.com/ayn2op/tview v0.0.0-20260806205637-7fdbc79aff89 h1:/cvaZ7JUGRuclbqkWsH435iuW5DmiGOr/hV8sJ8SSHI=
+github.com/ayn2op/tview v0.0.0-20260806205637-7fdbc79aff89/go.mod h1:bJZdl/FfspPLEW3nuX6ubt7YbmDoSj7f2IoWH37w1NE=
 github.com/bdandy/go-errors v1.2.2 h1:WdFv/oukjTJCLa79UfkGmwX7ZxONAihKu4V0mLIs11Q=
 github.com/bdandy/go-errors v1.2.2/go.mod h1:NkYHl4Fey9oRRdbB1CoC6e84tuqQHiqrOcZpqFEkBxM=
 github.com/bdandy/go-socks4 v1.2.3 h1:Q6Y2heY1GRjCtHbmlKfnwrKVU/k81LS8mRGLRlmDlic=
@@ -62,8 +62,8 @@ github.com/hexops/gotextdiff v1.0.3 h1:gitA9+qJrrTCsiCl7+kh75nPqQt1cx4ZkudSTLoUq
 github.com/hexops/gotextdiff v1.0.3/go.mod h1:pSWU5MAI3yDq+fZBTazCSJysOMbxWL1BSow5/V2vxeg=
 github.com/josephspurrier/goversioninfo v1.7.0 h1:LQzXOlVm/CtbwJ9/UHl5a2HT0BjcLAwid5gqGd7ZUJ8=
 github.com/josephspurrier/goversioninfo v1.7.0/go.mod h1:z9y0r2G6g5jwSJaFE0cxW9to0aeIibK7UYeLx53aQRU=
-github.com/klauspost/compress v1.19.1 h1:VsB4HPswih7mmZ8WleSFQ75c/Ui1M4trX5oAsJnhSlk=
-github.com/klauspost/compress v1.19.1/go.mod h1:cwPg85FWrGar70rWktvGQj8/hthj3wpl0PGDogxkrSQ=
+github.com/klauspost/compress v1.19.2 h1:hMRETovs/pu/dVWN7zIT1PGG8t509MwT6bO7XSi26R8=
+github.com/klauspost/compress v1.19.2/go.mod h1:cwPg85FWrGar70rWktvGQj8/hthj3wpl0PGDogxkrSQ=
 github.com/kylelemons/godebug v1.1.0 h1:RPNrshWIDI6G2gRW9EHilWtl7Z6Sb1BR0xunSBf0SNc=
 github.com/kylelemons/godebug v1.1.0/go.mod h1:9/0rRGxNHcop5bhtWyNeEfOS8JIWk580+fNqagV/RAw=
 github.com/lucasb-eyer/go-colorful v1.4.1 h1:1EO+WB73+EH8EVbzlrG3KLAfEypQWVHIBqlTf+2hNss=
