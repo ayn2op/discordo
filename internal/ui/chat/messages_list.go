@@ -46,10 +46,7 @@ type messagesList struct {
 	cfg      *config.Config
 	chat     *Model
 	messages []discord.Message
-	// rows is the virtual list model rendered by tview (message rows +
-	// date-separator rows). It is rebuilt lazily when rowsDirty is true.
-	rows      []messagesListRow
-	rowsDirty bool
+	rows     []messagesListRow
 
 	renderer *markdown.Renderer
 	// itemByID caches rendered message TextViews.
@@ -106,7 +103,6 @@ func newMessagesList(cfg *config.Config, chat *Model) *messagesList {
 func (ml *messagesList) reset() {
 	ml.messages = nil
 	ml.rows = nil
-	ml.rowsDirty = false
 	clear(ml.itemByID)
 	ml.
 		Clear().
@@ -126,17 +122,14 @@ func (ml *messagesList) setTitle(channel discord.Channel) {
 func (ml *messagesList) setMessages(messages []discord.Message) {
 	ml.messages = slices.Clone(messages)
 	slices.Reverse(ml.messages)
-	ml.invalidateRows()
-	// New channel payload / refetch: replace the cache wholesale to keep it in
-	// lockstep with the current message slice.
 	clear(ml.itemByID)
+	ml.rebuildRows()
 }
 
 func (ml *messagesList) addMessage(message discord.Message) {
 	ml.messages = append(ml.messages, message)
-	ml.invalidateRows()
-	// Defensive invalidation for ID reuse/edits delivered out-of-order.
 	delete(ml.itemByID, message.ID)
+	ml.rebuildRows()
 }
 
 func (ml *messagesList) setMessage(index int, message discord.Message) {
@@ -146,7 +139,7 @@ func (ml *messagesList) setMessage(index int, message discord.Message) {
 
 	ml.messages[index] = message
 	delete(ml.itemByID, message.ID)
-	ml.invalidateRows()
+	ml.rebuildRows()
 }
 
 func (ml *messagesList) deleteMessage(index int) {
@@ -156,7 +149,7 @@ func (ml *messagesList) deleteMessage(index int) {
 
 	delete(ml.itemByID, ml.messages[index].ID)
 	ml.messages = append(ml.messages[:index], ml.messages[index+1:]...)
-	ml.invalidateRows()
+	ml.rebuildRows()
 }
 
 func (ml *messagesList) clearSelection() {
@@ -164,8 +157,6 @@ func (ml *messagesList) clearSelection() {
 }
 
 func (ml *messagesList) buildItem(index int) list.Item {
-	ml.ensureRows()
-
 	if index < 0 || index >= len(ml.rows) {
 		return nil
 	}
@@ -248,21 +239,7 @@ func (ml *messagesList) rebuildRows() {
 	}
 
 	ml.rows = rows
-	ml.rowsDirty = false
-}
-
-func (ml *messagesList) invalidateRows() {
-	ml.rowsDirty = true
-}
-
-// ensureRows lazily rebuilds list rows. This avoids repeated O(n) row rebuild
-// work when multiple message mutations happen close together.
-func (ml *messagesList) ensureRows() {
-	if !ml.rowsDirty {
-		return
-	}
-
-	ml.rebuildRows()
+	ml.SetBuilder(ml.buildItem)
 }
 
 func sameLocalDate(a discord.Timestamp, b discord.Timestamp) bool {
@@ -273,7 +250,6 @@ func sameLocalDate(a discord.Timestamp, b discord.Timestamp) bool {
 
 // Cursor returns the selected message index, skipping separator rows.
 func (ml *messagesList) Cursor() int {
-	ml.ensureRows()
 	rowIndex := ml.Model.Cursor()
 	if rowIndex < 0 || rowIndex >= len(ml.rows) {
 		return -1
@@ -292,7 +268,6 @@ func (ml *messagesList) SetCursor(index int) {
 }
 
 func (ml *messagesList) messageToRowIndex(messageIndex int) int {
-	ml.ensureRows()
 	if messageIndex < 0 || messageIndex >= len(ml.messages) {
 		return -1
 	}
@@ -307,7 +282,6 @@ func (ml *messagesList) messageToRowIndex(messageIndex int) int {
 }
 
 func (ml *messagesList) onRowCursorChanged(rowIndex int) {
-	ml.ensureRows()
 	if rowIndex < 0 || rowIndex >= len(ml.rows) || ml.rows[rowIndex].kind == messagesListRowMessage {
 		return
 	}
@@ -927,7 +901,7 @@ func (ml *messagesList) Update(msg tview.Msg) tview.Cmd {
 			delete(ml.itemByID, message.ID)
 		}
 		ml.messages = slices.Concat(msg.Older, ml.messages)
-		ml.invalidateRows()
+		ml.rebuildRows()
 
 		switch {
 		case prevCursor == 0:
@@ -1378,6 +1352,7 @@ func (ml *messagesList) requestGuildMembers(guildID discord.GuildID, messages []
 
 func (ml *messagesList) invalidateRenderedMessages() {
 	clear(ml.itemByID)
+	ml.SetBuilder(ml.buildItem)
 }
 
 func (ml *messagesList) ShortHelp() []keybind.Keybind {
