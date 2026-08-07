@@ -101,7 +101,7 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		return tview.Batch(m.heartbeat(), m.sendHeartbeat())
 
 	case errMsg:
-		m.msg = msg.err.Error()
+		m.msg = msg.Error()
 		return m.close()
 	}
 

@@ -40,7 +40,21 @@ go build .
 
 ## Usage
 
-### Token (UI, recommended)
+### Password (UI, recommended)
+
+1. Run the `discordo` executable with no arguments.
+
+2. Open the "Password" tab, enter your email address or E.164-formatted phone number and password, then click the "Login" button.
+
+### QR (UI)
+
+1. Run the `discordo` executable with no arguments.
+
+2. Click on the "Login with QR" button.
+
+3. Follow the instructions in the QR Login screen.
+
+### Token (UI)
 
 1. Run the `discordo` executable with no arguments.
 
@@ -53,14 +67,6 @@ Set the value of the `DISCORDO_TOKEN` environment variable to the authentication
 ```sh
 DISCORDO_TOKEN="OTI2MDU5NTQxNDE2Nzc5ODA2.Yc2KKA.2iZ-5JxgxG-9Ub8GHzBSn-NJjNg" discordo
 ```
-
-### QR (UI)
-
-1. Run the `discordo` executable with no arguments.
-
-2. Click on the "Login with QR" button.
-
-3. Follow the instructions in the QR Login screen.
 
 ## Configuration
 

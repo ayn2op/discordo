@@ -1,4 +1,4 @@
-package token
+package password
 
 import (
 	"github.com/ayn2op/tview"
@@ -11,7 +11,8 @@ type Model struct {
 
 func NewModel() *Model {
 	form := tview.NewForm().
-		AddPasswordField("Token", "", 0, 0).
+		AddInputField("Login", "", 0).
+		AddPasswordField("Password", "", 0, 0).
 		AddButton("Login")
 	return &Model{Form: form}
 }
@@ -19,17 +20,18 @@ func NewModel() *Model {
 var _ tabs.Tab = (*Model)(nil)
 
 func (m *Model) Label() string {
-	return "Token"
+	return "Password"
 }
 
 func (m *Model) Update(msg tview.Msg) tview.Cmd {
 	switch msg.(type) {
 	case tview.FormSubmitMsg:
-		token := m.GetFormItem(0).(*tview.InputField).Text()
-		if token == "" {
+		login := m.GetFormItem(0).(*tview.InputField).Text()
+		password := m.GetFormItem(1).(*tview.InputField).Text()
+		if login == "" || password == "" {
 			return nil
 		}
-		return tokenCmd(token)
+		return loginCmd(login, password)
 	}
 	return m.Form.Update(msg)
 }

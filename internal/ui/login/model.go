@@ -8,6 +8,7 @@ import (
 
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/ui"
+	"github.com/ayn2op/discordo/internal/ui/login/password"
 	"github.com/ayn2op/discordo/internal/ui/login/qr"
 	"github.com/ayn2op/discordo/internal/ui/login/token"
 	"github.com/ayn2op/tview"
@@ -23,7 +24,7 @@ type Model struct {
 }
 
 func NewModel(cfg *config.Config) *Model {
-	tabs := tabs.NewModel([]tabs.Tab{token.NewModel(), qr.NewModel()})
+	tabs := tabs.NewModel([]tabs.Tab{password.NewModel(), qr.NewModel(), token.NewModel()})
 
 	l := layers.New()
 	ui.ConfigureBox(l.Box, &cfg.Theme)
@@ -38,7 +39,9 @@ func NewModel(cfg *config.Config) *Model {
 func (m *Model) Update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
 	case errMsg:
-		return m.showErrorDialog(msg.err)
+		return m.showErrorDialog(msg)
+	case password.ErrMsg:
+		return m.showErrorDialog(msg)
 	case copyErrorMsg:
 		return setClipboard(string(msg))
 	}

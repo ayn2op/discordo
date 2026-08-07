@@ -5,9 +5,7 @@ import (
 	"golang.design/x/clipboard"
 )
 
-type errMsg struct {
-	err error
-}
+type errMsg error
 
 type copyErrorMsg string
 
