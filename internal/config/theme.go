@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/list"
@@ -17,7 +18,6 @@ func (aw *AlignmentWrapper) UnmarshalTOML(v any) error {
 	if !ok {
 		return errInvalidType
 	}
-
 	switch s {
 	case "left":
 		aw.Alignment = tview.AlignmentLeft
@@ -25,8 +25,9 @@ func (aw *AlignmentWrapper) UnmarshalTOML(v any) error {
 		aw.Alignment = tview.AlignmentCenter
 	case "right":
 		aw.Alignment = tview.AlignmentRight
+	default:
+		return fmt.Errorf("unknown value: %q", s)
 	}
-
 	return nil
 }
 
@@ -77,6 +78,8 @@ func (sw *StyleWrapper) UnmarshalTOML(v any) error {
 					sw.Style = sw.Underline(tcell.UnderlineStyleDotted)
 				case "dashed":
 					sw.Style = sw.Underline(tcell.UnderlineStyleDashed)
+				default:
+					return fmt.Errorf("unknown value: %q", s)
 				}
 			}
 		case "underline_color":
@@ -115,7 +118,6 @@ func (bw *BorderSetWrapper) UnmarshalTOML(val any) error {
 	if !ok {
 		return errInvalidType
 	}
-
 	switch s {
 	case "hidden":
 		bw.BorderSet = tview.BorderSetHidden()
@@ -127,8 +129,9 @@ func (bw *BorderSetWrapper) UnmarshalTOML(val any) error {
 		bw.BorderSet = tview.BorderSetThick()
 	case "double":
 		bw.BorderSet = tview.BorderSetDouble()
+	default:
+		return fmt.Errorf("unknown value: %q", s)
 	}
-
 	return nil
 }
 
@@ -139,7 +142,6 @@ func (gw *GlyphSetWrapper) UnmarshalTOML(val any) error {
 	if !ok {
 		return errInvalidType
 	}
-
 	switch s {
 	case "minimal":
 		gw.GlyphSet = tview.MinimalGlyphSet()
@@ -147,8 +149,9 @@ func (gw *GlyphSetWrapper) UnmarshalTOML(val any) error {
 		gw.GlyphSet = tview.BoxDrawingGlyphSet()
 	case "unicode":
 		gw.GlyphSet = tview.UnicodeGlyphSet()
+	default:
+		return fmt.Errorf("unknown value: %q", s)
 	}
-
 	return nil
 }
 
@@ -159,7 +162,6 @@ func (vw *ScrollBarVisibilityWrapper) UnmarshalTOML(val any) error {
 	if !ok {
 		return errInvalidType
 	}
-
 	switch s {
 	case "automatic", "auto":
 		vw.ScrollBarVisibility = list.ScrollBarVisibilityAutomatic
@@ -167,8 +169,9 @@ func (vw *ScrollBarVisibilityWrapper) UnmarshalTOML(val any) error {
 		vw.ScrollBarVisibility = list.ScrollBarVisibilityAlways
 	case "never", "hidden", "off":
 		vw.ScrollBarVisibility = list.ScrollBarVisibilityNever
+	default:
+		return fmt.Errorf("unknown value: %q", s)
 	}
-
 	return nil
 }
 
