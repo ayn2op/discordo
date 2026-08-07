@@ -326,17 +326,13 @@ func (gt *guildsTree) loadChannel(channel discord.Channel) tview.Cmd {
 }
 
 func (gt *guildsTree) collapseParentNode(node *tree.Node) {
-	gt.
-		Root().
-		Walk(func(n, parent *tree.Node) bool {
-			if n == node && parent.GetLevel() != 0 {
-				parent.Collapse()
-				gt.SetCurrentNode(parent)
-				return false
-			}
-
-			return true
-		})
+	path := gt.GetPath(node)
+	if len(path) < 3 {
+		return
+	}
+	parent := path[len(path)-2]
+	parent.Collapse()
+	gt.SetCurrentNode(parent)
 }
 
 func (gt *guildsTree) Update(msg tview.Msg) tview.Cmd {
@@ -490,16 +486,7 @@ func (gt *guildsTree) collapseKeybinds() []keybind.Keybind {
 }
 
 func (gt *guildsTree) canCollapseParent(node *tree.Node) bool {
-	if node == nil {
-		return false
-	}
-	path := gt.GetPath(node)
-	// Path layout is [root, ..., node]. A non-root parent means at least 3 nodes.
-	if len(path) < 3 {
-		return false
-	}
-	parent := path[len(path)-2]
-	return parent != nil && parent.GetLevel() != 0
+	return node != nil && len(gt.GetPath(node)) >= 3
 }
 
 func (gt *guildsTree) canCollapseAll() bool {
