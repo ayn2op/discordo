@@ -155,7 +155,7 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 			}
 			return tview.Sequence(innerCmd, tview.Quit())
 		}
-	case tview.MouseMsg, tview.PasteMsg, tview.FormSubmitMsg, tview.FormCancelMsg, tview.ButtonExitMsg:
+	case tview.MouseMsg, tview.PasteMsg, tview.FormSubmitMsg, tview.FormCancelMsg:
 		if m.modalRequest != nil {
 			return m.Layers.Update(msg)
 		}

@@ -83,7 +83,6 @@ func newMessagesList(cfg *config.Config, chat *Model) *messagesList {
 	ui.ConfigureBox(ml.Box, &cfg.Theme)
 	ml.SetTitle("Messages")
 	ml.SetBuilder(ml.buildItem)
-	ml.SetChangedFunc(ml.onRowCursorChanged)
 	ml.SetTrackEnd(true)
 	ml.SetSelectedStyle(cfg.Theme.MessagesList.SelectedMessageStyle.Style)
 	ml.SetKeybinds(list.Keybinds{
@@ -887,8 +886,6 @@ func (ml *messagesList) Update(msg tview.Msg) tview.Cmd {
 		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.DeleteConfirm.Keybind):
 			return ml.confirmDelete()
 		}
-		return ml.Model.Update(msg)
-
 	case olderMessagesLoadedMsg:
 		selectedChannel, ok := ml.chat.SelectedChannel()
 		if !ok || selectedChannel.ID != msg.ChannelID {
@@ -918,7 +915,9 @@ func (ml *messagesList) Update(msg tview.Msg) tview.Cmd {
 		}
 		return nil
 	}
-	return ml.Model.Update(msg)
+	cmd := ml.Model.Update(msg)
+	ml.onRowCursorChanged(ml.Model.Cursor())
+	return cmd
 }
 
 func (ml *messagesList) selectUp() tview.Cmd {

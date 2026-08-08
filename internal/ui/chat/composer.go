@@ -86,8 +86,6 @@ func newComposer(cfg *config.Config, chat *Model) *composer {
 	return c
 }
 
-// forwardToTextArea passes a key event to the embedded TextArea then resizes for the new content.
-// SetChangedFunc isn't used: it fires inside replace's defer, before truncateLines/findCursor, so it would observe stale state.
 func (c *composer) forwardToTextArea(ev *tcell.EventKey) tview.Cmd {
 	cmd := c.TextArea.Update(ev)
 	c.resizeForContent()

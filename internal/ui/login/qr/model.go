@@ -21,7 +21,7 @@ type Model struct {
 	fingerprint       string
 
 	qrCode *qrcode.QRCode
-	msg    string
+	status string
 }
 
 func NewModel() *Model {
@@ -33,7 +33,7 @@ func NewModel() *Model {
 		SetWrap(false).
 		SetTextAlign(tview.AlignmentCenter)
 
-	m.msg = "Press Ctrl+N to open QR login"
+	m.setStatus("Press Ctrl+N to open QR login")
 	return m
 }
 
@@ -46,18 +46,18 @@ func (m *Model) Label() string {
 func (m *Model) Update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
 	case tview.InitMsg:
-		m.msg = "Connecting to Remote Auth Gateway..."
+		m.setStatus("Connecting to Remote Auth Gateway...")
 		return m.connect()
 	case tview.KeyMsg:
 		if msg.Key() == tcell.KeyEsc {
-			m.msg = "Canceled"
+			m.setStatus("Canceled")
 			return m.close()
 		}
 		return m.TextView.Update(msg)
 
 	case connCreateMsg:
 		m.conn = msg.conn
-		m.msg = "Connected. Handshaking..."
+		m.setStatus("Connected. Handshaking...")
 		return m.listen()
 	case connCloseMsg:
 		m.conn = nil
@@ -76,7 +76,7 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		return tview.Batch(m.listen(), m.generateQRCode(msg.fingerprint))
 	case qrCodeMsg:
 		m.qrCode = msg.qrCode
-		m.msg = "Scan this with the Discord mobile app to log in instantly."
+		m.setStatus("Scan this with the Discord mobile app to log in instantly.")
 		return m.listen()
 	case pendingTicketMsg:
 		return tview.Batch(m.listen(), m.decryptUserPayload(msg.encryptedUserPayload))
@@ -85,13 +85,13 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		if msg.discriminator != "0" {
 			name += "#" + msg.discriminator
 		}
-		m.msg = "Check your phone! Logging in as " + name
+		m.setStatus("Check your phone! Logging in as " + name)
 		return m.listen()
 	case pendingLoginMsg:
-		m.msg = "Authenticating..."
+		m.setStatus("Authenticating...")
 		return tview.Batch(m.close(), m.exchangeTicket(msg.ticket))
 	case cancelMsg:
-		m.msg = "Login canceled on mobile"
+		m.setStatus("Login canceled on mobile")
 		return m.close()
 
 	case heartbeatTickMsg:
@@ -101,7 +101,7 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		return tview.Batch(m.heartbeat(), m.sendHeartbeat())
 
 	case errMsg:
-		m.msg = msg.Error()
+		m.setStatus(msg.Error())
 		return m.close()
 	}
 
@@ -123,28 +123,46 @@ func halfBlock(top, bottom bool) rune {
 	}
 }
 
-func (m *Model) View(screen tcell.Screen) {
-	var contents []string
+func (m *Model) SetRect(x, y, width, height int) {
+	_, _, _, oldHeight := m.Rect()
+	m.TextView.SetRect(x, y, width, height)
+	if oldHeight != height {
+		m.render()
+	}
+}
+
+func (m *Model) setStatus(status string) {
+	m.status = status
+	m.render()
+}
+
+func (m *Model) render() {
+	var text strings.Builder
 	if m.qrCode != nil {
 		bitmap := m.qrCode.Bitmap()
-		var b strings.Builder
 		for y := 0; y < len(bitmap); y += 2 {
 			for x := range bitmap[y] {
 				top := bitmap[y][x]
 				bottom := y+1 < len(bitmap) && bitmap[y+1][x]
-				b.WriteRune(halfBlock(top, bottom))
+				text.WriteRune(halfBlock(top, bottom))
 			}
-			b.WriteByte('\n')
+			text.WriteByte('\n')
 		}
-		contents = append(contents, b.String())
 	}
-	if m.msg != "" {
-		contents = append(contents, m.msg)
+	if m.status != "" {
+		if text.Len() > 0 {
+			text.WriteByte('\n')
+		}
+		text.WriteString(m.status)
 	}
 
 	builder := tview.NewLineBuilder()
-	builder.Write(strings.Join(contents, "\n"), tcell.StyleDefault)
+	builder.Write(text.String(), tcell.StyleDefault)
 	m.SetLines(m.centerLines(builder.Finish()))
+	m.TextView.SetRect(m.Rect())
+}
+
+func (m *Model) View(screen tcell.Screen) {
 	m.TextView.View(screen)
 }
 
