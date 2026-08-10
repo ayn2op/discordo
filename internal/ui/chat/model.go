@@ -324,7 +324,7 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 
 		m.SetSelectedChannel(&msg.Channel)
 		m.clearTypers()
-		m.composer.stopTypingTimer()
+		m.composer.typingUntil = time.Time{}
 
 		m.messagesList.reset()
 		m.messagesList.setTitle(msg.Channel)

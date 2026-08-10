@@ -10,7 +10,6 @@ import (
 	"regexp"
 	"slices"
 	"strings"
-	"sync"
 	"time"
 	"unicode"
 
@@ -57,8 +56,7 @@ type composer struct {
 	mentionsList    *mentionslist.Model
 	lastSearch      time.Time
 
-	typingTimerMu sync.Mutex
-	typingTimer   *time.Timer
+	typingUntil time.Time
 }
 
 type tabSuggestMsg struct{}
@@ -142,15 +140,6 @@ func (c *composer) SetTitle(title string) *tview.Box {
 func (c *composer) SetFooter(footer string) *tview.Box {
 	defer c.resizeForContent()
 	return c.Box.SetFooter(footer)
-}
-
-func (c *composer) stopTypingTimer() {
-	c.typingTimerMu.Lock()
-	defer c.typingTimerMu.Unlock()
-	if c.typingTimer != nil {
-		c.typingTimer.Stop()
-		c.typingTimer = nil
-	}
 }
 
 func (c *composer) Update(msg tview.Msg) tview.Cmd {
@@ -289,17 +278,11 @@ func (c *composer) sendTyping() tview.Cmd {
 		return nil
 	}
 
-	c.typingTimerMu.Lock()
-	if c.typingTimer != nil {
-		c.typingTimerMu.Unlock()
+	now := time.Now()
+	if now.Before(c.typingUntil) {
 		return nil
 	}
-	c.typingTimer = time.AfterFunc(typingDuration, func() {
-		c.typingTimerMu.Lock()
-		c.typingTimer = nil
-		c.typingTimerMu.Unlock()
-	})
-	c.typingTimerMu.Unlock()
+	c.typingUntil = now.Add(typingDuration)
 
 	selectedChannel, ok := c.chat.SelectedChannel()
 	if !ok {
@@ -337,7 +320,7 @@ func (c *composer) send() tview.Cmd {
 		editMessage = *selectedMessage
 	}
 
-	c.stopTypingTimer()
+	c.typingUntil = time.Time{}
 	c.reset()
 	c.chat.messagesList.clearSelection()
 	c.chat.messagesList.ScrollBottom()
