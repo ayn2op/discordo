@@ -1069,14 +1069,14 @@ func (ml *messagesList) open() tview.Cmd {
 	case total > 1:
 		return ml.showAttachmentsList(urls, selectedMessage.Attachments)
 	case len(urls) == 1:
-		return ml.openURL(urls[0])
+		return openURL(urls[0])
 	}
 
 	attachment := selectedMessage.Attachments[0]
 	if strings.HasPrefix(attachment.ContentType, "image/") {
-		return ml.openAttachment(attachment)
+		return openAttachment(attachment)
 	}
-	return ml.openURL(attachment.URL)
+	return openURL(attachment.URL)
 }
 
 func extractURLs(content string) []string {
@@ -1148,9 +1148,9 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 	var items []attachmentspicker.Item
 	for _, a := range attachments {
 		attachment := a
-		open := ml.openURL(attachment.URL)
+		open := openURL(attachment.URL)
 		if strings.HasPrefix(attachment.ContentType, "image/") {
-			open = ml.openAttachment(attachment)
+			open = openAttachment(attachment)
 		}
 		items = append(items, attachmentspicker.Item{
 			Label: attachment.Filename,
@@ -1161,7 +1161,7 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 		url := u
 		items = append(items, attachmentspicker.Item{
 			Label: url,
-			Open:  ml.openURL(url),
+			Open:  openURL(url),
 		})
 	}
 	ml.attachmentsPicker.SetItems(items)
@@ -1178,7 +1178,7 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 	return tview.SetFocus(ml.attachmentsPicker)
 }
 
-func (ml *messagesList) openAttachment(attachment discord.Attachment) tview.Cmd {
+func openAttachment(attachment discord.Attachment) tview.Cmd {
 	return func() tview.Msg {
 		resp, err := http.Get(attachment.URL)
 		if err != nil {
@@ -1220,7 +1220,7 @@ func (ml *messagesList) openAttachment(attachment discord.Attachment) tview.Cmd 
 	}
 }
 
-func (ml *messagesList) openURL(url string) tview.Cmd {
+func openURL(url string) tview.Cmd {
 	return func() tview.Msg {
 		if err := open.Start(url); err != nil {
 			slog.Error("failed to open URL", "err", err, "url", url)

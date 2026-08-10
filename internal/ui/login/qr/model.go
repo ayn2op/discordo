@@ -47,62 +47,62 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
 	case tview.InitMsg:
 		m.setStatus("Connecting to Remote Auth Gateway...")
-		return m.connect()
+		return connect()
 	case tview.KeyMsg:
 		if msg.Key() == tcell.KeyEsc {
 			m.setStatus("Canceled")
-			return m.close()
+			return closeConn(m.conn)
 		}
 		return m.TextView.Update(msg)
 
 	case connCreateMsg:
 		m.conn = msg.conn
 		m.setStatus("Connected. Handshaking...")
-		return m.listen()
+		return listen(m.conn)
 	case connCloseMsg:
 		m.conn = nil
 		return nil
 
 	case helloMsg:
 		m.heartbeatInterval = time.Duration(msg.heartbeatInterval) * time.Millisecond
-		return tview.Batch(m.listen(), m.heartbeat(), m.generatePrivateKey())
+		return tview.Batch(listen(m.conn), heartbeat(m.heartbeatInterval), generatePrivateKey())
 	case privateKeyMsg:
 		m.privateKey = msg.privateKey
-		return tview.Batch(m.listen(), m.sendInit())
+		return tview.Batch(listen(m.conn), sendInit(m.conn, m.privateKey))
 	case nonceProofMsg:
-		return tview.Batch(m.listen(), m.sendNonceProof(msg.encryptedNonce))
+		return tview.Batch(listen(m.conn), sendNonceProof(m.conn, m.privateKey, msg.encryptedNonce))
 	case pendingRemoteInitMsg:
 		m.fingerprint = msg.fingerprint
-		return tview.Batch(m.listen(), m.generateQRCode(msg.fingerprint))
+		return tview.Batch(listen(m.conn), generateQRCode(msg.fingerprint))
 	case qrCodeMsg:
 		m.qrCode = msg.qrCode
 		m.setStatus("Scan this with the Discord mobile app to log in instantly.")
-		return m.listen()
+		return listen(m.conn)
 	case pendingTicketMsg:
-		return tview.Batch(m.listen(), m.decryptUserPayload(msg.encryptedUserPayload))
+		return tview.Batch(listen(m.conn), decryptUserPayload(m.privateKey, msg.encryptedUserPayload))
 	case userMsg:
 		name := msg.username
 		if msg.discriminator != "0" {
 			name += "#" + msg.discriminator
 		}
 		m.setStatus("Check your phone! Logging in as " + name)
-		return m.listen()
+		return listen(m.conn)
 	case pendingLoginMsg:
 		m.setStatus("Authenticating...")
-		return tview.Batch(m.close(), m.exchangeTicket(msg.ticket))
+		return tview.Batch(closeConn(m.conn), exchangeTicket(m.fingerprint, m.privateKey, msg.ticket))
 	case cancelMsg:
 		m.setStatus("Login canceled on mobile")
-		return m.close()
+		return closeConn(m.conn)
 
 	case heartbeatTickMsg:
 		if m.conn == nil {
 			return nil
 		}
-		return tview.Batch(m.heartbeat(), m.sendHeartbeat())
+		return tview.Batch(heartbeat(m.heartbeatInterval), sendHeartbeat(m.conn))
 
 	case errMsg:
 		m.setStatus(msg.Error())
-		return m.close()
+		return closeConn(m.conn)
 	}
 
 	return nil

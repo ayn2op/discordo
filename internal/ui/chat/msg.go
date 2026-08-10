@@ -5,12 +5,14 @@ import (
 	"log/slog"
 
 	"github.com/ayn2op/arikawa/v3/discord"
+	"github.com/ayn2op/arikawa/v3/gateway"
+	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
 )
 
-func (m *Model) openState() tview.Cmd {
+func openState(state *ningen.State) tview.Cmd {
 	return func() tview.Msg {
-		if err := m.state.Open(context.Background()); err != nil {
+		if err := state.Open(context.Background()); err != nil {
 			slog.Error("failed to open chat state", "err", err)
 			return nil
 		}
@@ -18,21 +20,21 @@ func (m *Model) openState() tview.Cmd {
 	}
 }
 
-func (m *Model) closeState() tview.Cmd {
-	if m.state == nil {
+func closeState(state *ningen.State) tview.Cmd {
+	if state == nil {
 		return nil
 	}
 	return func() tview.Msg {
-		if err := m.state.Close(); err != nil {
+		if err := state.Close(); err != nil {
 			slog.Error("failed to close the session", "err", err)
 		}
 		return nil
 	}
 }
 
-func (m *Model) listen() tview.Cmd {
+func listen(events <-chan gateway.Event) tview.Cmd {
 	return func() tview.Msg {
-		return <-m.events
+		return <-events
 	}
 }
 
@@ -50,7 +52,7 @@ type deleteMessageMsg discord.Message
 
 type LogoutMsg struct{}
 
-func (m *Model) logout() tview.Cmd {
+func logout() tview.Cmd {
 	return func() tview.Msg {
 		return LogoutMsg{}
 	}

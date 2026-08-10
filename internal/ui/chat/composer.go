@@ -171,7 +171,7 @@ func (c *composer) Update(msg tview.Msg) tview.Cmd {
 	case tview.KeyMsg:
 		switch {
 		case keybind.Matches(msg, c.cfg.Keybinds.Composer.Paste.Keybind):
-			return tview.Sequence(c.pasteImage(), c.forwardToTextArea(tcell.NewEventKey(tcell.KeyCtrlV, "", tcell.ModNone)))
+			return tview.Sequence(pasteImage(), c.forwardToTextArea(tcell.NewEventKey(tcell.KeyCtrlV, "", tcell.ModNone)))
 		case keybind.Matches(msg, c.cfg.Keybinds.Composer.Newline.Keybind):
 			return c.forwardToTextArea(tcell.NewEventKey(tcell.KeyEnter, "", tcell.ModNone))
 		case keybind.Matches(msg, c.cfg.Keybinds.Composer.Send.Keybind):
@@ -220,7 +220,7 @@ func (c *composer) Update(msg tview.Msg) tview.Cmd {
 
 type imagePastedMsg []byte
 
-func (c *composer) pasteImage() tview.Cmd {
+func pasteImage() tview.Cmd {
 	return func() tview.Msg {
 		data := clipboard.Read(clipboard.FmtImage)
 		return imagePastedMsg(data)

@@ -39,16 +39,16 @@ func NewModel(cfg *config.Config) *Model {
 func (m *Model) Update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
 	case errMsg:
-		return m.showErrorDialog(msg)
+		return showErrorDialog(msg)
 	case password.ErrMsg:
-		return m.showErrorDialog(msg)
+		return showErrorDialog(msg)
 	case copyErrorMsg:
 		return setClipboard(string(msg))
 	}
 	return m.Layers.Update(msg)
 }
 
-func (m *Model) showErrorDialog(err error) tview.Cmd {
+func showErrorDialog(err error) tview.Cmd {
 	slog.Error("failed to login", "err", err)
 	message := err.Error()
 	return ui.ShowModal(message,

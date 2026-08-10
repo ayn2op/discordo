@@ -272,17 +272,17 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		m.focused = msg.Model
 		return nil
 	case tview.InitMsg:
-		return tview.Batch(m.openState(), m.listen())
+		return tview.Batch(openState(m.state), listen(m.events))
 	case gateway.Event:
 		switch eventMsg := msg.(type) {
 		case *ws.RawEvent:
 			m.onRaw(eventMsg)
 
 		case *gateway.ReadyEvent:
-			return tview.Batch(m.onReady(eventMsg), m.listen())
+			return tview.Batch(m.onReady(eventMsg), listen(m.events))
 
 		case *gateway.MessageCreateEvent:
-			return tview.Batch(m.onMessageCreate(eventMsg), m.listen())
+			return tview.Batch(m.onMessageCreate(eventMsg), listen(m.events))
 		case *gateway.MessageUpdateEvent:
 			m.onMessageUpdate(eventMsg)
 		case *gateway.PresenceUpdateEvent:
@@ -299,7 +299,7 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 			m.onMessageReaction(eventMsg.ChannelID, eventMsg.MessageID)
 
 		case *gateway.GuildMembersChunkEvent:
-			return tview.Batch(m.onGuildMembersChunk(eventMsg), m.listen())
+			return tview.Batch(m.onGuildMembersChunk(eventMsg), listen(m.events))
 		case *gateway.GuildMemberRemoveEvent:
 			m.onGuildMemberRemove(eventMsg)
 
@@ -311,7 +311,7 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		case *read.UpdateEvent:
 			m.onReadUpdate(eventMsg)
 		}
-		return m.listen()
+		return listen(m.events)
 	case channelLoadedMsg:
 		node := m.guildsTree.CurrentNode()
 		if node == nil {
@@ -359,7 +359,7 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 	case attachmentspicker.CancelMsg:
 		return m.closeAttachmentsPicker()
 	case QuitMsg:
-		return m.closeState()
+		return closeState(m.state)
 	case tview.KeyMsg:
 		switch {
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusGuildsTree.Keybind):
@@ -382,7 +382,7 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 			return m.togglePicker()
 
 		case keybind.Matches(msg, m.cfg.Keybinds.Logout.Keybind):
-			return tview.Sequence(m.closeState(), m.logout())
+			return tview.Sequence(closeState(m.state), logout())
 		}
 	case tabSuggestMsg:
 		return m.composer.Update(msg)

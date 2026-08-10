@@ -32,7 +32,7 @@ type connCreateMsg struct {
 
 type connCloseMsg struct{}
 
-func (m *Model) connect() tview.Cmd {
+func connect() tview.Cmd {
 	return func() tview.Msg {
 		headers := http.Headers()
 		headers.Set("User-Agent", http.BrowserUserAgent())
@@ -45,10 +45,10 @@ func (m *Model) connect() tview.Cmd {
 	}
 }
 
-func (m *Model) close() tview.Cmd {
+func closeConn(conn *websocket.Conn) tview.Cmd {
 	return func() tview.Msg {
-		if m.conn != nil {
-			if err := m.conn.Close(); err != nil {
+		if conn != nil {
+			if err := conn.Close(); err != nil {
 				return errMsg(err)
 			}
 		}
@@ -79,13 +79,13 @@ type pendingLoginMsg struct {
 
 type cancelMsg struct{}
 
-func (m *Model) listen() tview.Cmd {
+func listen(conn *websocket.Conn) tview.Cmd {
 	return func() tview.Msg {
-		if m.conn == nil {
+		if conn == nil {
 			return nil
 		}
 
-		_, data, err := m.conn.ReadMessage()
+		_, data, err := conn.ReadMessage()
 		if err != nil {
 			return errMsg(err)
 		}
@@ -149,22 +149,22 @@ func (m *Model) listen() tview.Cmd {
 
 type heartbeatTickMsg struct{}
 
-func (m *Model) heartbeat() tview.Cmd {
+func heartbeat(interval time.Duration) tview.Cmd {
 	return func() tview.Msg {
-		time.Sleep(m.heartbeatInterval)
+		time.Sleep(interval)
 		return heartbeatTickMsg{}
 	}
 }
 
-func (m *Model) sendHeartbeat() tview.Cmd {
+func sendHeartbeat(conn *websocket.Conn) tview.Cmd {
 	return func() tview.Msg {
-		if m.conn == nil {
+		if conn == nil {
 			return nil
 		}
 		data := struct {
 			Op string `json:"op"`
 		}{"heartbeat"}
-		if err := m.conn.WriteJSON(data); err != nil {
+		if err := conn.WriteJSON(data); err != nil {
 			return errMsg(err)
 		}
 		return nil
@@ -175,7 +175,7 @@ type privateKeyMsg struct {
 	privateKey *rsa.PrivateKey
 }
 
-func (m *Model) generatePrivateKey() tview.Cmd {
+func generatePrivateKey() tview.Cmd {
 	return func() tview.Msg {
 		privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 		if err != nil {
@@ -185,12 +185,12 @@ func (m *Model) generatePrivateKey() tview.Cmd {
 	}
 }
 
-func (m *Model) sendInit() tview.Cmd {
+func sendInit(conn *websocket.Conn, privateKey *rsa.PrivateKey) tview.Cmd {
 	return func() tview.Msg {
-		if m.privateKey == nil {
+		if privateKey == nil {
 			return errMsg(errors.New("missing private key"))
 		}
-		spki, err := x509.MarshalPKIXPublicKey(m.privateKey.Public())
+		spki, err := x509.MarshalPKIXPublicKey(privateKey.Public())
 		if err != nil {
 			return errMsg(err)
 		}
@@ -199,21 +199,21 @@ func (m *Model) sendInit() tview.Cmd {
 			Op               string `json:"op"`
 			EncodedPublicKey string `json:"encoded_public_key"`
 		}{"init", encodedPublicKey}
-		if err := m.conn.WriteJSON(data); err != nil {
+		if err := conn.WriteJSON(data); err != nil {
 			return errMsg(err)
 		}
 		return nil
 	}
 }
 
-func (m *Model) sendNonceProof(encryptedNonce string) tview.Cmd {
+func sendNonceProof(conn *websocket.Conn, privateKey *rsa.PrivateKey, encryptedNonce string) tview.Cmd {
 	return func() tview.Msg {
 		decodedNonce, err := base64.StdEncoding.DecodeString(encryptedNonce)
 		if err != nil {
 			return errMsg(err)
 		}
 
-		decryptedNonce, err := rsa.DecryptOAEP(sha256.New(), nil, m.privateKey, decodedNonce, nil)
+		decryptedNonce, err := rsa.DecryptOAEP(sha256.New(), nil, privateKey, decodedNonce, nil)
 		if err != nil {
 			return errMsg(err)
 		}
@@ -223,7 +223,7 @@ func (m *Model) sendNonceProof(encryptedNonce string) tview.Cmd {
 			Op    string `json:"op"`
 			Nonce string `json:"nonce"`
 		}{"nonce_proof", encodedNonce}
-		if err := m.conn.WriteJSON(data); err != nil {
+		if err := conn.WriteJSON(data); err != nil {
 			return errMsg(err)
 		}
 		return nil
@@ -234,7 +234,7 @@ type qrCodeMsg struct {
 	qrCode *qrcode.QRCode
 }
 
-func (m *Model) generateQRCode(fingerprint string) tview.Cmd {
+func generateQRCode(fingerprint string) tview.Cmd {
 	return func() tview.Msg {
 		content := "https://discord.com/ra/" + fingerprint
 		qrCode, err := qrcode.New(content, qrcode.Low)
@@ -251,14 +251,14 @@ type userMsg struct {
 	username      string
 }
 
-func (m *Model) decryptUserPayload(encryptedPayload string) tview.Cmd {
+func decryptUserPayload(privateKey *rsa.PrivateKey, encryptedPayload string) tview.Cmd {
 	return func() tview.Msg {
 		decodedPayload, err := base64.StdEncoding.DecodeString(encryptedPayload)
 		if err != nil {
 			return errMsg(err)
 		}
 
-		decryptedPayload, err := rsa.DecryptOAEP(sha256.New(), nil, m.privateKey, decodedPayload, nil)
+		decryptedPayload, err := rsa.DecryptOAEP(sha256.New(), nil, privateKey, decodedPayload, nil)
 		if err != nil {
 			return errMsg(err)
 		}
@@ -272,12 +272,12 @@ func (m *Model) decryptUserPayload(encryptedPayload string) tview.Cmd {
 	}
 }
 
-func (m *Model) exchangeTicket(ticket string) tview.Cmd {
+func exchangeTicket(fingerprint string, privateKey *rsa.PrivateKey, ticket string) tview.Cmd {
 	return func() tview.Msg {
 		headers := http.Headers()
 		headers.Set("Referer", "https://discord.com/login")
-		if m.fingerprint != "" {
-			headers.Set("X-Fingerprint", m.fingerprint)
+		if fingerprint != "" {
+			headers.Set("X-Fingerprint", fingerprint)
 		}
 
 		client := http.NewClient("")
@@ -293,7 +293,7 @@ func (m *Model) exchangeTicket(ticket string) tview.Cmd {
 			return errMsg(err)
 		}
 
-		decryptedToken, err := rsa.DecryptOAEP(sha256.New(), nil, m.privateKey, decodedToken, nil)
+		decryptedToken, err := rsa.DecryptOAEP(sha256.New(), nil, privateKey, decodedToken, nil)
 		if err != nil {
 			return errMsg(err)
 		}
