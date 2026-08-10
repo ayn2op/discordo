@@ -33,7 +33,7 @@ func (m *Model) activeKeyMap() help.KeyMap {
 		return m.messagesList.attachmentsPicker
 	}
 
-	switch m.app.Focused() {
+	switch m.focused {
 	case m.guildsTree:
 		return m.guildsTree
 	case m.messagesList:
@@ -64,7 +64,7 @@ func (m *Model) baseFullHelp() [][]keybind.Keybind {
 
 func (m *Model) focusHelp() []keybind.Keybind {
 	kbs := m.cfg.Keybinds
-	focused := m.app.Focused()
+	focused := m.focused
 	focusKbs := make([]keybind.Keybind, 0, 3)
 
 	if focused != m.guildsTree {

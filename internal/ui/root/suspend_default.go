@@ -2,4 +2,6 @@
 
 package root
 
-func (m *Model) suspend() {}
+import "github.com/ayn2op/tview"
+
+func suspend() tview.Cmd { return nil }

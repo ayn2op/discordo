@@ -51,6 +51,7 @@ type Model struct {
 	messagesList   *messagesList
 	composer       *composer
 	channelsPicker *channelspicker.Model
+	focused        tview.Model
 
 	selectedChannel   *discord.Channel
 	selectedChannelMu sync.RWMutex
@@ -61,11 +62,10 @@ type Model struct {
 	typersMu sync.RWMutex
 	typers   map[discord.UserID]*time.Timer
 
-	app *tview.Application
 	cfg *config.Config
 }
 
-func NewModel(app *tview.Application, cfg *config.Config, token string) *Model {
+func NewModel(cfg *config.Config, token string) *Model {
 	m := &Model{
 		Layers: layers.New(),
 
@@ -74,7 +74,6 @@ func NewModel(app *tview.Application, cfg *config.Config, token string) *Model {
 
 		typers: make(map[discord.UserID]*time.Timer),
 
-		app: app,
 		cfg: cfg,
 	}
 
@@ -147,15 +146,14 @@ func (m *Model) buildLayout() {
 	)
 }
 
-func (m *Model) togglePicker() {
+func (m *Model) togglePicker() tview.Cmd {
 	if m.HasLayer(channelsPickerLayerName) {
-		m.closePicker()
-	} else {
-		m.openPicker()
+		return m.closePicker()
 	}
+	return m.openPicker()
 }
 
-func (m *Model) openPicker() {
+func (m *Model) openPicker() tview.Cmd {
 	m.AddLayer(
 		ui.Centered(m.channelsPicker, m.cfg.Picker.Width, m.cfg.Picker.Height),
 		layers.WithName(channelsPickerLayerName),
@@ -164,11 +162,13 @@ func (m *Model) openPicker() {
 		layers.WithOverlay(),
 	).SendToFront(channelsPickerLayerName)
 	m.channelsPicker.RefreshChannels(m.state)
+	return tview.SetFocus(m.channelsPicker)
 }
 
-func (m *Model) closePicker() {
+func (m *Model) closePicker() tview.Cmd {
 	m.RemoveLayer(channelsPickerLayerName)
 	m.channelsPicker.Refresh()
+	return tview.SetFocus(m.mainFlex)
 }
 
 func (m *Model) closeAttachmentsPicker() tview.Cmd {
@@ -191,15 +191,14 @@ func (m *Model) navigateToChannel(channelID discord.ChannelID) tview.Cmd {
 
 	m.guildsTree.expandPathToNode(node)
 	m.guildsTree.SetCurrentNode(node)
-	m.closePicker()
+	focus := m.closePicker()
 	if channel.Type != discord.GuildCategory {
-		return m.guildsTree.onSelected(node)
+		return tview.Sequence(focus, m.guildsTree.onSelected(node))
 	}
-	return nil
+	return focus
 }
 
 func (m *Model) toggleGuildsTree() tview.Cmd {
-	// The guilds tree is visible if the number of items is two.
 	if m.mainFlex.GetItemCount() == 2 {
 		m.mainFlex.RemoveItem(m.guildsTree)
 		if m.guildsTree.HasFocus() {
@@ -213,7 +212,6 @@ func (m *Model) toggleGuildsTree() tview.Cmd {
 }
 
 func (m *Model) focusGuildsTree() tview.Cmd {
-	// The guilds tree is not hidden if the number of items is two.
 	if m.mainFlex.GetItemCount() == 2 {
 		return tview.SetFocus(m.guildsTree)
 	}
@@ -227,38 +225,32 @@ func (m *Model) focusComposer() tview.Cmd {
 	return nil
 }
 
-func (m *Model) focusMessagesList() tview.Cmd {
-	return tview.SetFocus(m.messagesList)
-}
-
 func (m *Model) focusPrevious() tview.Cmd {
-	switch m.app.Focused() {
+	switch m.focused {
 	case m.guildsTree:
 		if cmd := m.focusComposer(); cmd != nil {
 			return cmd
 		}
-		return m.focusMessagesList()
+		return tview.SetFocus(m.messagesList)
 	case m.messagesList:
-		// Fallback when guilds/input are unavailable.
 		if cmd := m.focusGuildsTree(); cmd != nil {
 			return cmd
 		}
 		if cmd := m.focusComposer(); cmd != nil {
 			return cmd
 		}
-		return m.focusMessagesList()
+		return tview.SetFocus(m.messagesList)
 	case m.composer:
-		return m.focusMessagesList()
+		return tview.SetFocus(m.messagesList)
 	}
 	return nil
 }
 
 func (m *Model) focusNext() tview.Cmd {
-	switch m.app.Focused() {
+	switch m.focused {
 	case m.guildsTree:
-		return m.focusMessagesList()
+		return tview.SetFocus(m.messagesList)
 	case m.messagesList:
-		// Fallback when input/guilds are unavailable.
 		if cmd := m.focusComposer(); cmd != nil {
 			return cmd
 		}
@@ -269,13 +261,16 @@ func (m *Model) focusNext() tview.Cmd {
 		if cmd := m.focusGuildsTree(); cmd != nil {
 			return cmd
 		}
-		return m.focusMessagesList()
+		return tview.SetFocus(m.messagesList)
 	}
 	return nil
 }
 
 func (m *Model) Update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
+	case FocusedMsg:
+		m.focused = msg.Model
+		return nil
 	case tview.InitMsg:
 		return tview.Batch(m.openState(), m.listen())
 	case gateway.Event:
@@ -341,7 +336,7 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		m.composer.SetDisabled(hasNoPerm)
 
 		text := "Message..."
-		focusCmd := tview.Cmd(nil)
+		var focusCmd tview.Cmd
 
 		if hasNoPerm {
 			text = "You do not have permission to send messages in this channel."
@@ -358,8 +353,7 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 	case channelspicker.SelectedMsg:
 		return m.navigateToChannel(msg.ChannelID)
 	case channelspicker.CancelMsg:
-		m.closePicker()
-		return nil
+		return m.closePicker()
 	case attachmentspicker.SelectedMsg:
 		return tview.Sequence(msg.Open, m.closeAttachmentsPicker())
 	case attachmentspicker.CancelMsg:
@@ -373,7 +367,7 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 			return m.focusGuildsTree()
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusMessagesList.Keybind):
 			m.composer.removeMentionsList()
-			return m.focusMessagesList()
+			return tview.SetFocus(m.messagesList)
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusComposer.Keybind):
 			return m.focusComposer()
 
@@ -385,15 +379,12 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		case keybind.Matches(msg, m.cfg.Keybinds.ToggleGuildsTree.Keybind):
 			return m.toggleGuildsTree()
 		case keybind.Matches(msg, m.cfg.Keybinds.ToggleChannelsPicker.Keybind):
-			m.togglePicker()
-			return nil
+			return m.togglePicker()
 
 		case keybind.Matches(msg, m.cfg.Keybinds.Logout.Keybind):
 			return tview.Sequence(m.closeState(), m.logout())
 		}
 	case tabSuggestMsg:
-		// Member search completes in a command goroutine; resume suggestion
-		// generation on the update loop to keep UI mutations serialized.
 		return m.composer.Update(msg)
 	}
 	return m.Layers.Update(msg)

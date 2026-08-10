@@ -29,7 +29,6 @@ const (
 type Model struct {
 	*layers.Layers
 
-	app      *tview.Application
 	rootFlex *flex.Model // inner + help
 	inner    tview.Model
 	help     *help.Model
@@ -37,13 +36,13 @@ type Model struct {
 	modalRequest       *ui.ModalMsg
 	modalDialog        *modal.Model
 	modalPreviousFocus tview.Model
+	focused            tview.Model
 	cfg                *config.Config
 }
 
-func NewModel(cfg *config.Config, app *tview.Application) *Model {
+func NewModel(cfg *config.Config) *Model {
 	m := &Model{
 		Layers:   layers.New(),
-		app:      app,
 		rootFlex: flex.NewModel(),
 		help:     help.NewModel(),
 
@@ -75,7 +74,7 @@ func (m *Model) showLogin() tview.Cmd {
 }
 
 func (m *Model) showChat(token string) tview.Cmd {
-	m.inner = chat.NewModel(m.app, m.cfg, token)
+	m.inner = chat.NewModel(m.cfg, token)
 	m.buildLayout()
 	return tview.Batch(m.inner.Update(tview.InitMsg{}), tview.SetFocus(m))
 }
@@ -85,6 +84,7 @@ func (m *Model) buildLayout() {
 	m.modalRequest = nil
 	m.modalDialog = nil
 	m.modalPreviousFocus = nil
+	m.focused = nil
 	m.rootFlex.Clear()
 	if m.inner != nil {
 		m.rootFlex.AddItem(m.inner, 0, 1, true)
@@ -98,6 +98,8 @@ var _ tview.Model = (*Model)(nil)
 
 func (m *Model) Update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
+	case chat.FocusedMsg:
+		m.focused = msg.Model
 	case tview.InitMsg:
 		var cmd tview.Cmd
 		if token := os.Getenv(tokenEnvVarKey); token != "" {
@@ -146,8 +148,7 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 			m.updateHelpHeight()
 			return nil
 		case keybind.Matches(msg, m.cfg.Keybinds.Suspend.Keybind):
-			m.suspend()
-			return nil
+			return suspend()
 		case keybind.Matches(msg, m.cfg.Keybinds.Quit.Keybind):
 			var innerCmd tview.Cmd
 			if m.inner != nil {
@@ -188,14 +189,17 @@ func (m *Model) showModal(request ui.ModalMsg) tview.Cmd {
 
 	m.modalRequest = &request
 	m.modalDialog = dialog
-	m.modalPreviousFocus = m.app.Focused()
+	m.modalPreviousFocus = m.focused
+	if m.modalPreviousFocus == nil {
+		m.modalPreviousFocus = m.inner
+	}
 	m.AddLayer(dialog,
 		layers.WithName(modalLayerName),
 		layers.WithResize(true),
 		layers.WithVisible(true),
 		layers.WithOverlay(),
 	)
-	return nil
+	return tview.SetFocus(dialog)
 }
 
 func (m *Model) finishModal(done modal.DoneMsg) tview.Cmd {
@@ -214,7 +218,7 @@ func (m *Model) finishModal(done modal.DoneMsg) tview.Cmd {
 	}
 
 	m.RemoveLayer(modalLayerName)
-	focus := tview.Cmd(nil)
+	var focus tview.Cmd
 	if m.modalPreviousFocus != nil {
 		focus = tview.SetFocus(m.modalPreviousFocus)
 	}

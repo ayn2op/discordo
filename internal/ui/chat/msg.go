@@ -57,3 +57,7 @@ func (m *Model) logout() tview.Cmd {
 }
 
 type QuitMsg struct{}
+
+type FocusedMsg struct{ Model tview.Model }
+
+func focused(model tview.Model) tview.Cmd { return func() tview.Msg { return FocusedMsg{model} } }

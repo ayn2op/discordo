@@ -847,7 +847,10 @@ func (ml *messagesList) selectedMessage() (*discord.Message, bool) {
 }
 
 func (ml *messagesList) Update(msg tview.Msg) tview.Cmd {
+	ui.UpdateBoxFocus(ml.Box, &ml.cfg.Theme, msg)
 	switch msg := msg.(type) {
+	case tview.FocusMsg:
+		return tview.Sequence(ml.Model.Update(msg), focused(ml))
 	case tview.KeyMsg:
 		switch {
 		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.Cancel.Keybind):

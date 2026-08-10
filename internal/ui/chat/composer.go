@@ -62,6 +62,7 @@ type composer struct {
 }
 
 type tabSuggestMsg struct{}
+type editorMsg string
 
 var _ help.KeyMap = (*composer)(nil)
 
@@ -92,35 +93,26 @@ func (c *composer) forwardToTextArea(ev *tcell.EventKey) tview.Cmd {
 	return cmd
 }
 
-// resizeForContent fits the input to its newline count, capped at Composer.MaxHeight and at the parent flex's height (leaving at least 1 row for the messages list), then pins the scroll offset to the new visible window.
-// Safe to call after every edit; ResizeItem and SetOffset are both idempotent.
 func (c *composer) resizeForContent() {
-	if c.chat == nil || c.chat.rightFlex == nil {
-		return
-	}
 	_, _, _, outerH := c.Rect()
 	_, _, _, innerH := c.InnerRect()
-	frame := outerH - innerH // border + title/footer + padding rows
+	frame := outerH - innerH
 	_, _, _, parentH := c.chat.rightFlex.InnerRect()
 
 	visible := min(
-		strings.Count(c.Text(), "\n")+1,  // newline-driven height
-		max(c.cfg.Composer.MaxHeight, 1), // user-configured cap
-		max(parentH-frame-1, 1),          // available room, reserving 1 row for messages
+		strings.Count(c.Text(), "\n")+1,
+		max(c.cfg.Composer.MaxHeight, 1),
+		max(parentH-frame-1, 1),
 	)
-	c.chat.rightFlex.ResizeItem(c, visible+frame, 1) // outer height = inner content + frame
-
-	// Sync the textarea's inner height so the next keystroke's cursor clamping uses the new size.
+	c.chat.rightFlex.ResizeItem(c, visible+frame, 1)
 	c.SetVisibleSize(0, visible)
 
-	// Clamp scroll: when content overflows, pin the bottom row to the end of the text so backspacing the last newline doesn't leave a blank trailing row; once everything fits, reset to (0,0).
 	total := c.LineCount(0)
 	row, col := c.Offset()
-	maxOff := max(total-visible, 0) // last valid rowOffset that still shows real content on the bottom row
-	if row > maxOff {
-		c.SetOffset(maxOff, col)
-	} else if total <= visible && (row != 0 || col != 0) {
+	if total <= visible {
 		c.SetOffset(0, 0)
+	} else if offset := total - visible; row > offset {
+		c.SetOffset(offset, col)
 	}
 }
 
@@ -131,8 +123,6 @@ func (c *composer) reset() {
 	c.SetFooter("")
 	c.SetText("", true)
 }
-
-// The following overrides wrap the embedded TextArea/Box methods to auto-resize when callers change text or chrome.
 
 func (c *composer) SetText(text string, cursorAtTheEnd bool) *tview.TextArea {
 	defer c.resizeForContent()
@@ -164,7 +154,10 @@ func (c *composer) stopTypingTimer() {
 }
 
 func (c *composer) Update(msg tview.Msg) tview.Cmd {
+	ui.UpdateBoxFocus(c.Box, &c.cfg.Theme, msg)
 	switch msg := msg.(type) {
+	case tview.FocusMsg:
+		return tview.Sequence(c.TextArea.Update(msg), focused(c))
 	case tabSuggestMsg:
 		return c.tabSuggest()
 	case imagePastedMsg:
@@ -182,6 +175,9 @@ func (c *composer) Update(msg tview.Msg) tview.Cmd {
 			c.attach(file.Name, file.Reader)
 		}
 		return nil
+	case editorMsg:
+		c.SetText(string(msg), true)
+		return nil
 
 	case tview.KeyMsg:
 		switch {
@@ -195,9 +191,7 @@ func (c *composer) Update(msg tview.Msg) tview.Cmd {
 			}
 			return c.send()
 		case keybind.Matches(msg, c.cfg.Keybinds.Composer.OpenEditor.Keybind):
-			cmd := c.stopTabCompletion()
-			c.editor()
-			return cmd
+			return tview.Sequence(c.stopTabCompletion(), c.editor())
 		case keybind.Matches(msg, c.cfg.Keybinds.Composer.OpenFilePicker.Keybind):
 			return tview.Sequence(c.stopTabCompletion(), c.pickFiles())
 		case keybind.Matches(msg, c.cfg.Keybinds.Composer.Cancel.Keybind):
@@ -228,7 +222,6 @@ func (c *composer) Update(msg tview.Msg) tview.Cmd {
 				}
 			}
 
-			// Apply key edits first, then recompute autocomplete through Msg/Cmd.
 			return tview.Batch(typingCmd, tview.Sequence(c.forwardToTextArea(msg), c.tabSuggest()))
 		}
 		return tview.Batch(typingCmd, c.forwardToTextArea(msg))
@@ -757,7 +750,6 @@ func (c *composer) addMentionUser(user *discord.User) {
 }
 
 func (c *composer) removeMentionsList() {
-	// Make sure that the layer is visible before hiding it to avoid a refocus in the parent.
 	if c.chat.GetVisible(mentionsListLayerName) {
 		c.chat.HideLayer(mentionsListLayerName)
 	}
@@ -772,46 +764,44 @@ func (c *composer) stopTabCompletion() tview.Cmd {
 	return nil
 }
 
-func (c *composer) editor() {
-	file, err := os.CreateTemp("", tmpFilePattern)
-	if err != nil {
-		slog.Error("failed to create tmp file", "err", err)
-		return
-	}
-	defer file.Close()
-	defer os.Remove(file.Name())
-
-	file.WriteString(c.Text())
-
+func (c *composer) editor() tview.Cmd {
 	if c.cfg.Editor == "" {
-		slog.Warn("Attempt to open file with editor, but no editor is set")
-		return
-	}
-
-	cmd := c.cfg.CreateEditorCommand(file.Name())
-	if cmd == nil {
-		return
-	}
-
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	c.chat.app.Suspend(func() {
-		err := cmd.Run()
-		if err != nil {
-			slog.Error("failed to run command", "args", cmd.Args, "err", err)
-			return
+		return func() tview.Msg {
+			slog.Warn("Attempt to open file with editor, but no editor is set")
+			return nil
 		}
-	})
-
-	msg, err := os.ReadFile(file.Name())
-	if err != nil {
-		slog.Error("failed to read tmp file", "name", file.Name(), "err", err)
-		return
 	}
+	text := c.Text()
+	cfg := c.cfg
+	return tview.Suspend(func() tview.Msg {
+		file, err := os.CreateTemp("", tmpFilePattern)
+		if err != nil {
+			slog.Error("failed to create tmp file", "err", err)
+			return nil
+		}
+		name := file.Name()
+		defer os.Remove(name)
+		_, _ = file.WriteString(text)
+		_ = file.Close()
 
-	c.SetText(strings.TrimSpace(string(msg)), true)
+		cmd := cfg.CreateEditorCommand(name)
+		if cmd == nil {
+			return nil
+		}
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			slog.Error("failed to run command", "args", cmd.Args, "err", err)
+			return nil
+		}
+		msg, err := os.ReadFile(name)
+		if err != nil {
+			slog.Error("failed to read tmp file", "name", name, "err", err)
+			return nil
+		}
+		return editorMsg(strings.TrimSpace(string(msg)))
+	})
 }
 
 func (c *composer) attach(name string, reader io.Reader) {

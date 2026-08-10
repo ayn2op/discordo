@@ -16,57 +16,37 @@ import (
 
 // ConfigureBox configures the provided box according to the provided theme.
 func ConfigureBox(box *tview.Box, cfg *config.Theme) {
-	border := cfg.Border
-	normalBorderStyle, activeBorderStyle := border.NormalStyle.Style, border.ActiveStyle.Style
-	normalBorderSet, activeBorderSet := border.NormalSet.BorderSet, border.ActiveSet.BorderSet
-
-	title := cfg.Title
-	normalTitleStyle, activeTitleStyle := title.NormalStyle.Style, title.ActiveStyle.Style
-
-	footer := cfg.Footer
-	normalFooterStyle, activeFooterStyle := footer.NormalStyle.Style, footer.ActiveStyle.Style
-
-	padding := border.Padding
-
+	padding := cfg.Border.Padding
+	UpdateBoxFocus(box, cfg, tview.BlurMsg{})
 	box.
-		SetBorderStyle(normalBorderStyle).
-		SetBorderSet(normalBorderSet).
 		SetBorderPadding(padding[0], padding[1], padding[2], padding[3]).
-		SetTitleStyle(normalTitleStyle).
-		SetTitleAlignment(title.Alignment.Alignment).
-		SetFooterStyle(normalFooterStyle).
-		SetFooterAlignment(footer.Alignment.Alignment).
-		SetBlurFunc(func() {
-			box.
-				SetBorderStyle(normalBorderStyle).
-				SetBorderSet(normalBorderSet)
-			box.SetTitleStyle(normalTitleStyle).SetFooterStyle(normalFooterStyle)
-		}).
-		SetFocusFunc(func() {
-			box.
-				SetBorderStyle(activeBorderStyle).
-				SetBorderSet(activeBorderSet)
-			box.SetTitleStyle(activeTitleStyle).SetFooterStyle(activeFooterStyle)
-		})
+		SetTitleAlignment(cfg.Title.Alignment.Alignment).
+		SetFooterAlignment(cfg.Footer.Alignment.Alignment)
 
-	if border.Enabled {
+	if cfg.Border.Enabled {
 		box.SetBorders(tview.BordersAll)
+	}
+}
+
+func UpdateBoxFocus(box *tview.Box, cfg *config.Theme, msg tview.Msg) {
+	switch msg.(type) {
+	case tview.FocusMsg:
+		box.SetBorderStyle(cfg.Border.ActiveStyle.Style).
+			SetBorderSet(cfg.Border.ActiveSet.BorderSet).
+			SetTitleStyle(cfg.Title.ActiveStyle.Style).
+			SetFooterStyle(cfg.Footer.ActiveStyle.Style)
+	case tview.BlurMsg:
+		box.SetBorderStyle(cfg.Border.NormalStyle.Style).
+			SetBorderSet(cfg.Border.NormalSet.BorderSet).
+			SetTitleStyle(cfg.Title.NormalStyle.Style).
+			SetFooterStyle(cfg.Footer.NormalStyle.Style)
 	}
 }
 
 func ConfigurePicker(model *picker.Model, cfg *config.Config, title string) {
 	model.Box = tview.NewBox()
 	ConfigureBox(model.Box, &cfg.Theme)
-	// When a child of the parent flex is focused, the parent layout itself is not reported as focused.
-	// Instead, the focused child (picker) is considered focused.
-	// Therefore, we manually set the active border style on the picker to ensure it displays the correct focused appearance.
-	model.
-		SetBlurFunc(nil).
-		SetFocusFunc(nil).
-		SetBorderSet(cfg.Theme.Border.ActiveSet.BorderSet).
-		SetBorderStyle(cfg.Theme.Border.ActiveStyle.Style).
-		SetTitleStyle(cfg.Theme.Title.ActiveStyle.Style).
-		SetFooterStyle(cfg.Theme.Footer.ActiveStyle.Style)
+	UpdateBoxFocus(model.Box, &cfg.Theme, tview.FocusMsg{})
 
 	model.SetTitle(title)
 	model.SetScrollBarVisibility(cfg.Theme.ScrollBar.Visibility.ScrollBarVisibility)

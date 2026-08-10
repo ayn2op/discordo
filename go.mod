@@ -10,7 +10,7 @@ require (
 	github.com/andybalholm/brotli v1.2.2
 	github.com/ayn2op/arikawa/v3 v3.0.0-20260708075022-9cc760fe507e
 	github.com/ayn2op/ningen/v3 v3.0.1-0.20260708075321-0ba1ffc70bd6
-	github.com/ayn2op/tview v0.0.0-20260808011018-71a6ffd9ad39
+	github.com/ayn2op/tview v0.0.0-20260810031733-e2c6c70cbb87
 	github.com/bogdanfinn/fhttp v0.6.8
 	github.com/bogdanfinn/tls-client v1.15.1
 	github.com/gdamore/tcell/v3 v3.4.1
@@ -39,7 +39,7 @@ require (
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/danieljoos/wincred v1.2.3 // indirect
 	github.com/dchest/jsmin v1.0.0 // indirect
-	github.com/dlclark/regexp2/v2 v2.5.2 // indirect
+	github.com/dlclark/regexp2/v2 v2.6.0 // indirect
 	github.com/ebitengine/purego v0.10.2 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
 	github.com/godbus/dbus/v5 v5.2.2 // indirect
