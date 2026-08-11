@@ -14,8 +14,8 @@ github.com/ayn2op/arikawa/v3 v3.0.0-20260708075022-9cc760fe507e h1:rsMifRXwxkbha
 github.com/ayn2op/arikawa/v3 v3.0.0-20260708075022-9cc760fe507e/go.mod h1:gqklpHK7WHYTzpd1ZY6Ho/p9GURBghzBCzRiBYpaUP8=
 github.com/ayn2op/ningen/v3 v3.0.1-0.20260708075321-0ba1ffc70bd6 h1:/khHm6G+GWwXpmwA8bJoaXoUhubqMEUG6spjZsnklIw=
 github.com/ayn2op/ningen/v3 v3.0.1-0.20260708075321-0ba1ffc70bd6/go.mod h1:vqLIvETLkjc2vIgQzVEBqpGNCrgNe7YJqS9TUAJsXRI=
-github.com/ayn2op/tview v0.0.0-20260810031733-e2c6c70cbb87 h1:GsOC8upE5wja+ncj6M3M0oIIvoRVkRyd3LztSa/YchE=
-github.com/ayn2op/tview v0.0.0-20260810031733-e2c6c70cbb87/go.mod h1:GQq8n9VWVgRcEGjVaPBu53kXhPeNC13LCIcq0btKLqQ=
+github.com/ayn2op/tview v0.0.0-20260811010021-3f4c9e0a94b4 h1:TWQg15O2A6HhUu67lr306XWGNSko6Zpei6K3kWEMqHo=
+github.com/ayn2op/tview v0.0.0-20260811010021-3f4c9e0a94b4/go.mod h1:GQq8n9VWVgRcEGjVaPBu53kXhPeNC13LCIcq0btKLqQ=
 github.com/bdandy/go-errors v1.2.2 h1:WdFv/oukjTJCLa79UfkGmwX7ZxONAihKu4V0mLIs11Q=
 github.com/bdandy/go-errors v1.2.2/go.mod h1:NkYHl4Fey9oRRdbB1CoC6e84tuqQHiqrOcZpqFEkBxM=
 github.com/bdandy/go-socks4 v1.2.3 h1:Q6Y2heY1GRjCtHbmlKfnwrKVU/k81LS8mRGLRlmDlic=
@@ -115,8 +115,8 @@ golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACk
 golang.org/x/crypto v0.0.0-20210921155107-089bfa567519/go.mod h1:GvvjBRRGRdwPK5ydBHafDWAxML/pGHZbMvKqRZ5+Abc=
 golang.org/x/crypto v0.54.0 h1:YLIA59K4fiNzHzjnZt2tUJQjQtUWfWbeHBqKtk3eScw=
 golang.org/x/crypto v0.54.0/go.mod h1:KWL8ny2AZdGR2cWmzeHrp2azQPGogOv+HeQaVEXC2dk=
-golang.org/x/exp/shiny v0.0.0-20260727155853-b88d891fe743 h1:rQLtGtwpYzQUyxCqrT3i4lGgvC1Q4G72JTHYncg6AvY=
-golang.org/x/exp/shiny v0.0.0-20260727155853-b88d891fe743/go.mod h1:JRiBNgSZB8uVKtHGrvbGDQ8p9Ghn3+lkFSk1KqRIiPc=
+golang.org/x/exp/shiny v0.0.0-20260810151157-a8b543ca52da h1:bo0dOpCtbdnUN6DToKnnFMCjj3vU63SAUIABTtxZ+ik=
+golang.org/x/exp/shiny v0.0.0-20260810151157-a8b543ca52da/go.mod h1:JRiBNgSZB8uVKtHGrvbGDQ8p9Ghn3+lkFSk1KqRIiPc=
 golang.org/x/image v0.44.0 h1:+tDekMZED9+LrtB3G5xzRggpVh9CARjZqROla3R3R+I=
 golang.org/x/image v0.44.0/go.mod h1:V8K3KE9KKKE+pLpQDOeN18w9oacNSvy1tDOirTu4xtY=
 golang.org/x/mobile v0.0.0-20260803200217-62cee1672c8e h1:hi1b7Lmv+xvnrjeEv8BoDmU7H/FAOuH7hEHSvjMl2VM=

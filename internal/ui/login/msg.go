@@ -5,8 +5,6 @@ import (
 	"golang.design/x/clipboard"
 )
 
-type errMsg error
-
 type copyErrorMsg string
 
 func setClipboard(content string) tview.Cmd {

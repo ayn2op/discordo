@@ -38,9 +38,7 @@ func NewModel(cfg *config.Config) *Model {
 
 func (m *Model) Update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
-	case errMsg:
-		return showErrorDialog(msg)
-	case password.ErrMsg:
+	case error:
 		return showErrorDialog(msg)
 	case copyErrorMsg:
 		return setClipboard(string(msg))
