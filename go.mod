@@ -53,13 +53,13 @@ require (
 	github.com/twmb/murmur3 v1.1.8 // indirect
 	go4.org v0.0.0-20260112195520-a5071408f32f // indirect
 	golang.design/x/x11 v0.2.0 // indirect
-	golang.org/x/crypto v0.54.0 // indirect
-	golang.org/x/exp/shiny v0.0.0-20260810151157-a8b543ca52da // indirect
-	golang.org/x/image v0.44.0 // indirect
-	golang.org/x/mobile v0.0.0-20260803200217-62cee1672c8e // indirect
+	golang.org/x/crypto v0.55.0 // indirect
+	golang.org/x/exp/shiny v0.0.0-20260811152304-ee035b5b010f // indirect
+	golang.org/x/image v0.45.0 // indirect
+	golang.org/x/mobile v0.0.0-20260811163000-1769bbc171f0 // indirect
 	golang.org/x/net v0.57.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/term v0.45.0 // indirect
-	golang.org/x/text v0.40.0 // indirect
+	golang.org/x/text v0.41.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
 )
