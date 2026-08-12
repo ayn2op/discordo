@@ -21,9 +21,9 @@ type dmNode struct{}
 
 type guildsTree struct {
 	*tree.Model
-	chat *Model
 
-	cfg *config.Config
+	cfg   *config.Config
+	state *ningen.State
 
 	// Fast-path indexes for frequent event handlers (read updates, picker
 	// navigation). They mirror the current rendered tree and are rebuilt on
@@ -33,11 +33,11 @@ type guildsTree struct {
 	dmRootNode      *tree.Node
 }
 
-func newGuildsTree(cfg *config.Config, chat *Model) *guildsTree {
+func newGuildsTree(cfg *config.Config, state *ningen.State) *guildsTree {
 	gt := &guildsTree{
 		Model: tree.NewModel(),
 		cfg:   cfg,
-		chat:  chat,
+		state: state,
 
 		guildNodeByID:   make(map[discord.GuildID]*tree.Node),
 		channelNodeByID: make(map[discord.ChannelID]*tree.Node),
@@ -74,7 +74,7 @@ func (gt *guildsTree) resetNodeIndex() {
 }
 
 func (gt *guildsTree) updateDMNodeStyle(userID discord.UserID) {
-	channel, err := gt.chat.state.Cabinet.CreatePrivateChannel(userID)
+	channel, err := gt.state.Cabinet.CreatePrivateChannel(userID)
 	if err != nil {
 		return
 	}
@@ -122,18 +122,18 @@ func (gt *guildsTree) unreadStyle(indication ningen.UnreadIndication) tcell.Styl
 }
 
 func (gt *guildsTree) guildNodeStyle(guildID discord.GuildID) tcell.Style {
-	indication := gt.chat.state.GuildIsUnread(guildID, ningen.GuildUnreadOpts{UnreadOpts: ningen.UnreadOpts{IncludeMutedCategories: true}})
+	indication := gt.state.GuildIsUnread(guildID, ningen.GuildUnreadOpts{UnreadOpts: ningen.UnreadOpts{IncludeMutedCategories: true}})
 	return gt.unreadStyle(indication)
 }
 
 func (gt *guildsTree) channelNodeStyle(channel discord.Channel) tcell.Style {
-	unread := gt.unreadStyle(gt.chat.state.ChannelIsUnread(channel.ID, ningen.UnreadOpts{IncludeMutedCategories: true}))
+	unread := gt.unreadStyle(gt.state.ChannelIsUnread(channel.ID, ningen.UnreadOpts{IncludeMutedCategories: true}))
 	if channel.Type != discord.DirectMessage || len(channel.DMRecipients) != 1 {
 		return unread
 	}
 
 	recipient := channel.DMRecipients[0]
-	presence, err := gt.chat.state.Cabinet.Presence(discord.NullGuildID, recipient.ID)
+	presence, err := gt.state.Cabinet.Presence(discord.NullGuildID, recipient.ID)
 	if err != nil {
 		return tview.MergeStyle(gt.dmStatusStyle(discord.OfflineStatus), unread)
 	}
@@ -166,12 +166,12 @@ func (gt *guildsTree) createGuildNode(parent *tree.Node, guild discord.Guild) {
 }
 
 func (gt *guildsTree) createChannelNode(parent *tree.Node, channel discord.Channel) {
-	if channel.Type != discord.DirectMessage && channel.Type != discord.GroupDM && channel.Type != discord.GuildCategory && !gt.chat.state.HasPermissions(channel.ID, discord.PermissionViewChannel) {
+	if channel.Type != discord.DirectMessage && channel.Type != discord.GroupDM && channel.Type != discord.GuildCategory && !gt.state.HasPermissions(channel.ID, discord.PermissionViewChannel) {
 		return
 	}
 
 	indents := gt.cfg.Sidebar.Indents
-	channelNode := tree.NewNode(ui.ChannelToString(channel, gt.cfg.Icons, gt.chat.state)).SetReference(channel.ID)
+	channelNode := tree.NewNode(ui.ChannelToString(channel, gt.cfg.Icons, gt.state)).SetReference(channel.ID)
 	gt.setNodeLineStyle(channelNode, gt.channelNodeStyle(channel))
 	switch channel.Type {
 	case discord.DirectMessage:
@@ -256,9 +256,9 @@ func (gt *guildsTree) onSelected(node *tree.Node) tview.Cmd {
 
 	switch ref := node.Reference().(type) {
 	case discord.GuildID:
-		go gt.chat.state.MemberState.Subscribe(ref)
+		go gt.state.MemberState.Subscribe(ref)
 
-		channels, err := gt.chat.state.Cabinet.Channels(ref)
+		channels, err := gt.state.Cabinet.Channels(ref)
 		if err != nil {
 			slog.Error("failed to get channels", "err", err, "guild_id", ref)
 			return nil
@@ -269,7 +269,7 @@ func (gt *guildsTree) onSelected(node *tree.Node) tview.Cmd {
 		node.Expand()
 		return nil
 	case discord.ChannelID:
-		channel, err := gt.chat.state.Cabinet.Channel(ref)
+		channel, err := gt.state.Cabinet.Channel(ref)
 		if err != nil {
 			slog.Error("failed to get channel from state", "err", err, "channel_id", ref)
 			return nil
@@ -277,7 +277,7 @@ func (gt *guildsTree) onSelected(node *tree.Node) tview.Cmd {
 
 		// Forums contain threads, not messages; load the threads as children.
 		if channel.Type == discord.GuildForum {
-			allChannels, err := gt.chat.state.Cabinet.Channels(channel.GuildID)
+			allChannels, err := gt.state.Cabinet.Channels(channel.GuildID)
 			if err != nil {
 				slog.Error("failed to get channels for forum threads", "err", err, "guild_id", channel.GuildID)
 				return nil
@@ -294,7 +294,7 @@ func (gt *guildsTree) onSelected(node *tree.Node) tview.Cmd {
 
 		return gt.loadChannel(*channel)
 	case dmNode: // Direct messages folder
-		channels, err := gt.chat.state.PrivateChannels()
+		channels, err := gt.state.PrivateChannels()
 		if err != nil {
 			slog.Error("failed to get private channels", "err", err)
 			return nil
@@ -313,13 +313,13 @@ func (gt *guildsTree) onSelected(node *tree.Node) tview.Cmd {
 func (gt *guildsTree) loadChannel(channel discord.Channel) tview.Cmd {
 	limit := uint(gt.cfg.MessagesLimit)
 	return func() tview.Msg {
-		messages, err := gt.chat.state.Messages(channel.ID, limit)
+		messages, err := gt.state.Messages(channel.ID, limit)
 		if err != nil {
 			slog.Error("failed to get messages", "err", err, "channel_id", channel.ID, "limit", limit)
 			return nil
 		}
 
-		go gt.chat.state.ReadState.MarkRead(channel.ID, channel.LastMessageID)
+		go gt.state.ReadState.MarkRead(channel.ID, channel.LastMessageID)
 
 		return channelLoadedMsg{Channel: channel, Messages: messages}
 	}
@@ -399,7 +399,7 @@ func (gt *guildsTree) findNodeByReference(reference any) *tree.Node {
 }
 
 func (gt *guildsTree) findNodeByChannelID(channelID discord.ChannelID) *tree.Node {
-	channel, err := gt.chat.state.Cabinet.Channel(channelID)
+	channel, err := gt.state.Cabinet.Channel(channelID)
 	if err != nil {
 		slog.Error("failed to get channel", "channel_id", channelID, "err", err)
 		return nil

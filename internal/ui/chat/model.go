@@ -77,11 +77,6 @@ func NewModel(cfg *config.Config, token string) *Model {
 		cfg: cfg,
 	}
 
-	m.guildsTree = newGuildsTree(cfg, m)
-	m.messagesList = newMessagesList(cfg, m)
-	m.composer = newComposer(cfg, m)
-	m.channelsPicker = channelspicker.NewModel(cfg)
-
 	id := gateway.NewIdentifier(gateway.IdentifyCommand{
 		Token:      token,
 		Properties: http.IdentifyProperties(),
@@ -99,6 +94,11 @@ func NewModel(cfg *config.Config, token string) *Model {
 		slog.Error("state log", "err", err)
 	}
 	m.state.OnRequest = append(m.state.OnRequest, httputil.WithHeaders(http.Headers()), m.onRequest)
+
+	m.guildsTree = newGuildsTree(cfg, m.state)
+	m.messagesList = newMessagesList(cfg, m)
+	m.composer = newComposer(cfg, m)
+	m.channelsPicker = channelspicker.NewModel(cfg)
 
 	m.SetBackgroundLayerStyle(m.cfg.Theme.Dialog.BackgroundStyle.Style)
 	m.buildLayout()
