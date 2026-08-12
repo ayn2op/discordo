@@ -23,6 +23,10 @@ func Headers() stdHttp.Header {
 	headers.Set("Sec-Fetch-Mode", "cors")
 	headers.Set("Sec-Fetch-Site", "same-origin")
 
+	headers.Set("Sec-Ch-Ua", BrowserBrands())
+	headers.Set("Sec-Ch-Ua-Mobile", "?0")
+	headers.Set("Sec-Ch-Ua-Platform", `"`+OS+`"`)
+
 	headers.Set("X-Debug-Options", "bugReporterEnabled")
 	headers.Set("X-Discord-Locale", string(Locale))
 

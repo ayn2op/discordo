@@ -33,3 +33,23 @@ func TestBrowserIdentity(t *testing.T) {
 		t.Fatalf("user agent does not contain %q", product)
 	}
 }
+
+func TestBrowserClientHints(t *testing.T) {
+	headers := Headers()
+	tests := []struct {
+		name string
+		want string
+	}{
+		{"Sec-Ch-Ua", `"Chromium";v="146", "Not-A.Brand";v="24", "Google Chrome";v="146"`},
+		{"Sec-Ch-Ua-Mobile", "?0"},
+		{"Sec-Ch-Ua-Platform", `"Windows"`},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := headers.Get(test.name); got != test.want {
+				t.Fatalf("got = %q, want = %q", got, test.want)
+			}
+		})
+	}
+}

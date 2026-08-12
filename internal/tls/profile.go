@@ -8,6 +8,10 @@ func BrowserName() string {
 	return clientProfile.GetClientHelloId().Client
 }
 
+func BrowserMajorVersion() string {
+	return clientProfile.GetClientHelloId().Version
+}
+
 func BrowserVersion() string {
-	return clientProfile.GetClientHelloId().Version + ".0.0.0"
+	return BrowserMajorVersion() + ".0.0.0"
 }
