@@ -80,7 +80,7 @@ func NewModel(cfg *config.Config, token string) *Model {
 	id := gateway.NewIdentifier(gateway.IdentifyCommand{
 		Token:        token,
 		Properties:   http.IdentifyProperties(),
-		Capabilities: gateway.LazyUserNotes | gateway.VersionedReadStates | gateway.VersionedUserGuildSetttings | gateway.DedupeUserObjects | gateway.PrioritizedReadyPayload | gateway.MultipleGuildExperimentPopulations | gateway.NonChannelReadStates | gateway.AuthTokenRefresh,
+		Capabilities: gateway.LazyUserNotes | gateway.VersionedReadStates | gateway.VersionedUserGuildSetttings | gateway.DedupeUserObjects | gateway.PrioritizedReadyPayload | gateway.MultipleGuildExperimentPopulations | gateway.NonChannelReadStates | gateway.AuthTokenRefresh | gateway.DebounceMessageReactions,
 	})
 
 	session := session.NewWithGateway(clientgateway.New(id), handler.New())
@@ -290,6 +290,8 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		case *gateway.MessageDeleteEvent:
 			m.onMessageDelete(eventMsg)
 		case *gateway.MessageReactionAddEvent:
+			m.onMessageReaction(eventMsg.ChannelID, eventMsg.MessageID)
+		case *gateway.MessageReactionAddManyEvent:
 			m.onMessageReaction(eventMsg.ChannelID, eventMsg.MessageID)
 		case *gateway.MessageReactionRemoveEvent:
 			m.onMessageReaction(eventMsg.ChannelID, eventMsg.MessageID)
