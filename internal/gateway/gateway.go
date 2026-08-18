@@ -10,7 +10,7 @@ import (
 const gatewayURL = "wss://gateway.discord.gg"
 
 func New(id discordgateway.Identifier) *discordgateway.Gateway {
-	codec := ws.NewCodec(discordgateway.OpUnmarshalers)
+	codec := ws.NewCodec(discordgateway.NewOpUnmarshalers(id.Capabilities))
 	codec.Headers.Set("Origin", api.BaseEndpoint)
 	codec.Headers.Set("User-Agent", http.BrowserUserAgent())
 
