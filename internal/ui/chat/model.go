@@ -78,9 +78,17 @@ func NewModel(cfg *config.Config, token string) *Model {
 	}
 
 	id := gateway.NewIdentifier(gateway.IdentifyCommand{
-		Token:        token,
-		Properties:   http.IdentifyProperties(),
-		Capabilities: gateway.LazyUserNotes | gateway.VersionedReadStates | gateway.VersionedUserGuildSetttings | gateway.DedupeUserObjects | gateway.PrioritizedReadyPayload | gateway.MultipleGuildExperimentPopulations | gateway.NonChannelReadStates | gateway.AuthTokenRefresh | gateway.DebounceMessageReactions,
+		Token:      token,
+		Properties: http.IdentifyProperties(),
+		Capabilities: gateway.LazyUserNotes |
+			gateway.VersionedReadStates |
+			gateway.VersionedUserGuildSetttings |
+			gateway.DedupeUserObjects |
+			gateway.PrioritizedReadyPayload |
+			gateway.MultipleGuildExperimentPopulations |
+			gateway.NonChannelReadStates |
+			gateway.AuthTokenRefresh |
+			gateway.DebounceMessageReactions,
 	})
 
 	session := session.NewWithGateway(clientgateway.New(id), handler.New())
