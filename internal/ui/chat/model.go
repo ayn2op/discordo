@@ -78,8 +78,9 @@ func NewModel(cfg *config.Config, token string) *Model {
 	}
 
 	id := gateway.NewIdentifier(gateway.IdentifyCommand{
-		Token:      token,
-		Properties: http.IdentifyProperties(),
+		Token:        token,
+		Properties:   http.IdentifyProperties(),
+		Capabilities: gateway.VersionedReadStates | gateway.VersionedUserGuildSetttings,
 	})
 
 	session := session.NewWithGateway(clientgateway.New(id), handler.New())
