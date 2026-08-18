@@ -706,7 +706,7 @@ func embedLines(embed discord.Embed, contentURLs map[string]struct{}) []embedLin
 	}
 
 	appendURL := func(url discord.URL) {
-		u := strings.TrimSpace(string(url))
+		u := strings.TrimSpace(url)
 		if u == "" {
 			return
 		}
@@ -723,7 +723,7 @@ func embedLines(embed discord.Embed, contentURLs map[string]struct{}) []embedLin
 	if embed.Author != nil {
 		appendUnique(embed.Author.Name, embedLineAuthor, "")
 	}
-	appendUnique(embed.Title, embedLineTitle, string(embed.URL))
+	appendUnique(embed.Title, embedLineTitle, embed.URL)
 	// Some Discord embeds include markdown-escaped punctuation in raw payload text (e.g. "\."), so normalize for display.
 	appendUnique(unescapeMarkdownEscapes(embed.Description), embedLineDescription, "")
 
@@ -1112,13 +1112,13 @@ func extractEmbedURLs(embeds []discord.Embed) []string {
 	urls := make([]string, 0, len(embeds)*3)
 	for _, embed := range embeds {
 		if embed.URL != "" {
-			urls = append(urls, string(embed.URL))
+			urls = append(urls, embed.URL)
 		}
 		if embed.Image != nil && embed.Image.URL != "" {
-			urls = append(urls, string(embed.Image.URL))
+			urls = append(urls, embed.Image.URL)
 		}
 		if embed.Video != nil && embed.Video.URL != "" {
-			urls = append(urls, string(embed.Video.URL))
+			urls = append(urls, embed.Video.URL)
 		}
 	}
 	return urls
@@ -1242,11 +1242,11 @@ func (ml *messagesList) reply(mention bool) tview.Cmd {
 
 	data := ml.chat.composer.sendMessageData
 	data.Reference = &discord.MessageReference{MessageID: selectedMessage.ID}
-	data.AllowedMentions = &api.AllowedMentions{RepliedUser: option.False}
+	data.AllowedMentions = &api.AllowedMentions{RepliedUser: option.Some(false)}
 
 	title := "Replying to "
 	if mention {
-		data.AllowedMentions.RepliedUser = option.True
+		data.AllowedMentions.RepliedUser = option.Some(true)
 		title = "[@] " + title
 	}
 

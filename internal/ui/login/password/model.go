@@ -24,8 +24,7 @@ func (m *Model) Label() string {
 }
 
 func (m *Model) Update(msg tview.Msg) tview.Cmd {
-	switch msg.(type) {
-	case tview.FormSubmitMsg:
+	if _, ok := msg.(tview.FormSubmitMsg); ok {
 		login := m.GetFormItem(0).(*tview.InputField).Text()
 		password := m.GetFormItem(1).(*tview.InputField).Text()
 		if login == "" || password == "" {

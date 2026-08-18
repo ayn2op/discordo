@@ -23,8 +23,7 @@ func (m *Model) Label() string {
 }
 
 func (m *Model) Update(msg tview.Msg) tview.Cmd {
-	switch msg.(type) {
-	case tview.FormSubmitMsg:
+	if _, ok := msg.(tview.FormSubmitMsg); ok {
 		token := m.GetFormItem(0).(*tview.InputField).Text()
 		if token == "" {
 			return nil

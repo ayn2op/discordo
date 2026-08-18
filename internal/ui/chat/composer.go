@@ -328,7 +328,7 @@ func (c *composer) send() tview.Cmd {
 	return func() tview.Msg {
 		defer closeFiles(data.Files)()
 		if edit {
-			editData := api.EditMessageData{Content: option.NewNullableString(text)}
+			editData := api.EditMessageData{Content: option.SomeNullable(text)}
 			if _, err := c.chat.state.EditMessageComplex(editMessage.ChannelID, editMessage.ID, editData); err != nil {
 				slog.Error("failed to edit message", "err", err)
 			}
@@ -490,7 +490,8 @@ func (c *composer) tabSuggest() tview.Cmd {
 	}
 
 	// DMs have recipients, not members
-	if !gID.IsValid() {
+	switch {
+	case !gID.IsValid():
 		if name == "" { // show recent messages' authors
 			msgs, err := c.chat.state.Cabinet.Messages(cID)
 			if err != nil {
@@ -512,7 +513,7 @@ func (c *composer) tabSuggest() tview.Cmd {
 				c.addMentionUser(&users[r.Index])
 			}
 		}
-	} else if name == "" { // show recent messages' authors
+	case name == "": // show recent messages' authors
 		msgs, err := c.chat.state.Cabinet.Messages(cID)
 		if err != nil {
 			return nil
@@ -529,7 +530,7 @@ func (c *composer) tabSuggest() tview.Cmd {
 				}
 			}
 		}
-	} else {
+	default:
 		searchCmd := c.searchMember(gID, name)
 		mems, err := c.chat.state.Cabinet.Members(gID)
 		if err != nil {
@@ -621,7 +622,7 @@ func (c *composer) searchMember(gID discord.GuildID, name string) tview.Cmd {
 	return func() tview.Msg {
 		if err := c.chat.state.SendGateway(context.Background(), &gateway.RequestGuildMembersCommand{
 			GuildIDs:  []discord.GuildID{gID},
-			Query:     option.NewString(name),
+			Query:     option.Some(name),
 			Presences: c.chat.state.MemberState.RequestPresences,
 			Limit:     c.chat.state.MemberState.SearchLimit,
 			Nonce:     nonce,
