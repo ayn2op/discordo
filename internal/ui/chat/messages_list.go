@@ -147,7 +147,7 @@ func (ml *messagesList) deleteMessage(index int) {
 	}
 
 	delete(ml.itemByID, ml.messages[index].ID)
-	ml.messages = append(ml.messages[:index], ml.messages[index+1:]...)
+	ml.messages = slices.Delete(ml.messages, index, index+1)
 	ml.rebuildRows()
 }
 
@@ -1125,8 +1125,7 @@ func extractEmbedURLs(embeds []discord.Embed) []string {
 }
 
 func messageURLs(msg discord.Message) []string {
-	combined := extractURLs(msg.Content)
-	combined = append(combined, extractEmbedURLs(msg.Embeds)...)
+	combined := slices.Concat(extractURLs(msg.Content), extractEmbedURLs(msg.Embeds))
 
 	urls := make([]string, 0, len(combined))
 	seen := make(map[string]struct{}, len(combined))
