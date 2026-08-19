@@ -12,8 +12,8 @@ github.com/andybalholm/brotli v1.2.2 h1:HzTuoo2ErYQqf5qvcJInB8uvqSVxRttzkFexPWtn
 github.com/andybalholm/brotli v1.2.2/go.mod h1:rzTDkvFWvIrjDXZHkuS16NPggd91W3kUSvPlQ1pLaKY=
 github.com/ayn2op/arikawa/v3 v3.0.0-20260818212803-ea226484f0f9 h1:aCFnS+/kF7Yv/Vqb/Ax+1ZQ7l9OT7LB2Q3r7KHBqJf0=
 github.com/ayn2op/arikawa/v3 v3.0.0-20260818212803-ea226484f0f9/go.mod h1:O0QAm4VBLKBF01sofDEsAHGfD8+Tk8iWNYWksojTt6A=
-github.com/ayn2op/ningen/v3 v3.0.1-0.20260818214204-4e9ec3f35437 h1:hM4rXx8orr+kMEwCKtEq25m5GFih5ziW8lCJuwqr/Xs=
-github.com/ayn2op/ningen/v3 v3.0.1-0.20260818214204-4e9ec3f35437/go.mod h1:XhtckMjvipRb0JyG6nDpfoGu0p8jxxrHqjAlwAewejE=
+github.com/ayn2op/ningen/v3 v3.0.1-0.20260819054921-216f8ed6e457 h1:ohdx9vFlodHMslkPQpDnfqA1UcfUg+uivLkm/WOFy0Q=
+github.com/ayn2op/ningen/v3 v3.0.1-0.20260819054921-216f8ed6e457/go.mod h1:XhtckMjvipRb0JyG6nDpfoGu0p8jxxrHqjAlwAewejE=
 github.com/ayn2op/tview v0.0.0-20260819035318-feae08e2c6f8 h1:3kt9WBCPSpbr9KOnp0dY6tQAFY8rNwcDw7ykhnXf0Uk=
 github.com/ayn2op/tview v0.0.0-20260819035318-feae08e2c6f8/go.mod h1:igs0OTdkEsZekEFgIfHexy/vjVXYNO0N419pX9Dd5GM=
 github.com/bdandy/go-errors v1.2.2 h1:WdFv/oukjTJCLa79UfkGmwX7ZxONAihKu4V0mLIs11Q=

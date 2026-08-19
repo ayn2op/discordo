@@ -319,7 +319,10 @@ func (gt *guildsTree) loadChannel(channel discord.Channel) tview.Cmd {
 			return nil
 		}
 
-		go gt.state.ReadState.MarkRead(channel.ID, channel.LastMessageID)
+		// The tree node may hold an older channel snapshot.
+		if lastMessageID := gt.state.LastMessage(channel.ID); lastMessageID.IsValid() {
+			go gt.state.ReadState.MarkRead(channel.ID, lastMessageID)
+		}
 
 		return channelLoadedMsg{Channel: channel, Messages: messages}
 	}
