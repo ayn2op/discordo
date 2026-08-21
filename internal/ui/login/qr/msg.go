@@ -6,7 +6,7 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
-	"encoding/json"
+	json "encoding/json/v2"
 	"errors"
 	"strings"
 	"time"
@@ -90,60 +90,39 @@ func listen(conn *websocket.Conn) tview.Cmd {
 			return errMsg(err)
 		}
 
-		var payload struct {
-			Op string `json:"op"`
-		}
-		if err := json.Unmarshal(data, &payload); err != nil {
-			return errMsg(err)
-		}
+		return decodeMessage(data)
+	}
+}
 
-		switch payload.Op {
-		case "hello":
-			var payload struct {
-				HeartbeatInterval int `json:"heartbeat_interval"`
-				TimeoutMS         int `json:"timeout_ms"`
-			}
-			if err := json.Unmarshal(data, &payload); err != nil {
-				return errMsg(err)
-			}
-			return helloMsg{heartbeatInterval: payload.HeartbeatInterval, timeoutMS: payload.TimeoutMS}
-		case "nonce_proof":
-			var payload struct {
-				EncryptedNonce string `json:"encrypted_nonce"`
-			}
-			if err := json.Unmarshal(data, &payload); err != nil {
-				return errMsg(err)
-			}
-			return nonceProofMsg{encryptedNonce: payload.EncryptedNonce}
-		case "pending_remote_init":
-			var payload struct {
-				Fingerprint string `json:"fingerprint"`
-			}
-			if err := json.Unmarshal(data, &payload); err != nil {
-				return errMsg(err)
-			}
-			return pendingRemoteInitMsg{fingerprint: payload.Fingerprint}
-		case "pending_ticket":
-			var payload struct {
-				EncryptedUserPayload string `json:"encrypted_user_payload"`
-			}
-			if err := json.Unmarshal(data, &payload); err != nil {
-				return errMsg(err)
-			}
-			return pendingTicketMsg{encryptedUserPayload: payload.EncryptedUserPayload}
-		case "cancel":
-			return cancelMsg{}
-		case "pending_login":
-			var payload struct {
-				Ticket string `json:"ticket"`
-			}
-			if err := json.Unmarshal(data, &payload); err != nil {
-				return errMsg(err)
-			}
-			return pendingLoginMsg{ticket: payload.Ticket}
-		default:
-			return nil
-		}
+func decodeMessage(data []byte) tview.Msg {
+	var payload struct {
+		Op                   string `json:"op"`
+		HeartbeatInterval    int    `json:"heartbeat_interval"`
+		TimeoutMS            int    `json:"timeout_ms"`
+		EncryptedNonce       string `json:"encrypted_nonce"`
+		Fingerprint          string `json:"fingerprint"`
+		EncryptedUserPayload string `json:"encrypted_user_payload"`
+		Ticket               string `json:"ticket"`
+	}
+	if err := json.Unmarshal(data, &payload); err != nil {
+		return errMsg(err)
+	}
+
+	switch payload.Op {
+	case "hello":
+		return helloMsg{heartbeatInterval: payload.HeartbeatInterval, timeoutMS: payload.TimeoutMS}
+	case "nonce_proof":
+		return nonceProofMsg{encryptedNonce: payload.EncryptedNonce}
+	case "pending_remote_init":
+		return pendingRemoteInitMsg{fingerprint: payload.Fingerprint}
+	case "pending_ticket":
+		return pendingTicketMsg{encryptedUserPayload: payload.EncryptedUserPayload}
+	case "cancel":
+		return cancelMsg{}
+	case "pending_login":
+		return pendingLoginMsg{ticket: payload.Ticket}
+	default:
+		return nil
 	}
 }
 

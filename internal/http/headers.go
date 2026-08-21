@@ -2,7 +2,7 @@ package http
 
 import (
 	"encoding/base64"
-	"encoding/json"
+	json "encoding/json/v2"
 	"log/slog"
 	stdHttp "net/http"
 
