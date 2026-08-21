@@ -20,7 +20,6 @@ require (
 	github.com/bogdanfinn/tls-client v1.15.1
 	github.com/gdamore/tcell/v3 v3.4.2
 	github.com/google/go-cmp v0.6.0
-	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/klauspost/compress v1.19.2
 	github.com/ncruces/zenity v0.10.15

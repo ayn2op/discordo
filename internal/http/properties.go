@@ -1,10 +1,11 @@
 package http
 
 import (
+	"uuid"
+
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/arikawa/v3/gateway"
 	"github.com/ayn2op/discordo/internal/tls"
-	"github.com/google/uuid"
 )
 
 //go:generate go run generator.go
@@ -37,7 +38,7 @@ func CommonProperties() gateway.IdentifyProperties {
 
 		"client_build_number": ClientBuildNumber,
 		"client_event_source": nil,
-		"client_launch_id":    uuid.NewString(),
+		"client_launch_id":    uuid.NewV4().String(),
 
 		"system_locale":   Locale,
 		"release_channel": "stable",
@@ -59,7 +60,7 @@ func IdentifyProperties() gateway.IdentifyProperties {
 func XSuperProperties() gateway.IdentifyProperties {
 	props := CommonProperties()
 	props["client_app_state"] = "focused"
-	props["client_heartbeat_session_id"] = uuid.NewString()
+	props["client_heartbeat_session_id"] = uuid.NewV4().String()
 	props["launch_signature"] = generateLaunchSignature()
 	return props
 }
@@ -69,15 +70,15 @@ func generateLaunchSignature() string {
 	// This mask clears detection bits to avoid identification.
 	// Reference: https://docs.discord.food/reference#launch-signature
 	//
-	// Required version and variant bits for UUIDv4 validity are set by google/uuid.
-	// Reference: https://github.com/google/uuid/blob/master/version4.go#L54
+	// Required version and variant bits for UUIDv4 validity are set by uuid.NewV4.
+	// Reference: https://pkg.go.dev/uuid#NewV4
 	mask := [16]byte{
 		0b11111111, 0b01111111, 0b11101111, 0b11101111,
 		0b11110111, 0b11101111, 0b11110111, 0b11111111,
 		0b11011111, 0b01111110, 0b11111111, 0b10111111,
 		0b11111110, 0b11111111, 0b11110111, 0b11111111,
 	}
-	id := uuid.New()
+	id := uuid.NewV4()
 	for i := range mask {
 		id[i] &= mask[i]
 	}
