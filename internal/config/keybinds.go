@@ -158,23 +158,21 @@ func defaultGuildsTreeKeybinds() GuildsTreeKeybinds {
 func defaultMessagesListKeybinds() MessagesListKeybinds {
 	return MessagesListKeybinds{
 		SelectionKeybinds: defaultSelectionKeybinds(),
-		ScrollKeybinds: ScrollKeybinds{
-			ScrollUp:     desc("scr up"),
-			ScrollDown:   desc("scr down"),
-			ScrollTop:    desc("scr top"),
-			ScrollBottom: desc("scr btm"),
-		},
-		SelectReply:   desc("sel reply"),
-		Reply:         desc("reply"),
-		ReplyMention:  desc("@reply"),
-		Cancel:        desc("cancel"),
-		Edit:          desc("edit"),
-		Delete:        desc("force delete"),
-		DeleteConfirm: desc("delete"),
-		Open:          desc("open"),
-		YankContent:   desc("copy text"),
-		YankURL:       desc("copy url"),
-		YankID:        desc("copy id"),
+		ScrollUp:          desc("scr up"),
+		ScrollDown:        desc("scr down"),
+		ScrollTop:         desc("scr top"),
+		ScrollBottom:      desc("scr btm"),
+		SelectReply:       desc("sel reply"),
+		Reply:             desc("reply"),
+		ReplyMention:      desc("@reply"),
+		Cancel:            desc("cancel"),
+		Edit:              desc("edit"),
+		Delete:            desc("force delete"),
+		DeleteConfirm:     desc("delete"),
+		Open:              desc("open"),
+		YankContent:       desc("copy text"),
+		YankURL:           desc("copy url"),
+		YankID:            desc("copy id"),
 	}
 }
 

@@ -122,7 +122,7 @@ func (gt *guildsTree) unreadStyle(indication ningen.UnreadIndication) tcell.Styl
 }
 
 func (gt *guildsTree) guildNodeStyle(guildID discord.GuildID) tcell.Style {
-	indication := gt.state.GuildIsUnread(guildID, ningen.GuildUnreadOpts{UnreadOpts: ningen.UnreadOpts{IncludeMutedCategories: true}})
+	indication := gt.state.GuildIsUnread(guildID, ningen.GuildUnreadOpts{IncludeMutedCategories: true})
 	return gt.unreadStyle(indication)
 }
 

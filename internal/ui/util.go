@@ -10,7 +10,6 @@ import (
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/grid"
-	"github.com/ayn2op/tview/list"
 	"github.com/ayn2op/tview/picker"
 )
 
@@ -55,14 +54,12 @@ func ConfigurePicker(model *picker.Model, cfg *config.Config, title string) {
 		SetThumbStyle(cfg.Theme.ScrollBar.ThumbStyle.Style).
 		SetGlyphSet(cfg.Theme.ScrollBar.GlyphSet.GlyphSet))
 	model.SetKeybinds(picker.Keybinds{
-		Cancel: cfg.Keybinds.Picker.Cancel.Keybind,
-		Keybinds: list.Keybinds{
-			SelectUp:     cfg.Keybinds.Picker.SelectUp.Keybind,
-			SelectDown:   cfg.Keybinds.Picker.SelectDown.Keybind,
-			SelectTop:    cfg.Keybinds.Picker.SelectTop.Keybind,
-			SelectBottom: cfg.Keybinds.Picker.SelectBottom.Keybind,
-		},
-		Select: cfg.Keybinds.Picker.Select.Keybind,
+		Cancel:       cfg.Keybinds.Picker.Cancel.Keybind,
+		SelectUp:     cfg.Keybinds.Picker.SelectUp.Keybind,
+		SelectDown:   cfg.Keybinds.Picker.SelectDown.Keybind,
+		SelectTop:    cfg.Keybinds.Picker.SelectTop.Keybind,
+		SelectBottom: cfg.Keybinds.Picker.SelectBottom.Keybind,
+		Select:       cfg.Keybinds.Picker.Select.Keybind,
 	})
 }
 
