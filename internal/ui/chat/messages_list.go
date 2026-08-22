@@ -1027,7 +1027,10 @@ func (ml *messagesList) yankMessageID() tview.Cmd {
 	}
 
 	return func() tview.Msg {
-		_ = clipboard.Write(clipboard.FmtText, []byte(selectedMessage.ID.String()))
+		if _, err := clipboard.Write(context.Background(), clipboard.FmtText, []byte(selectedMessage.ID.String())); err != nil {
+			slog.Error("failed to write to clipboard", "err", err)
+			return nil
+		}
 		return nil
 	}
 }
@@ -1039,7 +1042,10 @@ func (ml *messagesList) yankContent() tview.Cmd {
 	}
 
 	return func() tview.Msg {
-		_ = clipboard.Write(clipboard.FmtText, []byte(selectedMessage.Content))
+		if _, err := clipboard.Write(context.Background(), clipboard.FmtText, []byte(selectedMessage.Content)); err != nil {
+			slog.Error("failed to write to clipboard", "err", err)
+			return nil
+		}
 		return nil
 	}
 }
@@ -1051,7 +1057,10 @@ func (ml *messagesList) yankURL() tview.Cmd {
 	}
 
 	return func() tview.Msg {
-		_ = clipboard.Write(clipboard.FmtText, []byte(selectedMessage.URL()))
+		if _, err := clipboard.Write(context.Background(), clipboard.FmtText, []byte(selectedMessage.URL())); err != nil {
+			slog.Error("failed to write to clipboard", "err", err)
+			return nil
+		}
 		return nil
 	}
 }

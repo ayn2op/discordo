@@ -77,8 +77,20 @@ func newComposer(cfg *config.Config, chat *Model) *composer {
 	c.
 		SetPlaceholder(tview.NewLine(tview.NewSegment("Select a channel to start chatting", tcell.StyleDefault.Dim(true)))).
 		SetClipboard(
-			func(s string) { _ = clipboard.Write(clipboard.FmtText, []byte(s)) },
-			func() string { return string(clipboard.Read(clipboard.FmtText)) },
+			func(s string) {
+				if _, err := clipboard.Write(context.Background(), clipboard.FmtText, []byte(s)); err != nil {
+					slog.Error("failed to write to clipboard", "err", err)
+					return
+				}
+			},
+			func() string {
+				data, err := clipboard.Read(context.Background(), clipboard.FmtText)
+				if err != nil {
+					slog.Error("failed to read from clipboard", "err", err)
+					return ""
+				}
+				return string(data)
+			},
 		).
 		SetDisabled(true)
 
@@ -222,7 +234,11 @@ type imagePastedMsg []byte
 
 func pasteImage() tview.Cmd {
 	return func() tview.Msg {
-		data := clipboard.Read(clipboard.FmtImage)
+		data, err := clipboard.Read(context.Background(), clipboard.FmtImage)
+		if err != nil {
+			slog.Error("failed to read from clipboard", "err", err)
+			return nil
+		}
 		return imagePastedMsg(data)
 	}
 }

@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 
@@ -372,7 +373,10 @@ func (gt *guildsTree) yankID() tview.Cmd {
 	// discord.Snowflake (discord.GuildID and discord.ChannelID) have the String method.
 	if id, ok := node.Reference().(fmt.Stringer); ok {
 		return func() tview.Msg {
-			_ = clipboard.Write(clipboard.FmtText, []byte(id.String()))
+			if _, err := clipboard.Write(context.Background(), clipboard.FmtText, []byte(id.String())); err != nil {
+				slog.Error("failed to write to clipboard", "err", err)
+				return nil
+			}
 			return nil
 		}
 	}
