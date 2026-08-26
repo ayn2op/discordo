@@ -58,7 +58,7 @@ require (
 	go4.org v0.0.0-20260112195520-a5071408f32f // indirect
 	golang.design/x/x11 v0.2.0 // indirect
 	golang.org/x/crypto v0.55.0 // indirect
-	golang.org/x/exp/shiny v0.0.0-20260820142414-ca536658362e // indirect
+	golang.org/x/exp/shiny v0.0.0-20260824195058-e88cd73687aa // indirect
 	golang.org/x/image v0.45.0 // indirect
 	golang.org/x/mobile v0.0.0-20260821190718-4776eadac327 // indirect
 	golang.org/x/net v0.58.0 // indirect
