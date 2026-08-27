@@ -35,7 +35,7 @@ theme = "monokai"
 
 [help]
 # Whether to show keybind help.
-enabled = false
+enabled = true
 # Show compact key modifiers in help, e.g. "^x" instead of "ctrl+x".
 compact_modifiers = true
 # [left, right]
@@ -104,7 +104,10 @@ guild_store = "s-"
 # Hide/show the guilds tree.
 toggle_guilds_tree = "ctrl+b"
 toggle_channels_picker = "ctrl+k"
-toggle_help = "ctrl+."
+# Hide/show keybind help.
+toggle_help = "alt+."
+# Switch between compact and full keybind help.
+toggle_full_help = "ctrl+."
 focus_guilds_tree = "ctrl+g"
 focus_messages_list = "ctrl+t"
 focus_composer = "ctrl+i"
