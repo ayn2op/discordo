@@ -318,6 +318,15 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 				m.onTypingStart(eventMsg)
 			}
 
+		case *gateway.ThreadCreateEvent:
+			m.onThreadCreate(eventMsg.Channel)
+		case *gateway.ThreadUpdateEvent:
+			m.onThreadUpdate(eventMsg.Channel)
+		case *gateway.ThreadDeleteEvent:
+			m.onThreadDelete(*eventMsg)
+		case *gateway.ThreadListSyncEvent:
+			m.onThreadListSync(eventMsg)
+
 		case *read.UpdateEvent:
 			m.onReadUpdate(eventMsg)
 		}

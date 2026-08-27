@@ -128,6 +128,11 @@ func (gt *guildsTree) guildNodeStyle(guildID discord.GuildID) tcell.Style {
 }
 
 func (gt *guildsTree) channelNodeStyle(channel discord.Channel) tcell.Style {
+	if isThread(channel.Type) && channel.ParentID.IsValid() {
+		if parent, err := gt.state.Cabinet.Channel(channel.ParentID); err == nil {
+			return gt.unreadStyle(gt.state.ChannelIsUnread(parent.ID, ningen.UnreadOpts{IncludeMutedCategories: true}))
+		}
+	}
 	unread := gt.unreadStyle(gt.state.ChannelIsUnread(channel.ID, ningen.UnreadOpts{IncludeMutedCategories: true}))
 	if channel.Type != discord.DirectMessage || len(channel.DMRecipients) != 1 {
 		return unread
@@ -167,7 +172,11 @@ func (gt *guildsTree) createGuildNode(parent *tree.Node, guild discord.Guild) {
 }
 
 func (gt *guildsTree) createChannelNode(parent *tree.Node, channel discord.Channel) {
-	if channel.Type != discord.DirectMessage && channel.Type != discord.GroupDM && channel.Type != discord.GuildCategory && !gt.state.HasPermissions(channel.ID, discord.PermissionViewChannel) {
+	if isThread(channel.Type) {
+		if channel.ThreadMetadata != nil && channel.ThreadMetadata.Archived {
+			return
+		}
+	} else if channel.Type != discord.DirectMessage && channel.Type != discord.GroupDM && channel.Type != discord.GuildCategory && !gt.state.HasPermissions(channel.ID, discord.PermissionViewChannel) {
 		return
 	}
 
@@ -250,7 +259,7 @@ func isThread(t discord.ChannelType) bool {
 }
 
 func (gt *guildsTree) onSelected(node *tree.Node) tview.Cmd {
-	if len(node.Children()) != 0 {
+	if node.Expandable() && len(node.Children()) != 0 {
 		node.SetExpanded(!node.Expanded())
 		return nil
 	}
