@@ -319,11 +319,11 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 			}
 
 		case *gateway.ThreadCreateEvent:
-			m.onThreadCreate(eventMsg.Channel)
+			m.onThreadUpsert(eventMsg.Channel)
 		case *gateway.ThreadUpdateEvent:
-			m.onThreadUpdate(eventMsg.Channel)
+			m.onThreadUpsert(eventMsg.Channel)
 		case *gateway.ThreadDeleteEvent:
-			m.onThreadDelete(*eventMsg)
+			m.removeThread(eventMsg.ID, eventMsg.ParentID)
 		case *gateway.ThreadListSyncEvent:
 			m.onThreadListSync(eventMsg)
 

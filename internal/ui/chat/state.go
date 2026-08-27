@@ -244,66 +244,41 @@ func (m *Model) onTypingStart(event *gateway.TypingStartEvent) {
 	m.addTyper(event.UserID)
 }
 
-func (m *Model) onThreadCreate(thread discord.Channel) {
-	if !isThread(thread.Type) {
+func (m *Model) onThreadUpsert(thread discord.Channel) {
+	if !isThread(thread.Type) || !thread.ParentID.IsValid() {
 		return
 	}
-	if thread.ParentID.IsValid() {
-		if parentNode := m.guildsTree.findNodeByReference(thread.ParentID); parentNode != nil {
-			m.guildsTree.createChannelNode(parentNode, thread)
-		}
+	m.removeThread(thread.ID, thread.ParentID)
+	if thread.ThreadMetadata != nil && thread.ThreadMetadata.Archived {
+		return
+	}
+	if parent := m.guildsTree.findNodeByReference(thread.ParentID); parent != nil {
+		m.guildsTree.createChannelNode(parent, thread)
 	}
 }
 
-func (m *Model) onThreadUpdate(thread discord.Channel) {
-	if !isThread(thread.Type) {
-		return
-	}
-	if node := m.guildsTree.findNodeByReference(thread.ID); node != nil {
-		if thread.ThreadMetadata != nil && thread.ThreadMetadata.Archived {
-			if parentNode := m.guildsTree.findNodeByReference(thread.ParentID); parentNode != nil {
-				parentNode.RemoveChild(node)
-			}
-			delete(m.guildsTree.channelNodeByID, thread.ID)
-		} else {
-			m.guildsTree.setNodeLineStyle(node, m.guildsTree.channelNodeStyle(thread))
+func (m *Model) removeThread(id, parentID discord.ChannelID) {
+	if node := m.guildsTree.findNodeByReference(id); node != nil {
+		if parent := m.guildsTree.findNodeByReference(parentID); parent != nil {
+			parent.RemoveChild(node)
 		}
 	}
-}
-
-func (m *Model) onThreadDelete(thread gateway.ThreadDeleteEvent) {
-	if node := m.guildsTree.findNodeByReference(thread.ID); node != nil {
-		if parentNode := m.guildsTree.findNodeByReference(thread.ParentID); parentNode != nil {
-			parentNode.RemoveChild(node)
-		}
-		delete(m.guildsTree.channelNodeByID, thread.ID)
-	}
+	delete(m.guildsTree.channelNodeByID, id)
 }
 
 func (m *Model) onThreadListSync(event *gateway.ThreadListSyncEvent) {
-	parents := make(map[discord.ChannelID]struct{}, len(event.ChannelIDs))
-	for _, id := range event.ChannelIDs {
-		parents[id] = struct{}{}
+	for id := range m.guildsTree.channelNodeByID {
+		thread, err := m.state.Cabinet.Channel(id)
+		if err != nil || !isThread(thread.Type) || thread.GuildID != event.GuildID {
+			continue
+		}
+		if event.ChannelIDs == nil || slices.Contains(event.ChannelIDs, thread.ParentID) {
+			m.removeThread(thread.ID, thread.ParentID)
+		}
 	}
 
 	for _, thread := range event.Threads {
-		if !isThread(thread.Type) || !thread.ParentID.IsValid() {
-			continue
-		}
-		if len(parents) != 0 {
-			if _, ok := parents[thread.ParentID]; !ok {
-				continue
-			}
-		}
-
-		parentNode := m.guildsTree.findNodeByReference(thread.ParentID)
-		if parentNode == nil {
-			continue
-		}
-		if old := m.guildsTree.findNodeByReference(thread.ID); old != nil {
-			parentNode.RemoveChild(old)
-		}
-		m.guildsTree.createChannelNode(parentNode, thread)
+		m.onThreadUpsert(thread)
 	}
 }
 
