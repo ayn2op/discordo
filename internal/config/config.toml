@@ -34,6 +34,8 @@ mask_spoilers = false
 theme = "monokai"
 
 [help]
+# Whether to show keybind help.
+enabled = false
 # Show compact key modifiers in help, e.g. "^x" instead of "ctrl+x".
 compact_modifiers = true
 # [left, right]
