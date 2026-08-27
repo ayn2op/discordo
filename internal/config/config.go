@@ -64,6 +64,7 @@ type (
 	}
 
 	HelpConfig struct {
+		Enabled          bool   `toml:"enabled"`
 		CompactModifiers bool   `toml:"compact_modifiers"`
 		Padding          [2]int `toml:"padding"`
 		Separator        string `toml:"separator"`

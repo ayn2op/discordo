@@ -53,7 +53,7 @@ func TestLoad(t *testing.T) {
 
 	t.Run("valid config does not return error", func(t *testing.T) {
 		path := filepath.Join(t.TempDir(), "good.toml")
-		if err := os.WriteFile(path, []byte("mouse = false"), os.ModePerm); err != nil {
+		if err := os.WriteFile(path, []byte("mouse = false\n[help]\nenabled = true"), os.ModePerm); err != nil {
 			t.Fatal(err)
 		}
 
@@ -64,6 +64,9 @@ func TestLoad(t *testing.T) {
 
 		if cfg.Mouse != false {
 			t.Fatalf("got = %v, want = false", cfg.Mouse)
+		}
+		if !cfg.Help.Enabled {
+			t.Fatal("help enabled = false, want true")
 		}
 	})
 
