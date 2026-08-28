@@ -107,6 +107,7 @@ type Keybinds struct {
 	ToggleGuildsTree     Keybind `toml:"toggle_guilds_tree"`
 	ToggleChannelsPicker Keybind `toml:"toggle_channels_picker"`
 	ToggleHelp           Keybind `toml:"toggle_help"`
+	ToggleFullHelp       Keybind `toml:"toggle_full_help"`
 	Suspend              Keybind `toml:"suspend"`
 
 	FocusGuildsTree   Keybind `toml:"focus_guilds_tree"`
@@ -199,7 +200,8 @@ func defaultKeybinds() Keybinds {
 	return Keybinds{
 		ToggleGuildsTree:     desc("toggle guilds"),
 		ToggleChannelsPicker: desc("channels picker"),
-		ToggleHelp:           desc("help"),
+		ToggleHelp:           desc("toggle help"),
+		ToggleFullHelp:       desc("full help"),
 		Suspend:              desc("suspend"),
 
 		FocusGuildsTree:   desc("guilds"),

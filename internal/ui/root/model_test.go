@@ -30,12 +30,31 @@ func TestHelpEnabled(t *testing.T) {
 
 		m.Update(tcell.NewEventKey(tcell.KeyRune, ".", tcell.ModCtrl))
 		if !m.help.ShowAll() {
-			t.Fatal("toggle_help did not enable full help")
+			t.Fatal("toggle_full_help did not enable full help")
+		}
+
+		help := m.help
+		m.Update(tcell.NewEventKey(tcell.KeyRune, ".", tcell.ModAlt))
+		if m.help != help {
+			t.Fatal("toggle_help replaced help model")
+		}
+		if count := m.rootFlex.GetItemCount(); count != 0 {
+			t.Fatalf("layout item count = %d, want 0", count)
+		}
+
+		m.Update(tcell.NewEventKey(tcell.KeyRune, ".", tcell.ModAlt))
+		if m.help != help {
+			t.Fatal("toggle_help replaced help model")
+		}
+		if count := m.rootFlex.GetItemCount(); count != 1 {
+			t.Fatalf("layout item count = %d, want 1", count)
 		}
 	})
 
 	t.Run("disabled", func(t *testing.T) {
-		m := NewModel(cfg)
+		cfg := *cfg
+		cfg.Help.Enabled = false
+		m := NewModel(&cfg)
 
 		if m.help != nil {
 			t.Fatal("help model was created")
@@ -46,7 +65,15 @@ func TestHelpEnabled(t *testing.T) {
 
 		m.Update(tcell.NewEventKey(tcell.KeyRune, ".", tcell.ModCtrl))
 		if m.help != nil {
+			t.Fatal("toggle_full_help created help model")
+		}
+
+		m.Update(tcell.NewEventKey(tcell.KeyRune, ".", tcell.ModAlt))
+		if m.help != nil {
 			t.Fatal("toggle_help created help model")
+		}
+		if count := m.rootFlex.GetItemCount(); count != 0 {
+			t.Fatalf("layout item count = %d, want 0", count)
 		}
 	})
 }

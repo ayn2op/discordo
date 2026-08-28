@@ -10,6 +10,7 @@ var _ help.KeyMap = (*Model)(nil)
 func (m *Model) ShortHelp() []keybind.Keybind {
 	global := []keybind.Keybind{
 		m.cfg.Keybinds.ToggleHelp.Keybind,
+		m.cfg.Keybinds.ToggleFullHelp.Keybind,
 		m.cfg.Keybinds.Suspend.Keybind,
 		m.cfg.Keybinds.Quit.Keybind,
 	}
@@ -23,6 +24,7 @@ func (m *Model) ShortHelp() []keybind.Keybind {
 func (m *Model) FullHelp() [][]keybind.Keybind {
 	global := []keybind.Keybind{
 		m.cfg.Keybinds.ToggleHelp.Keybind,
+		m.cfg.Keybinds.ToggleFullHelp.Keybind,
 		m.cfg.Keybinds.Suspend.Keybind,
 		m.cfg.Keybinds.Quit.Keybind,
 	}

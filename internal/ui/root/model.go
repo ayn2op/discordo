@@ -149,6 +149,9 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		}
 		switch {
 		case keybind.Matches(msg, m.cfg.Keybinds.ToggleHelp.Keybind):
+			m.toggleHelp()
+			return nil
+		case keybind.Matches(msg, m.cfg.Keybinds.ToggleFullHelp.Keybind):
 			if m.help == nil {
 				return nil
 			}
@@ -174,6 +177,19 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		return m.inner.Update(msg)
 	}
 	return nil
+}
+
+func (m *Model) toggleHelp() {
+	if m.help == nil {
+		return
+	}
+
+	count := m.rootFlex.GetItemCount()
+	if count > 0 && m.rootFlex.GetItem(count-1) == m.help {
+		m.rootFlex.RemoveItem(m.help)
+	} else {
+		m.rootFlex.AddItem(m.help, m.helpHeight(), 0, false)
+	}
 }
 
 func (m *Model) showModal(request ui.ModalMsg) tview.Cmd {
