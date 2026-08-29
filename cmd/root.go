@@ -64,5 +64,6 @@ func Run() error {
 	screen.EnablePaste()
 
 	tview.Styles = tview.Theme{}
-	return tview.NewApplication(root.NewModel(cfg), tview.WithScreen(screen)).Run()
+	model := root.NewModel(cfg)
+	return tview.NewApplication(model, tview.WithScreen(screen)).Run()
 }

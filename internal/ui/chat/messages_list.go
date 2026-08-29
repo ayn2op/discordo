@@ -847,10 +847,7 @@ func (ml *messagesList) selectedMessage() (*discord.Message, bool) {
 }
 
 func (ml *messagesList) Update(msg tview.Msg) tview.Cmd {
-	ui.UpdateBoxFocus(ml.Box, &ml.cfg.Theme, msg)
 	switch msg := msg.(type) {
-	case tview.FocusMsg:
-		return tview.Sequence(ml.Model.Update(msg), focused(ml))
 	case tview.KeyMsg:
 		switch {
 		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.Cancel.Keybind):
@@ -1183,7 +1180,7 @@ func (ml *messagesList) showAttachmentsList(urls []string, attachments []discord
 			layers.WithOverlay(),
 		).
 		SendToFront(attachmentsPickerLayerName)
-	return tview.SetFocus(ml.attachmentsPicker)
+	return nil
 }
 
 func openAttachment(attachment discord.Attachment) tview.Cmd {
@@ -1260,7 +1257,8 @@ func (ml *messagesList) reply(mention bool) tview.Cmd {
 
 	ml.chat.composer.sendMessageData = data
 	ml.chat.composer.SetTitle(title + name)
-	return tview.SetFocus(ml.chat.composer)
+	ml.chat.focusComposer()
+	return nil
 }
 
 func (ml *messagesList) editSelectedMessage() tview.Cmd {
@@ -1277,7 +1275,8 @@ func (ml *messagesList) editSelectedMessage() tview.Cmd {
 	ml.chat.composer.SetTitle("Editing")
 	ml.chat.composer.edit = true
 	ml.chat.composer.SetText(selectedMessage.Content, true)
-	return tview.SetFocus(ml.chat.composer)
+	ml.chat.focusComposer()
+	return nil
 }
 
 func (ml *messagesList) confirmDelete() tview.Cmd {
