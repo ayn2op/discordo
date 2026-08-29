@@ -340,10 +340,7 @@ func (gt *guildsTree) collapseParentNode(node *tree.Node) {
 }
 
 func (gt *guildsTree) Update(msg tview.Msg) tview.Cmd {
-	ui.UpdateBoxFocus(gt.Box, &gt.cfg.Theme, msg)
 	switch msg := msg.(type) {
-	case tview.FocusMsg:
-		return tview.Sequence(gt.Model.Update(msg), focused(gt))
 	case tree.SelectedMsg:
 		return gt.onSelected(msg.Node)
 	case tview.KeyMsg:

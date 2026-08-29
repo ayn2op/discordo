@@ -16,7 +16,7 @@ import (
 // ConfigureBox configures the provided box according to the provided theme.
 func ConfigureBox(box *tview.Box, cfg *config.Theme) {
 	padding := cfg.Border.Padding
-	UpdateBoxFocus(box, cfg, tview.BlurMsg{})
+	BlurBox(box, cfg)
 	box.
 		SetBorderPadding(padding[0], padding[1], padding[2], padding[3]).
 		SetTitleAlignment(cfg.Title.Alignment.Alignment).
@@ -27,25 +27,24 @@ func ConfigureBox(box *tview.Box, cfg *config.Theme) {
 	}
 }
 
-func UpdateBoxFocus(box *tview.Box, cfg *config.Theme, msg tview.Msg) {
-	switch msg.(type) {
-	case tview.FocusMsg:
-		box.SetBorderStyle(cfg.Border.ActiveStyle.Style).
-			SetBorderSet(cfg.Border.ActiveSet.BorderSet).
-			SetTitleStyle(cfg.Title.ActiveStyle.Style).
-			SetFooterStyle(cfg.Footer.ActiveStyle.Style)
-	case tview.BlurMsg:
-		box.SetBorderStyle(cfg.Border.NormalStyle.Style).
-			SetBorderSet(cfg.Border.NormalSet.BorderSet).
-			SetTitleStyle(cfg.Title.NormalStyle.Style).
-			SetFooterStyle(cfg.Footer.NormalStyle.Style)
-	}
+func FocusBox(box *tview.Box, cfg *config.Theme) {
+	box.SetBorderStyle(cfg.Border.ActiveStyle.Style).
+		SetBorderSet(cfg.Border.ActiveSet.BorderSet).
+		SetTitleStyle(cfg.Title.ActiveStyle.Style).
+		SetFooterStyle(cfg.Footer.ActiveStyle.Style)
+}
+
+func BlurBox(box *tview.Box, cfg *config.Theme) {
+	box.SetBorderStyle(cfg.Border.NormalStyle.Style).
+		SetBorderSet(cfg.Border.NormalSet.BorderSet).
+		SetTitleStyle(cfg.Title.NormalStyle.Style).
+		SetFooterStyle(cfg.Footer.NormalStyle.Style)
 }
 
 func ConfigurePicker(model *picker.Model, cfg *config.Config, title string) {
 	model.Box = tview.NewBox()
 	ConfigureBox(model.Box, &cfg.Theme)
-	UpdateBoxFocus(model.Box, &cfg.Theme, tview.FocusMsg{})
+	FocusBox(model.Box, &cfg.Theme)
 
 	model.SetTitle(title)
 	model.SetScrollBarVisibility(cfg.Theme.ScrollBar.Visibility.ScrollBarVisibility)

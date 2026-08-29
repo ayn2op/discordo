@@ -155,10 +155,7 @@ func (c *composer) SetFooter(footer string) *tview.Box {
 }
 
 func (c *composer) Update(msg tview.Msg) tview.Cmd {
-	ui.UpdateBoxFocus(c.Box, &c.cfg.Theme, msg)
 	switch msg := msg.(type) {
-	case tview.FocusMsg:
-		return tview.Sequence(c.TextArea.Update(msg), focused(c))
 	case tabSuggestMsg:
 		return c.tabSuggest()
 	case imagePastedMsg:
@@ -689,7 +686,7 @@ func (c *composer) showMentionsList() tview.Cmd {
 
 	l.SetRect(x, y, w, h)
 	c.chat.ShowLayer(mentionsListLayerName).SendToFront(mentionsListLayerName)
-	return tview.SetFocus(c)
+	return nil
 }
 
 func (c *composer) addMentionMember(gID discord.GuildID, m *discord.Member) bool {
@@ -759,7 +756,7 @@ func (c *composer) stopTabCompletion() tview.Cmd {
 	if c.cfg.AutocompleteLimit > 0 {
 		c.mentionsList.Clear()
 		c.removeMentionsList()
-		return tview.SetFocus(c)
+		return nil
 	}
 	return nil
 }

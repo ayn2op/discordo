@@ -91,7 +91,8 @@ func (m *Model) onReady(event *gateway.ReadyEvent) tview.Cmd {
 	}
 
 	m.guildsTree.SetCurrentNode(root)
-	return tview.SetFocus(m.guildsTree)
+	m.setFocus(m.guildsTree)
+	return nil
 }
 
 func (m *Model) onMessageCreate(message *gateway.MessageCreateEvent) tview.Cmd {

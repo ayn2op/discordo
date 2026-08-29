@@ -51,7 +51,6 @@ type Model struct {
 	messagesList   *messagesList
 	composer       *composer
 	channelsPicker *channelspicker.Model
-	focused        tview.Model
 
 	selectedChannel   *discord.Channel
 	selectedChannelMu sync.RWMutex
@@ -170,18 +169,18 @@ func (m *Model) openPicker() tview.Cmd {
 		layers.WithOverlay(),
 	).SendToFront(channelsPickerLayerName)
 	m.channelsPicker.RefreshChannels(m.state)
-	return tview.SetFocus(m.channelsPicker)
+	return nil
 }
 
 func (m *Model) closePicker() tview.Cmd {
 	m.RemoveLayer(channelsPickerLayerName)
 	m.channelsPicker.Refresh()
-	return tview.SetFocus(m.mainFlex)
+	return nil
 }
 
 func (m *Model) closeAttachmentsPicker() tview.Cmd {
 	m.RemoveLayer(attachmentsPickerLayerName)
-	return tview.SetFocus(m.messagesList)
+	return nil
 }
 
 func (m *Model) navigateToChannel(channelID discord.ChannelID) tview.Cmd {
@@ -209,76 +208,73 @@ func (m *Model) navigateToChannel(channelID discord.ChannelID) tview.Cmd {
 func (m *Model) toggleGuildsTree() tview.Cmd {
 	if m.mainFlex.GetItemCount() == 2 {
 		m.mainFlex.RemoveItem(m.guildsTree)
-		if m.guildsTree.HasFocus() {
-			return tview.SetFocus(m.mainFlex)
+		if m.focusedModel() == m.guildsTree {
+			m.setFocus(m.mainFlex)
 		}
 	} else {
 		m.buildLayout()
-		return tview.SetFocus(m.guildsTree)
+		m.setFocus(m.guildsTree)
 	}
 	return nil
 }
 
-func (m *Model) focusGuildsTree() tview.Cmd {
+func (m *Model) focusGuildsTree() bool {
 	if m.mainFlex.GetItemCount() == 2 {
-		return tview.SetFocus(m.guildsTree)
+		m.setFocus(m.guildsTree)
+		return true
 	}
-	return nil
+	return false
 }
 
-func (m *Model) focusComposer() tview.Cmd {
+func (m *Model) focusComposer() bool {
 	if !m.composer.Disabled() {
-		return tview.SetFocus(m.composer)
+		m.setFocus(m.composer)
+		return true
 	}
-	return nil
+	return false
 }
 
-func (m *Model) focusPrevious() tview.Cmd {
-	switch m.focused {
+func (m *Model) focusPrevious() {
+	switch m.focusedModel() {
 	case m.guildsTree:
-		if cmd := m.focusComposer(); cmd != nil {
-			return cmd
+		if m.focusComposer() {
+			return
 		}
-		return tview.SetFocus(m.messagesList)
+		m.setFocus(m.messagesList)
 	case m.messagesList:
-		if cmd := m.focusGuildsTree(); cmd != nil {
-			return cmd
+		if m.focusGuildsTree() {
+			return
 		}
-		if cmd := m.focusComposer(); cmd != nil {
-			return cmd
+		if m.focusComposer() {
+			return
 		}
-		return tview.SetFocus(m.messagesList)
+		m.setFocus(m.messagesList)
 	case m.composer:
-		return tview.SetFocus(m.messagesList)
+		m.setFocus(m.messagesList)
 	}
-	return nil
 }
 
-func (m *Model) focusNext() tview.Cmd {
-	switch m.focused {
+func (m *Model) focusNext() {
+	switch m.focusedModel() {
 	case m.guildsTree:
-		return tview.SetFocus(m.messagesList)
+		m.setFocus(m.messagesList)
 	case m.messagesList:
-		if cmd := m.focusComposer(); cmd != nil {
-			return cmd
+		if m.focusComposer() {
+			return
 		}
-		if cmd := m.focusGuildsTree(); cmd != nil {
-			return cmd
+		if m.focusGuildsTree() {
+			return
 		}
 	case m.composer:
-		if cmd := m.focusGuildsTree(); cmd != nil {
-			return cmd
+		if m.focusGuildsTree() {
+			return
 		}
-		return tview.SetFocus(m.messagesList)
+		m.setFocus(m.messagesList)
 	}
-	return nil
 }
 
 func (m *Model) Update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
-	case FocusedMsg:
-		m.focused = msg.Model
-		return nil
 	case tview.InitMsg:
 		return tview.Batch(openState(m.state), listen(m.events))
 	case gateway.Event:
@@ -346,18 +342,16 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		m.composer.SetDisabled(hasNoPerm)
 
 		text := "Message..."
-		var focusCmd tview.Cmd
-
 		if hasNoPerm {
 			text = "You do not have permission to send messages in this channel."
 		} else if m.cfg.AutoFocus {
-			focusCmd = m.focusComposer()
+			m.focusComposer()
 		}
 		m.composer.SetPlaceholder(tview.NewLine(tview.NewSegment(text, tcell.StyleDefault.Dim(true))))
 		if msg.Channel.GuildID.IsValid() {
-			return tview.Batch(focusCmd, m.messagesList.requestGuildMembers(msg.Channel.GuildID, msg.Messages))
+			return m.messagesList.requestGuildMembers(msg.Channel.GuildID, msg.Messages)
 		}
-		return focusCmd
+		return nil
 	case deleteMessageMsg:
 		return m.messagesList.deleteMessageRequest(discord.Message(msg))
 	case channelspicker.SelectedMsg:
@@ -374,17 +368,22 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		switch {
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusGuildsTree.Keybind):
 			m.composer.removeMentionsList()
-			return m.focusGuildsTree()
+			m.focusGuildsTree()
+			return nil
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusMessagesList.Keybind):
 			m.composer.removeMentionsList()
-			return tview.SetFocus(m.messagesList)
+			m.setFocus(m.messagesList)
+			return nil
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusComposer.Keybind):
-			return m.focusComposer()
+			m.focusComposer()
+			return nil
 
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusPrevious.Keybind):
-			return m.focusPrevious()
+			m.focusPrevious()
+			return nil
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusNext.Keybind):
-			return m.focusNext()
+			m.focusNext()
+			return nil
 
 		case keybind.Matches(msg, m.cfg.Keybinds.ToggleGuildsTree.Keybind):
 			return m.toggleGuildsTree()
@@ -398,6 +397,56 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		return m.composer.Update(msg)
 	}
 	return m.Layers.Update(msg)
+}
+
+func (m *Model) setFocus(target tview.Model) {
+	if target == nil || target == m.focusedModel() {
+		return
+	}
+	switch target {
+	case m.guildsTree:
+		m.mainFlex.SetFocus(0)
+	case m.messagesList:
+		m.rightFlex.SetFocus(0)
+		m.mainFlex.SetFocus(1)
+	case m.composer:
+		m.rightFlex.SetFocus(1)
+		m.mainFlex.SetFocus(1)
+	case m.mainFlex:
+		m.mainFlex.SetFocus(-1)
+	}
+}
+
+func (m *Model) View(screen tcell.Screen) {
+	ui.BlurBox(m.guildsTree.Box, &m.cfg.Theme)
+	ui.BlurBox(m.messagesList.Box, &m.cfg.Theme)
+	ui.BlurBox(m.composer.Box, &m.cfg.Theme)
+	if !m.GetVisible(channelsPickerLayerName) && !m.GetVisible(attachmentsPickerLayerName) {
+		switch m.focusedModel() {
+		case m.guildsTree:
+			ui.FocusBox(m.guildsTree.Box, &m.cfg.Theme)
+		case m.messagesList:
+			ui.FocusBox(m.messagesList.Box, &m.cfg.Theme)
+		case m.composer:
+			ui.FocusBox(m.composer.Box, &m.cfg.Theme)
+		}
+	}
+	m.Layers.View(screen)
+}
+
+func (m *Model) focusedModel() tview.Model {
+	if m.mainFlex.Focused() == 0 {
+		return m.guildsTree
+	}
+	if m.mainFlex.Focused() == 1 {
+		if m.rightFlex.Focused() == 0 {
+			return m.messagesList
+		}
+		if m.rightFlex.Focused() == 1 {
+			return m.composer
+		}
+	}
+	return m.mainFlex
 }
 
 func (m *Model) clearTypers() {

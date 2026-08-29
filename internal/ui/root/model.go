@@ -33,11 +33,8 @@ type Model struct {
 	inner    tview.Model
 	help     *help.Model
 
-	modalRequest       *ui.ModalMsg
-	modalDialog        *modal.Model
-	modalPreviousFocus tview.Model
-	focused            tview.Model
-	cfg                *config.Config
+	modal *ui.ModalMsg
+	cfg   *config.Config
 }
 
 func NewModel(cfg *config.Config) *Model {
@@ -74,21 +71,18 @@ func newHelpModel(cfg *config.Config, keyMap help.KeyMap) *help.Model {
 func (m *Model) showLogin() tview.Cmd {
 	m.inner = login.NewModel(m.cfg)
 	m.buildLayout()
-	return tview.Batch(m.inner.Update(tview.InitMsg{}), tview.SetFocus(m))
+	return m.inner.Update(tview.InitMsg{})
 }
 
 func (m *Model) showChat(token string) tview.Cmd {
 	m.inner = chat.NewModel(m.cfg, token)
 	m.buildLayout()
-	return tview.Batch(m.inner.Update(tview.InitMsg{}), tview.SetFocus(m))
+	return m.inner.Update(tview.InitMsg{})
 }
 
 func (m *Model) buildLayout() {
 	m.Clear()
-	m.modalRequest = nil
-	m.modalDialog = nil
-	m.modalPreviousFocus = nil
-	m.focused = nil
+	m.modal = nil
 	m.rootFlex.Clear()
 	if m.inner != nil {
 		m.rootFlex.AddItem(m.inner, 0, 1, true)
@@ -103,8 +97,6 @@ var _ tview.Model = (*Model)(nil)
 
 func (m *Model) Update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
-	case chat.FocusedMsg:
-		m.focused = msg.Model
 	case tview.InitMsg:
 		var cmd tview.Cmd
 		if token := os.Getenv(tokenEnvVarKey); token != "" {
@@ -141,10 +133,7 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		return m.finishModal(msg)
 
 	case tview.KeyMsg:
-		if m.modalRequest != nil {
-			if !m.modalDialog.HasFocus() {
-				return tview.Sequence(tview.SetFocus(m.modalDialog), func() tview.Msg { return msg })
-			}
+		if m.modal != nil {
 			return m.Layers.Update(msg)
 		}
 		switch {
@@ -168,7 +157,7 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 			return tview.Sequence(innerCmd, tview.Quit())
 		}
 	case tview.MouseMsg, tview.PasteMsg, tview.FormSubmitMsg, tview.FormCancelMsg:
-		if m.modalRequest != nil {
+		if m.modal != nil {
 			return m.Layers.Update(msg)
 		}
 	}
@@ -193,7 +182,7 @@ func (m *Model) toggleHelp() {
 }
 
 func (m *Model) showModal(request ui.ModalMsg) tview.Cmd {
-	if m.modalRequest != nil {
+	if m.modal != nil {
 		return nil
 	}
 
@@ -211,30 +200,25 @@ func (m *Model) showModal(request ui.ModalMsg) tview.Cmd {
 	}
 	dialog.SetButtonStyle(style).SetButtonActivatedStyle(style.Reverse(true))
 
-	m.modalRequest = &request
-	m.modalDialog = dialog
-	m.modalPreviousFocus = m.focused
-	if m.modalPreviousFocus == nil {
-		m.modalPreviousFocus = m.inner
-	}
+	m.modal = &request
 	m.AddLayer(dialog,
 		layers.WithName(modalLayerName),
 		layers.WithResize(true),
 		layers.WithVisible(true),
 		layers.WithOverlay(),
 	)
-	return tview.SetFocus(dialog)
+	return nil
 }
 
 func (m *Model) finishModal(done modal.DoneMsg) tview.Cmd {
-	request := m.modalRequest
-	if request == nil {
+	state := m.modal
+	if state == nil {
 		return nil
 	}
 
 	var result tview.Msg
-	if done.ButtonIndex >= 0 && done.ButtonIndex < len(request.Buttons) {
-		button := request.Buttons[done.ButtonIndex]
+	if done.ButtonIndex >= 0 && done.ButtonIndex < len(state.Buttons) {
+		button := state.Buttons[done.ButtonIndex]
 		if button.KeepOpen {
 			return func() tview.Msg { return button.Result }
 		}
@@ -242,17 +226,11 @@ func (m *Model) finishModal(done modal.DoneMsg) tview.Cmd {
 	}
 
 	m.RemoveLayer(modalLayerName)
-	var focus tview.Cmd
-	if m.modalPreviousFocus != nil {
-		focus = tview.SetFocus(m.modalPreviousFocus)
-	}
-	m.modalRequest = nil
-	m.modalDialog = nil
-	m.modalPreviousFocus = nil
+	m.modal = nil
 	if result == nil {
-		return focus
+		return nil
 	}
-	return tview.Sequence(focus, func() tview.Msg { return result })
+	return func() tview.Msg { return result }
 }
 
 func (m *Model) helpHeight() int {
