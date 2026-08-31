@@ -377,12 +377,14 @@ func (ml *messagesList) drawAuthor(builder *text.Builder, message discord.Messag
 			name = member.Nick
 		}
 
-		color, ok := state.MemberColor(member, func(id discord.RoleID) *discord.Role {
-			r, _ := ml.chat.state.Cabinet.Role(message.GuildID, id)
-			return r
-		})
-		if ok {
-			foreground = tcell.NewHexColor(int32(color))
+		if ml.cfg.ColoredMemberNames {
+			color, ok := state.MemberColor(member, func(id discord.RoleID) *discord.Role {
+				r, _ := ml.chat.state.Cabinet.Role(message.GuildID, id)
+				return r
+			})
+			if ok {
+				foreground = tcell.NewHexColor(int32(color))
+			}
 		}
 	}
 
