@@ -1141,7 +1141,7 @@ func (ml *messagesList) openAttachment(attachment discord.Attachment) tview.Cmd 
 }
 
 func (ml *messagesList) confirmAttachment(attachment discord.Attachment, action tview.Cmd) tview.Cmd {
-	if !ml.cfg.AllowedMIMETypes.Allows(attachment.ContentType) {
+	if !ml.cfg.AllowedMIMETypes.Has(attachment.ContentType) {
 		return ui.ShowModal(
 			"This attachment type is not allowed and may be unsafe. Continue anyway?",
 			ui.ModalButton{Label: "No"},
