@@ -25,9 +25,9 @@ func TestRendererMasksSpoilers(t *testing.T) {
 		{true, "before [spoiler] after"},
 		{false, "before secret after"},
 	} {
-		lines := NewRenderer(&config.Config{Markdown: config.MarkdownConfig{MaskSpoilers: test.mask}}).RenderLines(source, node, tcell.StyleDefault)
+		rendered := NewRenderer(&config.Config{Markdown: config.MarkdownConfig{MaskSpoilers: test.mask}}).RenderText(source, node, tcell.StyleDefault)
 		var got strings.Builder
-		for _, line := range lines {
+		for _, line := range rendered {
 			for _, segment := range line {
 				got.WriteString(segment.Text)
 			}

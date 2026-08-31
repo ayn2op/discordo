@@ -10,6 +10,7 @@ import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/ningen/v3/discordmd"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/text"
 	"github.com/gdamore/tcell/v3"
 	"github.com/yuin/goldmark/ast"
 )
@@ -27,11 +28,11 @@ func NewRenderer(cfg *config.Config) *Renderer {
 	return &Renderer{cfg: cfg}
 }
 
-func (r *Renderer) RenderLines(source []byte, node ast.Node, base tcell.Style) []tview.Line {
+func (r *Renderer) RenderText(source []byte, node ast.Node, base tcell.Style) text.Text {
 	r.listIx = nil
 	r.listNested = 0
 
-	builder := tview.NewLineBuilder()
+	builder := new(text.Builder)
 	styleStack := []tcell.Style{base}
 	linkDepth := 0
 
@@ -144,7 +145,7 @@ func (r *Renderer) RenderLines(source []byte, node ast.Node, base tcell.Style) [
 	return builder.Finish()
 }
 
-func (r *Renderer) renderFencedCodeBlock(builder *tview.LineBuilder, source []byte, node *ast.FencedCodeBlock, base tcell.Style) {
+func (r *Renderer) renderFencedCodeBlock(builder *text.Builder, source []byte, node *ast.FencedCodeBlock, base tcell.Style) {
 	var code strings.Builder
 	lines := node.Lines()
 	for i := range lines.Len() {

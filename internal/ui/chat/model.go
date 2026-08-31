@@ -26,6 +26,7 @@ import (
 	"github.com/ayn2op/tview/flex"
 	"github.com/ayn2op/tview/keybind"
 	"github.com/ayn2op/tview/layers"
+	"github.com/ayn2op/tview/text"
 	"github.com/gdamore/tcell/v3"
 )
 
@@ -341,13 +342,13 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		hasNoPerm := !isDM && !m.state.HasPermissions(msg.Channel.ID, discord.PermissionSendMessages)
 		m.composer.SetDisabled(hasNoPerm)
 
-		text := "Message..."
+		placeholder := "Message..."
 		if hasNoPerm {
-			text = "You do not have permission to send messages in this channel."
+			placeholder = "You do not have permission to send messages in this channel."
 		} else if m.cfg.AutoFocus {
 			m.focusComposer()
 		}
-		m.composer.SetPlaceholder(tview.NewLine(tview.NewSegment(text, tcell.StyleDefault.Dim(true))))
+		m.composer.SetPlaceholder(text.NewLine(text.NewSegment(placeholder, tcell.StyleDefault.Dim(true))))
 		if msg.Channel.GuildID.IsValid() {
 			return m.messagesList.requestGuildMembers(msg.Channel.GuildID, msg.Messages)
 		}

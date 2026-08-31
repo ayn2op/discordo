@@ -7,6 +7,7 @@ import (
 
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/tabs"
+	"github.com/ayn2op/tview/text"
 	"github.com/gdamore/tcell/v3"
 	"github.com/gorilla/websocket"
 	"github.com/skip2/go-qrcode"
@@ -137,28 +138,28 @@ func (m *Model) setStatus(status string) {
 }
 
 func (m *Model) render() {
-	var text strings.Builder
+	var out strings.Builder
 	if m.qrCode != nil {
 		bitmap := m.qrCode.Bitmap()
 		for y := 0; y < len(bitmap); y += 2 {
 			for x := range bitmap[y] {
 				top := bitmap[y][x]
 				bottom := y+1 < len(bitmap) && bitmap[y+1][x]
-				text.WriteRune(halfBlock(top, bottom))
+				out.WriteRune(halfBlock(top, bottom))
 			}
-			text.WriteByte('\n')
+			out.WriteByte('\n')
 		}
 	}
 	if m.status != "" {
-		if text.Len() > 0 {
-			text.WriteByte('\n')
+		if out.Len() > 0 {
+			out.WriteByte('\n')
 		}
-		text.WriteString(m.status)
+		out.WriteString(m.status)
 	}
 
-	builder := tview.NewLineBuilder()
-	builder.Write(text.String(), tcell.StyleDefault)
-	m.SetLines(m.centerLines(builder.Finish()))
+	builder := new(text.Builder)
+	builder.Write(out.String(), tcell.StyleDefault)
+	m.SetContent(m.centerText(builder.Finish()))
 	m.TextView.SetRect(m.Rect())
 }
 
@@ -166,23 +167,23 @@ func (m *Model) View(screen tcell.Screen) {
 	m.TextView.View(screen)
 }
 
-func (m *Model) centerLines(lines []tview.Line) []tview.Line {
+func (m *Model) centerText(content text.Text) text.Text {
 	_, _, _, height := m.InnerRect()
 	if height == 0 {
 		height = 40
 	}
-	padding := (height - len(lines)) / 2
+	padding := (height - len(content)) / 2
 	if padding < 0 {
 		padding = 0
-	} else if padding < 1 && height > len(lines) {
+	} else if padding < 1 && height > len(content) {
 		padding = 1
 	}
 	if padding == 0 {
-		return lines
+		return content
 	}
 
-	centered := make([]tview.Line, 0, padding+len(lines))
-	centered = append(centered, make([]tview.Line, padding)...)
-	centered = append(centered, lines...)
+	centered := make(text.Text, 0, padding+len(content))
+	centered = append(centered, make(text.Text, padding)...)
+	centered = append(centered, content...)
 	return centered
 }

@@ -29,6 +29,7 @@ import (
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/help"
 	"github.com/ayn2op/tview/keybind"
+	"github.com/ayn2op/tview/text"
 	"github.com/gdamore/tcell/v3"
 	"github.com/ncruces/zenity"
 	"github.com/sahilm/fuzzy"
@@ -75,7 +76,7 @@ func newComposer(cfg *config.Config, chat *Model) *composer {
 	}
 	ui.ConfigureBox(c.Box, &cfg.Theme)
 	c.
-		SetPlaceholder(tview.NewLine(tview.NewSegment("Select a channel to start chatting", tcell.StyleDefault.Dim(true)))).
+		SetPlaceholder(text.NewLine(text.NewSegment("Select a channel to start chatting", tcell.StyleDefault.Dim(true)))).
 		SetClipboard(
 			func(s string) {
 				if _, err := clipboard.Write(context.Background(), clipboard.FmtText, []byte(s)); err != nil {

@@ -5,6 +5,7 @@ import (
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/list"
+	"github.com/ayn2op/tview/text"
 	"github.com/gdamore/tcell/v3"
 	"github.com/rivo/uniseg"
 )
@@ -73,13 +74,13 @@ func (m *Model) Rebuild() {
 		}
 		item := m.items[index]
 		style := item.Style
-		line := tview.NewLine(tview.NewSegment(item.DisplayText, style))
+		line := text.NewLine(text.NewSegment(item.DisplayText, style))
 		return tview.NewTextView().
 			SetScrollable(false).
 			SetWrap(false).
 			SetWordWrap(false).
 			SetTextStyle(style).
-			SetLines([]tview.Line{line})
+			SetContent(text.Text{line})
 	})
 
 	if len(m.items) == 0 {
