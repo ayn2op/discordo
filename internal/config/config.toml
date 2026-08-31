@@ -12,6 +12,9 @@ status = "default"
 
 hide_blocked_users = true
 show_attachment_links = true
+# Attachment MIME types that can be opened or downloaded without confirmation.
+# Exact types and wildcards such as "image/*" are supported.
+allowed_mime_types = ["image/*", "video/*"]
 
 # Max members to be in the mention autocomplete suggestions list
 # Note: Use autocomplete_limit = 0 to disable.
@@ -160,11 +163,16 @@ reply = "R"
 reply_mention = "r"
 cancel = "esc"
 edit = "e"
-delete = "D"
+# Delete without confirmation.
+# delete = "D"
 delete_confirm = "d"
-# Open the selected message's attachments or hyperlinks in the message
-# using the default browser application.
+# Open attachments with their associated application. MIME types outside the
+# allowlist require confirmation. Hyperlinks still use the browser.
 open = "o"
+# Open attachments or hyperlinks in the browser.
+open_in_browser = "O"
+# Download one of the selected message's attachments.
+download = "D"
 # Yank (copy) the selected message's content/url/id.
 yank_content = "y"
 yank_url = "u"

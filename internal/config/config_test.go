@@ -70,6 +70,17 @@ func TestLoad(t *testing.T) {
 		}
 	})
 
+	t.Run("invalid allowed MIME type returns error", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "bad-mime.toml")
+		if err := os.WriteFile(path, []byte(`allowed_mime_types = ["image/"]`), os.ModePerm); err != nil {
+			t.Fatal(err)
+		}
+
+		if _, err := Load(path); err == nil {
+			t.Fatal("expected error")
+		}
+	})
+
 	// Keys live in config.toml, descriptions in defaultKeybinds(); fail if either is missing.
 	t.Run("default keybinds are fully populated", func(t *testing.T) {
 		cfg, err := Load(filepath.Join(t.TempDir(), "missing.toml"))
@@ -84,7 +95,10 @@ func TestLoad(t *testing.T) {
 				fv, name := v.Field(i), path+rt.Field(i).Name
 				if kb, ok := fv.Interface().(Keybind); ok {
 					if len(kb.Keys()) == 0 {
-						t.Errorf("%s: no keys (missing from config.toml?)", name)
+						if rt.Field(i).Tag.Get("toml") != "delete" {
+							t.Errorf("%s: no keys (missing from config.toml?)", name)
+						}
+						continue
 					}
 					if kb.Help().Desc == "" {
 						t.Errorf("%s: no help description (missing from defaultKeybinds?)", name)
@@ -130,4 +144,29 @@ func TestLoad(t *testing.T) {
 			t.Fatalf("got = -, want = +, diff=%s", diff)
 		}
 	})
+}
+
+func TestMIMETypesAllows(t *testing.T) {
+	tests := []struct {
+		name        string
+		allowed     MIMETypes
+		mediaType   string
+		wantAllowed bool
+	}{
+		{"exact", []string{"application/pdf"}, "application/pdf", true},
+		{"exact mismatch", []string{"application/pdf"}, "application/zip", false},
+		{"subtype wildcard", []string{"image/*"}, "image/png", true},
+		{"wildcard mismatch", []string{"image/*"}, "video/mp4", false},
+		{"all wildcard", []string{"*/*"}, "video/mp4", true},
+		{"case and parameters", []string{"image/*"}, "Image/PNG; charset=utf-8", true},
+		{"invalid content type", []string{"*/*"}, "not-a-mime-type", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.allowed.Allows(tt.mediaType); got != tt.wantAllowed {
+				t.Fatalf("Allows(%q) = %v, want %v", tt.mediaType, got, tt.wantAllowed)
+			}
+		})
+	}
 }
