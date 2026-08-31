@@ -4,7 +4,9 @@ import (
 	_ "embed"
 	"fmt"
 	"log/slog"
+	"mime"
 	"os"
+	"path"
 	"path/filepath"
 	"sync"
 	"unicode/utf8"
@@ -106,6 +108,7 @@ type (
 		Status              discord.Status `toml:"status"`
 		HideBlockedUsers    bool           `toml:"hide_blocked_users"`
 		ShowAttachmentLinks bool           `toml:"show_attachment_links"`
+		AllowedMIMETypes    MIMETypes      `toml:"allowed_mime_types"`
 
 		// Use 0 to disable
 		AutocompleteLimit uint8 `toml:"autocomplete_limit"`
@@ -168,6 +171,45 @@ func Load(path string) (*Config, error) {
 
 	applyDefaults(&cfg)
 	return &cfg, nil
+}
+
+type MIMETypes []string
+
+func (types *MIMETypes) UnmarshalTOML(value any) error {
+	values, ok := value.([]any)
+	if !ok {
+		return errInvalidType
+	}
+
+	parsed := make(MIMETypes, 0, len(values))
+	for _, value := range values {
+		mediaType, ok := value.(string)
+		if !ok {
+			return errInvalidType
+		}
+		mediaType, _, err := mime.ParseMediaType(mediaType)
+		if err != nil {
+			return err
+		}
+		parsed = append(parsed, mediaType)
+	}
+
+	*types = parsed
+	return nil
+}
+
+func (types MIMETypes) Allows(mediaType string) bool {
+	mediaType, _, err := mime.ParseMediaType(mediaType)
+	if err != nil {
+		return false
+	}
+
+	for _, pattern := range types {
+		if matches, _ := path.Match(pattern, mediaType); matches {
+			return true
+		}
+	}
+	return false
 }
 
 func applyDefaults(cfg *Config) {

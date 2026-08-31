@@ -76,11 +76,15 @@ type MessagesListKeybinds struct {
 	Reply        Keybind `toml:"reply"`
 	ReplyMention Keybind `toml:"reply_mention"`
 
-	Cancel        Keybind `toml:"cancel"`
-	Edit          Keybind `toml:"edit"`
+	Cancel Keybind `toml:"cancel"`
+	Edit   Keybind `toml:"edit"`
+
 	Delete        Keybind `toml:"delete"`
 	DeleteConfirm Keybind `toml:"delete_confirm"`
+
 	Open          Keybind `toml:"open"`
+	OpenInBrowser Keybind `toml:"open_in_browser"`
+	Download      Keybind `toml:"download"`
 
 	YankContent Keybind `toml:"yank_content"`
 	YankURL     Keybind `toml:"yank_url"`
@@ -171,6 +175,8 @@ func defaultMessagesListKeybinds() MessagesListKeybinds {
 		Delete:            desc("force delete"),
 		DeleteConfirm:     desc("delete"),
 		Open:              desc("open"),
+		OpenInBrowser:     desc("open browser"),
+		Download:          desc("download"),
 		YankContent:       desc("copy text"),
 		YankURL:           desc("copy url"),
 		YankID:            desc("copy id"),
