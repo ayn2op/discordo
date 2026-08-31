@@ -10,6 +10,8 @@ import (
 	"github.com/ayn2op/tview"
 )
 
+type attachmentActionMsg struct{ Action tview.Cmd }
+
 func openState(state *ningen.State) tview.Cmd {
 	return func() tview.Msg {
 		if err := state.Open(context.Background()); err != nil {
