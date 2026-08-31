@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 	"sync"
 	"unicode/utf8"
 
@@ -198,18 +199,16 @@ func (types *MIMETypes) UnmarshalTOML(value any) error {
 	return nil
 }
 
-func (types MIMETypes) Allows(mediaType string) bool {
+func (types MIMETypes) Has(mediaType string) bool {
 	mediaType, _, err := mime.ParseMediaType(mediaType)
 	if err != nil {
 		return false
 	}
 
-	for _, pattern := range types {
-		if matches, _ := path.Match(pattern, mediaType); matches {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(types, func(pattern string) bool {
+		matches, _ := path.Match(pattern, mediaType)
+		return matches
+	})
 }
 
 func applyDefaults(cfg *Config) {

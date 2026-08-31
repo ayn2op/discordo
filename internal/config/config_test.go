@@ -146,7 +146,7 @@ func TestLoad(t *testing.T) {
 	})
 }
 
-func TestMIMETypesAllows(t *testing.T) {
+func TestMIMETypesHas(t *testing.T) {
 	tests := []struct {
 		name        string
 		allowed     MIMETypes
@@ -164,8 +164,8 @@ func TestMIMETypesAllows(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.allowed.Allows(tt.mediaType); got != tt.wantAllowed {
-				t.Fatalf("Allows(%q) = %v, want %v", tt.mediaType, got, tt.wantAllowed)
+			if got := tt.allowed.Has(tt.mediaType); got != tt.wantAllowed {
+				t.Fatalf("Has(%q) = %v, want %v", tt.mediaType, got, tt.wantAllowed)
 			}
 		})
 	}
