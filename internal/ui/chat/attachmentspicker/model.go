@@ -8,8 +8,8 @@ import (
 )
 
 type Item struct {
-	Label string
-	Open  tview.Cmd
+	Label  string
+	Action tview.Cmd
 }
 
 type Model struct{ *picker.Model }
@@ -23,7 +23,7 @@ func NewModel(cfg *config.Config) *Model {
 func (m *Model) SetItems(items []Item) {
 	pickerItems := make(picker.Items, len(items))
 	for i, item := range items {
-		pickerItems[i] = picker.Item{Text: item.Label, Reference: item.Open}
+		pickerItems[i] = picker.Item{Text: item.Label, Reference: item.Action}
 	}
 	m.Model.SetItems(pickerItems)
 }
@@ -31,11 +31,11 @@ func (m *Model) SetItems(items []Item) {
 func (m *Model) Update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
 	case picker.SelectedMsg:
-		open, ok := msg.Reference.(tview.Cmd)
+		action, ok := msg.Reference.(tview.Cmd)
 		if !ok {
 			return nil
 		}
-		return func() tview.Msg { return SelectedMsg{Open: open} }
+		return func() tview.Msg { return SelectedMsg{Action: action} }
 	case picker.CancelMsg:
 		return func() tview.Msg { return CancelMsg{} }
 	}
