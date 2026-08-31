@@ -96,6 +96,10 @@ func (m *Model) onReady(event *gateway.ReadyEvent) tview.Cmd {
 }
 
 func (m *Model) onMessageCreate(message *gateway.MessageCreateEvent) tview.Cmd {
+	if !message.GuildID.IsValid() {
+		m.guildsTree.moveDMToFront(message.ChannelID)
+	}
+
 	selectedChannel, ok := m.SelectedChannel()
 	if ok && selectedChannel.ID == message.ChannelID {
 		m.removeTyper(message.Author.ID)

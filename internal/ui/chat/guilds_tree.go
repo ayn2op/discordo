@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"slices"
 
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/arikawa/v3/gateway"
@@ -85,6 +86,19 @@ func (gt *guildsTree) updateDMNodeStyle(userID discord.UserID) {
 		return
 	}
 	gt.setNodeLineStyle(node, gt.channelNodeStyle(*channel))
+}
+
+func (gt *guildsTree) moveDMToFront(channelID discord.ChannelID) {
+	if gt.dmRootNode == nil {
+		return
+	}
+
+	node := gt.channelNodeByID[channelID]
+	children := gt.dmRootNode.Children()
+	if index := slices.Index(children, node); index > 0 {
+		copy(children[1:index+1], children[:index])
+		children[0] = node
+	}
 }
 
 func (gt *guildsTree) createFolderNode(folder gateway.GuildFolder, guildsByID map[discord.GuildID]*gateway.GuildCreateEvent) {
