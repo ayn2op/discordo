@@ -70,6 +70,10 @@ func (m *Model) RefreshChannels(state *ningen.State) {
 		}
 
 		for _, channel := range channels {
+			switch channel.Type {
+			case discord.GuildPublicThread, discord.GuildPrivateThread, discord.GuildAnnouncementThread:
+				continue
+			}
 			items = append(items, m.channelItem(state, &guild, channel))
 		}
 	}

@@ -249,6 +249,69 @@ func (m *Model) onTypingStart(event *gateway.TypingStartEvent) {
 	m.addTyper(event.UserID)
 }
 
+func (m *Model) onThreadCreate(thread discord.Channel) {
+	if !isThread(thread.Type) {
+		return
+	}
+	if thread.ParentID.IsValid() {
+		if parentNode := m.guildsTree.findNodeByReference(thread.ParentID); parentNode != nil {
+			m.guildsTree.createChannelNode(parentNode, thread)
+		}
+	}
+}
+
+func (m *Model) onThreadUpdate(thread discord.Channel) {
+	if !isThread(thread.Type) {
+		return
+	}
+	if node := m.guildsTree.findNodeByReference(thread.ID); node != nil {
+		if thread.ThreadMetadata != nil && thread.ThreadMetadata.Archived {
+			if parentNode := m.guildsTree.findNodeByReference(thread.ParentID); parentNode != nil {
+				parentNode.RemoveChild(node)
+			}
+			delete(m.guildsTree.channelNodeByID, thread.ID)
+		} else {
+			m.guildsTree.setNodeLineStyle(node, m.guildsTree.channelNodeStyle(thread))
+		}
+	}
+}
+
+func (m *Model) onThreadDelete(thread gateway.ThreadDeleteEvent) {
+	if node := m.guildsTree.findNodeByReference(thread.ID); node != nil {
+		if parentNode := m.guildsTree.findNodeByReference(thread.ParentID); parentNode != nil {
+			parentNode.RemoveChild(node)
+		}
+		delete(m.guildsTree.channelNodeByID, thread.ID)
+	}
+}
+
+func (m *Model) onThreadListSync(event *gateway.ThreadListSyncEvent) {
+	parents := make(map[discord.ChannelID]struct{}, len(event.ChannelIDs))
+	for _, id := range event.ChannelIDs {
+		parents[id] = struct{}{}
+	}
+
+	for _, thread := range event.Threads {
+		if !isThread(thread.Type) || !thread.ParentID.IsValid() {
+			continue
+		}
+		if len(parents) != 0 {
+			if _, ok := parents[thread.ParentID]; !ok {
+				continue
+			}
+		}
+
+		parentNode := m.guildsTree.findNodeByReference(thread.ParentID)
+		if parentNode == nil {
+			continue
+		}
+		if old := m.guildsTree.findNodeByReference(thread.ID); old != nil {
+			parentNode.RemoveChild(old)
+		}
+		m.guildsTree.createChannelNode(parentNode, thread)
+	}
+}
+
 func (m *Model) onReadUpdate(event *read.UpdateEvent) {
 	// Use indexed node lookup to avoid walking the whole tree on every read event.
 	// This runs frequently while reading/typing across channels.
