@@ -20,6 +20,7 @@ import (
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/discordo/internal/ui/chat/attachmentspicker"
 	"github.com/ayn2op/discordo/internal/ui/chat/channelspicker"
+	"github.com/ayn2op/discordo/internal/ui/chat/guildstree"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/ningen/v3/states/read"
 	"github.com/ayn2op/tview"
@@ -48,7 +49,7 @@ type Model struct {
 	// messagesList + composer
 	rightFlex *flex.Model
 
-	guildsTree     *guildsTree
+	guildsTree     *guildstree.Model
 	messagesList   *messagesList
 	composer       *composer
 	channelsPicker *channelspicker.Model
@@ -103,7 +104,7 @@ func NewModel(cfg *config.Config, token string) *Model {
 	}
 	m.state.OnRequest = append(m.state.OnRequest, httputil.WithHeaders(http.Headers()), m.onRequest)
 
-	m.guildsTree = newGuildsTree(cfg, m.state)
+	m.guildsTree = guildstree.NewModel(cfg, m.state)
 	m.messagesList = newMessagesList(cfg, m)
 	m.composer = newComposer(cfg, m)
 	m.channelsPicker = channelspicker.NewModel(cfg)
@@ -185,25 +186,10 @@ func (m *Model) closeAttachmentsPicker() tview.Cmd {
 }
 
 func (m *Model) navigateToChannel(channelID discord.ChannelID) tview.Cmd {
-	channel, err := m.state.Cabinet.Channel(channelID)
-	if err != nil {
-		slog.Error("failed to get channel from state", "err", err, "channel_id", channelID)
-		return nil
-	}
-
-	node := m.guildsTree.findNodeByChannelID(channel.ID)
-	if node == nil {
-		slog.Error("failed to locate channel in tree", "channel_id", channel.ID)
-		return nil
-	}
-
-	m.guildsTree.expandPathToNode(node)
-	m.guildsTree.SetCurrentNode(node)
-	focus := m.closePicker()
-	if channel.Type != discord.GuildCategory {
-		return tview.Sequence(focus, m.guildsTree.onSelected(node))
-	}
-	return focus
+	return tview.Sequence(
+		m.closePicker(),
+		m.guildsTree.Update(guildstree.NavigateMsg{ChannelID: channelID}),
+	)
 }
 
 func (m *Model) toggleGuildsTree() tview.Cmd {
@@ -319,7 +305,7 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 			m.onReadUpdate(eventMsg)
 		}
 		return listen(m.events)
-	case channelLoadedMsg:
+	case guildstree.ChannelLoadedMsg:
 		node := m.guildsTree.CurrentNode()
 		if node == nil {
 			return nil

@@ -40,11 +40,6 @@ func listen(events <-chan gateway.Event) tview.Cmd {
 	}
 }
 
-type channelLoadedMsg struct {
-	Channel  discord.Channel
-	Messages []discord.Message
-}
-
 type olderMessagesLoadedMsg struct {
 	ChannelID discord.ChannelID
 	Older     []discord.Message

@@ -1,15 +1,14 @@
-package chat
+package guildstree
 
 import (
 	"slices"
 	"testing"
 
 	"github.com/ayn2op/arikawa/v3/discord"
-	"github.com/ayn2op/arikawa/v3/gateway"
 	"github.com/ayn2op/tview/tree"
 )
 
-func TestMessageCreatePromotesDMChannel(t *testing.T) {
+func TestMoveDMToFront(t *testing.T) {
 	firstID := discord.ChannelID(1)
 	secondID := discord.ChannelID(2)
 	thirdID := discord.ChannelID(3)
@@ -18,16 +17,16 @@ func TestMessageCreatePromotesDMChannel(t *testing.T) {
 	second := tree.NewNode("second").SetReference(secondID)
 	third := tree.NewNode("third").SetReference(thirdID)
 	dmRoot := tree.NewNode("Direct Messages").SetChildren([]*tree.Node{first, second, third})
-	m := Model{guildsTree: &guildsTree{
+	m := Model{
 		dmRootNode: dmRoot,
 		channelNodeByID: map[discord.ChannelID]*tree.Node{
 			firstID:  first,
 			secondID: second,
 			thirdID:  third,
 		},
-	}}
+	}
 
-	m.onMessageCreate(&gateway.MessageCreateEvent{Message: discord.Message{ChannelID: thirdID}})
+	m.moveDMToFront(thirdID)
 
 	want := []*tree.Node{third, first, second}
 	if !slices.Equal(dmRoot.Children(), want) {
@@ -35,16 +34,16 @@ func TestMessageCreatePromotesDMChannel(t *testing.T) {
 	}
 }
 
-func TestMessageCreateIgnoresUnrenderedDMChannel(t *testing.T) {
+func TestMoveDMToFrontIgnoresUnrenderedChannel(t *testing.T) {
 	firstID := discord.ChannelID(1)
 	first := tree.NewNode("first").SetReference(firstID)
 	dmRoot := tree.NewNode("Direct Messages").SetChildren([]*tree.Node{first})
-	m := Model{guildsTree: &guildsTree{
+	m := Model{
 		dmRootNode:      dmRoot,
 		channelNodeByID: map[discord.ChannelID]*tree.Node{},
-	}}
+	}
 
-	m.onMessageCreate(&gateway.MessageCreateEvent{Message: discord.Message{ChannelID: 2}})
+	m.moveDMToFront(discord.ChannelID(2))
 
 	children := dmRoot.Children()
 	if len(children) != 1 || children[0] != first {
