@@ -22,7 +22,7 @@ import (
 	"github.com/ayn2op/arikawa/v3/api"
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/arikawa/v3/gateway"
-	arikawamarkdown "github.com/ayn2op/arikawa/v3/markdown"
+	md "github.com/ayn2op/arikawa/v3/markdown"
 	"github.com/ayn2op/arikawa/v3/state"
 	"github.com/ayn2op/arikawa/v3/utils/json/option"
 	"github.com/ayn2op/discordo/internal/config"
@@ -41,8 +41,6 @@ import (
 	"github.com/rivo/uniseg"
 	"github.com/skratchdot/open-golang/open"
 	"github.com/yuin/goldmark/ast"
-	"github.com/yuin/goldmark/parser"
-	goldtext "github.com/yuin/goldmark/text"
 	"golang.design/x/clipboard"
 )
 
@@ -446,7 +444,7 @@ func (ml *messagesList) renderContentWithMarkdown(message discord.Message, baseS
 	// Keep one rendering path for both normal messages and embed fragments so we preserve mention/link parsing behavior consistently across both.
 	if forceMarkdown || ml.cfg.Markdown.Enabled {
 		c := []byte(message.Content)
-		root := arikawamarkdown.ParseWithMessage(c, *ml.chat.state.Cabinet, &message, false)
+		root := md.ParseWithMessage(c, *ml.chat.state.Cabinet, &message)
 		return ml.renderer.RenderText(c, root, baseStyle), root, c
 	}
 
@@ -1048,10 +1046,7 @@ func (ml *messagesList) download() tview.Cmd {
 
 func extractURLs(content string) []string {
 	src := []byte(content)
-	node := parser.NewParser(
-		parser.WithBlockParsers(arikawamarkdown.BlockParsers()...),
-		parser.WithInlineParsers(arikawamarkdown.InlineParserWithLink()...),
-	).Parse(goldtext.NewReader(src))
+	node := md.Parse(src)
 	return urlsFromAST(node, src)
 }
 

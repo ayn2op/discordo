@@ -7,7 +7,7 @@ import (
 	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
-	arikawamarkdown "github.com/ayn2op/arikawa/v3/markdown"
+	md "github.com/ayn2op/arikawa/v3/markdown"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/text"
@@ -118,8 +118,8 @@ func (r *Renderer) RenderText(source []byte, node ast.Node, base tcell.Style) te
 			} else {
 				builder.NewLine()
 			}
-		case *arikawamarkdown.Inline:
-			if r.cfg.Markdown.MaskSpoilers && node.Attr&arikawamarkdown.AttrSpoiler != 0 {
+		case *md.Inline:
+			if r.cfg.Markdown.MaskSpoilers && node.Attr&md.AttrSpoiler != 0 {
 				if entering {
 					builder.Write("[spoiler]", currentStyle())
 				}
@@ -130,11 +130,11 @@ func (r *Renderer) RenderText(source []byte, node ast.Node, base tcell.Style) te
 			} else {
 				popStyle()
 			}
-		case *arikawamarkdown.Mention:
+		case *md.Mention:
 			if entering {
 				builder.Write(mentionText(node), tview.MergeStyle(currentStyle(), theme.MentionStyle.Style))
 			}
-		case *arikawamarkdown.Emoji:
+		case *md.Emoji:
 			if entering {
 				builder.Write(":"+node.Name+":", tview.MergeStyle(currentStyle(), theme.EmojiStyle.Style))
 			}
@@ -253,7 +253,7 @@ func applyChromaStyle(base tcell.Style, entry chroma.StyleEntry) tcell.Style {
 	return style
 }
 
-func mentionText(node *arikawamarkdown.Mention) string {
+func mentionText(node *md.Mention) string {
 	switch {
 	case node.Channel != nil:
 		return "#" + node.Channel.Name
@@ -270,20 +270,20 @@ func mentionText(node *arikawamarkdown.Mention) string {
 	}
 }
 
-func applyInlineAttr(style tcell.Style, attr arikawamarkdown.Attribute, inLink bool) tcell.Style {
-	if attr&arikawamarkdown.AttrBold != 0 {
+func applyInlineAttr(style tcell.Style, attr md.Attribute, inLink bool) tcell.Style {
+	if attr&md.AttrBold != 0 {
 		style = style.Bold(true)
 	}
-	if attr&arikawamarkdown.AttrItalics != 0 {
+	if attr&md.AttrItalics != 0 {
 		style = style.Italic(true)
 	}
-	if attr&arikawamarkdown.AttrUnderline != 0 {
+	if attr&md.AttrUnderline != 0 {
 		style = style.Underline(true)
 	}
-	if attr&arikawamarkdown.AttrStrikethrough != 0 {
+	if attr&md.AttrStrikethrough != 0 {
 		style = style.StrikeThrough(true)
 	}
-	if attr&arikawamarkdown.AttrMonospace != 0 {
+	if attr&md.AttrMonospace != 0 {
 		// Avoid reverse-video inside links. Link labels like `hash` should still
 		// look like links, not highlighted blocks.
 		if !inLink {
