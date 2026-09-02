@@ -8,13 +8,13 @@ import (
 	"github.com/gdamore/tcell/v3"
 )
 
-func TestHelpEnabled(t *testing.T) {
+func TestNewModel(t *testing.T) {
 	cfg, err := config.Load(filepath.Join(t.TempDir(), "missing.toml"))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	t.Run("enabled", func(t *testing.T) {
+	t.Run("help enabled", func(t *testing.T) {
 		cfg := *cfg
 		cfg.Help.Enabled = true
 		m := NewModel(&cfg)
@@ -51,7 +51,7 @@ func TestHelpEnabled(t *testing.T) {
 		}
 	})
 
-	t.Run("disabled", func(t *testing.T) {
+	t.Run("help disabled", func(t *testing.T) {
 		cfg := *cfg
 		cfg.Help.Enabled = false
 		m := NewModel(&cfg)
