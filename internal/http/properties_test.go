@@ -37,11 +37,12 @@ func TestBrowserIdentity(t *testing.T) {
 
 func TestBrowserClientHints(t *testing.T) {
 	headers := Headers()
+	version := tls.BrowserMajorVersion()
 	tests := []struct {
 		name string
 		want string
 	}{
-		{"Sec-Ch-Ua", `"Chromium";v="146", "Not-A.Brand";v="24", "Google Chrome";v="146"`},
+		{"Sec-Ch-Ua", `"Chromium";v="` + version + `", "Not-A.Brand";v="24", "Google Chrome";v="` + version + `"`},
 		{"Sec-Ch-Ua-Mobile", "?0"},
 		{"Sec-Ch-Ua-Platform", `"Windows"`},
 	}

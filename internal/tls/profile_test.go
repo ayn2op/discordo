@@ -2,12 +2,10 @@ package tls
 
 import (
 	"testing"
-
-	"github.com/bogdanfinn/tls-client/profiles"
 )
 
 func TestBrowserIdentity(t *testing.T) {
-	hello := profiles.Chrome_146.GetClientHelloId()
+	hello := clientProfile.GetClientHelloId()
 
 	tests := []struct {
 		name string
