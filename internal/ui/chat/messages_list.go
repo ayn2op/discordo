@@ -22,6 +22,7 @@ import (
 	"github.com/ayn2op/arikawa/v3/api"
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/arikawa/v3/gateway"
+	arikawamarkdown "github.com/ayn2op/arikawa/v3/markdown"
 	"github.com/ayn2op/arikawa/v3/state"
 	"github.com/ayn2op/arikawa/v3/utils/json/option"
 	"github.com/ayn2op/discordo/internal/config"
@@ -29,7 +30,6 @@ import (
 	"github.com/ayn2op/discordo/internal/markdown"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/discordo/internal/ui/chat/attachmentspicker"
-	"github.com/ayn2op/ningen/v3/discordmd"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/help"
 	"github.com/ayn2op/tview/keybind"
@@ -446,7 +446,7 @@ func (ml *messagesList) renderContentWithMarkdown(message discord.Message, baseS
 	// Keep one rendering path for both normal messages and embed fragments so we preserve mention/link parsing behavior consistently across both.
 	if forceMarkdown || ml.cfg.Markdown.Enabled {
 		c := []byte(message.Content)
-		root := discordmd.ParseWithMessage(c, *ml.chat.state.Cabinet, &message, false)
+		root := arikawamarkdown.ParseWithMessage(c, *ml.chat.state.Cabinet, &message, false)
 		return ml.renderer.RenderText(c, root, baseStyle), root, c
 	}
 
@@ -1049,8 +1049,8 @@ func (ml *messagesList) download() tview.Cmd {
 func extractURLs(content string) []string {
 	src := []byte(content)
 	node := parser.NewParser(
-		parser.WithBlockParsers(discordmd.BlockParsers()...),
-		parser.WithInlineParsers(discordmd.InlineParserWithLink()...),
+		parser.WithBlockParsers(arikawamarkdown.BlockParsers()...),
+		parser.WithInlineParsers(arikawamarkdown.InlineParserWithLink()...),
 	).Parse(goldtext.NewReader(src))
 	return urlsFromAST(node, src)
 }

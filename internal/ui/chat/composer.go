@@ -16,6 +16,7 @@ import (
 	"github.com/ayn2op/arikawa/v3/api"
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/arikawa/v3/gateway"
+	arikawamarkdown "github.com/ayn2op/arikawa/v3/markdown"
 	"github.com/ayn2op/arikawa/v3/state"
 	"github.com/ayn2op/arikawa/v3/utils/json/option"
 	"github.com/ayn2op/arikawa/v3/utils/sendpart"
@@ -25,7 +26,6 @@ import (
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/discordo/internal/ui/chat/mentionslist"
 	"github.com/ayn2op/ningen/v3"
-	"github.com/ayn2op/ningen/v3/discordmd"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/help"
 	"github.com/ayn2op/tview/keybind"
@@ -372,12 +372,12 @@ func (c *composer) processText(channel *discord.Channel, src []byte) string {
 		canMention = true
 	)
 
-	ast.Walk(discordmd.Parse(src), func(node ast.Node, enter bool) (ast.WalkStatus, error) {
+	ast.Walk(arikawamarkdown.Parse(src), func(node ast.Node, enter bool) (ast.WalkStatus, error) {
 		switch node := node.(type) {
 		case *ast.CodeBlock, *ast.FencedCodeBlock:
 			canMention = !enter
-		case *discordmd.Inline:
-			if (node.Attr & discordmd.AttrMonospace) != 0 {
+		case *arikawamarkdown.Inline:
+			if (node.Attr & arikawamarkdown.AttrMonospace) != 0 {
 				canMention = !enter
 			}
 		case *ast.Text:

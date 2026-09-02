@@ -13,8 +13,8 @@ require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/alecthomas/chroma/v2 v2.27.0
 	github.com/andybalholm/brotli v1.2.3
-	github.com/ayn2op/arikawa/v3 v3.0.0-20260827004545-b90631eb8a21
-	github.com/ayn2op/ningen/v3 v3.0.1-0.20260827010304-ee3a9ce6c2e4
+	github.com/ayn2op/arikawa/v3 v3.0.0-20260901025723-b0907384f632
+	github.com/ayn2op/ningen/v3 v3.0.1-0.20260901025733-eea1e4226d7d
 	github.com/ayn2op/tview v0.0.0-20260831000059-9f61521d46b4
 	github.com/bogdanfinn/fhttp v0.6.8
 	github.com/bogdanfinn/tls-client v1.15.1
@@ -44,7 +44,7 @@ require (
 	github.com/danieljoos/wincred v1.2.3 // indirect
 	github.com/dchest/jsmin v1.0.0 // indirect
 	github.com/dlclark/regexp2/v2 v2.7.1 // indirect
-	github.com/ebitengine/purego v0.10.2 // indirect
+	github.com/ebitengine/purego v0.11.0 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
 	github.com/godbus/dbus/v5 v5.2.2 // indirect
 	github.com/gorilla/schema v1.4.1 // indirect

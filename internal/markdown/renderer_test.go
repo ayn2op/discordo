@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	arikawamarkdown "github.com/ayn2op/arikawa/v3/markdown"
 	"github.com/ayn2op/discordo/internal/config"
-	"github.com/ayn2op/ningen/v3/discordmd"
 	"github.com/gdamore/tcell/v3"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/text"
@@ -14,8 +14,8 @@ import (
 func TestRendererMasksSpoilers(t *testing.T) {
 	source := []byte("before ||secret|| after")
 	node := parser.NewParser(
-		parser.WithBlockParsers(discordmd.BlockParsers()...),
-		parser.WithInlineParsers(discordmd.InlineParserWithLink()...),
+		parser.WithBlockParsers(arikawamarkdown.BlockParsers()...),
+		parser.WithInlineParsers(arikawamarkdown.InlineParserWithLink()...),
 	).Parse(text.NewReader(source))
 
 	for _, test := range []struct {
