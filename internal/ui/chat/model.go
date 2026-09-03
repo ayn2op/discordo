@@ -194,10 +194,10 @@ func (m *Model) navigateToChannel(channelID discord.ChannelID) tview.Cmd {
 
 func (m *Model) toggleGuildsTree() tview.Cmd {
 	if m.mainFlex.GetItemCount() == 2 {
-		m.mainFlex.RemoveItem(m.guildsTree)
 		if m.focusedModel() == m.guildsTree {
-			m.setFocus(m.mainFlex)
+			m.setFocus(m.messagesList)
 		}
+		m.mainFlex.RemoveItem(m.guildsTree)
 	} else {
 		m.buildLayout()
 		m.setFocus(m.guildsTree)
@@ -397,10 +397,10 @@ func (m *Model) setFocus(target tview.Model) {
 		m.mainFlex.SetFocus(0)
 	case m.messagesList:
 		m.rightFlex.SetFocus(0)
-		m.mainFlex.SetFocus(1)
+		m.mainFlex.SetFocus(m.mainFlex.GetItemCount() - 1)
 	case m.composer:
 		m.rightFlex.SetFocus(1)
-		m.mainFlex.SetFocus(1)
+		m.mainFlex.SetFocus(m.mainFlex.GetItemCount() - 1)
 	case m.mainFlex:
 		m.mainFlex.SetFocus(-1)
 	}
@@ -424,10 +424,12 @@ func (m *Model) View(screen tcell.Screen) {
 }
 
 func (m *Model) focusedModel() tview.Model {
-	if m.mainFlex.Focused() == 0 {
+	count := m.mainFlex.GetItemCount()
+	focused := m.mainFlex.Focused()
+	if count == 2 && focused == 0 {
 		return m.guildsTree
 	}
-	if m.mainFlex.Focused() == 1 {
+	if count > 0 && focused == count-1 {
 		if m.rightFlex.Focused() == 0 {
 			return m.messagesList
 		}
