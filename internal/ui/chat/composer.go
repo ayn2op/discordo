@@ -204,6 +204,9 @@ func (c *composer) Update(msg tview.Msg) tview.Cmd {
 				return c.tabComplete()
 			}
 			return c.forwardToTextArea(msg)
+		case keybind.Matches(msg, c.cfg.Keybinds.Composer.ToggleReplyMention.Keybind):
+			c.toggleReplyMention()
+			return nil
 		case keybind.Matches(msg, c.cfg.Keybinds.Composer.Undo.Keybind):
 			return c.forwardToTextArea(tcell.NewEventKey(tcell.KeyCtrlZ, "", tcell.ModNone))
 		}
@@ -226,6 +229,21 @@ func (c *composer) Update(msg tview.Msg) tview.Cmd {
 		return tview.Batch(typingCmd, c.forwardToTextArea(msg))
 	}
 	return c.TextArea.Update(msg)
+}
+
+func (c *composer) toggleReplyMention() {
+	data := c.sendMessageData
+	if data.Reference == nil || data.AllowedMentions == nil || data.AllowedMentions.RepliedUser == nil {
+		return
+	}
+
+	mention := !*data.AllowedMentions.RepliedUser
+	data.AllowedMentions.RepliedUser = option.Some(mention)
+	title := strings.TrimPrefix(c.Title(), "[@] ")
+	if mention {
+		title = "[@] " + title
+	}
+	c.SetTitle(title)
 }
 
 type imagePastedMsg []byte
@@ -830,6 +848,9 @@ func (c *composer) ShortHelp() []keybind.Keybind {
 
 	cfg := c.cfg.Keybinds.Composer
 	short := []keybind.Keybind{cfg.Send.Keybind, cfg.Newline.Keybind, cfg.Cancel.Keybind, cfg.Paste.Keybind, cfg.OpenEditor.Keybind}
+	if c.sendMessageData.Reference != nil {
+		short = append(short, cfg.ToggleReplyMention.Keybind)
+	}
 	if c.canAttachFiles() {
 		short = append(short, cfg.OpenFilePicker.Keybind)
 	}
@@ -853,8 +874,13 @@ func (c *composer) FullHelp() [][]keybind.Keybind {
 		openEditor = append(openEditor, cfg.OpenFilePicker.Keybind)
 	}
 
+	compose := []keybind.Keybind{cfg.Send.Keybind, cfg.Newline.Keybind, cfg.Cancel.Keybind, cfg.Undo.Keybind}
+	if c.sendMessageData.Reference != nil {
+		compose = append(compose, cfg.ToggleReplyMention.Keybind)
+	}
+
 	return [][]keybind.Keybind{
-		{cfg.Send.Keybind, cfg.Newline.Keybind, cfg.Cancel.Keybind, cfg.Undo.Keybind},
+		compose,
 		openEditor,
 	}
 }

@@ -189,6 +189,8 @@ newline = "shift+enter"
 cancel = "esc"
 # Complete usernames when mentioning
 tab_complete = "tab"
+# Toggle whether a reply mentions its author.
+toggle_reply_mention = "shift+tab"
 undo = "ctrl+u"
 
 open_editor = "ctrl+e"
