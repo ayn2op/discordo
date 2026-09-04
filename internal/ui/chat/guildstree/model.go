@@ -34,16 +34,9 @@ type Model struct {
 }
 
 func NewModel(cfg *config.Config, state *ningen.State) *Model {
-	m := &Model{
-		Model: tree.NewModel(),
-		cfg:   cfg,
-		state: state,
-
-		guildNodeByID:   make(map[discord.GuildID]*tree.Node),
-		channelNodeByID: make(map[discord.ChannelID]*tree.Node),
-	}
-	ui.ConfigureBox(m.Box, &cfg.Theme)
-	m.
+	t := tree.NewModel()
+	ui.ConfigureBox(t.Box, &cfg.Theme)
+	t.
 		SetRoot(tree.NewNode("")).
 		SetTopLevel(1).
 		SetMarkers(tree.Markers{
@@ -54,16 +47,26 @@ func NewModel(cfg *config.Config, state *ningen.State) *Model {
 		SetGraphics(cfg.Theme.GuildsTree.Graphics).
 		SetGraphicsColor(tcell.GetColor(cfg.Theme.GuildsTree.GraphicsColor)).
 		SetTitle("Guilds")
-	m.SetKeybinds(tree.Keybinds{
-		Up:           cfg.Keybinds.GuildsTree.SelectUp.Keybind,
-		Down:         cfg.Keybinds.GuildsTree.SelectDown.Keybind,
-		Top:          cfg.Keybinds.GuildsTree.SelectTop.Keybind,
-		Bottom:       cfg.Keybinds.GuildsTree.SelectBottom.Keybind,
-		MoveToParent: cfg.Keybinds.GuildsTree.MoveToParentNode.Keybind,
-		Select:       cfg.Keybinds.GuildsTree.SelectCurrent.Keybind,
+
+	kbs := cfg.Keybinds.GuildsTree
+	t.SetKeybinds(tree.Keybinds{
+		Up:           kbs.SelectUp.Keybind,
+		Down:         kbs.SelectDown.Keybind,
+		Top:          kbs.SelectTop.Keybind,
+		Bottom:       kbs.SelectBottom.Keybind,
+		MoveToParent: kbs.MoveToParentNode.Keybind,
+		Select:       kbs.SelectCurrent.Keybind,
 	})
 
-	return m
+	return &Model{
+		Model: t,
+
+		cfg:   cfg,
+		state: state,
+
+		guildNodeByID:   make(map[discord.GuildID]*tree.Node),
+		channelNodeByID: make(map[discord.ChannelID]*tree.Node),
+	}
 }
 
 func (m *Model) reset() *tree.Node {
