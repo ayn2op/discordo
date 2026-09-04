@@ -52,13 +52,16 @@ func ConfigurePicker(model *picker.Model, cfg *config.Config, title string) {
 		SetTrackStyle(cfg.Theme.ScrollBar.TrackStyle.Style).
 		SetThumbStyle(cfg.Theme.ScrollBar.ThumbStyle.Style).
 		SetGlyphSet(cfg.Theme.ScrollBar.GlyphSet.GlyphSet))
+
+	kbs := cfg.Keybinds.Picker
 	model.SetKeybinds(picker.Keybinds{
-		Cancel:       cfg.Keybinds.Picker.Cancel.Keybind,
-		SelectUp:     cfg.Keybinds.Picker.SelectUp.Keybind,
-		SelectDown:   cfg.Keybinds.Picker.SelectDown.Keybind,
-		SelectTop:    cfg.Keybinds.Picker.SelectTop.Keybind,
-		SelectBottom: cfg.Keybinds.Picker.SelectBottom.Keybind,
-		Select:       cfg.Keybinds.Picker.Select.Keybind,
+		Cancel: kbs.Cancel.Keybind,
+		Select: kbs.Select.Keybind,
+
+		SelectUp:     kbs.SelectUp.Keybind,
+		SelectDown:   kbs.SelectDown.Keybind,
+		SelectTop:    kbs.SelectTop.Keybind,
+		SelectBottom: kbs.SelectBottom.Keybind,
 	})
 }
 
