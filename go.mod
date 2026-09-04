@@ -13,8 +13,8 @@ require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/alecthomas/chroma/v2 v2.27.0
 	github.com/andybalholm/brotli v1.2.3
-	github.com/ayn2op/arikawa/v3 v3.0.0-20260902041141-a95cdb6cf16c
-	github.com/ayn2op/ningen/v3 v3.0.1-0.20260901025733-eea1e4226d7d
+	github.com/ayn2op/arikawa/v3 v3.0.0-20260904042054-7df757872273
+	github.com/ayn2op/ningen/v3 v3.0.1-0.20260904045623-5978c9be899f
 	github.com/ayn2op/tview v0.0.0-20260831000059-9f61521d46b4
 	github.com/bogdanfinn/fhttp v0.6.9
 	github.com/bogdanfinn/tls-client v1.16.0
@@ -27,7 +27,7 @@ require (
 	github.com/sahilm/fuzzy v0.1.3
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
-	github.com/yuin/goldmark v1.8.5
+	github.com/yuin/goldmark v1.8.6
 	github.com/zalando/go-keyring v0.2.8
 	golang.design/x/clipboard v0.9.0
 )
@@ -51,7 +51,6 @@ require (
 	github.com/gorilla/schema v1.4.1 // indirect
 	github.com/josephspurrier/goversioninfo v1.7.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.1 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/randall77/makefat v0.0.0-20260406194835-1b91746796b7 // indirect
 	github.com/tam7t/hpkp v0.0.0-20160821193359-2b70b4024ed5 // indirect

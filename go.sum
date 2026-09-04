@@ -10,10 +10,10 @@ github.com/alecthomas/repr v0.5.2 h1:SU73FTI9D1P5UNtvseffFSGmdNci/O6RsqzeXJtP0Qs
 github.com/alecthomas/repr v0.5.2/go.mod h1:Fr0507jx4eOXV7AlPV6AVZLYrLIuIeSOWtW57eE/O/4=
 github.com/andybalholm/brotli v1.2.3 h1:8H1qwOkl2LPfjf3YezB90JnCliZb6SInJ/OJkEbA5NQ=
 github.com/andybalholm/brotli v1.2.3/go.mod h1:rzTDkvFWvIrjDXZHkuS16NPggd91W3kUSvPlQ1pLaKY=
-github.com/ayn2op/arikawa/v3 v3.0.0-20260902041141-a95cdb6cf16c h1:HaOekXoQjIq80wbNKl1vqDQ6lnYuHZPld1gNRYMuIk4=
-github.com/ayn2op/arikawa/v3 v3.0.0-20260902041141-a95cdb6cf16c/go.mod h1:LpZgYi6xrXOxabrlvCqkrBW5XTWCnRz+uNH3/JF90Xo=
-github.com/ayn2op/ningen/v3 v3.0.1-0.20260901025733-eea1e4226d7d h1:T/Zbub1uuWEDwHjmlqTWF2TtAyvbPzHw4/7TVd3N3tQ=
-github.com/ayn2op/ningen/v3 v3.0.1-0.20260901025733-eea1e4226d7d/go.mod h1:RlTP0PbcLrhcL0z2RhNotSh0MFXb/OYA07FIoNL3lOE=
+github.com/ayn2op/arikawa/v3 v3.0.0-20260904042054-7df757872273 h1:cJ1donaon2CjhZiEUg8IAukt07xRxGmlGwwAHYFZUnk=
+github.com/ayn2op/arikawa/v3 v3.0.0-20260904042054-7df757872273/go.mod h1:bzMgZqBnJr1pu7EHq2d9906sAtHA+iklIxxvnS5kfDo=
+github.com/ayn2op/ningen/v3 v3.0.1-0.20260904045623-5978c9be899f h1:RrbCgoBOmYsLJAaf4lES+eoJYOG7zQMykACIFZgEvdU=
+github.com/ayn2op/ningen/v3 v3.0.1-0.20260904045623-5978c9be899f/go.mod h1:j8CBNjCkOpsgQm6X2xYJ0kXu5Y/PiQ+6QxxmExCq1Fs=
 github.com/ayn2op/tview v0.0.0-20260831000059-9f61521d46b4 h1:mYUivDN9S69PScIxEkQm5ujKuIdhUT522N3FP/FJcMY=
 github.com/ayn2op/tview v0.0.0-20260831000059-9f61521d46b4/go.mod h1:iFzkW7DBltCaeLMR9SvXVUAw/zgKIbgE8JaUU8W8crk=
 github.com/bdandy/go-errors v1.2.2 h1:WdFv/oukjTJCLa79UfkGmwX7ZxONAihKu4V0mLIs11Q=
@@ -70,8 +70,6 @@ github.com/lucasb-eyer/go-colorful v1.4.1 h1:1EO+WB73+EH8EVbzlrG3KLAfEypQWVHIBql
 github.com/lucasb-eyer/go-colorful v1.4.1/go.mod h1:R4dSotOR9KMtayYi1e77YzuveK+i7ruzyGqttikkLy0=
 github.com/ncruces/zenity v0.10.15 h1:UaHekkxwt7QjoZmMWtzhqSEtQT97/Cux6FDBWwfyuqk=
 github.com/ncruces/zenity v0.10.15/go.mod h1:45d81tt+vF/UjBjlWE/vvE0oD0hWuHUQld4vPbA4VxE=
-github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
-github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/quic-go/qpack v0.6.0 h1:g7W+BMYynC1LbYLSqRt8PBg5Tgwxn214ZZR34VIOjz8=
@@ -97,8 +95,8 @@ github.com/twmb/murmur3 v1.1.8/go.mod h1:Qq/R7NUyOfr65zD+6Q5IHKsJLwP7exErjN6lyyq
 github.com/xyproto/randomstring v1.0.5 h1:YtlWPoRdgMu3NZtP45drfy1GKoojuR7hmRcnhZqKjWU=
 github.com/xyproto/randomstring v1.0.5/go.mod h1:rgmS5DeNXLivK7YprL0pY+lTuhNQW3iGxZ18UQApw/E=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
-github.com/yuin/goldmark v1.8.5 h1:r6N5afV5qj/5S4UTch8agZHJ8UxNCMwX7WjkkJam2NA=
-github.com/yuin/goldmark v1.8.5/go.mod h1:ip/1k0VRfGynBgxOz0yCqHrbZXhcjxyuS66Brc7iBKg=
+github.com/yuin/goldmark v1.8.6 h1:d0VcaP1sx9GkFVkoW+KtggpGi2KZ965i14b0+bDQST4=
+github.com/yuin/goldmark v1.8.6/go.mod h1:ip/1k0VRfGynBgxOz0yCqHrbZXhcjxyuS66Brc7iBKg=
 github.com/zalando/go-keyring v0.2.8 h1:6sD/Ucpl7jNq10rM2pgqTs0sZ9V3qMrqfIIy5YPccHs=
 github.com/zalando/go-keyring v0.2.8/go.mod h1:tsMo+VpRq5NGyKfxoBVjCuMrG47yj8cmakZDO5QGii0=
 go.uber.org/goleak v1.3.0 h1:2K3zAYmnTNqV73imy9J1T3WC+gmCePx2hEGkimedGto=
