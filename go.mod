@@ -15,7 +15,7 @@ require (
 	github.com/andybalholm/brotli v1.2.3
 	github.com/ayn2op/arikawa/v3 v3.0.0-20260904042054-7df757872273
 	github.com/ayn2op/ningen/v3 v3.0.1-0.20260904045623-5978c9be899f
-	github.com/ayn2op/tview v0.0.0-20260831000059-9f61521d46b4
+	github.com/ayn2op/tview v0.0.0-20260905034126-cc87af9b5ca0
 	github.com/bogdanfinn/fhttp v0.6.9
 	github.com/bogdanfinn/tls-client v1.16.0
 	github.com/gdamore/tcell/v3 v3.4.2
