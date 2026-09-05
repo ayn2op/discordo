@@ -179,6 +179,8 @@ func (c *composer) Update(msg tview.Msg) tview.Cmd {
 
 	case tview.KeyMsg:
 		switch {
+		case keybind.Matches(msg, c.cfg.Keybinds.Composer.EditLast.Keybind) && c.canEditLastMessage():
+			return c.editLastMessage()
 		case keybind.Matches(msg, c.cfg.Keybinds.Composer.Paste.Keybind):
 			return tview.Sequence(pasteImage(), c.forwardToTextArea(tcell.NewEventKey(tcell.KeyCtrlV, "", tcell.ModNone)))
 		case keybind.Matches(msg, c.cfg.Keybinds.Composer.Newline.Keybind):
@@ -228,6 +230,31 @@ func (c *composer) Update(msg tview.Msg) tview.Cmd {
 		return tview.Batch(typingCmd, c.forwardToTextArea(msg))
 	}
 	return c.TextArea.Update(msg)
+}
+
+func (c *composer) canEditLastMessage() bool {
+	return !c.Disabled() && !c.edit && c.Text() == "" &&
+		c.sendMessageData.Reference == nil && len(c.sendMessageData.Files) == 0 &&
+		!c.chat.GetVisible(mentionsListLayerName)
+}
+
+func (c *composer) editLastMessage() tview.Cmd {
+	channel, ok := c.chat.SelectedChannel()
+	if !ok {
+		return nil
+	}
+	ml := c.chat.messagesList
+	for i := len(ml.messages) - 1; i >= 0; i-- {
+		message := &ml.messages[i]
+		if message.ChannelID != channel.ID || !c.chat.isMe(message.Author.ID) ||
+			!message.ID.IsValid() || message.Content == "" || len(message.MessageSnapshots) > 0 ||
+			(message.Type != discord.DefaultMessage && message.Type != discord.InlinedReplyMessage) {
+			continue
+		}
+		ml.SetCursor(i)
+		return ml.editSelectedMessage()
+	}
+	return nil
 }
 
 func (c *composer) toggleReplyMention() {
@@ -847,6 +874,9 @@ func (c *composer) ShortHelp() []keybind.Keybind {
 
 	cfg := c.cfg.Keybinds.Composer
 	short := []keybind.Keybind{cfg.Send.Keybind, cfg.Newline.Keybind, cfg.Cancel.Keybind, cfg.Paste.Keybind, cfg.OpenEditor.Keybind}
+	if c.canEditLastMessage() {
+		short = append(short, cfg.EditLast.Keybind)
+	}
 	if c.sendMessageData.Reference != nil {
 		short = append(short, cfg.ToggleReplyMention.Keybind)
 	}
@@ -874,6 +904,7 @@ func (c *composer) FullHelp() [][]keybind.Keybind {
 	}
 
 	compose := []keybind.Keybind{cfg.Send.Keybind, cfg.Newline.Keybind, cfg.Cancel.Keybind, cfg.Undo.Keybind}
+	compose = append(compose, cfg.EditLast.Keybind)
 	if c.sendMessageData.Reference != nil {
 		compose = append(compose, cfg.ToggleReplyMention.Keybind)
 	}

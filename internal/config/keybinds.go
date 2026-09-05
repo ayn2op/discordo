@@ -92,6 +92,7 @@ type MessagesListKeybinds struct {
 }
 
 type ComposerKeybinds struct {
+	EditLast           Keybind `toml:"edit_last"`
 	Paste              Keybind `toml:"paste"`
 	Send               Keybind `toml:"send"`
 	Newline            Keybind `toml:"newline"`
@@ -186,6 +187,7 @@ func defaultMessagesListKeybinds() MessagesListKeybinds {
 
 func defaultComposerKeybinds() ComposerKeybinds {
 	return ComposerKeybinds{
+		EditLast:           desc("edit last"),
 		Paste:              desc("paste"),
 		Send:               desc("send"),
 		Newline:            desc("nl"),
