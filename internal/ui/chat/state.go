@@ -170,7 +170,17 @@ func (m *Model) onGuildMembersChunk(event *gateway.GuildMembersChunkEvent) tview
 }
 
 func (m *Model) onGuildMemberRemove(event *gateway.GuildMemberRemoveEvent) {
-	m.composer.cache.Invalidate(event.GuildID.String()+" "+event.User.Username, m.state.MemberState.SearchLimit)
+	memberSearchCache := m.composer.memberSearchCache
+	for name := event.GuildID.String() + " " + event.User.Username; name != ""; name = name[:len(name)-1] {
+		if count, ok := memberSearchCache[name]; ok && count >= m.state.MemberState.SearchLimit {
+			// A full result set may now be missing members; search these prefixes again.
+			for name != "" {
+				delete(memberSearchCache, name)
+				name = name[:len(name)-1]
+			}
+			return
+		}
+	}
 }
 
 func (m *Model) onTypingStart(event *gateway.TypingStartEvent) {

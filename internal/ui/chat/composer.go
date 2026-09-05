@@ -20,7 +20,6 @@ import (
 	"github.com/ayn2op/arikawa/v3/state"
 	"github.com/ayn2op/arikawa/v3/utils/json/option"
 	"github.com/ayn2op/arikawa/v3/utils/sendpart"
-	"github.com/ayn2op/discordo/internal/cache"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/ui"
@@ -51,11 +50,11 @@ type composer struct {
 
 	cfg *config.Config
 
-	edit            bool
-	sendMessageData *api.SendMessageData
-	cache           *cache.Cache
-	mentionsList    *mentionslist.Model
-	lastSearch      time.Time
+	edit              bool
+	sendMessageData   *api.SendMessageData
+	memberSearchCache map[string]uint
+	mentionsList      *mentionslist.Model
+	lastSearch        time.Time
 
 	typingUntil time.Time
 }
@@ -67,12 +66,12 @@ var _ help.KeyMap = (*composer)(nil)
 
 func newComposer(cfg *config.Config, chat *Model) *composer {
 	c := &composer{
-		TextArea:        tview.NewTextArea(),
-		cfg:             cfg,
-		chat:            chat,
-		sendMessageData: &api.SendMessageData{},
-		cache:           cache.New(),
-		mentionsList:    mentionslist.NewModel(cfg),
+		TextArea:          tview.NewTextArea(),
+		cfg:               cfg,
+		chat:              chat,
+		sendMessageData:   &api.SendMessageData{},
+		memberSearchCache: make(map[string]uint),
+		mentionsList:      mentionslist.NewModel(cfg),
 	}
 	ui.ConfigureBox(c.Box, &cfg.Theme)
 	c.
@@ -629,16 +628,16 @@ func (c *composer) searchMember(gID discord.GuildID, name string) tview.Cmd {
 	}
 
 	key := gID.String() + " " + name
-	if _, ok := c.cache.Get(key); ok {
+	if _, ok := c.memberSearchCache[key]; ok {
 		return nil
 	}
 	// If searching for "ab" returns less than SearchLimit,
 	// then "abc" would not return anything new because we already searched
 	// everything starting with "ab". This will still be true even if a new
 	// member joins because arikawa loads new members into the state.
-	if count, ok := c.cache.Get(key[:len(key)-1]); ok {
+	if count, ok := c.memberSearchCache[key[:len(key)-1]]; ok {
 		if count < c.chat.state.MemberState.SearchLimit {
-			c.cache.Create(key, count)
+			c.memberSearchCache[key] = count
 			return nil
 		}
 	}
@@ -671,7 +670,7 @@ func (c *composer) onGuildMembersChunk(event *gateway.GuildMembersChunkEvent) tv
 		return nil
 	}
 
-	c.cache.Create(key, uint(len(event.Members)))
+	c.memberSearchCache[key] = uint(len(event.Members))
 	return func() tview.Msg {
 		return tabSuggestMsg{}
 	}
