@@ -44,34 +44,25 @@ import (
 	"golang.design/x/clipboard"
 )
 
+type messageItem struct {
+	message   discord.Message
+	view      list.Item
+	separator bool
+	timestamp discord.Timestamp
+}
+
 type messagesList struct {
 	*list.Model
-	cfg      *config.Config
-	chat     *Model
-	messages []discord.Message
-	rows     []messagesListRow
+	cfg   *config.Config
+	chat  *Model
+	items []messageItem
 
 	renderer *markdown.Renderer
-	// itemByID caches rendered message TextViews.
-	itemByID map[discord.MessageID]*tview.TextView
 
 	attachmentsPicker *attachmentspicker.Model
 }
 
 var _ help.KeyMap = (*messagesList)(nil)
-
-type messagesListRowKind uint8
-
-const (
-	messagesListRowMessage messagesListRowKind = iota
-	messagesListRowSeparator
-)
-
-type messagesListRow struct {
-	kind         messagesListRowKind
-	messageIndex int
-	timestamp    discord.Timestamp
-}
 
 func newMessagesList(cfg *config.Config, chat *Model) *messagesList {
 	ml := &messagesList{
@@ -79,7 +70,6 @@ func newMessagesList(cfg *config.Config, chat *Model) *messagesList {
 		cfg:      cfg,
 		chat:     chat,
 		renderer: markdown.NewRenderer(cfg),
-		itemByID: make(map[discord.MessageID]*tview.TextView),
 	}
 	ml.attachmentsPicker = attachmentspicker.NewModel(cfg)
 
@@ -103,9 +93,7 @@ func newMessagesList(cfg *config.Config, chat *Model) *messagesList {
 }
 
 func (ml *messagesList) reset() {
-	ml.messages = nil
-	ml.rows = nil
-	clear(ml.itemByID)
+	ml.items = nil
 	ml.
 		Clear().
 		SetBuilder(ml.buildItem).
@@ -122,36 +110,45 @@ func (ml *messagesList) setTitle(channel discord.Channel) {
 }
 
 func (ml *messagesList) setMessages(messages []discord.Message) {
-	ml.messages = slices.Clone(messages)
-	slices.Reverse(ml.messages)
-	clear(ml.itemByID)
-	ml.rebuildRows()
+	ml.items = make([]messageItem, 0, len(messages))
+	for _, message := range slices.Backward(messages) {
+		ml.items = append(ml.items, messageItem{message: message})
+	}
+	ml.rebuildItems()
 }
 
 func (ml *messagesList) addMessage(message discord.Message) {
-	ml.messages = append(ml.messages, message)
-	delete(ml.itemByID, message.ID)
-	ml.rebuildRows()
+	ml.items = append(ml.items, messageItem{message: message})
+	ml.rebuildItems()
 }
 
 func (ml *messagesList) setMessage(index int, message discord.Message) {
-	if index < 0 || index >= len(ml.messages) {
+	if index < 0 || index >= len(ml.items) || ml.items[index].separator {
 		return
 	}
 
-	ml.messages[index] = message
-	delete(ml.itemByID, message.ID)
-	ml.rebuildRows()
+	ml.items[index] = messageItem{message: message}
+	ml.rebuildItems()
 }
 
 func (ml *messagesList) deleteMessage(index int) {
-	if index < 0 || index >= len(ml.messages) {
+	if index < 0 || index >= len(ml.items) || ml.items[index].separator {
 		return
 	}
 
-	delete(ml.itemByID, ml.messages[index].ID)
-	ml.messages = slices.Delete(ml.messages, index, index+1)
-	ml.rebuildRows()
+	cursor := ml.Cursor()
+	if cursor == index {
+		cursor = ml.messageIndex(index, -1)
+		if cursor == -1 {
+			cursor = ml.messageIndex(index, 1)
+		}
+	}
+	if cursor > index {
+		cursor--
+	}
+	ml.items = slices.Delete(ml.items, index, index+1)
+	ml.Model.SetCursor(cursor)
+	ml.rebuildItems()
 }
 
 func (ml *messagesList) clearSelection() {
@@ -159,28 +156,21 @@ func (ml *messagesList) clearSelection() {
 }
 
 func (ml *messagesList) buildItem(index int) list.Item {
-	if index < 0 || index >= len(ml.rows) {
+	if index < 0 || index >= len(ml.items) {
 		return nil
 	}
-
-	row := ml.rows[index]
-	if row.kind == messagesListRowSeparator {
-		return ml.buildSeparatorItem(row.timestamp)
+	item := &ml.items[index]
+	if item.separator {
+		return ml.buildSeparatorItem(item.timestamp)
 	}
 
-	// The list applies the selection style at draw time, so a message is
-	// rendered once and reused for every cursor position. Cursor moves no
-	// longer re-parse markdown or re-run syntax highlighting.
-	message := ml.messages[row.messageIndex]
-	item, ok := ml.itemByID[message.ID]
-	if !ok {
-		item = tview.NewTextView().
+	if item.view == nil {
+		item.view = tview.NewTextView().
 			SetWrap(true).
 			SetWordWrap(true).
-			SetContent(ml.renderMessage(message, ml.cfg.Theme.MessagesList.MessageStyle.Style))
-		ml.itemByID[message.ID] = item
+			SetContent(ml.renderMessage(item.message, ml.cfg.Theme.MessagesList.MessageStyle.Style))
 	}
-	return item
+	return item.view
 }
 
 func (ml *messagesList) renderMessage(message discord.Message, baseStyle tcell.Style) text.Text {
@@ -222,26 +212,27 @@ func (ml *messagesList) drawDateSeparator(builder *text.Builder, ts discord.Time
 	builder.Write(strings.Repeat(fillChar, left)+label+strings.Repeat(fillChar, right), dimStyle)
 }
 
-func (ml *messagesList) rebuildRows() {
-	rows := make([]messagesListRow, 0, len(ml.messages)*2)
-
-	for index := range ml.messages {
-		// Always show a date separator before the first message, and between messages on different days.
-		if ml.cfg.DateSeparator.Enabled && (index == 0 || !sameLocalDate(ml.messages[index-1].Timestamp, ml.messages[index].Timestamp)) {
-			rows = append(rows, messagesListRow{
-				kind:      messagesListRowSeparator,
-				timestamp: ml.messages[index].Timestamp,
-			})
+// rebuildItems replaces date separators while retaining message views and selection.
+func (ml *messagesList) rebuildItems() {
+	items := make([]messageItem, 0, len(ml.items))
+	cursor, selected := ml.Model.Cursor(), -1
+	var previous discord.Timestamp
+	for i, item := range ml.items {
+		if item.separator {
+			continue
 		}
-
-		rows = append(rows, messagesListRow{
-			kind:         messagesListRowMessage,
-			messageIndex: index,
-		})
+		if ml.cfg.DateSeparator.Enabled && (len(items) == 0 || !sameLocalDate(previous, item.message.Timestamp)) {
+			items = append(items, messageItem{separator: true, timestamp: item.message.Timestamp})
+		}
+		if i == cursor {
+			selected = len(items)
+		}
+		items = append(items, item)
+		previous = item.message.Timestamp
 	}
-
-	ml.rows = rows
+	ml.items = items
 	ml.SetBuilder(ml.buildItem)
+	ml.Model.SetCursor(selected)
 }
 
 func sameLocalDate(a discord.Timestamp, b discord.Timestamp) bool {
@@ -250,61 +241,25 @@ func sameLocalDate(a discord.Timestamp, b discord.Timestamp) bool {
 	return ta.Year() == tb.Year() && ta.YearDay() == tb.YearDay()
 }
 
-// Cursor returns the selected message index, skipping separator rows.
-func (ml *messagesList) Cursor() int {
-	rowIndex := ml.Model.Cursor()
-	if rowIndex < 0 || rowIndex >= len(ml.rows) {
-		return -1
-	}
-
-	row := ml.rows[rowIndex]
-	if row.kind != messagesListRowMessage {
-		return -1
-	}
-	return row.messageIndex
-}
-
-// SetCursor selects a message index and maps it to the corresponding row.
-func (ml *messagesList) SetCursor(index int) {
-	ml.Model.SetCursor(ml.messageToRowIndex(index))
-}
-
-func (ml *messagesList) messageToRowIndex(messageIndex int) int {
-	if messageIndex < 0 || messageIndex >= len(ml.messages) {
-		return -1
-	}
-
-	for i, row := range ml.rows {
-		if row.kind == messagesListRowMessage && row.messageIndex == messageIndex {
+// messageIndex finds the next message in direction (-1 or 1), excluding start.
+func (ml *messagesList) messageIndex(start, direction int) int {
+	for i := start + direction; i >= 0 && i < len(ml.items); i += direction {
+		if !ml.items[i].separator {
 			return i
 		}
 	}
-
 	return -1
 }
 
-func (ml *messagesList) onRowCursorChanged(rowIndex int) {
-	if rowIndex < 0 || rowIndex >= len(ml.rows) || ml.rows[rowIndex].kind == messagesListRowMessage {
+func (ml *messagesList) onRowCursorChanged(index int) {
+	if index < 0 || index >= len(ml.items) || !ml.items[index].separator {
 		return
 	}
-
-	target := ml.nearestMessageRowIndex(rowIndex)
-	ml.Model.SetCursor(target)
-}
-
-// nearestMessageRowIndex expects rowIndex to be within bounds.
-func (ml *messagesList) nearestMessageRowIndex(rowIndex int) int {
-	for i := rowIndex - 1; i >= 0; i-- {
-		if ml.rows[i].kind == messagesListRowMessage {
-			return i
-		}
+	target := ml.messageIndex(index, -1)
+	if target == -1 {
+		target = ml.messageIndex(index, 1)
 	}
-	for i := rowIndex + 1; i < len(ml.rows); i++ {
-		if ml.rows[i].kind == messagesListRowMessage {
-			return i
-		}
-	}
-	return -1
+	ml.SetCursor(target)
 }
 
 func (ml *messagesList) writeMessage(builder *text.Builder, message discord.Message, baseStyle tcell.Style) {
@@ -768,16 +723,16 @@ func (ml *messagesList) drawPinnedMessage(builder *text.Builder, message discord
 }
 
 func (ml *messagesList) selectedMessage() (*discord.Message, bool) {
-	if len(ml.messages) == 0 {
+	if len(ml.items) == 0 {
 		return nil, false
 	}
 
 	cursor := ml.Cursor()
-	if cursor == -1 || cursor >= len(ml.messages) {
+	if cursor < 0 || cursor >= len(ml.items) || ml.items[cursor].separator {
 		return nil, false
 	}
 
-	return &ml.messages[cursor], true
+	return &ml.items[cursor].message, true
 }
 
 func (ml *messagesList) Update(msg tview.Msg) tview.Cmd {
@@ -831,23 +786,19 @@ func (ml *messagesList) Update(msg tview.Msg) tview.Cmd {
 		}
 		prevCursor := ml.Cursor()
 
-		// Defensive invalidation if Discord returns overlapping windows.
-		for _, message := range msg.Older {
-			delete(ml.itemByID, message.ID)
+		older := make([]messageItem, len(msg.Older))
+		for i, message := range msg.Older {
+			older[i] = messageItem{message: message}
 		}
-		ml.messages = slices.Concat(msg.Older, ml.messages)
-		ml.rebuildRows()
-
+		first := ml.messageIndex(-1, 1)
+		ml.items = slices.Concat(older, ml.items)
 		switch {
-		case prevCursor == 0:
-			// Preserve "SelectUp at top" semantics: move to the next older message.
-			ml.SetCursor(len(msg.Older) - 1)
-		case prevCursor > 0:
-			// Keep selection on the same message after prepend shifts indexes.
-			ml.SetCursor(prevCursor + len(msg.Older))
-		default:
-			ml.SetCursor(prevCursor)
+		case prevCursor == first && len(older) > 0:
+			ml.Model.SetCursor(len(older) - 1)
+		case prevCursor >= 0:
+			ml.Model.SetCursor(prevCursor + len(older))
 		}
+		ml.rebuildItems()
 		if selectedChannel.GuildID.IsValid() {
 			return ml.requestGuildMembers(selectedChannel.GuildID, msg.Older)
 		}
@@ -859,58 +810,35 @@ func (ml *messagesList) Update(msg tview.Msg) tview.Cmd {
 }
 
 func (ml *messagesList) selectUp() tview.Cmd {
-	messages := ml.messages
-	if len(messages) == 0 {
-		return nil
-	}
-
 	cursor := ml.Cursor()
-	switch {
-	case cursor == -1:
-		cursor = len(messages) - 1
-	case cursor > 0:
-		cursor--
-	case cursor == 0:
+	if cursor == -1 {
+		ml.selectBottom()
+	} else if previous := ml.messageIndex(cursor, -1); previous >= 0 {
+		ml.SetCursor(previous)
+	} else {
 		return ml.fetchOlderMessages()
 	}
-
-	ml.SetCursor(cursor)
 	return nil
 }
 
 func (ml *messagesList) selectDown() {
-	messages := ml.messages
-	if len(messages) == 0 {
-		return
+	if ml.Cursor() == -1 {
+		ml.selectBottom()
+	} else if next := ml.messageIndex(ml.Cursor(), 1); next >= 0 {
+		ml.SetCursor(next)
 	}
-
-	cursor := ml.Cursor()
-	switch {
-	case cursor == -1:
-		cursor = len(messages) - 1
-	case cursor < len(messages)-1:
-		cursor++
-	}
-
-	ml.SetCursor(cursor)
 }
 
 func (ml *messagesList) selectTop() {
-	if len(ml.messages) == 0 {
-		return
-	}
-	ml.SetCursor(0)
+	ml.SetCursor(ml.messageIndex(-1, 1))
 }
 
 func (ml *messagesList) selectBottom() {
-	if len(ml.messages) == 0 {
-		return
-	}
-	ml.SetCursor(len(ml.messages) - 1)
+	ml.SetCursor(ml.messageIndex(len(ml.items), -1))
 }
 
 func (ml *messagesList) selectReply() {
-	messages := ml.messages
+	messages := ml.items
 	if len(messages) == 0 {
 		return
 	}
@@ -920,9 +848,9 @@ func (ml *messagesList) selectReply() {
 		return
 	}
 
-	if ref := messages[cursor].ReferencedMessage; ref != nil {
-		refIdx := slices.IndexFunc(messages, func(m discord.Message) bool {
-			return m.ID == ref.ID
+	if ref := messages[cursor].message.ReferencedMessage; ref != nil {
+		refIdx := slices.IndexFunc(messages, func(m messageItem) bool {
+			return !m.separator && m.message.ID == ref.ID
 		})
 		if refIdx != -1 {
 			ml.SetCursor(refIdx)
@@ -937,7 +865,11 @@ func (ml *messagesList) fetchOlderMessages() tview.Cmd {
 	}
 
 	channelID := selectedChannel.ID
-	before := ml.messages[0].ID
+	first := ml.messageIndex(-1, 1)
+	if first == -1 {
+		return nil
+	}
+	before := ml.items[first].message.ID
 	limit := uint(ml.cfg.MessagesLimit)
 	return func() tview.Msg {
 		messages, err := ml.chat.state.MessagesBefore(channelID, before, limit)
@@ -1349,7 +1281,9 @@ func (ml *messagesList) requestGuildMembers(guildID discord.GuildID, messages []
 }
 
 func (ml *messagesList) invalidateRenderedMessages() {
-	clear(ml.itemByID)
+	for i := range ml.items {
+		ml.items[i].view = nil
+	}
 	ml.SetBuilder(ml.buildItem)
 }
 

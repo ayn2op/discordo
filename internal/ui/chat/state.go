@@ -103,8 +103,8 @@ func (m *Model) onMessageUpdate(message *gateway.MessageUpdateEvent) {
 		return
 	}
 
-	index := slices.IndexFunc(m.messagesList.messages, func(m discord.Message) bool {
-		return m.ID == message.ID
+	index := slices.IndexFunc(m.messagesList.items, func(m messageItem) bool {
+		return !m.separator && m.message.ID == message.ID
 	})
 	if index < 0 {
 		return
@@ -119,9 +119,8 @@ func (m *Model) onMessageDelete(message *gateway.MessageDeleteEvent) {
 		return
 	}
 
-	prevCursor := m.messagesList.Cursor()
-	deletedIndex := slices.IndexFunc(m.messagesList.messages, func(m discord.Message) bool {
-		return m.ID == message.ID
+	deletedIndex := slices.IndexFunc(m.messagesList.items, func(m messageItem) bool {
+		return !m.separator && m.message.ID == message.ID
 	})
 	if deletedIndex < 0 {
 		return
@@ -129,10 +128,6 @@ func (m *Model) onMessageDelete(message *gateway.MessageDeleteEvent) {
 
 	m.messagesList.deleteMessage(deletedIndex)
 
-	newCursor := cursorAfterDelete(prevCursor, deletedIndex, len(m.messagesList.messages))
-	if newCursor != prevCursor {
-		m.messagesList.SetCursor(newCursor)
-	}
 }
 
 func (m *Model) onMessageReaction(channelID discord.ChannelID, messageID discord.MessageID) {
@@ -141,26 +136,12 @@ func (m *Model) onMessageReaction(channelID discord.ChannelID, messageID discord
 		return
 	}
 
-	index := slices.IndexFunc(m.messagesList.messages, func(message discord.Message) bool {
-		return message.ID == messageID
+	index := slices.IndexFunc(m.messagesList.items, func(item messageItem) bool {
+		return !item.separator && item.message.ID == messageID
 	})
 	message, err := m.state.Cabinet.Message(channelID, messageID)
 	if index >= 0 && err == nil {
 		m.messagesList.setMessage(index, *message)
-	}
-}
-
-func cursorAfterDelete(prevCursor, deletedIndex, remaining int) int {
-	switch {
-	case prevCursor > deletedIndex:
-		return prevCursor - 1
-	case prevCursor == deletedIndex:
-		if prev := deletedIndex - 1; prev >= 0 {
-			return prev
-		}
-		return min(deletedIndex, remaining-1)
-	default:
-		return prevCursor
 	}
 }
 

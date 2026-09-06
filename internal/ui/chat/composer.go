@@ -244,8 +244,11 @@ func (c *composer) editLastMessage() tview.Cmd {
 		return nil
 	}
 	ml := c.chat.messagesList
-	for i := len(ml.messages) - 1; i >= 0; i-- {
-		message := &ml.messages[i]
+	for i, item := range slices.Backward(ml.items) {
+		if item.separator {
+			continue
+		}
+		message := item.message
 		if message.ChannelID != channel.ID || !c.chat.isMe(message.Author.ID) ||
 			!message.ID.IsValid() || message.Content == "" || len(message.MessageSnapshots) > 0 ||
 			(message.Type != discord.DefaultMessage && message.Type != discord.InlinedReplyMessage) {
