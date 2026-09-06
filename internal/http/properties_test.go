@@ -9,7 +9,7 @@ import (
 	"github.com/ayn2op/discordo/internal/tls"
 )
 
-func TestBrowserIdentity(t *testing.T) {
+func TestCommonProperties(t *testing.T) {
 	properties := CommonProperties()
 
 	tests := []struct {
@@ -29,13 +29,15 @@ func TestBrowserIdentity(t *testing.T) {
 			}
 		})
 	}
+}
 
+func TestBrowserUserAgent(t *testing.T) {
 	if product := tls.BrowserName() + "/" + tls.BrowserVersion(); !strings.Contains(BrowserUserAgent(), product) {
 		t.Fatalf("user agent does not contain %q", product)
 	}
 }
 
-func TestBrowserClientHints(t *testing.T) {
+func TestHeaders(t *testing.T) {
 	headers := Headers()
 	version := tls.BrowserMajorVersion()
 	tests := []struct {
@@ -56,7 +58,7 @@ func TestBrowserClientHints(t *testing.T) {
 	}
 }
 
-func TestPropertyUUIDs(t *testing.T) {
+func TestXSuperProperties(t *testing.T) {
 	properties := XSuperProperties()
 	for _, key := range []gateway.IdentifyPropertyKey{"client_launch_id", "client_heartbeat_session_id", "launch_signature"} {
 		t.Run(string(key), func(t *testing.T) {

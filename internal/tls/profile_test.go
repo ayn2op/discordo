@@ -1,26 +1,17 @@
 package tls
 
-import (
-	"testing"
-)
+import "testing"
 
-func TestBrowserIdentity(t *testing.T) {
-	hello := clientProfile.GetClientHelloId()
-
-	tests := []struct {
-		name string
-		got  string
-		want string
-	}{
-		{"name", BrowserName(), hello.Client},
-		{"version", BrowserVersion(), hello.Version + ".0.0.0"},
+func TestBrowserName(t *testing.T) {
+	want := clientProfile.GetClientHelloId().Client
+	if got := BrowserName(); got != want {
+		t.Fatalf("BrowserName() = %q, want %q", got, want)
 	}
+}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			if test.got != test.want {
-				t.Fatalf("got = %q, want = %q", test.got, test.want)
-			}
-		})
+func TestBrowserVersion(t *testing.T) {
+	want := clientProfile.GetClientHelloId().Version + ".0.0.0"
+	if got := BrowserVersion(); got != want {
+		t.Fatalf("BrowserVersion() = %q, want %q", got, want)
 	}
 }

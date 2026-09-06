@@ -10,17 +10,18 @@ import (
 )
 
 func TestRendererRenderText(t *testing.T) {
-	t.Run("masks spoilers", func(t *testing.T) {
-		source := []byte("before ||secret|| after")
-		node := md.Parse(source)
+	source := []byte("before ||secret|| after")
+	node := md.Parse(source)
 
-		for _, test := range []struct {
-			mask bool
-			want string
-		}{
-			{true, "before [spoiler] after"},
-			{false, "before secret after"},
-		} {
+	for _, test := range []struct {
+		name string
+		mask bool
+		want string
+	}{
+		{"spoilers_masked", true, "before [spoiler] after"},
+		{"spoilers_visible", false, "before secret after"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
 			rendered := NewRenderer(&config.Config{Markdown: config.MarkdownConfig{MaskSpoilers: test.mask}}).RenderText(source, node, tcell.StyleDefault)
 			var got strings.Builder
 			for _, line := range rendered {
@@ -31,6 +32,6 @@ func TestRendererRenderText(t *testing.T) {
 			if got.String() != test.want {
 				t.Fatalf("mask=%t: got %q, want %q", test.mask, got.String(), test.want)
 			}
-		}
-	})
+		})
+	}
 }

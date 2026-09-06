@@ -80,7 +80,7 @@ func TestComposerEditLastMessage(t *testing.T) {
 	}
 }
 
-func TestMemberSearchCache(t *testing.T) {
+func TestComposerSearchMember(t *testing.T) {
 	cfg, err := config.Load(filepath.Join(t.TempDir(), "config.toml"))
 	if err != nil {
 		t.Fatal(err)
