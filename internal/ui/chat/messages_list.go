@@ -1080,34 +1080,41 @@ func (ml *messagesList) confirmAttachment(attachment discord.Attachment, action 
 
 func openDownloadedAttachment(attachment discord.Attachment) tview.Cmd {
 	return func() tview.Msg {
-		mediaType, _, _ := mime.ParseMediaType(attachment.ContentType)
-		extensions, _ := mime.ExtensionsByType(mediaType)
-		extension := ""
-		if len(extensions) != 0 {
-			extension = extensions[0]
+		extension := filepath.Ext(attachment.Filename)
+		if extension == "" {
+			mediaType, _, _ := mime.ParseMediaType(attachment.ContentType)
+			if extensions, _ := mime.ExtensionsByType(mediaType); len(extensions) != 0 {
+				extension = extensions[0]
+			}
 		}
 
 		dir := filepath.Join(consts.CacheDir(), "attachments")
 		if err := os.MkdirAll(dir, 0o700); err != nil {
-			slog.Error("failed to create attachments directory", "err", err)
-			return nil
+			return attachmentErr("create attachments directory", err)
 		}
+
 		file, err := os.CreateTemp(dir, "attachment-*"+extension)
 		if err != nil {
-			slog.Error("failed to create attachment file", "err", err)
-			return nil
+			return attachmentErr("create attachment file", err)
 		}
+		defer file.Close()
+
 		path := file.Name()
-		file.Close()
 
 		if err := downloadAttachment(attachment, path); err != nil {
 			os.Remove(path)
-			slog.Error("failed to download attachment", "err", err)
+			return attachmentErr("download attachment", err)
 		} else if err := open.Start(path); err != nil {
-			slog.Error("failed to open attachment file", "err", err, "path", path)
+			return attachmentErr("open attachment file", err)
 		}
+
 		return nil
 	}
+}
+
+func attachmentErr(what string, err error) tview.Msg {
+	slog.Error("failed to "+what, "err", err)
+	return ui.ModalMsg{Text: "Failed to " + what + ": " + err.Error(), Buttons: []ui.ModalButton{{Label: "OK"}}}
 }
 
 func saveAttachment(attachment discord.Attachment) tview.Cmd {
@@ -1117,12 +1124,11 @@ func saveAttachment(attachment discord.Attachment) tview.Cmd {
 			return nil
 		}
 		if err != nil {
-			slog.Error("failed to select attachment destination", "err", err)
-			return nil
+			return attachmentErr("select attachment destination", err)
 		}
 
 		if err := downloadAttachment(attachment, destination); err != nil {
-			slog.Error("failed to download attachment", "err", err)
+			return attachmentErr("download attachment", err)
 		}
 		return nil
 	}
@@ -1149,7 +1155,7 @@ func downloadAttachment(attachment discord.Attachment, destination string) error
 func openURL(url string) tview.Cmd {
 	return func() tview.Msg {
 		if err := open.Start(url); err != nil {
-			slog.Error("failed to open URL", "err", err, "url", url)
+			return attachmentErr("open URL", err)
 		}
 		return nil
 	}
