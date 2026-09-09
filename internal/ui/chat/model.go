@@ -406,7 +406,7 @@ func (m *Model) setFocus(target tview.Model) {
 	}
 }
 
-func (m *Model) View(screen tcell.Screen) {
+func (m *Model) View(screen tview.Screen) {
 	ui.BlurBox(m.guildsTree.Box, &m.cfg.Theme)
 	ui.BlurBox(m.messagesList.Box, &m.cfg.Theme)
 	ui.BlurBox(m.composer.Box, &m.cfg.Theme)

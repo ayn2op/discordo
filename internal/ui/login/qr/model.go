@@ -163,10 +163,6 @@ func (m *Model) render() {
 	m.TextView.SetRect(m.Rect())
 }
 
-func (m *Model) View(screen tcell.Screen) {
-	m.TextView.View(screen)
-}
-
 func (m *Model) centerText(content text.Text) text.Text {
 	_, _, _, height := m.InnerRect()
 	if height == 0 {
