@@ -12,14 +12,14 @@ go 1.27.0
 require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/alecthomas/chroma/v2 v2.27.0
-	github.com/andybalholm/brotli v1.2.3
+	github.com/andybalholm/brotli v1.2.4
 	github.com/ayn2op/arikawa/v3 v3.0.0-20260904042054-7df757872273
 	github.com/ayn2op/ningen/v3 v3.0.1-0.20260904045623-5978c9be899f
-	github.com/ayn2op/tview v0.0.0-20260909221424-dbf33e91537d
+	github.com/ayn2op/tview v0.0.0-20260910013410-c5c039150957
 	github.com/bogdanfinn/fhttp v0.6.9
 	github.com/bogdanfinn/tls-client v1.16.0
-	github.com/gdamore/tcell/v3 v3.4.2
-	github.com/google/go-cmp v0.6.0
+	github.com/gdamore/tcell/v3 v3.5.0
+	github.com/google/go-cmp v0.7.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/klauspost/compress v1.20.0
 	github.com/mattn/go-shellwords v1.0.15
