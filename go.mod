@@ -22,6 +22,7 @@ require (
 	github.com/google/go-cmp v0.6.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/klauspost/compress v1.20.0
+	github.com/mattn/go-shellwords v1.0.15
 	github.com/ncruces/zenity v0.10.15
 	github.com/rivo/uniseg v0.4.7
 	github.com/sahilm/fuzzy v0.1.3
