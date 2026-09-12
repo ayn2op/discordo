@@ -829,8 +829,9 @@ func (c *composer) editor() tview.Cmd {
 		_, _ = file.WriteString(text)
 		_ = file.Close()
 
-		cmd := cfg.CreateEditorCommand(name)
-		if cmd == nil {
+		cmd, err := cfg.EditorCommand(name)
+		if err != nil {
+			slog.Error("failed to create editor command", "err", err)
 			return nil
 		}
 		cmd.Stdin = os.Stdin
