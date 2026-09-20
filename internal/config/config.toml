@@ -71,6 +71,9 @@ send = true
 receive = true
 
 [sidebar]
+# Whether the guilds tree sidebar is visible by default at start-up.
+# It can still be toggled at runtime with the `toggle_guilds_tree` keybind.
+visible = true
 # Percentage (%) of the available width used by the guilds tree sidebar.
 # Valid values are 1-99. Invalid values fall back to 20.
 width_percent = 20

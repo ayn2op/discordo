@@ -131,6 +131,10 @@ func (m *Model) isMe(id discord.UserID) bool {
 	return me != nil && id == me.ID
 }
 
+func (m *Model) isGuildsTreeVisible() bool {
+	return m.mainFlex.GetItemCount() == 2
+}
+
 func (m *Model) buildLayout() {
 	m.Clear()
 	m.rightFlex.Clear()
@@ -140,10 +144,15 @@ func (m *Model) buildLayout() {
 		SetDirection(flex.DirectionRow).
 		AddItem(m.messagesList, 0, 1, false).
 		AddItem(m.composer, 3, 1, false)
-	// The guilds tree is always focused first at start-up.
-	m.mainFlex.
-		AddItem(m.guildsTree, 0, m.cfg.Sidebar.WidthPercent, true).
-		AddItem(m.rightFlex, 0, 100-m.cfg.Sidebar.WidthPercent, false)
+	if m.cfg.Sidebar.Visible {
+		// The guilds tree is focused first at start-up when visible.
+		m.mainFlex.
+			AddItem(m.guildsTree, 0, m.cfg.Sidebar.WidthPercent, true).
+			AddItem(m.rightFlex, 0, 100-m.cfg.Sidebar.WidthPercent, false)
+	} else {
+		m.mainFlex.AddItem(m.rightFlex, 0, 100, true)
+		m.rightFlex.SetFocus(0)
+	}
 
 	m.AddLayer(m.mainFlex, layers.WithName(flexLayerName), layers.WithResize(true), layers.WithVisible(true))
 	m.AddLayer(
@@ -193,24 +202,28 @@ func (m *Model) navigateToChannel(channelID discord.ChannelID) tview.Cmd {
 }
 
 func (m *Model) toggleGuildsTree() tview.Cmd {
-	if m.mainFlex.GetItemCount() == 2 {
+	if m.isGuildsTreeVisible() {
 		if m.focusedModel() == m.guildsTree {
 			m.setFocus(m.messagesList)
 		}
 		m.mainFlex.RemoveItem(m.guildsTree)
 	} else {
-		m.buildLayout()
+		m.showGuildsTree()
 		m.setFocus(m.guildsTree)
 	}
 	return nil
 }
 
+func (m *Model) showGuildsTree() {
+	m.mainFlex.Clear()
+	m.mainFlex.
+		AddItem(m.guildsTree, 0, m.cfg.Sidebar.WidthPercent, true).
+		AddItem(m.rightFlex, 0, 100-m.cfg.Sidebar.WidthPercent, false)
+}
+
 func (m *Model) focusGuildsTree() bool {
-	if m.mainFlex.GetItemCount() == 2 {
-		m.setFocus(m.guildsTree)
-		return true
-	}
-	return false
+	m.setFocus(m.guildsTree)
+	return m.focusedModel() == m.guildsTree
 }
 
 func (m *Model) focusComposer() bool {
@@ -394,6 +407,9 @@ func (m *Model) setFocus(target tview.Model) {
 	}
 	switch target {
 	case m.guildsTree:
+		if !m.isGuildsTreeVisible() {
+			return
+		}
 		m.mainFlex.SetFocus(0)
 	case m.messagesList:
 		m.rightFlex.SetFocus(0)

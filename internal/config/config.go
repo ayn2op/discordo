@@ -95,6 +95,9 @@ type (
 	}
 
 	SidebarConfig struct {
+		// Visible controls whether the guilds tree (sidebar) is shown by default at start-up.
+		// It can still be toggled at runtime with the toggle_guilds_tree keybind.
+		Visible bool `toml:"visible"`
 		// WidthPercent is the percentage of the total window width that the guilds tree (sidebar) occupies.
 		WidthPercent int                  `toml:"width_percent"`
 		Markers      SidebarMarkersConfig `toml:"markers"`
