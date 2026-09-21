@@ -19,6 +19,43 @@ import (
 
 const fileName = "config.toml"
 
+type MIMETypes []string
+
+func (types *MIMETypes) UnmarshalTOML(value any) error {
+	values, ok := value.([]any)
+	if !ok {
+		return errInvalidType
+	}
+
+	parsed := make(MIMETypes, 0, len(values))
+	for _, value := range values {
+		mediaType, ok := value.(string)
+		if !ok {
+			return errInvalidType
+		}
+		mediaType, _, err := mime.ParseMediaType(mediaType)
+		if err != nil {
+			return err
+		}
+		parsed = append(parsed, mediaType)
+	}
+
+	*types = parsed
+	return nil
+}
+
+func (types MIMETypes) Has(mediaType string) bool {
+	mediaType, _, err := mime.ParseMediaType(mediaType)
+	if err != nil {
+		return false
+	}
+
+	return slices.ContainsFunc(types, func(pattern string) bool {
+		matches, _ := path.Match(pattern, mediaType)
+		return matches
+	})
+}
+
 type (
 	Timestamps struct {
 		Enabled bool   `toml:"enabled"`
@@ -173,48 +210,11 @@ func Load(path string) (*Config, error) {
 		}
 	}
 
-	applyDefaults(&cfg)
+	cfg.applyDefaults()
 	return &cfg, nil
 }
 
-type MIMETypes []string
-
-func (types *MIMETypes) UnmarshalTOML(value any) error {
-	values, ok := value.([]any)
-	if !ok {
-		return errInvalidType
-	}
-
-	parsed := make(MIMETypes, 0, len(values))
-	for _, value := range values {
-		mediaType, ok := value.(string)
-		if !ok {
-			return errInvalidType
-		}
-		mediaType, _, err := mime.ParseMediaType(mediaType)
-		if err != nil {
-			return err
-		}
-		parsed = append(parsed, mediaType)
-	}
-
-	*types = parsed
-	return nil
-}
-
-func (types MIMETypes) Has(mediaType string) bool {
-	mediaType, _, err := mime.ParseMediaType(mediaType)
-	if err != nil {
-		return false
-	}
-
-	return slices.ContainsFunc(types, func(pattern string) bool {
-		matches, _ := path.Match(pattern, mediaType)
-		return matches
-	})
-}
-
-func applyDefaults(cfg *Config) {
+func (cfg *Config) applyDefaults() {
 	if cfg.Editor == "default" {
 		cfg.Editor = os.Getenv("EDITOR")
 	}
@@ -228,16 +228,13 @@ func applyDefaults(cfg *Config) {
 	}
 
 	if cfg.Sidebar.WidthPercent <= 0 || cfg.Sidebar.WidthPercent >= 100 {
-		// these guidelines are simply to guarantee functionality;
-		// there's no guarantee that there's functional utility in
-		// setting an extremely low width, but that's for the
-		// user to decide.
 		cfg.Sidebar.WidthPercent = 20
 	}
 
 	if cfg.DateSeparator.Format == "" {
 		cfg.DateSeparator.Format = "January 2, 2006"
 	}
+
 	if r, _ := utf8.DecodeRuneInString(cfg.DateSeparator.Character); r == utf8.RuneError {
 		cfg.DateSeparator.Character = "─"
 	} else {
