@@ -133,7 +133,7 @@ func TestLoad(t *testing.T) {
 		if err := toml.Unmarshal(defaultCfg, &defCfg); err != nil {
 			t.Fatal(err)
 		}
-		applyDefaults(&defCfg)
+		defCfg.applyDefaults()
 
 		if diff := cmp.Diff(
 			defCfg,
