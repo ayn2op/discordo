@@ -78,6 +78,15 @@ The configuration file allows you to configure and customize the behavior, keybi
 
 Discordo uses the default configuration if a configuration file is not found in the aforementioned path; however, the default configuration file is not written to the path. [The default configuration can be found here](./internal/config/config.toml).
 
+## Using GoReleaser
+
+> [!IMPORTANT]
+> It is a requirement to have docker installed, as we rely on a docker image of `goreleaser-cross` to enable cross comp.
+
+GoReleaser requires that a SemVer tag is made and/or pushed to remote to fully work. Tag can either be `vx.x.x` or `x.x.x`
+
+There is a workflow that will run a docker container `goreleaser-cross` when a tag has been pushed to remote and it will upload the built artifacts which are `zip` and `tar.gz` files.
+
 ## License
 
 Copyright (C) 2025-present ayn2op
