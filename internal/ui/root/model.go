@@ -71,13 +71,13 @@ func newHelpModel(cfg *config.Config, keyMap help.KeyMap) *help.Model {
 func (m *Model) showLogin() tview.Cmd {
 	m.inner = login.NewModel(m.cfg)
 	m.buildLayout()
-	return m.inner.Update(tview.InitMsg{})
+	return m.inner.Init()
 }
 
 func (m *Model) showChat(token string) tview.Cmd {
 	m.inner = chat.NewModel(m.cfg, token)
 	m.buildLayout()
-	return m.inner.Update(tview.InitMsg{})
+	return m.inner.Init()
 }
 
 func (m *Model) buildLayout() {
@@ -95,21 +95,22 @@ func (m *Model) buildLayout() {
 
 var _ tview.Model = (*Model)(nil)
 
+func (m *Model) Init() tview.Cmd {
+	var cmd tview.Cmd
+	if token := os.Getenv(tokenEnvVarKey); token != "" {
+		cmd = tokenCmd(token)
+	} else {
+		cmd = getToken()
+	}
+	return tview.Batch(
+		tview.SetTitle(consts.Name),
+		initClipboard(),
+		cmd,
+	)
+}
+
 func (m *Model) Update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
-	case tview.InitMsg:
-		var cmd tview.Cmd
-		if token := os.Getenv(tokenEnvVarKey); token != "" {
-			cmd = tokenCmd(token)
-		} else {
-			cmd = getToken()
-		}
-		return tview.Batch(
-			tview.SetTitle(consts.Name),
-			initClipboard(),
-			cmd,
-		)
-
 	case loginMsg:
 		return m.showLogin()
 	case tokenMsg:

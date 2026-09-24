@@ -44,11 +44,13 @@ func (m *Model) Label() string {
 	return "QR"
 }
 
+func (m *Model) Init() tview.Cmd {
+	m.setStatus("Connecting to Remote Auth Gateway...")
+	return connect()
+}
+
 func (m *Model) Update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
-	case tview.InitMsg:
-		m.setStatus("Connecting to Remote Auth Gateway...")
-		return connect()
 	case tview.KeyMsg:
 		if msg.Key() == tcell.KeyEsc {
 			m.setStatus("Canceled")

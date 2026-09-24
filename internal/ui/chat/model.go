@@ -273,10 +273,12 @@ func (m *Model) focusNext() {
 	}
 }
 
+func (m *Model) Init() tview.Cmd {
+	return tview.Batch(openState(m.state), listen(m.events))
+}
+
 func (m *Model) Update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
-	case tview.InitMsg:
-		return tview.Batch(openState(m.state), listen(m.events))
 	case gateway.Event:
 		switch eventMsg := msg.(type) {
 		case *ws.RawEvent:
