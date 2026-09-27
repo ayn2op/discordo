@@ -3,6 +3,7 @@ package chat
 import (
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/arikawa/v3/gateway"
@@ -41,13 +42,13 @@ func TestModelUpdate(t *testing.T) {
 	t.Run("typing expires unless extended", func(t *testing.T) {
 		m := newTestModel(t)
 		m.addTyper(1)
-		first := m.typers[1]
 		m.addTyper(1)
-		m.Update(typingExpiredMsg{userID: 1, until: first})
+		m.Update(typingExpiredMsg{userID: 1})
 		if _, ok := m.typers[1]; !ok {
 			t.Fatal("an extended typing indicator expired early")
 		}
-		m.Update(typingExpiredMsg{userID: 1, until: m.typers[1]})
+		m.typers[1] = time.Now().Add(-time.Second)
+		m.Update(typingExpiredMsg{userID: 1})
 		if _, ok := m.typers[1]; ok {
 			t.Fatal("the typing indicator did not expire")
 		}

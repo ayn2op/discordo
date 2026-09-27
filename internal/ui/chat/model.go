@@ -257,7 +257,7 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 	case messageslist.Msg:
 		return m.messagesList.Update(msg)
 	case typingExpiredMsg:
-		if m.typers[msg.userID] == msg.until {
+		if until, ok := m.typers[msg.userID]; ok && !time.Now().Before(until) {
 			m.removeTyper(msg.userID)
 		}
 		return nil
@@ -421,10 +421,9 @@ func (m *Model) View() tview.Element {
 	)
 }
 
-// typingExpiredMsg ends a user's typing indicator unless they typed again after it was set to expire at until.
+// typingExpiredMsg ends a user's typing indicator unless they typed again and extended it.
 type typingExpiredMsg struct {
 	userID discord.UserID
-	until  time.Time
 }
 
 func (m *Model) clearTypers() {
@@ -434,12 +433,11 @@ func (m *Model) clearTypers() {
 
 // addTyper shows userID as typing and returns a command that ends it after the typing duration.
 func (m *Model) addTyper(userID discord.UserID) tview.Cmd {
-	until := time.Now().Add(composer.TypingDuration)
-	m.typers[userID] = until
+	m.typers[userID] = time.Now().Add(composer.TypingDuration)
 	m.updateFooter()
 	return func() tview.Msg {
 		time.Sleep(composer.TypingDuration)
-		return typingExpiredMsg{userID, until}
+		return typingExpiredMsg{userID}
 	}
 }
 
