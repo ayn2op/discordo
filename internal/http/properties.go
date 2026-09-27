@@ -11,26 +11,26 @@ import (
 //go:generate go run generator.go
 
 const (
-	OS        = "Windows"
-	OSVersion = "10"
-	Locale    = discord.EnglishUS
+	osName    = "Windows"
+	osVersion = "10"
+	locale    = discord.EnglishUS
 )
 
 func BrowserUserAgent() string {
 	return "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " + tls.BrowserName() + "/" + tls.BrowserVersion() + " Safari/537.36"
 }
 
-func BrowserBrands() string {
+func browserBrands() string {
 	version := tls.BrowserMajorVersion()
 	return `"Chromium";v="` + version + `", "Not-A.Brand";v="24", "Google ` + tls.BrowserName() + `";v="` + version + `"`
 }
 
-func CommonProperties() gateway.IdentifyProperties {
+func commonProperties() gateway.IdentifyProperties {
 	return gateway.IdentifyProperties{
 		gateway.IdentifyDevice: "",
 
-		gateway.IdentifyOS: OS,
-		"os_version":       OSVersion,
+		gateway.IdentifyOS: osName,
+		"os_version":       osVersion,
 
 		gateway.IdentifyBrowser: tls.BrowserName(),
 		"browser_version":       tls.BrowserVersion(),
@@ -40,7 +40,7 @@ func CommonProperties() gateway.IdentifyProperties {
 		"client_event_source": nil,
 		"client_launch_id":    uuid.NewV4().String(),
 
-		"system_locale":   Locale,
+		"system_locale":   locale,
 		"release_channel": "stable",
 		"has_client_mods": false,
 
@@ -52,13 +52,13 @@ func CommonProperties() gateway.IdentifyProperties {
 }
 
 func IdentifyProperties() gateway.IdentifyProperties {
-	props := CommonProperties()
+	props := commonProperties()
 	props["is_fast_connect"] = true
 	return props
 }
 
-func XSuperProperties() gateway.IdentifyProperties {
-	props := CommonProperties()
+func xSuperProperties() gateway.IdentifyProperties {
+	props := commonProperties()
 	props["client_app_state"] = "focused"
 	props["client_heartbeat_session_id"] = uuid.NewV4().String()
 	props["launch_signature"] = generateLaunchSignature()

@@ -3,7 +3,6 @@ package chat
 import (
 	"fmt"
 	"log/slog"
-	"sync"
 	"time"
 
 	"github.com/ayn2op/arikawa/v3/discord"
@@ -13,67 +12,60 @@ import (
 	"github.com/ayn2op/arikawa/v3/state/store/defaultstore"
 	"github.com/ayn2op/arikawa/v3/utils/handler"
 	"github.com/ayn2op/arikawa/v3/utils/httputil"
-	"github.com/ayn2op/arikawa/v3/utils/ws"
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/consts"
 	clientgateway "github.com/ayn2op/discordo/internal/gateway"
 	"github.com/ayn2op/discordo/internal/http"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/discordo/internal/ui/chat/attachmentspicker"
 	"github.com/ayn2op/discordo/internal/ui/chat/channelspicker"
+	"github.com/ayn2op/discordo/internal/ui/chat/composer"
 	"github.com/ayn2op/discordo/internal/ui/chat/guildstree"
+	"github.com/ayn2op/discordo/internal/ui/chat/mentionslist"
+	"github.com/ayn2op/discordo/internal/ui/chat/messageslist"
 	"github.com/ayn2op/ningen/v3"
-	"github.com/ayn2op/ningen/v3/states/read"
 	"github.com/ayn2op/tview"
-	"github.com/ayn2op/tview/flex"
+	"github.com/ayn2op/tview/backdrop"
+	"github.com/ayn2op/tview/center"
+	"github.com/ayn2op/tview/column"
 	"github.com/ayn2op/tview/keybind"
-	"github.com/ayn2op/tview/layers"
-	"github.com/ayn2op/tview/text"
-	"github.com/gdamore/tcell/v3"
-)
-
-const typingDuration = 10 * time.Second
-
-const (
-	flexLayerName         = "flex"
-	mentionsListLayerName = "mentionsList"
-
-	channelsPickerLayerName    = "channelsPicker"
-	attachmentsPickerLayerName = "attachmentsPicker"
+	"github.com/ayn2op/tview/opaque"
+	"github.com/ayn2op/tview/row"
+	"github.com/ayn2op/tview/stack"
 )
 
 type Model struct {
-	*layers.Layers
-
-	// guildsTree (sidebar) + rightFlex
-	mainFlex *flex.Model
-	// messagesList + composer
-	rightFlex *flex.Model
+	// focused is the pane that receives keys: guildsTree, messagesList, composer, or nil.
+	focused pane
+	// guildsTreeVisible reports whether the guilds tree is shown left of the messages.
+	guildsTreeVisible bool
+	// channelsPickerOpen and attachmentsPickerOpen report whether that picker is shown on top and takes all input.
+	channelsPickerOpen    bool
+	attachmentsPickerOpen bool
 
 	guildsTree     *guildstree.Model
-	messagesList   *messagesList
-	composer       *composer
+	messagesList   *messageslist.Model
+	composer       *composer.Model
 	channelsPicker *channelspicker.Model
+	// attachmentsPicker picks an attachment or link of the selected message.
+	attachmentsPicker *attachmentspicker.Model
 
-	selectedChannel   *discord.Channel
-	selectedChannelMu sync.RWMutex
+	selectedChannel *discord.Channel
+	// windowUnfocused reports whether the terminal window lost focus.
+	windowUnfocused bool
 
 	state  *ningen.State
 	events chan gateway.Event
 
-	typersMu sync.RWMutex
-	typers   map[discord.UserID]*time.Timer
+	// typers maps the users typing in the selected channel to when their typing indicator expires.
+	typers map[discord.UserID]time.Time
 
 	cfg *config.Config
 }
 
 func NewModel(cfg *config.Config, token string) *Model {
 	m := &Model{
-		Layers: layers.New(),
-
-		mainFlex:  flex.NewModel(),
-		rightFlex: flex.NewModel(),
-
-		typers: make(map[discord.UserID]*time.Timer),
+		typers: make(map[discord.UserID]time.Time),
 
 		cfg: cfg,
 	}
@@ -105,93 +97,60 @@ func NewModel(cfg *config.Config, token string) *Model {
 	m.state.OnRequest = append(m.state.OnRequest, httputil.WithHeaders(http.Headers()), m.onRequest)
 
 	m.guildsTree = guildstree.NewModel(cfg, m.state)
-	m.messagesList = newMessagesList(cfg, m)
-	m.composer = newComposer(cfg, m)
+	m.messagesList = messageslist.NewModel(cfg, m.state)
+	m.composer = composer.NewModel(cfg, m.state)
 	m.channelsPicker = channelspicker.NewModel(cfg)
+	m.attachmentsPicker = attachmentspicker.NewModel(cfg)
 
-	m.SetBackgroundLayerStyle(m.cfg.Theme.Dialog.BackgroundStyle.Style)
-	m.buildLayout()
+	m.guildsTreeVisible = cfg.Sidebar.Visible
+	if m.guildsTreeVisible {
+		// The guilds tree is focused first at start-up when visible.
+		m.focused = m.guildsTree
+	} else {
+		m.focused = m.messagesList
+	}
 	return m
 }
 
-func (m *Model) SelectedChannel() (*discord.Channel, bool) {
-	m.selectedChannelMu.RLock()
-	defer m.selectedChannelMu.RUnlock()
-	return m.selectedChannel, m.selectedChannel != nil
-}
-
-func (m *Model) SetSelectedChannel(channel *discord.Channel) {
-	m.selectedChannelMu.Lock()
+func (m *Model) setSelectedChannel(channel *discord.Channel) {
 	m.selectedChannel = channel
-	m.selectedChannelMu.Unlock()
-}
-
-func (m *Model) isMe(id discord.UserID) bool {
-	me, _ := m.state.Cabinet.Me()
-	return me != nil && id == me.ID
-}
-
-func (m *Model) isGuildsTreeVisible() bool {
-	return m.mainFlex.GetItemCount() == 2
-}
-
-func (m *Model) buildLayout() {
-	m.Clear()
-	m.rightFlex.Clear()
-	m.mainFlex.Clear()
-
-	m.rightFlex.
-		SetDirection(flex.DirectionRow).
-		AddItem(m.messagesList, 0, 1, false).
-		AddItem(m.composer, 3, 1, false)
-	if m.cfg.Sidebar.Visible {
-		// The guilds tree is focused first at start-up when visible.
-		m.mainFlex.
-			AddItem(m.guildsTree, 0, m.cfg.Sidebar.WidthPercent, true).
-			AddItem(m.rightFlex, 0, 100-m.cfg.Sidebar.WidthPercent, false)
-	} else {
-		m.mainFlex.AddItem(m.rightFlex, 0, 100, true)
-		m.rightFlex.SetFocus(0)
-	}
-
-	m.AddLayer(m.mainFlex, layers.WithName(flexLayerName), layers.WithResize(true), layers.WithVisible(true))
-	m.AddLayer(
-		m.composer.mentionsList,
-		layers.WithName(mentionsListLayerName),
-		layers.WithResize(false),
-		layers.WithVisible(false),
-		layers.WithEnabled(false),
-	)
+	m.composer.SetChannel(channel)
 }
 
 func (m *Model) togglePicker() tview.Cmd {
-	if m.HasLayer(channelsPickerLayerName) {
+	if m.channelsPickerOpen {
 		return m.closePicker()
 	}
 	return m.openPicker()
 }
 
 func (m *Model) openPicker() tview.Cmd {
-	m.AddLayer(
-		ui.Centered(m.channelsPicker, m.cfg.Picker.Width, m.cfg.Picker.Height),
-		layers.WithName(channelsPickerLayerName),
-		layers.WithResize(true),
-		layers.WithVisible(true),
-		layers.WithOverlay(),
-	).SendToFront(channelsPickerLayerName)
+	m.channelsPickerOpen = true
 	m.channelsPicker.RefreshChannels(m.state)
 	return nil
 }
 
 func (m *Model) closePicker() tview.Cmd {
-	m.RemoveLayer(channelsPickerLayerName)
-	m.channelsPicker.Refresh()
+	m.channelsPickerOpen = false
+	m.channelsPicker.Reset()
 	return nil
 }
 
 func (m *Model) closeAttachmentsPicker() tview.Cmd {
-	m.RemoveLayer(attachmentsPickerLayerName)
+	m.attachmentsPickerOpen = false
 	return nil
+}
+
+// picker returns the picker shown on top, or nil if none is open.
+func (m *Model) picker() tview.Model {
+	switch {
+	case m.channelsPickerOpen:
+		return m.channelsPicker
+	case m.attachmentsPickerOpen:
+		return m.attachmentsPicker
+	default:
+		return nil
+	}
 }
 
 func (m *Model) navigateToChannel(channelID discord.ChannelID) tview.Cmd {
@@ -202,28 +161,21 @@ func (m *Model) navigateToChannel(channelID discord.ChannelID) tview.Cmd {
 }
 
 func (m *Model) toggleGuildsTree() tview.Cmd {
-	if m.isGuildsTreeVisible() {
-		if m.focusedModel() == m.guildsTree {
+	if m.guildsTreeVisible {
+		if m.focused == m.guildsTree {
 			m.setFocus(m.messagesList)
 		}
-		m.mainFlex.RemoveItem(m.guildsTree)
+		m.guildsTreeVisible = false
 	} else {
-		m.showGuildsTree()
+		m.guildsTreeVisible = true
 		m.setFocus(m.guildsTree)
 	}
 	return nil
 }
 
-func (m *Model) showGuildsTree() {
-	m.mainFlex.Clear()
-	m.mainFlex.
-		AddItem(m.guildsTree, 0, m.cfg.Sidebar.WidthPercent, true).
-		AddItem(m.rightFlex, 0, 100-m.cfg.Sidebar.WidthPercent, false)
-}
-
 func (m *Model) focusGuildsTree() bool {
 	m.setFocus(m.guildsTree)
-	return m.focusedModel() == m.guildsTree
+	return m.focused == m.guildsTree
 }
 
 func (m *Model) focusComposer() bool {
@@ -235,7 +187,7 @@ func (m *Model) focusComposer() bool {
 }
 
 func (m *Model) focusPrevious() {
-	switch m.focusedModel() {
+	switch m.focused {
 	case m.guildsTree:
 		if m.focusComposer() {
 			return
@@ -255,7 +207,7 @@ func (m *Model) focusPrevious() {
 }
 
 func (m *Model) focusNext() {
-	switch m.focusedModel() {
+	switch m.focused {
 	case m.guildsTree:
 		m.setFocus(m.messagesList)
 	case m.messagesList:
@@ -280,46 +232,10 @@ func (m *Model) Init() tview.Cmd {
 func (m *Model) Update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
 	case gateway.Event:
-		switch eventMsg := msg.(type) {
-		case *ws.RawEvent:
-			m.onRaw(eventMsg)
-
-		case *gateway.ReadyEvent:
-			return tview.Batch(m.onReady(eventMsg), listen(m.events))
-
-		case *gateway.MessageCreateEvent:
-			return tview.Batch(m.onMessageCreate(eventMsg), listen(m.events))
-		case *gateway.MessageUpdateEvent:
-			m.onMessageUpdate(eventMsg)
-		case *gateway.PresenceUpdateEvent:
-			m.onPresenceUpdate(eventMsg)
-		case *gateway.MessageDeleteEvent:
-			m.onMessageDelete(eventMsg)
-		case *gateway.MessageReactionAddEvent:
-			m.onMessageReaction(eventMsg.ChannelID, eventMsg.MessageID)
-		case *gateway.MessageReactionAddManyEvent:
-			m.onMessageReaction(eventMsg.ChannelID, eventMsg.MessageID)
-		case *gateway.MessageReactionRemoveEvent:
-			m.onMessageReaction(eventMsg.ChannelID, eventMsg.MessageID)
-		case *gateway.MessageReactionRemoveAllEvent:
-			m.onMessageReaction(eventMsg.ChannelID, eventMsg.MessageID)
-		case *gateway.MessageReactionRemoveEmojiEvent:
-			m.onMessageReaction(eventMsg.ChannelID, eventMsg.MessageID)
-
-		case *gateway.GuildMembersChunkEvent:
-			return tview.Batch(m.onGuildMembersChunk(eventMsg), listen(m.events))
-		case *gateway.GuildMemberRemoveEvent:
-			m.onGuildMemberRemove(eventMsg)
-
-		case *gateway.TypingStartEvent:
-			if m.cfg.TypingIndicator.Receive {
-				m.onTypingStart(eventMsg)
-			}
-
-		case *read.UpdateEvent:
-			m.onReadUpdate(eventMsg)
-		}
-		return listen(m.events)
+		return tview.Batch(m.applyEvent(msg), listen(m.events))
+	case tview.FocusMsg:
+		m.windowUnfocused = !msg.Focused
+		return nil
 	case guildstree.ChannelLoadedMsg:
 		node := m.guildsTree.CurrentNode()
 		if node == nil {
@@ -330,34 +246,21 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 			return nil
 		}
 
-		m.SetSelectedChannel(&msg.Channel)
+		m.setSelectedChannel(&msg.Channel)
 		m.clearTypers()
-		m.composer.typingUntil = time.Time{}
 
-		m.messagesList.reset()
-		m.messagesList.setTitle(msg.Channel)
-		m.messagesList.setMessages(msg.Messages)
-		m.messagesList.ScrollBottom()
-
-		isDM := msg.Channel.Type == discord.DirectMessage || msg.Channel.Type == discord.GroupDM
-		hasNoPerm := !isDM && !m.state.HasPermissions(msg.Channel.ID, discord.PermissionSendMessages)
-		m.composer.SetDisabled(hasNoPerm)
-
-		placeholder := "Message..."
-		if hasNoPerm {
-			placeholder = "You do not have permission to send messages in this channel."
-		} else if m.cfg.AutoFocus {
+		if m.cfg.AutoFocus {
 			m.focusComposer()
 		}
-		m.composer.SetPlaceholder(text.NewLine(text.NewSegment(placeholder, tcell.StyleDefault.Dim(true))))
-		if msg.Channel.GuildID.IsValid() {
-			return m.messagesList.requestGuildMembers(msg.Channel.GuildID, msg.Messages)
+		title := ui.ChannelToString(msg.Channel, m.cfg.Icons, m.state) + " - " + consts.Name
+		return tview.Batch(tview.SetTitle(title), m.messagesList.SetChannel(&msg.Channel, msg.Messages))
+	case messageslist.Msg:
+		return m.messagesList.Update(msg)
+	case typingExpiredMsg:
+		if m.typers[msg.userID] == msg.until {
+			m.removeTyper(msg.userID)
 		}
 		return nil
-	case deleteMessageMsg:
-		return m.messagesList.deleteMessageRequest(discord.Message(msg))
-	case attachmentActionMsg:
-		return msg.Action
 	case channelspicker.SelectedMsg:
 		return m.navigateToChannel(msg.ChannelID)
 	case channelspicker.CancelMsg:
@@ -366,16 +269,36 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		return tview.Sequence(msg.Action, m.closeAttachmentsPicker())
 	case attachmentspicker.CancelMsg:
 		return m.closeAttachmentsPicker()
+	case messageslist.ShowAttachmentsMsg:
+		m.attachmentsPicker.SetItems(msg)
+		m.attachmentsPickerOpen = true
+		return nil
+	case messageslist.ReplyMsg:
+		m.composer.StartReply(msg.Message, msg.Name, msg.Mention)
+		m.focusComposer()
+		return nil
+	case messageslist.EditMsg:
+		m.composer.StartEdit(discord.Message(msg))
+		m.focusComposer()
+		return nil
+	case composer.EditLastMsg:
+		if message, ok := m.messagesList.SelectLastOwn(); ok {
+			m.composer.StartEdit(message)
+		}
+		return nil
+	case composer.SentMsg:
+		m.messagesList.ShowNewest()
+		return nil
 	case QuitMsg:
 		return closeState(m.state)
 	case tview.KeyMsg:
 		switch {
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusGuildsTree.Keybind):
-			m.composer.removeMentionsList()
+			m.composer.CloseMentions()
 			m.focusGuildsTree()
 			return nil
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusMessagesList.Keybind):
-			m.composer.removeMentionsList()
+			m.composer.CloseMentions()
 			m.setFocus(m.messagesList)
 			return nil
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusComposer.Keybind):
@@ -397,110 +320,140 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		case keybind.Matches(msg, m.cfg.Keybinds.Logout.Keybind):
 			return tview.Sequence(closeState(m.state), logout())
 		}
-	case tabSuggestMsg:
+	case composer.TabSuggestMsg, mentionslist.Msg:
 		return m.composer.Update(msg)
+	case paneMsg:
+		if msg.focus {
+			m.setFocus(msg.pane)
+		}
+		if msg.msg == nil {
+			return nil
+		}
+		return msg.pane.Update(msg.msg)
 	}
-	return m.Layers.Update(msg)
+	return m.route(msg)
 }
 
-func (m *Model) setFocus(target tview.Model) {
-	if target == nil || target == m.focusedModel() {
+// route sends msg to the open picker, which takes all input, and otherwise to the focused pane.
+func (m *Model) route(msg tview.Msg) tview.Cmd {
+	if picker := m.picker(); picker != nil {
+		return picker.Update(msg)
+	}
+	if m.focused != nil {
+		return m.focused.Update(msg)
+	}
+	return nil
+}
+
+// paneMsg is what a pane's element made of a mouse message within it. A left mouse button press also focuses the pane.
+type paneMsg struct {
+	pane  pane
+	msg   tview.Msg
+	focus bool
+}
+
+// paneElement passes input to the element of a pane and marks mouse input within the pane as meant for it.
+type paneElement struct {
+	pane  pane
+	child tview.Element
+}
+
+func (p paneElement) Draw(screen tview.Screen, area tview.Rectangle) {
+	p.child.Draw(screen, area)
+}
+
+func (p paneElement) Handle(msg tview.Msg, area tview.Rectangle) tview.Msg {
+	out := p.child.Handle(msg, area)
+	if mouse, ok := msg.(tview.MouseMsg); ok && area.Contains(mouse.Position()) {
+		return paneMsg{pane: p.pane, msg: out, focus: mouse.Action == tview.MouseLeftDown}
+	}
+	// Keys and paste reach only the focused pane, so what it makes of them goes to that pane through route.
+	return out
+}
+
+// pane is a model shown side by side with the others, one of which has the focus.
+type pane interface {
+	Update(tview.Msg) tview.Cmd
+	View(focused bool) tview.Element
+}
+
+// paneView returns the view of p, focused if it has the focus and no picker is open, marked so that clicking it focuses it.
+func (m *Model) paneView(p pane) tview.Element {
+	return paneElement{pane: p, child: p.View(m.focused == p && m.picker() == nil)}
+}
+
+func (m *Model) setFocus(target pane) {
+	if target == nil || target == m.focused || (target == m.guildsTree && !m.guildsTreeVisible) {
 		return
 	}
-	switch target {
-	case m.guildsTree:
-		if !m.isGuildsTreeVisible() {
-			return
-		}
-		m.mainFlex.SetFocus(0)
-	case m.messagesList:
-		m.rightFlex.SetFocus(0)
-		m.mainFlex.SetFocus(m.mainFlex.GetItemCount() - 1)
-	case m.composer:
-		m.rightFlex.SetFocus(1)
-		m.mainFlex.SetFocus(m.mainFlex.GetItemCount() - 1)
-	case m.mainFlex:
-		m.mainFlex.SetFocus(-1)
-	}
+	m.focused = target
 }
 
-func (m *Model) View(screen tview.Screen) {
-	ui.BlurBox(m.guildsTree.Box, &m.cfg.Theme)
-	ui.BlurBox(m.messagesList.Box, &m.cfg.Theme)
-	ui.BlurBox(m.composer.Box, &m.cfg.Theme)
-	if !m.GetVisible(channelsPickerLayerName) && !m.GetVisible(attachmentsPickerLayerName) {
-		switch m.focusedModel() {
-		case m.guildsTree:
-			ui.FocusBox(m.guildsTree.Box, &m.cfg.Theme)
-		case m.messagesList:
-			ui.FocusBox(m.messagesList.Box, &m.cfg.Theme)
-		case m.composer:
-			ui.FocusBox(m.composer.Box, &m.cfg.Theme)
-		}
+// View shows the guilds tree left of the messages above the composer, with the mentions list over the messages and an open picker on top.
+func (m *Model) View() tview.Element {
+	picker := m.picker()
+
+	var right tview.Element = column.New(
+		m.paneView(m.messagesList),
+		column.New(m.paneView(m.composer)).Height(tview.Fixed(m.composer.Height())),
+	)
+	if mentions := m.composer.MentionsView(); mentions != nil {
+		right = stack.New(right, mentions)
 	}
-	m.Layers.View(screen)
+
+	main := right
+	if m.guildsTreeVisible {
+		width := m.cfg.Sidebar.WidthPercent
+		main = row.New(
+			column.New(m.paneView(m.guildsTree)).Width(tview.FillPortion(width)),
+			column.New(right).Width(tview.FillPortion(100-width)),
+		)
+	}
+
+	if picker == nil {
+		return main
+	}
+	return stack.New(
+		main,
+		// The backdrop keeps clicks from reaching the panes behind the picker.
+		opaque.New(backdrop.New().Style(m.cfg.Theme.Dialog.BackgroundStyle.Style)),
+		center.New(column.New(picker.View()).Width(tview.Fixed(m.cfg.Picker.Width)).Height(tview.Fixed(m.cfg.Picker.Height))),
+	)
 }
 
-func (m *Model) focusedModel() tview.Model {
-	count := m.mainFlex.GetItemCount()
-	focused := m.mainFlex.Focused()
-	if count == 2 && focused == 0 {
-		return m.guildsTree
-	}
-	if count > 0 && focused == count-1 {
-		if m.rightFlex.Focused() == 0 {
-			return m.messagesList
-		}
-		if m.rightFlex.Focused() == 1 {
-			return m.composer
-		}
-	}
-	return m.mainFlex
+// typingExpiredMsg ends a user's typing indicator unless they typed again after it was set to expire at until.
+type typingExpiredMsg struct {
+	userID discord.UserID
+	until  time.Time
 }
 
 func (m *Model) clearTypers() {
-	m.typersMu.Lock()
-	for _, timer := range m.typers {
-		timer.Stop()
-	}
 	clear(m.typers)
-	m.typersMu.Unlock()
 	m.updateFooter()
 }
 
-func (m *Model) addTyper(userID discord.UserID) {
-	m.typersMu.Lock()
-	typer, ok := m.typers[userID]
-	if ok {
-		typer.Reset(typingDuration)
-	} else {
-		m.typers[userID] = time.AfterFunc(typingDuration, func() {
-			m.removeTyper(userID)
-		})
-	}
-	m.typersMu.Unlock()
+// addTyper shows userID as typing and returns a command that ends it after the typing duration.
+func (m *Model) addTyper(userID discord.UserID) tview.Cmd {
+	until := time.Now().Add(composer.TypingDuration)
+	m.typers[userID] = until
 	m.updateFooter()
+	return func() tview.Msg {
+		time.Sleep(composer.TypingDuration)
+		return typingExpiredMsg{userID, until}
+	}
 }
 
 func (m *Model) removeTyper(userID discord.UserID) {
-	m.typersMu.Lock()
-	if typer, ok := m.typers[userID]; ok {
-		typer.Stop()
-		delete(m.typers, userID)
-	}
-	m.typersMu.Unlock()
+	delete(m.typers, userID)
 	m.updateFooter()
 }
 
 func (m *Model) updateFooter() {
-	selectedChannel, ok := m.SelectedChannel()
-	if !ok {
+	selectedChannel := m.selectedChannel
+	if selectedChannel == nil {
 		return
 	}
 	guildID := selectedChannel.GuildID
-
-	m.typersMu.RLock()
-	defer m.typersMu.RUnlock()
 
 	var footer string
 	if len(m.typers) > 0 {

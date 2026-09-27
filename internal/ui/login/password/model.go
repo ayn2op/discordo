@@ -1,36 +1,29 @@
 package password
 
 import (
+	"github.com/ayn2op/discordo/internal/ui/login/form"
 	"github.com/ayn2op/tview"
-	"github.com/ayn2op/tview/tabs"
 )
 
 type Model struct {
-	*tview.Form
+	*form.Model
 }
 
 func NewModel() *Model {
-	form := tview.NewForm().
-		AddInputField("Login", "", 0).
-		AddPasswordField("Password", "", 0, 0).
-		AddButton("Login")
-	return &Model{Form: form}
+	return &Model{Model: form.New("Login", form.Field{Label: "Login"}, form.Field{Label: "Password", Mask: "*"})}
 }
-
-var _ tabs.Tab = (*Model)(nil)
 
 func (m *Model) Label() string {
 	return "Password"
 }
 
 func (m *Model) Update(msg tview.Msg) tview.Cmd {
-	if _, ok := msg.(tview.FormSubmitMsg); ok {
-		login := m.GetFormItem(0).(*tview.InputField).Text()
-		password := m.GetFormItem(1).(*tview.InputField).Text()
+	if _, ok := msg.(form.SubmitMsg); ok {
+		login, password := m.Value(0), m.Value(1)
 		if login == "" || password == "" {
 			return nil
 		}
-		return loginCmd(login, password)
+		return submitLogin(login, password)
 	}
-	return m.Form.Update(msg)
+	return m.Model.Update(msg)
 }

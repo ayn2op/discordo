@@ -69,7 +69,8 @@ type (
 	}
 
 	Notifications struct {
-		Enabled bool `toml:"enabled"`
+		Enabled       bool `toml:"enabled"`
+		WhenUnfocused bool `toml:"when_unfocused"`
 	}
 
 	TypingIndicator struct {

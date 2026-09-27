@@ -10,7 +10,7 @@ import (
 
 type tokenMsg string
 
-func tokenCmd(token string) tview.Cmd {
+func useToken(token string) tview.Cmd {
 	return func() tview.Msg {
 		return tokenMsg(token)
 	}

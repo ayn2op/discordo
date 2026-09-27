@@ -20,46 +20,22 @@ import (
 type dmNode struct{}
 
 type Model struct {
-	*tree.Model
+	root           *tree.Node
+	selectionState tree.SelectionState
 
 	cfg   *config.Config
 	state *ningen.State
 
-	// Fast-path indexes for frequent event handlers (read updates, picker
-	// navigation). They mirror the current rendered tree and are rebuilt on
-	// READY before nodes are added.
+	// Fast-path indexes for frequent event handlers (read updates, picker navigation).
+	// They mirror the current rendered tree and are rebuilt on READY before nodes are added.
 	guildNodeByID   map[discord.GuildID]*tree.Node
 	channelNodeByID map[discord.ChannelID]*tree.Node
 	dmRootNode      *tree.Node
 }
 
 func NewModel(cfg *config.Config, state *ningen.State) *Model {
-	t := tree.NewModel()
-	ui.ConfigureBox(t.Box, &cfg.Theme)
-	t.
-		SetRoot(tree.NewNode("")).
-		SetTopLevel(1).
-		SetMarkers(tree.Markers{
-			Expanded:  cfg.Sidebar.Markers.Expanded,
-			Collapsed: cfg.Sidebar.Markers.Collapsed,
-			Leaf:      cfg.Sidebar.Markers.Leaf,
-		}).
-		SetGraphics(cfg.Theme.GuildsTree.Graphics).
-		SetGraphicsColor(tcell.GetColor(cfg.Theme.GuildsTree.GraphicsColor)).
-		SetTitle("Guilds")
-
-	kbs := cfg.Keybinds.GuildsTree
-	t.SetKeybinds(tree.Keybinds{
-		Up:           kbs.SelectUp.Keybind,
-		Down:         kbs.SelectDown.Keybind,
-		Top:          kbs.SelectTop.Keybind,
-		Bottom:       kbs.SelectBottom.Keybind,
-		MoveToParent: kbs.MoveToParentNode.Keybind,
-		Select:       kbs.SelectCurrent.Keybind,
-	})
-
 	return &Model{
-		Model: t,
+		root: tree.NewNode(""),
 
 		cfg:   cfg,
 		state: state,
@@ -67,6 +43,45 @@ func NewModel(cfg *config.Config, state *ningen.State) *Model {
 		guildNodeByID:   make(map[discord.GuildID]*tree.Node),
 		channelNodeByID: make(map[discord.ChannelID]*tree.Node),
 	}
+}
+
+// CurrentNode returns the selected node, or nil for none.
+func (m *Model) CurrentNode() *tree.Node {
+	return m.selectionState.CurrentNode()
+}
+
+// Msg moves or scrolls the tree.
+type Msg tree.Action
+
+// View shows the tree in a box titled Guilds.
+func (m *Model) View(focused bool) tview.Element {
+	theme := &m.cfg.Theme
+	set := theme.Border.NormalSet.BorderSet
+	if focused {
+		set = theme.Border.ActiveSet.BorderSet
+	}
+	kbs := m.cfg.Keybinds.GuildsTree
+	t := tree.New(m.root, &m.selectionState).
+		TopLevel(1).
+		Markers(tree.Markers{
+			Expanded:  m.cfg.Sidebar.Markers.Expanded,
+			Collapsed: m.cfg.Sidebar.Markers.Collapsed,
+			Leaf:      m.cfg.Sidebar.Markers.Leaf,
+		}).
+		Graphics(theme.GuildsTree.Graphics).
+		GraphicsSet(set).
+		GraphicsStyle(tcell.StyleDefault.Foreground(tcell.GetColor(theme.GuildsTree.GraphicsColor))).
+		Keybinds(tree.Keybinds{
+			Up:           kbs.SelectUp.Keybind,
+			Down:         kbs.SelectDown.Keybind,
+			Top:          kbs.SelectTop.Keybind,
+			Bottom:       kbs.SelectBottom.Keybind,
+			MoveToParent: kbs.MoveToParentNode.Keybind,
+			Select:       kbs.SelectCurrent.Keybind,
+		}).
+		Focused(focused).
+		OnAction(func(a tree.Action) tview.Msg { return Msg(a) })
+	return ui.Box(t, theme, focused).Title("Guilds")
 }
 
 func (m *Model) reset() *tree.Node {
@@ -77,7 +92,7 @@ func (m *Model) reset() *tree.Node {
 		SetReference(dmNode{}).
 		SetExpandable(true).
 		SetExpanded(false)
-	return m.Root().ClearChildren().AddChild(m.dmRootNode)
+	return m.root.ClearChildren().AddChild(m.dmRootNode)
 }
 
 func (m *Model) rebuild(event *gateway.ReadyEvent) {
@@ -116,7 +131,7 @@ func (m *Model) rebuild(event *gateway.ReadyEvent) {
 			m.createFolderNode(folder, guildsByID)
 		}
 	}
-	m.SetCurrentNode(root)
+	m.selectionState.SetCurrentNode(root)
 }
 
 func (m *Model) refreshReadStyles(event *read.UpdateEvent) {
@@ -176,7 +191,7 @@ func (m *Model) createFolderNode(folder gateway.GuildFolder, guildsByID map[disc
 		folderStyle := tcell.StyleDefault.Foreground(tcell.NewHexColor(int32(folder.Color)))
 		m.setNodeLineStyle(folderNode, folderStyle)
 	}
-	m.Root().AddChild(folderNode)
+	m.root.AddChild(folderNode)
 
 	for _, guildID := range folder.GuildIDs {
 		if guildEvent, ok := guildsByID[guildID]; ok {
@@ -293,8 +308,7 @@ func (m *Model) createChannelNodes(node *tree.Node, channels []discord.Channel) 
 
 	for _, channel := range channels {
 		if channel.ParentID.IsValid() {
-			// Parent categories are inserted earlier in this function, so this
-			// lookup is O(1) and avoids per-channel subtree walks.
+			// Parent categories are inserted earlier in this function, so this lookup is O(1) and avoids per-channel subtree walks.
 			parent := m.channelNodeByID[channel.ParentID]
 			if parent != nil {
 				m.createChannelNode(parent, channel)
@@ -313,13 +327,13 @@ func isThread(t discord.ChannelType) bool {
 }
 
 func (m *Model) collapseParentNode(node *tree.Node) {
-	path := m.GetPath(node)
+	path := m.root.PathTo(node)
 	if len(path) < 3 {
 		return
 	}
 	parent := path[len(path)-2]
 	parent.Collapse()
-	m.SetCurrentNode(parent)
+	m.selectionState.SetCurrentNode(parent)
 }
 
 func (m *Model) Update(msg tview.Msg) tview.Cmd {
@@ -341,23 +355,27 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 
 	case NavigateMsg:
 		return m.navigate(msg.ChannelID)
+	case Msg:
+		m.selectionState.Perform(tree.Action(msg))
+		return nil
 	case tree.SelectedMsg:
+		m.selectionState.SetCurrentNode(msg.Node)
 		return m.selectNode(msg.Node)
 	case tview.KeyMsg:
 		switch {
 		case keybind.Matches(msg, m.cfg.Keybinds.GuildsTree.CollapseAll.Keybind):
-			for _, node := range m.Root().Children() {
+			for _, node := range m.root.Children() {
 				node.CollapseAll()
 			}
 			return nil
 		case keybind.Matches(msg, m.cfg.Keybinds.GuildsTree.CollapseParentNode.Keybind):
-			m.collapseParentNode(m.CurrentNode())
+			m.collapseParentNode(m.selectionState.CurrentNode())
 			return nil
 		case keybind.Matches(msg, m.cfg.Keybinds.GuildsTree.YankID.Keybind):
-			return yankID(m.CurrentNode())
+			return yankID(m.selectionState.CurrentNode())
 		}
 	}
-	return m.Model.Update(msg)
+	return nil
 }
 
 func (m *Model) findNodeByReference(reference any) *tree.Node {
@@ -371,7 +389,7 @@ func (m *Model) findNodeByReference(reference any) *tree.Node {
 	default:
 		// Fallback keeps this helper safe for non-indexed custom references.
 		var found *tree.Node
-		m.Root().Walk(func(node, _ *tree.Node) bool {
+		m.root.Walk(func(node, _ *tree.Node) bool {
 			if node.Reference() == reference {
 				found = node
 				return false
@@ -409,7 +427,7 @@ func (m *Model) expandPathToNode(node *tree.Node) {
 	if node == nil {
 		return
 	}
-	for _, n := range m.GetPath(node) {
+	for _, n := range m.root.PathTo(node) {
 		n.Expand()
 	}
 }
@@ -420,7 +438,7 @@ func (m *Model) selectCurrentKeybind() keybind.Keybind {
 	selectCurrent := m.cfg.Keybinds.GuildsTree.SelectCurrent.Keybind
 	selectHelp := selectCurrent.Help()
 	selectDesc := selectHelp.Desc
-	if node := m.CurrentNode(); node != nil {
+	if node := m.selectionState.CurrentNode(); node != nil {
 		if len(node.Children()) > 0 {
 			if node.Expanded() {
 				selectDesc = "collapse"
@@ -434,14 +452,13 @@ func (m *Model) selectCurrentKeybind() keybind.Keybind {
 			}
 		}
 	}
-	selectCurrent.SetHelp(selectHelp.Key, selectDesc)
-	return selectCurrent
+	return selectCurrent.WithHelp(selectHelp.Key, selectDesc)
 }
 
 func (m *Model) ShortHelp() []keybind.Keybind {
 	cfg := m.cfg.Keybinds.GuildsTree
 	shortHelp := []keybind.Keybind{cfg.SelectUp.Keybind, cfg.SelectDown.Keybind, m.selectCurrentKeybind()}
-	if m.canCollapseParent(m.CurrentNode()) {
+	if m.canCollapseParent(m.selectionState.CurrentNode()) {
 		shortHelp = append(shortHelp, cfg.CollapseParentNode.Keybind)
 	}
 	return shortHelp
@@ -463,7 +480,7 @@ func (m *Model) collapseKeybinds() []keybind.Keybind {
 	cfg := m.cfg.Keybinds.GuildsTree
 
 	var keybinds []keybind.Keybind
-	if m.canCollapseParent(m.CurrentNode()) {
+	if m.canCollapseParent(m.selectionState.CurrentNode()) {
 		keybinds = append(keybinds, cfg.CollapseParentNode.Keybind)
 	}
 	if m.canCollapseAll() {
@@ -473,12 +490,12 @@ func (m *Model) collapseKeybinds() []keybind.Keybind {
 }
 
 func (m *Model) canCollapseParent(node *tree.Node) bool {
-	return node != nil && len(m.GetPath(node)) >= 3
+	return node != nil && len(m.root.PathTo(node)) >= 3
 }
 
 func (m *Model) canCollapseAll() bool {
 	var can bool
-	for _, node := range m.Root().Children() {
+	for _, node := range m.root.Children() {
 		if node.Expanded() {
 			can = true
 			break

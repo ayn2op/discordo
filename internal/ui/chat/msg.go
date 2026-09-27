@@ -4,13 +4,10 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/arikawa/v3/gateway"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
 )
-
-type attachmentActionMsg struct{ Action tview.Cmd }
 
 func openState(state *ningen.State) tview.Cmd {
 	return func() tview.Msg {
@@ -39,13 +36,6 @@ func listen(events <-chan gateway.Event) tview.Cmd {
 		return <-events
 	}
 }
-
-type olderMessagesLoadedMsg struct {
-	ChannelID discord.ChannelID
-	Older     []discord.Message
-}
-
-type deleteMessageMsg discord.Message
 
 type LogoutMsg struct{}
 

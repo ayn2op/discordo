@@ -12,85 +12,31 @@ import (
 	"github.com/ayn2op/discordo/internal/ui/login/qr"
 	"github.com/ayn2op/discordo/internal/ui/login/token"
 	"github.com/ayn2op/tview"
-	"github.com/ayn2op/tview/flex"
+	"github.com/ayn2op/tview/backdrop"
+	"github.com/ayn2op/tview/box"
+	"github.com/ayn2op/tview/column"
+	"github.com/ayn2op/tview/dialog"
 	"github.com/ayn2op/tview/help"
 	"github.com/ayn2op/tview/keybind"
-	"github.com/ayn2op/tview/layers"
-	"github.com/ayn2op/tview/modal"
+	"github.com/ayn2op/tview/stack"
 	"github.com/gdamore/tcell/v3"
 )
 
-const (
-	tokenEnvVarKey   = "DISCORDO_TOKEN"
-	contentLayerName = "content"
-	modalLayerName   = "modal"
-)
+const tokenEnvVarKey = "DISCORDO_TOKEN"
 
 type Model struct {
-	*layers.Layers
+	inner tview.Model
+	// helpVisible reports whether help is shown below the inner model, and helpShowAll whether it shows every keybind.
+	helpVisible, helpShowAll bool
+	// modal is the request shown in a dialog, or nil when none is open, and dialogFocus its focused button.
+	modal       *ui.ModalMsg
+	dialogFocus int
 
-	rootFlex *flex.Model // inner + help
-	inner    tview.Model
-	help     *help.Model
-
-	modal *ui.ModalMsg
-	cfg   *config.Config
+	cfg *config.Config
 }
 
 func NewModel(cfg *config.Config) *Model {
-	m := &Model{
-		Layers:   layers.New(),
-		rootFlex: flex.NewModel(),
-		cfg:      cfg,
-	}
-	m.SetBackgroundLayerStyle(cfg.Theme.Dialog.BackgroundStyle.Style)
-	m.rootFlex.SetDirection(flex.DirectionRow)
-	if cfg.Help.Enabled {
-		m.help = newHelpModel(cfg, m)
-	}
-	m.buildLayout()
-	return m
-}
-
-func newHelpModel(cfg *config.Config, keyMap help.KeyMap) *help.Model {
-	styles := help.DefaultStyles()
-	styles.ShortKey = cfg.Theme.Help.ShortKeyStyle.Style
-	styles.ShortDesc = cfg.Theme.Help.ShortDescStyle.Style
-	styles.FullKey = cfg.Theme.Help.FullKeyStyle.Style
-	styles.FullDesc = cfg.Theme.Help.FullDescStyle.Style
-
-	h := help.NewModel()
-	h.SetStyles(styles).
-		SetKeyMap(keyMap).
-		SetCompactModifiers(cfg.Help.CompactModifiers).
-		SetShortSeparator(cfg.Help.Separator)
-	h.SetBorderPadding(0, 0, cfg.Help.Padding[0], cfg.Help.Padding[1])
-	return h
-}
-
-func (m *Model) showLogin() tview.Cmd {
-	m.inner = login.NewModel(m.cfg)
-	m.buildLayout()
-	return m.inner.Init()
-}
-
-func (m *Model) showChat(token string) tview.Cmd {
-	m.inner = chat.NewModel(m.cfg, token)
-	m.buildLayout()
-	return m.inner.Init()
-}
-
-func (m *Model) buildLayout() {
-	m.Clear()
-	m.modal = nil
-	m.rootFlex.Clear()
-	if m.inner != nil {
-		m.rootFlex.AddItem(m.inner, 0, 1, true)
-	}
-	if m.help != nil {
-		m.rootFlex.AddItem(m.help, m.helpHeight(), 0, false)
-	}
-	m.AddLayer(m.rootFlex, layers.WithName(contentLayerName), layers.WithResize(true), layers.WithVisible(true))
+	return &Model{cfg: cfg, helpVisible: cfg.Help.Enabled}
 }
 
 var _ tview.Model = (*Model)(nil)
@@ -98,7 +44,7 @@ var _ tview.Model = (*Model)(nil)
 func (m *Model) Init() tview.Cmd {
 	var cmd tview.Cmd
 	if token := os.Getenv(tokenEnvVarKey); token != "" {
-		cmd = tokenCmd(token)
+		cmd = useToken(token)
 	} else {
 		cmd = getToken()
 	}
@@ -130,23 +76,25 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		)
 	case ui.ModalMsg:
 		return m.showModal(msg)
-	case modal.DoneMsg:
-		return m.finishModal(msg)
+	case dialogFocusMsg:
+		m.dialogFocus = int(msg)
+		return nil
+	case dialogDoneMsg:
+		return m.finishModal(int(msg))
 
 	case tview.KeyMsg:
+		// The dialog takes all input while it is open, so nothing behind it reacts.
 		if m.modal != nil {
-			return m.Layers.Update(msg)
+			return nil
 		}
 		switch {
 		case keybind.Matches(msg, m.cfg.Keybinds.ToggleHelp.Keybind):
 			m.toggleHelp()
 			return nil
 		case keybind.Matches(msg, m.cfg.Keybinds.ToggleFullHelp.Keybind):
-			if m.help == nil {
-				return nil
+			if m.cfg.Help.Enabled {
+				m.helpShowAll = !m.helpShowAll
 			}
-			m.help.SetShowAll(!m.help.ShowAll())
-			m.rootFlex.ResizeItem(m.help, m.helpHeight(), 0)
 			return nil
 		case keybind.Matches(msg, m.cfg.Keybinds.Suspend.Keybind):
 			return suspend()
@@ -157,9 +105,9 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 			}
 			return tview.Batch(innerCmd, tview.Quit())
 		}
-	case tview.MouseMsg, tview.PasteMsg, tview.FormSubmitMsg, tview.FormCancelMsg:
+	case tview.MouseMsg, tview.PasteMsg:
 		if m.modal != nil {
-			return m.Layers.Update(msg)
+			return nil
 		}
 	}
 
@@ -169,75 +117,114 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 	return nil
 }
 
-func (m *Model) toggleHelp() {
-	if m.help == nil {
-		return
+// View shows the inner model above help, with the modal dialog on top of both when one is open.
+func (m *Model) View() tview.Element {
+	var innerView, helpView tview.Element
+	if m.inner != nil {
+		innerView = m.inner.View()
 	}
-
-	count := m.rootFlex.GetItemCount()
-	if count > 0 && m.rootFlex.GetItem(count-1) == m.help {
-		m.rootFlex.RemoveItem(m.help)
-	} else {
-		m.rootFlex.AddItem(m.help, m.helpHeight(), 0, false)
+	if m.helpVisible {
+		padded := box.New(m.helpView()).Padding(0, 0, m.cfg.Help.Padding[0], m.cfg.Help.Padding[1])
+		helpView = column.New(padded).Height(tview.Fixed(max(m.helpView().Rows(0), 1)))
 	}
+	content := column.New(innerView, helpView)
+	if m.modal == nil {
+		return content
+	}
+	return stack.New(inert{content}, backdrop.New().Style(m.cfg.Theme.Dialog.BackgroundStyle.Style), m.dialogView())
 }
 
 func (m *Model) showModal(request ui.ModalMsg) tview.Cmd {
 	if m.modal != nil {
 		return nil
 	}
-
-	labels := make([]string, len(request.Buttons))
-	for i, button := range request.Buttons {
-		labels[i] = button.Label
-	}
-	dialog := modal.NewModel().SetText(request.Text).AddButtons(labels)
-	style := m.cfg.Theme.Dialog.Style.Style
-	if bg := style.GetBackground(); bg != tcell.ColorDefault {
-		dialog.SetBackgroundColor(bg)
-	}
-	if fg := style.GetForeground(); fg != tcell.ColorDefault {
-		dialog.SetTextColor(fg)
-	}
-	dialog.SetButtonStyle(style).SetButtonActivatedStyle(style.Reverse(true))
-
-	m.modal = &request
-	m.AddLayer(dialog,
-		layers.WithName(modalLayerName),
-		layers.WithResize(true),
-		layers.WithVisible(true),
-		layers.WithOverlay(),
-	)
+	m.modal, m.dialogFocus = &request, 0
 	return nil
 }
 
-func (m *Model) finishModal(done modal.DoneMsg) tview.Cmd {
+func (m *Model) showLogin() tview.Cmd {
+	return m.show(login.NewModel(m.cfg))
+}
+
+func (m *Model) showChat(token string) tview.Cmd {
+	return m.show(chat.NewModel(m.cfg, token))
+}
+
+// show replaces the inner model, closing any open modal.
+func (m *Model) show(inner tview.Model) tview.Cmd {
+	m.inner = inner
+	m.modal = nil
+	return tview.Batch(tview.SetTitle(consts.Name), m.inner.Init())
+}
+
+// helpView returns the help for the keybinds that currently apply.
+func (m *Model) helpView() help.Widget {
+	cfg := m.cfg
+	styles := help.DefaultStyles()
+	styles.ShortKey = cfg.Theme.Help.ShortKeyStyle.Style
+	styles.ShortDesc = cfg.Theme.Help.ShortDescStyle.Style
+	styles.FullKey = cfg.Theme.Help.FullKeyStyle.Style
+	styles.FullDesc = cfg.Theme.Help.FullDescStyle.Style
+	return help.New(m).
+		Styles(styles).
+		CompactModifiers(cfg.Help.CompactModifiers).
+		ShortSeparator(cfg.Help.Separator).
+		ShowAll(m.helpShowAll)
+}
+
+type (
+	dialogFocusMsg int
+	dialogDoneMsg  int
+)
+
+// dialogView returns the dialog for the open modal request.
+func (m *Model) dialogView() tview.Element {
+	labels := make([]string, len(m.modal.Buttons))
+	for i, button := range m.modal.Buttons {
+		labels[i] = button.Label
+	}
+	style := m.cfg.Theme.Dialog.Style.Style
+	d := dialog.New().
+		Text(m.modal.Text).
+		Buttons(labels...).
+		Focus(m.dialogFocus).
+		ButtonStyle(style).
+		ActivatedStyle(style.Reverse(true)).
+		OnFocus(func(i int) tview.Msg { return dialogFocusMsg(i) }).
+		OnDone(func(i int, _ string) tview.Msg { return dialogDoneMsg(i) })
+	if bg := style.GetBackground(); bg != tcell.ColorDefault {
+		d = d.Background(bg)
+	}
+	if fg := style.GetForeground(); fg != tcell.ColorDefault {
+		d = d.TextColor(fg)
+	}
+	return d
+}
+
+func (m *Model) toggleHelp() {
+	if m.cfg.Help.Enabled {
+		m.helpVisible = !m.helpVisible
+	}
+}
+
+func (m *Model) finishModal(index int) tview.Cmd {
 	state := m.modal
 	if state == nil {
 		return nil
 	}
 
 	var result tview.Msg
-	if done.ButtonIndex >= 0 && done.ButtonIndex < len(state.Buttons) {
-		button := state.Buttons[done.ButtonIndex]
+	if index >= 0 && index < len(state.Buttons) {
+		button := state.Buttons[index]
 		if button.KeepOpen {
 			return func() tview.Msg { return button.Result }
 		}
 		result = button.Result
 	}
 
-	m.RemoveLayer(modalLayerName)
 	m.modal = nil
 	if result == nil {
 		return nil
 	}
 	return func() tview.Msg { return result }
-}
-
-func (m *Model) helpHeight() int {
-	height := 1
-	if m.help.ShowAll() {
-		height = max(len(m.help.FullHelpLines(m.FullHelp(), 0)), 1)
-	}
-	return height
 }

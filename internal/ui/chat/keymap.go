@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview/help"
 	"github.com/ayn2op/tview/keybind"
 )
@@ -26,14 +27,11 @@ func (m *Model) FullHelp() [][]keybind.Keybind {
 }
 
 func (m *Model) activeKeyMap() help.KeyMap {
-	if m.GetVisible(channelsPickerLayerName) {
-		return m.channelsPicker
-	}
-	if m.GetVisible(attachmentsPickerLayerName) {
-		return m.messagesList.attachmentsPicker
+	if m.picker() != nil {
+		return ui.PickerKeybinds(m.cfg)
 	}
 
-	switch m.focusedModel() {
+	switch m.focused {
 	case m.guildsTree:
 		return m.guildsTree
 	case m.messagesList:
@@ -64,7 +62,7 @@ func (m *Model) baseFullHelp() [][]keybind.Keybind {
 
 func (m *Model) focusHelp() []keybind.Keybind {
 	kbs := m.cfg.Keybinds
-	focused := m.focusedModel()
+	focused := m.focused
 	focusKbs := make([]keybind.Keybind, 0, 3)
 
 	if focused != m.guildsTree {

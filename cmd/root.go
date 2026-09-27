@@ -62,8 +62,10 @@ func Run() error {
 		screen.EnableMouse()
 	}
 	screen.EnablePaste()
+	if cfg.Notifications.WhenUnfocused {
+		screen.EnableFocus()
+	}
 
-	tview.Styles = tview.Theme{}
 	model := root.NewModel(cfg)
 	return tview.NewApplication(model, tview.WithScreen(screen)).Run()
 }

@@ -6,15 +6,18 @@ import (
 	"time"
 
 	"github.com/ayn2op/tview"
-	"github.com/ayn2op/tview/tabs"
-	"github.com/ayn2op/tview/text"
+	"github.com/ayn2op/tview/center"
+	"github.com/ayn2op/tview/richtext"
+	"github.com/ayn2op/tview/textview"
 	"github.com/gdamore/tcell/v3"
 	"github.com/gorilla/websocket"
 	"github.com/skip2/go-qrcode"
 )
 
 type Model struct {
-	*tview.TextView
+	// code is the QR code above the status, scrolled when it does not fit.
+	code        richtext.Text
+	scrollState textview.ScrollState
 
 	conn              *websocket.Conn
 	heartbeatInterval time.Duration
@@ -25,20 +28,14 @@ type Model struct {
 	status string
 }
 
-func NewModel() *Model {
-	m := &Model{
-		TextView: tview.NewTextView(),
-	}
-	m.
-		SetScrollable(true).
-		SetWrap(false).
-		SetTextAlign(tview.AlignmentCenter)
+// scrollMsg scrolls the code.
+type scrollMsg textview.Action
 
+func NewModel() *Model {
+	m := &Model{}
 	m.setStatus("Press Ctrl+N to open QR login")
 	return m
 }
-
-var _ tabs.Tab = (*Model)(nil)
 
 func (m *Model) Label() string {
 	return "QR"
@@ -56,7 +53,10 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 			m.setStatus("Canceled")
 			return closeConn(m.conn)
 		}
-		return m.TextView.Update(msg)
+		return nil
+	case scrollMsg:
+		m.scrollState.Perform(textview.Action(msg))
+		return nil
 
 	case connCreateMsg:
 		m.conn = msg.conn
@@ -68,7 +68,7 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 
 	case helloMsg:
 		m.heartbeatInterval = time.Duration(msg.heartbeatInterval) * time.Millisecond
-		return tview.Batch(listen(m.conn), heartbeat(m.heartbeatInterval), generatePrivateKey())
+		return tview.Batch(listen(m.conn), scheduleHeartbeat(m.heartbeatInterval), generatePrivateKey())
 	case privateKeyMsg:
 		m.privateKey = msg.privateKey
 		return tview.Batch(listen(m.conn), sendInit(m.conn, m.privateKey))
@@ -101,7 +101,7 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		if m.conn == nil {
 			return nil
 		}
-		return tview.Batch(heartbeat(m.heartbeatInterval), sendHeartbeat(m.conn))
+		return tview.Batch(scheduleHeartbeat(m.heartbeatInterval), sendHeartbeat(m.conn))
 
 	case errMsg:
 		m.setStatus(msg.Error())
@@ -111,8 +111,7 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 	return nil
 }
 
-// halfBlock packs a vertical pair of QR pixels into one glyph, fitting two
-// bitmap rows into a single terminal row.
+// halfBlock packs a vertical pair of QR pixels into one glyph, fitting two bitmap rows into a single terminal row.
 func halfBlock(top, bottom bool) rune {
 	switch [2]bool{top, bottom} {
 	case [2]bool{true, true}:
@@ -126,12 +125,17 @@ func halfBlock(top, bottom bool) rune {
 	}
 }
 
-func (m *Model) SetRect(x, y, width, height int) {
-	_, _, _, oldHeight := m.Rect()
-	m.TextView.SetRect(x, y, width, height)
-	if oldHeight != height {
-		m.render()
-	}
+// View centers the code, which scrolls when it is taller than the tab.
+func (m *Model) View() tview.Element {
+	return center.New(
+		textview.New(m.code).
+			ScrollState(&m.scrollState).
+			Wrap(false).
+			Alignment(tview.AlignmentCenter).
+			Height(tview.Fixed(len(m.code))).
+			Focused(true).
+			OnAction(func(a textview.Action) tview.Msg { return scrollMsg(a) }),
+	)
 }
 
 func (m *Model) setStatus(status string) {
@@ -159,29 +163,7 @@ func (m *Model) render() {
 		out.WriteString(m.status)
 	}
 
-	builder := new(text.Builder)
+	builder := new(richtext.Builder)
 	builder.Write(out.String(), tcell.StyleDefault)
-	m.SetContent(m.centerText(builder.Finish()))
-	m.TextView.SetRect(m.Rect())
-}
-
-func (m *Model) centerText(content text.Text) text.Text {
-	_, _, _, height := m.InnerRect()
-	if height == 0 {
-		height = 40
-	}
-	padding := (height - len(content)) / 2
-	if padding < 0 {
-		padding = 0
-	} else if padding < 1 && height > len(content) {
-		padding = 1
-	}
-	if padding == 0 {
-		return content
-	}
-
-	centered := make(text.Text, 0, padding+len(content))
-	centered = append(centered, make(text.Text, padding)...)
-	centered = append(centered, content...)
-	return centered
+	m.code = builder.Finish()
 }

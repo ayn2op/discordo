@@ -6,6 +6,7 @@ import (
 
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/list"
+	"github.com/ayn2op/tview/scrollbar"
 	"github.com/gdamore/tcell/v3"
 )
 
@@ -135,7 +136,7 @@ func (bw *BorderSetWrapper) UnmarshalTOML(val any) error {
 	return nil
 }
 
-type GlyphSetWrapper struct{ tview.GlyphSet }
+type GlyphSetWrapper struct{ scrollbar.GlyphSet }
 
 func (gw *GlyphSetWrapper) UnmarshalTOML(val any) error {
 	s, ok := val.(string)
@@ -144,11 +145,11 @@ func (gw *GlyphSetWrapper) UnmarshalTOML(val any) error {
 	}
 	switch s {
 	case "minimal":
-		gw.GlyphSet = tview.MinimalGlyphSet()
+		gw.GlyphSet = scrollbar.MinimalGlyphSet()
 	case "box_drawing", "boxdrawing", "box":
-		gw.GlyphSet = tview.BoxDrawingGlyphSet()
+		gw.GlyphSet = scrollbar.BoxDrawingGlyphSet()
 	case "unicode":
-		gw.GlyphSet = tview.UnicodeGlyphSet()
+		gw.GlyphSet = scrollbar.UnicodeGlyphSet()
 	default:
 		return fmt.Errorf("unknown value: %q", s)
 	}

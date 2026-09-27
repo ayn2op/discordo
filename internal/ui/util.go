@@ -9,52 +9,49 @@ import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
-	"github.com/ayn2op/tview/grid"
+	"github.com/ayn2op/tview/box"
 	"github.com/ayn2op/tview/picker"
+	"github.com/ayn2op/tview/scrollbar"
 )
 
-// ConfigureBox configures the provided box according to the provided theme.
-func ConfigureBox(box *tview.Box, cfg *config.Theme) {
-	padding := cfg.Border.Padding
-	BlurBox(box, cfg)
-	box.
-		SetBorderPadding(padding[0], padding[1], padding[2], padding[3]).
-		SetTitleAlignment(cfg.Title.Alignment.Alignment).
-		SetFooterAlignment(cfg.Footer.Alignment.Alignment)
-
-	if cfg.Border.Enabled {
-		box.SetBorders(tview.BordersAll)
+// Box returns child in a box styled by the theme, highlighted while focused.
+func Box(child tview.Element, theme *config.Theme, focused bool) box.Widget {
+	padding := theme.Border.Padding
+	b := box.New(child).
+		Padding(padding[0], padding[1], padding[2], padding[3]).
+		TitleAlignment(theme.Title.Alignment.Alignment).
+		FooterAlignment(theme.Footer.Alignment.Alignment)
+	if theme.Border.Enabled {
+		b = b.Borders(tview.BordersAll)
 	}
+	if focused {
+		return b.BorderStyle(theme.Border.ActiveStyle.Style).
+			BorderSet(theme.Border.ActiveSet.BorderSet).
+			TitleStyle(theme.Title.ActiveStyle.Style).
+			FooterStyle(theme.Footer.ActiveStyle.Style)
+	}
+	return b.BorderStyle(theme.Border.NormalStyle.Style).
+		BorderSet(theme.Border.NormalSet.BorderSet).
+		TitleStyle(theme.Title.NormalStyle.Style).
+		FooterStyle(theme.Footer.NormalStyle.Style)
 }
 
-func FocusBox(box *tview.Box, cfg *config.Theme) {
-	box.SetBorderStyle(cfg.Border.ActiveStyle.Style).
-		SetBorderSet(cfg.Border.ActiveSet.BorderSet).
-		SetTitleStyle(cfg.Title.ActiveStyle.Style).
-		SetFooterStyle(cfg.Footer.ActiveStyle.Style)
+// Picker returns a picker of items searched with searchState, with the configured scroll bar and keybinds.
+func Picker(items picker.Items, searchState *picker.SearchState, cfg *config.Config) picker.Widget {
+	bar := scrollbar.New().
+		TrackStyle(cfg.Theme.ScrollBar.TrackStyle.Style).
+		ThumbStyle(cfg.Theme.ScrollBar.ThumbStyle.Style).
+		GlyphSet(cfg.Theme.ScrollBar.GlyphSet.GlyphSet).
+		Arrows(scrollbar.ArrowsBoth)
+	return picker.New(items, searchState).
+		ScrollBar(bar, cfg.Theme.ScrollBar.Visibility.ScrollBarVisibility).
+		Keybinds(PickerKeybinds(cfg))
 }
 
-func BlurBox(box *tview.Box, cfg *config.Theme) {
-	box.SetBorderStyle(cfg.Border.NormalStyle.Style).
-		SetBorderSet(cfg.Border.NormalSet.BorderSet).
-		SetTitleStyle(cfg.Title.NormalStyle.Style).
-		SetFooterStyle(cfg.Footer.NormalStyle.Style)
-}
-
-func ConfigurePicker(model *picker.Model, cfg *config.Config, title string) {
-	model.Box = tview.NewBox()
-	ConfigureBox(model.Box, &cfg.Theme)
-	FocusBox(model.Box, &cfg.Theme)
-
-	model.SetTitle(title)
-	model.SetScrollBarVisibility(cfg.Theme.ScrollBar.Visibility.ScrollBarVisibility)
-	model.SetScrollBar(tview.NewScrollBar().
-		SetTrackStyle(cfg.Theme.ScrollBar.TrackStyle.Style).
-		SetThumbStyle(cfg.Theme.ScrollBar.ThumbStyle.Style).
-		SetGlyphSet(cfg.Theme.ScrollBar.GlyphSet.GlyphSet))
-
+// PickerKeybinds returns the configured picker keybinds.
+func PickerKeybinds(cfg *config.Config) picker.Keybinds {
 	kbs := cfg.Keybinds.Picker
-	model.SetKeybinds(picker.Keybinds{
+	return picker.Keybinds{
 		Cancel: kbs.Cancel.Keybind,
 		Select: kbs.Select.Keybind,
 
@@ -62,17 +59,10 @@ func ConfigurePicker(model *picker.Model, cfg *config.Config, title string) {
 		SelectDown:   kbs.SelectDown.Keybind,
 		SelectTop:    kbs.SelectTop.Keybind,
 		SelectBottom: kbs.SelectBottom.Keybind,
-	})
+	}
 }
 
-// Centered creates a new grid with provided primitive aligned in the center.
-func Centered(m tview.Model, width, height int) tview.Model {
-	return grid.NewModel().
-		SetColumns(0, width, 0).
-		SetRows(0, height, 0).
-		AddItem(m, 1, 1, 1, 1, 0, 0, true)
-}
-
+// ChannelToString returns how channel is shown in the UI: an icon for its type and its name, or the recipients' names for a DM.
 func ChannelToString(channel discord.Channel, icons config.Icons, state *ningen.State) string {
 	var icon string
 	switch channel.Type {
@@ -141,4 +131,10 @@ func getMessageIDFromChannel(channel discord.Channel) discord.MessageID {
 		return channel.LastMessageID
 	}
 	return discord.MessageID(channel.ID)
+}
+
+// IsMe reports whether id is the logged in user.
+func IsMe(state *ningen.State, id discord.UserID) bool {
+	me, _ := state.Cabinet.Me()
+	return me != nil && id == me.ID
 }

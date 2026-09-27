@@ -12,29 +12,33 @@ type Keybind struct {
 var _ toml.Unmarshaler = (*Keybind)(nil)
 
 func (k *Keybind) UnmarshalTOML(value any) error {
+	var keys []string
 	switch value := value.(type) {
 	case string:
-		k.SetKeys(value)
+		keys = []string{value}
 	case []any:
-		keys := make([]string, 0, len(value))
 		for _, key := range value {
 			if key, ok := key.(string); ok {
 				keys = append(keys, key)
 			}
 		}
-		k.SetKeys(keys...)
+	default:
+		return nil
 	}
+	kb := keybind.New(keys...)
 	// Keep displayed help key aligned with configured key(s).
-	if keys := k.Keys(); len(keys) > 0 {
-		k.SetHelp(keys[0], k.Help().Desc)
+	help := k.Help()
+	if keys := kb.Keys(); len(keys) > 0 {
+		help.Key = keys[0]
 	}
+	k.Keybind = kb.WithHelp(help.Key, help.Desc)
 	return nil
 }
 
 // desc builds a Keybind with only a help description; keys come from config.toml.
 func desc(s string) Keybind {
 	return Keybind{
-		Keybind: keybind.NewKeybind(keybind.WithHelp("", s)),
+		Keybind: keybind.New().WithHelp("", s),
 	}
 }
 

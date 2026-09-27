@@ -2,12 +2,12 @@ package chat
 
 import (
 	"log/slog"
-	"slices"
 
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/arikawa/v3/gateway"
 	"github.com/ayn2op/arikawa/v3/utils/httputil/httpdriver"
 	"github.com/ayn2op/arikawa/v3/utils/ws"
+	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/ningen/v3/states/read"
 	"github.com/ayn2op/tview"
 )
@@ -28,22 +28,22 @@ func (m *Model) onRaw(event *ws.RawEvent) {
 	)
 }
 
-func (m *Model) onReady(event *gateway.ReadyEvent) tview.Cmd {
+func (m *Model) loadGuildsTree(event *gateway.ReadyEvent) tview.Cmd {
 	m.guildsTree.Update(event)
 	m.setFocus(m.guildsTree)
 	return nil
 }
 
-func (m *Model) onMessageCreate(message *gateway.MessageCreateEvent) tview.Cmd {
+func (m *Model) addMessageOrNotify(message *gateway.MessageCreateEvent) tview.Cmd {
 	m.guildsTree.Update(message)
 
-	selectedChannel, ok := m.SelectedChannel()
-	if ok && selectedChannel.ID == message.ChannelID {
+	if channel := m.selectedChannel; channel != nil && channel.ID == message.ChannelID {
 		m.removeTyper(message.Author.ID)
-		m.messagesList.addMessage(message.Message)
-		return nil
+		m.messagesList.AddMessage(message.Message)
+		if !m.windowUnfocused || !m.cfg.Notifications.WhenUnfocused {
+			return nil
+		}
 	}
-
 	return m.notify(*message)
 }
 
@@ -93,90 +93,58 @@ func (m *Model) notify(message gateway.MessageCreateEvent) tview.Cmd {
 	}
 }
 
-func (m *Model) onPresenceUpdate(presence *gateway.PresenceUpdateEvent) {
-	m.guildsTree.Update(presence)
+func (m *Model) refreshMemberNames(event *gateway.GuildMembersChunkEvent) tview.Cmd {
+	m.messagesList.InvalidateRendered()
+	return m.composer.CacheMemberSearch(event)
 }
 
-func (m *Model) onMessageUpdate(message *gateway.MessageUpdateEvent) {
-	selectedChannel, ok := m.SelectedChannel()
-	if !ok || selectedChannel.ID != message.ChannelID {
-		return
+func (m *Model) showTypingIndicator(event *gateway.TypingStartEvent) tview.Cmd {
+	if channel := m.selectedChannel; channel == nil || channel.ID != event.ChannelID || ui.IsMe(m.state, event.UserID) {
+		return nil
 	}
-
-	index := slices.IndexFunc(m.messagesList.items, func(m messageItem) bool {
-		return !m.separator && m.message.ID == message.ID
-	})
-	if index < 0 {
-		return
-	}
-
-	m.messagesList.setMessage(index, message.Message)
+	return m.addTyper(event.UserID)
 }
 
-func (m *Model) onMessageDelete(message *gateway.MessageDeleteEvent) {
-	selectedChannel, ok := m.SelectedChannel()
-	if !ok || selectedChannel.ID != message.ChannelID {
-		return
-	}
+// applyEvent updates the model with a gateway event and returns what the event needs done.
+func (m *Model) applyEvent(event gateway.Event) tview.Cmd {
+	switch event := event.(type) {
+	case *ws.RawEvent:
+		m.onRaw(event)
 
-	deletedIndex := slices.IndexFunc(m.messagesList.items, func(m messageItem) bool {
-		return !m.separator && m.message.ID == message.ID
-	})
-	if deletedIndex < 0 {
-		return
-	}
+	case *gateway.ReadyEvent:
+		return m.loadGuildsTree(event)
 
-	m.messagesList.deleteMessage(deletedIndex)
+	case *gateway.MessageCreateEvent:
+		return m.addMessageOrNotify(event)
+	case *gateway.MessageUpdateEvent:
+		m.messagesList.UpdateMessage(event.Message)
+	case *gateway.PresenceUpdateEvent:
+		m.guildsTree.Update(event)
+	case *gateway.MessageDeleteEvent:
+		m.messagesList.DeleteMessage(event.ChannelID, event.ID)
+	case *gateway.MessageReactionAddEvent:
+		m.messagesList.RefreshMessage(event.ChannelID, event.MessageID)
+	case *gateway.MessageReactionAddManyEvent:
+		m.messagesList.RefreshMessage(event.ChannelID, event.MessageID)
+	case *gateway.MessageReactionRemoveEvent:
+		m.messagesList.RefreshMessage(event.ChannelID, event.MessageID)
+	case *gateway.MessageReactionRemoveAllEvent:
+		m.messagesList.RefreshMessage(event.ChannelID, event.MessageID)
+	case *gateway.MessageReactionRemoveEmojiEvent:
+		m.messagesList.RefreshMessage(event.ChannelID, event.MessageID)
 
-}
+	case *gateway.GuildMembersChunkEvent:
+		return m.refreshMemberNames(event)
+	case *gateway.GuildMemberRemoveEvent:
+		m.composer.OnGuildMemberRemove(event)
 
-func (m *Model) onMessageReaction(channelID discord.ChannelID, messageID discord.MessageID) {
-	selectedChannel, ok := m.SelectedChannel()
-	if !ok || selectedChannel.ID != channelID {
-		return
-	}
-
-	index := slices.IndexFunc(m.messagesList.items, func(item messageItem) bool {
-		return !item.separator && item.message.ID == messageID
-	})
-	message, err := m.state.Cabinet.Message(channelID, messageID)
-	if index >= 0 && err == nil {
-		m.messagesList.setMessage(index, *message)
-	}
-}
-
-func (m *Model) onGuildMembersChunk(event *gateway.GuildMembersChunkEvent) tview.Cmd {
-	m.messagesList.invalidateRenderedMessages()
-	return m.composer.onGuildMembersChunk(event)
-}
-
-func (m *Model) onGuildMemberRemove(event *gateway.GuildMemberRemoveEvent) {
-	memberSearchCache := m.composer.memberSearchCache
-	for name := event.GuildID.String() + " " + event.User.Username; name != ""; name = name[:len(name)-1] {
-		if count, ok := memberSearchCache[name]; ok && count >= m.state.MemberState.SearchLimit {
-			// A full result set may now be missing members; search these prefixes again.
-			for name != "" {
-				delete(memberSearchCache, name)
-				name = name[:len(name)-1]
-			}
-			return
+	case *gateway.TypingStartEvent:
+		if m.cfg.TypingIndicator.Receive {
+			return m.showTypingIndicator(event)
 		}
+
+	case *read.UpdateEvent:
+		m.guildsTree.Update(event)
 	}
-}
-
-func (m *Model) onTypingStart(event *gateway.TypingStartEvent) {
-	selectedChannel, ok := m.SelectedChannel()
-	if !ok || selectedChannel.ID != event.ChannelID {
-		return
-	}
-
-	if m.isMe(event.UserID) {
-		return
-	}
-
-	m.addTyper(event.UserID)
-}
-
-func (m *Model) onReadUpdate(event *read.UpdateEvent) {
-	m.guildsTree.Update(event)
+	return nil
 }

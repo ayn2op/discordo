@@ -8,17 +8,17 @@ import (
 	"github.com/klauspost/compress/gzhttp"
 )
 
-type Transport struct {
+type transport struct {
 	base http.RoundTripper
 }
 
-func NewTransport() *Transport {
-	return &Transport{
+func newTransport() *transport {
+	return &transport{
 		base: gzhttp.Transport(http.DefaultTransport, gzhttp.TransportAlwaysDecompress(true)),
 	}
 }
 
-func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
+func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	resp, err := t.base.RoundTrip(req)
 	if err != nil {
 		return nil, err

@@ -1,34 +1,29 @@
 package token
 
 import (
+	"github.com/ayn2op/discordo/internal/ui/login/form"
 	"github.com/ayn2op/tview"
-	"github.com/ayn2op/tview/tabs"
 )
 
 type Model struct {
-	*tview.Form
+	*form.Model
 }
 
 func NewModel() *Model {
-	form := tview.NewForm().
-		AddPasswordField("Token", "", 0, 0).
-		AddButton("Login")
-	return &Model{Form: form}
+	return &Model{Model: form.New("Login", form.Field{Label: "Token", Mask: "*"})}
 }
-
-var _ tabs.Tab = (*Model)(nil)
 
 func (m *Model) Label() string {
 	return "Token"
 }
 
 func (m *Model) Update(msg tview.Msg) tview.Cmd {
-	if _, ok := msg.(tview.FormSubmitMsg); ok {
-		token := m.GetFormItem(0).(*tview.InputField).Text()
+	if _, ok := msg.(form.SubmitMsg); ok {
+		token := m.Value(0)
 		if token == "" {
 			return nil
 		}
-		return tokenCmd(token)
+		return submitToken(token)
 	}
-	return m.Form.Update(msg)
+	return m.Model.Update(msg)
 }

@@ -12,12 +12,36 @@ type Item struct {
 	Action tview.Cmd
 }
 
-type Model struct{ *picker.Model }
+type Model struct {
+	items       picker.Items
+	searchState picker.SearchState
+	cfg         *config.Config
+}
 
 func NewModel(cfg *config.Config) *Model {
-	m := &Model{Model: picker.NewModel()}
-	ui.ConfigurePicker(m.Model, cfg, "Attachments")
-	return m
+	return &Model{searchState: picker.NewSearchState(), cfg: cfg}
+}
+
+var _ tview.Model = (*Model)(nil)
+
+// actionMsg changes the picker.
+type actionMsg picker.Action
+
+func (*Model) Init() tview.Cmd { return nil }
+
+// View shows the picker in a box titled Attachments.
+func (m *Model) View() tview.Element {
+	p := ui.Picker(m.items, &m.searchState, m.cfg).
+		OnAction(func(a picker.Action) tview.Msg { return actionMsg(a) }).
+		OnSelect(func(item picker.Item) tview.Msg {
+			action, ok := item.Reference.(tview.Cmd)
+			if !ok {
+				return nil
+			}
+			return SelectedMsg{Action: action}
+		}).
+		OnCancel(CancelMsg{})
+	return ui.Box(p, &m.cfg.Theme, true).Title("Attachments")
 }
 
 func (m *Model) SetItems(items []Item) {
@@ -25,20 +49,13 @@ func (m *Model) SetItems(items []Item) {
 	for i, item := range items {
 		pickerItems[i] = picker.Item{Text: item.Label, Reference: item.Action}
 	}
-	m.Model.SetItems(pickerItems)
+	m.items = pickerItems
+	m.searchState.Reset()
 }
 
 func (m *Model) Update(msg tview.Msg) tview.Cmd {
-	switch msg := msg.(type) {
-	case picker.SelectedMsg:
-		action, ok := msg.Reference.(tview.Cmd)
-		if !ok {
-			return nil
-		}
-		return func() tview.Msg { return SelectedMsg{Action: action} }
-	case picker.CancelMsg:
-		return func() tview.Msg { return CancelMsg{} }
+	if msg, ok := msg.(actionMsg); ok {
+		m.searchState.Perform(picker.Action(msg))
 	}
-
-	return m.Model.Update(msg)
+	return nil
 }

@@ -10,7 +10,7 @@ import (
 )
 
 func TestCommonProperties(t *testing.T) {
-	properties := CommonProperties()
+	properties := commonProperties()
 
 	tests := []struct {
 		name string
@@ -59,7 +59,7 @@ func TestHeaders(t *testing.T) {
 }
 
 func TestXSuperProperties(t *testing.T) {
-	properties := XSuperProperties()
+	properties := xSuperProperties()
 	for _, key := range []gateway.IdentifyPropertyKey{"client_launch_id", "client_heartbeat_session_id", "launch_signature"} {
 		t.Run(string(key), func(t *testing.T) {
 			value, ok := properties[key].(string)

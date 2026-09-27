@@ -6,7 +6,7 @@ import (
 
 type TokenMsg string
 
-func tokenCmd(token string) tview.Cmd {
+func submitToken(token string) tview.Cmd {
 	return func() tview.Msg {
 		return TokenMsg(token)
 	}

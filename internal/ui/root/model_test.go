@@ -18,36 +18,26 @@ func TestNewModel(t *testing.T) {
 		cfg := *cfg
 		cfg.Help.Enabled = true
 		m := NewModel(&cfg)
-		if m.help == nil {
-			t.Fatal("help model was not created")
+		if !m.helpVisible {
+			t.Fatal("help is hidden")
 		}
-		if count := m.rootFlex.GetItemCount(); count != 1 {
-			t.Fatalf("layout item count = %d, want 1", count)
-		}
-		if height := m.helpHeight(); height != 1 {
+		if height := m.helpView().Rows(0); height != 1 {
 			t.Fatalf("height = %d, want 1", height)
 		}
 
 		m.Update(tcell.NewEventKey(tcell.KeyRune, ".", tcell.ModCtrl))
-		if !m.help.ShowAll() {
+		if !m.helpShowAll {
 			t.Fatal("toggle_full_help did not enable full help")
 		}
 
-		help := m.help
 		m.Update(tcell.NewEventKey(tcell.KeyRune, ".", tcell.ModAlt))
-		if m.help != help {
-			t.Fatal("toggle_help replaced help model")
-		}
-		if count := m.rootFlex.GetItemCount(); count != 0 {
-			t.Fatalf("layout item count = %d, want 0", count)
+		if m.helpVisible {
+			t.Fatal("help is visible")
 		}
 
 		m.Update(tcell.NewEventKey(tcell.KeyRune, ".", tcell.ModAlt))
-		if m.help != help {
-			t.Fatal("toggle_help replaced help model")
-		}
-		if count := m.rootFlex.GetItemCount(); count != 1 {
-			t.Fatalf("layout item count = %d, want 1", count)
+		if !m.helpVisible {
+			t.Fatal("help is hidden")
 		}
 	})
 
@@ -55,25 +45,18 @@ func TestNewModel(t *testing.T) {
 		cfg := *cfg
 		cfg.Help.Enabled = false
 		m := NewModel(&cfg)
-
-		if m.help != nil {
-			t.Fatal("help model was created")
-		}
-		if count := m.rootFlex.GetItemCount(); count != 0 {
-			t.Fatalf("layout item count = %d, want 0", count)
+		if m.helpVisible {
+			t.Fatal("help is visible")
 		}
 
 		m.Update(tcell.NewEventKey(tcell.KeyRune, ".", tcell.ModCtrl))
-		if m.help != nil {
-			t.Fatal("toggle_full_help created help model")
+		if m.helpShowAll {
+			t.Fatal("toggle_full_help enabled full help")
 		}
 
 		m.Update(tcell.NewEventKey(tcell.KeyRune, ".", tcell.ModAlt))
-		if m.help != nil {
-			t.Fatal("toggle_help created help model")
-		}
-		if count := m.rootFlex.GetItemCount(); count != 0 {
-			t.Fatalf("layout item count = %d, want 0", count)
+		if m.helpVisible {
+			t.Fatal("help is visible")
 		}
 	})
 }

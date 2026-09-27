@@ -9,7 +9,8 @@ import (
 
 const Name = "discordo"
 
-var cacheDir = sync.OnceValue(func() string {
+// CacheDir returns the cache directory, creating it on first use.
+var CacheDir = sync.OnceValue(func() string {
 	userCacheDir, err := os.UserCacheDir()
 	if err != nil {
 		userCacheDir = os.TempDir()
@@ -23,7 +24,3 @@ var cacheDir = sync.OnceValue(func() string {
 
 	return path
 })
-
-func CacheDir() string {
-	return cacheDir()
-}

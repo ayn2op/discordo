@@ -10,7 +10,7 @@ import (
 	md "github.com/ayn2op/arikawa/v3/markdown"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/tview"
-	"github.com/ayn2op/tview/text"
+	"github.com/ayn2op/tview/richtext"
 	"github.com/gdamore/tcell/v3"
 	"github.com/yuin/goldmark/ast"
 )
@@ -28,11 +28,11 @@ func NewRenderer(cfg *config.Config) *Renderer {
 	return &Renderer{cfg: cfg}
 }
 
-func (r *Renderer) RenderText(source []byte, node ast.Node, base tcell.Style) text.Text {
+func (r *Renderer) RenderText(source []byte, node ast.Node, base tcell.Style) richtext.Text {
 	r.listIx = nil
 	r.listNested = 0
 
-	builder := new(text.Builder)
+	builder := new(richtext.Builder)
 	styleStack := []tcell.Style{base}
 	linkDepth := 0
 
@@ -145,7 +145,7 @@ func (r *Renderer) RenderText(source []byte, node ast.Node, base tcell.Style) te
 	return builder.Finish()
 }
 
-func (r *Renderer) renderFencedCodeBlock(builder *text.Builder, source []byte, node *ast.FencedCodeBlock, base tcell.Style) {
+func (r *Renderer) renderFencedCodeBlock(builder *richtext.Builder, source []byte, node *ast.FencedCodeBlock, base tcell.Style) {
 	var code strings.Builder
 	lines := node.Lines()
 	for i := range lines.Len() {
@@ -224,14 +224,7 @@ func applyChromaStyle(base tcell.Style, entry chroma.StyleEntry) tcell.Style {
 			int32(entry.Colour.Blue()),
 		))
 	}
-	// Intentionally do not apply token background colors so code blocks keep the user's terminal/chat background.
-	// if entry.Background.IsSet() {
-	// 	style = style.Background(tcell.NewRGBColor(
-	// 		int32(entry.Background.Red()),
-	// 		int32(entry.Background.Green()),
-	// 		int32(entry.Background.Blue()),
-	// 	))
-	// }
+	// Token background colors are not applied, so code blocks keep the user's terminal/chat background.
 	switch entry.Bold {
 	case chroma.Yes:
 		style = style.Bold(true)
@@ -284,8 +277,8 @@ func applyInlineAttr(style tcell.Style, attr md.Attribute, inLink bool) tcell.St
 		style = style.StrikeThrough(true)
 	}
 	if attr&md.AttrMonospace != 0 {
-		// Avoid reverse-video inside links. Link labels like `hash` should still
-		// look like links, not highlighted blocks.
+		// Avoid reverse-video inside links.
+		// Link labels like `hash` should still look like links, not highlighted blocks.
 		if !inLink {
 			style = style.Reverse(true)
 		}

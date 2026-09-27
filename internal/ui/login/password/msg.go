@@ -13,7 +13,7 @@ type (
 	ErrMsg   error
 )
 
-func loginCmd(login, password string) tview.Cmd {
+func submitLogin(login, password string) tview.Cmd {
 	return func() tview.Msg {
 		headers := http.Headers()
 		headers.Set("Referer", "https://discord.com/login")

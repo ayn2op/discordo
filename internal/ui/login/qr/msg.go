@@ -128,7 +128,7 @@ func decodeMessage(data []byte) tview.Msg {
 
 type heartbeatTickMsg struct{}
 
-func heartbeat(interval time.Duration) tview.Cmd {
+func scheduleHeartbeat(interval time.Duration) tview.Cmd {
 	return func() tview.Msg {
 		time.Sleep(interval)
 		return heartbeatTickMsg{}

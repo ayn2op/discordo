@@ -32,7 +32,7 @@ func (m *Model) navigate(channelID discord.ChannelID) tview.Cmd {
 		return nil
 	}
 	m.expandPathToNode(node)
-	m.SetCurrentNode(node)
+	m.selectionState.SetCurrentNode(node)
 	if channel.Type == discord.GuildCategory {
 		return nil
 	}

@@ -63,6 +63,8 @@ character = "─"
 
 [notifications]
 enabled = true
+# Whether to also notify about messages in the open channel while the terminal window is unfocused. Requires a terminal that reports focus.
+when_unfocused = true
 
 [typing_indicator]
 # Whether to send typing status or not.

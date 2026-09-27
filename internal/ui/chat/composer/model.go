@@ -1,4 +1,4 @@
-package chat
+package composer
 
 import (
 	"bytes"
@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 	"unicode"
+	"unicode/utf8"
 
 	"github.com/ayn2op/arikawa/v3/api"
 	"github.com/ayn2op/arikawa/v3/discord"
@@ -26,11 +27,13 @@ import (
 	"github.com/ayn2op/discordo/internal/ui/chat/mentionslist"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/box"
 	"github.com/ayn2op/tview/help"
 	"github.com/ayn2op/tview/keybind"
-	"github.com/ayn2op/tview/text"
+	"github.com/ayn2op/tview/textarea"
 	"github.com/gdamore/tcell/v3"
 	"github.com/ncruces/zenity"
+	"github.com/rivo/uniseg"
 	"github.com/sahilm/fuzzy"
 	"github.com/yuin/goldmark/ast"
 	"golang.design/x/clipboard"
@@ -44,119 +47,187 @@ const (
 
 var mentionRegex = regexp.MustCompile("@[a-zA-Z0-9._]+")
 
-type composer struct {
-	*tview.TextArea
-	chat *Model
+type Model struct {
+	title, footer string
+	editState     textarea.EditState
+	keybinds      textarea.Keybinds
+	placeholder   string
+	disabled      bool
+
+	state *ningen.State
+	// channel is the selected channel, or nil for none.
+	channel *discord.Channel
 
 	cfg *config.Config
 
-	edit              bool
+	editing           *discord.Message
 	sendMessageData   *api.SendMessageData
 	memberSearchCache map[string]uint
 	mentionsList      *mentionslist.Model
 	lastSearch        time.Time
 
+	// height is the number of rows the composer takes, including its border.
+	height int
+	// mentionsVisible reports whether the mentions list is shown above the composer.
+	mentionsVisible bool
+
 	typingUntil time.Time
 }
 
-type tabSuggestMsg struct{}
+// TypingDuration is how long Discord shows someone as typing after they start.
+const TypingDuration = 10 * time.Second
+
+// TabSuggestMsg suggests mentions for the word before the cursor.
+type TabSuggestMsg struct{}
+
+// EditLastMsg asks to edit the user's last message.
+type EditLastMsg struct{}
+
+// SentMsg reports that the composer sent a message.
+type SentMsg struct{}
 type editorMsg string
 
-var _ help.KeyMap = (*composer)(nil)
+// editMsg edits the composer's text.
+type editMsg textarea.Action
 
-func newComposer(cfg *config.Config, chat *Model) *composer {
-	c := &composer{
-		TextArea:          tview.NewTextArea(),
+var _ help.KeyMap = (*Model)(nil)
+
+func NewModel(cfg *config.Config, state *ningen.State) *Model {
+	c := &Model{
+		placeholder:       "Select a channel to start chatting",
+		disabled:          true,
 		cfg:               cfg,
-		chat:              chat,
+		state:             state,
 		sendMessageData:   &api.SendMessageData{},
 		memberSearchCache: make(map[string]uint),
 		mentionsList:      mentionslist.NewModel(cfg),
+		height:            3,
 	}
-	ui.ConfigureBox(c.Box, &cfg.Theme)
-	c.
-		SetPlaceholder(text.NewLine(text.NewSegment("Select a channel to start chatting", tcell.StyleDefault.Dim(true)))).
-		SetClipboard(
-			func(s string) {
-				if _, err := clipboard.Write(context.Background(), clipboard.FmtText, []byte(s)); err != nil {
-					slog.Error("failed to write to clipboard", "err", err)
-					return
-				}
-			},
-			func() string {
-				data, err := clipboard.Read(context.Background(), clipboard.FmtText)
-				if err != nil {
-					slog.Error("failed to read from clipboard", "err", err)
-					return ""
-				}
-				return string(data)
-			},
-		).
-		SetDisabled(true)
-
+	c.keybinds = textarea.DefaultKeybinds()
+	c.keybinds.Newline = cfg.Keybinds.Composer.Newline.Keybind
 	return c
 }
 
-func (c *composer) forwardToTextArea(ev *tcell.EventKey) tview.Cmd {
-	cmd := c.TextArea.Update(ev)
-	c.resizeForContent()
-	return cmd
-}
-
-func (c *composer) resizeForContent() {
-	_, _, _, outerH := c.Rect()
-	_, _, _, innerH := c.InnerRect()
-	frame := outerH - innerH
-	_, _, _, parentH := c.chat.rightFlex.InnerRect()
-
-	visible := min(
-		strings.Count(c.Text(), "\n")+1,
-		max(c.cfg.Composer.MaxHeight, 1),
-		max(parentH-frame-1, 1),
-	)
-	c.chat.rightFlex.ResizeItem(c, visible+frame, 1)
-	c.SetVisibleSize(0, visible)
-
-	total := c.LineCount(0)
-	row, col := c.Offset()
-	if total <= visible {
-		c.SetOffset(0, 0)
-	} else if offset := total - visible; row > offset {
-		c.SetOffset(offset, col)
+// SetChannel sets the channel messages are sent to, disabling the composer if the user may not send messages there.
+func (c *Model) SetChannel(channel *discord.Channel) {
+	c.channel, c.typingUntil = channel, time.Time{}
+	isDM := channel.Type == discord.DirectMessage || channel.Type == discord.GroupDM
+	c.disabled = !isDM && !c.state.HasPermissions(channel.ID, discord.PermissionSendMessages)
+	c.placeholder = "Message..."
+	if c.disabled {
+		c.placeholder = "You do not have permission to send messages in this channel."
 	}
 }
 
-func (c *composer) reset() {
-	c.edit = false
+// Height returns the number of rows the composer takes, including its border.
+func (c *Model) Height() int {
+	return c.height
+}
+
+func (c *Model) Disabled() bool {
+	return c.disabled
+}
+
+// View shows the text area in a box, taking keys if focused.
+func (c *Model) View(focused bool) tview.Element { return view{c, focused} }
+
+// view is the composer as shown, with or without the focus.
+type view struct {
+	*Model
+	focused bool
+}
+
+func (v view) Draw(screen tview.Screen, area tview.Rectangle) {
+	v.box(v.focused).Draw(screen, area)
+}
+
+// Handle leaves bound keys to Update and passes other messages to the text area.
+func (v view) Handle(msg tview.Msg, area tview.Rectangle) tview.Msg {
+	if key, ok := msg.(tview.KeyMsg); ok && v.isBound(key) {
+		return msg
+	}
+	return v.box(v.focused).Handle(msg, area)
+}
+
+// box returns the text area in a box with the title and footer.
+func (c *Model) box(focused bool) box.Widget {
+	text := textarea.New(&c.editState).
+		Placeholder(c.placeholder).
+		Keybinds(c.keybinds).
+		Focused(focused && !c.disabled).
+		OnAction(func(a textarea.Action) tview.Msg { return editMsg(a) })
+	return ui.Box(text, &c.cfg.Theme, focused).Title(c.title).Footer(c.footer)
+}
+
+// isBound reports whether key is one of the composer's keybinds.
+func (c *Model) isBound(key tview.KeyMsg) bool {
+	k := c.cfg.Keybinds.Composer
+	if keybind.Matches(key, k.Paste.Keybind, k.Send.Keybind, k.OpenEditor.Keybind, k.OpenFilePicker.Keybind, k.Cancel.Keybind, k.TabComplete.Keybind, k.ToggleReplyMention.Keybind, k.Undo.Keybind) {
+		return true
+	}
+	return keybind.Matches(key, k.EditLast.Keybind) && c.canEditLastMessage()
+}
+
+// insert inserts text at the cursor.
+func (c *Model) insert(text string) {
+	c.replace(c.editState.Cursor(), c.editState.Cursor(), text)
+}
+
+// pasteText inserts the text on the clipboard at the cursor.
+func (c *Model) pasteText() {
+	data, err := clipboard.Read(context.Background(), clipboard.FmtText)
+	if err != nil {
+		slog.Error("failed to read from clipboard", "err", err)
+		return
+	}
+	c.insert(string(data))
+}
+
+// frame returns the cells the composer's border and padding take on each side.
+func (c *Model) frame() (left, vertical int) {
+	const size = 100
+	inner := c.box(false).InnerArea(tview.Rectangle{Width: size, Height: size})
+	return inner.X, size - inner.Height
+}
+
+func (c *Model) resizeForContent() {
+	_, frame := c.frame()
+	c.height = min(strings.Count(c.editState.Value(), "\n")+1, max(c.cfg.Composer.MaxHeight, 1)) + frame
+}
+
+func (c *Model) reset() {
+	c.editing = nil
 	c.sendMessageData = &api.SendMessageData{}
-	c.SetTitle("")
-	c.SetFooter("")
-	c.SetText("", true)
+	c.setTitle("")
+	c.setFooter("")
+	c.setText("")
 }
 
-func (c *composer) SetText(text string, cursorAtTheEnd bool) *tview.TextArea {
-	defer c.resizeForContent()
-	return c.TextArea.SetText(text, cursorAtTheEnd)
+// setText replaces the text and moves the cursor to its end.
+func (c *Model) setText(text string) {
+	c.editState.SetValue(text)
+	c.resizeForContent()
 }
 
-func (c *composer) Replace(start, end int, text string) *tview.TextArea {
-	defer c.resizeForContent()
-	return c.TextArea.Replace(start, end, text)
+// replace replaces the bytes from start to end of the text and moves the cursor after it.
+func (c *Model) replace(start, end int, text string) {
+	c.editState.Replace(start, end, text)
+	c.resizeForContent()
 }
 
-func (c *composer) SetTitle(title string) *tview.Box {
-	defer c.resizeForContent()
-	return c.Box.SetTitle(title)
+func (c *Model) setTitle(title string) {
+	c.title = title
+	c.resizeForContent()
 }
 
-func (c *composer) SetFooter(footer string) *tview.Box {
-	defer c.resizeForContent()
-	return c.Box.SetFooter(footer)
+func (c *Model) setFooter(footer string) {
+	c.footer = footer
+	c.resizeForContent()
 }
 
-func (c *composer) Update(msg tview.Msg) tview.Cmd {
+func (c *Model) Update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
-	case tabSuggestMsg:
+	case TabSuggestMsg:
 		return c.tabSuggest()
 	case imagePastedMsg:
 		if len(msg) == 0 {
@@ -165,8 +236,8 @@ func (c *composer) Update(msg tview.Msg) tview.Cmd {
 		c.attach(imageAttachmentName, bytes.NewReader(msg))
 		return nil
 	case filesPickedMsg:
-		selectedChannel, ok := c.chat.SelectedChannel()
-		if !ok || selectedChannel.ID != msg.channelID {
+		selectedChannel := c.channel
+		if selectedChannel == nil || selectedChannel.ID != msg.channelID {
 			return closeFiles(msg.files)
 		}
 		for _, file := range msg.files {
@@ -174,93 +245,89 @@ func (c *composer) Update(msg tview.Msg) tview.Cmd {
 		}
 		return nil
 	case editorMsg:
-		c.SetText(string(msg), true)
+		c.setText(string(msg))
 		return nil
+	case editMsg:
+		c.editState.Perform(textarea.Action(msg))
+		c.resizeForContent()
+		typingCmd := c.sendTyping()
+		if c.cfg.AutocompleteLimit > 0 {
+			return tview.Batch(typingCmd, c.tabSuggest())
+		}
+		return typingCmd
 
 	case tview.KeyMsg:
 		switch {
 		case keybind.Matches(msg, c.cfg.Keybinds.Composer.EditLast.Keybind) && c.canEditLastMessage():
 			return c.editLastMessage()
 		case keybind.Matches(msg, c.cfg.Keybinds.Composer.Paste.Keybind):
-			return tview.Sequence(pasteImage(), c.forwardToTextArea(tcell.NewEventKey(tcell.KeyCtrlV, "", tcell.ModNone)))
-		case keybind.Matches(msg, c.cfg.Keybinds.Composer.Newline.Keybind):
-			return c.forwardToTextArea(tcell.NewEventKey(tcell.KeyEnter, "", tcell.ModNone))
+			c.pasteText()
+			return pasteImage()
 		case keybind.Matches(msg, c.cfg.Keybinds.Composer.Send.Keybind):
-			if c.chat.GetVisible(mentionsListLayerName) {
+			if c.mentionsVisible {
 				return c.tabComplete()
 			}
 			return c.send()
 		case keybind.Matches(msg, c.cfg.Keybinds.Composer.OpenEditor.Keybind):
-			return tview.Sequence(c.stopTabCompletion(), c.editor())
+			return tview.Sequence(c.stopTabCompletion(), c.openEditor())
 		case keybind.Matches(msg, c.cfg.Keybinds.Composer.OpenFilePicker.Keybind):
 			return tview.Sequence(c.stopTabCompletion(), c.pickFiles())
 		case keybind.Matches(msg, c.cfg.Keybinds.Composer.Cancel.Keybind):
-			if c.chat.GetVisible(mentionsListLayerName) {
+			if c.mentionsVisible {
 				return c.stopTabCompletion()
 			}
 			c.reset()
 			return nil
 		case keybind.Matches(msg, c.cfg.Keybinds.Composer.TabComplete.Keybind):
-			if c.chat.GetVisible(mentionsListLayerName) {
+			if c.mentionsVisible {
 				return c.tabComplete()
 			}
-			return c.forwardToTextArea(msg)
+			c.insert("\t")
+			return nil
 		case keybind.Matches(msg, c.cfg.Keybinds.Composer.ToggleReplyMention.Keybind):
 			c.toggleReplyMention()
 			return nil
 		case keybind.Matches(msg, c.cfg.Keybinds.Composer.Undo.Keybind):
-			return c.forwardToTextArea(tcell.NewEventKey(tcell.KeyCtrlZ, "", tcell.ModNone))
+			c.editState.Undo()
+			c.resizeForContent()
+			return nil
 		}
-
-		typingCmd := c.sendTyping()
-
-		if c.cfg.AutocompleteLimit > 0 {
-			if c.chat.GetVisible(mentionsListLayerName) {
-				keybinds := c.cfg.Keybinds.MentionsList
-				if keybind.Matches(msg, keybinds.SelectUp.Keybind) ||
-					keybind.Matches(msg, keybinds.SelectDown.Keybind) ||
-					keybind.Matches(msg, keybinds.SelectTop.Keybind) ||
-					keybind.Matches(msg, keybinds.SelectBottom.Keybind) {
-					return tview.Batch(typingCmd, c.mentionsList.Update(msg))
-				}
-			}
-
-			return tview.Batch(typingCmd, tview.Sequence(c.forwardToTextArea(msg), c.tabSuggest()))
-		}
-		return tview.Batch(typingCmd, c.forwardToTextArea(msg))
-	}
-	return c.TextArea.Update(msg)
-}
-
-func (c *composer) canEditLastMessage() bool {
-	return !c.Disabled() && !c.edit && c.Text() == "" &&
-		c.sendMessageData.Reference == nil && len(c.sendMessageData.Files) == 0 &&
-		!c.chat.GetVisible(mentionsListLayerName)
-}
-
-func (c *composer) editLastMessage() tview.Cmd {
-	channel, ok := c.chat.SelectedChannel()
-	if !ok {
-		return nil
-	}
-	ml := c.chat.messagesList
-	for i, item := range slices.Backward(ml.items) {
-		if item.separator {
-			continue
-		}
-		message := item.message
-		if message.ChannelID != channel.ID || !c.chat.isMe(message.Author.ID) ||
-			!message.ID.IsValid() || message.Content == "" || len(message.MessageSnapshots) > 0 ||
-			(message.Type != discord.DefaultMessage && message.Type != discord.InlinedReplyMessage) {
-			continue
-		}
-		ml.SetCursor(i)
-		return ml.editSelectedMessage()
+	case mentionslist.Msg:
+		return c.mentionsList.Update(msg)
 	}
 	return nil
 }
 
-func (c *composer) toggleReplyMention() {
+func (c *Model) canEditLastMessage() bool {
+	return !c.Disabled() && c.editing == nil && c.editState.Value() == "" &&
+		c.sendMessageData.Reference == nil && len(c.sendMessageData.Files) == 0 &&
+		!c.mentionsVisible
+}
+
+func (c *Model) editLastMessage() tview.Cmd {
+	return func() tview.Msg { return EditLastMsg{} }
+}
+
+// StartEdit puts message in the composer to be edited.
+func (c *Model) StartEdit(message discord.Message) {
+	c.editing = &message
+	c.setTitle("Editing")
+	c.setText(message.Content)
+}
+
+// StartReply makes the next message a reply to message by name, mentioning its author if mention is set.
+func (c *Model) StartReply(message discord.Message, name string, mention bool) {
+	data := c.sendMessageData
+	data.Reference = &discord.MessageReference{MessageID: message.ID}
+	data.AllowedMentions = &api.AllowedMentions{RepliedUser: option.Some(mention)}
+	title := "Replying to "
+	if mention {
+		title = "[@] " + title
+	}
+	c.setTitle(title + name)
+}
+
+func (c *Model) toggleReplyMention() {
 	data := c.sendMessageData
 	if data.Reference == nil || data.AllowedMentions == nil || data.AllowedMentions.RepliedUser == nil {
 		return
@@ -268,11 +335,11 @@ func (c *composer) toggleReplyMention() {
 
 	mention := !*data.AllowedMentions.RepliedUser
 	data.AllowedMentions.RepliedUser = option.Some(mention)
-	title := strings.TrimPrefix(c.Title(), "[@] ")
+	title := strings.TrimPrefix(c.title, "[@] ")
 	if mention {
 		title = "[@] " + title
 	}
-	c.SetTitle(title)
+	c.setTitle(title)
 }
 
 type imagePastedMsg []byte
@@ -293,9 +360,9 @@ type filesPickedMsg struct {
 	files     []sendpart.File
 }
 
-func (c *composer) pickFiles() tview.Cmd {
-	selectedChannel, ok := c.chat.SelectedChannel()
-	if !ok {
+func (c *Model) pickFiles() tview.Cmd {
+	selectedChannel := c.channel
+	if selectedChannel == nil {
 		return nil
 	}
 	channelID := selectedChannel.ID
@@ -334,7 +401,7 @@ func closeFiles(files []sendpart.File) tview.Cmd {
 	}
 }
 
-func (c *composer) sendTyping() tview.Cmd {
+func (c *Model) sendTyping() tview.Cmd {
 	if !c.cfg.TypingIndicator.Send {
 		return nil
 	}
@@ -343,26 +410,26 @@ func (c *composer) sendTyping() tview.Cmd {
 	if now.Before(c.typingUntil) {
 		return nil
 	}
-	c.typingUntil = now.Add(typingDuration)
+	c.typingUntil = now.Add(TypingDuration)
 
-	selectedChannel, ok := c.chat.SelectedChannel()
-	if !ok {
+	selectedChannel := c.channel
+	if selectedChannel == nil {
 		return nil
 	}
 	channelID := selectedChannel.ID
 	return func() tview.Msg {
-		c.chat.state.Typing(channelID)
+		c.state.Typing(channelID)
 		return nil
 	}
 }
 
-func (c *composer) send() tview.Cmd {
-	selectedChannel, ok := c.chat.SelectedChannel()
-	if !ok {
+func (c *Model) send() tview.Cmd {
+	selectedChannel := c.channel
+	if selectedChannel == nil {
 		return nil
 	}
 
-	text := strings.TrimSpace(c.Text())
+	text := strings.TrimSpace(c.editState.Value())
 	if text == "" && len(c.sendMessageData.Files) == 0 {
 		return nil
 	}
@@ -371,39 +438,29 @@ func (c *composer) send() tview.Cmd {
 	data := *c.sendMessageData
 	data.Files = slices.Clone(data.Files)
 
-	var editMessage discord.Message
-	edit := c.edit
-	if edit {
-		selectedMessage, ok := c.chat.messagesList.selectedMessage()
-		if !ok {
-			return nil
-		}
-		editMessage = *selectedMessage
-	}
-
+	editing := c.editing
 	c.typingUntil = time.Time{}
 	c.reset()
-	c.chat.messagesList.clearSelection()
-	c.chat.messagesList.ScrollBottom()
 
-	return func() tview.Msg {
+	sent := func() tview.Msg { return SentMsg{} }
+	return tview.Batch(sent, func() tview.Msg {
 		defer closeFiles(data.Files)()
-		if edit {
+		if editing != nil {
 			editData := api.EditMessageData{Content: option.SomeNullable(text)}
-			if _, err := c.chat.state.EditMessageComplex(editMessage.ChannelID, editMessage.ID, editData); err != nil {
+			if _, err := c.state.EditMessageComplex(editing.ChannelID, editing.ID, editData); err != nil {
 				slog.Error("failed to edit message", "err", err)
 			}
 			return nil
 		}
 		data.Content = text
-		if _, err := c.chat.state.SendMessageComplex(selectedChannel.ID, data); err != nil {
+		if _, err := c.state.SendMessageComplex(selectedChannel.ID, data); err != nil {
 			slog.Error("failed to send message in channel", "channel_id", selectedChannel.ID, "err", err)
 		}
 		return nil
-	}
+	})
 }
 
-func (c *composer) processText(channel *discord.Channel, src []byte) string {
+func (c *Model) processText(channel *discord.Channel, src []byte) string {
 	// Fast path: no mentions to expand.
 	if bytes.IndexByte(src, '@') == -1 {
 		return string(src)
@@ -443,8 +500,8 @@ func (c *composer) processText(channel *discord.Channel, src []byte) string {
 	return string(src)
 }
 
-func (c *composer) expandMentions(channel *discord.Channel, src []byte) []byte {
-	state := c.chat.state
+func (c *Model) expandMentions(channel *discord.Channel, src []byte) []byte {
+	state := c.state
 	return mentionRegex.ReplaceAllFunc(src, func(input []byte) []byte {
 		output := input
 		name := string(input[1:])
@@ -474,19 +531,31 @@ func (c *composer) expandMentions(channel *discord.Channel, src []byte) []byte {
 	})
 }
 
+// wordBeforeCursor returns cursor, the runes satisfying f just before it, and the rune before those.
+func wordBeforeCursor(value string, cursor int, f func(rune) bool) (int, string, rune) {
+	for start := cursor; start > 0; {
+		r, size := utf8.DecodeLastRuneInString(value[:start])
+		if !f(r) {
+			return cursor, value[start:cursor], r
+		}
+		start -= size
+	}
+	return cursor, value[:cursor], 0
+}
+
 func isMentionChar(r rune) bool {
 	return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '.'
 }
 
-func (c *composer) tabComplete() tview.Cmd {
-	posEnd, name, r := c.GetWordUnderCursor(isMentionChar)
+func (c *Model) tabComplete() tview.Cmd {
+	posEnd, name, r := wordBeforeCursor(c.editState.Value(), c.editState.Cursor(), isMentionChar)
 	if r != '@' {
 		return c.stopTabCompletion()
 	}
 	pos := posEnd - (len(name) + 1)
 
-	selectedChannel, ok := c.chat.SelectedChannel()
-	if !ok {
+	selectedChannel := c.channel
+	if selectedChannel == nil {
 		return nil
 	}
 	gID := selectedChannel.GuildID
@@ -496,11 +565,11 @@ func (c *composer) tabComplete() tview.Cmd {
 			users := selectedChannel.DMRecipients
 			res := fuzzy.FindFrom(name, userList(users))
 			if len(res) > 0 {
-				c.Replace(pos, posEnd, "@"+users[res[0].Index].Username+" ")
+				c.replace(pos, posEnd, "@"+users[res[0].Index].Username+" ")
 			}
 		} else {
 			cmd := c.searchMember(gID, name)
-			members, err := c.chat.state.Cabinet.Members(gID)
+			members, err := c.state.Cabinet.Members(gID)
 			if err != nil {
 				slog.Error("failed to get members from state", "guild_id", gID, "err", err)
 				return cmd
@@ -508,8 +577,8 @@ func (c *composer) tabComplete() tview.Cmd {
 
 			res := fuzzy.FindFrom(name, memberList(members))
 			for _, r := range res {
-				if channelHasUser(c.chat.state, selectedChannel.ID, members[r.Index].User.ID) {
-					c.Replace(pos, posEnd, "@"+members[r.Index].User.Username+" ")
+				if channelHasUser(c.state, selectedChannel.ID, members[r.Index].User.ID) {
+					c.replace(pos, posEnd, "@"+members[r.Index].User.Username+" ")
 					return cmd
 				}
 			}
@@ -520,80 +589,39 @@ func (c *composer) tabComplete() tview.Cmd {
 	if c.mentionsList.ItemCount() == 0 {
 		return nil
 	}
-	name, ok = c.mentionsList.SelectedInsertText()
+	name, ok := c.mentionsList.SelectedInsertText()
 	if !ok {
 		return nil
 	}
-	c.Replace(pos, posEnd, "@"+name+" ")
+	c.replace(pos, posEnd, "@"+name+" ")
 	return c.stopTabCompletion()
 }
 
-func (c *composer) tabSuggest() tview.Cmd {
-	_, name, r := c.GetWordUnderCursor(isMentionChar)
+func (c *Model) tabSuggest() tview.Cmd {
+	_, name, r := wordBeforeCursor(c.editState.Value(), c.editState.Cursor(), isMentionChar)
 	if r != '@' {
 		return c.stopTabCompletion()
 	}
-	selectedChannel, ok := c.chat.SelectedChannel()
-	if !ok {
+	channel := c.channel
+	if channel == nil {
 		return nil
 	}
-	gID := selectedChannel.GuildID
-	cID := selectedChannel.ID
 	c.mentionsList.Clear()
 
-	var shown map[string]struct{}
-	var userDone struct{}
-	if name == "" {
-		shown = make(map[string]struct{})
-		// Don't show @me in the list of recent authors
-		me, _ := c.chat.state.Cabinet.Me()
-		shown[me.Username] = userDone
-	}
-
-	// DMs have recipients, not members
+	gID := channel.GuildID
 	switch {
+	case name == "":
+		c.suggestRecentAuthors(channel)
 	case !gID.IsValid():
-		if name == "" { // show recent messages' authors
-			msgs, err := c.chat.state.Cabinet.Messages(cID)
-			if err != nil {
-				return nil
-			}
-			for _, m := range msgs {
-				if _, ok := shown[m.Author.Username]; ok {
-					continue
-				}
-				shown[m.Author.Username] = userDone
-				c.addMentionUser(&m.Author)
-			}
-		} else {
-			users := selectedChannel.DMRecipients
-			me, _ := c.chat.state.Cabinet.Me()
-			users = append(users, *me)
-			res := fuzzy.FindFrom(name, userList(users))
-			for _, r := range res {
-				c.addMentionUser(&users[r.Index])
-			}
-		}
-	case name == "": // show recent messages' authors
-		msgs, err := c.chat.state.Cabinet.Messages(cID)
-		if err != nil {
-			return nil
-		}
-		for _, m := range msgs {
-			if _, ok := shown[m.Author.Username]; ok {
-				continue
-			}
-			shown[m.Author.Username] = userDone
-			c.chat.state.MemberState.RequestMember(gID, m.Author.ID)
-			if mem, err := c.chat.state.Cabinet.Member(gID, m.Author.ID); err == nil {
-				if c.addMentionMember(gID, mem) {
-					break
-				}
-			}
+		// DMs have recipients, not members.
+		me, _ := c.state.Cabinet.Me()
+		users := append(slices.Clone(channel.DMRecipients), *me)
+		for _, r := range fuzzy.FindFrom(name, userList(users)) {
+			c.addMentionUser(&users[r.Index])
 		}
 	default:
 		searchCmd := c.searchMember(gID, name)
-		mems, err := c.chat.state.Cabinet.Members(gID)
+		mems, err := c.state.Cabinet.Members(gID)
 		if err != nil {
 			slog.Error("fetching members failed", "err", err)
 			return searchCmd
@@ -603,7 +631,7 @@ func (c *composer) tabSuggest() tview.Cmd {
 			res = res[:int(c.cfg.AutocompleteLimit)]
 		}
 		for _, r := range res {
-			if channelHasUser(c.chat.state, cID, mems[r.Index].User.ID) &&
+			if channelHasUser(c.state, channel.ID, mems[r.Index].User.ID) &&
 				c.addMentionMember(gID, &mems[r.Index]) {
 				break
 			}
@@ -616,9 +644,32 @@ func (c *composer) tabSuggest() tview.Cmd {
 	if c.mentionsList.ItemCount() == 0 {
 		return c.stopTabCompletion()
 	}
-
 	c.mentionsList.Rebuild()
 	return c.showMentionsList()
+}
+
+// suggestRecentAuthors suggests the authors of the channel's recent messages, other than the user.
+func (c *Model) suggestRecentAuthors(channel *discord.Channel) {
+	messages, err := c.state.Cabinet.Messages(channel.ID)
+	if err != nil {
+		return
+	}
+	me, _ := c.state.Cabinet.Me()
+	shown := map[discord.UserID]bool{me.ID: true}
+	for _, m := range messages {
+		if shown[m.Author.ID] {
+			continue
+		}
+		shown[m.Author.ID] = true
+		if !channel.GuildID.IsValid() {
+			c.addMentionUser(&m.Author)
+			continue
+		}
+		c.state.MemberState.RequestMember(channel.GuildID, m.Author.ID)
+		if member, err := c.state.Cabinet.Member(channel.GuildID, m.Author.ID); err == nil && c.addMentionMember(channel.GuildID, member) {
+			return
+		}
+	}
 }
 
 type memberList []discord.Member
@@ -652,7 +703,7 @@ func channelHasUser(state *ningen.State, channelID discord.ChannelID, userID dis
 
 // searchMember performs member discovery in a command goroutine.
 // It emits a follow-up suggestion message once results are loaded.
-func (c *composer) searchMember(gID discord.GuildID, name string) tview.Cmd {
+func (c *Model) searchMember(gID discord.GuildID, name string) tview.Cmd {
 	if name == "" {
 		return nil
 	}
@@ -661,12 +712,10 @@ func (c *composer) searchMember(gID discord.GuildID, name string) tview.Cmd {
 	if _, ok := c.memberSearchCache[key]; ok {
 		return nil
 	}
-	// If searching for "ab" returns less than SearchLimit,
-	// then "abc" would not return anything new because we already searched
-	// everything starting with "ab". This will still be true even if a new
-	// member joins because arikawa loads new members into the state.
+	// If searching for "ab" returns less than SearchLimit, then "abc" would not return anything new because we already searched everything starting with "ab".
+	// This will still be true even if a new member joins because arikawa loads new members into the state.
 	if count, ok := c.memberSearchCache[key[:len(key)-1]]; ok {
-		if count < c.chat.state.MemberState.SearchLimit {
+		if count < c.state.MemberState.SearchLimit {
 			c.memberSearchCache[key] = count
 			return nil
 		}
@@ -674,18 +723,18 @@ func (c *composer) searchMember(gID discord.GuildID, name string) tview.Cmd {
 
 	now := time.Now()
 	// Rate limit on our side because we can't distinguish between a successful search and SearchMember not doing anything because of its internal rate limit that we can't detect
-	if c.lastSearch.Add(c.chat.state.MemberState.SearchFrequency).After(now) {
+	if c.lastSearch.Add(c.state.MemberState.SearchFrequency).After(now) {
 		return nil
 	}
 
 	c.lastSearch = now
 	nonce := memberSearchNonce + key
 	return func() tview.Msg {
-		if err := c.chat.state.SendGateway(context.Background(), &gateway.RequestGuildMembersCommand{
+		if err := c.state.SendGateway(context.Background(), &gateway.RequestGuildMembersCommand{
 			GuildIDs:  []discord.GuildID{gID},
 			Query:     option.Some(name),
-			Presences: c.chat.state.MemberState.RequestPresences,
-			Limit:     c.chat.state.MemberState.SearchLimit,
+			Presences: c.state.MemberState.RequestPresences,
+			Limit:     c.state.MemberState.SearchLimit,
 			Nonce:     nonce,
 		}); err != nil {
 			slog.Error("failed to search guild members", "err", err, "guild_id", gID, "query", name)
@@ -694,7 +743,7 @@ func (c *composer) searchMember(gID discord.GuildID, name string) tview.Cmd {
 	}
 }
 
-func (c *composer) onGuildMembersChunk(event *gateway.GuildMembersChunkEvent) tview.Cmd {
+func (c *Model) CacheMemberSearch(event *gateway.GuildMembersChunkEvent) tview.Cmd {
 	key, ok := strings.CutPrefix(event.Nonce, memberSearchNonce)
 	if !ok {
 		return nil
@@ -702,42 +751,76 @@ func (c *composer) onGuildMembersChunk(event *gateway.GuildMembersChunkEvent) tv
 
 	c.memberSearchCache[key] = uint(len(event.Members))
 	return func() tview.Msg {
-		return tabSuggestMsg{}
+		return TabSuggestMsg{}
 	}
 }
 
-func (c *composer) showMentionsList() tview.Cmd {
+func (c *Model) showMentionsList() tview.Cmd {
+	c.mentionsVisible = true
+	return nil
+}
+
+// OnGuildMemberRemove forgets cached member searches that the removed member may have filled.
+func (c *Model) OnGuildMemberRemove(event *gateway.GuildMemberRemoveEvent) {
+	for name := event.GuildID.String() + " " + event.User.Username; name != ""; name = name[:len(name)-1] {
+		if count, ok := c.memberSearchCache[name]; ok && count >= c.state.MemberState.SearchLimit {
+			// A full result set may now be missing members; search these prefixes again.
+			for name != "" {
+				delete(c.memberSearchCache, name)
+				name = name[:len(name)-1]
+			}
+			return
+		}
+	}
+}
+
+// MentionsView places the mentions list just above the composer, near the cursor, or returns nil if it is hidden.
+func (c *Model) MentionsView() tview.Element {
+	if !c.mentionsVisible {
+		return nil
+	}
+	return mentionsPopup{c}
+}
+
+// mentionsPopup lays out the mentions list within the area above the composer, where it is drawn over the messages.
+type mentionsPopup struct {
+	c *Model
+}
+
+func (p mentionsPopup) Draw(screen tview.Screen, area tview.Rectangle) {
+	p.c.mentionsList.View().Draw(screen, p.area(area))
+}
+
+func (p mentionsPopup) Handle(msg tview.Msg, area tview.Rectangle) tview.Msg {
+	return p.c.mentionsList.View().Handle(msg, p.area(area))
+}
+
+// area returns where the list goes in area, the messages and composer together.
+func (p mentionsPopup) area(area tview.Rectangle) tview.Rectangle {
+	c := p.c
 	borders := 0
 	if c.cfg.Theme.Border.Enabled {
 		borders = 1
 	}
-	l := c.mentionsList
-	x, _, _, _ := c.InnerRect()
-	_, y, _, _ := c.Rect()
-	_, _, maxW, maxH := c.chat.messagesList.InnerRect()
+	x, _ := c.frame()
+	maxW, maxH := area.Width, area.Height-c.height
 	if t := int(c.cfg.Theme.MentionsList.MaxHeight); t != 0 {
 		maxH = min(maxH, t)
 	}
-	count := c.mentionsList.ItemCount() + borders
-	h := min(count, maxH) + borders + c.cfg.Theme.Border.Padding[1]
-	y -= h
+	h := min(c.mentionsList.ItemCount()+borders, maxH) + borders + c.cfg.Theme.Border.Padding[1]
 	w := int(c.cfg.Theme.MentionsList.MinWidth)
 	if w == 0 {
 		w = maxW
 	} else {
-		w = max(w, c.mentionsList.MaxDisplayWidth())
-
-		w = min(w+borders*2, maxW)
-		_, col, _, _ := c.GetCursor()
+		w = min(max(w, c.mentionsList.MaxDisplayWidth())+borders*2, maxW)
+		value, cursor := c.editState.Value(), c.editState.Cursor()
+		col := uniseg.StringWidth(value[strings.LastIndex(value[:cursor], "\n")+1 : cursor])
 		x += min(col, maxW-w)
 	}
-
-	l.SetRect(x, y, w, h)
-	c.chat.ShowLayer(mentionsListLayerName).SendToFront(mentionsListLayerName)
-	return nil
+	return tview.Rectangle{X: area.X + x, Y: area.Y + area.Height - c.height - h, Width: w, Height: h}
 }
 
-func (c *composer) addMentionMember(gID discord.GuildID, m *discord.Member) bool {
+func (c *Model) addMentionMember(gID discord.GuildID, m *discord.Member) bool {
 	if m == nil {
 		return false
 	}
@@ -751,14 +834,14 @@ func (c *composer) addMentionMember(gID discord.GuildID, m *discord.Member) bool
 
 	// This avoids a slower member color lookup path.
 	color, ok := state.MemberColor(m, func(id discord.RoleID) *discord.Role {
-		r, _ := c.chat.state.Cabinet.Role(gID, id)
+		r, _ := c.state.Cabinet.Role(gID, id)
 		return r
 	})
 	if ok {
 		style = style.Foreground(tcell.NewHexColor(int32(color)))
 	}
 
-	presence, err := c.chat.state.Cabinet.Presence(gID, m.User.ID)
+	presence, err := c.state.Cabinet.Presence(gID, m.User.ID)
 	if err != nil {
 		slog.Info("failed to get presence from state", "guild_id", gID, "user_id", m.User.ID, "err", err)
 	} else if presence.Status == discord.OfflineStatus {
@@ -773,14 +856,14 @@ func (c *composer) addMentionMember(gID discord.GuildID, m *discord.Member) bool
 	return c.mentionsList.ItemCount() > int(c.cfg.AutocompleteLimit)
 }
 
-func (c *composer) addMentionUser(user *discord.User) {
+func (c *Model) addMentionUser(user *discord.User) {
 	if user == nil {
 		return
 	}
 
 	name := user.DisplayOrUsername()
 	style := tcell.StyleDefault
-	presence, err := c.chat.state.Cabinet.Presence(discord.NullGuildID, user.ID)
+	presence, err := c.state.Cabinet.Presence(discord.NullGuildID, user.ID)
 	if err != nil {
 		slog.Info("failed to get presence from state", "user_id", user.ID, "err", err)
 	} else if presence.Status == discord.OfflineStatus {
@@ -794,29 +877,27 @@ func (c *composer) addMentionUser(user *discord.User) {
 	})
 }
 
-func (c *composer) removeMentionsList() {
-	if c.chat.GetVisible(mentionsListLayerName) {
-		c.chat.HideLayer(mentionsListLayerName)
-	}
+func (c *Model) CloseMentions() {
+	c.mentionsVisible = false
 }
 
-func (c *composer) stopTabCompletion() tview.Cmd {
+func (c *Model) stopTabCompletion() tview.Cmd {
 	if c.cfg.AutocompleteLimit > 0 {
 		c.mentionsList.Clear()
-		c.removeMentionsList()
+		c.CloseMentions()
 		return nil
 	}
 	return nil
 }
 
-func (c *composer) editor() tview.Cmd {
+func (c *Model) openEditor() tview.Cmd {
 	if c.cfg.Editor == "" {
 		return func() tview.Msg {
 			slog.Warn("Attempt to open file with editor, but no editor is set")
 			return nil
 		}
 	}
-	text := c.Text()
+	text := c.editState.Value()
 	cfg := c.cfg
 	return tview.Suspend(func() tview.Msg {
 		file, err := os.CreateTemp("", tmpFilePattern)
@@ -850,23 +931,22 @@ func (c *composer) editor() tview.Cmd {
 	})
 }
 
-func (c *composer) attach(name string, reader io.Reader) {
+func (c *Model) attach(name string, reader io.Reader) {
 	c.sendMessageData.Files = append(c.sendMessageData.Files, sendpart.File{Name: name, Reader: reader})
 
 	var names []string
 	for _, file := range c.sendMessageData.Files {
 		names = append(names, file.Name)
 	}
-	c.SetFooter("Attached " + humanJoin(names))
+	c.setFooter("Attached " + humanJoin(names))
 }
 
-func (c *composer) canAttachFiles() bool {
-	selectedChannel, ok := c.chat.SelectedChannel()
-	return ok && c.chat.state.HasPermissions(selectedChannel.ID, discord.PermissionAttachFiles)
+func (c *Model) canAttachFiles() bool {
+	return c.channel != nil && c.state.HasPermissions(c.channel.ID, discord.PermissionAttachFiles)
 }
 
-func (c *composer) ShortHelp() []keybind.Keybind {
-	if c.chat.GetVisible(mentionsListLayerName) {
+func (c *Model) ShortHelp() []keybind.Keybind {
+	if c.mentionsVisible {
 		cfg := c.cfg.Keybinds.MentionsList
 		ccfg := c.cfg.Keybinds.Composer
 		short := []keybind.Keybind{cfg.SelectUp.Keybind, cfg.SelectDown.Keybind, ccfg.TabComplete.Keybind, ccfg.Cancel.Keybind}
@@ -890,8 +970,8 @@ func (c *composer) ShortHelp() []keybind.Keybind {
 	return short
 }
 
-func (c *composer) FullHelp() [][]keybind.Keybind {
-	if c.chat.GetVisible(mentionsListLayerName) {
+func (c *Model) FullHelp() [][]keybind.Keybind {
+	if c.mentionsVisible {
 		mcfg := c.cfg.Keybinds.MentionsList
 		ccfg := c.cfg.Keybinds.Composer
 		return [][]keybind.Keybind{

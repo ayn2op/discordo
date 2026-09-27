@@ -13,34 +13,46 @@ import (
 )
 
 type Model struct {
-	*picker.Model
-	cfg *config.Config
+	items       picker.Items
+	searchState picker.SearchState
+	cfg         *config.Config
 }
 
 func NewModel(cfg *config.Config) *Model {
-	p := picker.NewModel()
-	ui.ConfigurePicker(p, cfg, "Channels")
-	return &Model{
-		Model: p,
-		cfg:   cfg,
-	}
+	return &Model{searchState: picker.NewSearchState(), cfg: cfg}
 }
 
 var _ tview.Model = (*Model)(nil)
 
-func (m *Model) Update(msg tview.Msg) tview.Cmd {
-	switch msg := msg.(type) {
-	case picker.SelectedMsg:
-		channelID, ok := msg.Reference.(discord.ChannelID)
-		if !ok || !channelID.IsValid() {
-			return nil
-		}
-		return func() tview.Msg { return SelectedMsg{ChannelID: channelID} }
-	case picker.CancelMsg:
-		return func() tview.Msg { return CancelMsg{} }
-	}
-	return m.Model.Update(msg)
+// actionMsg changes the picker.
+type actionMsg picker.Action
+
+func (*Model) Init() tview.Cmd { return nil }
+
+// View shows the picker in a box titled Channels.
+func (m *Model) View() tview.Element {
+	p := ui.Picker(m.items, &m.searchState, m.cfg).
+		OnAction(func(a picker.Action) tview.Msg { return actionMsg(a) }).
+		OnSelect(func(item picker.Item) tview.Msg {
+			channelID, ok := item.Reference.(discord.ChannelID)
+			if !ok || !channelID.IsValid() {
+				return nil
+			}
+			return SelectedMsg{ChannelID: channelID}
+		}).
+		OnCancel(CancelMsg{})
+	return ui.Box(p, &m.cfg.Theme, true).Title("Channels")
 }
+
+func (m *Model) Update(msg tview.Msg) tview.Cmd {
+	if msg, ok := msg.(actionMsg); ok {
+		m.searchState.Perform(picker.Action(msg))
+	}
+	return nil
+}
+
+// Reset clears the query.
+func (m *Model) Reset() { m.searchState.Reset() }
 
 func (m *Model) RefreshChannels(state *ningen.State) {
 	var items picker.Items
@@ -74,7 +86,8 @@ func (m *Model) RefreshChannels(state *ningen.State) {
 		}
 	}
 
-	m.SetItems(items)
+	m.items = items
+	m.searchState.Reset()
 }
 
 func (m *Model) channelItem(state *ningen.State, guild *discord.Guild, channel discord.Channel) picker.Item {

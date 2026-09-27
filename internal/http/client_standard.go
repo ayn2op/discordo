@@ -11,7 +11,7 @@ import (
 )
 
 func NewClient(token string) *api.Client {
-	stdClient := http.Client{Transport: NewTransport()}
+	stdClient := http.Client{Transport: newTransport()}
 	httpClient := httputil.NewClientWithDriver(httpdriver.WrapClient(stdClient))
 	client := api.NewCustomClient(token, httpClient)
 	client.UserAgent = BrowserUserAgent()

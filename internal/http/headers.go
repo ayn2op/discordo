@@ -23,14 +23,14 @@ func Headers() stdHttp.Header {
 	headers.Set("Sec-Fetch-Mode", "cors")
 	headers.Set("Sec-Fetch-Site", "same-origin")
 
-	headers.Set("Sec-Ch-Ua", BrowserBrands())
+	headers.Set("Sec-Ch-Ua", browserBrands())
 	headers.Set("Sec-Ch-Ua-Mobile", "?0")
-	headers.Set("Sec-Ch-Ua-Platform", `"`+OS+`"`)
+	headers.Set("Sec-Ch-Ua-Platform", `"`+osName+`"`)
 
 	headers.Set("X-Debug-Options", "bugReporterEnabled")
-	headers.Set("X-Discord-Locale", string(Locale))
+	headers.Set("X-Discord-Locale", string(locale))
 
-	superProps, err := json.Marshal(XSuperProperties())
+	superProps, err := json.Marshal(xSuperProperties())
 	if err != nil {
 		slog.Error("failed to marshal super props", "err", err)
 	} else {
