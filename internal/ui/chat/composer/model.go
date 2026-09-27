@@ -63,7 +63,7 @@ type Model struct {
 	editing           *discord.Message
 	sendMessageData   *api.SendMessageData
 	memberSearchCache map[string]uint
-	mentionsList      *mentionslist.Model
+	mentionsList      mentionslist.Model
 	lastSearch        time.Time
 
 	// height is the number of rows the composer takes, including its border.
@@ -90,10 +90,10 @@ type editorMsg string
 // editMsg edits the composer's text.
 type editMsg textarea.Action
 
-var _ help.KeyMap = (*Model)(nil)
+var _ help.KeyMap = Model{}
 
-func NewModel(cfg *config.Config, state *ningen.State) *Model {
-	c := &Model{
+func NewModel(cfg *config.Config, state *ningen.State) Model {
+	c := Model{
 		placeholder:       "Select a channel to start chatting",
 		disabled:          true,
 		cfg:               cfg,
@@ -129,7 +129,7 @@ func (c *Model) Disabled() bool {
 }
 
 // View shows the text area in a box, taking keys if focused.
-func (c *Model) View(focused bool) tview.Element { return view{c, focused} }
+func (c Model) View(focused bool) tview.Element { return view{&c, focused} }
 
 // view is the composer as shown, with or without the focus.
 type view struct {
@@ -225,7 +225,13 @@ func (c *Model) setFooter(footer string) {
 	c.resizeForContent()
 }
 
-func (c *Model) Update(msg tview.Msg) tview.Cmd {
+func (c Model) Update(msg tview.Msg) (Model, tview.Cmd) {
+	cmd := c.update(msg)
+	return c, cmd
+}
+
+// update changes c in response to msg and returns a command to run, or nil.
+func (c *Model) update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
 	case TabSuggestMsg:
 		return c.tabSuggest()
@@ -293,7 +299,9 @@ func (c *Model) Update(msg tview.Msg) tview.Cmd {
 			return nil
 		}
 	case mentionslist.Msg:
-		return c.mentionsList.Update(msg)
+		var cmd tview.Cmd
+		c.mentionsList, cmd = c.mentionsList.Update(msg)
+		return cmd
 	}
 	return nil
 }
@@ -945,7 +953,7 @@ func (c *Model) canAttachFiles() bool {
 	return c.channel != nil && c.state.HasPermissions(c.channel.ID, discord.PermissionAttachFiles)
 }
 
-func (c *Model) ShortHelp() []keybind.Keybind {
+func (c Model) ShortHelp() []keybind.Keybind {
 	if c.mentionsVisible {
 		cfg := c.cfg.Keybinds.MentionsList
 		ccfg := c.cfg.Keybinds.Composer
@@ -970,7 +978,7 @@ func (c *Model) ShortHelp() []keybind.Keybind {
 	return short
 }
 
-func (c *Model) FullHelp() [][]keybind.Keybind {
+func (c Model) FullHelp() [][]keybind.Keybind {
 	if c.mentionsVisible {
 		mcfg := c.cfg.Keybinds.MentionsList
 		ccfg := c.cfg.Keybinds.Composer

@@ -6,9 +6,9 @@ import (
 	"github.com/ayn2op/tview/keybind"
 )
 
-var _ help.KeyMap = (*Model)(nil)
+var _ help.KeyMap = Model{}
 
-func (m *Model) ShortHelp() []keybind.Keybind {
+func (m Model) ShortHelp() []keybind.Keybind {
 	short := make([]keybind.Keybind, 0, 16)
 	if active := m.activeKeyMap(); active != nil {
 		short = append(short, active.ShortHelp()...)
@@ -17,7 +17,7 @@ func (m *Model) ShortHelp() []keybind.Keybind {
 	return short
 }
 
-func (m *Model) FullHelp() [][]keybind.Keybind {
+func (m Model) FullHelp() [][]keybind.Keybind {
 	full := make([][]keybind.Keybind, 0, 8)
 	if active := m.activeKeyMap(); active != nil {
 		full = append(full, active.FullHelp()...)
@@ -26,31 +26,31 @@ func (m *Model) FullHelp() [][]keybind.Keybind {
 	return full
 }
 
-func (m *Model) activeKeyMap() help.KeyMap {
-	if m.picker() != nil {
+func (m Model) activeKeyMap() help.KeyMap {
+	if m.pickerOpen() {
 		return ui.PickerKeybinds(m.cfg)
 	}
 
 	switch m.focused {
-	case m.guildsTree:
+	case guildsTreePane:
 		return m.guildsTree
-	case m.messagesList:
+	case messagesListPane:
 		return m.messagesList
-	case m.composer:
+	case composerPane:
 		return m.composer
 	default:
 		return nil
 	}
 }
 
-func (m *Model) baseShortHelp() []keybind.Keybind {
+func (m Model) baseShortHelp() []keybind.Keybind {
 	cfg := m.cfg.Keybinds
 	short := m.focusHelp()
 	short = append(short, cfg.ToggleGuildsTree.Keybind, cfg.ToggleChannelsPicker.Keybind)
 	return short
 }
 
-func (m *Model) baseFullHelp() [][]keybind.Keybind {
+func (m Model) baseFullHelp() [][]keybind.Keybind {
 	cfg := m.cfg.Keybinds
 	return [][]keybind.Keybind{
 		m.focusHelp(),
@@ -60,18 +60,18 @@ func (m *Model) baseFullHelp() [][]keybind.Keybind {
 	}
 }
 
-func (m *Model) focusHelp() []keybind.Keybind {
+func (m Model) focusHelp() []keybind.Keybind {
 	kbs := m.cfg.Keybinds
 	focused := m.focused
 	focusKbs := make([]keybind.Keybind, 0, 3)
 
-	if focused != m.guildsTree {
+	if focused != guildsTreePane {
 		focusKbs = append(focusKbs, kbs.FocusGuildsTree.Keybind)
 	}
-	if focused != m.messagesList {
+	if focused != messagesListPane {
 		focusKbs = append(focusKbs, kbs.FocusMessagesList.Keybind)
 	}
-	if !m.composer.Disabled() && focused != m.composer {
+	if !m.composer.Disabled() && focused != composerPane {
 		focusKbs = append(focusKbs, kbs.FocusComposer.Keybind)
 	}
 

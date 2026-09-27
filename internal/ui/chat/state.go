@@ -12,7 +12,7 @@ import (
 	"github.com/ayn2op/tview"
 )
 
-func (m *Model) onRequest(r httpdriver.Request) error {
+func onRequest(r httpdriver.Request) error {
 	if req, ok := r.(*httpdriver.DefaultRequest); ok {
 		slog.Debug("new HTTP request", "method", req.Method, "url", req.URL)
 	}
@@ -29,22 +29,22 @@ func (m *Model) onRaw(event *ws.RawEvent) {
 }
 
 func (m *Model) loadGuildsTree(event *gateway.ReadyEvent) tview.Cmd {
-	m.guildsTree.Update(event)
-	m.setFocus(m.guildsTree)
-	return nil
+	cmd := m.updatePane(guildsTreePane, event)
+	m.setFocus(guildsTreePane)
+	return cmd
 }
 
 func (m *Model) addMessageOrNotify(message *gateway.MessageCreateEvent) tview.Cmd {
-	m.guildsTree.Update(message)
+	cmd := m.updatePane(guildsTreePane, message)
 
 	if channel := m.selectedChannel; channel != nil && channel.ID == message.ChannelID {
 		m.removeTyper(message.Author.ID)
 		m.messagesList.AddMessage(message.Message)
 		if !m.windowUnfocused || !m.cfg.Notifications.WhenUnfocused {
-			return nil
+			return cmd
 		}
 	}
-	return m.notify(*message)
+	return tview.Batch(cmd, m.notify(*message))
 }
 
 func (m *Model) notify(message gateway.MessageCreateEvent) tview.Cmd {
@@ -119,7 +119,7 @@ func (m *Model) applyEvent(event gateway.Event) tview.Cmd {
 	case *gateway.MessageUpdateEvent:
 		m.messagesList.UpdateMessage(event.Message)
 	case *gateway.PresenceUpdateEvent:
-		m.guildsTree.Update(event)
+		return m.updatePane(guildsTreePane, event)
 	case *gateway.MessageDeleteEvent:
 		m.messagesList.DeleteMessage(event.ChannelID, event.ID)
 	case *gateway.MessageReactionAddEvent:
@@ -144,7 +144,7 @@ func (m *Model) applyEvent(event gateway.Event) tview.Cmd {
 		}
 
 	case *read.UpdateEvent:
-		m.guildsTree.Update(event)
+		return m.updatePane(guildsTreePane, event)
 	}
 	return nil
 }

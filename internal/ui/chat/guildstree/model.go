@@ -33,8 +33,8 @@ type Model struct {
 	dmRootNode      *tree.Node
 }
 
-func NewModel(cfg *config.Config, state *ningen.State) *Model {
-	return &Model{
+func NewModel(cfg *config.Config, state *ningen.State) Model {
+	return Model{
 		root: tree.NewNode(""),
 
 		cfg:   cfg,
@@ -54,7 +54,7 @@ func (m *Model) CurrentNode() *tree.Node {
 type Msg tree.Action
 
 // View shows the tree in a box titled Guilds.
-func (m *Model) View(focused bool) tview.Element {
+func (m Model) View(focused bool) tview.Element {
 	theme := &m.cfg.Theme
 	set := theme.Border.NormalSet.BorderSet
 	if focused {
@@ -336,7 +336,13 @@ func (m *Model) collapseParentNode(node *tree.Node) {
 	m.selectionState.SetCurrentNode(parent)
 }
 
-func (m *Model) Update(msg tview.Msg) tview.Cmd {
+func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
+	cmd := m.update(msg)
+	return m, cmd
+}
+
+// update changes m in response to msg and returns a command to run, or nil.
+func (m *Model) update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
 	case *gateway.ReadyEvent:
 		m.rebuild(msg)
@@ -432,7 +438,7 @@ func (m *Model) expandPathToNode(node *tree.Node) {
 	}
 }
 
-var _ help.KeyMap = (*Model)(nil)
+var _ help.KeyMap = Model{}
 
 func (m *Model) selectCurrentKeybind() keybind.Keybind {
 	selectCurrent := m.cfg.Keybinds.GuildsTree.SelectCurrent.Keybind
@@ -455,7 +461,7 @@ func (m *Model) selectCurrentKeybind() keybind.Keybind {
 	return selectCurrent.WithHelp(selectHelp.Key, selectDesc)
 }
 
-func (m *Model) ShortHelp() []keybind.Keybind {
+func (m Model) ShortHelp() []keybind.Keybind {
 	cfg := m.cfg.Keybinds.GuildsTree
 	shortHelp := []keybind.Keybind{cfg.SelectUp.Keybind, cfg.SelectDown.Keybind, m.selectCurrentKeybind()}
 	if m.canCollapseParent(m.selectionState.CurrentNode()) {
@@ -464,7 +470,7 @@ func (m *Model) ShortHelp() []keybind.Keybind {
 	return shortHelp
 }
 
-func (m *Model) FullHelp() [][]keybind.Keybind {
+func (m Model) FullHelp() [][]keybind.Keybind {
 	cfg := m.cfg.Keybinds.GuildsTree
 	selectGroup := []keybind.Keybind{m.selectCurrentKeybind(), cfg.MoveToParentNode.Keybind}
 	selectGroup = append(selectGroup, m.collapseKeybinds()...)

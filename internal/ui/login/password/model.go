@@ -6,24 +6,28 @@ import (
 )
 
 type Model struct {
-	*form.Model
+	form.Model
 }
 
-func NewModel() *Model {
-	return &Model{Model: form.New("Login", form.Field{Label: "Login"}, form.Field{Label: "Password", Mask: "*"})}
+var _ tview.Model[Model] = Model{}
+
+func NewModel() Model {
+	return Model{Model: form.New("Login", form.Field{Label: "Login"}, form.Field{Label: "Password", Mask: "*"})}
 }
 
-func (m *Model) Label() string {
+func (Model) Label() string {
 	return "Password"
 }
 
-func (m *Model) Update(msg tview.Msg) tview.Cmd {
+func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	if _, ok := msg.(form.SubmitMsg); ok {
 		login, password := m.Value(0), m.Value(1)
 		if login == "" || password == "" {
-			return nil
+			return m, nil
 		}
-		return submitLogin(login, password)
+		return m, submitLogin(login, password)
 	}
-	return m.Model.Update(msg)
+	var cmd tview.Cmd
+	m.Model, cmd = m.Model.Update(msg)
+	return m, cmd
 }

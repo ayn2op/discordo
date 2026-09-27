@@ -31,23 +31,36 @@ type Model struct {
 // scrollMsg scrolls the code.
 type scrollMsg textview.Action
 
-func NewModel() *Model {
-	m := &Model{}
+// startMsg starts connecting to the Remote Auth Gateway.
+type startMsg struct{}
+
+func NewModel() Model {
+	var m Model
 	m.setStatus("Press Ctrl+N to open QR login")
 	return m
 }
 
-func (m *Model) Label() string {
+var _ tview.Model[Model] = Model{}
+
+func (Model) Label() string {
 	return "QR"
 }
 
-func (m *Model) Init() tview.Cmd {
-	m.setStatus("Connecting to Remote Auth Gateway...")
-	return connect()
+func (Model) Init() tview.Cmd {
+	return func() tview.Msg { return startMsg{} }
 }
 
-func (m *Model) Update(msg tview.Msg) tview.Cmd {
+func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
+	cmd := m.update(msg)
+	return m, cmd
+}
+
+// update changes m in response to msg and returns a command to run, or nil.
+func (m *Model) update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
+	case startMsg:
+		m.setStatus("Connecting to Remote Auth Gateway...")
+		return connect()
 	case tview.KeyMsg:
 		if msg.Key() == tcell.KeyEsc {
 			m.setStatus("Canceled")
@@ -126,7 +139,7 @@ func halfBlock(top, bottom bool) rune {
 }
 
 // View centers the code, which scrolls when it is taller than the tab.
-func (m *Model) View() tview.Element {
+func (m Model) View() tview.Element {
 	return center.New(
 		textview.New(m.code).
 			ScrollState(&m.scrollState).

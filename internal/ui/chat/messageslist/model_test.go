@@ -29,7 +29,7 @@ func newTestModel(t *testing.T, cfg *config.Config) *Model {
 		t.Fatal(err)
 	}
 	ml.channel = &discord.Channel{ID: 1}
-	return ml
+	return &ml
 }
 
 func TestModelBuildItem(t *testing.T) {
@@ -43,7 +43,7 @@ func TestModelBuildItem(t *testing.T) {
 		t.Fatal("message view was not reused")
 	}
 	ml.selectBottom()
-	ml.Update(olderMessagesLoadedMsg{ChannelID: 1, Older: []discord.Message{{ID: 1}}})
+	*ml, _ = ml.Update(olderMessagesLoadedMsg{ChannelID: 1, Older: []discord.Message{{ID: 1}}})
 	selected, ok := ml.selectedMessage()
 	if !ok || selected.ID != 3 || ml.buildItem(ml.messageIndex(len(ml.items), -1)) != view {
 		t.Fatal("prepend lost selection or cached view")
@@ -125,7 +125,7 @@ func TestModelRebuildItems(t *testing.T) {
 			assertSelected(3)
 			ml.selectUp()
 			assertSelected(2)
-			ml.Update(olderMessagesLoadedMsg{ChannelID: 1, Older: messages[2:]})
+			*ml, _ = ml.Update(olderMessagesLoadedMsg{ChannelID: 1, Older: messages[2:]})
 			assertItems(1, 2, 3)
 			assertSelected(1)
 			ml.selectDown()

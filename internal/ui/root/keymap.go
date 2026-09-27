@@ -5,9 +5,9 @@ import (
 	"github.com/ayn2op/tview/keybind"
 )
 
-var _ help.KeyMap = (*Model)(nil)
+var _ help.KeyMap = Model{}
 
-func (m *Model) ShortHelp() []keybind.Keybind {
+func (m Model) ShortHelp() []keybind.Keybind {
 	global := []keybind.Keybind{
 		m.cfg.Keybinds.ToggleHelp.Keybind,
 		m.cfg.Keybinds.ToggleFullHelp.Keybind,
@@ -21,7 +21,7 @@ func (m *Model) ShortHelp() []keybind.Keybind {
 	return global
 }
 
-func (m *Model) FullHelp() [][]keybind.Keybind {
+func (m Model) FullHelp() [][]keybind.Keybind {
 	global := []keybind.Keybind{
 		m.cfg.Keybinds.ToggleHelp.Keybind,
 		m.cfg.Keybinds.ToggleFullHelp.Keybind,
@@ -35,9 +35,12 @@ func (m *Model) FullHelp() [][]keybind.Keybind {
 	return [][]keybind.Keybind{global}
 }
 
-func (m *Model) activeKeyMap() help.KeyMap {
-	if keyMap, ok := m.inner.(help.KeyMap); ok {
-		return keyMap
+func (m Model) activeKeyMap() help.KeyMap {
+	switch m.screen {
+	case loginScreen:
+		return m.login
+	case chatScreen:
+		return m.chat
 	}
 	return nil
 }

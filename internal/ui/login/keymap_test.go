@@ -17,12 +17,12 @@ func TestModelShortHelp(t *testing.T) {
 	m := NewModel(cfg)
 	for _, tt := range []struct {
 		name               string
-		active             int
+		active             tab
 		wantPrev, wantNext bool
 	}{
-		{"first tab", 0, false, true},
-		{"middle tab", 1, true, true},
-		{"last tab", len(m.tabs) - 1, true, false},
+		{"first tab", passwordTab, false, true},
+		{"middle tab", qrTab, true, true},
+		{"last tab", tokenTab, true, false},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			m.active = tt.active

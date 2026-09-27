@@ -14,60 +14,93 @@ import (
 )
 
 // tab is a login method shown as a tab.
-type tab interface {
-	tview.Model
-	Label() string
-}
+type tab int
+
+const (
+	passwordTab tab = iota
+	qrTab
+	tokenTab
+	tabCount
+)
 
 // Model shows the login methods as tabs inside a bordered box.
 type Model struct {
 	cfg      *config.Config
-	tabs     []tab
-	active   int
+	password password.Model
+	qr       qr.Model
+	token    token.Model
+	active   tab
 	keybinds tabs.Keybinds
 }
 
-func NewModel(cfg *config.Config) *Model {
-	return &Model{
+var _ tview.Model[Model] = Model{}
+
+func NewModel(cfg *config.Config) Model {
+	return Model{
 		cfg:      cfg,
-		tabs:     []tab{password.NewModel(), qr.NewModel(), token.NewModel()},
+		password: password.NewModel(),
+		qr:       qr.NewModel(),
+		token:    token.NewModel(),
 		keybinds: tabs.DefaultKeybinds(),
 	}
 }
 
 // Init initializes the active tab.
-func (m *Model) Init() tview.Cmd {
-	return m.tabs[m.active].Init()
+func (m Model) Init() tview.Cmd {
+	switch m.active {
+	case passwordTab:
+		return m.password.Init()
+	case qrTab:
+		return m.qr.Init()
+	case tokenTab:
+		return m.token.Init()
+	}
+	return nil
 }
 
 // selectTabMsg switches to the tab at an index.
 type selectTabMsg int
 
 // View shows the tabs in a box.
-func (m *Model) View() tview.Element {
-	labels := make([]string, len(m.tabs))
-	for i, tab := range m.tabs {
-		labels[i] = tab.Label()
+func (m Model) View() tview.Element {
+	var content tview.Element
+	switch m.active {
+	case passwordTab:
+		content = m.password.View()
+	case qrTab:
+		content = m.qr.View()
+	case tokenTab:
+		content = m.token.View()
 	}
-	t := tabs.New(labels...).
-		Active(m.active).
-		Content(m.tabs[m.active].View()).
+	t := tabs.New(m.password.Label(), m.qr.Label(), m.token.Label()).
+		Active(int(m.active)).
+		Content(content).
 		Keybinds(m.keybinds).
 		OnSelect(func(i int) tview.Msg { return selectTabMsg(i) })
 	return ui.Box(t, &m.cfg.Theme, false)
 }
 
-func (m *Model) Update(msg tview.Msg) tview.Cmd {
+func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	switch msg := msg.(type) {
 	case selectTabMsg:
-		m.active = int(msg)
-		return m.tabs[m.active].Init()
+		m.active = tab(msg)
+		return m, m.Init()
 	case error:
-		return showErrorDialog(msg)
+		return m, showErrorDialog(msg)
 	case copyErrorMsg:
-		return setClipboard(string(msg))
+		return m, setClipboard(string(msg))
 	}
-	return m.tabs[m.active].Update(msg)
+
+	var cmd tview.Cmd
+	switch m.active {
+	case passwordTab:
+		m.password, cmd = m.password.Update(msg)
+	case qrTab:
+		m.qr, cmd = m.qr.Update(msg)
+	case tokenTab:
+		m.token, cmd = m.token.Update(msg)
+	}
+	return m, cmd
 }
 
 func showErrorDialog(err error) tview.Cmd {

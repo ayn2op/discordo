@@ -21,8 +21,8 @@ type Model struct {
 // Msg moves the list.
 type Msg list.Action
 
-func NewModel(cfg *config.Config) *Model {
-	m := &Model{cfg: cfg, selectionState: list.NewSelectionState()}
+func NewModel(cfg *config.Config) Model {
+	m := Model{cfg: cfg, selectionState: list.NewSelectionState()}
 
 	kbs := cfg.Keybinds.MentionsList
 	m.keybinds = list.Keybinds{
@@ -35,15 +35,15 @@ func NewModel(cfg *config.Config) *Model {
 }
 
 // View shows the list in a box whose bottom corners join the composer's border below it.
-func (m *Model) View() tview.Element {
+func (m Model) View() tview.Element {
 	set := m.cfg.Theme.Border.NormalSet.BorderSet
 	set.BottomLeft, set.BottomRight = set.BottomT, set.BottomT
 	return ui.Box(m.listView(), &m.cfg.Theme, false).Title("Mentions").BorderSet(set)
 }
 
-func (*Model) Init() tview.Cmd { return nil }
+func (Model) Init() tview.Cmd { return nil }
 
-func (m *Model) listView() list.Widget {
+func (m Model) listView() list.Widget {
 	return list.New(&m.selectionState, len(m.entries), func(i int) list.Item { return m.entries[i] }).
 		SelectedStyle(tcell.StyleDefault.Reverse(true)).
 		Keybinds(m.keybinds).
@@ -52,11 +52,11 @@ func (m *Model) listView() list.Widget {
 		OnAction(func(a list.Action) tview.Msg { return Msg(a) })
 }
 
-func (m *Model) Update(msg tview.Msg) tview.Cmd {
+func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	if msg, ok := msg.(Msg); ok {
 		m.selectionState.Perform(list.Action(msg))
 	}
-	return nil
+	return m, nil
 }
 
 func (m *Model) Append(item Item) {
@@ -68,11 +68,11 @@ func (m *Model) Clear() {
 	m.selectionState.SetCursor(-1)
 }
 
-func (m *Model) ItemCount() int {
+func (m Model) ItemCount() int {
 	return len(m.items)
 }
 
-func (m *Model) SelectedInsertText() (string, bool) {
+func (m Model) SelectedInsertText() (string, bool) {
 	index := m.selectionState.Cursor()
 	if index < 0 || index >= len(m.items) {
 		return "", false
@@ -80,7 +80,7 @@ func (m *Model) SelectedInsertText() (string, bool) {
 	return m.items[index].InsertText, true
 }
 
-func (m *Model) MaxDisplayWidth() int {
+func (m Model) MaxDisplayWidth() int {
 	width := 0
 	for _, item := range m.items {
 		width = max(width, uniseg.StringWidth(item.DisplayText))
@@ -96,7 +96,7 @@ func (m *Model) Rebuild() {
 	m.selectionState.SetCursor(min(0, len(m.items)-1))
 }
 
-var _ tview.Model = (*Model)(nil)
+var _ tview.Model[Model] = Model{}
 
 // row is a mention on one line in its style.
 type row struct {

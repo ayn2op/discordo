@@ -70,10 +70,10 @@ type Model struct {
 	renderWidth int
 }
 
-var _ help.KeyMap = (*Model)(nil)
+var _ help.KeyMap = Model{}
 
-func NewModel(cfg *config.Config, state *ningen.State) *Model {
-	ml := &Model{
+func NewModel(cfg *config.Config, state *ningen.State) Model {
+	ml := Model{
 		title:          "Messages",
 		selectionState: list.NewSelectionState(),
 		cfg:            cfg,
@@ -102,7 +102,7 @@ func NewModel(cfg *config.Config, state *ningen.State) *Model {
 type listMsg list.Action
 
 // View shows the messages in a box titled with the channel and footed with who is typing.
-func (ml *Model) View(focused bool) tview.Element {
+func (ml Model) View(focused bool) tview.Element {
 	return ui.Box(ml.listView(focused), &ml.cfg.Theme, focused).Title(ml.title).Footer(ml.footer)
 }
 
@@ -824,7 +824,13 @@ func (ml *Model) selectedMessage() (*discord.Message, bool) {
 	return &ml.items[cursor].message, true
 }
 
-func (ml *Model) Update(msg tview.Msg) tview.Cmd {
+func (ml Model) Update(msg tview.Msg) (Model, tview.Cmd) {
+	cmd := ml.update(msg)
+	return ml, cmd
+}
+
+// update changes ml in response to msg and returns a command to run, or nil.
+func (ml *Model) update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
 	case tview.KeyMsg:
 		switch {
@@ -1378,7 +1384,7 @@ func (ml *Model) InvalidateRendered() {
 	}
 }
 
-func (ml *Model) ShortHelp() []keybind.Keybind {
+func (ml Model) ShortHelp() []keybind.Keybind {
 	cfg := ml.cfg.Keybinds.MessagesList
 	help := []keybind.Keybind{
 		cfg.SelectUp.Keybind,
@@ -1398,7 +1404,7 @@ func (ml *Model) ShortHelp() []keybind.Keybind {
 	return help
 }
 
-func (ml *Model) FullHelp() [][]keybind.Keybind {
+func (ml Model) FullHelp() [][]keybind.Keybind {
 	cfg := ml.cfg.Keybinds.MessagesList
 	var actions, manage, attachments []keybind.Keybind
 	if message, ok := ml.selectedMessage(); ok {

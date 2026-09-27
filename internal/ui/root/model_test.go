@@ -25,17 +25,17 @@ func TestNewModel(t *testing.T) {
 			t.Fatalf("height = %d, want 1", height)
 		}
 
-		m.Update(tcell.NewEventKey(tcell.KeyRune, ".", tcell.ModCtrl))
+		m, _ = m.Update(tcell.NewEventKey(tcell.KeyRune, ".", tcell.ModCtrl))
 		if !m.helpShowAll {
 			t.Fatal("toggle_full_help did not enable full help")
 		}
 
-		m.Update(tcell.NewEventKey(tcell.KeyRune, ".", tcell.ModAlt))
+		m, _ = m.Update(tcell.NewEventKey(tcell.KeyRune, ".", tcell.ModAlt))
 		if m.helpVisible {
 			t.Fatal("help is visible")
 		}
 
-		m.Update(tcell.NewEventKey(tcell.KeyRune, ".", tcell.ModAlt))
+		m, _ = m.Update(tcell.NewEventKey(tcell.KeyRune, ".", tcell.ModAlt))
 		if !m.helpVisible {
 			t.Fatal("help is hidden")
 		}
@@ -49,12 +49,12 @@ func TestNewModel(t *testing.T) {
 			t.Fatal("help is visible")
 		}
 
-		m.Update(tcell.NewEventKey(tcell.KeyRune, ".", tcell.ModCtrl))
+		m, _ = m.Update(tcell.NewEventKey(tcell.KeyRune, ".", tcell.ModCtrl))
 		if m.helpShowAll {
 			t.Fatal("toggle_full_help enabled full help")
 		}
 
-		m.Update(tcell.NewEventKey(tcell.KeyRune, ".", tcell.ModAlt))
+		m, _ = m.Update(tcell.NewEventKey(tcell.KeyRune, ".", tcell.ModAlt))
 		if m.helpVisible {
 			t.Fatal("help is visible")
 		}

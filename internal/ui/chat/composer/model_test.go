@@ -25,7 +25,7 @@ func newTestModel(t *testing.T) (*Model, *config.Config) {
 	}
 	c := NewModel(cfg, ningen.FromState(state.New("")))
 	c.disabled = false
-	return c, cfg
+	return &c, cfg
 }
 
 func TestModelUpdate(t *testing.T) {
@@ -58,7 +58,10 @@ func TestModelUpdate(t *testing.T) {
 	} {
 		t.Run("edit last message: "+tt.name, func(t *testing.T) {
 			c, cfg := newTestModel(t)
-			cmd := c.Update(tt.setup(c, cfg))
+			// setup changes c, so it runs before Update copies it.
+			msg := tt.setup(c, cfg)
+			var cmd tview.Cmd
+			*c, cmd = c.Update(msg)
 			if got := cmd != nil && cmd() == (EditLastMsg{}); got != tt.want {
 				t.Fatalf("asked to edit the last message = %v, want %v", got, tt.want)
 			}
@@ -75,7 +78,7 @@ func TestModelHandle(t *testing.T) {
 		if _, ok := msg.(editMsg); !ok {
 			t.Fatalf("got %v, want an editMsg", msg)
 		}
-		c.Update(msg)
+		*c, _ = c.Update(msg)
 		if c.editState.Value() != "a" {
 			t.Fatalf("text = %q", c.editState.Value())
 		}
@@ -85,7 +88,7 @@ func TestModelHandle(t *testing.T) {
 		if _, ok := msg.(editMsg); !ok {
 			t.Fatalf("got %v, want an editMsg", msg)
 		}
-		c.Update(msg)
+		*c, _ = c.Update(msg)
 		if c.editState.Value() != "a\n" {
 			t.Fatalf("text = %q", c.editState.Value())
 		}

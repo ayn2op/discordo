@@ -18,19 +18,19 @@ type Model struct {
 	cfg         *config.Config
 }
 
-func NewModel(cfg *config.Config) *Model {
-	return &Model{searchState: picker.NewSearchState(), cfg: cfg}
+func NewModel(cfg *config.Config) Model {
+	return Model{searchState: picker.NewSearchState(), cfg: cfg}
 }
 
-var _ tview.Model = (*Model)(nil)
+var _ tview.Model[Model] = Model{}
 
 // actionMsg changes the picker.
 type actionMsg picker.Action
 
-func (*Model) Init() tview.Cmd { return nil }
+func (Model) Init() tview.Cmd { return nil }
 
 // View shows the picker in a box titled Channels.
-func (m *Model) View() tview.Element {
+func (m Model) View() tview.Element {
 	p := ui.Picker(m.items, &m.searchState, m.cfg).
 		OnAction(func(a picker.Action) tview.Msg { return actionMsg(a) }).
 		OnSelect(func(item picker.Item) tview.Msg {
@@ -44,11 +44,11 @@ func (m *Model) View() tview.Element {
 	return ui.Box(p, &m.cfg.Theme, true).Title("Channels")
 }
 
-func (m *Model) Update(msg tview.Msg) tview.Cmd {
+func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	if msg, ok := msg.(actionMsg); ok {
 		m.searchState.Perform(picker.Action(msg))
 	}
-	return nil
+	return m, nil
 }
 
 // Reset clears the query.
@@ -90,7 +90,7 @@ func (m *Model) RefreshChannels(state *ningen.State) {
 	m.searchState.Reset()
 }
 
-func (m *Model) channelItem(state *ningen.State, guild *discord.Guild, channel discord.Channel) picker.Item {
+func (m Model) channelItem(state *ningen.State, guild *discord.Guild, channel discord.Channel) picker.Item {
 	var b strings.Builder
 	b.WriteString(ui.ChannelToString(channel, m.cfg.Icons, state))
 

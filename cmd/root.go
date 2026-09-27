@@ -66,6 +66,5 @@ func Run() error {
 		screen.EnableFocus()
 	}
 
-	model := root.NewModel(cfg)
-	return tview.NewApplication(model, tview.WithScreen(screen)).Run()
+	return tview.NewApplication(root.NewModel(cfg), tview.WithScreen(screen)).Run()
 }

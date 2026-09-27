@@ -18,7 +18,8 @@ func newTestModel(t *testing.T) *Model {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return NewModel(cfg, "")
+	m := NewModel(cfg, "")
+	return &m
 }
 
 func TestModelHandle(t *testing.T) {
@@ -34,7 +35,7 @@ func TestModelHandle(t *testing.T) {
 		if _, ok := msg.(paneMsg); ok {
 			t.Fatalf("the picker's action was marked for a pane: %v", msg)
 		}
-		m.Update(msg)
+		*m, _ = m.Update(msg)
 	})
 }
 
@@ -43,12 +44,12 @@ func TestModelUpdate(t *testing.T) {
 		m := newTestModel(t)
 		m.addTyper(1)
 		m.addTyper(1)
-		m.Update(typingExpiredMsg{userID: 1})
+		*m, _ = m.Update(typingExpiredMsg{userID: 1})
 		if _, ok := m.typers[1]; !ok {
 			t.Fatal("an extended typing indicator expired early")
 		}
 		m.typers[1] = time.Now().Add(-time.Second)
-		m.Update(typingExpiredMsg{userID: 1})
+		*m, _ = m.Update(typingExpiredMsg{userID: 1})
 		if _, ok := m.typers[1]; ok {
 			t.Fatal("the typing indicator did not expire")
 		}
@@ -70,7 +71,7 @@ func TestModelAddMessageOrNotify(t *testing.T) {
 			m := newTestModel(t)
 			m.cfg.Notifications.WhenUnfocused = tt.whenUnfocused
 			m.setSelectedChannel(&discord.Channel{ID: 1})
-			m.Update(tcell.NewEventFocus(tt.focused))
+			*m, _ = m.Update(tcell.NewEventFocus(tt.focused))
 			cmd := m.addMessageOrNotify(&gateway.MessageCreateEvent{Message: discord.Message{ID: 1, ChannelID: 1}})
 			if got := cmd != nil; got != tt.want {
 				t.Fatalf("notified = %v, want %v", got, tt.want)

@@ -35,7 +35,7 @@ import (
 )
 
 type Model struct {
-	// focused is the pane that receives keys: guildsTree, messagesList, composer, or nil.
+	// focused is the pane that receives keys.
 	focused pane
 	// guildsTreeVisible reports whether the guilds tree is shown left of the messages.
 	guildsTreeVisible bool
@@ -43,12 +43,12 @@ type Model struct {
 	channelsPickerOpen    bool
 	attachmentsPickerOpen bool
 
-	guildsTree     *guildstree.Model
-	messagesList   *messageslist.Model
-	composer       *composer.Model
-	channelsPicker *channelspicker.Model
+	guildsTree     guildstree.Model
+	messagesList   messageslist.Model
+	composer       composer.Model
+	channelsPicker channelspicker.Model
 	// attachmentsPicker picks an attachment or link of the selected message.
-	attachmentsPicker *attachmentspicker.Model
+	attachmentsPicker attachmentspicker.Model
 
 	selectedChannel *discord.Channel
 	// windowUnfocused reports whether the terminal window lost focus.
@@ -63,8 +63,10 @@ type Model struct {
 	cfg *config.Config
 }
 
-func NewModel(cfg *config.Config, token string) *Model {
-	m := &Model{
+var _ tview.Model[Model] = Model{}
+
+func NewModel(cfg *config.Config, token string) Model {
+	m := Model{
 		typers: make(map[discord.UserID]time.Time),
 
 		cfg: cfg,
@@ -94,7 +96,7 @@ func NewModel(cfg *config.Config, token string) *Model {
 	m.state.StateLog = func(err error) {
 		slog.Error("state log", "err", err)
 	}
-	m.state.OnRequest = append(m.state.OnRequest, httputil.WithHeaders(http.Headers()), m.onRequest)
+	m.state.OnRequest = append(m.state.OnRequest, httputil.WithHeaders(http.Headers()), onRequest)
 
 	m.guildsTree = guildstree.NewModel(cfg, m.state)
 	m.messagesList = messageslist.NewModel(cfg, m.state)
@@ -105,9 +107,9 @@ func NewModel(cfg *config.Config, token string) *Model {
 	m.guildsTreeVisible = cfg.Sidebar.Visible
 	if m.guildsTreeVisible {
 		// The guilds tree is focused first at start-up when visible.
-		m.focused = m.guildsTree
+		m.focused = guildsTreePane
 	} else {
-		m.focused = m.messagesList
+		m.focused = messagesListPane
 	}
 	return m
 }
@@ -141,46 +143,51 @@ func (m *Model) closeAttachmentsPicker() tview.Cmd {
 	return nil
 }
 
-// picker returns the picker shown on top, or nil if none is open.
-func (m *Model) picker() tview.Model {
+// pickerOpen reports whether a picker is shown on top.
+func (m Model) pickerOpen() bool {
+	return m.channelsPickerOpen || m.attachmentsPickerOpen
+}
+
+// pickerView returns the view of the picker shown on top, or nil if none is open.
+func (m Model) pickerView() tview.Element {
 	switch {
 	case m.channelsPickerOpen:
-		return m.channelsPicker
+		return m.channelsPicker.View()
 	case m.attachmentsPickerOpen:
-		return m.attachmentsPicker
+		return m.attachmentsPicker.View()
 	default:
 		return nil
 	}
 }
 
 func (m *Model) navigateToChannel(channelID discord.ChannelID) tview.Cmd {
-	return tview.Sequence(
-		m.closePicker(),
-		m.guildsTree.Update(guildstree.NavigateMsg{ChannelID: channelID}),
-	)
+	closeCmd := m.closePicker()
+	var cmd tview.Cmd
+	m.guildsTree, cmd = m.guildsTree.Update(guildstree.NavigateMsg{ChannelID: channelID})
+	return tview.Sequence(closeCmd, cmd)
 }
 
 func (m *Model) toggleGuildsTree() tview.Cmd {
 	if m.guildsTreeVisible {
-		if m.focused == m.guildsTree {
-			m.setFocus(m.messagesList)
+		if m.focused == guildsTreePane {
+			m.setFocus(messagesListPane)
 		}
 		m.guildsTreeVisible = false
 	} else {
 		m.guildsTreeVisible = true
-		m.setFocus(m.guildsTree)
+		m.setFocus(guildsTreePane)
 	}
 	return nil
 }
 
 func (m *Model) focusGuildsTree() bool {
-	m.setFocus(m.guildsTree)
-	return m.focused == m.guildsTree
+	m.setFocus(guildsTreePane)
+	return m.focused == guildsTreePane
 }
 
 func (m *Model) focusComposer() bool {
 	if !m.composer.Disabled() {
-		m.setFocus(m.composer)
+		m.setFocus(composerPane)
 		return true
 	}
 	return false
@@ -188,48 +195,54 @@ func (m *Model) focusComposer() bool {
 
 func (m *Model) focusPrevious() {
 	switch m.focused {
-	case m.guildsTree:
+	case guildsTreePane:
 		if m.focusComposer() {
 			return
 		}
-		m.setFocus(m.messagesList)
-	case m.messagesList:
+		m.setFocus(messagesListPane)
+	case messagesListPane:
 		if m.focusGuildsTree() {
 			return
 		}
 		if m.focusComposer() {
 			return
 		}
-		m.setFocus(m.messagesList)
-	case m.composer:
-		m.setFocus(m.messagesList)
+		m.setFocus(messagesListPane)
+	case composerPane:
+		m.setFocus(messagesListPane)
 	}
 }
 
 func (m *Model) focusNext() {
 	switch m.focused {
-	case m.guildsTree:
-		m.setFocus(m.messagesList)
-	case m.messagesList:
+	case guildsTreePane:
+		m.setFocus(messagesListPane)
+	case messagesListPane:
 		if m.focusComposer() {
 			return
 		}
 		if m.focusGuildsTree() {
 			return
 		}
-	case m.composer:
+	case composerPane:
 		if m.focusGuildsTree() {
 			return
 		}
-		m.setFocus(m.messagesList)
+		m.setFocus(messagesListPane)
 	}
 }
 
-func (m *Model) Init() tview.Cmd {
+func (m Model) Init() tview.Cmd {
 	return tview.Batch(openState(m.state), listen(m.events))
 }
 
-func (m *Model) Update(msg tview.Msg) tview.Cmd {
+func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
+	cmd := m.update(msg)
+	return m, cmd
+}
+
+// update changes m in response to msg and returns a command to run, or nil.
+func (m *Model) update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
 	case gateway.Event:
 		return tview.Batch(m.applyEvent(msg), listen(m.events))
@@ -255,7 +268,7 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		title := ui.ChannelToString(msg.Channel, m.cfg.Icons, m.state) + " - " + consts.Name
 		return tview.Batch(tview.SetTitle(title), m.messagesList.SetChannel(&msg.Channel, msg.Messages))
 	case messageslist.Msg:
-		return m.messagesList.Update(msg)
+		return m.updatePane(messagesListPane, msg)
 	case typingExpiredMsg:
 		if until, ok := m.typers[msg.userID]; ok && !time.Now().Before(until) {
 			m.removeTyper(msg.userID)
@@ -299,7 +312,7 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 			return nil
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusMessagesList.Keybind):
 			m.composer.CloseMentions()
-			m.setFocus(m.messagesList)
+			m.setFocus(messagesListPane)
 			return nil
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusComposer.Keybind):
 			m.focusComposer()
@@ -321,7 +334,7 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 			return tview.Sequence(closeState(m.state), logout())
 		}
 	case composer.TabSuggestMsg, mentionslist.Msg:
-		return m.composer.Update(msg)
+		return m.updatePane(composerPane, msg)
 	case paneMsg:
 		if msg.focus {
 			m.setFocus(msg.pane)
@@ -329,20 +342,37 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		if msg.msg == nil {
 			return nil
 		}
-		return msg.pane.Update(msg.msg)
+		return m.updatePane(msg.pane, msg.msg)
 	}
 	return m.route(msg)
 }
 
 // route sends msg to the open picker, which takes all input, and otherwise to the focused pane.
 func (m *Model) route(msg tview.Msg) tview.Cmd {
-	if picker := m.picker(); picker != nil {
-		return picker.Update(msg)
+	var cmd tview.Cmd
+	switch {
+	case m.channelsPickerOpen:
+		m.channelsPicker, cmd = m.channelsPicker.Update(msg)
+	case m.attachmentsPickerOpen:
+		m.attachmentsPicker, cmd = m.attachmentsPicker.Update(msg)
+	default:
+		cmd = m.updatePane(m.focused, msg)
 	}
-	if m.focused != nil {
-		return m.focused.Update(msg)
+	return cmd
+}
+
+// updatePane updates pane p with msg.
+func (m *Model) updatePane(p pane, msg tview.Msg) tview.Cmd {
+	var cmd tview.Cmd
+	switch p {
+	case guildsTreePane:
+		m.guildsTree, cmd = m.guildsTree.Update(msg)
+	case messagesListPane:
+		m.messagesList, cmd = m.messagesList.Update(msg)
+	case composerPane:
+		m.composer, cmd = m.composer.Update(msg)
 	}
-	return nil
+	return cmd
 }
 
 // paneMsg is what a pane's element made of a mouse message within it. A left mouse button press also focuses the pane.
@@ -371,31 +401,44 @@ func (p paneElement) Handle(msg tview.Msg, area tview.Rectangle) tview.Msg {
 	return out
 }
 
-// pane is a model shown side by side with the others, one of which has the focus.
-type pane interface {
-	Update(tview.Msg) tview.Cmd
-	View(focused bool) tview.Element
-}
+// pane is one of the models shown side by side, one of which has the focus.
+type pane int
+
+const (
+	guildsTreePane pane = iota
+	messagesListPane
+	composerPane
+)
 
 // paneView returns the view of p, focused if it has the focus and no picker is open, marked so that clicking it focuses it.
-func (m *Model) paneView(p pane) tview.Element {
-	return paneElement{pane: p, child: p.View(m.focused == p && m.picker() == nil)}
+func (m Model) paneView(p pane) tview.Element {
+	focused := m.focused == p && !m.pickerOpen()
+	var child tview.Element
+	switch p {
+	case guildsTreePane:
+		child = m.guildsTree.View(focused)
+	case messagesListPane:
+		child = m.messagesList.View(focused)
+	case composerPane:
+		child = m.composer.View(focused)
+	}
+	return paneElement{pane: p, child: child}
 }
 
 func (m *Model) setFocus(target pane) {
-	if target == nil || target == m.focused || (target == m.guildsTree && !m.guildsTreeVisible) {
+	if target == m.focused || (target == guildsTreePane && !m.guildsTreeVisible) {
 		return
 	}
 	m.focused = target
 }
 
 // View shows the guilds tree left of the messages above the composer, with the mentions list over the messages and an open picker on top.
-func (m *Model) View() tview.Element {
-	picker := m.picker()
+func (m Model) View() tview.Element {
+	picker := m.pickerView()
 
 	var right tview.Element = column.New(
-		m.paneView(m.messagesList),
-		column.New(m.paneView(m.composer)).Height(tview.Fixed(m.composer.Height())),
+		m.paneView(messagesListPane),
+		column.New(m.paneView(composerPane)).Height(tview.Fixed(m.composer.Height())),
 	)
 	if mentions := m.composer.MentionsView(); mentions != nil {
 		right = stack.New(right, mentions)
@@ -405,7 +448,7 @@ func (m *Model) View() tview.Element {
 	if m.guildsTreeVisible {
 		width := m.cfg.Sidebar.WidthPercent
 		main = row.New(
-			column.New(m.paneView(m.guildsTree)).Width(tview.FillPortion(width)),
+			column.New(m.paneView(guildsTreePane)).Width(tview.FillPortion(width)),
 			column.New(right).Width(tview.FillPortion(100-width)),
 		)
 	}
@@ -417,7 +460,7 @@ func (m *Model) View() tview.Element {
 		main,
 		// The backdrop keeps clicks from reaching the panes behind the picker.
 		opaque.New(backdrop.New().Style(m.cfg.Theme.Dialog.BackgroundStyle.Style)),
-		center.New(column.New(picker.View()).Width(tview.Fixed(m.cfg.Picker.Width)).Height(tview.Fixed(m.cfg.Picker.Height))),
+		center.New(column.New(picker).Width(tview.Fixed(m.cfg.Picker.Width)).Height(tview.Fixed(m.cfg.Picker.Height))),
 	)
 }
 

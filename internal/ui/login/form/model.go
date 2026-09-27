@@ -2,6 +2,8 @@
 package form
 
 import (
+	"slices"
+
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/button"
 	"github.com/ayn2op/tview/column"
@@ -35,21 +37,25 @@ type editMsg struct {
 
 type nextMsg struct{}
 
-func New(button string, fields ...Field) *Model {
-	return &Model{fields: fields, button: button}
+func New(button string, fields ...Field) Model {
+	return Model{fields: fields, button: button}
 }
 
+var _ tview.Model[Model] = Model{}
+
 // Value returns the text of field index.
-func (m *Model) Value(index int) string {
+func (m Model) Value(index int) string {
 	return m.fields[index].EditState.Value()
 }
 
-func (m *Model) Init() tview.Cmd { return nil }
+func (Model) Init() tview.Cmd { return nil }
 
-func (m *Model) Update(msg tview.Msg) tview.Cmd {
+func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	count := len(m.fields) + 1
 	switch msg := msg.(type) {
 	case editMsg:
+		// Earlier copies of the model share the fields, so change a copy of them.
+		m.fields = slices.Clone(m.fields)
 		m.fields[msg.index].EditState.Perform(msg.action)
 	case nextMsg:
 		m.focus = (m.focus + 1) % count
@@ -61,10 +67,10 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 			m.focus = (m.focus + count - 1) % count
 		}
 	}
-	return nil
+	return m, nil
 }
 
-func (m *Model) View() tview.Element {
+func (m Model) View() tview.Element {
 	labelWidth := 0
 	for _, f := range m.fields {
 		labelWidth = max(labelWidth, uniseg.StringWidth(f.Label)+1)

@@ -24,8 +24,20 @@ import (
 
 const tokenEnvVarKey = "DISCORDO_TOKEN"
 
+// screen is what is shown above help.
+type screen int
+
+const (
+	noScreen screen = iota
+	loginScreen
+	chatScreen
+)
+
 type Model struct {
-	inner tview.Model
+	// screen is the model shown above help: login, chat, or neither before the token is known.
+	screen screen
+	login  login.Model
+	chat   chat.Model
 	// helpVisible reports whether help is shown below the inner model, and helpShowAll whether it shows every keybind.
 	helpVisible, helpShowAll bool
 	// modal is the request shown in a dialog, or nil when none is open, and dialogFocus its focused button.
@@ -35,13 +47,13 @@ type Model struct {
 	cfg *config.Config
 }
 
-func NewModel(cfg *config.Config) *Model {
-	return &Model{cfg: cfg, helpVisible: cfg.Help.Enabled}
+func NewModel(cfg *config.Config) Model {
+	return Model{cfg: cfg, helpVisible: cfg.Help.Enabled}
 }
 
-var _ tview.Model = (*Model)(nil)
+var _ tview.Model[Model] = Model{}
 
-func (m *Model) Init() tview.Cmd {
+func (m Model) Init() tview.Cmd {
 	var cmd tview.Cmd
 	if token := os.Getenv(tokenEnvVarKey); token != "" {
 		cmd = useToken(token)
@@ -55,7 +67,13 @@ func (m *Model) Init() tview.Cmd {
 	)
 }
 
-func (m *Model) Update(msg tview.Msg) tview.Cmd {
+func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
+	cmd := m.update(msg)
+	return m, cmd
+}
+
+// update changes m in response to msg and returns a command to run, or nil.
+func (m *Model) update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
 	case loginMsg:
 		return m.showLogin()
@@ -99,11 +117,7 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		case keybind.Matches(msg, m.cfg.Keybinds.Suspend.Keybind):
 			return suspend()
 		case keybind.Matches(msg, m.cfg.Keybinds.Quit.Keybind):
-			var innerCmd tview.Cmd
-			if m.inner != nil {
-				innerCmd = m.inner.Update(chat.QuitMsg{})
-			}
-			return tview.Batch(innerCmd, tview.Quit())
+			return tview.Batch(m.updateScreen(chat.QuitMsg{}), tview.Quit())
 		}
 	case tview.MouseMsg, tview.PasteMsg:
 		if m.modal != nil {
@@ -111,17 +125,29 @@ func (m *Model) Update(msg tview.Msg) tview.Cmd {
 		}
 	}
 
-	if m.inner != nil {
-		return m.inner.Update(msg)
+	return m.updateScreen(msg)
+}
+
+// updateScreen updates the model shown above help with msg.
+func (m *Model) updateScreen(msg tview.Msg) tview.Cmd {
+	var cmd tview.Cmd
+	switch m.screen {
+	case loginScreen:
+		m.login, cmd = m.login.Update(msg)
+	case chatScreen:
+		m.chat, cmd = m.chat.Update(msg)
 	}
-	return nil
+	return cmd
 }
 
 // View shows the inner model above help, with the modal dialog on top of both when one is open.
-func (m *Model) View() tview.Element {
+func (m Model) View() tview.Element {
 	var innerView, helpView tview.Element
-	if m.inner != nil {
-		innerView = m.inner.View()
+	switch m.screen {
+	case loginScreen:
+		innerView = m.login.View()
+	case chatScreen:
+		innerView = m.chat.View()
 	}
 	if m.helpVisible {
 		padded := box.New(m.helpView()).Padding(0, 0, m.cfg.Help.Padding[0], m.cfg.Help.Padding[1])
@@ -143,22 +169,23 @@ func (m *Model) showModal(request ui.ModalMsg) tview.Cmd {
 }
 
 func (m *Model) showLogin() tview.Cmd {
-	return m.show(login.NewModel(m.cfg))
+	m.screen, m.login, m.chat = loginScreen, login.NewModel(m.cfg), chat.Model{}
+	return m.show(m.login.Init())
 }
 
 func (m *Model) showChat(token string) tview.Cmd {
-	return m.show(chat.NewModel(m.cfg, token))
+	m.screen, m.chat, m.login = chatScreen, chat.NewModel(m.cfg, token), login.Model{}
+	return m.show(m.chat.Init())
 }
 
-// show replaces the inner model, closing any open modal.
-func (m *Model) show(inner tview.Model) tview.Cmd {
-	m.inner = inner
+// show closes any open modal after the shown model changed and returns what it needs done, with init its first command.
+func (m *Model) show(init tview.Cmd) tview.Cmd {
 	m.modal = nil
-	return tview.Batch(tview.SetTitle(consts.Name), m.inner.Init())
+	return tview.Batch(tview.SetTitle(consts.Name), init)
 }
 
 // helpView returns the help for the keybinds that currently apply.
-func (m *Model) helpView() help.Widget {
+func (m Model) helpView() help.Widget {
 	cfg := m.cfg
 	styles := help.DefaultStyles()
 	styles.ShortKey = cfg.Theme.Help.ShortKeyStyle.Style
@@ -178,7 +205,7 @@ type (
 )
 
 // dialogView returns the dialog for the open modal request.
-func (m *Model) dialogView() tview.Element {
+func (m Model) dialogView() tview.Element {
 	labels := make([]string, len(m.modal.Buttons))
 	for i, button := range m.modal.Buttons {
 		labels[i] = button.Label
