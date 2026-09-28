@@ -20,10 +20,10 @@ func TestModelMoveDMToFront(t *testing.T) {
 		dmRoot := tree.NewNode("Direct Messages").SetChildren([]*tree.Node{first, second, third})
 		m := Model{
 			dmRootNode: dmRoot,
-			channelNodeByID: map[discord.ChannelID]*tree.Node{
-				firstID:  first,
-				secondID: second,
-				thirdID:  third,
+			nodes: map[discord.Snowflake]*tree.Node{
+				discord.Snowflake(firstID):  first,
+				discord.Snowflake(secondID): second,
+				discord.Snowflake(thirdID):  third,
 			},
 		}
 
@@ -40,8 +40,8 @@ func TestModelMoveDMToFront(t *testing.T) {
 		first := tree.NewNode("first").SetReference(firstID)
 		dmRoot := tree.NewNode("Direct Messages").SetChildren([]*tree.Node{first})
 		m := Model{
-			dmRootNode:      dmRoot,
-			channelNodeByID: map[discord.ChannelID]*tree.Node{},
+			dmRootNode: dmRoot,
+			nodes:      map[discord.Snowflake]*tree.Node{},
 		}
 
 		m.moveDMToFront(discord.ChannelID(2))

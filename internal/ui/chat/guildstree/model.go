@@ -26,22 +26,18 @@ type Model struct {
 	cfg   *config.Config
 	state *ningen.State
 
-	// Fast-path indexes for frequent event handlers (read updates, picker navigation).
-	// They mirror the current rendered tree and are rebuilt on READY before nodes are added.
-	guildNodeByID   map[discord.GuildID]*tree.Node
-	channelNodeByID map[discord.ChannelID]*tree.Node
-	dmRootNode      *tree.Node
+	// nodes indexes the guild and channel nodes for frequent event handlers (read updates, picker navigation).
+	// It mirrors the current rendered tree and is rebuilt on READY before nodes are added.
+	nodes      map[discord.Snowflake]*tree.Node
+	dmRootNode *tree.Node
 }
 
 func NewModel(cfg *config.Config, state *ningen.State) Model {
 	return Model{
-		root: tree.NewNode(""),
-
+		root:  tree.NewNode(""),
 		cfg:   cfg,
 		state: state,
-
-		guildNodeByID:   make(map[discord.GuildID]*tree.Node),
-		channelNodeByID: make(map[discord.ChannelID]*tree.Node),
+		nodes: make(map[discord.Snowflake]*tree.Node),
 	}
 }
 
@@ -86,8 +82,7 @@ func (m Model) View(focused bool) tview.Element {
 
 func (m *Model) reset() *tree.Node {
 	// Keep allocated map capacity; READY can rebuild often during reconnects.
-	clear(m.guildNodeByID)
-	clear(m.channelNodeByID)
+	clear(m.nodes)
 	m.dmRootNode = tree.NewNode("Direct Messages").
 		SetReference(dmNode{}).
 		SetExpandable(true).
@@ -160,7 +155,7 @@ func (m *Model) updateDMNodeStyle(userID discord.UserID) {
 		return
 	}
 
-	node, ok := m.channelNodeByID[channel.ID]
+	node, ok := m.nodes[discord.Snowflake(channel.ID)]
 	if node == nil || !ok {
 		return
 	}
@@ -172,7 +167,7 @@ func (m *Model) moveDMToFront(channelID discord.ChannelID) {
 		return
 	}
 
-	node := m.channelNodeByID[channelID]
+	node := m.nodes[discord.Snowflake(channelID)]
 	children := m.dmRootNode.Children()
 	if index := slices.Index(children, node); index > 0 {
 		copy(children[1:index+1], children[:index])
@@ -241,7 +236,7 @@ func (m *Model) createGuildNode(parent *tree.Node, guild discord.Guild) {
 		SetIndent(m.cfg.Sidebar.Indents.Guild)
 	m.setNodeLineStyle(guildNode, m.guildNodeStyle(guild.ID))
 	parent.AddChild(guildNode)
-	m.guildNodeByID[guild.ID] = guildNode
+	m.nodes[discord.Snowflake(guild.ID)] = guildNode
 }
 
 func (m *Model) createChannelNode(parent *tree.Node, channel discord.Channel) {
@@ -267,7 +262,7 @@ func (m *Model) createChannelNode(parent *tree.Node, channel discord.Channel) {
 		channelNode.SetIndent(indents.Channel)
 	}
 	parent.AddChild(channelNode)
-	m.channelNodeByID[channel.ID] = channelNode
+	m.nodes[discord.Snowflake(channel.ID)] = channelNode
 }
 
 func (m *Model) setNodeLineStyle(node *tree.Node, style tcell.Style) {
@@ -309,7 +304,7 @@ func (m *Model) createChannelNodes(node *tree.Node, channels []discord.Channel) 
 	for _, channel := range channels {
 		if channel.ParentID.IsValid() {
 			// Parent categories are inserted earlier in this function, so this lookup is O(1) and avoids per-channel subtree walks.
-			parent := m.channelNodeByID[channel.ParentID]
+			parent := m.nodes[discord.Snowflake(channel.ParentID)]
 			if parent != nil {
 				m.createChannelNode(parent, channel)
 			}
@@ -387,9 +382,9 @@ func (m *Model) update(msg tview.Msg) tview.Cmd {
 func (m *Model) findNodeByReference(reference any) *tree.Node {
 	switch ref := reference.(type) {
 	case discord.GuildID:
-		return m.guildNodeByID[ref]
+		return m.nodes[discord.Snowflake(ref)]
 	case discord.ChannelID:
-		return m.channelNodeByID[ref]
+		return m.nodes[discord.Snowflake(ref)]
 	case dmNode:
 		return m.dmRootNode
 	default:
