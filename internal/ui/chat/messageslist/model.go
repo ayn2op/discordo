@@ -56,7 +56,6 @@ type Model struct {
 
 	scrollBar           scrollbar.Widget
 	scrollBarVisibility list.ScrollBarVisibility
-	keybinds            list.Keybinds
 
 	cfg   *config.Config
 	state *ningen.State
@@ -83,12 +82,6 @@ func NewModel(cfg *config.Config, state *ningen.State) Model {
 
 	ml.selectionState.SetTrackEnd(true)
 	ml.selectionState.ScrollToEnd()
-	ml.keybinds = list.Keybinds{
-		ScrollUp:     cfg.Keybinds.MessagesList.ScrollUp.Keybind,
-		ScrollDown:   cfg.Keybinds.MessagesList.ScrollDown.Keybind,
-		ScrollTop:    cfg.Keybinds.MessagesList.ScrollTop.Keybind,
-		ScrollBottom: cfg.Keybinds.MessagesList.ScrollBottom.Keybind,
-	}
 	ml.scrollBarVisibility = cfg.Theme.ScrollBar.Visibility.ScrollBarVisibility
 	ml.scrollBar = scrollbar.New().
 		TrackStyle(cfg.Theme.ScrollBar.TrackStyle.Style).
@@ -99,7 +92,7 @@ func NewModel(cfg *config.Config, state *ningen.State) Model {
 }
 
 // listMsg moves or scrolls the messages list.
-type listMsg list.Action
+type listMsg list.Change
 
 // View shows the messages in a box titled with the channel and footed with who is typing.
 func (ml Model) View(focused bool) tview.Element {
@@ -110,9 +103,9 @@ func (ml *Model) listView(focused bool) list.Widget {
 	return list.New(&ml.selectionState, len(ml.items), ml.buildItem).
 		SelectedStyle(ml.cfg.Theme.MessagesList.SelectedMessageStyle.Style).
 		ScrollBar(ml.scrollBar, ml.scrollBarVisibility).
-		Keybinds(ml.keybinds).
+		Keybind(ui.ScrollKeybind(ml.cfg.Keybinds.MessagesList.ScrollKeybinds)).
 		Focused(focused).
-		OnAction(func(a list.Action) tview.Msg { return listMsg(a) })
+		OnChange(func(a list.Change) tview.Msg { return listMsg(a) })
 }
 
 func (ml *Model) cursor() int {
@@ -903,7 +896,7 @@ func (ml *Model) update(msg tview.Msg) tview.Cmd {
 	case attachmentActionMsg:
 		return msg.Action
 	case listMsg:
-		ml.selectionState.Perform(list.Action(msg))
+		ml.selectionState.Apply(list.Change(msg))
 		ml.onRowCursorChanged(ml.cursor())
 	}
 	return nil

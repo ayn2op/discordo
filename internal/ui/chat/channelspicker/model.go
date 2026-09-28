@@ -24,15 +24,15 @@ func NewModel(cfg *config.Config) Model {
 
 var _ tview.Model[Model] = Model{}
 
-// actionMsg changes the picker.
-type actionMsg picker.Action
+// changeMsg changes the picker.
+type changeMsg picker.Change
 
 func (Model) Init() tview.Cmd { return nil }
 
 // View shows the picker in a box titled Channels.
 func (m Model) View() tview.Element {
 	p := ui.Picker(m.items, &m.searchState, m.cfg).
-		OnAction(func(a picker.Action) tview.Msg { return actionMsg(a) }).
+		OnChange(func(a picker.Change) tview.Msg { return changeMsg(a) }).
 		OnSelect(func(item picker.Item) tview.Msg {
 			channelID, ok := item.Reference.(discord.ChannelID)
 			if !ok || !channelID.IsValid() {
@@ -45,8 +45,8 @@ func (m Model) View() tview.Element {
 }
 
 func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
-	if msg, ok := msg.(actionMsg); ok {
-		m.searchState.Perform(picker.Action(msg))
+	if msg, ok := msg.(changeMsg); ok {
+		m.searchState.Apply(picker.Change(msg))
 	}
 	return m, nil
 }

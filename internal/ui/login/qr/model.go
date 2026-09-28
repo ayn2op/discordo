@@ -29,7 +29,7 @@ type Model struct {
 }
 
 // scrollMsg scrolls the code.
-type scrollMsg textview.Action
+type scrollMsg textview.Change
 
 // startMsg starts connecting to the Remote Auth Gateway.
 type startMsg struct{}
@@ -68,7 +68,7 @@ func (m *Model) update(msg tview.Msg) tview.Cmd {
 		}
 		return nil
 	case scrollMsg:
-		m.scrollState.Perform(textview.Action(msg))
+		m.scrollState.Apply(textview.Change(msg))
 		return nil
 
 	case connCreateMsg:
@@ -147,7 +147,7 @@ func (m Model) View() tview.Element {
 			Alignment(tview.AlignmentCenter).
 			Height(tview.Fixed(len(m.code))).
 			Focused(true).
-			OnAction(func(a textview.Action) tview.Msg { return scrollMsg(a) }),
+			OnChange(func(a textview.Change) tview.Msg { return scrollMsg(a) }),
 	)
 }
 

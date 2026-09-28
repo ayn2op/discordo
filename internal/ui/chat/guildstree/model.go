@@ -46,7 +46,7 @@ func (m *Model) CurrentNode() *tree.Node {
 }
 
 // Msg moves or scrolls the tree.
-type Msg tree.Action
+type Msg tree.Change
 
 // View shows the tree in a box titled Guilds.
 func (m Model) View(focused bool) tview.Element {
@@ -66,16 +66,9 @@ func (m Model) View(focused bool) tview.Element {
 		Graphics(theme.GuildsTree.Graphics).
 		GraphicsSet(set).
 		GraphicsStyle(tcell.StyleDefault.Foreground(tcell.GetColor(theme.GuildsTree.GraphicsColor))).
-		Keybinds(tree.Keybinds{
-			Up:           kbs.SelectUp.Keybind,
-			Down:         kbs.SelectDown.Keybind,
-			Top:          kbs.SelectTop.Keybind,
-			Bottom:       kbs.SelectBottom.Keybind,
-			MoveToParent: kbs.MoveToParentNode.Keybind,
-			Select:       kbs.SelectCurrent.Keybind,
-		}).
+		Keybind(ui.TreeKeybind(kbs)).
 		Focused(focused).
-		OnAction(func(a tree.Action) tview.Msg { return Msg(a) })
+		OnChange(func(a tree.Change) tview.Msg { return Msg(a) })
 	return ui.Box(t, theme, focused).Title("Guilds")
 }
 
@@ -356,7 +349,7 @@ func (m *Model) update(msg tview.Msg) tview.Cmd {
 	case NavigateMsg:
 		return m.navigate(msg.ChannelID)
 	case Msg:
-		m.selectionState.Perform(tree.Action(msg))
+		m.selectionState.Apply(tree.Change(msg))
 		return nil
 	case tree.SelectedMsg:
 		m.selectionState.SetCurrentNode(msg.Node)

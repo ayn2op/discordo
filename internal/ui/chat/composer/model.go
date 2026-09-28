@@ -50,7 +50,6 @@ var mentionRegex = regexp.MustCompile("@[a-zA-Z0-9._]+")
 type Model struct {
 	title, footer string
 	editState     textarea.EditState
-	keybinds      textarea.Keybinds
 	placeholder   string
 	disabled      bool
 
@@ -88,7 +87,7 @@ type SentMsg struct{}
 type editorMsg string
 
 // editMsg edits the composer's text.
-type editMsg textarea.Action
+type editMsg textarea.Change
 
 var _ help.KeyMap = Model{}
 
@@ -103,8 +102,6 @@ func NewModel(cfg *config.Config, state *ningen.State) Model {
 		mentionsList:      mentionslist.NewModel(cfg),
 		height:            3,
 	}
-	c.keybinds = textarea.DefaultKeybinds()
-	c.keybinds.Newline = cfg.Keybinds.Composer.Newline.Keybind
 	return c
 }
 
@@ -153,9 +150,9 @@ func (v view) Handle(msg tview.Msg, area tview.Rectangle) tview.Msg {
 func (c *Model) box(focused bool) box.Widget {
 	text := textarea.New(&c.editState).
 		Placeholder(c.placeholder).
-		Keybinds(c.keybinds).
+		Keybind(c.editAction).
 		Focused(focused && !c.disabled).
-		OnAction(func(a textarea.Action) tview.Msg { return editMsg(a) })
+		OnChange(func(a textarea.Change) tview.Msg { return editMsg(a) })
 	return ui.Box(text, &c.cfg.Theme, focused).Title(c.title).Footer(c.footer)
 }
 
@@ -254,7 +251,7 @@ func (c *Model) update(msg tview.Msg) tview.Cmd {
 		c.setText(string(msg))
 		return nil
 	case editMsg:
-		c.editState.Perform(textarea.Action(msg))
+		c.editState.Apply(textarea.Change(msg))
 		c.resizeForContent()
 		typingCmd := c.sendTyping()
 		if c.cfg.AutocompleteLimit > 0 {
@@ -951,6 +948,15 @@ func (c *Model) attach(name string, reader io.Reader) {
 
 func (c *Model) canAttachFiles() bool {
 	return c.channel != nil && c.state.HasPermissions(c.channel.ID, discord.PermissionAttachFiles)
+}
+
+// editAction binds the configured newline key and textarea's other default keys.
+func (c Model) editAction(key tview.KeyMsg) (textarea.Action, bool) {
+	if keybind.Matches(key, c.cfg.Keybinds.Composer.Newline.Keybind) {
+		return textarea.ActionNewline, true
+	}
+	action, ok := textarea.DefaultKeybind(key)
+	return action, ok && action != textarea.ActionNewline
 }
 
 func (c Model) ShortHelp() []keybind.Keybind {

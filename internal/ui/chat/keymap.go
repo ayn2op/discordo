@@ -1,7 +1,6 @@
 package chat
 
 import (
-	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview/help"
 	"github.com/ayn2op/tview/keybind"
 )
@@ -28,7 +27,7 @@ func (m Model) FullHelp() [][]keybind.Keybind {
 
 func (m Model) activeKeyMap() help.KeyMap {
 	if m.pickerOpen() {
-		return ui.PickerKeybinds(m.cfg)
+		return m.cfg.Keybinds.Picker
 	}
 
 	switch m.focused {

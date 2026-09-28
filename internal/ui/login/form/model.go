@@ -32,7 +32,7 @@ type SubmitMsg struct{}
 
 type editMsg struct {
 	index  int
-	action textinput.Action
+	change textinput.Change
 }
 
 type nextMsg struct{}
@@ -56,7 +56,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	case editMsg:
 		// Earlier copies of the model share the fields, so change a copy of them.
 		m.fields = slices.Clone(m.fields)
-		m.fields[msg.index].EditState.Perform(msg.action)
+		m.fields[msg.index].EditState.Apply(msg.change)
 	case nextMsg:
 		m.focus = (m.focus + 1) % count
 	case tview.KeyMsg:
@@ -81,7 +81,7 @@ func (m Model) View() tview.Element {
 		input := textinput.New(&f.EditState).
 			Mask(f.Mask).
 			Focused(m.focus == i).
-			OnAction(func(a textinput.Action) tview.Msg { return editMsg{index: i, action: a} }).
+			OnChange(func(a textinput.Change) tview.Msg { return editMsg{index: i, change: a} }).
 			OnSubmit(nextMsg{})
 		layout = layout.Push(row.New(column.New(text.New(f.Label)).Width(tview.Fixed(labelWidth)), input).Height(tview.Fixed(1)))
 	}

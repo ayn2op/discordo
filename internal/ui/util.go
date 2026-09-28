@@ -45,21 +45,8 @@ func Picker(items picker.Items, searchState *picker.SearchState, cfg *config.Con
 		Arrows(scrollbar.ArrowsBoth)
 	return picker.New(items, searchState).
 		ScrollBar(bar, cfg.Theme.ScrollBar.Visibility.ScrollBarVisibility).
-		Keybinds(PickerKeybinds(cfg))
-}
-
-// PickerKeybinds returns the configured picker keybinds.
-func PickerKeybinds(cfg *config.Config) picker.Keybinds {
-	kbs := cfg.Keybinds.Picker
-	return picker.Keybinds{
-		Cancel: kbs.Cancel.Keybind,
-		Select: kbs.Select.Keybind,
-
-		SelectUp:     kbs.SelectUp.Keybind,
-		SelectDown:   kbs.SelectDown.Keybind,
-		SelectTop:    kbs.SelectTop.Keybind,
-		SelectBottom: kbs.SelectBottom.Keybind,
-	}
+		Keybind(pickerKeybind(cfg.Keybinds.Picker)).
+		ListKeybind(SelectionKeybind(cfg.Keybinds.Picker.SelectionKeybinds))
 }
 
 // ChannelToString returns how channel is shown in the UI: an icon for its type and its name, or the recipients' names for a DM.

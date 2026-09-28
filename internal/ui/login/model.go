@@ -30,7 +30,6 @@ type Model struct {
 	qr       qr.Model
 	token    token.Model
 	active   tab
-	keybinds tabs.Keybinds
 }
 
 var _ tview.Model[Model] = Model{}
@@ -41,7 +40,6 @@ func NewModel(cfg *config.Config) Model {
 		password: password.NewModel(),
 		qr:       qr.NewModel(),
 		token:    token.NewModel(),
-		keybinds: tabs.DefaultKeybinds(),
 	}
 }
 
@@ -75,7 +73,7 @@ func (m Model) View() tview.Element {
 	t := tabs.New(m.password.Label(), m.qr.Label(), m.token.Label()).
 		Active(int(m.active)).
 		Content(content).
-		Keybinds(m.keybinds).
+		Keybind(tabAction).
 		OnSelect(func(i int) tview.Msg { return selectTabMsg(i) })
 	return ui.Box(t, &m.cfg.Theme, false)
 }

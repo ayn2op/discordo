@@ -15,22 +15,14 @@ type Model struct {
 	selectionState list.SelectionState
 	items          []Item
 	entries        []list.Item
-	keybinds       list.Keybinds
 }
 
 // Msg moves the list.
-type Msg list.Action
+type Msg list.Change
 
 func NewModel(cfg *config.Config) Model {
 	m := Model{cfg: cfg, selectionState: list.NewSelectionState()}
 
-	kbs := cfg.Keybinds.MentionsList
-	m.keybinds = list.Keybinds{
-		SelectUp:     kbs.SelectUp.Keybind,
-		SelectDown:   kbs.SelectDown.Keybind,
-		SelectTop:    kbs.SelectTop.Keybind,
-		SelectBottom: kbs.SelectBottom.Keybind,
-	}
 	return m
 }
 
@@ -46,15 +38,15 @@ func (Model) Init() tview.Cmd { return nil }
 func (m Model) listView() list.Widget {
 	return list.New(&m.selectionState, len(m.entries), func(i int) list.Item { return m.entries[i] }).
 		SelectedStyle(tcell.StyleDefault.Reverse(true)).
-		Keybinds(m.keybinds).
+		Keybind(ui.SelectionKeybind(m.cfg.Keybinds.MentionsList.SelectionKeybinds)).
 		// The list is only shown while mentions are being completed, so it takes its keys first.
 		Focused(true).
-		OnAction(func(a list.Action) tview.Msg { return Msg(a) })
+		OnChange(func(a list.Change) tview.Msg { return Msg(a) })
 }
 
 func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	if msg, ok := msg.(Msg); ok {
-		m.selectionState.Perform(list.Action(msg))
+		m.selectionState.Apply(list.Change(msg))
 	}
 	return m, nil
 }
