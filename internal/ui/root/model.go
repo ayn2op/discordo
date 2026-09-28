@@ -17,6 +17,7 @@ import (
 	"github.com/ayn2op/tview/column"
 	"github.com/ayn2op/tview/dialog"
 	"github.com/ayn2op/tview/help"
+	"github.com/ayn2op/tview/inert"
 	"github.com/ayn2op/tview/keybind"
 	"github.com/ayn2op/tview/stack"
 	"github.com/gdamore/tcell/v3"
@@ -157,7 +158,7 @@ func (m Model) View() tview.Element {
 	if m.modal == nil {
 		return content
 	}
-	return stack.New(inert{content}, backdrop.New().Style(m.cfg.Theme.Dialog.BackgroundStyle.Style), m.dialogView())
+	return stack.New(inert.New(content), backdrop.New().Style(m.cfg.Theme.Dialog.BackgroundStyle.Style), m.dialogView())
 }
 
 func (m *Model) showModal(request ui.ModalMsg) tview.Cmd {

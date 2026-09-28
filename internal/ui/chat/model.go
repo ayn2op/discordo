@@ -28,8 +28,8 @@ import (
 	"github.com/ayn2op/tview/backdrop"
 	"github.com/ayn2op/tview/center"
 	"github.com/ayn2op/tview/column"
+	"github.com/ayn2op/tview/inert"
 	"github.com/ayn2op/tview/keybind"
-	"github.com/ayn2op/tview/opaque"
 	"github.com/ayn2op/tview/row"
 	"github.com/ayn2op/tview/stack"
 )
@@ -457,9 +457,9 @@ func (m Model) View() tview.Element {
 		return main
 	}
 	return stack.New(
-		main,
-		// The backdrop keeps clicks from reaching the panes behind the picker.
-		opaque.New(backdrop.New().Style(m.cfg.Theme.Dialog.BackgroundStyle.Style)),
+		// The panes behind the picker take no input.
+		inert.New(main),
+		backdrop.New().Style(m.cfg.Theme.Dialog.BackgroundStyle.Style),
 		center.New(column.New(picker).Width(tview.Fixed(m.cfg.Picker.Width)).Height(tview.Fixed(m.cfg.Picker.Height))),
 	)
 }

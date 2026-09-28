@@ -14,8 +14,8 @@ github.com/ayn2op/arikawa/v3 v3.0.0-20260904042054-7df757872273 h1:cJ1donaon2Cjh
 github.com/ayn2op/arikawa/v3 v3.0.0-20260904042054-7df757872273/go.mod h1:bzMgZqBnJr1pu7EHq2d9906sAtHA+iklIxxvnS5kfDo=
 github.com/ayn2op/ningen/v3 v3.0.1-0.20260904045623-5978c9be899f h1:RrbCgoBOmYsLJAaf4lES+eoJYOG7zQMykACIFZgEvdU=
 github.com/ayn2op/ningen/v3 v3.0.1-0.20260904045623-5978c9be899f/go.mod h1:j8CBNjCkOpsgQm6X2xYJ0kXu5Y/PiQ+6QxxmExCq1Fs=
-github.com/ayn2op/tview v0.0.0-20260928000403-b1f6164a02e5 h1:90J4ipdQLF+nvfPPMoHCWAPlvNgXqPmRCejn7PatvHE=
-github.com/ayn2op/tview v0.0.0-20260928000403-b1f6164a02e5/go.mod h1:oRPTSZgaEJPhv3dmmNvo6grBq/BemrLG3wFQLMTZJkY=
+github.com/ayn2op/tview v0.0.0-20260928003911-758a51d24cad h1:NzrmJFrWVtRVY8u+Q9HUv0ow9dvlu4s+YdrqEnh4yGM=
+github.com/ayn2op/tview v0.0.0-20260928003911-758a51d24cad/go.mod h1:oRPTSZgaEJPhv3dmmNvo6grBq/BemrLG3wFQLMTZJkY=
 github.com/bdandy/go-errors v1.2.2 h1:WdFv/oukjTJCLa79UfkGmwX7ZxONAihKu4V0mLIs11Q=
 github.com/bdandy/go-errors v1.2.2/go.mod h1:NkYHl4Fey9oRRdbB1CoC6e84tuqQHiqrOcZpqFEkBxM=
 github.com/bdandy/go-socks4 v1.2.3 h1:Q6Y2heY1GRjCtHbmlKfnwrKVU/k81LS8mRGLRlmDlic=
