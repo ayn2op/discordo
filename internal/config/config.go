@@ -132,14 +132,18 @@ type (
 		DM       int `toml:"dm"`
 	}
 
-	SidebarConfig struct {
-		// Visible controls whether the guilds tree (sidebar) is shown by default at start-up.
-		// It can still be toggled at runtime with the toggle_guilds_tree keybind.
+	// PaneConfig is a side pane that can be toggled at runtime.
+	PaneConfig struct {
+		// Visible controls whether the pane is shown by default at start-up.
 		Visible bool `toml:"visible"`
-		// WidthPercent is the percentage of the total window width that the guilds tree (sidebar) occupies.
-		WidthPercent int                  `toml:"width_percent"`
-		Markers      SidebarMarkersConfig `toml:"markers"`
-		Indents      SidebarIndentsConfig `toml:"indents"`
+		// WidthPercent is the percentage of the total window width that the pane occupies.
+		WidthPercent int `toml:"width_percent"`
+	}
+
+	SidebarConfig struct {
+		PaneConfig
+		Markers SidebarMarkersConfig `toml:"markers"`
+		Indents SidebarIndentsConfig `toml:"indents"`
 	}
 
 	Config struct {
@@ -164,6 +168,7 @@ type (
 		Notifications   Notifications   `toml:"notifications"`
 		TypingIndicator TypingIndicator `toml:"typing_indicator"`
 		Sidebar         SidebarConfig   `toml:"sidebar"`
+		MembersTree     PaneConfig      `toml:"members_tree"`
 		Composer        ComposerConfig  `toml:"composer"`
 
 		Icons Icons `toml:"icons"`
@@ -228,8 +233,10 @@ func (cfg *Config) applyDefaults() {
 		cfg.Composer.MaxHeight = 10
 	}
 
-	if cfg.Sidebar.WidthPercent <= 0 || cfg.Sidebar.WidthPercent >= 100 {
-		cfg.Sidebar.WidthPercent = 20
+	for _, pane := range []*PaneConfig{&cfg.Sidebar.PaneConfig, &cfg.MembersTree} {
+		if pane.WidthPercent <= 0 || pane.WidthPercent >= 100 {
+			pane.WidthPercent = 20
+		}
 	}
 
 	if cfg.DateSeparator.Format == "" {

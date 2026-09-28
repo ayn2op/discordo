@@ -112,14 +112,16 @@ func (m *Model) applyEvent(event gateway.Event) tview.Cmd {
 		m.onRaw(event)
 
 	case *gateway.ReadyEvent:
-		return m.loadGuildsTree(event)
+		return tview.Batch(m.loadGuildsTree(event), m.updatePane(membersTreePane, event))
 
 	case *gateway.MessageCreateEvent:
 		return m.addMessageOrNotify(event)
 	case *gateway.MessageUpdateEvent:
 		m.messagesList.UpdateMessage(event.Message)
 	case *gateway.PresenceUpdateEvent:
-		return m.updatePane(guildsTreePane, event)
+		return tview.Batch(m.updatePane(guildsTreePane, event), m.updatePane(membersTreePane, event))
+	case *gateway.GuildMemberListUpdateEvent:
+		return m.updatePane(membersTreePane, event)
 	case *gateway.MessageDeleteEvent:
 		m.messagesList.DeleteMessage(event.ChannelID, event.ID)
 	case *gateway.MessageReactionAddEvent:

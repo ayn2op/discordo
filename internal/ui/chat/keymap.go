@@ -37,6 +37,8 @@ func (m Model) activeKeyMap() help.KeyMap {
 		return m.messagesList
 	case composerPane:
 		return m.composer
+	case membersTreePane:
+		return m.membersTree
 	default:
 		return nil
 	}
@@ -54,7 +56,7 @@ func (m Model) baseFullHelp() [][]keybind.Keybind {
 	return [][]keybind.Keybind{
 		m.focusHelp(),
 		{cfg.FocusPrevious.Keybind, cfg.FocusNext.Keybind},
-		{cfg.ToggleGuildsTree.Keybind, cfg.ToggleChannelsPicker.Keybind},
+		{cfg.ToggleGuildsTree.Keybind, cfg.ToggleMembersTree.Keybind, cfg.ToggleChannelsPicker.Keybind},
 		{cfg.Logout.Keybind},
 	}
 }
@@ -62,7 +64,7 @@ func (m Model) baseFullHelp() [][]keybind.Keybind {
 func (m Model) focusHelp() []keybind.Keybind {
 	kbs := m.cfg.Keybinds
 	focused := m.focused
-	focusKbs := make([]keybind.Keybind, 0, 3)
+	focusKbs := make([]keybind.Keybind, 0, 4)
 
 	if focused != guildsTreePane {
 		focusKbs = append(focusKbs, kbs.FocusGuildsTree.Keybind)
@@ -72,6 +74,9 @@ func (m Model) focusHelp() []keybind.Keybind {
 	}
 	if !m.composer.Disabled() && focused != composerPane {
 		focusKbs = append(focusKbs, kbs.FocusComposer.Keybind)
+	}
+	if m.membersTreeShown() && focused != membersTreePane {
+		focusKbs = append(focusKbs, kbs.FocusMembersTree.Keybind)
 	}
 
 	return focusKbs

@@ -115,12 +115,14 @@ type MentionsListKeybinds struct {
 
 type Keybinds struct {
 	ToggleGuildsTree     Keybind `toml:"toggle_guilds_tree"`
+	ToggleMembersTree    Keybind `toml:"toggle_members_tree"`
 	ToggleChannelsPicker Keybind `toml:"toggle_channels_picker"`
 	ToggleHelp           Keybind `toml:"toggle_help"`
 	ToggleFullHelp       Keybind `toml:"toggle_full_help"`
 	Suspend              Keybind `toml:"suspend"`
 
 	FocusGuildsTree   Keybind `toml:"focus_guilds_tree"`
+	FocusMembersTree  Keybind `toml:"focus_members_tree"`
 	FocusMessagesList Keybind `toml:"focus_messages_list"`
 	FocusComposer     Keybind `toml:"focus_composer"`
 
@@ -129,6 +131,7 @@ type Keybinds struct {
 
 	Picker       PickerKeybinds       `toml:"picker"`
 	GuildsTree   TreeKeybinds         `toml:"guilds_tree"`
+	MembersTree  TreeKeybinds         `toml:"members_tree"`
 	MessagesList MessagesListKeybinds `toml:"messages_list"`
 	Composer     ComposerKeybinds     `toml:"composer"`
 	MentionsList MentionsListKeybinds `toml:"mentions_list"`
@@ -213,12 +216,14 @@ func defaultMentionsListKeybinds() MentionsListKeybinds {
 func defaultKeybinds() Keybinds {
 	return Keybinds{
 		ToggleGuildsTree:     desc("toggle guilds"),
+		ToggleMembersTree:    desc("toggle members"),
 		ToggleChannelsPicker: desc("channels picker"),
 		ToggleHelp:           desc("toggle help"),
 		ToggleFullHelp:       desc("full help"),
 		Suspend:              desc("suspend"),
 
 		FocusGuildsTree:   desc("guilds"),
+		FocusMembersTree:  desc("members"),
 		FocusMessagesList: desc("messages"),
 		FocusComposer:     desc("composer"),
 
@@ -230,6 +235,7 @@ func defaultKeybinds() Keybinds {
 
 		Picker:       defaultPickerKeybinds(),
 		GuildsTree:   defaultTreeKeybinds(),
+		MembersTree:  defaultTreeKeybinds(),
 		MessagesList: defaultMessagesListKeybinds(),
 		Composer:     defaultComposerKeybinds(),
 		MentionsList: defaultMentionsListKeybinds(),

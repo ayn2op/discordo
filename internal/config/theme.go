@@ -273,6 +273,7 @@ type (
 		Footer       FooterTheme       `toml:"footer"`
 		Border       BorderTheme       `toml:"border"`
 		GuildsTree   GuildsTreeTheme   `toml:"guilds_tree"`
+		MembersTree  CommonTreeTheme   `toml:"members_tree"`
 		ScrollBar    ScrollBarTheme    `toml:"scroll_bar"`
 		MessagesList MessagesListTheme `toml:"messages_list"`
 		MentionsList MentionsListTheme `toml:"mentions_list"`

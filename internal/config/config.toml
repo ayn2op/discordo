@@ -94,6 +94,14 @@ category = 1
 channel = 2
 forum = 2
 
+[members_tree]
+# Whether the members tree is visible by default at start-up.
+# It can still be toggled at runtime with the `toggle_members_tree` keybind.
+visible = true
+# Percentage (%) of the width right of the guilds tree used by the members tree.
+# Valid values are 1-99. Invalid values fall back to 20.
+width_percent = 20
+
 [icons]
 guild_category = ""
 guild_text = "#"
@@ -110,13 +118,16 @@ guild_store = "s-"
 # Esc: Reset message selection or close the channel selection popup.
 [keybinds]
 # Hide/show the guilds tree.
-toggle_guilds_tree = "ctrl+b"
+toggle_guilds_tree = "alt+g"
+# Hide/show the members tree.
+toggle_members_tree = "alt+m"
 toggle_channels_picker = "ctrl+k"
 # Hide/show keybind help.
 toggle_help = "alt+."
 # Switch between compact and full keybind help.
 toggle_full_help = "ctrl+."
 focus_guilds_tree = "ctrl+g"
+focus_members_tree = "ctrl+y"
 focus_messages_list = "ctrl+t"
 focus_composer = "ctrl+i"
 # Cycle focus between the widgets.
@@ -143,6 +154,19 @@ select_down = "j"
 select_top = "g"
 select_bottom = "G"
 # Select the currently highlighted text-based channel or expand a guild or channel.
+select_current = "enter"
+yank_id = "i"
+collapse_all = "_"
+collapse_parent_node = "-"
+move_to_parent_node = "p"
+
+# Only while focusing on the members tree
+[keybinds.members_tree]
+select_up = "k"
+select_down = "j"
+select_top = "g"
+select_bottom = "G"
+# Expand or collapse the highlighted group.
 select_current = "enter"
 yank_id = "i"
 collapse_all = "_"
@@ -240,6 +264,17 @@ graphics = true
 graphics_color = "default"
 
 # Direct-message recipient presence styles.
+online_style = { foreground = "green" }
+idle_style = { foreground = "yellow" }
+dnd_style = { foreground = "red" }
+offline_style = { foreground = "gray" }
+
+[theme.members_tree]
+# Give tree-like shape
+graphics = true
+graphics_color = "default"
+
+# Styles of the status dot before each member.
 online_style = { foreground = "green" }
 idle_style = { foreground = "yellow" }
 dnd_style = { foreground = "red" }

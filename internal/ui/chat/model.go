@@ -21,6 +21,7 @@ import (
 	"github.com/ayn2op/discordo/internal/ui/chat/channelspicker"
 	"github.com/ayn2op/discordo/internal/ui/chat/composer"
 	"github.com/ayn2op/discordo/internal/ui/chat/guildstree"
+	"github.com/ayn2op/discordo/internal/ui/chat/memberstree"
 	"github.com/ayn2op/discordo/internal/ui/chat/mentionslist"
 	"github.com/ayn2op/discordo/internal/ui/chat/messageslist"
 	"github.com/ayn2op/ningen/v3"
@@ -39,11 +40,14 @@ type Model struct {
 	focused pane
 	// guildsTreeVisible reports whether the guilds tree is shown left of the messages.
 	guildsTreeVisible bool
+	// membersTreeVisible reports whether the members tree is shown right of the messages when the selected channel has members.
+	membersTreeVisible bool
 	// channelsPickerOpen and attachmentsPickerOpen report whether that picker is shown on top and takes all input.
 	channelsPickerOpen    bool
 	attachmentsPickerOpen bool
 
 	guildsTree     guildstree.Model
+	membersTree    memberstree.Model
 	messagesList   messageslist.Model
 	composer       composer.Model
 	channelsPicker channelspicker.Model
@@ -99,12 +103,14 @@ func NewModel(cfg *config.Config, token string) Model {
 	m.state.OnRequest = append(m.state.OnRequest, httputil.WithHeaders(http.Headers()), onRequest)
 
 	m.guildsTree = guildstree.NewModel(cfg, m.state)
+	m.membersTree = memberstree.NewModel(cfg, m.state)
 	m.messagesList = messageslist.NewModel(cfg, m.state)
 	m.composer = composer.NewModel(cfg, m.state)
 	m.channelsPicker = channelspicker.NewModel(cfg)
 	m.attachmentsPicker = attachmentspicker.NewModel(cfg)
 
 	m.guildsTreeVisible = cfg.Sidebar.Visible
+	m.membersTreeVisible = cfg.MembersTree.Visible
 	if m.guildsTreeVisible {
 		// The guilds tree is focused first at start-up when visible.
 		m.focused = guildsTreePane
@@ -114,9 +120,14 @@ func NewModel(cfg *config.Config, token string) Model {
 	return m
 }
 
-func (m *Model) setSelectedChannel(channel *discord.Channel) {
+func (m *Model) setSelectedChannel(channel *discord.Channel) tview.Cmd {
 	m.selectedChannel = channel
 	m.composer.SetChannel(channel)
+	cmd := m.membersTree.SetChannel(channel)
+	if !m.canFocus(m.focused) {
+		m.focused = messagesListPane
+	}
+	return cmd
 }
 
 func (m *Model) togglePicker() tview.Cmd {
@@ -167,68 +178,30 @@ func (m *Model) navigateToChannel(channelID discord.ChannelID) tview.Cmd {
 	return tview.Sequence(closeCmd, cmd)
 }
 
-func (m *Model) toggleGuildsTree() tview.Cmd {
-	if m.guildsTreeVisible {
-		if m.focused == guildsTreePane {
-			m.setFocus(messagesListPane)
-		}
-		m.guildsTreeVisible = false
-	} else {
-		m.guildsTreeVisible = true
-		m.setFocus(guildsTreePane)
-	}
-	return nil
-}
-
-func (m *Model) focusGuildsTree() bool {
-	m.setFocus(guildsTreePane)
-	return m.focused == guildsTreePane
-}
-
-func (m *Model) focusComposer() bool {
-	if !m.composer.Disabled() {
-		m.setFocus(composerPane)
-		return true
-	}
-	return false
-}
-
-func (m *Model) focusPrevious() {
-	switch m.focused {
-	case guildsTreePane:
-		if m.focusComposer() {
-			return
-		}
-		m.setFocus(messagesListPane)
-	case messagesListPane:
-		if m.focusGuildsTree() {
-			return
-		}
-		if m.focusComposer() {
-			return
-		}
-		m.setFocus(messagesListPane)
-	case composerPane:
-		m.setFocus(messagesListPane)
+// toggle shows or hides the side pane p and focuses it when shown.
+func (m *Model) toggle(visible *bool, p pane) {
+	*visible = !*visible
+	if *visible {
+		m.setFocus(p)
+	} else if m.focused == p {
+		m.focused = messagesListPane
 	}
 }
 
-func (m *Model) focusNext() {
-	switch m.focused {
-	case guildsTreePane:
-		m.setFocus(messagesListPane)
-	case messagesListPane:
-		if m.focusComposer() {
+// membersTreeShown reports whether the members tree is visible and the selected channel has members to show.
+func (m Model) membersTreeShown() bool {
+	return m.membersTreeVisible && m.membersTree.Shown()
+}
+
+// cycleFocus focuses the next pane that can take the focus, going backwards if step is -1.
+func (m *Model) cycleFocus(step pane) {
+	p := m.focused
+	for range paneCount - 1 {
+		p = (p + step + paneCount) % paneCount
+		if m.canFocus(p) {
+			m.focused = p
 			return
 		}
-		if m.focusGuildsTree() {
-			return
-		}
-	case composerPane:
-		if m.focusGuildsTree() {
-			return
-		}
-		m.setFocus(messagesListPane)
 	}
 }
 
@@ -259,14 +232,14 @@ func (m *Model) update(msg tview.Msg) tview.Cmd {
 			return nil
 		}
 
-		m.setSelectedChannel(&msg.Channel)
+		membersCmd := m.setSelectedChannel(&msg.Channel)
 		m.clearTypers()
 
 		if m.cfg.AutoFocus {
-			m.focusComposer()
+			m.setFocus(composerPane)
 		}
 		title := ui.ChannelToString(msg.Channel, m.cfg.Icons, m.state) + " - " + consts.Name
-		return tview.Batch(tview.SetTitle(title), m.messagesList.SetChannel(&msg.Channel, msg.Messages))
+		return tview.Batch(tview.SetTitle(title), m.messagesList.SetChannel(&msg.Channel, msg.Messages), membersCmd)
 	case messageslist.Msg:
 		return m.updatePane(messagesListPane, msg)
 	case typingExpiredMsg:
@@ -288,11 +261,11 @@ func (m *Model) update(msg tview.Msg) tview.Cmd {
 		return nil
 	case messageslist.ReplyMsg:
 		m.composer.StartReply(msg.Message, msg.Name, msg.Mention)
-		m.focusComposer()
+		m.setFocus(composerPane)
 		return nil
 	case messageslist.EditMsg:
 		m.composer.StartEdit(discord.Message(msg))
-		m.focusComposer()
+		m.setFocus(composerPane)
 		return nil
 	case composer.EditLastMsg:
 		if message, ok := m.messagesList.SelectLastOwn(); ok {
@@ -308,25 +281,33 @@ func (m *Model) update(msg tview.Msg) tview.Cmd {
 		switch {
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusGuildsTree.Keybind):
 			m.composer.CloseMentions()
-			m.focusGuildsTree()
+			m.setFocus(guildsTreePane)
+			return nil
+		case keybind.Matches(msg, m.cfg.Keybinds.FocusMembersTree.Keybind):
+			m.composer.CloseMentions()
+			m.setFocus(membersTreePane)
 			return nil
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusMessagesList.Keybind):
 			m.composer.CloseMentions()
 			m.setFocus(messagesListPane)
 			return nil
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusComposer.Keybind):
-			m.focusComposer()
+			m.setFocus(composerPane)
 			return nil
 
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusPrevious.Keybind):
-			m.focusPrevious()
+			m.cycleFocus(-1)
 			return nil
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusNext.Keybind):
-			m.focusNext()
+			m.cycleFocus(1)
 			return nil
 
 		case keybind.Matches(msg, m.cfg.Keybinds.ToggleGuildsTree.Keybind):
-			return m.toggleGuildsTree()
+			m.toggle(&m.guildsTreeVisible, guildsTreePane)
+			return nil
+		case keybind.Matches(msg, m.cfg.Keybinds.ToggleMembersTree.Keybind):
+			m.toggle(&m.membersTreeVisible, membersTreePane)
+			return nil
 		case keybind.Matches(msg, m.cfg.Keybinds.ToggleChannelsPicker.Keybind):
 			return m.togglePicker()
 
@@ -371,6 +352,8 @@ func (m *Model) updatePane(p pane, msg tview.Msg) tview.Cmd {
 		m.messagesList, cmd = m.messagesList.Update(msg)
 	case composerPane:
 		m.composer, cmd = m.composer.Update(msg)
+	case membersTreePane:
+		m.membersTree, cmd = m.membersTree.Update(msg)
 	}
 	return cmd
 }
@@ -408,6 +391,8 @@ const (
 	guildsTreePane pane = iota
 	messagesListPane
 	composerPane
+	membersTreePane
+	paneCount
 )
 
 // paneView returns the view of p, focused if it has the focus and no picker is open, marked so that clicking it focuses it.
@@ -421,15 +406,31 @@ func (m Model) paneView(p pane) tview.Element {
 		child = m.messagesList.View(focused)
 	case composerPane:
 		child = m.composer.View(focused)
+	case membersTreePane:
+		child = m.membersTree.View(focused)
 	}
 	return paneElement{pane: p, child: child}
 }
 
-func (m *Model) setFocus(target pane) {
-	if target == m.focused || (target == guildsTreePane && !m.guildsTreeVisible) {
-		return
+// setFocus focuses p if it can take the focus.
+func (m *Model) setFocus(p pane) {
+	if m.canFocus(p) {
+		m.focused = p
 	}
-	m.focused = target
+}
+
+// canFocus reports whether p is shown and can take the focus.
+func (m Model) canFocus(p pane) bool {
+	switch p {
+	case guildsTreePane:
+		return m.guildsTreeVisible
+	case composerPane:
+		return !m.composer.Disabled()
+	case membersTreePane:
+		return m.membersTreeShown()
+	default:
+		return true
+	}
 }
 
 // View shows the guilds tree left of the messages above the composer, with the mentions list over the messages and an open picker on top.
@@ -445,11 +446,18 @@ func (m Model) View() tview.Element {
 	}
 
 	main := right
+	if m.membersTreeShown() {
+		width := m.cfg.MembersTree.WidthPercent
+		main = row.New(
+			column.New(main).Width(tview.FillPortion(100-width)),
+			column.New(m.paneView(membersTreePane)).Width(tview.FillPortion(width)),
+		)
+	}
 	if m.guildsTreeVisible {
 		width := m.cfg.Sidebar.WidthPercent
 		main = row.New(
 			column.New(m.paneView(guildsTreePane)).Width(tview.FillPortion(width)),
-			column.New(right).Width(tview.FillPortion(100-width)),
+			column.New(main).Width(tview.FillPortion(100-width)),
 		)
 	}
 
