@@ -8,6 +8,7 @@ import (
 	"github.com/ayn2op/arikawa/v3/gateway"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/ui"
+	uitree "github.com/ayn2op/discordo/internal/ui/tree"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/ningen/v3/states/read"
 	"github.com/ayn2op/tview"
@@ -50,26 +51,8 @@ type Msg tree.Change
 
 // View shows the tree in a box titled Guilds.
 func (m Model) View(focused bool) tview.Element {
-	theme := &m.cfg.Theme
-	set := theme.Border.NormalSet.BorderSet
-	if focused {
-		set = theme.Border.ActiveSet.BorderSet
-	}
-	kbs := m.cfg.Keybinds.GuildsTree
-	t := tree.New(m.root, &m.selectionState).
-		TopLevel(1).
-		Markers(tree.Markers{
-			Expanded:  m.cfg.Sidebar.Markers.Expanded,
-			Collapsed: m.cfg.Sidebar.Markers.Collapsed,
-			Leaf:      m.cfg.Sidebar.Markers.Leaf,
-		}).
-		Graphics(theme.GuildsTree.Graphics).
-		GraphicsSet(set).
-		GraphicsStyle(tcell.StyleDefault.Foreground(tcell.GetColor(theme.GuildsTree.GraphicsColor))).
-		Keybind(ui.TreeKeybind(kbs)).
-		Focused(focused).
-		OnChange(func(a tree.Change) tview.Msg { return Msg(a) })
-	return ui.Box(t, theme, focused).Title("Guilds")
+	onChange := func(c tree.Change) tview.Msg { return Msg(c) }
+	return uitree.New(m.root, &m.selectionState, m.cfg, m.cfg.Theme.GuildsTree.CommonTreeTheme, m.cfg.Keybinds.GuildsTree, focused, onChange).Title("Guilds")
 }
 
 func (m *Model) reset() *tree.Node {
@@ -365,7 +348,7 @@ func (m *Model) update(msg tview.Msg) tview.Cmd {
 			m.collapseParentNode(m.selectionState.CurrentNode())
 			return nil
 		case keybind.Matches(msg, m.cfg.Keybinds.GuildsTree.YankID.Keybind):
-			return yankID(m.selectionState.CurrentNode())
+			return uitree.YankID(m.selectionState.CurrentNode())
 		}
 	}
 	return nil

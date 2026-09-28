@@ -62,7 +62,7 @@ type PickerKeybinds struct {
 	Cancel Keybind `toml:"cancel"`
 }
 
-type GuildsTreeKeybinds struct {
+type TreeKeybinds struct {
 	SelectionKeybinds
 	SelectCurrent Keybind `toml:"select_current"`
 	YankID        Keybind `toml:"yank_id"`
@@ -128,7 +128,7 @@ type Keybinds struct {
 	FocusNext     Keybind `toml:"focus_next"`
 
 	Picker       PickerKeybinds       `toml:"picker"`
-	GuildsTree   GuildsTreeKeybinds   `toml:"guilds_tree"`
+	GuildsTree   TreeKeybinds         `toml:"guilds_tree"`
 	MessagesList MessagesListKeybinds `toml:"messages_list"`
 	Composer     ComposerKeybinds     `toml:"composer"`
 	MentionsList MentionsListKeybinds `toml:"mentions_list"`
@@ -154,8 +154,8 @@ func defaultPickerKeybinds() PickerKeybinds {
 	}
 }
 
-func defaultGuildsTreeKeybinds() GuildsTreeKeybinds {
-	return GuildsTreeKeybinds{
+func defaultTreeKeybinds() TreeKeybinds {
+	return TreeKeybinds{
 		SelectionKeybinds: defaultSelectionKeybinds(),
 		SelectCurrent:     desc("select"),
 		YankID:            desc("copy id"),
@@ -229,7 +229,7 @@ func defaultKeybinds() Keybinds {
 		Quit:   desc("quit"),
 
 		Picker:       defaultPickerKeybinds(),
-		GuildsTree:   defaultGuildsTreeKeybinds(),
+		GuildsTree:   defaultTreeKeybinds(),
 		MessagesList: defaultMessagesListKeybinds(),
 		Composer:     defaultComposerKeybinds(),
 		MentionsList: defaultMentionsListKeybinds(),

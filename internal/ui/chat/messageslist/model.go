@@ -103,9 +103,26 @@ func (ml *Model) listView(focused bool) list.Widget {
 	return list.New(&ml.selectionState, len(ml.items), ml.buildItem).
 		SelectedStyle(ml.cfg.Theme.MessagesList.SelectedMessageStyle.Style).
 		ScrollBar(ml.scrollBar, ml.scrollBarVisibility).
-		Keybind(ui.ScrollKeybind(ml.cfg.Keybinds.MessagesList.ScrollKeybinds)).
+		Keybind(scrollKeybind(ml.cfg.Keybinds.MessagesList.ScrollKeybinds)).
 		Focused(focused).
 		OnChange(func(a list.Change) tview.Msg { return listMsg(a) })
+}
+
+// scrollKeybind binds kbs to scrolling the list.
+func scrollKeybind(kbs config.ScrollKeybinds) func(tview.KeyMsg) (list.Action, bool) {
+	return func(key tview.KeyMsg) (list.Action, bool) {
+		switch {
+		case keybind.Matches(key, kbs.ScrollUp.Keybind):
+			return list.ActionScrollUp, true
+		case keybind.Matches(key, kbs.ScrollDown.Keybind):
+			return list.ActionScrollDown, true
+		case keybind.Matches(key, kbs.ScrollTop.Keybind):
+			return list.ActionScrollTop, true
+		case keybind.Matches(key, kbs.ScrollBottom.Keybind):
+			return list.ActionScrollBottom, true
+		}
+		return 0, false
+	}
 }
 
 func (ml *Model) cursor() int {

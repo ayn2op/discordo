@@ -10,8 +10,6 @@ import (
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/box"
-	"github.com/ayn2op/tview/picker"
-	"github.com/ayn2op/tview/scrollbar"
 )
 
 // Box returns child in a box styled by the theme, highlighted while focused.
@@ -34,19 +32,6 @@ func Box(child tview.Element, theme *config.Theme, focused bool) box.Widget {
 		BorderSet(theme.Border.NormalSet.BorderSet).
 		TitleStyle(theme.Title.NormalStyle.Style).
 		FooterStyle(theme.Footer.NormalStyle.Style)
-}
-
-// Picker returns a picker of items searched with searchState, with the configured scroll bar and keybinds.
-func Picker(items picker.Items, searchState *picker.SearchState, cfg *config.Config) picker.Widget {
-	bar := scrollbar.New().
-		TrackStyle(cfg.Theme.ScrollBar.TrackStyle.Style).
-		ThumbStyle(cfg.Theme.ScrollBar.ThumbStyle.Style).
-		GlyphSet(cfg.Theme.ScrollBar.GlyphSet.GlyphSet).
-		Arrows(scrollbar.ArrowsBoth)
-	return picker.New(items, searchState).
-		ScrollBar(bar, cfg.Theme.ScrollBar.Visibility.ScrollBarVisibility).
-		Keybind(pickerKeybind(cfg.Keybinds.Picker)).
-		ListKeybind(SelectionKeybind(cfg.Keybinds.Picker.SelectionKeybinds))
 }
 
 // ChannelToString returns how channel is shown in the UI: an icon for its type and its name, or the recipients' names for a DM.

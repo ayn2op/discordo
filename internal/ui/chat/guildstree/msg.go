@@ -1,8 +1,6 @@
 package guildstree
 
 import (
-	"context"
-	"fmt"
 	"log/slog"
 
 	"github.com/ayn2op/arikawa/v3/discord"
@@ -10,7 +8,6 @@ import (
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/tree"
-	"golang.design/x/clipboard"
 )
 
 type ChannelLoadedMsg struct {
@@ -104,22 +101,5 @@ func loadChannel(state *ningen.State, limit uint, channel discord.Channel) tview
 		}
 
 		return ChannelLoadedMsg{Channel: channel, Messages: messages}
-	}
-}
-
-func yankID(node *tree.Node) tview.Cmd {
-	if node == nil {
-		return nil
-	}
-
-	id, ok := node.Reference().(fmt.Stringer)
-	if !ok {
-		return nil
-	}
-	return func() tview.Msg {
-		if _, err := clipboard.Write(context.Background(), clipboard.FmtText, []byte(id.String())); err != nil {
-			slog.Error("failed to write to clipboard", "err", err)
-		}
-		return nil
 	}
 }

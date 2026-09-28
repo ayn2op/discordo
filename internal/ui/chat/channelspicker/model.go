@@ -7,52 +7,39 @@ import (
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/ui"
+	uipicker "github.com/ayn2op/discordo/internal/ui/picker"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/picker"
 )
 
 type Model struct {
-	items       picker.Items
-	searchState picker.SearchState
-	cfg         *config.Config
+	uipicker.Model
+	cfg *config.Config
 }
 
 func NewModel(cfg *config.Config) Model {
-	return Model{searchState: picker.NewSearchState(), cfg: cfg}
+	return Model{Model: uipicker.NewModel(cfg, "Channels"), cfg: cfg}
 }
 
 var _ tview.Model[Model] = Model{}
 
-// changeMsg changes the picker.
-type changeMsg picker.Change
-
-func (Model) Init() tview.Cmd { return nil }
-
 // View shows the picker in a box titled Channels.
 func (m Model) View() tview.Element {
-	p := ui.Picker(m.items, &m.searchState, m.cfg).
-		OnChange(func(a picker.Change) tview.Msg { return changeMsg(a) }).
-		OnSelect(func(item picker.Item) tview.Msg {
-			channelID, ok := item.Reference.(discord.ChannelID)
-			if !ok || !channelID.IsValid() {
-				return nil
-			}
-			return SelectedMsg{ChannelID: channelID}
-		}).
-		OnCancel(CancelMsg{})
-	return ui.Box(p, &m.cfg.Theme, true).Title("Channels")
+	return m.Model.View(func(item picker.Item) tview.Msg {
+		channelID, ok := item.Reference.(discord.ChannelID)
+		if !ok || !channelID.IsValid() {
+			return nil
+		}
+		return SelectedMsg{ChannelID: channelID}
+	}, CancelMsg{})
 }
 
 func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
-	if msg, ok := msg.(changeMsg); ok {
-		m.searchState.Apply(picker.Change(msg))
-	}
-	return m, nil
+	var cmd tview.Cmd
+	m.Model, cmd = m.Model.Update(msg)
+	return m, cmd
 }
-
-// Reset clears the query.
-func (m *Model) Reset() { m.searchState.Reset() }
 
 func (m *Model) RefreshChannels(state *ningen.State) {
 	var items picker.Items
@@ -86,8 +73,7 @@ func (m *Model) RefreshChannels(state *ningen.State) {
 		}
 	}
 
-	m.items = items
-	m.searchState.Reset()
+	m.SetItems(items)
 }
 
 func (m Model) channelItem(state *ningen.State, guild *discord.Guild, channel discord.Channel) picker.Item {

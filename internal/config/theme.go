@@ -208,15 +208,19 @@ type (
 		ActiveSet BorderSetWrapper `toml:"active_set"`
 	}
 
-	GuildsTreeTheme struct {
-		AutoExpandFolders bool   `toml:"auto_expand_folders"`
-		Graphics          bool   `toml:"graphics"`
-		GraphicsColor     string `toml:"graphics_color"`
+	CommonTreeTheme struct {
+		Graphics      bool   `toml:"graphics"`
+		GraphicsColor string `toml:"graphics_color"`
 
 		OnlineStyle  StyleWrapper `toml:"online_style"`
 		IdleStyle    StyleWrapper `toml:"idle_style"`
 		DNDStyle     StyleWrapper `toml:"dnd_style"`
 		OfflineStyle StyleWrapper `toml:"offline_style"`
+	}
+
+	GuildsTreeTheme struct {
+		CommonTreeTheme
+		AutoExpandFolders bool `toml:"auto_expand_folders"`
 	}
 
 	MessagesListTheme struct {
