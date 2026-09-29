@@ -79,12 +79,14 @@ func (m Model) View() tview.Element {
 }
 
 func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
+	var errCmd tview.Cmd
 	switch msg := msg.(type) {
 	case selectTabMsg:
 		m.active = tab(msg)
 		return m, m.Init()
 	case error:
-		return m, showErrorDialog(msg)
+		// The active tab still gets the error, so the QR tab can close its connection.
+		errCmd = showErrorDialog(msg)
 	case copyErrorMsg:
 		return m, setClipboard(string(msg))
 	}
@@ -98,7 +100,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	case tokenTab:
 		m.token, cmd = m.token.Update(msg)
 	}
-	return m, cmd
+	return m, tview.Batch(errCmd, cmd)
 }
 
 func showErrorDialog(err error) tview.Cmd {

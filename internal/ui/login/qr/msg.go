@@ -8,6 +8,8 @@ import (
 	"encoding/base64"
 	json "encoding/json/v2"
 	"errors"
+	"log/slog"
+	"net"
 	"strings"
 	"sync"
 	"time"
@@ -57,9 +59,10 @@ func connect() tview.Cmd {
 
 func closeConn(conn *gatewayConn) tview.Cmd {
 	return func() tview.Msg {
+		// An error here must not reach the error case, which would close the connection again.
 		if conn != nil {
 			if err := conn.ws.Close(); err != nil {
-				return err
+				slog.Error("failed to close remote auth gateway connection", "err", err)
 			}
 		}
 		return connCloseMsg{}
@@ -99,6 +102,10 @@ func listen(conn *gatewayConn) tview.Cmd {
 		}
 
 		_, data, err := conn.ws.ReadMessage()
+		if errors.Is(err, net.ErrClosed) {
+			// closeConn closed the connection.
+			return nil
+		}
 		if err != nil {
 			return err
 		}

@@ -105,3 +105,31 @@ func TestModelGateway(t *testing.T) {
 		}
 	})
 }
+
+func TestCloseConn(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		conn, err := (&websocket.Upgrader{}).Upgrade(w, r, nil)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer conn.Close()
+		_, _, _ = conn.ReadMessage()
+	}))
+	t.Cleanup(server.Close)
+	ws, _, err := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(server.URL, "http"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	conn := &gatewayConn{ws: ws}
+
+	// Closing twice must not error, or the error case would close it again forever.
+	for range 2 {
+		if msg := closeConn(conn)(); msg != (connCloseMsg{}) {
+			t.Fatalf("closeConn() = %#v, want connCloseMsg", msg)
+		}
+	}
+	if msg := listen(conn)(); msg != nil {
+		t.Fatalf("listen() after close = %#v, want nil", msg)
+	}
+}
