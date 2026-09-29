@@ -10,8 +10,8 @@ github.com/alecthomas/repr v0.5.2 h1:SU73FTI9D1P5UNtvseffFSGmdNci/O6RsqzeXJtP0Qs
 github.com/alecthomas/repr v0.5.2/go.mod h1:Fr0507jx4eOXV7AlPV6AVZLYrLIuIeSOWtW57eE/O/4=
 github.com/andybalholm/brotli v1.2.5 h1:BSI8V4zmx/3BAn6OKjF1PmfVq7Aoi52AdFsi6bpCx+s=
 github.com/andybalholm/brotli v1.2.5/go.mod h1:rzTDkvFWvIrjDXZHkuS16NPggd91W3kUSvPlQ1pLaKY=
-github.com/ayn2op/arikawa/v3 v3.0.0-20260929010640-bb6f3860faea h1:gjAK0Knx4175g1q4FU0+f7RM0APaYbQ0to6YDfLnoDI=
-github.com/ayn2op/arikawa/v3 v3.0.0-20260929010640-bb6f3860faea/go.mod h1:SHqcr+EmZKeNtVKZybHJn4HNz+ufA1XbeKNSTigBCEE=
+github.com/ayn2op/arikawa/v3 v3.0.0-20260929021956-7d0802bf4d7c h1:Qkl3W5RXzUQUR/PyYMMKmUHlmAksxaXRFigaTscoxtw=
+github.com/ayn2op/arikawa/v3 v3.0.0-20260929021956-7d0802bf4d7c/go.mod h1:SHqcr+EmZKeNtVKZybHJn4HNz+ufA1XbeKNSTigBCEE=
 github.com/ayn2op/ningen/v3 v3.0.1-0.20260929010920-29794d5fa70e h1:QAei/IVEyZV7GcpkpcFUh37+QRqwrt57z7OT3ciHrhI=
 github.com/ayn2op/ningen/v3 v3.0.1-0.20260929010920-29794d5fa70e/go.mod h1:RsvYiMzi4Si1F7vmml5NCL2DaKIZXkNUQC7QlGTMtCw=
 github.com/ayn2op/tview v0.0.0-20260928205525-fa36e0ece3f0 h1:mh5nA4XFDLYLmLs++EhN2X+6LODI0tTbRRQFp4Q4F/A=
