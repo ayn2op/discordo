@@ -13,7 +13,6 @@ func openState(state *ningen.State) tview.Cmd {
 	return func() tview.Msg {
 		if err := state.Open(context.Background()); err != nil {
 			slog.Error("failed to open chat state", "err", err)
-			return nil
 		}
 		return nil
 	}

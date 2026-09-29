@@ -1006,7 +1006,6 @@ func (ml *Model) yankMessageID() tview.Cmd {
 	return func() tview.Msg {
 		if _, err := clipboard.Write(context.Background(), clipboard.FmtText, []byte(selectedMessage.ID.String())); err != nil {
 			slog.Error("failed to write to clipboard", "err", err)
-			return nil
 		}
 		return nil
 	}
@@ -1021,7 +1020,6 @@ func (ml *Model) yankContent() tview.Cmd {
 	return func() tview.Msg {
 		if _, err := clipboard.Write(context.Background(), clipboard.FmtText, []byte(selectedMessage.Content)); err != nil {
 			slog.Error("failed to write to clipboard", "err", err)
-			return nil
 		}
 		return nil
 	}
@@ -1036,7 +1034,6 @@ func (ml *Model) yankURL() tview.Cmd {
 	return func() tview.Msg {
 		if _, err := clipboard.Write(context.Background(), clipboard.FmtText, []byte(selectedMessage.URL())); err != nil {
 			slog.Error("failed to write to clipboard", "err", err)
-			return nil
 		}
 		return nil
 	}
@@ -1343,7 +1340,6 @@ func (ml *Model) requestDelete(message discord.Message) tview.Cmd {
 
 		if err := ml.state.MessageRemove(message.ChannelID, message.ID); err != nil {
 			slog.Error("failed to delete message", "channel_id", message.ChannelID, "message_id", message.ID, "err", err)
-			return nil
 		}
 		return nil
 	}

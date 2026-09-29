@@ -890,7 +890,6 @@ func (c *Model) stopTabCompletion() tview.Cmd {
 	if c.cfg.AutocompleteLimit > 0 {
 		c.mentionsList.Clear()
 		c.CloseMentions()
-		return nil
 	}
 	return nil
 }
