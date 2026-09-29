@@ -96,7 +96,7 @@ func NewModel(cfg *config.Config, token string) Model {
 	m.state = ningen.FromState(state)
 
 	m.events = make(chan gateway.Event)
-	m.state.AddHandler(m.events)
+	m.state.AddChanHandler(m.events)
 	m.state.StateLog = func(err error) {
 		slog.Error("state log", "err", err)
 	}
