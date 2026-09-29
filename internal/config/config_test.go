@@ -8,10 +8,6 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/ayn2op/discordo/internal/consts"
-	tviewkeybind "github.com/ayn2op/tview/keybind"
-	"github.com/gdamore/tcell/v3"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 func TestDefaultPath(t *testing.T) {
@@ -129,19 +125,14 @@ func TestLoad(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		var defCfg Config
+		defCfg := Config{Keybinds: defaultKeybinds()}
 		if err := toml.Unmarshal(defaultCfg, &defCfg); err != nil {
 			t.Fatal(err)
 		}
 		defCfg.applyDefaults()
 
-		if diff := cmp.Diff(
-			defCfg,
-			*cfg,
-			cmpopts.EquateComparable(tcell.Style{}),
-			cmpopts.IgnoreUnexported(tviewkeybind.Keybind{}),
-		); diff != "" {
-			t.Fatalf("got = -, want = +, diff=%s", diff)
+		if !reflect.DeepEqual(defCfg, *cfg) {
+			t.Fatalf("got = %+v, want = %+v", *cfg, defCfg)
 		}
 	})
 }

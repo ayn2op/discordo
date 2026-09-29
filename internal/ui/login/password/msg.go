@@ -8,10 +8,7 @@ import (
 	"github.com/ayn2op/tview"
 )
 
-type (
-	TokenMsg string
-	ErrMsg   error
-)
+type TokenMsg string
 
 func submitLogin(login, password string) tview.Cmd {
 	return func() tview.Msg {
@@ -23,13 +20,13 @@ func submitLogin(login, password string) tview.Cmd {
 
 		loginResp, err := client.Login(login, password)
 		if err != nil {
-			return ErrMsg(err)
+			return err
 		}
 		if loginResp.Token == "" {
 			if loginResp.MFA {
-				return ErrMsg(errors.New("multi-factor authentication is required; use token or QR login"))
+				return errors.New("multi-factor authentication is required; use token or QR login")
 			}
-			return ErrMsg(errors.New("login response did not include a token"))
+			return errors.New("login response did not include a token")
 		}
 		return TokenMsg(loginResp.Token)
 	}
