@@ -10,7 +10,6 @@ import (
 	"github.com/ayn2op/tview/richtext"
 	"github.com/ayn2op/tview/textview"
 	"github.com/gdamore/tcell/v3"
-	"github.com/gorilla/websocket"
 	"github.com/skip2/go-qrcode"
 )
 
@@ -19,7 +18,7 @@ type Model struct {
 	code        richtext.Text
 	scrollState textview.ScrollState
 
-	conn              *websocket.Conn
+	conn              *gatewayConn
 	heartbeatInterval time.Duration
 	privateKey        *rsa.PrivateKey
 	fingerprint       string
@@ -84,7 +83,7 @@ func (m *Model) update(msg tview.Msg) tview.Cmd {
 		return tview.Batch(listen(m.conn), scheduleHeartbeat(m.heartbeatInterval), generatePrivateKey())
 	case privateKeyMsg:
 		m.privateKey = msg.privateKey
-		return tview.Batch(listen(m.conn), sendInit(m.conn, m.privateKey))
+		return sendInit(m.conn, m.privateKey)
 	case nonceProofMsg:
 		return tview.Batch(listen(m.conn), sendNonceProof(m.conn, m.privateKey, msg.encryptedNonce))
 	case pendingRemoteInitMsg:
@@ -93,7 +92,7 @@ func (m *Model) update(msg tview.Msg) tview.Cmd {
 	case qrCodeMsg:
 		m.qrCode = msg.qrCode
 		m.setStatus("Scan this with the Discord mobile app to log in instantly.")
-		return listen(m.conn)
+		return nil
 	case pendingTicketMsg:
 		return tview.Batch(listen(m.conn), decryptUserPayload(m.privateKey, msg.encryptedUserPayload))
 	case userMsg:
@@ -102,10 +101,12 @@ func (m *Model) update(msg tview.Msg) tview.Cmd {
 			name += "#" + msg.discriminator
 		}
 		m.setStatus("Check your phone! Logging in as " + name)
-		return listen(m.conn)
+		return nil
 	case pendingLoginMsg:
 		m.setStatus("Authenticating...")
 		return tview.Batch(closeConn(m.conn), exchangeTicket(m.fingerprint, m.privateKey, msg.ticket))
+	case ignoredMsg:
+		return listen(m.conn)
 	case cancelMsg:
 		m.setStatus("Login canceled on mobile")
 		return closeConn(m.conn)

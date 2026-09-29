@@ -14,7 +14,7 @@ func TestDecodeMessage(t *testing.T) {
 		{"pending_ticket", `{"op":"pending_ticket","encrypted_user_payload":"payload"}`, pendingTicketMsg{encryptedUserPayload: "payload"}},
 		{"cancel", `{"op":"cancel"}`, cancelMsg{}},
 		{"pending_login", `{"op":"pending_login","ticket":"ticket"}`, pendingLoginMsg{ticket: "ticket"}},
-		{"unknown", `{"op":"unknown"}`, nil},
+		{"unknown", `{"op":"unknown"}`, ignoredMsg{}},
 	}
 
 	for _, test := range tests {

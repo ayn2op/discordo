@@ -9,6 +9,7 @@ import (
 	json "encoding/json/v2"
 	"errors"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/ayn2op/arikawa/v3/utils/httputil"
@@ -26,8 +27,20 @@ type (
 
 const remoteAuthGatewayURL = "wss://remote-auth-gateway.discord.gg/?v=2"
 
+// gatewayConn is a Remote Auth Gateway connection whose writes are serialized, since a websocket.Conn takes one writer at a time.
+type gatewayConn struct {
+	ws      *websocket.Conn
+	writeMu sync.Mutex
+}
+
+func (c *gatewayConn) writeJSON(v any) error {
+	c.writeMu.Lock()
+	defer c.writeMu.Unlock()
+	return c.ws.WriteJSON(v)
+}
+
 type connCreateMsg struct {
-	conn *websocket.Conn
+	conn *gatewayConn
 }
 
 type connCloseMsg struct{}
@@ -41,14 +54,14 @@ func connect() tview.Cmd {
 		if err != nil {
 			return errMsg(err)
 		}
-		return connCreateMsg{conn: conn}
+		return connCreateMsg{conn: &gatewayConn{ws: conn}}
 	}
 }
 
-func closeConn(conn *websocket.Conn) tview.Cmd {
+func closeConn(conn *gatewayConn) tview.Cmd {
 	return func() tview.Msg {
 		if conn != nil {
-			if err := conn.Close(); err != nil {
+			if err := conn.ws.Close(); err != nil {
 				return errMsg(err)
 			}
 		}
@@ -79,13 +92,16 @@ type pendingLoginMsg struct {
 
 type cancelMsg struct{}
 
-func listen(conn *websocket.Conn) tview.Cmd {
+// ignoredMsg is a gateway message the login does not act on, such as heartbeat_ack.
+type ignoredMsg struct{}
+
+func listen(conn *gatewayConn) tview.Cmd {
 	return func() tview.Msg {
 		if conn == nil {
 			return nil
 		}
 
-		_, data, err := conn.ReadMessage()
+		_, data, err := conn.ws.ReadMessage()
 		if err != nil {
 			return errMsg(err)
 		}
@@ -122,7 +138,7 @@ func decodeMessage(data []byte) tview.Msg {
 	case "pending_login":
 		return pendingLoginMsg{ticket: payload.Ticket}
 	default:
-		return nil
+		return ignoredMsg{}
 	}
 }
 
@@ -135,7 +151,7 @@ func scheduleHeartbeat(interval time.Duration) tview.Cmd {
 	}
 }
 
-func sendHeartbeat(conn *websocket.Conn) tview.Cmd {
+func sendHeartbeat(conn *gatewayConn) tview.Cmd {
 	return func() tview.Msg {
 		if conn == nil {
 			return nil
@@ -143,7 +159,7 @@ func sendHeartbeat(conn *websocket.Conn) tview.Cmd {
 		data := struct {
 			Op string `json:"op"`
 		}{"heartbeat"}
-		if err := conn.WriteJSON(data); err != nil {
+		if err := conn.writeJSON(data); err != nil {
 			return errMsg(err)
 		}
 		return nil
@@ -164,7 +180,7 @@ func generatePrivateKey() tview.Cmd {
 	}
 }
 
-func sendInit(conn *websocket.Conn, privateKey *rsa.PrivateKey) tview.Cmd {
+func sendInit(conn *gatewayConn, privateKey *rsa.PrivateKey) tview.Cmd {
 	return func() tview.Msg {
 		if privateKey == nil {
 			return errMsg(errors.New("missing private key"))
@@ -178,14 +194,14 @@ func sendInit(conn *websocket.Conn, privateKey *rsa.PrivateKey) tview.Cmd {
 			Op               string `json:"op"`
 			EncodedPublicKey string `json:"encoded_public_key"`
 		}{"init", encodedPublicKey}
-		if err := conn.WriteJSON(data); err != nil {
+		if err := conn.writeJSON(data); err != nil {
 			return errMsg(err)
 		}
 		return nil
 	}
 }
 
-func sendNonceProof(conn *websocket.Conn, privateKey *rsa.PrivateKey, encryptedNonce string) tview.Cmd {
+func sendNonceProof(conn *gatewayConn, privateKey *rsa.PrivateKey, encryptedNonce string) tview.Cmd {
 	return func() tview.Msg {
 		decodedNonce, err := base64.StdEncoding.DecodeString(encryptedNonce)
 		if err != nil {
@@ -202,7 +218,7 @@ func sendNonceProof(conn *websocket.Conn, privateKey *rsa.PrivateKey, encryptedN
 			Op    string `json:"op"`
 			Nonce string `json:"nonce"`
 		}{"nonce_proof", encodedNonce}
-		if err := conn.WriteJSON(data); err != nil {
+		if err := conn.writeJSON(data); err != nil {
 			return errMsg(err)
 		}
 		return nil
