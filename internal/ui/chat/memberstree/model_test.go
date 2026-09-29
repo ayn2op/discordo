@@ -30,6 +30,7 @@ func setGuildMembers(t *testing.T, m Model, items string) *discord.Channel {
 	t.Helper()
 	channel := &discord.Channel{ID: channelID, GuildID: guildID, Type: discord.GuildText}
 	m.state.Cabinet.ChannelSet(channel, false)
+	m.state.Cabinet.RoleSet(guildID, &discord.Role{ID: guildID, Permissions: discord.PermissionViewChannel}, false)
 	m.state.Cabinet.RoleSet(guildID, &discord.Role{ID: 3, Name: "Mods"}, false)
 
 	event := &gateway.GuildMemberListUpdateEvent{ID: "everyone", GuildID: guildID}
