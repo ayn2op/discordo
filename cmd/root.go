@@ -26,17 +26,10 @@ func Run() error {
 	}
 
 	var level slog.Level
-	switch *logLevel {
-	case "debug":
-		ws.EnableRawEvents = true
-		level = slog.LevelDebug
-	case "info":
-		level = slog.LevelInfo
-	case "warn":
-		level = slog.LevelWarn
-	case "error":
-		level = slog.LevelError
+	if err := level.UnmarshalText([]byte(*logLevel)); err != nil {
+		return fmt.Errorf("invalid log level: %w", err)
 	}
+	ws.EnableRawEvents = level == slog.LevelDebug
 
 	logFile, err := logger.Load(*logPath, level)
 	if err != nil {
