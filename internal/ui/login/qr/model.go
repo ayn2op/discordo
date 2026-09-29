@@ -117,7 +117,7 @@ func (m *Model) update(msg tview.Msg) tview.Cmd {
 		}
 		return tview.Batch(scheduleHeartbeat(m.heartbeatInterval), sendHeartbeat(m.conn))
 
-	case errMsg:
+	case error:
 		m.setStatus(msg.Error())
 		return closeConn(m.conn)
 	}

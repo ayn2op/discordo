@@ -20,10 +20,7 @@ import (
 	"github.com/skip2/go-qrcode"
 )
 
-type (
-	TokenMsg string
-	errMsg   error
-)
+type TokenMsg string
 
 const remoteAuthGatewayURL = "wss://remote-auth-gateway.discord.gg/?v=2"
 
@@ -52,7 +49,7 @@ func connect() tview.Cmd {
 		dialer := gateway.NewDialer()
 		conn, _, err := dialer.Dial(remoteAuthGatewayURL, headers)
 		if err != nil {
-			return errMsg(err)
+			return err
 		}
 		return connCreateMsg{conn: &gatewayConn{ws: conn}}
 	}
@@ -62,7 +59,7 @@ func closeConn(conn *gatewayConn) tview.Cmd {
 	return func() tview.Msg {
 		if conn != nil {
 			if err := conn.ws.Close(); err != nil {
-				return errMsg(err)
+				return err
 			}
 		}
 		return connCloseMsg{}
@@ -103,7 +100,7 @@ func listen(conn *gatewayConn) tview.Cmd {
 
 		_, data, err := conn.ws.ReadMessage()
 		if err != nil {
-			return errMsg(err)
+			return err
 		}
 
 		return decodeMessage(data)
@@ -121,7 +118,7 @@ func decodeMessage(data []byte) tview.Msg {
 		Ticket               string `json:"ticket"`
 	}
 	if err := json.Unmarshal(data, &payload); err != nil {
-		return errMsg(err)
+		return err
 	}
 
 	switch payload.Op {
@@ -160,7 +157,7 @@ func sendHeartbeat(conn *gatewayConn) tview.Cmd {
 			Op string `json:"op"`
 		}{"heartbeat"}
 		if err := conn.writeJSON(data); err != nil {
-			return errMsg(err)
+			return err
 		}
 		return nil
 	}
@@ -174,7 +171,7 @@ func generatePrivateKey() tview.Cmd {
 	return func() tview.Msg {
 		privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 		if err != nil {
-			return errMsg(err)
+			return err
 		}
 		return privateKeyMsg{privateKey: privateKey}
 	}
@@ -183,11 +180,11 @@ func generatePrivateKey() tview.Cmd {
 func sendInit(conn *gatewayConn, privateKey *rsa.PrivateKey) tview.Cmd {
 	return func() tview.Msg {
 		if privateKey == nil {
-			return errMsg(errors.New("missing private key"))
+			return errors.New("missing private key")
 		}
 		spki, err := x509.MarshalPKIXPublicKey(privateKey.Public())
 		if err != nil {
-			return errMsg(err)
+			return err
 		}
 		encodedPublicKey := base64.StdEncoding.EncodeToString(spki)
 		data := struct {
@@ -195,7 +192,7 @@ func sendInit(conn *gatewayConn, privateKey *rsa.PrivateKey) tview.Cmd {
 			EncodedPublicKey string `json:"encoded_public_key"`
 		}{"init", encodedPublicKey}
 		if err := conn.writeJSON(data); err != nil {
-			return errMsg(err)
+			return err
 		}
 		return nil
 	}
@@ -205,12 +202,12 @@ func sendNonceProof(conn *gatewayConn, privateKey *rsa.PrivateKey, encryptedNonc
 	return func() tview.Msg {
 		decodedNonce, err := base64.StdEncoding.DecodeString(encryptedNonce)
 		if err != nil {
-			return errMsg(err)
+			return err
 		}
 
 		decryptedNonce, err := rsa.DecryptOAEP(sha256.New(), nil, privateKey, decodedNonce, nil)
 		if err != nil {
-			return errMsg(err)
+			return err
 		}
 
 		encodedNonce := base64.RawURLEncoding.EncodeToString(decryptedNonce)
@@ -219,7 +216,7 @@ func sendNonceProof(conn *gatewayConn, privateKey *rsa.PrivateKey, encryptedNonc
 			Nonce string `json:"nonce"`
 		}{"nonce_proof", encodedNonce}
 		if err := conn.writeJSON(data); err != nil {
-			return errMsg(err)
+			return err
 		}
 		return nil
 	}
@@ -234,7 +231,7 @@ func generateQRCode(fingerprint string) tview.Cmd {
 		content := "https://discord.com/ra/" + fingerprint
 		qrCode, err := qrcode.New(content, qrcode.Low)
 		if err != nil {
-			return errMsg(err)
+			return err
 		}
 		qrCode.DisableBorder = true
 		return qrCodeMsg{qrCode: qrCode}
@@ -250,17 +247,17 @@ func decryptUserPayload(privateKey *rsa.PrivateKey, encryptedPayload string) tvi
 	return func() tview.Msg {
 		decodedPayload, err := base64.StdEncoding.DecodeString(encryptedPayload)
 		if err != nil {
-			return errMsg(err)
+			return err
 		}
 
 		decryptedPayload, err := rsa.DecryptOAEP(sha256.New(), nil, privateKey, decodedPayload, nil)
 		if err != nil {
-			return errMsg(err)
+			return err
 		}
 
 		parts := strings.Split(string(decryptedPayload), ":")
 		if len(parts) != 4 {
-			return errMsg(errors.New("invalid user payload"))
+			return errors.New("invalid user payload")
 		}
 
 		return userMsg{discriminator: parts[1], username: parts[3]}
@@ -280,17 +277,17 @@ func exchangeTicket(fingerprint string, privateKey *rsa.PrivateKey, ticket strin
 
 		encryptedToken, err := client.ExchangeRemoteAuthTicket(ticket)
 		if err != nil {
-			return errMsg(err)
+			return err
 		}
 
 		decodedToken, err := base64.StdEncoding.DecodeString(encryptedToken)
 		if err != nil {
-			return errMsg(err)
+			return err
 		}
 
 		decryptedToken, err := rsa.DecryptOAEP(sha256.New(), nil, privateKey, decodedToken, nil)
 		if err != nil {
-			return errMsg(err)
+			return err
 		}
 		return TokenMsg(string(decryptedToken))
 	}

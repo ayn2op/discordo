@@ -26,7 +26,7 @@ func TestDecodeMessage(t *testing.T) {
 	}
 
 	t.Run("rejects duplicate names", func(t *testing.T) {
-		if _, ok := decodeMessage([]byte(`{"op":"cancel","op":"hello"}`)).(errMsg); !ok {
+		if _, ok := decodeMessage([]byte(`{"op":"cancel","op":"hello"}`)).(error); !ok {
 			t.Fatal("duplicate name was accepted")
 		}
 	})
