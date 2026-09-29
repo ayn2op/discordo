@@ -25,12 +25,12 @@ import (
 	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/markdown"
 	"github.com/ayn2op/discordo/internal/ui"
-	"github.com/ayn2op/discordo/internal/ui/chat/attachmentspicker"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/help"
 	"github.com/ayn2op/tview/keybind"
 	"github.com/ayn2op/tview/list"
+	"github.com/ayn2op/tview/picker"
 	"github.com/ayn2op/tview/richtext"
 	"github.com/ayn2op/tview/scrollbar"
 	"github.com/ayn2op/tview/textview"
@@ -1076,9 +1076,9 @@ func (ml *Model) download() tview.Cmd {
 		return ml.confirmAttachment(attachment, saveAttachment(attachment))
 	}
 
-	items := make([]attachmentspicker.Item, len(selectedMessage.Attachments))
+	items := make(picker.Items, len(selectedMessage.Attachments))
 	for i, attachment := range selectedMessage.Attachments {
-		items[i] = attachmentspicker.Item{Label: attachment.Filename, Action: ml.confirmAttachment(attachment, saveAttachment(attachment))}
+		items[i] = picker.Item{Text: attachment.Filename, Reference: ml.confirmAttachment(attachment, saveAttachment(attachment))}
 	}
 	return ml.showAttachmentsPicker(items)
 }
@@ -1144,17 +1144,17 @@ func messageURLs(msg discord.Message) []string {
 }
 
 func (ml *Model) showAttachmentsList(urls []string, attachments []discord.Attachment, openAttachment func(discord.Attachment) tview.Cmd) tview.Cmd {
-	var items []attachmentspicker.Item
+	var items picker.Items
 	for _, attachment := range attachments {
-		items = append(items, attachmentspicker.Item{Label: attachment.Filename, Action: openAttachment(attachment)})
+		items = append(items, picker.Item{Text: attachment.Filename, Reference: openAttachment(attachment)})
 	}
 	for _, url := range urls {
-		items = append(items, attachmentspicker.Item{Label: url, Action: openURL(url)})
+		items = append(items, picker.Item{Text: url, Reference: openURL(url)})
 	}
 	return ml.showAttachmentsPicker(items)
 }
 
-func (ml *Model) showAttachmentsPicker(items []attachmentspicker.Item) tview.Cmd {
+func (ml *Model) showAttachmentsPicker(items picker.Items) tview.Cmd {
 	return func() tview.Msg { return ShowAttachmentsMsg(items) }
 }
 

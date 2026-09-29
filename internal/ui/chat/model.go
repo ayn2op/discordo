@@ -31,6 +31,7 @@ import (
 	"github.com/ayn2op/tview/column"
 	"github.com/ayn2op/tview/inert"
 	"github.com/ayn2op/tview/keybind"
+	"github.com/ayn2op/tview/picker"
 	"github.com/ayn2op/tview/row"
 	"github.com/ayn2op/tview/stack"
 )
@@ -256,7 +257,7 @@ func (m *Model) update(msg tview.Msg) tview.Cmd {
 	case attachmentspicker.CancelMsg:
 		return m.closeAttachmentsPicker()
 	case messageslist.ShowAttachmentsMsg:
-		m.attachmentsPicker.SetItems(msg)
+		m.attachmentsPicker.SetItems(picker.Items(msg))
 		m.attachmentsPickerOpen = true
 		return nil
 	case messageslist.ReplyMsg:

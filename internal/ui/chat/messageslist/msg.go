@@ -2,8 +2,8 @@ package messageslist
 
 import (
 	"github.com/ayn2op/arikawa/v3/discord"
-	"github.com/ayn2op/discordo/internal/ui/chat/attachmentspicker"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/picker"
 )
 
 // Msg is implemented by the messages the list sends itself, which must reach it whatever has the focus.
@@ -33,4 +33,4 @@ type ReplyMsg struct {
 type EditMsg discord.Message
 
 // ShowAttachmentsMsg asks to pick one of the attachments and links of the selected message.
-type ShowAttachmentsMsg []attachmentspicker.Item
+type ShowAttachmentsMsg picker.Items
