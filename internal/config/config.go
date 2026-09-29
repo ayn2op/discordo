@@ -62,6 +62,12 @@ type (
 		Format  string `toml:"format"`
 	}
 
+	AttachmentsConfig struct {
+		ShowLinks        bool      `toml:"show_links"`
+		AllowedMIMETypes MIMETypes `toml:"allowed_mime_types"`
+		Preview          bool      `toml:"preview"`
+	}
+
 	DateSeparator struct {
 		Enabled   bool   `toml:"enabled"`
 		Format    string `toml:"format"`
@@ -151,14 +157,14 @@ type (
 		Mouse     bool   `toml:"mouse"`
 		Editor    string `toml:"editor"`
 
-		Status              discord.Status `toml:"status"`
-		HideBlockedUsers    bool           `toml:"hide_blocked_users"`
-		ShowAttachmentLinks bool           `toml:"show_attachment_links"`
-		AllowedMIMETypes    MIMETypes      `toml:"allowed_mime_types"`
+		Status           discord.Status `toml:"status"`
+		HideBlockedUsers bool           `toml:"hide_blocked_users"`
 
 		// Use 0 to disable
 		AutocompleteLimit uint8 `toml:"autocomplete_limit"`
 		MessagesLimit     uint8 `toml:"messages_limit"`
+
+		Attachments AttachmentsConfig `toml:"attachments"`
 
 		Markdown        MarkdownConfig  `toml:"markdown"`
 		Help            HelpConfig      `toml:"help"`

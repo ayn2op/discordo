@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"image"
 	"io"
 	"log/slog"
 	"mime"
@@ -48,6 +49,9 @@ type messageItem struct {
 	view      list.Item
 	separator bool
 	timestamp discord.Timestamp
+
+	// previews holds the message's images by proxy URL, blank while loading and nil if they failed to.
+	previews map[discord.URL]image.Image
 }
 
 type Model struct {
@@ -140,9 +144,9 @@ func (ml *Model) SetChannel(channel *discord.Channel, messages []discord.Message
 	ml.setTitle(*channel)
 	ml.setMessages(messages)
 	if channel.GuildID.IsValid() {
-		return ml.requestGuildMembers(channel.GuildID, messages)
+		return tview.Batch(ml.requestGuildMembers(channel.GuildID, messages), ml.loadPreviews())
 	}
-	return nil
+	return ml.loadPreviews()
 }
 
 // SetFooter sets the text below the messages, such as who is typing.
@@ -157,14 +161,15 @@ func (ml *Model) ShowNewest() {
 }
 
 // UpdateMessage replaces the shown message with the same ID.
-func (ml *Model) UpdateMessage(message discord.Message) {
+func (ml *Model) UpdateMessage(message discord.Message) tview.Cmd {
 	ml.setMessage(ml.indexOf(message.ChannelID, message.ID), message)
+	return ml.loadPreviews()
 }
 
 // RefreshMessage shows the cached state of a message, such as after a reaction.
 func (ml *Model) RefreshMessage(channelID discord.ChannelID, id discord.MessageID) {
 	if message, err := ml.state.Cabinet.Message(channelID, id); err == nil {
-		ml.UpdateMessage(*message)
+		ml.setMessage(ml.indexOf(channelID, id), *message)
 	}
 }
 
@@ -206,9 +211,10 @@ func (ml *Model) setMessages(messages []discord.Message) {
 	ml.rebuildItems()
 }
 
-func (ml *Model) AddMessage(message discord.Message) {
+func (ml *Model) AddMessage(message discord.Message) tview.Cmd {
 	ml.items = append(ml.items, messageItem{message: message})
 	ml.rebuildItems()
+	return ml.loadPreviews()
 }
 
 func (ml *Model) setMessage(index int, message discord.Message) {
@@ -216,7 +222,7 @@ func (ml *Model) setMessage(index int, message discord.Message) {
 		return
 	}
 
-	ml.items[index] = messageItem{message: message}
+	ml.items[index] = messageItem{message: message, previews: ml.items[index].previews}
 	ml.rebuildItems()
 }
 
@@ -256,17 +262,24 @@ func (ml *Model) buildItem(index int) list.Item {
 
 	if item.view == nil {
 		message := item.message
-		item.view = &messageView{render: func(width int) richtext.Text {
+		view := &messageView{render: func(width int) richtext.Text {
 			ml.renderWidth = width
 			return ml.renderMessage(message, ml.cfg.Theme.MessagesList.MessageStyle.Style)
 		}}
+		for _, s := range previewSources(message) {
+			if img := item.previews[s.proxy]; img != nil {
+				view.images = append(view.images, img)
+			}
+		}
+		item.view = view
 	}
 	return item.view
 }
 
-// messageView renders a message for the width it is laid out at, keeping the wrapped lines until the width changes.
+// messageView renders a message for the width it is laid out at, keeping the wrapped lines until the width changes, followed by its image previews.
 type messageView struct {
 	render   func(width int) richtext.Text
+	images   []image.Image
 	width    int
 	rendered bool
 	lines    richtext.Text
@@ -284,11 +297,23 @@ func (v *messageView) at(width int) textview.Widget {
 
 func (v *messageView) Rows(width int) int {
 	v.at(width)
-	return len(v.lines)
+	rows := len(v.lines)
+	for _, img := range v.images {
+		_, height := preview(img, width).Size()
+		rows += height.Cells()
+	}
+	return rows
 }
 
 func (v *messageView) Draw(screen tview.Screen, area tview.Rectangle) {
-	v.at(area.Width).Draw(screen, area)
+	v.at(area.Width).Draw(screen, tview.Rectangle{X: area.X, Y: area.Y, Width: area.Width, Height: len(v.lines)})
+	y := area.Y + len(v.lines)
+	for _, img := range v.images {
+		p := preview(img, area.Width)
+		_, height := p.Size()
+		p.Draw(screen, tview.Rectangle{X: area.X, Y: y, Width: area.Width, Height: height.Cells()})
+		y += height.Cells()
+	}
 }
 
 func (v *messageView) Handle(msg tview.Msg, area tview.Rectangle) tview.Msg { return msg }
@@ -546,7 +571,7 @@ func (ml *Model) drawDefaultMessage(builder *richtext.Builder, message discord.M
 	attachmentStyle := tview.MergeStyle(baseStyle, ml.cfg.Theme.MessagesList.AttachmentStyle.Style)
 	for _, a := range message.Attachments {
 		builder.NewLine()
-		if ml.cfg.ShowAttachmentLinks {
+		if ml.cfg.Attachments.ShowLinks {
 			builder.Write(a.Filename+":", attachmentStyle)
 			builder.NewLine()
 			builder.Write(a.URL, attachmentStyle.Url(a.URL))
@@ -905,13 +930,21 @@ func (ml *Model) update(msg tview.Msg) tview.Cmd {
 		}
 		ml.rebuildItems()
 		if selectedChannel.GuildID.IsValid() {
-			return ml.requestGuildMembers(selectedChannel.GuildID, msg.Older)
+			return tview.Batch(ml.requestGuildMembers(selectedChannel.GuildID, msg.Older), ml.loadPreviews())
 		}
-		return nil
+		return ml.loadPreviews()
 	case deleteMessageMsg:
 		return ml.requestDelete(discord.Message(msg))
 	case attachmentActionMsg:
 		return msg.Action
+	case previewLoadedMsg:
+		index := slices.IndexFunc(ml.items, func(item messageItem) bool { return !item.separator && item.message.ID == msg.messageID })
+		if index < 0 || ml.items[index].previews == nil {
+			return nil
+		}
+		ml.items[index].previews[msg.proxy] = msg.image
+		// Drop the view, so it is laid out again with the preview.
+		ml.items[index].view = nil
 	case listMsg:
 		ml.selectionState.Apply(list.Change(msg))
 		ml.onRowCursorChanged(ml.cursor())
@@ -1163,7 +1196,7 @@ func (ml *Model) openAttachment(attachment discord.Attachment) tview.Cmd {
 }
 
 func (ml *Model) confirmAttachment(attachment discord.Attachment, action tview.Cmd) tview.Cmd {
-	if !ml.cfg.AllowedMIMETypes.Has(attachment.ContentType) {
+	if !ml.cfg.Attachments.AllowedMIMETypes.Has(attachment.ContentType) {
 		return ui.ShowModal(
 			"This attachment type is not allowed and may be unsafe. Continue anyway?",
 			ui.ModalButton{Label: "No"},

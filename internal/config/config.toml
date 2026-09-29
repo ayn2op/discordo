@@ -11,10 +11,6 @@ editor = "default"
 status = "default"
 
 hide_blocked_users = true
-show_attachment_links = true
-# Attachment MIME types that can be opened or downloaded without confirmation.
-# Exact types and wildcards such as "image/*" are supported.
-allowed_mime_types = ["image/*", "video/*"]
 
 # Max members to be in the mention autocomplete suggestions list
 # Note: Use autocomplete_limit = 0 to disable.
@@ -22,6 +18,14 @@ autocomplete_limit = 20
 
 # The number of messages to fetch when a text-based channel is selected from guilds tree. The minimum and maximum value is 1 and 100, respectively.
 messages_limit = 50
+
+[attachments]
+show_links = true
+# Attachment MIME types that can be opened or downloaded without confirmation.
+# Exact types and wildcards such as "image/*" are supported.
+allowed_mime_types = ["image/*", "video/*"]
+# Whether to draw image attachments and embedded images below their messages.
+preview = true
 
 [composer]
 # Maximum height (in newline-separated rows) the composer grows to before it starts scrolling internally.

@@ -39,7 +39,7 @@ func (m *Model) addMessageOrNotify(message *gateway.MessageCreateEvent) tview.Cm
 
 	if channel := m.selectedChannel; channel != nil && channel.ID == message.ChannelID {
 		m.removeTyper(message.Author.ID)
-		m.messagesList.AddMessage(message.Message)
+		cmd = tview.Batch(cmd, m.messagesList.AddMessage(message.Message))
 		if !m.windowUnfocused || !m.cfg.Notifications.WhenUnfocused {
 			return cmd
 		}
@@ -117,7 +117,7 @@ func (m *Model) applyEvent(event gateway.Event) tview.Cmd {
 	case *gateway.MessageCreateEvent:
 		return m.addMessageOrNotify(event)
 	case *gateway.MessageUpdateEvent:
-		m.messagesList.UpdateMessage(event.Message)
+		return m.messagesList.UpdateMessage(event.Message)
 	case *gateway.PresenceUpdateEvent:
 		return tview.Batch(m.updatePane(guildsTreePane, event), m.updatePane(membersTreePane, event))
 	case *gateway.GuildMemberListUpdateEvent:
