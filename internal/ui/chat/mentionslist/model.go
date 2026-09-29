@@ -14,16 +14,13 @@ type Model struct {
 	cfg            *config.Config
 	selectionState list.SelectionState
 	items          []Item
-	entries        []list.Item
 }
 
 // Msg moves the list.
 type Msg list.Change
 
 func NewModel(cfg *config.Config) Model {
-	m := Model{cfg: cfg, selectionState: list.NewSelectionState()}
-
-	return m
+	return Model{cfg: cfg, selectionState: list.NewSelectionState()}
 }
 
 // View shows the list in a box whose bottom corners join the composer's border below it.
@@ -36,7 +33,10 @@ func (m Model) View() tview.Element {
 func (Model) Init() tview.Cmd { return nil }
 
 func (m Model) listView() list.Widget {
-	return list.New(&m.selectionState, len(m.entries), func(i int) list.Item { return m.entries[i] }).
+	return list.New(&m.selectionState, len(m.items), func(i int) list.Item {
+		item := m.items[i]
+		return row{text: item.DisplayText, style: item.Style}
+	}).
 		SelectedStyle(tcell.StyleDefault.Reverse(true)).
 		Keybind(ui.SelectionKeybind(m.cfg.Keybinds.MentionsList.SelectionKeybinds)).
 		// The list is only shown while mentions are being completed, so it takes its keys first.
@@ -56,7 +56,7 @@ func (m *Model) Append(item Item) {
 }
 
 func (m *Model) Clear() {
-	m.items, m.entries = nil, nil
+	m.items = nil
 	m.selectionState.SetCursor(-1)
 }
 
@@ -81,10 +81,6 @@ func (m Model) MaxDisplayWidth() int {
 }
 
 func (m *Model) Rebuild() {
-	m.entries = make([]list.Item, len(m.items))
-	for i, item := range m.items {
-		m.entries[i] = row{text: item.DisplayText, style: item.Style}
-	}
 	m.selectionState.SetCursor(min(0, len(m.items)-1))
 }
 
