@@ -19,15 +19,6 @@ func onRequest(r httpdriver.Request) error {
 	return nil
 }
 
-func (m *Model) onRaw(event *ws.RawEvent) {
-	slog.Debug(
-		"new raw event",
-		"code", event.OriginalCode,
-		"type", event.OriginalType,
-		// "data", event.Raw,
-	)
-}
-
 func (m *Model) loadGuildsTree(event *gateway.ReadyEvent) tview.Cmd {
 	cmd := m.updatePane(paneGuildsTree, event)
 	m.setFocus(paneGuildsTree)
@@ -109,7 +100,7 @@ func (m *Model) showTypingIndicator(event *gateway.TypingStartEvent) tview.Cmd {
 func (m *Model) applyEvent(event gateway.Event) tview.Cmd {
 	switch event := event.(type) {
 	case *ws.RawEvent:
-		m.onRaw(event)
+		slog.Debug("new raw event", "code", event.OriginalCode, "type", event.OriginalType)
 
 	case *gateway.ReadyEvent:
 		return tview.Batch(m.loadGuildsTree(event), m.updatePane(paneMembersTree, event))
