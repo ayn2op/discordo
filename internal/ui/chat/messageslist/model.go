@@ -814,8 +814,7 @@ func (ml *Model) drawReplyMessage(builder *richtext.Builder, message discord.Mes
 }
 
 func (ml *Model) drawPinnedMessage(builder *richtext.Builder, message discord.Message, baseStyle tcell.Style) {
-	builder.Write(message.Author.DisplayOrUsername(), baseStyle)
-	builder.Write(" pinned a message.", baseStyle)
+	builder.Write(message.Author.DisplayOrUsername()+" pinned a message.", baseStyle)
 }
 
 func (ml *Model) selectedMessage() (*discord.Message, bool) {
