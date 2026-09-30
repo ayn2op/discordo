@@ -588,9 +588,8 @@ func (ml *Model) drawEmbeds(builder *richtext.Builder, message discord.Message, 
 	defaultBarStyle := baseStyle.Dim(true)
 	prefixText := "  ▎ "
 	prefixWidth := uniseg.StringWidth(prefixText)
-	innerWidth := ml.renderWidth
 	// Wrap against the list's width, so the message is rendered again when it changes.
-	wrapWidth := max(innerWidth-prefixWidth, 1)
+	wrapWidth := max(ml.renderWidth-prefixWidth, 1)
 
 	for _, embed := range message.Embeds {
 		lines := embedLines(embed, contentURLs)
@@ -620,10 +619,7 @@ func (ml *Model) drawEmbeds(builder *richtext.Builder, message discord.Message, 
 				}
 				// Prefix must be applied after wrapping so every visual line keeps the embed bar marker ("▎"), not only the first logical line.
 				for _, wrapped := range richtext.Wrap(renderedLine, wrapWidth) {
-					prefixed := make(richtext.Line, 0, len(wrapped)+1)
-					prefixed = append(prefixed, prefix)
-					prefixed = append(prefixed, wrapped...)
-					embedText = append(embedText, prefixed)
+					embedText = append(embedText, append(richtext.Line{prefix}, wrapped...))
 				}
 			}
 		}
