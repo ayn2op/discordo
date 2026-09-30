@@ -799,7 +799,6 @@ func (ml *Model) drawForwardedMessage(builder *richtext.Builder, message discord
 
 func (ml *Model) drawReplyMessage(builder *richtext.Builder, message discord.Message, baseStyle tcell.Style) {
 	dimStyle := baseStyle.Dim(true)
-	// indicator
 	builder.Write(ml.cfg.Theme.MessagesList.ReplyIndicator+" ", dimStyle)
 
 	if m := message.ReferencedMessage; m != nil {
@@ -811,7 +810,6 @@ func (ml *Model) drawReplyMessage(builder *richtext.Builder, message discord.Mes
 	}
 
 	builder.NewLine()
-	// main
 	ml.drawDefaultMessage(builder, message, baseStyle)
 }
 
