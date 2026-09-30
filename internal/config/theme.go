@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/list"
 	"github.com/ayn2op/tview/scrollbar"
@@ -208,16 +209,6 @@ type (
 		ActiveSet BorderSetWrapper `toml:"active_set"`
 	}
 
-	CommonTreeTheme struct {
-		Graphics      bool   `toml:"graphics"`
-		GraphicsColor string `toml:"graphics_color"`
-
-		OnlineStyle  StyleWrapper `toml:"online_style"`
-		IdleStyle    StyleWrapper `toml:"idle_style"`
-		DNDStyle     StyleWrapper `toml:"dnd_style"`
-		OfflineStyle StyleWrapper `toml:"offline_style"`
-	}
-
 	GuildsTreeTheme struct {
 		CommonTreeTheme
 		AutoExpandFolders bool `toml:"auto_expand_folders"`
@@ -281,3 +272,27 @@ type (
 		Help         HelpTheme         `toml:"help"`
 	}
 )
+
+type CommonTreeTheme struct {
+	Graphics      bool   `toml:"graphics"`
+	GraphicsColor string `toml:"graphics_color"`
+
+	OnlineStyle  StyleWrapper `toml:"online_style"`
+	IdleStyle    StyleWrapper `toml:"idle_style"`
+	DNDStyle     StyleWrapper `toml:"dnd_style"`
+	OfflineStyle StyleWrapper `toml:"offline_style"`
+}
+
+// StatusStyle returns the style for a user with status.
+func (ctt CommonTreeTheme) StatusStyle(status discord.Status) tcell.Style {
+	switch status {
+	case discord.OnlineStatus:
+		return ctt.OnlineStyle.Style
+	case discord.IdleStatus:
+		return ctt.IdleStyle.Style
+	case discord.DoNotDisturbStatus:
+		return ctt.DNDStyle.Style
+	default:
+		return ctt.OfflineStyle.Style
+	}
+}

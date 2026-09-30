@@ -260,7 +260,7 @@ const statusMarker = "●"
 
 // setStatus styles the status dot and name of a member line for status.
 func (m *Model) setStatus(line richtext.Line, status discord.Status) {
-	line[0].Style = m.statusStyle(status)
+	line[0].Style = m.cfg.Theme.MembersTree.StatusStyle(status)
 	line[2].Style = line[2].Style.Dim(status == discord.OfflineStatus)
 }
 
@@ -288,20 +288,6 @@ func (m *Model) status(guildID discord.GuildID, userID discord.UserID) discord.S
 		return discord.OfflineStatus
 	}
 	return presence.Status
-}
-
-func (m *Model) statusStyle(status discord.Status) tcell.Style {
-	theme := &m.cfg.Theme.MembersTree
-	switch status {
-	case discord.OnlineStatus:
-		return theme.OnlineStyle.Style
-	case discord.IdleStatus:
-		return theme.IdleStyle.Style
-	case discord.DoNotDisturbStatus:
-		return theme.DNDStyle.Style
-	default:
-		return theme.OfflineStyle.Style
-	}
 }
 
 // statusRank orders members as Discord does: online, idle, do not disturb, then offline.

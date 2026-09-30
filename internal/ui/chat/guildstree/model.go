@@ -182,23 +182,10 @@ func (m *Model) channelNodeStyle(channel discord.Channel) tcell.Style {
 	recipient := channel.DMRecipients[0]
 	presence, err := m.state.Cabinet.Presence(discord.NullGuildID, recipient.ID)
 	if err != nil {
-		return tview.MergeStyle(m.dmStatusStyle(discord.OfflineStatus), unread)
+		return tview.MergeStyle(m.cfg.Theme.GuildsTree.StatusStyle(discord.OfflineStatus), unread)
 	}
 
-	return tview.MergeStyle(m.dmStatusStyle(presence.Status), unread)
-}
-
-func (m *Model) dmStatusStyle(status discord.Status) tcell.Style {
-	switch status {
-	case discord.DoNotDisturbStatus:
-		return m.cfg.Theme.GuildsTree.DNDStyle.Style
-	case discord.IdleStatus:
-		return m.cfg.Theme.GuildsTree.IdleStyle.Style
-	case discord.OnlineStatus:
-		return m.cfg.Theme.GuildsTree.OnlineStyle.Style
-	default:
-		return m.cfg.Theme.GuildsTree.OfflineStyle.Style
-	}
+	return tview.MergeStyle(m.cfg.Theme.GuildsTree.StatusStyle(presence.Status), unread)
 }
 
 func (m *Model) createGuildNode(parent *tree.Node, guild discord.Guild) {
