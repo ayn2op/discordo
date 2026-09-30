@@ -726,15 +726,8 @@ func embedLines(embed discord.Embed, contentURLs map[string]struct{}) []embedLin
 	appendUnique(unescapeMarkdownEscapes(embed.Description), embedLineDescription, "")
 
 	for _, field := range embed.Fields {
-		switch {
-		case field.Name != "" && field.Value != "":
-			appendUnique(field.Name, embedLineFieldName, "")
-			appendUnique(field.Value, embedLineFieldValue, "")
-		case field.Name != "":
-			appendUnique(field.Name, embedLineFieldName, "")
-		default:
-			appendUnique(field.Value, embedLineFieldValue, "")
-		}
+		appendUnique(field.Name, embedLineFieldName, "")
+		appendUnique(field.Value, embedLineFieldValue, "")
 	}
 
 	if embed.Footer != nil {
