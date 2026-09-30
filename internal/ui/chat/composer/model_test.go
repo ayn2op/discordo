@@ -145,3 +145,18 @@ func TestModelTabSuggest(t *testing.T) {
 		t.Fatalf("suggested %d authors, want 2", got)
 	}
 }
+
+func TestModelProcessText(t *testing.T) {
+	c, _ := newTestModel(t)
+	channel := &discord.Channel{Type: discord.DirectMessage, DMRecipients: []discord.User{{ID: 1, Username: "alice"}, {ID: 2, Username: "bob"}}}
+	for _, tt := range []struct{ name, in, want string }{
+		{"mentions around code", "@alice `code` @bob", "<@1> `code` <@2>"},
+		{"mention in code", "@alice `@bob`", "<@1> `@bob`"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := c.processText(channel, []byte(tt.in)); got != tt.want {
+				t.Fatalf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}

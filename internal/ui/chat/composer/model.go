@@ -338,15 +338,15 @@ func (c *Model) processText(channel *discord.Channel, src []byte) string {
 				canMention = !enter
 			}
 		case *ast.Text:
-			if canMention {
-				ranges = append(ranges, [2]int{node.Segment.Start,
-					node.Segment.Stop})
+			if enter && canMention {
+				ranges = append(ranges, [2]int{node.Segment.Start, node.Segment.Stop})
 			}
 		}
 		return ast.WalkContinue, nil
 	})
 
-	for _, rng := range ranges {
+	// Replace back to front so that expanding a mention does not shift the ranges before it.
+	for _, rng := range slices.Backward(ranges) {
 		src = slices.Replace(src, rng[0], rng[1], c.expandMentions(channel, src[rng[0]:rng[1]])...)
 	}
 
