@@ -15,8 +15,9 @@ You can download and install a [prebuilt binary here](https://nightly.link/ayn2o
 
 - Arch Linux: `yay -S discordo-git`
 - Gentoo (available on the guru repos as a live ebuild): `emerge net-im/discordo`
-- FreeBSD: `pkg install discordo` or via the ports system `make -C /usr/ports/net-im/discordo install clean`.
-- Nix: Add `pkgs.discordo` to `environment.systemPackages` or `home.packages`.
+- FreeBSD: `pkg install discordo` or via the ports system `make -C /usr/ports/net-im/discordo install clean`
+- Nix: Add `pkgs.discordo` to `environment.systemPackages` or `home.packages`
+- Android (Termux): `pkg install discordo`
 
 - Windows (Scoop):
 
