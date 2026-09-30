@@ -37,9 +37,9 @@ func (m Model) FullHelp() [][]keybind.Keybind {
 
 func (m Model) activeKeyMap() help.KeyMap {
 	switch m.screen {
-	case loginScreen:
+	case screenLogin:
 		return m.login
-	case chatScreen:
+	case screenChat:
 		return m.chat
 	}
 	return nil

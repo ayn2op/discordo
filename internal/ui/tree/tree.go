@@ -2,10 +2,6 @@
 package tree
 
 import (
-	"context"
-	"fmt"
-	"log/slog"
-
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
@@ -13,11 +9,10 @@ import (
 	"github.com/ayn2op/tview/keybind"
 	"github.com/ayn2op/tview/tree"
 	"github.com/gdamore/tcell/v3"
-	"golang.design/x/clipboard"
 )
 
-// New returns a boxed tree of the nodes under root, drawn with theme and moved with kbs, that turns changes into the message onChange returns.
-func New(root *tree.Node, selectionState *tree.SelectionState, cfg *config.Config, theme config.CommonTreeTheme, kbs config.TreeKeybinds, focused bool, onChange func(tree.Change) tview.Msg) box.Widget {
+// New returns a boxed tree of the nodes under root, drawn with theme and moved with kbs, that turns changes and selected nodes into the messages onChange and onSelect return.
+func New(root *tree.Node, selectionState *tree.SelectionState, cfg *config.Config, theme config.CommonTreeTheme, kbs config.TreeKeybinds, focused bool, onChange func(tree.Change) tview.Msg, onSelect func(*tree.Node) tview.Msg) box.Widget {
 	set := cfg.Theme.Border.NormalSet.BorderSet
 	if focused {
 		set = cfg.Theme.Border.ActiveSet.BorderSet
@@ -34,7 +29,8 @@ func New(root *tree.Node, selectionState *tree.SelectionState, cfg *config.Confi
 		GraphicsStyle(tcell.StyleDefault.Foreground(tcell.GetColor(theme.GraphicsColor))).
 		Keybind(bindKeys(kbs)).
 		Focused(focused).
-		OnChange(onChange)
+		OnChange(onChange).
+		OnSelect(onSelect)
 	return ui.Box(t, &cfg.Theme, focused)
 }
 
@@ -55,23 +51,5 @@ func bindKeys(kbs config.TreeKeybinds) func(tview.KeyMsg) (tree.Action, bool) {
 			return tree.ActionSelect, true
 		}
 		return 0, false
-	}
-}
-
-// YankID copies the ID of node to the clipboard.
-func YankID(node *tree.Node) tview.Cmd {
-	if node == nil {
-		return nil
-	}
-
-	id, ok := node.Reference().(fmt.Stringer)
-	if !ok {
-		return nil
-	}
-	return func() tview.Msg {
-		if _, err := clipboard.Write(context.Background(), clipboard.FmtText, []byte(id.String())); err != nil {
-			slog.Error("failed to write to clipboard", "err", err)
-		}
-		return nil
 	}
 }

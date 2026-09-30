@@ -83,15 +83,15 @@ func TestModelAddMessageOrNotify(t *testing.T) {
 func TestModelCycleFocus(t *testing.T) {
 	m := newTestModel(t)
 	m.setSelectedChannel(&discord.Channel{ID: 1, GuildID: 2, Type: discord.GuildText})
-	m.focused = guildsTreePane
+	m.focused = paneGuildsTree
 
 	// The composer is disabled without permission to send messages, so it is skipped.
-	for _, want := range []pane{messagesListPane, membersTreePane, guildsTreePane} {
+	for _, want := range []pane{paneMessagesList, paneMembersTree, paneGuildsTree} {
 		if m.cycleFocus(1); m.focused != want {
 			t.Fatalf("focused = %v, want %v", m.focused, want)
 		}
 	}
-	for _, want := range []pane{membersTreePane, messagesListPane, guildsTreePane} {
+	for _, want := range []pane{paneMembersTree, paneMessagesList, paneGuildsTree} {
 		if m.cycleFocus(-1); m.focused != want {
 			t.Fatalf("focused = %v, want %v", m.focused, want)
 		}

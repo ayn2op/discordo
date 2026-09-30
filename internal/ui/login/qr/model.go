@@ -27,12 +27,6 @@ type Model struct {
 	status string
 }
 
-// scrollMsg scrolls the code.
-type scrollMsg textview.Change
-
-// startMsg starts connecting to the Remote Auth Gateway.
-type startMsg struct{}
-
 func NewModel() Model {
 	var m Model
 	m.setStatus("Press Ctrl+N to open QR login")

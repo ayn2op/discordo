@@ -4,7 +4,7 @@ import "github.com/ayn2op/tview"
 
 type ModalButton struct {
 	Label    string
-	Result   tview.Msg
+	Cmd      tview.Cmd
 	KeepOpen bool
 }
 

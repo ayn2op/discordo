@@ -1,6 +1,8 @@
 package guildstree
 
 import (
+	"slices"
+
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/tview/help"
 	"github.com/ayn2op/tview/keybind"
@@ -69,12 +71,5 @@ func (m *Model) canCollapseParent(node *tree.Node) bool {
 }
 
 func (m *Model) canCollapseAll() bool {
-	var can bool
-	for _, node := range m.root.Children() {
-		if node.Expanded() {
-			can = true
-			break
-		}
-	}
-	return can
+	return slices.ContainsFunc(m.root.Children(), (*tree.Node).Expanded)
 }

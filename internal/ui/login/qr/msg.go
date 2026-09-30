@@ -18,6 +18,7 @@ import (
 	"github.com/ayn2op/discordo/internal/gateway"
 	"github.com/ayn2op/discordo/internal/http"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/textview"
 	"github.com/gorilla/websocket"
 	"github.com/skip2/go-qrcode"
 )
@@ -299,3 +300,9 @@ func exchangeTicket(fingerprint string, privateKey *rsa.PrivateKey, ticket strin
 		return TokenMsg(string(decryptedToken))
 	}
 }
+
+// scrollMsg scrolls the code.
+type scrollMsg textview.Change
+
+// startMsg starts connecting to the Remote Auth Gateway.
+type startMsg struct{}

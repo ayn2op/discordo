@@ -29,9 +29,9 @@ const tokenEnvVarKey = "DISCORDO_TOKEN"
 type screen int
 
 const (
-	noScreen screen = iota
-	loginScreen
-	chatScreen
+	screenNone screen = iota
+	screenLogin
+	screenChat
 )
 
 type Model struct {
@@ -94,7 +94,10 @@ func (m *Model) update(msg tview.Msg) tview.Cmd {
 			deleteToken(),
 		)
 	case ui.ModalMsg:
-		return m.showModal(msg)
+		if m.modal == nil {
+			m.modal, m.dialogFocus = &msg, 0
+		}
+		return nil
 	case dialogFocusMsg:
 		m.dialogFocus = int(msg)
 		return nil
@@ -133,9 +136,9 @@ func (m *Model) update(msg tview.Msg) tview.Cmd {
 func (m *Model) updateScreen(msg tview.Msg) tview.Cmd {
 	var cmd tview.Cmd
 	switch m.screen {
-	case loginScreen:
+	case screenLogin:
 		m.login, cmd = m.login.Update(msg)
-	case chatScreen:
+	case screenChat:
 		m.chat, cmd = m.chat.Update(msg)
 	}
 	return cmd
@@ -145,9 +148,9 @@ func (m *Model) updateScreen(msg tview.Msg) tview.Cmd {
 func (m Model) View() tview.Element {
 	var innerView, helpView tview.Element
 	switch m.screen {
-	case loginScreen:
+	case screenLogin:
 		innerView = m.login.View()
-	case chatScreen:
+	case screenChat:
 		innerView = m.chat.View()
 	}
 	if m.helpVisible {
@@ -159,30 +162,6 @@ func (m Model) View() tview.Element {
 		return content
 	}
 	return stack.New(inert.New(content), backdrop.New().Style(m.cfg.Theme.Dialog.BackgroundStyle.Style), m.dialogView())
-}
-
-func (m *Model) showModal(request ui.ModalMsg) tview.Cmd {
-	if m.modal != nil {
-		return nil
-	}
-	m.modal, m.dialogFocus = &request, 0
-	return nil
-}
-
-func (m *Model) showLogin() tview.Cmd {
-	m.screen, m.login, m.chat = loginScreen, login.NewModel(m.cfg), chat.Model{}
-	return m.show(m.login.Init())
-}
-
-func (m *Model) showChat(token string) tview.Cmd {
-	m.screen, m.chat, m.login = chatScreen, chat.NewModel(m.cfg, token), login.Model{}
-	return m.show(m.chat.Init())
-}
-
-// show closes any open modal after the shown model changed and returns what it needs done, with init its first command.
-func (m *Model) show(init tview.Cmd) tview.Cmd {
-	m.modal = nil
-	return tview.Batch(tview.SetTitle(consts.Name), init)
 }
 
 // helpView returns the help for the keybinds that currently apply.
@@ -233,26 +212,4 @@ func (m *Model) toggleHelp() {
 	if m.cfg.Help.Enabled {
 		m.helpVisible = !m.helpVisible
 	}
-}
-
-func (m *Model) finishModal(index int) tview.Cmd {
-	state := m.modal
-	if state == nil {
-		return nil
-	}
-
-	var result tview.Msg
-	if index >= 0 && index < len(state.Buttons) {
-		button := state.Buttons[index]
-		if button.KeepOpen {
-			return func() tview.Msg { return button.Result }
-		}
-		result = button.Result
-	}
-
-	m.modal = nil
-	if result == nil {
-		return nil
-	}
-	return func() tview.Msg { return result }
 }

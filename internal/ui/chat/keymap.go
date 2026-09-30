@@ -26,18 +26,18 @@ func (m Model) FullHelp() [][]keybind.Keybind {
 }
 
 func (m Model) activeKeyMap() help.KeyMap {
-	if m.pickerOpen() {
+	if m.overlay != overlayNone {
 		return m.cfg.Keybinds.Picker
 	}
 
 	switch m.focused {
-	case guildsTreePane:
+	case paneGuildsTree:
 		return m.guildsTree
-	case messagesListPane:
+	case paneMessagesList:
 		return m.messagesList
-	case composerPane:
+	case paneComposer:
 		return m.composer
-	case membersTreePane:
+	case paneMembersTree:
 		return m.membersTree
 	default:
 		return nil
@@ -66,16 +66,16 @@ func (m Model) focusHelp() []keybind.Keybind {
 	focused := m.focused
 	focusKbs := make([]keybind.Keybind, 0, 4)
 
-	if focused != guildsTreePane {
+	if focused != paneGuildsTree {
 		focusKbs = append(focusKbs, kbs.FocusGuildsTree.Keybind)
 	}
-	if focused != messagesListPane {
+	if focused != paneMessagesList {
 		focusKbs = append(focusKbs, kbs.FocusMessagesList.Keybind)
 	}
-	if !m.composer.Disabled() && focused != composerPane {
+	if !m.composer.Disabled() && focused != paneComposer {
 		focusKbs = append(focusKbs, kbs.FocusComposer.Keybind)
 	}
-	if m.membersTreeShown() && focused != membersTreePane {
+	if m.membersTreeShown() && focused != paneMembersTree {
 		focusKbs = append(focusKbs, kbs.FocusMembersTree.Keybind)
 	}
 

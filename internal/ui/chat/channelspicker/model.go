@@ -2,7 +2,6 @@ package channelspicker
 
 import (
 	"log/slog"
-	"strings"
 
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/discordo/internal/config"
@@ -77,14 +76,9 @@ func (m *Model) RefreshChannels(state *ningen.State) {
 }
 
 func (m Model) channelItem(state *ningen.State, guild *discord.Guild, channel discord.Channel) picker.Item {
-	var b strings.Builder
-	b.WriteString(ui.ChannelToString(channel, m.cfg.Icons, state))
-
+	name := ui.ChannelToString(channel, m.cfg.Icons, state)
 	if guild != nil {
-		b.WriteString(" - ")
-		b.WriteString(guild.Name)
+		name += " - " + guild.Name
 	}
-
-	name := b.String()
 	return picker.Item{Text: name, FilterText: name, Reference: channel.ID}
 }

@@ -22,9 +22,6 @@ func NewModel(cfg *config.Config, title string) Model {
 	return Model{searchState: picker.NewSearchState(), cfg: cfg, title: title}
 }
 
-// changeMsg changes the picker.
-type changeMsg picker.Change
-
 func (Model) Init() tview.Cmd { return nil }
 
 // View shows the picker, turning the selected item into the message onSelect returns and canceling with onCancel.

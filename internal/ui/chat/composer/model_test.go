@@ -36,7 +36,7 @@ func TestModelUpdate(t *testing.T) {
 		want  bool
 	}{
 		{"empty", func(*Model, *config.Config) tview.KeyMsg { return up }, true},
-		{"draft", func(c *Model, _ *config.Config) tview.KeyMsg { c.setText("draft"); return up }, false},
+		{"draft", func(c *Model, _ *config.Config) tview.KeyMsg { c.editState.SetValue("draft"); return up }, false},
 		{"reply", func(c *Model, _ *config.Config) tview.KeyMsg {
 			c.StartReply(discord.Message{ID: 3}, "name", false)
 			return up
@@ -139,7 +139,7 @@ func TestModelTabSuggest(t *testing.T) {
 		}
 	}
 	c.SetChannel(&channel)
-	c.setText("@")
+	c.editState.SetValue("@")
 	c.tabSuggest()
 	if got := c.mentionsList.ItemCount(); got != 2 {
 		t.Fatalf("suggested %d authors, want 2", got)

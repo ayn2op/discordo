@@ -29,16 +29,16 @@ func (m *Model) onRaw(event *ws.RawEvent) {
 }
 
 func (m *Model) loadGuildsTree(event *gateway.ReadyEvent) tview.Cmd {
-	cmd := m.updatePane(guildsTreePane, event)
-	m.setFocus(guildsTreePane)
+	cmd := m.updatePane(paneGuildsTree, event)
+	m.setFocus(paneGuildsTree)
 	return cmd
 }
 
 func (m *Model) addMessageOrNotify(message *gateway.MessageCreateEvent) tview.Cmd {
-	cmd := m.updatePane(guildsTreePane, message)
+	cmd := m.updatePane(paneGuildsTree, message)
 
 	if channel := m.selectedChannel; channel != nil && channel.ID == message.ChannelID {
-		m.removeTyper(message.Author.ID)
+		delete(m.typers, message.Author.ID)
 		cmd = tview.Batch(cmd, m.messagesList.AddMessage(message.Message))
 		if !m.windowUnfocused || !m.cfg.Notifications.WhenUnfocused {
 			return cmd
@@ -112,16 +112,16 @@ func (m *Model) applyEvent(event gateway.Event) tview.Cmd {
 		m.onRaw(event)
 
 	case *gateway.ReadyEvent:
-		return tview.Batch(m.loadGuildsTree(event), m.updatePane(membersTreePane, event))
+		return tview.Batch(m.loadGuildsTree(event), m.updatePane(paneMembersTree, event))
 
 	case *gateway.MessageCreateEvent:
 		return m.addMessageOrNotify(event)
 	case *gateway.MessageUpdateEvent:
 		return m.messagesList.UpdateMessage(event.Message)
 	case *gateway.PresenceUpdateEvent:
-		return tview.Batch(m.updatePane(guildsTreePane, event), m.updatePane(membersTreePane, event))
+		return tview.Batch(m.updatePane(paneGuildsTree, event), m.updatePane(paneMembersTree, event))
 	case *gateway.GuildMemberListUpdateEvent:
-		return m.updatePane(membersTreePane, event)
+		return m.updatePane(paneMembersTree, event)
 	case *gateway.MessageDeleteEvent:
 		m.messagesList.DeleteMessage(event.ChannelID, event.ID)
 	case *gateway.MessageReactionAddEvent:
@@ -146,7 +146,7 @@ func (m *Model) applyEvent(event gateway.Event) tview.Cmd {
 		}
 
 	case *read.UpdateEvent:
-		return m.updatePane(guildsTreePane, event)
+		return m.updatePane(paneGuildsTree, event)
 	}
 	return nil
 }

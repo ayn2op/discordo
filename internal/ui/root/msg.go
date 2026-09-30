@@ -4,6 +4,8 @@ import (
 	"log/slog"
 
 	"github.com/ayn2op/discordo/internal/consts"
+	"github.com/ayn2op/discordo/internal/ui/chat"
+	"github.com/ayn2op/discordo/internal/ui/login"
 	"github.com/ayn2op/tview"
 	"github.com/zalando/go-keyring"
 	"golang.design/x/clipboard"
@@ -60,4 +62,32 @@ func initClipboard() tview.Cmd {
 		}
 		return nil
 	}
+}
+
+func (m *Model) showLogin() tview.Cmd {
+	m.screen, m.login, m.chat = screenLogin, login.NewModel(m.cfg), chat.Model{}
+	return m.show(m.login.Init())
+}
+
+func (m *Model) showChat(token string) tview.Cmd {
+	m.screen, m.chat, m.login = screenChat, chat.NewModel(m.cfg, token), login.Model{}
+	return m.show(m.chat.Init())
+}
+
+// show closes any open modal after the shown model changed and returns what it needs done, with init its first command.
+func (m *Model) show(init tview.Cmd) tview.Cmd {
+	m.modal = nil
+	return tview.Batch(tview.SetTitle(consts.Name), init)
+}
+
+func (m *Model) finishModal(index int) tview.Cmd {
+	if m.modal == nil || index < 0 || index >= len(m.modal.Buttons) {
+		m.modal = nil
+		return nil
+	}
+	button := m.modal.Buttons[index]
+	if !button.KeepOpen {
+		m.modal = nil
+	}
+	return button.Cmd
 }

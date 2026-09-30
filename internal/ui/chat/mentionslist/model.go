@@ -16,9 +16,6 @@ type Model struct {
 	items          []Item
 }
 
-// Msg moves the list.
-type Msg list.Change
-
 func NewModel(cfg *config.Config) Model {
 	return Model{cfg: cfg, selectionState: list.NewSelectionState()}
 }

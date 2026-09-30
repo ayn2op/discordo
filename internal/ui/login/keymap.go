@@ -59,11 +59,11 @@ func (m Model) navHelp() []keybind.Keybind {
 func (m Model) activeKeyMap() help.KeyMap {
 	var active any
 	switch m.active {
-	case passwordTab:
+	case tabPassword:
 		active = m.password
-	case qrTab:
+	case tabQR:
 		active = m.qr
-	case tokenTab:
+	case tabToken:
 		active = m.token
 	}
 	keyMap, _ := active.(help.KeyMap)

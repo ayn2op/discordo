@@ -2,11 +2,10 @@ package composer
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"io"
 	"log/slog"
-	"os"
-	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
@@ -32,9 +31,7 @@ import (
 	"github.com/ayn2op/tview/keybind"
 	"github.com/ayn2op/tview/textarea"
 	"github.com/gdamore/tcell/v3"
-	"github.com/ncruces/zenity"
 	"github.com/rivo/uniseg"
-	"github.com/sahilm/fuzzy"
 	"github.com/yuin/goldmark/ast"
 	"golang.design/x/clipboard"
 )
@@ -48,10 +45,9 @@ const (
 var mentionRegex = regexp.MustCompile("@[a-zA-Z0-9._]+")
 
 type Model struct {
-	title, footer string
-	editState     textarea.EditState
-	placeholder   string
-	disabled      bool
+	editState   textarea.EditState
+	placeholder string
+	disabled    bool
 
 	state *ningen.State
 	// channel is the selected channel, or nil for none.
@@ -59,14 +55,14 @@ type Model struct {
 
 	cfg *config.Config
 
-	editing           *discord.Message
+	editing *discord.Message
+	// replyName is the name of the author of the message being replied to.
+	replyName         string
 	sendMessageData   *api.SendMessageData
 	memberSearchCache map[string]uint
 	mentionsList      mentionslist.Model
 	lastSearch        time.Time
 
-	// height is the number of rows the composer takes, including its border.
-	height int
 	// mentionsVisible reports whether the mentions list is shown above the composer.
 	mentionsVisible bool
 
@@ -75,19 +71,6 @@ type Model struct {
 
 // TypingDuration is how long Discord shows someone as typing after they start.
 const TypingDuration = 10 * time.Second
-
-// TabSuggestMsg suggests mentions for the word before the cursor.
-type TabSuggestMsg struct{}
-
-// EditLastMsg asks to edit the user's last message.
-type EditLastMsg struct{}
-
-// SentMsg reports that the composer sent a message.
-type SentMsg struct{}
-type editorMsg string
-
-// editMsg edits the composer's text.
-type editMsg textarea.Change
 
 var _ help.KeyMap = Model{}
 
@@ -100,7 +83,6 @@ func NewModel(cfg *config.Config, state *ningen.State) Model {
 		sendMessageData:   &api.SendMessageData{},
 		memberSearchCache: make(map[string]uint),
 		mentionsList:      mentionslist.NewModel(cfg),
-		height:            3,
 	}
 	return c
 }
@@ -118,7 +100,8 @@ func (c *Model) SetChannel(channel *discord.Channel) {
 
 // Height returns the number of rows the composer takes, including its border.
 func (c *Model) Height() int {
-	return c.height
+	_, frame := c.frame()
+	return min(strings.Count(c.editState.Value(), "\n")+1, max(c.cfg.Composer.MaxHeight, 1)) + frame
 }
 
 func (c *Model) Disabled() bool {
@@ -153,7 +136,33 @@ func (c *Model) box(focused bool) box.Widget {
 		Keybind(c.editAction).
 		Focused(focused && !c.disabled).
 		OnChange(func(a textarea.Change) tview.Msg { return editMsg(a) })
-	return ui.Box(text, &c.cfg.Theme, focused).Title(c.title).Footer(c.footer)
+	return ui.Box(text, &c.cfg.Theme, focused).Title(c.title()).Footer(c.footer())
+}
+
+// title returns what the composer is doing: editing, replying, or nothing.
+func (c *Model) title() string {
+	switch data := c.sendMessageData; {
+	case c.editing != nil:
+		return "Editing"
+	case data.Reference != nil:
+		if mention := data.AllowedMentions.RepliedUser; mention != nil && *mention {
+			return "[@] Replying to " + c.replyName
+		}
+		return "Replying to " + c.replyName
+	}
+	return ""
+}
+
+// footer returns the names of the attached files, or "" if there are none.
+func (c *Model) footer() string {
+	if len(c.sendMessageData.Files) == 0 {
+		return ""
+	}
+	var names []string
+	for _, file := range c.sendMessageData.Files {
+		names = append(names, file.Name)
+	}
+	return "Attached " + humanJoin(names)
 }
 
 // isBound reports whether key is one of the composer's keybinds.
@@ -167,7 +176,7 @@ func (c *Model) isBound(key tview.KeyMsg) bool {
 
 // insert inserts text at the cursor.
 func (c *Model) insert(text string) {
-	c.replace(c.editState.Cursor(), c.editState.Cursor(), text)
+	c.editState.Replace(c.editState.Cursor(), c.editState.Cursor(), text)
 }
 
 // pasteText inserts the text on the clipboard at the cursor.
@@ -187,39 +196,10 @@ func (c *Model) frame() (left, vertical int) {
 	return inner.X, size - inner.Height
 }
 
-func (c *Model) resizeForContent() {
-	_, frame := c.frame()
-	c.height = min(strings.Count(c.editState.Value(), "\n")+1, max(c.cfg.Composer.MaxHeight, 1)) + frame
-}
-
 func (c *Model) reset() {
 	c.editing = nil
 	c.sendMessageData = &api.SendMessageData{}
-	c.setTitle("")
-	c.setFooter("")
-	c.setText("")
-}
-
-// setText replaces the text and moves the cursor to its end.
-func (c *Model) setText(text string) {
-	c.editState.SetValue(text)
-	c.resizeForContent()
-}
-
-// replace replaces the bytes from start to end of the text and moves the cursor after it.
-func (c *Model) replace(start, end int, text string) {
-	c.editState.Replace(start, end, text)
-	c.resizeForContent()
-}
-
-func (c *Model) setTitle(title string) {
-	c.title = title
-	c.resizeForContent()
-}
-
-func (c *Model) setFooter(footer string) {
-	c.footer = footer
-	c.resizeForContent()
+	c.editState.SetValue("")
 }
 
 func (c Model) Update(msg tview.Msg) (Model, tview.Cmd) {
@@ -248,11 +228,10 @@ func (c *Model) update(msg tview.Msg) tview.Cmd {
 		}
 		return nil
 	case editorMsg:
-		c.setText(string(msg))
+		c.editState.SetValue(string(msg))
 		return nil
 	case editMsg:
 		c.editState.Apply(textarea.Change(msg))
-		c.resizeForContent()
 		typingCmd := c.sendTyping()
 		if c.cfg.AutocompleteLimit > 0 {
 			return tview.Batch(typingCmd, c.tabSuggest())
@@ -272,12 +251,15 @@ func (c *Model) update(msg tview.Msg) tview.Cmd {
 			}
 			return c.send()
 		case keybind.Matches(msg, c.cfg.Keybinds.Composer.OpenEditor.Keybind):
-			return tview.Sequence(c.stopTabCompletion(), c.openEditor())
+			c.stopTabCompletion()
+			return c.openEditor()
 		case keybind.Matches(msg, c.cfg.Keybinds.Composer.OpenFilePicker.Keybind):
-			return tview.Sequence(c.stopTabCompletion(), c.pickFiles())
+			c.stopTabCompletion()
+			return c.pickFiles()
 		case keybind.Matches(msg, c.cfg.Keybinds.Composer.Cancel.Keybind):
 			if c.mentionsVisible {
-				return c.stopTabCompletion()
+				c.stopTabCompletion()
+				return nil
 			}
 			c.reset()
 			return nil
@@ -292,7 +274,6 @@ func (c *Model) update(msg tview.Msg) tview.Cmd {
 			return nil
 		case keybind.Matches(msg, c.cfg.Keybinds.Composer.Undo.Keybind):
 			c.editState.Undo()
-			c.resizeForContent()
 			return nil
 		}
 	case mentionslist.Msg:
@@ -309,15 +290,10 @@ func (c *Model) canEditLastMessage() bool {
 		!c.mentionsVisible
 }
 
-func (c *Model) editLastMessage() tview.Cmd {
-	return func() tview.Msg { return EditLastMsg{} }
-}
-
 // StartEdit puts message in the composer to be edited.
 func (c *Model) StartEdit(message discord.Message) {
 	c.editing = &message
-	c.setTitle("Editing")
-	c.setText(message.Content)
+	c.editState.SetValue(message.Content)
 }
 
 // StartReply makes the next message a reply to message by name, mentioning its author if mention is set.
@@ -325,11 +301,7 @@ func (c *Model) StartReply(message discord.Message, name string, mention bool) {
 	data := c.sendMessageData
 	data.Reference = &discord.MessageReference{MessageID: message.ID}
 	data.AllowedMentions = &api.AllowedMentions{RepliedUser: option.Some(mention)}
-	title := "Replying to "
-	if mention {
-		title = "[@] " + title
-	}
-	c.setTitle(title + name)
+	c.replyName = name
 }
 
 func (c *Model) toggleReplyMention() {
@@ -338,131 +310,7 @@ func (c *Model) toggleReplyMention() {
 		return
 	}
 
-	mention := !*data.AllowedMentions.RepliedUser
-	data.AllowedMentions.RepliedUser = option.Some(mention)
-	title := strings.TrimPrefix(c.title, "[@] ")
-	if mention {
-		title = "[@] " + title
-	}
-	c.setTitle(title)
-}
-
-type imagePastedMsg []byte
-
-func pasteImage() tview.Cmd {
-	return func() tview.Msg {
-		data, err := clipboard.Read(context.Background(), clipboard.FmtImage)
-		if err != nil {
-			slog.Error("failed to read from clipboard", "err", err)
-			return nil
-		}
-		return imagePastedMsg(data)
-	}
-}
-
-type filesPickedMsg struct {
-	channelID discord.ChannelID
-	files     []sendpart.File
-}
-
-func (c *Model) pickFiles() tview.Cmd {
-	selectedChannel := c.channel
-	if selectedChannel == nil {
-		return nil
-	}
-	channelID := selectedChannel.ID
-
-	return func() tview.Msg {
-		paths, err := zenity.SelectFileMultiple()
-		if err != nil {
-			slog.Error("failed to open file dialog", "err", err)
-			return nil
-		}
-
-		files := make([]sendpart.File, 0, len(paths))
-		for _, path := range paths {
-			file, err := os.Open(path)
-			if err != nil {
-				slog.Error("failed to open file", "path", path, "err", err)
-				continue
-			}
-			files = append(files, sendpart.File{Name: filepath.Base(path), Reader: file})
-		}
-		if len(files) == 0 {
-			return nil
-		}
-		return filesPickedMsg{channelID: channelID, files: files}
-	}
-}
-
-func closeFiles(files []sendpart.File) tview.Cmd {
-	return func() tview.Msg {
-		for _, file := range files {
-			if closer, ok := file.Reader.(io.Closer); ok {
-				closer.Close()
-			}
-		}
-		return nil
-	}
-}
-
-func (c *Model) sendTyping() tview.Cmd {
-	if !c.cfg.TypingIndicator.Send {
-		return nil
-	}
-
-	now := time.Now()
-	if now.Before(c.typingUntil) {
-		return nil
-	}
-	c.typingUntil = now.Add(TypingDuration)
-
-	selectedChannel := c.channel
-	if selectedChannel == nil {
-		return nil
-	}
-	channelID := selectedChannel.ID
-	return func() tview.Msg {
-		c.state.Typing(channelID)
-		return nil
-	}
-}
-
-func (c *Model) send() tview.Cmd {
-	selectedChannel := c.channel
-	if selectedChannel == nil {
-		return nil
-	}
-
-	text := strings.TrimSpace(c.editState.Value())
-	if text == "" && len(c.sendMessageData.Files) == 0 {
-		return nil
-	}
-
-	text = c.processText(selectedChannel, []byte(text))
-	data := *c.sendMessageData
-	data.Files = slices.Clone(data.Files)
-
-	editing := c.editing
-	c.typingUntil = time.Time{}
-	c.reset()
-
-	sent := func() tview.Msg { return SentMsg{} }
-	return tview.Batch(sent, func() tview.Msg {
-		defer closeFiles(data.Files)()
-		if editing != nil {
-			editData := api.EditMessageData{Content: option.SomeNullable(text)}
-			if _, err := c.state.EditMessageComplex(editing.ChannelID, editing.ID, editData); err != nil {
-				slog.Error("failed to edit message", "err", err)
-			}
-			return nil
-		}
-		data.Content = text
-		if _, err := c.state.SendMessageComplex(selectedChannel.ID, data); err != nil {
-			slog.Error("failed to send message in channel", "channel_id", selectedChannel.ID, "err", err)
-		}
-		return nil
-	})
+	data.AllowedMentions.RepliedUser = option.Some(!*data.AllowedMentions.RepliedUser)
 }
 
 func (c *Model) processText(channel *discord.Channel, src []byte) string {
@@ -552,107 +400,6 @@ func isMentionChar(r rune) bool {
 	return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '.'
 }
 
-func (c *Model) tabComplete() tview.Cmd {
-	posEnd, name, r := wordBeforeCursor(c.editState.Value(), c.editState.Cursor(), isMentionChar)
-	if r != '@' {
-		return c.stopTabCompletion()
-	}
-	pos := posEnd - (len(name) + 1)
-
-	selectedChannel := c.channel
-	if selectedChannel == nil {
-		return nil
-	}
-	gID := selectedChannel.GuildID
-
-	if c.cfg.AutocompleteLimit == 0 {
-		if !gID.IsValid() {
-			users := selectedChannel.DMRecipients
-			res := fuzzy.FindFrom(name, userList(users))
-			if len(res) > 0 {
-				c.replace(pos, posEnd, "@"+users[res[0].Index].Username+" ")
-			}
-		} else {
-			cmd := c.searchMember(gID, name)
-			members, err := c.state.Cabinet.Members(gID)
-			if err != nil {
-				slog.Error("failed to get members from state", "guild_id", gID, "err", err)
-				return cmd
-			}
-
-			res := fuzzy.FindFrom(name, memberList(members))
-			for _, r := range res {
-				if channelHasUser(c.state, selectedChannel.ID, members[r.Index].User.ID) {
-					c.replace(pos, posEnd, "@"+members[r.Index].User.Username+" ")
-					return cmd
-				}
-			}
-			return cmd
-		}
-		return nil
-	}
-	if c.mentionsList.ItemCount() == 0 {
-		return nil
-	}
-	name, ok := c.mentionsList.SelectedInsertText()
-	if !ok {
-		return nil
-	}
-	c.replace(pos, posEnd, "@"+name+" ")
-	return c.stopTabCompletion()
-}
-
-func (c *Model) tabSuggest() tview.Cmd {
-	_, name, r := wordBeforeCursor(c.editState.Value(), c.editState.Cursor(), isMentionChar)
-	if r != '@' {
-		return c.stopTabCompletion()
-	}
-	channel := c.channel
-	if channel == nil {
-		return nil
-	}
-	c.mentionsList.Clear()
-
-	gID := channel.GuildID
-	switch {
-	case name == "":
-		c.suggestRecentAuthors(channel)
-	case !gID.IsValid():
-		// DMs have recipients, not members.
-		me, _ := c.state.Cabinet.Me()
-		users := append(slices.Clone(channel.DMRecipients), *me)
-		for _, r := range fuzzy.FindFrom(name, userList(users)) {
-			c.addMentionUser(&users[r.Index])
-		}
-	default:
-		searchCmd := c.searchMember(gID, name)
-		mems, err := c.state.Cabinet.Members(gID)
-		if err != nil {
-			slog.Error("fetching members failed", "err", err)
-			return searchCmd
-		}
-		res := fuzzy.FindFrom(name, memberList(mems))
-		if len(res) > int(c.cfg.AutocompleteLimit) {
-			res = res[:int(c.cfg.AutocompleteLimit)]
-		}
-		for _, r := range res {
-			if channelHasUser(c.state, channel.ID, mems[r.Index].User.ID) &&
-				c.addMentionMember(gID, &mems[r.Index]) {
-				break
-			}
-		}
-		if c.mentionsList.ItemCount() == 0 {
-			return tview.Batch(c.stopTabCompletion(), searchCmd)
-		}
-	}
-
-	if c.mentionsList.ItemCount() == 0 {
-		return c.stopTabCompletion()
-	}
-	c.mentionsList.Rebuild()
-	return c.showMentionsList()
-}
-
 // suggestRecentAuthors suggests the authors of the channel's recent messages, other than the user.
 func (c *Model) suggestRecentAuthors(channel *discord.Channel) {
 	messages, err := c.state.Cabinet.Messages(channel.ID)
@@ -706,48 +453,6 @@ func channelHasUser(state *ningen.State, channelID discord.ChannelID, userID dis
 	return perms.Has(discord.PermissionViewChannel)
 }
 
-// searchMember performs member discovery in a command goroutine.
-// It emits a follow-up suggestion message once results are loaded.
-func (c *Model) searchMember(gID discord.GuildID, name string) tview.Cmd {
-	if name == "" {
-		return nil
-	}
-
-	key := gID.String() + " " + name
-	if _, ok := c.memberSearchCache[key]; ok {
-		return nil
-	}
-	// If searching for "ab" returns less than SearchLimit, then "abc" would not return anything new because we already searched everything starting with "ab".
-	// This will still be true even if a new member joins because arikawa loads new members into the state.
-	if count, ok := c.memberSearchCache[key[:len(key)-1]]; ok {
-		if count < c.state.MemberState.SearchLimit {
-			c.memberSearchCache[key] = count
-			return nil
-		}
-	}
-
-	now := time.Now()
-	// Rate limit on our side because we can't distinguish between a successful search and SearchMember not doing anything because of its internal rate limit that we can't detect
-	if c.lastSearch.Add(c.state.MemberState.SearchFrequency).After(now) {
-		return nil
-	}
-
-	c.lastSearch = now
-	nonce := memberSearchNonce + key
-	return func() tview.Msg {
-		if err := c.state.SendGateway(context.Background(), &gateway.RequestGuildMembersCommand{
-			GuildIDs:  []discord.GuildID{gID},
-			Query:     option.Some(name),
-			Presences: c.state.MemberState.RequestPresences,
-			Limit:     c.state.MemberState.SearchLimit,
-			Nonce:     nonce,
-		}); err != nil {
-			slog.Error("failed to search guild members", "err", err, "guild_id", gID, "query", name)
-		}
-		return nil
-	}
-}
-
 func (c *Model) CacheMemberSearch(event *gateway.GuildMembersChunkEvent) tview.Cmd {
 	key, ok := strings.CutPrefix(event.Nonce, memberSearchNonce)
 	if !ok {
@@ -758,11 +463,6 @@ func (c *Model) CacheMemberSearch(event *gateway.GuildMembersChunkEvent) tview.C
 	return func() tview.Msg {
 		return TabSuggestMsg{}
 	}
-}
-
-func (c *Model) showMentionsList() tview.Cmd {
-	c.mentionsVisible = true
-	return nil
 }
 
 // OnGuildMemberRemove forgets cached member searches that the removed member may have filled.
@@ -808,7 +508,7 @@ func (p mentionsPopup) area(area tview.Rectangle) tview.Rectangle {
 		borders = 1
 	}
 	x, _ := c.frame()
-	maxW, maxH := area.Width, area.Height-c.height
+	maxW, maxH := area.Width, area.Height-c.Height()
 	if t := int(c.cfg.Theme.MentionsList.MaxHeight); t != 0 {
 		maxH = min(maxH, t)
 	}
@@ -822,7 +522,7 @@ func (p mentionsPopup) area(area tview.Rectangle) tview.Rectangle {
 		col := uniseg.StringWidth(value[strings.LastIndex(value[:cursor], "\n")+1 : cursor])
 		x += min(col, maxW-w)
 	}
-	return tview.Rectangle{X: area.X + x, Y: area.Y + area.Height - c.height - h, Width: w, Height: h}
+	return tview.Rectangle{X: area.X + x, Y: area.Y + area.Height - c.Height() - h, Width: w, Height: h}
 }
 
 func (c *Model) addMentionMember(gID discord.GuildID, m *discord.Member) bool {
@@ -830,10 +530,7 @@ func (c *Model) addMentionMember(gID discord.GuildID, m *discord.Member) bool {
 		return false
 	}
 
-	name := m.User.DisplayOrUsername()
-	if m.Nick != "" {
-		name = m.Nick
-	}
+	name := cmp.Or(m.Nick, m.User.DisplayName, m.User.Username)
 
 	style := tcell.StyleDefault
 
@@ -882,67 +579,20 @@ func (c *Model) addMentionUser(user *discord.User) {
 	})
 }
 
-func (c *Model) CloseMentions() {
-	c.mentionsVisible = false
-}
-
-func (c *Model) stopTabCompletion() tview.Cmd {
+// stopTabCompletion clears and closes the mentions list when it is in use.
+func (c *Model) stopTabCompletion() {
 	if c.cfg.AutocompleteLimit > 0 {
 		c.mentionsList.Clear()
 		c.CloseMentions()
 	}
-	return nil
 }
 
-func (c *Model) openEditor() tview.Cmd {
-	if c.cfg.Editor == "" {
-		return func() tview.Msg {
-			slog.Warn("Attempt to open file with editor, but no editor is set")
-			return nil
-		}
-	}
-	text := c.editState.Value()
-	cfg := c.cfg
-	return tview.Suspend(func() tview.Msg {
-		file, err := os.CreateTemp("", tmpFilePattern)
-		if err != nil {
-			slog.Error("failed to create tmp file", "err", err)
-			return nil
-		}
-		name := file.Name()
-		defer os.Remove(name)
-		_, _ = file.WriteString(text)
-		_ = file.Close()
-
-		cmd, err := cfg.EditorCommand(name)
-		if err != nil {
-			slog.Error("failed to create editor command", "err", err)
-			return nil
-		}
-		cmd.Stdin = os.Stdin
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			slog.Error("failed to run command", "args", cmd.Args, "err", err)
-			return nil
-		}
-		msg, err := os.ReadFile(name)
-		if err != nil {
-			slog.Error("failed to read tmp file", "name", name, "err", err)
-			return nil
-		}
-		return editorMsg(strings.TrimSpace(string(msg)))
-	})
+func (c *Model) CloseMentions() {
+	c.mentionsVisible = false
 }
 
 func (c *Model) attach(name string, reader io.Reader) {
 	c.sendMessageData.Files = append(c.sendMessageData.Files, sendpart.File{Name: name, Reader: reader})
-
-	var names []string
-	for _, file := range c.sendMessageData.Files {
-		names = append(names, file.Name)
-	}
-	c.setFooter("Attached " + humanJoin(names))
 }
 
 func (c *Model) canAttachFiles() bool {

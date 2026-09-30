@@ -6,9 +6,17 @@ import (
 	"github.com/ayn2op/arikawa/v3/utils/httputil"
 	"github.com/ayn2op/discordo/internal/http"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/textinput"
 )
 
 type TokenMsg string
+
+type (
+	loginMsg    textinput.Change
+	passwordMsg textinput.Change
+	focusMsg    focus
+	submitMsg   struct{}
+)
 
 func submitLogin(login, password string) tview.Cmd {
 	return func() tview.Msg {

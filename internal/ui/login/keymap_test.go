@@ -20,9 +20,9 @@ func TestModelShortHelp(t *testing.T) {
 		active             tab
 		wantPrev, wantNext bool
 	}{
-		{"first tab", passwordTab, false, true},
-		{"middle tab", qrTab, true, true},
-		{"last tab", tokenTab, true, false},
+		{"first tab", tabPassword, false, true},
+		{"middle tab", tabQR, true, true},
+		{"last tab", tabToken, true, false},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			m.active = tt.active

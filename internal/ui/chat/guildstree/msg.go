@@ -10,6 +10,14 @@ import (
 	"github.com/ayn2op/tview/tree"
 )
 
+// Msg moves or scrolls the tree.
+type Msg tree.Change
+
+// SelectedMsg is sent when the user selects a node.
+type SelectedMsg struct {
+	Node *tree.Node
+}
+
 type ChannelLoadedMsg struct {
 	Channel  discord.Channel
 	Messages []discord.Message

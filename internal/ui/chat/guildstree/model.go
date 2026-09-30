@@ -46,13 +46,11 @@ func (m *Model) CurrentNode() *tree.Node {
 	return m.selectionState.CurrentNode()
 }
 
-// Msg moves or scrolls the tree.
-type Msg tree.Change
-
 // View shows the tree in a box titled Guilds.
 func (m Model) View(focused bool) tview.Element {
 	onChange := func(c tree.Change) tview.Msg { return Msg(c) }
-	return uitree.New(m.root, &m.selectionState, m.cfg, m.cfg.Theme.GuildsTree.CommonTreeTheme, m.cfg.Keybinds.GuildsTree, focused, onChange).Title("Guilds")
+	onSelect := func(n *tree.Node) tview.Msg { return SelectedMsg{Node: n} }
+	return uitree.New(m.root, &m.selectionState, m.cfg, m.cfg.Theme.GuildsTree.CommonTreeTheme, m.cfg.Keybinds.GuildsTree, focused, onChange, onSelect).Title("Guilds")
 }
 
 func (m *Model) reset() *tree.Node {
@@ -334,7 +332,7 @@ func (m *Model) update(msg tview.Msg) tview.Cmd {
 	case Msg:
 		m.selectionState.Apply(tree.Change(msg))
 		return nil
-	case tree.SelectedMsg:
+	case SelectedMsg:
 		m.selectionState.SetCurrentNode(msg.Node)
 		return m.selectNode(msg.Node)
 	case tview.KeyMsg:

@@ -1,33 +1,64 @@
 package token
 
 import (
-	"github.com/ayn2op/discordo/internal/ui/login/form"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/button"
+	"github.com/ayn2op/tview/column"
+	"github.com/ayn2op/tview/row"
+	"github.com/ayn2op/tview/text"
+	"github.com/ayn2op/tview/textinput"
+	"github.com/gdamore/tcell/v3"
 )
 
+// Model is a token input above a button. Tab and the arrow keys move the focus, Enter in the input moves to the button, and Enter on the button or clicking it logs in.
 type Model struct {
-	form.Model
+	token         textinput.EditState
+	buttonFocused bool
 }
 
 var _ tview.Model[Model] = Model{}
-
-func NewModel() Model {
-	return Model{Model: form.New("Login", form.Field{Label: "Token", Mask: "*"})}
-}
 
 func (Model) Label() string {
 	return "Token"
 }
 
+func (Model) Init() tview.Cmd { return nil }
+
 func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
-	if _, ok := msg.(form.SubmitMsg); ok {
-		token := m.Value(0)
+	switch msg := msg.(type) {
+	case tokenMsg:
+		m.token.Apply(textinput.Change(msg))
+	case focusButtonMsg:
+		m.buttonFocused = true
+	case tview.KeyMsg:
+		switch msg.Key() {
+		case tcell.KeyTab, tcell.KeyDown, tcell.KeyBacktab, tcell.KeyUp:
+			m.buttonFocused = !m.buttonFocused
+		}
+	case submitMsg:
+		token := m.token.Value()
 		if token == "" {
 			return m, nil
 		}
 		return m, submitToken(token)
 	}
-	var cmd tview.Cmd
-	m.Model, cmd = m.Model.Update(msg)
-	return m, cmd
+	return m, nil
+}
+
+func (m Model) View() tview.Element {
+	input := textinput.New(&m.token).
+		Mask("*").
+		Focused(!m.buttonFocused).
+		OnChange(func(c textinput.Change) tview.Msg { return tokenMsg(c) }).
+		OnSubmit(focusButtonMsg{})
+	submit := button.New().
+		Label("Login").
+		Width(tview.Fixed(len("Login") + 4)).
+		Height(tview.Fixed(1)).
+		Focused(m.buttonFocused).
+		OnClick(submitMsg{})
+	return column.New(
+		row.New(column.New(text.New("Token")).Width(tview.Fixed(len("Token")+1)), input).Height(tview.Fixed(1)),
+		submit,
+	).Spacing(1)
 }

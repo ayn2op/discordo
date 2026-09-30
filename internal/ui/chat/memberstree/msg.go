@@ -9,6 +9,11 @@ import (
 // Msg moves or scrolls the tree.
 type Msg tree.Change
 
+// SelectedMsg is sent when the user selects a node.
+type SelectedMsg struct {
+	Node *tree.Node
+}
+
 // requestSelectedMembers requests the chunk of the member list after the selected member, so that the members below it load before they are reached.
 func (m *Model) requestSelectedMembers() tview.Cmd {
 	node := m.selectionState.CurrentNode()

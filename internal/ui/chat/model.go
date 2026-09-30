@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"cmp"
 	"fmt"
 	"log/slog"
 	"time"
@@ -43,9 +44,8 @@ type Model struct {
 	guildsTreeVisible bool
 	// membersTreeVisible reports whether the members tree is shown right of the messages when the selected channel has members.
 	membersTreeVisible bool
-	// channelsPickerOpen and attachmentsPickerOpen report whether that picker is shown on top and takes all input.
-	channelsPickerOpen    bool
-	attachmentsPickerOpen bool
+	// overlay is the picker shown on top, which takes all input.
+	overlay overlay
 
 	guildsTree     guildstree.Model
 	membersTree    memberstree.Model
@@ -114,69 +114,51 @@ func NewModel(cfg *config.Config, token string) Model {
 	m.membersTreeVisible = cfg.MembersTree.Visible
 	if m.guildsTreeVisible {
 		// The guilds tree is focused first at start-up when visible.
-		m.focused = guildsTreePane
+		m.focused = paneGuildsTree
 	} else {
-		m.focused = messagesListPane
+		m.focused = paneMessagesList
 	}
 	return m
 }
 
-func (m *Model) setSelectedChannel(channel *discord.Channel) tview.Cmd {
-	m.selectedChannel = channel
-	m.composer.SetChannel(channel)
-	cmd := m.membersTree.SetChannel(channel)
-	if !m.canFocus(m.focused) {
-		m.focused = messagesListPane
-	}
-	return cmd
-}
+// overlay is the picker shown on top of the panes, if any.
+type overlay int
 
-func (m *Model) togglePicker() tview.Cmd {
-	if m.channelsPickerOpen {
-		return m.closePicker()
-	}
-	return m.openPicker()
-}
-
-func (m *Model) openPicker() tview.Cmd {
-	m.channelsPickerOpen = true
-	m.channelsPicker.RefreshChannels(m.state)
-	return nil
-}
-
-func (m *Model) closePicker() tview.Cmd {
-	m.channelsPickerOpen = false
-	m.channelsPicker.Reset()
-	return nil
-}
-
-func (m *Model) closeAttachmentsPicker() tview.Cmd {
-	m.attachmentsPickerOpen = false
-	return nil
-}
-
-// pickerOpen reports whether a picker is shown on top.
-func (m Model) pickerOpen() bool {
-	return m.channelsPickerOpen || m.attachmentsPickerOpen
-}
+const (
+	overlayNone overlay = iota
+	overlayChannelsPicker
+	overlayAttachmentsPicker
+)
 
 // pickerView returns the view of the picker shown on top, or nil if none is open.
 func (m Model) pickerView() tview.Element {
-	switch {
-	case m.channelsPickerOpen:
+	switch m.overlay {
+	case overlayChannelsPicker:
 		return m.channelsPicker.View()
-	case m.attachmentsPickerOpen:
+	case overlayAttachmentsPicker:
 		return m.attachmentsPicker.View()
 	default:
 		return nil
 	}
 }
 
-func (m *Model) navigateToChannel(channelID discord.ChannelID) tview.Cmd {
-	closeCmd := m.closePicker()
-	var cmd tview.Cmd
-	m.guildsTree, cmd = m.guildsTree.Update(guildstree.NavigateMsg{ChannelID: channelID})
-	return tview.Sequence(closeCmd, cmd)
+// togglePicker opens the channels picker, or closes it if it is open.
+func (m *Model) togglePicker() {
+	if m.overlay == overlayChannelsPicker {
+		m.closePicker()
+	} else {
+		m.openPicker()
+	}
+}
+
+func (m *Model) openPicker() {
+	m.overlay = overlayChannelsPicker
+	m.channelsPicker.RefreshChannels(m.state)
+}
+
+func (m *Model) closePicker() {
+	m.overlay = overlayNone
+	m.channelsPicker.Reset()
 }
 
 // toggle shows or hides the side pane p and focuses it when shown.
@@ -185,7 +167,7 @@ func (m *Model) toggle(visible *bool, p pane) {
 	if *visible {
 		m.setFocus(p)
 	} else if m.focused == p {
-		m.focused = messagesListPane
+		m.focused = paneMessagesList
 	}
 }
 
@@ -234,39 +216,42 @@ func (m *Model) update(msg tview.Msg) tview.Cmd {
 		}
 
 		membersCmd := m.setSelectedChannel(&msg.Channel)
-		m.clearTypers()
+		clear(m.typers)
 
 		if m.cfg.AutoFocus {
-			m.setFocus(composerPane)
+			m.setFocus(paneComposer)
 		}
 		title := ui.ChannelToString(msg.Channel, m.cfg.Icons, m.state) + " - " + consts.Name
 		return tview.Batch(tview.SetTitle(title), m.messagesList.SetChannel(&msg.Channel, msg.Messages), membersCmd)
 	case messageslist.Msg, tview.TerminalInfoMsg:
-		return m.updatePane(messagesListPane, msg)
+		return m.updatePane(paneMessagesList, msg)
 	case typingExpiredMsg:
 		if until, ok := m.typers[msg.userID]; ok && !time.Now().Before(until) {
-			m.removeTyper(msg.userID)
+			delete(m.typers, msg.userID)
 		}
 		return nil
 	case channelspicker.SelectedMsg:
 		return m.navigateToChannel(msg.ChannelID)
 	case channelspicker.CancelMsg:
-		return m.closePicker()
+		m.closePicker()
+		return nil
 	case attachmentspicker.SelectedMsg:
-		return tview.Sequence(msg.Action, m.closeAttachmentsPicker())
+		m.overlay = overlayNone
+		return msg.Action
 	case attachmentspicker.CancelMsg:
-		return m.closeAttachmentsPicker()
+		m.overlay = overlayNone
+		return nil
 	case messageslist.ShowAttachmentsMsg:
 		m.attachmentsPicker.SetItems(picker.Items(msg))
-		m.attachmentsPickerOpen = true
+		m.overlay = overlayAttachmentsPicker
 		return nil
 	case messageslist.ReplyMsg:
 		m.composer.StartReply(msg.Message, msg.Name, msg.Mention)
-		m.setFocus(composerPane)
+		m.setFocus(paneComposer)
 		return nil
 	case messageslist.EditMsg:
 		m.composer.StartEdit(discord.Message(msg))
-		m.setFocus(composerPane)
+		m.setFocus(paneComposer)
 		return nil
 	case composer.EditLastMsg:
 		if message, ok := m.messagesList.SelectLastOwn(); ok {
@@ -282,18 +267,18 @@ func (m *Model) update(msg tview.Msg) tview.Cmd {
 		switch {
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusGuildsTree.Keybind):
 			m.composer.CloseMentions()
-			m.setFocus(guildsTreePane)
+			m.setFocus(paneGuildsTree)
 			return nil
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusMembersTree.Keybind):
 			m.composer.CloseMentions()
-			m.setFocus(membersTreePane)
+			m.setFocus(paneMembersTree)
 			return nil
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusMessagesList.Keybind):
 			m.composer.CloseMentions()
-			m.setFocus(messagesListPane)
+			m.setFocus(paneMessagesList)
 			return nil
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusComposer.Keybind):
-			m.setFocus(composerPane)
+			m.setFocus(paneComposer)
 			return nil
 
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusPrevious.Keybind):
@@ -304,19 +289,20 @@ func (m *Model) update(msg tview.Msg) tview.Cmd {
 			return nil
 
 		case keybind.Matches(msg, m.cfg.Keybinds.ToggleGuildsTree.Keybind):
-			m.toggle(&m.guildsTreeVisible, guildsTreePane)
+			m.toggle(&m.guildsTreeVisible, paneGuildsTree)
 			return nil
 		case keybind.Matches(msg, m.cfg.Keybinds.ToggleMembersTree.Keybind):
-			m.toggle(&m.membersTreeVisible, membersTreePane)
+			m.toggle(&m.membersTreeVisible, paneMembersTree)
 			return nil
 		case keybind.Matches(msg, m.cfg.Keybinds.ToggleChannelsPicker.Keybind):
-			return m.togglePicker()
+			m.togglePicker()
+			return nil
 
 		case keybind.Matches(msg, m.cfg.Keybinds.Logout.Keybind):
 			return tview.Sequence(closeState(m.state), logout())
 		}
 	case composer.TabSuggestMsg, mentionslist.Msg:
-		return m.updatePane(composerPane, msg)
+		return m.updatePane(paneComposer, msg)
 	case paneMsg:
 		if msg.focus {
 			m.setFocus(msg.pane)
@@ -332,10 +318,10 @@ func (m *Model) update(msg tview.Msg) tview.Cmd {
 // route sends msg to the open picker, which takes all input, and otherwise to the focused pane.
 func (m *Model) route(msg tview.Msg) tview.Cmd {
 	var cmd tview.Cmd
-	switch {
-	case m.channelsPickerOpen:
+	switch m.overlay {
+	case overlayChannelsPicker:
 		m.channelsPicker, cmd = m.channelsPicker.Update(msg)
-	case m.attachmentsPickerOpen:
+	case overlayAttachmentsPicker:
 		m.attachmentsPicker, cmd = m.attachmentsPicker.Update(msg)
 	default:
 		cmd = m.updatePane(m.focused, msg)
@@ -347,23 +333,16 @@ func (m *Model) route(msg tview.Msg) tview.Cmd {
 func (m *Model) updatePane(p pane, msg tview.Msg) tview.Cmd {
 	var cmd tview.Cmd
 	switch p {
-	case guildsTreePane:
+	case paneGuildsTree:
 		m.guildsTree, cmd = m.guildsTree.Update(msg)
-	case messagesListPane:
+	case paneMessagesList:
 		m.messagesList, cmd = m.messagesList.Update(msg)
-	case composerPane:
+	case paneComposer:
 		m.composer, cmd = m.composer.Update(msg)
-	case membersTreePane:
+	case paneMembersTree:
 		m.membersTree, cmd = m.membersTree.Update(msg)
 	}
 	return cmd
-}
-
-// paneMsg is what a pane's element made of a mouse message within it. A left mouse button press also focuses the pane.
-type paneMsg struct {
-	pane  pane
-	msg   tview.Msg
-	focus bool
 }
 
 // paneElement passes input to the element of a pane and marks mouse input within the pane as meant for it.
@@ -389,25 +368,25 @@ func (p paneElement) Handle(msg tview.Msg, area tview.Rectangle) tview.Msg {
 type pane int
 
 const (
-	guildsTreePane pane = iota
-	messagesListPane
-	composerPane
-	membersTreePane
+	paneGuildsTree pane = iota
+	paneMessagesList
+	paneComposer
+	paneMembersTree
 	paneCount
 )
 
 // paneView returns the view of p, focused if it has the focus and no picker is open, marked so that clicking it focuses it.
 func (m Model) paneView(p pane) tview.Element {
-	focused := m.focused == p && !m.pickerOpen()
+	focused := m.focused == p && m.overlay == overlayNone
 	var child tview.Element
 	switch p {
-	case guildsTreePane:
+	case paneGuildsTree:
 		child = m.guildsTree.View(focused)
-	case messagesListPane:
-		child = m.messagesList.View(focused)
-	case composerPane:
+	case paneMessagesList:
+		child = m.messagesList.View(focused, m.typingFooter())
+	case paneComposer:
 		child = m.composer.View(focused)
-	case membersTreePane:
+	case paneMembersTree:
 		child = m.membersTree.View(focused)
 	}
 	return paneElement{pane: p, child: child}
@@ -423,11 +402,11 @@ func (m *Model) setFocus(p pane) {
 // canFocus reports whether p is shown and can take the focus.
 func (m Model) canFocus(p pane) bool {
 	switch p {
-	case guildsTreePane:
+	case paneGuildsTree:
 		return m.guildsTreeVisible
-	case composerPane:
+	case paneComposer:
 		return !m.composer.Disabled()
-	case membersTreePane:
+	case paneMembersTree:
 		return m.membersTreeShown()
 	default:
 		return true
@@ -439,8 +418,8 @@ func (m Model) View() tview.Element {
 	picker := m.pickerView()
 
 	var right tview.Element = column.New(
-		m.paneView(messagesListPane),
-		column.New(m.paneView(composerPane)).Height(tview.Fixed(m.composer.Height())),
+		m.paneView(paneMessagesList),
+		column.New(m.paneView(paneComposer)).Height(tview.Fixed(m.composer.Height())),
 	)
 	if mentions := m.composer.MentionsView(); mentions != nil {
 		right = stack.New(right, mentions)
@@ -451,13 +430,13 @@ func (m Model) View() tview.Element {
 		width := m.cfg.MembersTree.WidthPercent
 		main = row.New(
 			column.New(main).Width(tview.FillPortion(100-width)),
-			column.New(m.paneView(membersTreePane)).Width(tview.FillPortion(width)),
+			column.New(m.paneView(paneMembersTree)).Width(tview.FillPortion(width)),
 		)
 	}
 	if m.guildsTreeVisible {
 		width := m.cfg.Sidebar.WidthPercent
 		main = row.New(
-			column.New(m.paneView(guildsTreePane)).Width(tview.FillPortion(width)),
+			column.New(m.paneView(paneGuildsTree)).Width(tview.FillPortion(width)),
 			column.New(main).Width(tview.FillPortion(100-width)),
 		)
 	}
@@ -473,80 +452,44 @@ func (m Model) View() tview.Element {
 	)
 }
 
-// typingExpiredMsg ends a user's typing indicator unless they typed again and extended it.
-type typingExpiredMsg struct {
-	userID discord.UserID
-}
-
-func (m *Model) clearTypers() {
-	clear(m.typers)
-	m.updateFooter()
-}
-
-// addTyper shows userID as typing and returns a command that ends it after the typing duration.
-func (m *Model) addTyper(userID discord.UserID) tview.Cmd {
-	m.typers[userID] = time.Now().Add(composer.TypingDuration)
-	m.updateFooter()
-	return func() tview.Msg {
-		time.Sleep(composer.TypingDuration)
-		return typingExpiredMsg{userID}
+// typingFooter returns who is typing in the selected channel, or "" if nobody is.
+func (m Model) typingFooter() string {
+	channel := m.selectedChannel
+	if channel == nil || len(m.typers) == 0 {
+		return ""
 	}
-}
-
-func (m *Model) removeTyper(userID discord.UserID) {
-	delete(m.typers, userID)
-	m.updateFooter()
-}
-
-func (m *Model) updateFooter() {
-	selectedChannel := m.selectedChannel
-	if selectedChannel == nil {
-		return
-	}
-	guildID := selectedChannel.GuildID
-
-	var footer string
-	if len(m.typers) > 0 {
-		var names []string
-		for userID := range m.typers {
-			var name string
-			if guildID.IsValid() {
-				member, err := m.state.Cabinet.Member(guildID, userID)
-				if err != nil {
-					slog.Error("failed to get member from state", "err", err, "guild_id", guildID, "user_id", userID)
-					continue
-				}
-
-				if member.Nick != "" {
-					name = member.Nick
-				} else {
-					name = member.User.DisplayOrUsername()
-				}
-			} else {
-				for _, recipient := range selectedChannel.DMRecipients {
-					if recipient.ID == userID {
-						name = recipient.DisplayOrUsername()
-						break
-					}
-				}
+	var names []string
+	for userID := range m.typers {
+		var name string
+		if channel.GuildID.IsValid() {
+			member, err := m.state.Cabinet.Member(channel.GuildID, userID)
+			if err != nil {
+				continue
 			}
-
-			if name != "" {
-				names = append(names, name)
+			name = cmp.Or(member.Nick, member.User.DisplayName, member.User.Username)
+		} else {
+			for _, recipient := range channel.DMRecipients {
+				if recipient.ID == userID {
+					name = recipient.DisplayOrUsername()
+					break
+				}
 			}
 		}
-
-		switch len(names) {
-		case 1:
-			footer = names[0] + " is typing..."
-		case 2:
-			footer = fmt.Sprintf("%s and %s are typing...", names[0], names[1])
-		case 3:
-			footer = fmt.Sprintf("%s, %s, and %s are typing...", names[0], names[1], names[2])
-		default:
-			footer = "Several people are typing..."
+		if name != "" {
+			names = append(names, name)
 		}
 	}
 
-	m.messagesList.SetFooter(footer)
+	switch len(names) {
+	case 0:
+		return ""
+	case 1:
+		return names[0] + " is typing..."
+	case 2:
+		return fmt.Sprintf("%s and %s are typing...", names[0], names[1])
+	case 3:
+		return fmt.Sprintf("%s, %s, and %s are typing...", names[0], names[1], names[2])
+	default:
+		return "Several people are typing..."
+	}
 }

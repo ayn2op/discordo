@@ -4,11 +4,10 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
 	"golang.design/x/clipboard"
 )
-
-type copyErrorMsg string
 
 func setClipboard(content string) tview.Cmd {
 	return func() tview.Msg {
@@ -17,4 +16,16 @@ func setClipboard(content string) tview.Cmd {
 		}
 		return nil
 	}
+}
+
+// selectTabMsg switches to the tab at an index.
+type selectTabMsg int
+
+func showErrorDialog(err error) tview.Cmd {
+	slog.Error("failed to login", "err", err)
+	message := err.Error()
+	return ui.ShowModal(message,
+		ui.ModalButton{Label: "Copy", Cmd: setClipboard(message), KeepOpen: true},
+		ui.ModalButton{Label: "Close"},
+	)
 }

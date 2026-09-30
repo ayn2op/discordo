@@ -1,8 +1,6 @@
 package login
 
 import (
-	"log/slog"
-
 	"github.com/ayn2op/tview/tabs"
 
 	"github.com/ayn2op/discordo/internal/config"
@@ -17,9 +15,9 @@ import (
 type tab int
 
 const (
-	passwordTab tab = iota
-	qrTab
-	tokenTab
+	tabPassword tab = iota
+	tabQR
+	tabToken
 	tabCount
 )
 
@@ -35,39 +33,31 @@ type Model struct {
 var _ tview.Model[Model] = Model{}
 
 func NewModel(cfg *config.Config) Model {
-	return Model{
-		cfg:      cfg,
-		password: password.NewModel(),
-		qr:       qr.NewModel(),
-		token:    token.NewModel(),
-	}
+	return Model{cfg: cfg, qr: qr.NewModel()}
 }
 
 // Init initializes the active tab.
 func (m Model) Init() tview.Cmd {
 	switch m.active {
-	case passwordTab:
+	case tabPassword:
 		return m.password.Init()
-	case qrTab:
+	case tabQR:
 		return m.qr.Init()
-	case tokenTab:
+	case tabToken:
 		return m.token.Init()
 	}
 	return nil
 }
 
-// selectTabMsg switches to the tab at an index.
-type selectTabMsg int
-
 // View shows the tabs in a box.
 func (m Model) View() tview.Element {
 	var content tview.Element
 	switch m.active {
-	case passwordTab:
+	case tabPassword:
 		content = m.password.View()
-	case qrTab:
+	case tabQR:
 		content = m.qr.View()
-	case tokenTab:
+	case tabToken:
 		content = m.token.View()
 	}
 	t := tabs.New(m.password.Label(), m.qr.Label(), m.token.Label()).
@@ -87,27 +77,16 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	case error:
 		// The active tab still gets the error, so the QR tab can close its connection.
 		errCmd = showErrorDialog(msg)
-	case copyErrorMsg:
-		return m, setClipboard(string(msg))
 	}
 
 	var cmd tview.Cmd
 	switch m.active {
-	case passwordTab:
+	case tabPassword:
 		m.password, cmd = m.password.Update(msg)
-	case qrTab:
+	case tabQR:
 		m.qr, cmd = m.qr.Update(msg)
-	case tokenTab:
+	case tabToken:
 		m.token, cmd = m.token.Update(msg)
 	}
 	return m, tview.Batch(errCmd, cmd)
-}
-
-func showErrorDialog(err error) tview.Cmd {
-	slog.Error("failed to login", "err", err)
-	message := err.Error()
-	return ui.ShowModal(message,
-		ui.ModalButton{Label: "Copy", Result: copyErrorMsg(message), KeepOpen: true},
-		ui.ModalButton{Label: "Close"},
-	)
 }

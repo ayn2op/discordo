@@ -84,7 +84,8 @@ func (m *Model) SetChannel(channel *discord.Channel) tview.Cmd {
 // View shows the tree in a box titled Members.
 func (m Model) View(focused bool) tview.Element {
 	onChange := func(c tree.Change) tview.Msg { return Msg(c) }
-	return uitree.New(m.root, &m.selectionState, m.cfg, m.cfg.Theme.MembersTree, m.cfg.Keybinds.MembersTree, focused, onChange).Title("Members")
+	onSelect := func(n *tree.Node) tview.Msg { return SelectedMsg{Node: n} }
+	return uitree.New(m.root, &m.selectionState, m.cfg, m.cfg.Theme.MembersTree, m.cfg.Keybinds.MembersTree, focused, onChange, onSelect).Title("Members")
 }
 
 func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
@@ -111,7 +112,7 @@ func (m *Model) update(msg tview.Msg) tview.Cmd {
 	case Msg:
 		m.selectionState.Apply(tree.Change(msg))
 		return m.requestSelectedMembers()
-	case tree.SelectedMsg:
+	case SelectedMsg:
 		m.selectionState.SetCurrentNode(msg.Node)
 		if _, ok := msg.Node.Reference().(groupRef); ok {
 			msg.Node.SetExpanded(!msg.Node.Expanded())
@@ -192,10 +193,10 @@ func (m *Model) addRecipients(recipients []discord.User) {
 		recipients = append(recipients, *me)
 	}
 	slices.SortFunc(recipients, func(a, b discord.User) int {
-		return cmp.Or(
-			cmp.Compare(statusRank(m.status(discord.NullGuildID, a.ID)), statusRank(m.status(discord.NullGuildID, b.ID))),
-			strings.Compare(strings.ToLower(a.DisplayOrUsername()), strings.ToLower(b.DisplayOrUsername())),
-		)
+		if c := cmp.Compare(statusRank(m.status(discord.NullGuildID, a.ID)), statusRank(m.status(discord.NullGuildID, b.ID))); c != 0 {
+			return c
+		}
+		return strings.Compare(strings.ToLower(a.DisplayOrUsername()), strings.ToLower(b.DisplayOrUsername()))
 	})
 
 	group := m.addGroup(discord.NullGuildID, gateway.GuildMemberListGroup{ID: "members", Count: uint64(len(recipients))})
@@ -237,10 +238,7 @@ func (m *Model) addGroup(guildID discord.GuildID, group gateway.GuildMemberListG
 
 // addMember adds a member as Discord shows it: a status dot, then the name in the color of their highest colored role, dimmed when offline.
 func (m *Model) addMember(group *tree.Node, guildID discord.GuildID, member discord.Member, index int) {
-	name := member.Nick
-	if name == "" {
-		name = member.User.DisplayOrUsername()
-	}
+	name := cmp.Or(member.Nick, member.User.DisplayName, member.User.Username)
 	var nameStyle tcell.Style
 	color, ok := state.MemberColor(&member, func(id discord.RoleID) *discord.Role {
 		r, _ := m.state.Cabinet.Role(guildID, id)
