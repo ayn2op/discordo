@@ -821,10 +821,6 @@ func (ml *Model) drawPinnedMessage(builder *richtext.Builder, message discord.Me
 }
 
 func (ml *Model) selectedMessage() (*discord.Message, bool) {
-	if len(ml.items) == 0 {
-		return nil, false
-	}
-
 	cursor := ml.cursor()
 	if cursor < 0 || cursor >= len(ml.items) || ml.items[cursor].separator {
 		return nil, false
