@@ -60,12 +60,24 @@ func (m Model) View() tview.Element {
 	case tabToken:
 		content = m.token.View()
 	}
-	t := tabs.New(m.password.Label(), m.qr.Label(), m.token.Label()).
+	t := m.tabs().
 		Active(int(m.active)).
 		Content(content).
 		Keybind(tabAction).
 		OnSelect(func(i int) tview.Msg { return selectTabMsg(i) })
 	return ui.Box(t, &m.cfg.Theme, false)
+}
+
+// tabs returns the login methods as tabs set up by the tabs config.
+func (m Model) tabs() tabs.Widget {
+	cfg := m.cfg.UI.Tabs
+	return tabs.New(m.password.Label(), m.qr.Label(), m.token.Label()).
+		Alignment(cfg.Alignment.Alignment).
+		Wrap(cfg.Wrap).
+		Separator(cfg.Separator).
+		Padding(cfg.Padding[0], cfg.Padding[1]).
+		Arrows(cfg.Arrows[0], cfg.Arrows[1]).
+		ClickableArrows(cfg.ClickableArrows)
 }
 
 func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {

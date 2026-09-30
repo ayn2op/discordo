@@ -178,7 +178,8 @@ type (
 		MembersTree     PaneConfig      `toml:"members_tree"`
 		Composer        ComposerConfig  `toml:"composer"`
 
-		Icons Icons `toml:"icons"`
+		UI    UIConfig `toml:"ui"`
+		Icons Icons    `toml:"icons"`
 
 		Keybinds Keybinds `toml:"keybinds"`
 		Theme    Theme    `toml:"theme"`

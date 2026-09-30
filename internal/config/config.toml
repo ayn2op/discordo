@@ -55,6 +55,20 @@ separator = " • "
 width = 80
 height = 25
 
+[ui.tabs]
+# Where tabs that fit are placed: "left", "center" or "right".
+alignment = "center"
+# Whether moving past the last tab selects the first, and past the first selects the last.
+wrap = false
+# Text between tabs.
+separator = "│"
+# Text on either side of each tab: [left, right]
+padding = [" ", " "]
+# Arrows shown while tabs are hidden past an end: [start, end]. An empty string turns that arrow off.
+arrows = ["◀", "▶"]
+# Whether clicking an arrow selects the tab next to the active one.
+clickable_arrows = true
+
 [timestamps]
 enabled = true
 # https://pkg.go.dev/time#Layout
