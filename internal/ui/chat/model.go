@@ -207,7 +207,7 @@ func (m *Model) cycleFocus(step pane) {
 }
 
 func (m Model) Init() tview.Cmd {
-	return tview.Batch(openState(m.state), listen(m.events))
+	return tview.Batch(openState(m.state), listen(m.events), tview.RequestTerminalInfo())
 }
 
 func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
@@ -241,7 +241,7 @@ func (m *Model) update(msg tview.Msg) tview.Cmd {
 		}
 		title := ui.ChannelToString(msg.Channel, m.cfg.Icons, m.state) + " - " + consts.Name
 		return tview.Batch(tview.SetTitle(title), m.messagesList.SetChannel(&msg.Channel, msg.Messages), membersCmd)
-	case messageslist.Msg:
+	case messageslist.Msg, tview.TerminalInfoMsg:
 		return m.updatePane(messagesListPane, msg)
 	case typingExpiredMsg:
 		if until, ok := m.typers[msg.userID]; ok && !time.Now().Before(until) {

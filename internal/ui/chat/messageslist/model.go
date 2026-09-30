@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"image"
 	"io"
 	"log/slog"
 	"mime"
@@ -29,6 +28,7 @@ import (
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/help"
+	tviewimage "github.com/ayn2op/tview/image"
 	"github.com/ayn2op/tview/keybind"
 	"github.com/ayn2op/tview/list"
 	"github.com/ayn2op/tview/picker"
@@ -50,8 +50,8 @@ type messageItem struct {
 	separator bool
 	timestamp discord.Timestamp
 
-	// previews holds the message's images by proxy URL, blank while loading and nil if they failed to.
-	previews map[discord.URL]image.Image
+	// A preview is blank while loading and empty if loading failed.
+	previews map[discord.URL]tviewimage.Widget
 }
 
 type Model struct {
@@ -71,6 +71,11 @@ type Model struct {
 
 	// renderWidth is the width the message being rendered is laid out at.
 	renderWidth int
+
+	// kitty reports whether previews are drawn with kitty's graphics protocol.
+	// kittyImages counts the images sent to the terminal.
+	kitty       bool
+	kittyImages int
 }
 
 var _ help.KeyMap = Model{}
@@ -267,8 +272,8 @@ func (ml *Model) buildItem(index int) list.Item {
 			return ml.renderMessage(message, ml.cfg.Theme.MessagesList.MessageStyle.Style)
 		}}
 		for _, s := range previewSources(message) {
-			if img := item.previews[s.proxy]; img != nil {
-				view.images = append(view.images, img)
+			if preview, ok := item.previews[s.proxy]; ok {
+				view.images = append(view.images, preview)
 			}
 		}
 		item.view = view
@@ -276,10 +281,10 @@ func (ml *Model) buildItem(index int) list.Item {
 	return item.view
 }
 
-// messageView renders a message for the width it is laid out at, keeping the wrapped lines until the width changes, followed by its image previews.
+// messageView renders a message followed by its image previews, caching the wrapped lines until the width changes.
 type messageView struct {
 	render   func(width int) richtext.Text
-	images   []image.Image
+	images   []tviewimage.Widget
 	width    int
 	rendered bool
 	lines    richtext.Text
@@ -298,8 +303,8 @@ func (v *messageView) at(width int) textview.Widget {
 func (v *messageView) Rows(width int) int {
 	v.at(width)
 	rows := len(v.lines)
-	for _, img := range v.images {
-		_, height := preview(img, width).Size()
+	for _, preview := range v.images {
+		_, height := preview.Size()
 		rows += height.Cells()
 	}
 	return rows
@@ -308,10 +313,9 @@ func (v *messageView) Rows(width int) int {
 func (v *messageView) Draw(screen tview.Screen, area tview.Rectangle) {
 	v.at(area.Width).Draw(screen, tview.Rectangle{X: area.X, Y: area.Y, Width: area.Width, Height: len(v.lines)})
 	y := area.Y + len(v.lines)
-	for _, img := range v.images {
-		p := preview(img, area.Width)
-		_, height := p.Size()
-		p.Draw(screen, tview.Rectangle{X: area.X, Y: y, Width: area.Width, Height: height.Cells()})
+	for _, preview := range v.images {
+		_, height := preview.Size()
+		preview.Draw(screen, tview.Rectangle{X: area.X, Y: y, Width: area.Width, Height: height.Cells()})
 		y += height.Cells()
 	}
 }
@@ -942,9 +946,26 @@ func (ml *Model) update(msg tview.Msg) tview.Cmd {
 		if index < 0 || ml.items[index].previews == nil {
 			return nil
 		}
-		ml.items[index].previews[msg.proxy] = msg.image
-		// Drop the view, so it is laid out again with the preview.
+		preview, cmd := msg.preview, tview.Cmd(nil)
+		if ml.kitty {
+			ml.kittyImages++
+			preview = preview.Kitty(ml.kittyImages%63488 + 1)
+			cmd = preview.Transmit()
+		}
+		ml.items[index].previews[msg.proxy] = preview
+		// Invalidate the view so it is laid out with the preview.
 		ml.items[index].view = nil
+		return cmd
+	case tview.TerminalInfoMsg:
+		switch ml.cfg.Attachments.Protocol {
+		case "kitty":
+			ml.kitty = true
+		case "halfblocks":
+			ml.kitty = false
+		default:
+			// WezTerm and Konsole support kitty graphics but not Unicode placeholders.
+			ml.kitty = msg.Name == "kitty" || msg.Name == "ghostty"
+		}
 	case listMsg:
 		ml.selectionState.Apply(list.Change(msg))
 		ml.onRowCursorChanged(ml.cursor())

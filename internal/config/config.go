@@ -66,6 +66,7 @@ type (
 		ShowLinks        bool      `toml:"show_links"`
 		AllowedMIMETypes MIMETypes `toml:"allowed_mime_types"`
 		Preview          bool      `toml:"preview"`
+		Protocol         string    `toml:"protocol"`
 	}
 
 	DateSeparator struct {

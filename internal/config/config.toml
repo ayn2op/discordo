@@ -26,6 +26,8 @@ show_links = true
 allowed_mime_types = ["image/*", "video/*"]
 # Whether to draw image attachments and embedded images below their messages.
 preview = true
+# How previews are drawn: "auto", "kitty" or "halfblocks".
+protocol = "auto"
 
 [composer]
 # Maximum height (in newline-separated rows) the composer grows to before it starts scrolling internally.

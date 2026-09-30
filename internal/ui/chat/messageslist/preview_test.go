@@ -35,3 +35,22 @@ func TestPreviewSources(t *testing.T) {
 		})
 	}
 }
+
+func TestPreviewSourceCols(t *testing.T) {
+	for _, tt := range []struct {
+		name          string
+		width, height uint
+		want          int
+	}{
+		{"landscape", 1600, 900, 40},
+		{"portrait", 900, 1600, 22},
+		{"small", 10, 10, 10},
+		{"very tall", 1, 10000, 1},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := (previewSource{width: tt.width, height: tt.height}).cols(); got != tt.want {
+				t.Fatalf("cols() = %d, want %d", got, tt.want)
+			}
+		})
+	}
+}
