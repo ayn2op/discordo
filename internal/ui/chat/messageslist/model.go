@@ -198,8 +198,11 @@ func (ml *Model) setMessages(messages []discord.Message) {
 }
 
 func (ml *Model) AddMessage(message discord.Message) tview.Cmd {
+	// Appending keeps the items before it as they are, so only the separator of a new day is added rather than all rebuilt.
+	if ml.cfg.DateSeparator.Enabled && (len(ml.items) == 0 || !sameLocalDate(ml.items[len(ml.items)-1].message.Timestamp, message.Timestamp)) {
+		ml.items = append(ml.items, messageItem{separator: true, timestamp: message.Timestamp})
+	}
 	ml.items = append(ml.items, messageItem{message: message})
-	ml.rebuildItems()
 	return ml.loadPreviews()
 }
 
