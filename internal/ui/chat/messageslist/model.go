@@ -115,19 +115,19 @@ func (ml *Model) listView(focused bool) list.Widget {
 }
 
 // scrollKeybind binds kbs to scrolling the list.
-func scrollKeybind(kbs config.ScrollKeybinds) func(tview.KeyMsg) (list.Action, bool) {
-	return func(key tview.KeyMsg) (list.Action, bool) {
+func scrollKeybind(kbs config.ScrollKeybinds) func(tview.KeyMsg) list.Action {
+	return func(key tview.KeyMsg) list.Action {
 		switch {
 		case keybind.Matches(key, kbs.ScrollUp.Keybind):
-			return list.ActionScrollUp, true
+			return list.ActionScrollUp
 		case keybind.Matches(key, kbs.ScrollDown.Keybind):
-			return list.ActionScrollDown, true
+			return list.ActionScrollDown
 		case keybind.Matches(key, kbs.ScrollTop.Keybind):
-			return list.ActionScrollTop, true
+			return list.ActionScrollTop
 		case keybind.Matches(key, kbs.ScrollBottom.Keybind):
-			return list.ActionScrollBottom, true
+			return list.ActionScrollBottom
 		}
-		return 0, false
+		return list.ActionNone
 	}
 }
 

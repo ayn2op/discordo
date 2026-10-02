@@ -8,18 +8,18 @@ import (
 )
 
 // SelectionKeybind binds kbs to moving a list's selection.
-func SelectionKeybind(kbs config.SelectionKeybinds) func(tview.KeyMsg) (list.Action, bool) {
-	return func(key tview.KeyMsg) (list.Action, bool) {
+func SelectionKeybind(kbs config.SelectionKeybinds) func(tview.KeyMsg) list.Action {
+	return func(key tview.KeyMsg) list.Action {
 		switch {
 		case keybind.Matches(key, kbs.SelectUp.Keybind):
-			return list.ActionSelectUp, true
+			return list.ActionSelectUp
 		case keybind.Matches(key, kbs.SelectDown.Keybind):
-			return list.ActionSelectDown, true
+			return list.ActionSelectDown
 		case keybind.Matches(key, kbs.SelectTop.Keybind):
-			return list.ActionSelectTop, true
+			return list.ActionSelectTop
 		case keybind.Matches(key, kbs.SelectBottom.Keybind):
-			return list.ActionSelectBottom, true
+			return list.ActionSelectBottom
 		}
-		return 0, false
+		return list.ActionNone
 	}
 }

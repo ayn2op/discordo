@@ -12,14 +12,14 @@ var (
 	nextTab     = keybind.NewSingleKeybind("ctrl+l", "next tab")
 )
 
-func tabAction(key tview.KeyMsg) (tabs.Action, bool) {
+func tabAction(key tview.KeyMsg) tabs.Action {
 	switch {
 	case keybind.Matches(key, previousTab):
-		return tabs.ActionPrevious, true
+		return tabs.ActionPrevious
 	case keybind.Matches(key, nextTab):
-		return tabs.ActionNext, true
+		return tabs.ActionNext
 	}
-	return 0, false
+	return tabs.ActionNone
 }
 
 var _ help.KeyMap = Model{}

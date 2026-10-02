@@ -34,22 +34,22 @@ func New(root *tree.Node, selectionState tree.SelectionState, cfg *config.Config
 	return ui.Box(t, &cfg.Theme, focused)
 }
 
-func bindKeys(kbs config.TreeKeybinds) func(tview.KeyMsg) (tree.Action, bool) {
-	return func(key tview.KeyMsg) (tree.Action, bool) {
+func bindKeys(kbs config.TreeKeybinds) func(tview.KeyMsg) tree.Action {
+	return func(key tview.KeyMsg) tree.Action {
 		switch {
 		case keybind.Matches(key, kbs.SelectUp.Keybind):
-			return tree.ActionUp, true
+			return tree.ActionUp
 		case keybind.Matches(key, kbs.SelectDown.Keybind):
-			return tree.ActionDown, true
+			return tree.ActionDown
 		case keybind.Matches(key, kbs.SelectTop.Keybind):
-			return tree.ActionTop, true
+			return tree.ActionTop
 		case keybind.Matches(key, kbs.SelectBottom.Keybind):
-			return tree.ActionBottom, true
+			return tree.ActionBottom
 		case keybind.Matches(key, kbs.MoveToParentNode.Keybind):
-			return tree.ActionMoveToParent, true
+			return tree.ActionMoveToParent
 		case keybind.Matches(key, kbs.SelectCurrent.Keybind):
-			return tree.ActionSelect, true
+			return tree.ActionSelect
 		}
-		return 0, false
+		return tree.ActionNone
 	}
 }

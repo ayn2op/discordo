@@ -617,12 +617,14 @@ func (c *Model) canAttachFiles() bool {
 }
 
 // editAction binds the configured newline key and textarea's other default keys.
-func (c Model) editAction(key tview.KeyMsg) (textarea.Action, bool) {
+func (c Model) editAction(key tview.KeyMsg) textarea.Action {
 	if keybind.Matches(key, c.cfg.Keybinds.Composer.Newline.Keybind) {
-		return textarea.ActionNewline, true
+		return textarea.ActionNewline
 	}
-	action, ok := textarea.DefaultKeybind(key)
-	return action, ok && action != textarea.ActionNewline
+	if action := textarea.DefaultKeybind(key); action != textarea.ActionNewline {
+		return action
+	}
+	return textarea.ActionNone
 }
 
 func (c Model) ShortHelp() []keybind.Keybind {

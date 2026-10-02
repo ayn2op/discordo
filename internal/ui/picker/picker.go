@@ -57,14 +57,14 @@ func (m *Model) SetItems(items picker.Items) {
 // Reset clears the query.
 func (m *Model) Reset() { m.searchState.Reset() }
 
-func bindKeys(kbs config.PickerKeybinds) func(tview.KeyMsg) (picker.Action, bool) {
-	return func(key tview.KeyMsg) (picker.Action, bool) {
+func bindKeys(kbs config.PickerKeybinds) func(tview.KeyMsg) picker.Action {
+	return func(key tview.KeyMsg) picker.Action {
 		switch {
 		case keybind.Matches(key, kbs.Select.Keybind):
-			return picker.ActionSelect, true
+			return picker.ActionSelect
 		case keybind.Matches(key, kbs.Cancel.Keybind):
-			return picker.ActionCancel, true
+			return picker.ActionCancel
 		}
-		return 0, false
+		return picker.ActionNone
 	}
 }
