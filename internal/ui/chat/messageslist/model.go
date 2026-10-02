@@ -82,10 +82,9 @@ func NewModel(cfg *config.Config, state *ningen.State) Model {
 	ml.selectionState.ScrollToEnd()
 	ml.scrollBarVisibility = cfg.Theme.ScrollBar.Visibility.ScrollBarVisibility
 	ml.scrollBar = scrollbar.New().
-		TrackStyle(cfg.Theme.ScrollBar.TrackStyle.Style).
-		ThumbStyle(cfg.Theme.ScrollBar.ThumbStyle.Style).
-		GlyphSet(cfg.Theme.ScrollBar.GlyphSet.GlyphSet).
-		Arrows(scrollbar.ArrowsBoth)
+		SymbolSet(cfg.Theme.ScrollBar.SymbolSet.SymbolSet).
+		Style(cfg.Theme.ScrollBar.TrackStyle.Style).
+		ThumbStyle(cfg.Theme.ScrollBar.ThumbStyle.Style)
 	return ml
 }
 

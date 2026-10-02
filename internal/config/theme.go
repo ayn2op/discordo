@@ -137,18 +137,22 @@ func (bw *BorderSetWrapper) UnmarshalTOML(val any) error {
 	return nil
 }
 
-type GlyphSetWrapper struct{ scrollbar.GlyphSet }
+type SymbolSetWrapper struct{ scrollbar.SymbolSet }
 
-func (gw *GlyphSetWrapper) UnmarshalTOML(val any) error {
+func (sw *SymbolSetWrapper) UnmarshalTOML(val any) error {
 	s, ok := val.(string)
 	if !ok {
 		return errInvalidType
 	}
 	switch s {
 	case "minimal":
-		gw.GlyphSet = scrollbar.MinimalGlyphSet()
+		sw.SymbolSet = scrollbar.SymbolSet{Thumb: "█", Begin: "▲", End: "▼"}
 	case "box_drawing", "boxdrawing", "box":
-		gw.GlyphSet = scrollbar.BoxDrawingGlyphSet()
+		sw.SymbolSet = scrollbar.SymbolSet{Track: "│", Thumb: "█", Begin: "▲", End: "▼"}
+	case "vertical":
+		sw.SymbolSet = scrollbar.SymbolSetVertical()
+	case "double_vertical":
+		sw.SymbolSet = scrollbar.SymbolSetDoubleVertical()
 	default:
 		return fmt.Errorf("unknown value: %q", s)
 	}
@@ -252,7 +256,7 @@ type (
 
 	ScrollBarTheme struct {
 		Visibility ScrollBarVisibilityWrapper `toml:"visibility"`
-		GlyphSet   GlyphSetWrapper            `toml:"glyph_set"`
+		SymbolSet  SymbolSetWrapper           `toml:"symbol_set"`
 		TrackStyle StyleWrapper               `toml:"track_style"`
 		ThumbStyle StyleWrapper               `toml:"thumb_style"`
 	}

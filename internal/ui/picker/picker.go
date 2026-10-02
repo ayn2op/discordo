@@ -28,10 +28,9 @@ func (Model) Init() tview.Cmd { return nil }
 func (m Model) View(onSelect func(picker.Item) tview.Msg, onCancel tview.Msg) tview.Element {
 	cfg := m.cfg
 	bar := scrollbar.New().
-		TrackStyle(cfg.Theme.ScrollBar.TrackStyle.Style).
-		ThumbStyle(cfg.Theme.ScrollBar.ThumbStyle.Style).
-		GlyphSet(cfg.Theme.ScrollBar.GlyphSet.GlyphSet).
-		Arrows(scrollbar.ArrowsBoth)
+		SymbolSet(cfg.Theme.ScrollBar.SymbolSet.SymbolSet).
+		Style(cfg.Theme.ScrollBar.TrackStyle.Style).
+		ThumbStyle(cfg.Theme.ScrollBar.ThumbStyle.Style)
 	p := picker.New(m.items, &m.searchState).
 		ScrollBar(bar, cfg.Theme.ScrollBar.Visibility.ScrollBarVisibility).
 		Keybind(bindKeys(cfg.Keybinds.Picker)).

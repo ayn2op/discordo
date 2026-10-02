@@ -302,8 +302,8 @@ offline_style = { foreground = "gray" }
 
 [theme.scroll_bar]
 visibility = "auto"
-# "minimal" or "box_drawing"
-glyph_set = "box_drawing"
+# "minimal", "box_drawing", "vertical", or "double_vertical"
+symbol_set = "box_drawing"
 track_style = { attributes = "dim" }
 thumb_style = {}
 
