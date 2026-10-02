@@ -475,7 +475,8 @@ func (ml *Model) drawAuthor(builder *richtext.Builder, message discord.Message, 
 	}
 
 	style := baseStyle.Foreground(foreground).Bold(true)
-	builder.Write(name+" ", style)
+	builder.Write(name, style)
+	builder.Write(" ", baseStyle)
 }
 
 func (ml *Model) memberForMessage(message discord.Message) *discord.Member {
