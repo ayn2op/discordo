@@ -3,6 +3,7 @@ package chat
 import (
 	"cmp"
 	"fmt"
+	"github.com/ayn2op/tview/layout"
 	"log/slog"
 	"time"
 
@@ -351,6 +352,14 @@ type paneElement struct {
 	child tview.Element
 }
 
+func (p paneElement) Size() (width, height layout.Length) {
+	return p.child.Size()
+}
+
+func (p paneElement) Layout(limits layout.Limits) layout.Size {
+	return p.child.Layout(limits)
+}
+
 func (p paneElement) Draw(screen tview.Screen, area tview.Rectangle) {
 	p.child.Draw(screen, area)
 }
@@ -419,7 +428,7 @@ func (m Model) View() tview.Element {
 
 	var right tview.Element = column.New(
 		m.paneView(paneMessagesList),
-		column.New(m.paneView(paneComposer)).Height(tview.Fixed(m.composer.Height())),
+		column.New(m.paneView(paneComposer)).Height(layout.Fixed(m.composer.Height())),
 	)
 	if mentions := m.composer.MentionsView(); mentions != nil {
 		right = stack.New(right, mentions)
@@ -429,15 +438,15 @@ func (m Model) View() tview.Element {
 	if m.membersTreeShown() {
 		width := m.cfg.MembersTree.WidthPercent
 		main = row.New(
-			column.New(main).Width(tview.FillPortion(100-width)),
-			column.New(m.paneView(paneMembersTree)).Width(tview.FillPortion(width)),
+			column.New(main).Width(layout.FillPortion(100-width)),
+			column.New(m.paneView(paneMembersTree)).Width(layout.FillPortion(width)),
 		)
 	}
 	if m.guildsTreeVisible {
 		width := m.cfg.Sidebar.WidthPercent
 		main = row.New(
-			column.New(m.paneView(paneGuildsTree)).Width(tview.FillPortion(width)),
-			column.New(main).Width(tview.FillPortion(100-width)),
+			column.New(m.paneView(paneGuildsTree)).Width(layout.FillPortion(width)),
+			column.New(main).Width(layout.FillPortion(100-width)),
 		)
 	}
 
@@ -448,7 +457,7 @@ func (m Model) View() tview.Element {
 		// The panes behind the picker take no input.
 		inert.New(main),
 		backdrop.New().Style(m.cfg.Theme.Dialog.BackgroundStyle.Style),
-		center.New(column.New(picker).Width(tview.Fixed(m.cfg.Picker.Width)).Height(tview.Fixed(m.cfg.Picker.Height))),
+		center.New(column.New(picker).Width(layout.Fixed(m.cfg.Picker.Width)).Height(layout.Fixed(m.cfg.Picker.Height))),
 	)
 }
 

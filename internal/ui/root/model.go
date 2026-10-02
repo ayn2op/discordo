@@ -1,6 +1,7 @@
 package root
 
 import (
+	"github.com/ayn2op/tview/layout"
 	"os"
 
 	"github.com/ayn2op/discordo/internal/config"
@@ -144,6 +145,11 @@ func (m *Model) updateScreen(msg tview.Msg) tview.Cmd {
 	return cmd
 }
 
+// helpHeight returns the rows the help takes at an unlimited width, as the width of the screen is not known in View.
+func (m Model) helpHeight() int {
+	return m.helpView().Layout(layout.Limits{Infinite: layout.Axes{Height: true}}).Height
+}
+
 // View shows the inner model above help, with the modal dialog on top of both when one is open.
 func (m Model) View() tview.Element {
 	var innerView, helpView tview.Element
@@ -155,7 +161,7 @@ func (m Model) View() tview.Element {
 	}
 	if m.helpVisible {
 		padded := box.New(m.helpView()).Padding(0, 0, m.cfg.Help.Padding[0], m.cfg.Help.Padding[1])
-		helpView = column.New(padded).Height(tview.Fixed(max(m.helpView().Rows(0), 1)))
+		helpView = column.New(padded).Height(layout.Fixed(max(m.helpHeight(), 1)))
 	}
 	content := column.New(innerView, helpView)
 	if m.modal == nil {

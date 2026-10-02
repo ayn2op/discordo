@@ -12,7 +12,7 @@ import (
 )
 
 // New returns a boxed tree of the nodes under root, drawn with theme and moved with kbs, that turns changes and selected nodes into the messages onChange and onSelect return.
-func New(root *tree.Node, selectionState *tree.SelectionState, cfg *config.Config, theme config.CommonTreeTheme, kbs config.TreeKeybinds, focused bool, onChange func(tree.Change) tview.Msg, onSelect func(*tree.Node) tview.Msg) box.Widget {
+func New(root *tree.Node, selectionState tree.SelectionState, cfg *config.Config, theme config.CommonTreeTheme, kbs config.TreeKeybinds, focused bool, onChange func(tree.Change) tview.Msg, onSelect func(*tree.Node) tview.Msg) box.Widget {
 	set := cfg.Theme.Border.NormalSet.BorderSet
 	if focused {
 		set = cfg.Theme.Border.ActiveSet.BorderSet

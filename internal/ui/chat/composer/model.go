@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"cmp"
 	"context"
+	"github.com/ayn2op/tview/layout"
 	"io"
 	"log/slog"
 	"regexp"
@@ -115,6 +116,14 @@ func (c Model) View(focused bool) tview.Element { return view{&c, focused} }
 type view struct {
 	*Model
 	focused bool
+}
+
+func (v view) Size() (width, height layout.Length) {
+	return v.box(v.focused).Size()
+}
+
+func (v view) Layout(limits layout.Limits) layout.Size {
+	return v.box(v.focused).Layout(limits)
 }
 
 func (v view) Draw(screen tview.Screen, area tview.Rectangle) {
@@ -490,6 +499,14 @@ func (c *Model) MentionsView() tview.Element {
 // mentionsPopup lays out the mentions list within the area above the composer, where it is drawn over the messages.
 type mentionsPopup struct {
 	c *Model
+}
+
+// Size returns Fill, as the popup places the list within its whole area.
+func (mentionsPopup) Size() (width, height layout.Length) { return layout.Fill, layout.Fill }
+
+// Layout returns the size of limits, as the popup places the list within its whole area.
+func (mentionsPopup) Layout(limits layout.Limits) layout.Size {
+	return layout.Atomic(limits, layout.Fill, layout.Fill)
 }
 
 func (p mentionsPopup) Draw(screen tview.Screen, area tview.Rectangle) {

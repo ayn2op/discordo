@@ -50,7 +50,7 @@ func (m *Model) CurrentNode() *tree.Node {
 func (m Model) View(focused bool) tview.Element {
 	onChange := func(c tree.Change) tview.Msg { return Msg(c) }
 	onSelect := func(n *tree.Node) tview.Msg { return SelectedMsg{Node: n} }
-	return uitree.New(m.root, &m.selectionState, m.cfg, m.cfg.Theme.GuildsTree.CommonTreeTheme, m.cfg.Keybinds.GuildsTree, focused, onChange, onSelect).Title("Guilds")
+	return uitree.New(m.root, m.selectionState, m.cfg, m.cfg.Theme.GuildsTree.CommonTreeTheme, m.cfg.Keybinds.GuildsTree, focused, onChange, onSelect).Title("Guilds")
 }
 
 func (m *Model) reset() *tree.Node {

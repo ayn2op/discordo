@@ -21,7 +21,7 @@ func TestNewModel(t *testing.T) {
 		if !m.helpVisible {
 			t.Fatal("help is hidden")
 		}
-		if height := m.helpView().Rows(0); height != 1 {
+		if height := m.helpHeight(); height != 1 {
 			t.Fatalf("height = %d, want 1", height)
 		}
 

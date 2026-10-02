@@ -2,6 +2,7 @@ package qr
 
 import (
 	"crypto/rsa"
+	"github.com/ayn2op/tview/layout"
 	"strings"
 	"time"
 
@@ -140,7 +141,7 @@ func (m Model) View() tview.Element {
 			ScrollState(&m.scrollState).
 			Wrap(false).
 			Alignment(tview.AlignmentCenter).
-			Height(tview.Fixed(len(m.code))).
+			Height(layout.Fixed(len(m.code))).
 			Focused(true).
 			OnChange(func(a textview.Change) tview.Msg { return scrollMsg(a) }),
 	)

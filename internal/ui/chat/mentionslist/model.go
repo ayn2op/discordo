@@ -4,6 +4,7 @@ import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/layout"
 	"github.com/ayn2op/tview/list"
 	"github.com/gdamore/tcell/v3"
 	"github.com/rivo/uniseg"
@@ -30,7 +31,7 @@ func (m Model) View() tview.Element {
 func (Model) Init() tview.Cmd { return nil }
 
 func (m Model) listView() list.Widget {
-	return list.New(&m.selectionState, len(m.items), func(i int) list.Item {
+	return list.New(m.selectionState, len(m.items), func(i int) tview.Element {
 		item := m.items[i]
 		return row{text: item.DisplayText, style: item.Style}
 	}).
@@ -89,7 +90,13 @@ type row struct {
 	style tcell.Style
 }
 
-func (row) Rows(int) int { return 1 }
+// Size returns Fill and a height of one row.
+func (row) Size() (width, height layout.Length) { return layout.Fill, layout.Fixed(1) }
+
+// Layout returns a height of one row.
+func (row) Layout(limits layout.Limits) layout.Size {
+	return layout.Atomic(limits, layout.Fill, layout.Fixed(1))
+}
 
 func (r row) Draw(screen tview.Screen, area tview.Rectangle) {
 	for x := area.X; x < area.X+area.Width; x++ {

@@ -4,6 +4,7 @@ import (
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/button"
 	"github.com/ayn2op/tview/column"
+	"github.com/ayn2op/tview/layout"
 	"github.com/ayn2op/tview/row"
 	"github.com/ayn2op/tview/text"
 	"github.com/ayn2op/tview/textinput"
@@ -53,12 +54,12 @@ func (m Model) View() tview.Element {
 		OnSubmit(focusButtonMsg{})
 	submit := button.New().
 		Label("Login").
-		Width(tview.Fixed(len("Login") + 4)).
-		Height(tview.Fixed(1)).
+		Width(layout.Fixed(len("Login") + 4)).
+		Height(layout.Fixed(1)).
 		Focused(m.buttonFocused).
 		OnClick(submitMsg{})
 	return column.New(
-		row.New(column.New(text.New("Token")).Width(tview.Fixed(len("Token")+1)), input).Height(tview.Fixed(1)),
+		row.New(column.New(text.New("Token")).Width(layout.Fixed(len("Token")+1)), input).Height(layout.Fixed(1)),
 		submit,
 	).Spacing(1)
 }

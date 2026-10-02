@@ -4,6 +4,7 @@ import (
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/button"
 	"github.com/ayn2op/tview/column"
+	"github.com/ayn2op/tview/layout"
 	"github.com/ayn2op/tview/row"
 	"github.com/ayn2op/tview/text"
 	"github.com/ayn2op/tview/textinput"
@@ -60,7 +61,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 }
 
 func (m Model) View() tview.Element {
-	labelWidth := tview.Fixed(len("Password") + 1)
+	labelWidth := layout.Fixed(len("Password") + 1)
 	login := textinput.New(&m.login).
 		Focused(m.focus == focusLogin).
 		OnChange(func(c textinput.Change) tview.Msg { return loginMsg(c) }).
@@ -72,13 +73,13 @@ func (m Model) View() tview.Element {
 		OnSubmit(focusMsg(focusButton))
 	submit := button.New().
 		Label("Login").
-		Width(tview.Fixed(len("Login") + 4)).
-		Height(tview.Fixed(1)).
+		Width(layout.Fixed(len("Login") + 4)).
+		Height(layout.Fixed(1)).
 		Focused(m.focus == focusButton).
 		OnClick(submitMsg{})
 	return column.New(
-		row.New(column.New(text.New("Login")).Width(labelWidth), login).Height(tview.Fixed(1)),
-		row.New(column.New(text.New("Password")).Width(labelWidth), password).Height(tview.Fixed(1)),
+		row.New(column.New(text.New("Login")).Width(labelWidth), login).Height(layout.Fixed(1)),
+		row.New(column.New(text.New("Password")).Width(labelWidth), password).Height(layout.Fixed(1)),
 		submit,
 	).Spacing(1)
 }

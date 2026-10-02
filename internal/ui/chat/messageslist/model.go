@@ -2,6 +2,7 @@ package messageslist
 
 import (
 	"fmt"
+	"github.com/ayn2op/tview/layout"
 	"io"
 	"log/slog"
 	"net/http"
@@ -36,7 +37,7 @@ import (
 
 type messageItem struct {
 	message   discord.Message
-	view      list.Item
+	view      tview.Element
 	separator bool
 	timestamp discord.Timestamp
 
@@ -106,7 +107,7 @@ func (ml *Model) title() string {
 }
 
 func (ml *Model) listView(focused bool) list.Widget {
-	return list.New(&ml.selectionState, len(ml.items), ml.buildItem).
+	return list.New(ml.selectionState, len(ml.items), ml.buildItem).
 		SelectedStyle(ml.cfg.Theme.MessagesList.SelectedMessageStyle.Style).
 		ScrollBar(ml.scrollBar, ml.scrollBarVisibility).
 		Keybind(scrollKeybind(ml.cfg.Keybinds.MessagesList.ScrollKeybinds)).
@@ -239,7 +240,7 @@ func (ml *Model) clearSelection() {
 	ml.setCursor(-1)
 }
 
-func (ml *Model) buildItem(index int) list.Item {
+func (ml *Model) buildItem(index int) tview.Element {
 	if index < 0 || index >= len(ml.items) {
 		return nil
 	}
@@ -284,14 +285,20 @@ func (v *messageView) at(width int) textview.Widget {
 	return textview.New(v.lines).Wrap(false)
 }
 
-func (v *messageView) Rows(width int) int {
-	v.at(width)
-	rows := len(v.lines)
-	for _, preview := range v.images {
-		_, height := preview.Size()
-		rows += height.Cells()
-	}
-	return rows
+// Size returns Fill and Shrink, as the message is as tall as its content.
+func (v *messageView) Size() (width, height layout.Length) { return layout.Fill, layout.Shrink }
+
+// Layout returns the size of the message within limits, as tall as the rows it takes at the width of limits.
+func (v *messageView) Layout(limits layout.Limits) layout.Size {
+	return layout.Sized(limits, layout.Fill, layout.Shrink, func(limits layout.Limits) layout.Size {
+		v.at(limits.Max.Width)
+		rows := len(v.lines)
+		for _, preview := range v.images {
+			_, height := preview.Size()
+			rows += height.Cells()
+		}
+		return layout.Size{Height: rows}
+	})
 }
 
 func (v *messageView) Draw(screen tview.Screen, area tview.Rectangle) {
@@ -312,7 +319,13 @@ type dateSeparator struct {
 	style      tcell.Style
 }
 
-func (dateSeparator) Rows(int) int { return 1 }
+// Size returns Fill and a height of one row.
+func (dateSeparator) Size() (width, height layout.Length) { return layout.Fill, layout.Fixed(1) }
+
+// Layout returns a height of one row.
+func (dateSeparator) Layout(limits layout.Limits) layout.Size {
+	return layout.Atomic(limits, layout.Fill, layout.Fixed(1))
+}
 
 func (d dateSeparator) Draw(screen tview.Screen, area tview.Rectangle) {
 	line := d.date
