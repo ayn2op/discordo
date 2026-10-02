@@ -35,7 +35,7 @@ func (m Model) listView() list.Widget {
 		item := m.items[i]
 		return row{text: item.DisplayText, style: item.Style}
 	}).
-		SelectedStyle(tcell.StyleDefault.Reverse(true)).
+		SelectedStyle(m.cfg.Theme.MentionsList.SelectedStyle.Style).
 		Keybind(ui.SelectionKeybind(m.cfg.Keybinds.MentionsList.SelectionKeybinds)).
 		// The list is only shown while mentions are being completed, so it takes its keys first.
 		Focused(true).

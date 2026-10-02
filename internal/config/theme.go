@@ -247,6 +247,8 @@ type (
 	MentionsListTheme struct {
 		MinWidth  uint `toml:"min_width"`
 		MaxHeight uint `toml:"max_height"`
+
+		SelectedStyle StyleWrapper `toml:"selected_style"`
 	}
 
 	DialogTheme struct {
