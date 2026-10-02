@@ -149,8 +149,6 @@ func (gw *GlyphSetWrapper) UnmarshalTOML(val any) error {
 		gw.GlyphSet = scrollbar.MinimalGlyphSet()
 	case "box_drawing", "boxdrawing", "box":
 		gw.GlyphSet = scrollbar.BoxDrawingGlyphSet()
-	case "unicode":
-		gw.GlyphSet = scrollbar.UnicodeGlyphSet()
 	default:
 		return fmt.Errorf("unknown value: %q", s)
 	}
