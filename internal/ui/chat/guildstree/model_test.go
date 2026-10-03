@@ -52,3 +52,20 @@ func TestModelMoveDMToFront(t *testing.T) {
 		}
 	})
 }
+
+func TestAdjacentNode(t *testing.T) {
+	a, b, c := tree.NewNode("a"), tree.NewNode("b"), tree.NewNode("c")
+	root := tree.NewNode("").SetChildren([]*tree.Node{a, tree.NewNode("guild").AddChild(b), c})
+	match := func(n *tree.Node) bool { return n == a || n == b }
+	for current, want := range map[*tree.Node][2]*tree.Node{nil: {a, b}, a: {b, b}, b: {a, a}, c: {a, b}} {
+		if got := adjacentNode(root, current, match, false); got != want[0] {
+			t.Errorf("after %v = %v, want %v", current, got, want[0])
+		}
+		if got := adjacentNode(root, current, match, true); got != want[1] {
+			t.Errorf("before %v = %v, want %v", current, got, want[1])
+		}
+	}
+	if got := adjacentNode(root, a, func(*tree.Node) bool { return false }, false); got != nil {
+		t.Errorf("got %v, want nil", got)
+	}
+}

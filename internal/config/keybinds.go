@@ -72,6 +72,12 @@ type TreeKeybinds struct {
 	MoveToParentNode   Keybind `toml:"move_to_parent_node"`
 }
 
+type GuildsTreeKeybinds struct {
+	TreeKeybinds
+	SelectPreviousUnread Keybind `toml:"select_previous_unread"`
+	SelectNextUnread     Keybind `toml:"select_next_unread"`
+}
+
 type MessagesListKeybinds struct {
 	SelectionKeybinds
 	ScrollKeybinds
@@ -130,7 +136,7 @@ type Keybinds struct {
 	FocusNext     Keybind `toml:"focus_next"`
 
 	Picker       PickerKeybinds       `toml:"picker"`
-	GuildsTree   TreeKeybinds         `toml:"guilds_tree"`
+	GuildsTree   GuildsTreeKeybinds   `toml:"guilds_tree"`
 	MembersTree  TreeKeybinds         `toml:"members_tree"`
 	MessagesList MessagesListKeybinds `toml:"messages_list"`
 	Composer     ComposerKeybinds     `toml:"composer"`
@@ -234,7 +240,7 @@ func defaultKeybinds() Keybinds {
 		Quit:   desc("quit"),
 
 		Picker:       defaultPickerKeybinds(),
-		GuildsTree:   defaultTreeKeybinds(),
+		GuildsTree:   GuildsTreeKeybinds{TreeKeybinds: defaultTreeKeybinds(), SelectPreviousUnread: desc("prev unread"), SelectNextUnread: desc("next unread")},
 		MembersTree:  defaultTreeKeybinds(),
 		MessagesList: defaultMessagesListKeybinds(),
 		Composer:     defaultComposerKeybinds(),

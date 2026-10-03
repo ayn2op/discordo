@@ -50,7 +50,16 @@ func (m *Model) CurrentNode() *tree.Node {
 func (m Model) View(focused bool) tview.Element {
 	onChange := func(c tree.Change) tview.Msg { return Msg(c) }
 	onSelect := func(n *tree.Node) tview.Msg { return SelectedMsg{Node: n} }
-	return uitree.New(m.root, m.selectionState, m.cfg, m.cfg.Theme.GuildsTree.CommonTreeTheme, m.cfg.Keybinds.GuildsTree, focused, onChange, onSelect).Title("Guilds")
+	return uitree.New(
+		m.root,
+		m.selectionState,
+		m.cfg,
+		m.cfg.Theme.GuildsTree.CommonTreeTheme,
+		m.cfg.Keybinds.GuildsTree.TreeKeybinds,
+		focused,
+		onChange,
+		onSelect,
+	).Title("Guilds")
 }
 
 func (m *Model) reset() *tree.Node {
@@ -332,11 +341,64 @@ func (m *Model) update(msg tview.Msg) tview.Cmd {
 		case keybind.Matches(msg, m.cfg.Keybinds.GuildsTree.CollapseParentNode.Keybind):
 			m.collapseParentNode(m.selectionState.CurrentNode())
 			return nil
+		case keybind.Matches(msg, m.cfg.Keybinds.GuildsTree.SelectPreviousUnread.Keybind, m.cfg.Keybinds.GuildsTree.SelectNextUnread.Keybind):
+			previous := keybind.Matches(msg, m.cfg.Keybinds.GuildsTree.SelectPreviousUnread.Keybind)
+			if node := adjacentNode(m.root, m.selectionState.CurrentNode(), m.isUnread, previous); node != nil {
+				// A guild or the direct messages without channels yet: load them and move on to the unread one.
+				if _, ok := node.Reference().(discord.ChannelID); !ok {
+					m.selectNode(node)
+					if channel := adjacentNode(node, node, m.isUnread, previous); channel != nil {
+						node = channel
+					}
+				}
+				m.expandPathToNode(node)
+				m.selectionState.SetCurrentNode(node)
+			}
+			return nil
 		case keybind.Matches(msg, m.cfg.Keybinds.GuildsTree.YankID.Keybind):
 			return uitree.YankID(m.selectionState.CurrentNode())
 		}
 	}
 	return nil
+}
+
+// isUnread reports whether node is an unread channel, or a guild or the direct messages whose channels are not shown yet and has one.
+func (m *Model) isUnread(node *tree.Node) bool {
+	if len(node.Children()) > 0 {
+		return false
+	}
+	opts := ningen.UnreadOpts{IncludeMutedCategories: true}
+	switch ref := node.Reference().(type) {
+	case discord.GuildID:
+		return m.state.GuildIsUnread(ref, ningen.GuildUnreadOpts{UnreadOpts: opts}) != ningen.ChannelRead
+	case discord.ChannelID:
+		return m.state.ChannelIsUnread(ref, opts) != ningen.ChannelRead
+	case dmNode:
+		channels, _ := m.state.PrivateChannels()
+		return slices.ContainsFunc(channels, func(c discord.Channel) bool { return m.state.ChannelIsUnread(c.ID, opts) != ningen.ChannelRead })
+	}
+	return false
+}
+
+// adjacentNode returns the nearest node under root matching match after current, or before it if previous, wrapping around, or nil if no other node matches.
+func adjacentNode(root, current *tree.Node, match func(*tree.Node) bool, previous bool) *tree.Node {
+	var nodes []*tree.Node
+	after := 0
+	root.Walk(func(node, _ *tree.Node) bool {
+		if node == current {
+			after = len(nodes)
+		} else if match(node) {
+			nodes = append(nodes, node)
+		}
+		return true
+	})
+	if len(nodes) == 0 {
+		return nil
+	}
+	if previous {
+		after += len(nodes) - 1
+	}
+	return nodes[after%len(nodes)]
 }
 
 func (m *Model) findNodeByReference(reference any) *tree.Node {

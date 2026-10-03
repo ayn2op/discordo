@@ -49,6 +49,7 @@ func (m Model) FullHelp() [][]keybind.Keybind {
 	return [][]keybind.Keybind{
 		{cfg.SelectUp.Keybind, cfg.SelectDown.Keybind, cfg.SelectTop.Keybind, cfg.SelectBottom.Keybind},
 		selectGroup,
+		{cfg.SelectPreviousUnread.Keybind, cfg.SelectNextUnread.Keybind},
 		{cfg.YankID.Keybind},
 	}
 }

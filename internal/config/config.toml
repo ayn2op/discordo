@@ -175,6 +175,9 @@ select_top = "g"
 select_bottom = "G"
 # Select the currently highlighted text-based channel or expand a guild or channel.
 select_current = "enter"
+# Highlight the previous or next unread guild or channel, wrapping around.
+select_previous_unread = "K"
+select_next_unread = "J"
 yank_id = "i"
 collapse_all = "_"
 collapse_parent_node = "-"
