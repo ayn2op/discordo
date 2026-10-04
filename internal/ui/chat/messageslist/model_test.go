@@ -93,8 +93,8 @@ func TestModelRebuildItems(t *testing.T) {
 				var got []discord.MessageID
 				for i, item := range ml.items {
 					if item.separator {
-						if !tt.separators || i+1 == len(ml.items) || ml.items[i+1].separator || item.timestamp != ml.items[i+1].message.Timestamp {
-							t.Fatalf("item %d: orphaned or incorrect separator", i)
+						if !tt.separators || i+1 == len(ml.items) || ml.items[i+1].separator {
+							t.Fatalf("item %d: orphaned separator", i)
 						}
 					} else {
 						got = append(got, item.message.ID)

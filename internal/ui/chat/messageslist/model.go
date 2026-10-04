@@ -37,10 +37,10 @@ import (
 )
 
 type messageItem struct {
-	message   discord.Message
-	view      tview.Widget
+	message discord.Message
+	view    tview.Widget
+	// A separator shows the date of the message after it.
 	separator bool
-	timestamp discord.Timestamp
 
 	// A preview is blank while loading and empty if loading failed.
 	previews map[discord.URL]tviewimage.Widget
@@ -197,7 +197,7 @@ func (ml *Model) setMessages(messages []discord.Message) {
 func (ml *Model) AddMessage(message discord.Message) tview.Cmd {
 	// Appending keeps the items before it as they are, so only the separator of a new day is added rather than all rebuilt.
 	if ml.cfg.DateSeparator.Enabled && (len(ml.items) == 0 || !sameLocalDate(ml.items[len(ml.items)-1].message.Timestamp, message.Timestamp)) {
-		ml.items = append(ml.items, messageItem{separator: true, timestamp: message.Timestamp})
+		ml.items = append(ml.items, messageItem{separator: true})
 	}
 	ml.items = append(ml.items, messageItem{message: message})
 	return ml.loadPreviews()
@@ -242,7 +242,7 @@ func (ml *Model) buildItem(index int) tview.Widget {
 	}
 	item := &ml.items[index]
 	if item.separator {
-		date := item.timestamp.Time().In(time.Local).Format(ml.cfg.DateSeparator.Format)
+		date := ml.items[index+1].message.Timestamp.Time().In(time.Local).Format(ml.cfg.DateSeparator.Format)
 		return dateSeparator{date: date, fill: ml.cfg.DateSeparator.Character, style: ml.cfg.Theme.MessagesList.MessageStyle.Style.Dim(true)}
 	}
 
@@ -351,7 +351,7 @@ func (ml *Model) rebuildItems() {
 			continue
 		}
 		if ml.cfg.DateSeparator.Enabled && (len(items) == 0 || !sameLocalDate(previous, item.message.Timestamp)) {
-			items = append(items, messageItem{separator: true, timestamp: item.message.Timestamp})
+			items = append(items, messageItem{separator: true})
 		}
 		if i == cursor {
 			selected = len(items)
