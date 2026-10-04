@@ -57,9 +57,6 @@ type Model struct {
 
 	renderer *markdown.Renderer
 
-	// renderWidth is the width the message being rendered is laid out at.
-	renderWidth int
-
 	// kitty reports whether previews are drawn with kitty's graphics protocol.
 	// kittyImages counts the images sent to the terminal.
 	kitty       bool
@@ -249,8 +246,7 @@ func (ml *Model) buildItem(index int) tview.Widget {
 	if item.view == nil {
 		message := item.message
 		view := &messageView{render: func(width int) richtext.Text {
-			ml.renderWidth = width
-			return ml.renderMessage(message, ml.cfg.Theme.MessagesList.MessageStyle.Style)
+			return ml.renderMessage(message, ml.cfg.Theme.MessagesList.MessageStyle.Style, width)
 		}}
 		for _, s := range previewSources(message) {
 			if preview, ok := item.previews[s.proxy]; ok {
@@ -335,9 +331,9 @@ func (d dateSeparator) Draw(screen tview.Screen, area tview.Rectangle) {
 
 func (dateSeparator) Handle(msg tview.Msg, area tview.Rectangle) tview.Msg { return msg }
 
-func (ml *Model) renderMessage(message discord.Message, baseStyle tview.Style) richtext.Text {
+func (ml *Model) renderMessage(message discord.Message, baseStyle tview.Style, width int) richtext.Text {
 	builder := new(richtext.Builder)
-	ml.writeMessage(builder, message, baseStyle)
+	ml.writeMessage(builder, message, baseStyle, width)
 	return builder.Finish()
 }
 
@@ -390,7 +386,7 @@ func (ml *Model) onRowCursorChanged(index int) {
 	ml.setCursor(target)
 }
 
-func (ml *Model) writeMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style) {
+func (ml *Model) writeMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, width int) {
 	if ml.cfg.HideBlockedUsers {
 		isBlocked := ml.state.UserIsBlocked(message.Author.ID)
 		if isBlocked {
@@ -404,14 +400,14 @@ func (ml *Model) writeMessage(builder *richtext.Builder, message discord.Message
 		if message.Reference != nil && message.Reference.Type == discord.MessageReferenceTypeForward {
 			ml.drawForwardedMessage(builder, message, baseStyle)
 		} else {
-			ml.drawDefaultMessage(builder, message, baseStyle)
+			ml.drawDefaultMessage(builder, message, baseStyle, width)
 		}
 	case discord.GuildMemberJoinMessage:
 		ml.drawTimestamps(builder, message.Timestamp, baseStyle)
 		ml.drawAuthor(builder, message, baseStyle)
 		builder.Write("joined the server.", baseStyle)
 	case discord.InlinedReplyMessage:
-		ml.drawReplyMessage(builder, message, baseStyle)
+		ml.drawReplyMessage(builder, message, baseStyle, width)
 	case discord.ChannelPinnedMessage:
 		ml.drawPinnedMessage(builder, message, baseStyle)
 	default:
@@ -551,7 +547,7 @@ func (ml *Model) drawSnapshotContent(builder *richtext.Builder, parent discord.M
 	ml.drawContent(builder, message, baseStyle)
 }
 
-func (ml *Model) drawDefaultMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style) {
+func (ml *Model) drawDefaultMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, width int) {
 	if ml.cfg.Timestamps.Enabled {
 		ml.drawTimestamps(builder, message.Timestamp, baseStyle)
 	}
@@ -564,7 +560,7 @@ func (ml *Model) drawDefaultMessage(builder *richtext.Builder, message discord.M
 		builder.Write(" (edited)", dimStyle)
 	}
 
-	ml.drawEmbeds(builder, message, baseStyle, contentRoot, contentSource)
+	ml.drawEmbeds(builder, message, baseStyle, width, contentRoot, contentSource)
 
 	attachmentStyle := tview.MergeStyle(baseStyle, ml.cfg.Theme.MessagesList.AttachmentStyle.Style)
 	for _, a := range message.Attachments {
@@ -579,7 +575,7 @@ func (ml *Model) drawDefaultMessage(builder *richtext.Builder, message discord.M
 	}
 }
 
-func (ml *Model) drawEmbeds(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, contentRoot ast.Node, contentSource []byte) {
+func (ml *Model) drawEmbeds(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, width int, contentRoot ast.Node, contentSource []byte) {
 	if len(message.Embeds) == 0 {
 		return
 	}
@@ -602,7 +598,7 @@ func (ml *Model) drawEmbeds(builder *richtext.Builder, message discord.Message, 
 	prefixText := "  ▎ "
 	prefixWidth := uniseg.StringWidth(prefixText)
 	// Wrap against the list's width, so the message is rendered again when it changes.
-	wrapWidth := max(ml.renderWidth-prefixWidth, 1)
+	wrapWidth := max(width-prefixWidth, 1)
 
 	for _, embed := range message.Embeds {
 		lines := embedLines(embed, contentURLs)
@@ -810,7 +806,7 @@ func (ml *Model) drawForwardedMessage(builder *richtext.Builder, message discord
 	builder.Write(" ("+ml.formatTimestamp(message.MessageSnapshots[0].Message.Timestamp)+") ", dimStyle)
 }
 
-func (ml *Model) drawReplyMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style) {
+func (ml *Model) drawReplyMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, width int) {
 	dimStyle := baseStyle.Dim(true)
 	builder.Write(ml.cfg.Theme.MessagesList.ReplyIndicator+" ", dimStyle)
 
@@ -823,7 +819,7 @@ func (ml *Model) drawReplyMessage(builder *richtext.Builder, message discord.Mes
 	}
 
 	builder.NewLine()
-	ml.drawDefaultMessage(builder, message, baseStyle)
+	ml.drawDefaultMessage(builder, message, baseStyle, width)
 }
 
 func (ml *Model) drawPinnedMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style) {

@@ -45,7 +45,7 @@ require (
 	github.com/cloudflare/circl v1.6.5 // indirect
 	github.com/danieljoos/wincred v1.2.3 // indirect
 	github.com/dchest/jsmin v1.0.0 // indirect
-	github.com/dlclark/regexp2/v2 v2.8.2 // indirect
+	github.com/dlclark/regexp2/v2 v2.8.3 // indirect
 	github.com/ebitengine/purego v0.11.1 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
 	github.com/godbus/dbus/v5 v5.2.2 // indirect

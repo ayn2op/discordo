@@ -42,8 +42,8 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dchest/jsmin v1.0.0 h1:Y2hWXmGZiRxtl+VcTksyucgTlYxnhPzTozCwx9gy9zI=
 github.com/dchest/jsmin v1.0.0/go.mod h1:AVBIund7Mr7lKXT70hKT2YgL3XEXUaUk5iw9DZ8b0Uc=
-github.com/dlclark/regexp2/v2 v2.8.2 h1:uTTe+cxADL4be+dv4DZwsBIEPCQ6RHPlnVuKrtLqSx0=
-github.com/dlclark/regexp2/v2 v2.8.2/go.mod h1:avUrQvPaLz2DrFNHJF0taWAFFX2C1GMSSoeiqFjcBmU=
+github.com/dlclark/regexp2/v2 v2.8.3 h1:4iBHVtmyAsQOOthVo+0v0RxktjLPDOTKx9Nuhf+PpD0=
+github.com/dlclark/regexp2/v2 v2.8.3/go.mod h1:avUrQvPaLz2DrFNHJF0taWAFFX2C1GMSSoeiqFjcBmU=
 github.com/ebitengine/purego v0.11.1 h1:2zpWRSQNVKN4eKsKO9eM1ILDgWfYMY9GwqRmK6XeQ/0=
 github.com/ebitengine/purego v0.11.1/go.mod h1:DCHPP08djqhNSoTfImcnHYQRZmd0qhakvrozqaEYhGQ=
 github.com/gdamore/encoding v1.0.1 h1:YzKZckdBL6jVt2Gc+5p82qhrGiqMdG/eNs6Wy0u3Uhw=
