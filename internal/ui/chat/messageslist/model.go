@@ -79,7 +79,6 @@ func NewModel(cfg *config.Config, state *ningen.State) Model {
 		renderer:       markdown.NewRenderer(cfg),
 	}
 
-	ml.selectionState.SetTrackEnd(true)
 	ml.selectionState.ScrollToEnd()
 	ml.scrollBarVisibility = cfg.Theme.ScrollBar.Visibility.ScrollBarVisibility
 	ml.scrollBar = scrollbar.New().
@@ -110,6 +109,7 @@ func (ml *Model) listView(focused bool) list.Widget {
 	return list.New(ml.selectionState, len(ml.items), ml.buildItem).
 		SelectedStyle(ml.cfg.Theme.MessagesList.SelectedMessageStyle.Style).
 		ScrollBar(ml.scrollBar, ml.scrollBarVisibility).
+		TrackEnd(true).
 		Keybind(scrollKeybind(ml.cfg.Keybinds.MessagesList.ScrollKeybinds)).
 		Focused(focused).
 		OnChange(func(a list.Change) tview.Msg { return listMsg(a) })
@@ -186,7 +186,6 @@ func (ml *Model) indexOf(channelID discord.ChannelID, id discord.MessageID) int 
 func (ml *Model) reset() {
 	ml.items = nil
 	ml.selectionState = list.NewSelectionState()
-	ml.selectionState.SetTrackEnd(true)
 	ml.selectionState.ScrollToEnd()
 }
 
