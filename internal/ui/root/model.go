@@ -45,6 +45,8 @@ type Model struct {
 	// modal is the request shown in a dialog, or nil when none is open, and dialogFocus its focused button.
 	modal       *ui.ModalMsg
 	dialogFocus int
+	// resize is the last size of the window, or nil before the first, kept for the models shown later.
+	resize tview.ResizeMsg
 
 	cfg *config.Config
 }
@@ -128,6 +130,8 @@ func (m *Model) update(msg tview.Msg) tview.Cmd {
 		if m.modal != nil {
 			return nil
 		}
+	case tview.ResizeMsg:
+		m.resize = msg
 	}
 
 	return m.updateScreen(msg)

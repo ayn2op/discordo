@@ -23,7 +23,7 @@ const (
 	previewHeight = 20
 )
 
-// kittyPixels is the number of pixels loaded per column of a kitty preview, roughly the width of a cell.
+// kittyPixels is the width of a cell in pixels assumed for kitty previews when the terminal does not report it.
 const kittyPixels = 10
 
 type previewLoadedMsg struct {
@@ -57,19 +57,27 @@ func previewSources(message discord.Message) []previewSource {
 	return slices.DeleteFunc(sources, func(s previewSource) bool { return s.width == 0 || s.height == 0 })
 }
 
-func (s previewSource) cols() int {
-	// A cell is about twice as tall as wide.
-	return int(max(min(s.width, previewWidth, s.width*previewHeight*2/s.height), 1))
+// cols returns the preview's width in cells of cellWidth by cellHeight pixels: its own width at most, within the preview box.
+func (s previewSource) cols(cellWidth, cellHeight uint) int {
+	return int(max(min((s.width+cellWidth-1)/cellWidth, previewWidth, s.width*previewHeight*cellHeight/(s.height*cellWidth)), 1))
+}
+
+// previewCell returns the size of a cell in image pixels: the terminal's for kitty, and one pixel by two for half blocks.
+func (ml *Model) previewCell() (width, height uint) {
+	switch {
+	case !ml.kitty:
+		return 1, 2
+	case ml.cellWidth == 0 || ml.cellHeight == 0:
+		return kittyPixels, kittyPixels * 2
+	}
+	return ml.cellWidth, ml.cellHeight
 }
 
 func (ml *Model) loadPreviews() tview.Cmd {
 	if !ml.cfg.Attachments.Preview {
 		return nil
 	}
-	pixels := 1
-	if ml.kitty {
-		pixels = kittyPixels
-	}
+	cellWidth, cellHeight := ml.previewCell()
 	var cmds []tview.Cmd
 	for i := range ml.items {
 		item := &ml.items[i]
@@ -80,25 +88,29 @@ func (ml *Model) loadPreviews() tview.Cmd {
 			if item.previews == nil {
 				item.previews = make(map[discord.URL]tviewimage.Widget)
 			}
-			width := min(s.width, uint(s.cols()*pixels))
+			cols := s.cols(cellWidth, cellHeight)
+			width := min(s.width, uint(cols)*cellWidth)
 			bounds := image.Rect(0, 0, int(width), int(s.height*width/s.width))
+			widget := func(img image.Image) tviewimage.Widget {
+				return tviewimage.New(img).Width(cols).CellSize(int(cellWidth), int(cellHeight))
+			}
 			// Reserve the preview's rows with a blank image of the same size, so the messages below do not shift when it loads.
-			item.previews[s.proxy] = tviewimage.New(image.NewAlpha(bounds)).Width(s.cols())
-			cmds = append(cmds, loadPreview(item.message.ID, s, bounds))
+			item.previews[s.proxy] = widget(image.NewAlpha(bounds))
+			cmds = append(cmds, loadPreview(item.message.ID, s.proxy, bounds, widget))
 		}
 	}
 	return tview.Batch(cmds...)
 }
 
 // loadPreview yields an empty preview if loading fails.
-func loadPreview(messageID discord.MessageID, s previewSource, bounds image.Rectangle) tview.Cmd {
+func loadPreview(messageID discord.MessageID, proxy discord.URL, bounds image.Rectangle, widget func(image.Image) tviewimage.Widget) tview.Cmd {
 	return func() tview.Msg {
-		img, err := downloadPreview(s.proxy, bounds)
+		img, err := downloadPreview(proxy, bounds)
 		if err != nil {
 			slog.Error("failed to load preview", "err", err)
 			img = &image.Alpha{}
 		}
-		return previewLoadedMsg{messageID: messageID, proxy: s.proxy, preview: tviewimage.New(img).Width(s.cols())}
+		return previewLoadedMsg{messageID: messageID, proxy: proxy, preview: widget(img)}
 	}
 }
 

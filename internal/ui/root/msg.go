@@ -71,7 +71,11 @@ func (m *Model) showLogin() tview.Cmd {
 
 func (m *Model) showChat(token string) tview.Cmd {
 	m.screen, m.chat, m.login = screenChat, chat.NewModel(m.cfg, token), login.Model{}
-	return m.show(m.chat.Init())
+	init := m.chat.Init()
+	if m.resize != nil {
+		init = tview.Batch(init, m.updateScreen(m.resize))
+	}
+	return m.show(init)
 }
 
 // show closes any open modal after the shown model changed and returns what it needs done, with init its first command.

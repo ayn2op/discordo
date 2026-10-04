@@ -224,7 +224,7 @@ func (m *Model) update(msg tview.Msg) tview.Cmd {
 		}
 		title := ui.ChannelToString(msg.Channel, m.cfg.Icons, m.state) + " - " + consts.Name
 		return tview.Batch(tview.SetTitle(title), m.messagesList.SetChannel(&msg.Channel, msg.Messages), membersCmd)
-	case messageslist.Msg, tview.TerminalInfoMsg:
+	case messageslist.Msg, tview.TerminalInfoMsg, tview.ResizeMsg:
 		return m.updatePane(paneMessagesList, msg)
 	case typingExpiredMsg:
 		if until, ok := m.typers[msg.userID]; ok && !time.Now().Before(until) {

@@ -61,6 +61,8 @@ type Model struct {
 	// kittyImages counts the images sent to the terminal.
 	kitty       bool
 	kittyImages int
+	// cellWidth and cellHeight are the size of a terminal cell in pixels, or zero if the terminal does not report it.
+	cellWidth, cellHeight uint
 }
 
 var _ help.KeyMap = Model{}
@@ -924,6 +926,12 @@ func (ml *Model) update(msg tview.Msg) tview.Cmd {
 		// Invalidate the view so it is laid out with the preview.
 		ml.items[index].view = nil
 		return cmd
+	case tview.ResizeMsg:
+		cols, rows := msg.Size()
+		width, height := msg.PixelSize()
+		if cols > 0 && rows > 0 {
+			ml.cellWidth, ml.cellHeight = uint(width/cols), uint(height/rows)
+		}
 	case tview.TerminalInfoMsg:
 		switch ml.cfg.Attachments.Protocol {
 		case "kitty":
