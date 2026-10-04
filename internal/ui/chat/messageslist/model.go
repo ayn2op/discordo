@@ -49,9 +49,6 @@ type messageItem struct {
 type Model struct {
 	selectionState list.SelectionState
 
-	scrollBar           scrollbar.Widget
-	scrollBarVisibility list.ScrollBarVisibility
-
 	cfg   *config.Config
 	state *ningen.State
 	// channel is the selected channel, or nil for none.
@@ -80,11 +77,6 @@ func NewModel(cfg *config.Config, state *ningen.State) Model {
 	}
 
 	ml.selectionState.ScrollToEnd()
-	ml.scrollBarVisibility = cfg.Theme.ScrollBar.Visibility.ScrollBarVisibility
-	ml.scrollBar = scrollbar.New().
-		SymbolSet(cfg.Theme.ScrollBar.SymbolSet.SymbolSet).
-		Style(cfg.Theme.ScrollBar.TrackStyle.Style).
-		ThumbStyle(cfg.Theme.ScrollBar.ThumbStyle.Style)
 	return ml
 }
 
@@ -106,9 +98,14 @@ func (ml *Model) title() string {
 }
 
 func (ml *Model) listView(focused bool) list.Widget {
+	cfg := ml.cfg.Theme.ScrollBar
+	bar := scrollbar.New().
+		SymbolSet(cfg.SymbolSet.SymbolSet).
+		Style(cfg.TrackStyle.Style).
+		ThumbStyle(cfg.ThumbStyle.Style)
 	return list.New(ml.selectionState, len(ml.items), ml.buildItem).
 		SelectedStyle(ml.cfg.Theme.MessagesList.SelectedMessageStyle.Style).
-		ScrollBar(ml.scrollBar, ml.scrollBarVisibility).
+		ScrollBar(bar, cfg.Visibility.ScrollBarVisibility).
 		TrackEnd(true).
 		Keybind(scrollKeybind(ml.cfg.Keybinds.MessagesList.ScrollKeybinds)).
 		Focused(focused).
