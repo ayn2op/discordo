@@ -28,7 +28,7 @@ func TestModelView(t *testing.T) {
 			t.Fatal(err)
 		}
 		m.qrCode = code
-		m.setStatus("status")
+		m.status = "status"
 		m.View().Draw(screen, tview.Rectangle{Width: width, Height: height})
 
 		var drawn strings.Builder

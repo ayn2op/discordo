@@ -15,8 +15,6 @@ import (
 )
 
 type Model struct {
-	// code is the QR code above the status, scrolled when it does not fit.
-	code        richtext.Text
 	scrollState textview.ScrollState
 
 	conn              *gatewayConn
@@ -30,7 +28,7 @@ type Model struct {
 
 func NewModel() Model {
 	var m Model
-	m.setStatus("Press Ctrl+N to open QR login")
+	m.status = "Press Ctrl+N to open QR login"
 	return m
 }
 
@@ -53,11 +51,11 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 func (m *Model) update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
 	case startMsg:
-		m.setStatus("Connecting to Remote Auth Gateway...")
+		m.status = "Connecting to Remote Auth Gateway..."
 		return connect()
 	case tview.KeyMsg:
 		if msg.Key() == tcell.KeyEsc {
-			m.setStatus("Canceled")
+			m.status = "Canceled"
 			return closeConn(m.conn)
 		}
 		return nil
@@ -67,7 +65,7 @@ func (m *Model) update(msg tview.Msg) tview.Cmd {
 
 	case connCreateMsg:
 		m.conn = msg.conn
-		m.setStatus("Connected. Handshaking...")
+		m.status = "Connected. Handshaking..."
 		return listen(m.conn)
 	case connCloseMsg:
 		m.conn = nil
@@ -86,7 +84,7 @@ func (m *Model) update(msg tview.Msg) tview.Cmd {
 		return tview.Batch(listen(m.conn), generateQRCode(msg.fingerprint))
 	case qrCodeMsg:
 		m.qrCode = msg.qrCode
-		m.setStatus("Scan this with the Discord mobile app to log in instantly.")
+		m.status = "Scan this with the Discord mobile app to log in instantly."
 		return nil
 	case pendingTicketMsg:
 		return tview.Batch(listen(m.conn), decryptUserPayload(m.privateKey, msg.encryptedUserPayload))
@@ -95,15 +93,15 @@ func (m *Model) update(msg tview.Msg) tview.Cmd {
 		if msg.discriminator != "0" {
 			name += "#" + msg.discriminator
 		}
-		m.setStatus("Check your phone! Logging in as " + name)
+		m.status = "Check your phone! Logging in as " + name
 		return nil
 	case pendingLoginMsg:
-		m.setStatus("Authenticating...")
+		m.status = "Authenticating..."
 		return tview.Batch(closeConn(m.conn), exchangeTicket(m.fingerprint, m.privateKey, msg.ticket))
 	case ignoredMsg:
 		return listen(m.conn)
 	case cancelMsg:
-		m.setStatus("Login canceled on mobile")
+		m.status = "Login canceled on mobile"
 		return closeConn(m.conn)
 
 	case heartbeatTickMsg:
@@ -113,7 +111,7 @@ func (m *Model) update(msg tview.Msg) tview.Cmd {
 		return tview.Batch(scheduleHeartbeat(m.heartbeatInterval), sendHeartbeat(m.conn))
 
 	case error:
-		m.setStatus(msg.Error())
+		m.status = msg.Error()
 		return closeConn(m.conn)
 	}
 
@@ -136,23 +134,20 @@ func halfBlock(top, bottom bool) rune {
 
 // View centers the code, which scrolls when it is taller than the tab.
 func (m Model) View() tview.Widget {
+	code := m.code()
 	return center.New(
-		textview.New(m.code).
+		textview.New(code).
 			ScrollState(&m.scrollState).
 			Wrap(false).
 			Alignment(tview.AlignmentCenter).
-			Height(layout.Fixed(len(m.code))).
+			Height(layout.Fixed(len(code))).
 			Focused(true).
 			OnChange(func(a textview.Change) tview.Msg { return scrollMsg(a) }),
 	)
 }
 
-func (m *Model) setStatus(status string) {
-	m.status = status
-	m.render()
-}
-
-func (m *Model) render() {
+// code returns the QR code above the status.
+func (m Model) code() richtext.Text {
 	var out strings.Builder
 	if m.qrCode != nil {
 		bitmap := m.qrCode.Bitmap()
@@ -174,5 +169,5 @@ func (m *Model) render() {
 
 	builder := new(richtext.Builder)
 	builder.Write(out.String(), tcell.StyleDefault)
-	m.code = builder.Finish()
+	return builder.Finish()
 }
