@@ -43,12 +43,17 @@ const (
 	memberSearchNonce   = "autocomplete:"
 )
 
+const (
+	noChannelPlaceholder    = "Select a channel to start chatting"
+	noPermissionPlaceholder = "You do not have permission to send messages in this channel."
+	messagePlaceholder      = "Message..."
+)
+
 var mentionRegex = regexp.MustCompile("@[a-zA-Z0-9._]+")
 
 type Model struct {
-	editState   textarea.EditState
-	placeholder string
-	disabled    bool
+	editState textarea.EditState
+	disabled  bool
 
 	state *ningen.State
 	// channel is the selected channel, or nil for none.
@@ -77,7 +82,6 @@ var _ help.KeyMap = Model{}
 
 func NewModel(cfg *config.Config, state *ningen.State) Model {
 	c := Model{
-		placeholder:       "Select a channel to start chatting",
 		disabled:          true,
 		cfg:               cfg,
 		state:             state,
@@ -93,10 +97,6 @@ func (c *Model) SetChannel(channel *discord.Channel) {
 	c.channel, c.typingUntil = channel, time.Time{}
 	isDM := channel.Type == discord.DirectMessage || channel.Type == discord.GroupDM
 	c.disabled = !isDM && !c.state.HasPermissions(channel.ID, discord.PermissionSendMessages)
-	c.placeholder = "Message..."
-	if c.disabled {
-		c.placeholder = "You do not have permission to send messages in this channel."
-	}
 }
 
 // Height returns the number of rows the composer takes, including its border.
@@ -107,6 +107,16 @@ func (c *Model) Height() int {
 
 func (c *Model) Disabled() bool {
 	return c.disabled
+}
+
+func (c *Model) placeholder() string {
+	switch {
+	case c.channel == nil:
+		return noChannelPlaceholder
+	case c.disabled:
+		return noPermissionPlaceholder
+	}
+	return messagePlaceholder
 }
 
 // View shows the text area in a box, taking keys if focused.
@@ -141,7 +151,7 @@ func (v view) Handle(msg tview.Msg, area tview.Rectangle) tview.Msg {
 // box returns the text area in a box with the title and footer.
 func (c *Model) box(focused bool) box.Widget {
 	text := textarea.New(&c.editState).
-		Placeholder(c.placeholder).
+		Placeholder(c.placeholder()).
 		Keybind(c.editAction).
 		Focused(focused && !c.disabled).
 		OnChange(func(a textarea.Change) tview.Msg { return editMsg(a) })
