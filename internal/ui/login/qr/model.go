@@ -135,7 +135,7 @@ func halfBlock(top, bottom bool) rune {
 }
 
 // View centers the code, which scrolls when it is taller than the tab.
-func (m Model) View() tview.Element {
+func (m Model) View() tview.Widget {
 	return center.New(
 		textview.New(m.code).
 			ScrollState(&m.scrollState).

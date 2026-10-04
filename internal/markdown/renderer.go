@@ -28,18 +28,18 @@ func NewRenderer(cfg *config.Config) *Renderer {
 	return &Renderer{cfg: cfg}
 }
 
-func (r *Renderer) RenderText(source []byte, node ast.Node, base tcell.Style) richtext.Text {
+func (r *Renderer) RenderText(source []byte, node ast.Node, base tview.Style) richtext.Text {
 	r.listIx = nil
 	r.listNested = 0
 
 	builder := new(richtext.Builder)
-	styleStack := []tcell.Style{base}
+	styleStack := []tview.Style{base}
 	linkDepth := 0
 
-	currentStyle := func() tcell.Style {
+	currentStyle := func() tview.Style {
 		return styleStack[len(styleStack)-1]
 	}
-	pushStyle := func(style tcell.Style) {
+	pushStyle := func(style tview.Style) {
 		styleStack = append(styleStack, style)
 	}
 	popStyle := func() {
@@ -145,7 +145,7 @@ func (r *Renderer) RenderText(source []byte, node ast.Node, base tcell.Style) ri
 	return builder.Finish()
 }
 
-func (r *Renderer) renderFencedCodeBlock(builder *richtext.Builder, source []byte, node *ast.FencedCodeBlock, base tcell.Style) {
+func (r *Renderer) renderFencedCodeBlock(builder *richtext.Builder, source []byte, node *ast.FencedCodeBlock, base tview.Style) {
 	var code strings.Builder
 	lines := node.Lines()
 	for i := range lines.Len() {
@@ -215,7 +215,7 @@ func (r *Renderer) renderFencedCodeBlock(builder *richtext.Builder, source []byt
 	}
 }
 
-func applyChromaStyle(base tcell.Style, entry chroma.StyleEntry) tcell.Style {
+func applyChromaStyle(base tview.Style, entry chroma.StyleEntry) tview.Style {
 	style := base
 	if entry.Colour.IsSet() {
 		style = style.Foreground(tcell.NewRGBColor(
@@ -263,7 +263,7 @@ func mentionText(node *md.Mention) string {
 	}
 }
 
-func applyInlineAttr(style tcell.Style, attr md.Attribute, inLink bool) tcell.Style {
+func applyInlineAttr(style tview.Style, attr md.Attribute, inLink bool) tview.Style {
 	if attr&md.AttrBold != 0 {
 		style = style.Bold(true)
 	}

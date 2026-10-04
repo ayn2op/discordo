@@ -25,7 +25,7 @@ func NewModel(cfg *config.Config, title string) Model {
 func (Model) Init() tview.Cmd { return nil }
 
 // View shows the picker, turning the selected item into the message onSelect returns and canceling with onCancel.
-func (m Model) View(onSelect func(picker.Item) tview.Msg, onCancel tview.Msg) tview.Element {
+func (m Model) View(onSelect func(picker.Item) tview.Msg, onCancel tview.Msg) tview.Widget {
 	cfg := m.cfg
 	bar := scrollbar.New().
 		SymbolSet(cfg.Theme.ScrollBar.SymbolSet.SymbolSet).

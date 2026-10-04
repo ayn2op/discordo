@@ -6,7 +6,6 @@ import (
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/layout"
 	"github.com/ayn2op/tview/list"
-	"github.com/gdamore/tcell/v3"
 	"github.com/rivo/uniseg"
 )
 
@@ -22,7 +21,7 @@ func NewModel(cfg *config.Config) Model {
 }
 
 // View shows the list in a box whose bottom corners join the composer's border below it.
-func (m Model) View() tview.Element {
+func (m Model) View() tview.Widget {
 	set := m.cfg.Theme.Border.NormalSet.BorderSet
 	set.BottomLeft, set.BottomRight = set.BottomT, set.BottomT
 	return ui.Box(m.listView(), &m.cfg.Theme, false).Title("Mentions").BorderSet(set)
@@ -31,7 +30,7 @@ func (m Model) View() tview.Element {
 func (Model) Init() tview.Cmd { return nil }
 
 func (m Model) listView() list.Widget {
-	return list.New(m.selectionState, len(m.items), func(i int) tview.Element {
+	return list.New(m.selectionState, len(m.items), func(i int) tview.Widget {
 		item := m.items[i]
 		return row{text: item.DisplayText, style: item.Style}
 	}).
@@ -87,7 +86,7 @@ var _ tview.Model[Model] = Model{}
 // row is a mention on one line in its style.
 type row struct {
 	text  string
-	style tcell.Style
+	style tview.Style
 }
 
 // Size returns Fill and a height of one row.

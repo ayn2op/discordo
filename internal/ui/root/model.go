@@ -151,8 +151,8 @@ func (m Model) helpHeight() int {
 }
 
 // View shows the inner model above help, with the modal dialog on top of both when one is open.
-func (m Model) View() tview.Element {
-	var innerView, helpView tview.Element
+func (m Model) View() tview.Widget {
+	var innerView, helpView tview.Widget
 	switch m.screen {
 	case screenLogin:
 		innerView = m.login.View()
@@ -173,13 +173,11 @@ func (m Model) View() tview.Element {
 // helpView returns the help for the keybinds that currently apply.
 func (m Model) helpView() help.Widget {
 	cfg := m.cfg
-	styles := help.DefaultStyles()
-	styles.ShortKey = cfg.Theme.Help.ShortKeyStyle.Style
-	styles.ShortDesc = cfg.Theme.Help.ShortDescStyle.Style
-	styles.FullKey = cfg.Theme.Help.FullKeyStyle.Style
-	styles.FullDesc = cfg.Theme.Help.FullDescStyle.Style
 	return help.New(m).
-		Styles(styles).
+		ShortKeyStyle(cfg.Theme.Help.ShortKeyStyle.Style).
+		ShortDescStyle(cfg.Theme.Help.ShortDescStyle.Style).
+		FullKeyStyle(cfg.Theme.Help.FullKeyStyle.Style).
+		FullDescStyle(cfg.Theme.Help.FullDescStyle.Style).
 		CompactModifiers(cfg.Help.CompactModifiers).
 		ShortSeparator(cfg.Help.Separator).
 		ShowAll(m.helpShowAll)
@@ -191,7 +189,7 @@ type (
 )
 
 // dialogView returns the dialog for the open modal request.
-func (m Model) dialogView() tview.Element {
+func (m Model) dialogView() tview.Widget {
 	labels := make([]string, len(m.modal.Buttons))
 	for i, button := range m.modal.Buttons {
 		labels[i] = button.Label

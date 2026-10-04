@@ -110,7 +110,7 @@ func (c *Model) Disabled() bool {
 }
 
 // View shows the text area in a box, taking keys if focused.
-func (c Model) View(focused bool) tview.Element { return view{&c, focused} }
+func (c Model) View(focused bool) tview.Widget { return view{&c, focused} }
 
 // view is the composer as shown, with or without the focus.
 type view struct {
@@ -489,7 +489,7 @@ func (c *Model) OnGuildMemberRemove(event *gateway.GuildMemberRemoveEvent) {
 }
 
 // MentionsView places the mentions list just above the composer, near the cursor, or returns nil if it is hidden.
-func (c *Model) MentionsView() tview.Element {
+func (c *Model) MentionsView() tview.Widget {
 	if !c.mentionsVisible {
 		return nil
 	}

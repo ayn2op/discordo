@@ -24,7 +24,7 @@ func NewModel(cfg *config.Config) Model {
 var _ tview.Model[Model] = Model{}
 
 // View shows the picker in a box titled Channels.
-func (m Model) View() tview.Element {
+func (m Model) View() tview.Widget {
 	return m.Model.View(func(item picker.Item) tview.Msg {
 		channelID, ok := item.Reference.(discord.ChannelID)
 		if !ok || !channelID.IsValid() {

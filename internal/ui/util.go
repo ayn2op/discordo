@@ -13,7 +13,7 @@ import (
 )
 
 // Box returns child in a box styled by the theme, highlighted while focused.
-func Box(child tview.Element, theme *config.Theme, focused bool) box.Widget {
+func Box(child tview.Widget, theme *config.Theme, focused bool) box.Widget {
 	padding := theme.Border.Padding
 	b := box.New(child).
 		Padding(padding[0], padding[1], padding[2], padding[3]).

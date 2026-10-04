@@ -47,7 +47,7 @@ func (m *Model) CurrentNode() *tree.Node {
 }
 
 // View shows the tree in a box titled Guilds.
-func (m Model) View(focused bool) tview.Element {
+func (m Model) View(focused bool) tview.Widget {
 	onChange := func(c tree.Change) tview.Msg { return Msg(c) }
 	onSelect := func(n *tree.Node) tview.Msg { return SelectedMsg{Node: n} }
 	return uitree.New(
@@ -177,12 +177,12 @@ func (m *Model) createFolderNode(folder gateway.GuildFolder, guildsByID map[disc
 	}
 }
 
-func (m *Model) guildNodeStyle(guildID discord.GuildID) tcell.Style {
+func (m *Model) guildNodeStyle(guildID discord.GuildID) tview.Style {
 	indication := m.state.GuildIsUnread(guildID, ningen.GuildUnreadOpts{IncludeMutedCategories: true})
 	return unreadStyle(indication)
 }
 
-func (m *Model) channelNodeStyle(channel discord.Channel) tcell.Style {
+func (m *Model) channelNodeStyle(channel discord.Channel) tview.Style {
 	unread := unreadStyle(m.state.ChannelIsUnread(channel.ID, ningen.UnreadOpts{IncludeMutedCategories: true}))
 	if channel.Type != discord.DirectMessage || len(channel.DMRecipients) != 1 {
 		return unread
@@ -234,7 +234,7 @@ func (m *Model) createChannelNode(parent *tree.Node, channel discord.Channel) {
 	m.nodes[discord.Snowflake(channel.ID)] = channelNode
 }
 
-func (m *Model) setNodeLineStyle(node *tree.Node, style tcell.Style) {
+func (m *Model) setNodeLineStyle(node *tree.Node, style tview.Style) {
 	line := node.Line()
 	for i := range line {
 		line[i].Style = style
@@ -455,8 +455,8 @@ func (m *Model) expandPathToNode(node *tree.Node) {
 	}
 }
 
-func unreadStyle(indication ningen.UnreadIndication) tcell.Style {
-	var style tcell.Style
+func unreadStyle(indication ningen.UnreadIndication) tview.Style {
+	var style tview.Style
 	switch indication {
 	case ningen.ChannelRead:
 		style = style.Dim(true)

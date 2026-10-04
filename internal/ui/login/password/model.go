@@ -60,7 +60,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	return m, nil
 }
 
-func (m Model) View() tview.Element {
+func (m Model) View() tview.Widget {
 	labelWidth := layout.Fixed(len("Password") + 1)
 	login := textinput.New(&m.login).
 		Focused(m.focus == focusLogin).

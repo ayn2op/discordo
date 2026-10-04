@@ -50,8 +50,8 @@ func (m Model) Init() tview.Cmd {
 }
 
 // View shows the tabs in a box.
-func (m Model) View() tview.Element {
-	var content tview.Element
+func (m Model) View() tview.Widget {
+	var content tview.Widget
 	switch m.active {
 	case tabPassword:
 		content = m.password.View()

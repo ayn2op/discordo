@@ -67,7 +67,7 @@ func (m *Model) navigateToChannel(channelID discord.ChannelID) tview.Cmd {
 	return cmd
 }
 
-// paneMsg is what a pane's element made of a mouse message within it. A left mouse button press also focuses the pane.
+// paneMsg is what a pane's widget made of a mouse message within it. A left mouse button press also focuses the pane.
 type paneMsg struct {
 	pane  pane
 	msg   tview.Msg

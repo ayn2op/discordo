@@ -1,9 +1,9 @@
 package mentionslist
 
-import "github.com/gdamore/tcell/v3"
+import "github.com/ayn2op/tview"
 
 type Item struct {
 	InsertText  string
 	DisplayText string
-	Style       tcell.Style
+	Style       tview.Style
 }

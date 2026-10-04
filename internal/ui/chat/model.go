@@ -132,7 +132,7 @@ const (
 )
 
 // pickerView returns the view of the picker shown on top, or nil if none is open.
-func (m Model) pickerView() tview.Element {
+func (m Model) pickerView() tview.Widget {
 	switch m.overlay {
 	case overlayChannelsPicker:
 		return m.channelsPicker.View()
@@ -346,25 +346,25 @@ func (m *Model) updatePane(p pane, msg tview.Msg) tview.Cmd {
 	return cmd
 }
 
-// paneElement passes input to the element of a pane and marks mouse input within the pane as meant for it.
-type paneElement struct {
+// paneWidget passes input to the widget of a pane and marks mouse input within the pane as meant for it.
+type paneWidget struct {
 	pane  pane
-	child tview.Element
+	child tview.Widget
 }
 
-func (p paneElement) Size() (width, height layout.Length) {
+func (p paneWidget) Size() (width, height layout.Length) {
 	return p.child.Size()
 }
 
-func (p paneElement) Layout(limits layout.Limits) layout.Size {
+func (p paneWidget) Layout(limits layout.Limits) layout.Size {
 	return p.child.Layout(limits)
 }
 
-func (p paneElement) Draw(screen tview.Screen, area tview.Rectangle) {
+func (p paneWidget) Draw(screen tview.Screen, area tview.Rectangle) {
 	p.child.Draw(screen, area)
 }
 
-func (p paneElement) Handle(msg tview.Msg, area tview.Rectangle) tview.Msg {
+func (p paneWidget) Handle(msg tview.Msg, area tview.Rectangle) tview.Msg {
 	out := p.child.Handle(msg, area)
 	if mouse, ok := msg.(tview.MouseMsg); ok && area.Contains(mouse.Position()) {
 		return paneMsg{pane: p.pane, msg: out, focus: mouse.Action == tview.MouseLeftDown}
@@ -385,9 +385,9 @@ const (
 )
 
 // paneView returns the view of p, focused if it has the focus and no picker is open, marked so that clicking it focuses it.
-func (m Model) paneView(p pane) tview.Element {
+func (m Model) paneView(p pane) tview.Widget {
 	focused := m.focused == p && m.overlay == overlayNone
-	var child tview.Element
+	var child tview.Widget
 	switch p {
 	case paneGuildsTree:
 		child = m.guildsTree.View(focused)
@@ -398,7 +398,7 @@ func (m Model) paneView(p pane) tview.Element {
 	case paneMembersTree:
 		child = m.membersTree.View(focused)
 	}
-	return paneElement{pane: p, child: child}
+	return paneWidget{pane: p, child: child}
 }
 
 // setFocus focuses p if it can take the focus.
@@ -423,10 +423,10 @@ func (m Model) canFocus(p pane) bool {
 }
 
 // View shows the guilds tree left of the messages above the composer, with the mentions list over the messages and an open picker on top.
-func (m Model) View() tview.Element {
+func (m Model) View() tview.Widget {
 	picker := m.pickerView()
 
-	var right tview.Element = column.New(
+	var right tview.Widget = column.New(
 		m.paneView(paneMessagesList),
 		column.New(m.paneView(paneComposer)).Height(layout.Fixed(m.composer.Height())),
 	)

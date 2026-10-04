@@ -33,7 +33,7 @@ func (aw *AlignmentWrapper) UnmarshalTOML(v any) error {
 	return nil
 }
 
-type StyleWrapper struct{ tcell.Style }
+type StyleWrapper struct{ tview.Style }
 
 func (sw *StyleWrapper) UnmarshalTOML(v any) error {
 	m, ok := v.(map[string]any)
@@ -288,7 +288,7 @@ type CommonTreeTheme struct {
 }
 
 // StatusStyle returns the style for a user with status.
-func (ctt CommonTreeTheme) StatusStyle(status discord.Status) tcell.Style {
+func (ctt CommonTreeTheme) StatusStyle(status discord.Status) tview.Style {
 	switch status {
 	case discord.OnlineStatus:
 		return ctt.OnlineStyle.Style

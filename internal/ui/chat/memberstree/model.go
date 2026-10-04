@@ -82,7 +82,7 @@ func (m *Model) SetChannel(channel *discord.Channel) tview.Cmd {
 }
 
 // View shows the tree in a box titled Members.
-func (m Model) View(focused bool) tview.Element {
+func (m Model) View(focused bool) tview.Widget {
 	onChange := func(c tree.Change) tview.Msg { return Msg(c) }
 	onSelect := func(n *tree.Node) tview.Msg { return SelectedMsg{Node: n} }
 	return uitree.New(m.root, m.selectionState, m.cfg, m.cfg.Theme.MembersTree, m.cfg.Keybinds.MembersTree, focused, onChange, onSelect).Title("Members")
@@ -207,7 +207,7 @@ func (m *Model) addRecipients(recipients []discord.User) {
 
 func (m *Model) addGroup(guildID discord.GuildID, group gateway.GuildMemberListGroup) *tree.Node {
 	name := "Members"
-	var style tcell.Style
+	var style tview.Style
 	switch group.ID {
 	case "online":
 		name = "Online"
@@ -239,7 +239,7 @@ func (m *Model) addGroup(guildID discord.GuildID, group gateway.GuildMemberListG
 // addMember adds a member as Discord shows it: a status dot, then the name in the color of their highest colored role, dimmed when offline.
 func (m *Model) addMember(group *tree.Node, guildID discord.GuildID, member discord.Member, index int) {
 	name := cmp.Or(member.Nick, member.User.DisplayName, member.User.Username)
-	var nameStyle tcell.Style
+	var nameStyle tview.Style
 	color, ok := state.MemberColor(&member, func(id discord.RoleID) *discord.Role {
 		r, _ := m.state.Cabinet.Role(guildID, id)
 		return r

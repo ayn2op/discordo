@@ -2,7 +2,6 @@ package messageslist
 
 import (
 	"fmt"
-	"github.com/ayn2op/tview/layout"
 	"io"
 	"log/slog"
 	"net/http"
@@ -13,6 +12,8 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"github.com/ayn2op/tview/layout"
 
 	"github.com/ayn2op/arikawa/v3/discord"
 	md "github.com/ayn2op/arikawa/v3/markdown"
@@ -37,7 +38,7 @@ import (
 
 type messageItem struct {
 	message   discord.Message
-	view      tview.Element
+	view      tview.Widget
 	separator bool
 	timestamp discord.Timestamp
 
@@ -89,7 +90,7 @@ func NewModel(cfg *config.Config, state *ningen.State) Model {
 }
 
 // View shows the messages in a box titled with the channel and footed with footer, such as who is typing.
-func (ml Model) View(focused bool, footer string) tview.Element {
+func (ml Model) View(focused bool, footer string) tview.Widget {
 	return ui.Box(ml.listView(focused), &ml.cfg.Theme, focused).Title(ml.title()).Footer(footer)
 }
 
@@ -239,7 +240,7 @@ func (ml *Model) clearSelection() {
 	ml.setCursor(-1)
 }
 
-func (ml *Model) buildItem(index int) tview.Element {
+func (ml *Model) buildItem(index int) tview.Widget {
 	if index < 0 || index >= len(ml.items) {
 		return nil
 	}
@@ -315,7 +316,7 @@ func (v *messageView) Handle(msg tview.Msg, area tview.Rectangle) tview.Msg { re
 // dateSeparator is a line with the date in the middle, filled to the width it is drawn at.
 type dateSeparator struct {
 	date, fill string
-	style      tcell.Style
+	style      tview.Style
 }
 
 // Size returns Fill and a height of one row.
@@ -338,7 +339,7 @@ func (d dateSeparator) Draw(screen tview.Screen, area tview.Rectangle) {
 
 func (dateSeparator) Handle(msg tview.Msg, area tview.Rectangle) tview.Msg { return msg }
 
-func (ml *Model) renderMessage(message discord.Message, baseStyle tcell.Style) richtext.Text {
+func (ml *Model) renderMessage(message discord.Message, baseStyle tview.Style) richtext.Text {
 	builder := new(richtext.Builder)
 	ml.writeMessage(builder, message, baseStyle)
 	return builder.Finish()
@@ -393,7 +394,7 @@ func (ml *Model) onRowCursorChanged(index int) {
 	ml.setCursor(target)
 }
 
-func (ml *Model) writeMessage(builder *richtext.Builder, message discord.Message, baseStyle tcell.Style) {
+func (ml *Model) writeMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style) {
 	if ml.cfg.HideBlockedUsers {
 		isBlocked := ml.state.UserIsBlocked(message.Author.ID)
 		if isBlocked {
@@ -424,7 +425,7 @@ func (ml *Model) writeMessage(builder *richtext.Builder, message discord.Message
 	ml.drawReactions(builder, message.Reactions, baseStyle)
 }
 
-func (ml *Model) drawReactions(builder *richtext.Builder, reactions []discord.Reaction, baseStyle tcell.Style) {
+func (ml *Model) drawReactions(builder *richtext.Builder, reactions []discord.Reaction, baseStyle tview.Style) {
 	if len(reactions) == 0 {
 		return
 	}
@@ -451,12 +452,12 @@ func (ml *Model) formatTimestamp(ts discord.Timestamp) string {
 	return ts.Time().In(time.Local).Format(ml.cfg.Timestamps.Format)
 }
 
-func (ml *Model) drawTimestamps(builder *richtext.Builder, ts discord.Timestamp, baseStyle tcell.Style) {
+func (ml *Model) drawTimestamps(builder *richtext.Builder, ts discord.Timestamp, baseStyle tview.Style) {
 	dimStyle := baseStyle.Dim(true)
 	builder.Write(ml.formatTimestamp(ts)+" ", dimStyle)
 }
 
-func (ml *Model) drawAuthor(builder *richtext.Builder, message discord.Message, baseStyle tcell.Style) {
+func (ml *Model) drawAuthor(builder *richtext.Builder, message discord.Message, baseStyle tview.Style) {
 	name := message.Author.DisplayOrUsername()
 	foreground := tcell.ColorDefault
 
@@ -495,7 +496,7 @@ func (ml *Model) memberForMessage(message discord.Message) *discord.Member {
 
 // drawContent renders the message body and returns the parsed markdown AST together with the source bytes it indexes into, so callers can reuse them instead of re-parsing the same content (see drawEmbeds).
 // root is nil when markdown rendering is disabled.
-func (ml *Model) drawContent(builder *richtext.Builder, message discord.Message, baseStyle tcell.Style) (ast.Node, []byte) {
+func (ml *Model) drawContent(builder *richtext.Builder, message discord.Message, baseStyle tview.Style) (ast.Node, []byte) {
 	content, root, source := ml.renderContent(message, baseStyle, false)
 	if ml.cfg.Markdown.Enabled && !builder.LineEmpty() {
 		startsWithCodeBlock := false
@@ -521,7 +522,7 @@ func (ml *Model) drawContent(builder *richtext.Builder, message discord.Message,
 	return root, source
 }
 
-func (ml *Model) renderContent(message discord.Message, baseStyle tcell.Style, forceMarkdown bool) (richtext.Text, ast.Node, []byte) {
+func (ml *Model) renderContent(message discord.Message, baseStyle tview.Style, forceMarkdown bool) (richtext.Text, ast.Node, []byte) {
 	// Keep one rendering path for both normal messages and embed fragments so we preserve mention/link parsing behavior consistently across both.
 	if forceMarkdown || ml.cfg.Markdown.Enabled {
 		c := []byte(message.Content)
@@ -534,7 +535,7 @@ func (ml *Model) renderContent(message discord.Message, baseStyle tcell.Style, f
 	return b.Finish(), nil, nil
 }
 
-func (ml *Model) drawSnapshotContent(builder *richtext.Builder, parent discord.Message, snapshot discord.MessageSnapshotMessage, baseStyle tcell.Style) {
+func (ml *Model) drawSnapshotContent(builder *richtext.Builder, parent discord.Message, snapshot discord.MessageSnapshotMessage, baseStyle tview.Style) {
 	// Convert discord.MessageSnapshotMessage to discord.Message with common fields.
 	message := discord.Message{
 		Type:            snapshot.Type,
@@ -554,7 +555,7 @@ func (ml *Model) drawSnapshotContent(builder *richtext.Builder, parent discord.M
 	ml.drawContent(builder, message, baseStyle)
 }
 
-func (ml *Model) drawDefaultMessage(builder *richtext.Builder, message discord.Message, baseStyle tcell.Style) {
+func (ml *Model) drawDefaultMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style) {
 	if ml.cfg.Timestamps.Enabled {
 		ml.drawTimestamps(builder, message.Timestamp, baseStyle)
 	}
@@ -582,7 +583,7 @@ func (ml *Model) drawDefaultMessage(builder *richtext.Builder, message discord.M
 	}
 }
 
-func (ml *Model) drawEmbeds(builder *richtext.Builder, message discord.Message, baseStyle tcell.Style, contentRoot ast.Node, contentSource []byte) {
+func (ml *Model) drawEmbeds(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, contentRoot ast.Node, contentSource []byte) {
 	if len(message.Embeds) == 0 {
 		return
 	}
@@ -675,8 +676,8 @@ const (
 	embedLineURL
 )
 
-func embedLineStyles(baseStyle tcell.Style, theme config.MessagesListEmbedsTheme) [8]tcell.Style {
-	styles := [8]tcell.Style{}
+func embedLineStyles(baseStyle tview.Style, theme config.MessagesListEmbedsTheme) [8]tview.Style {
+	styles := [8]tview.Style{}
 	styles[embedLineProvider] = tview.MergeStyle(baseStyle, theme.ProviderStyle.Style)
 	styles[embedLineAuthor] = tview.MergeStyle(baseStyle, theme.AuthorStyle.Style)
 	styles[embedLineTitle] = tview.MergeStyle(baseStyle, theme.TitleStyle.Style)
@@ -804,7 +805,7 @@ func isMarkdownEscapable(c byte) bool {
 	}
 }
 
-func (ml *Model) drawForwardedMessage(builder *richtext.Builder, message discord.Message, baseStyle tcell.Style) {
+func (ml *Model) drawForwardedMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style) {
 	dimStyle := baseStyle.Dim(true)
 	ml.drawTimestamps(builder, message.Timestamp, baseStyle)
 	ml.drawAuthor(builder, message, baseStyle)
@@ -813,7 +814,7 @@ func (ml *Model) drawForwardedMessage(builder *richtext.Builder, message discord
 	builder.Write(" ("+ml.formatTimestamp(message.MessageSnapshots[0].Message.Timestamp)+") ", dimStyle)
 }
 
-func (ml *Model) drawReplyMessage(builder *richtext.Builder, message discord.Message, baseStyle tcell.Style) {
+func (ml *Model) drawReplyMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style) {
 	dimStyle := baseStyle.Dim(true)
 	builder.Write(ml.cfg.Theme.MessagesList.ReplyIndicator+" ", dimStyle)
 
@@ -829,7 +830,7 @@ func (ml *Model) drawReplyMessage(builder *richtext.Builder, message discord.Mes
 	ml.drawDefaultMessage(builder, message, baseStyle)
 }
 
-func (ml *Model) drawPinnedMessage(builder *richtext.Builder, message discord.Message, baseStyle tcell.Style) {
+func (ml *Model) drawPinnedMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style) {
 	builder.Write(message.Author.DisplayOrUsername()+" pinned a message.", baseStyle)
 }
 
