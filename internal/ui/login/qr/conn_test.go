@@ -67,6 +67,10 @@ func serveGateway(t *testing.T, acks int) http.HandlerFunc {
 			}
 			if shown && acks <= 0 {
 				_ = conn.WriteJSON(map[string]any{"op": "cancel"})
+				// Closing first would fail the client's next heartbeat before it reads the cancel.
+				for err == nil {
+					_, _, err = conn.ReadMessage()
+				}
 				return
 			}
 		}
