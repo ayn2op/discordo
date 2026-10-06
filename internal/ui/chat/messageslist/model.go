@@ -842,6 +842,11 @@ func (ml Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	return ml, cmd
 }
 
+// atTop reports whether the oldest message shown is selected.
+func (ml *Model) atTop() bool {
+	return ml.cursor() >= 0 && ml.cursor() == ml.messageIndex(-1, 1)
+}
+
 // update changes ml in response to msg and returns a command to run, or nil.
 func (ml *Model) update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
@@ -856,8 +861,7 @@ func (ml *Model) update(msg tview.Msg) tview.Cmd {
 			ml.selectDown()
 			return nil
 		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.SelectTop.Keybind):
-			ml.selectTop()
-			return nil
+			return ml.selectTop()
 		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.SelectBottom.Keybind):
 			ml.selectBottom()
 			return nil
@@ -898,12 +902,8 @@ func (ml *Model) update(msg tview.Msg) tview.Cmd {
 		for i, message := range msg.Older {
 			older[i] = messageItem{message: message}
 		}
-		first := ml.messageIndex(-1, 1)
 		ml.items = slices.Concat(older, ml.items)
-		switch {
-		case prevCursor == first && len(older) > 0:
-			ml.setCursor(len(older) - 1)
-		case prevCursor >= 0:
+		if prevCursor >= 0 {
 			ml.setCursor(prevCursor + len(older))
 		}
 		ml.rebuildItems()
@@ -943,8 +943,12 @@ func (ml *Model) update(msg tview.Msg) tview.Cmd {
 			ml.kitty = msg.Name == "kitty" || msg.Name == "ghostty"
 		}
 	case listMsg:
+		top := ml.atTop()
 		ml.selectionState.Apply(list.Change(msg))
 		ml.onRowCursorChanged(ml.cursor())
+		if !top && ml.atTop() {
+			return ml.fetchOlderMessages()
+		}
 	}
 	return nil
 }
@@ -957,8 +961,12 @@ func (ml *Model) selectDown() {
 	}
 }
 
-func (ml *Model) selectTop() {
+func (ml *Model) selectTop() tview.Cmd {
+	if ml.atTop() {
+		return nil
+	}
 	ml.setCursor(ml.messageIndex(-1, 1))
+	return ml.fetchOlderMessages()
 }
 
 func (ml *Model) selectBottom() {

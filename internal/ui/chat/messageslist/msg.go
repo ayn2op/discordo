@@ -53,8 +53,10 @@ func (ml *Model) selectUp() tview.Cmd {
 		ml.selectBottom()
 	} else if previous := ml.messageIndex(cursor, -1); previous >= 0 {
 		ml.setCursor(previous)
-	} else {
-		return ml.fetchOlderMessages()
+		// Older messages are fetched once as the cursor reaches the top, rather than on each key press there.
+		if ml.atTop() {
+			return ml.fetchOlderMessages()
+		}
 	}
 	return nil
 }

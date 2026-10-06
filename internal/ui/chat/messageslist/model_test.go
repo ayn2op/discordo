@@ -42,6 +42,13 @@ func TestModelBuildItem(t *testing.T) {
 	if ml.buildItem(ml.messageIndex(len(ml.items), -1)) != view {
 		t.Fatal("message view was not reused")
 	}
+	if ml.selectTop() == nil || ml.selectTop() != nil || ml.selectUp() != nil {
+		t.Fatal("older messages were not fetched once on reaching the top")
+	}
+	ml.selectBottom()
+	if _, cmd := ml.Update(listMsg{}); cmd == nil {
+		t.Fatal("clicking the top message did not fetch older messages")
+	}
 	ml.selectBottom()
 	*ml, _ = ml.Update(olderMessagesLoadedMsg{ChannelID: 1, Older: []discord.Message{{ID: 1}}})
 	selected, ok := ml.selectedMessage()
@@ -127,8 +134,7 @@ func TestModelRebuildItems(t *testing.T) {
 			assertSelected(2)
 			*ml, _ = ml.Update(olderMessagesLoadedMsg{ChannelID: 1, Older: messages[2:]})
 			assertItems(1, 2, 3)
-			assertSelected(1)
-			ml.selectDown()
+			assertSelected(2)
 			ml.deleteMessage(ml.cursor())
 			assertItems(1, 3)
 			assertSelected(1)
