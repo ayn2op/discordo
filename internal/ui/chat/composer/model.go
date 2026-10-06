@@ -69,9 +69,6 @@ type Model struct {
 	mentionsList      mentionslist.Model
 	lastSearch        time.Time
 
-	// mentionsVisible reports whether the mentions list is shown above the composer.
-	mentionsVisible bool
-
 	typingUntil time.Time
 }
 
@@ -260,7 +257,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			m.pasteText()
 			return m, pasteImage()
 		case keybind.Matches(msg, m.cfg.Keybinds.Composer.Send.Keybind):
-			if m.mentionsVisible {
+			if m.mentionsListVisible() {
 				return m, m.tabComplete()
 			}
 			return m, m.send()
@@ -271,14 +268,14 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			m.stopTabCompletion()
 			return m, m.pickFiles()
 		case keybind.Matches(msg, m.cfg.Keybinds.Composer.Cancel.Keybind):
-			if m.mentionsVisible {
+			if m.mentionsListVisible() {
 				m.stopTabCompletion()
 				return m, nil
 			}
 			m.reset()
 			return m, nil
 		case keybind.Matches(msg, m.cfg.Keybinds.Composer.TabComplete.Keybind):
-			if m.mentionsVisible {
+			if m.mentionsListVisible() {
 				return m, m.tabComplete()
 			}
 			m.insert("\t")
@@ -301,7 +298,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 func (m Model) canEditLastMessage() bool {
 	return !m.Disabled() && m.editing == nil && m.editState.Value() == "" &&
 		m.sendMessageData.Reference == nil && len(m.sendMessageData.Files) == 0 &&
-		!m.mentionsVisible
+		!m.mentionsListVisible()
 }
 
 // StartEdit puts message in the composer to be edited.
@@ -493,9 +490,9 @@ func (m Model) OnGuildMemberRemove(event *gateway.GuildMemberRemoveEvent) {
 	}
 }
 
-// MentionsView places the mentions list just above the composer, near the cursor, or returns nil if it is hidden.
-func (m *Model) MentionsView() tview.Widget {
-	if !m.mentionsVisible {
+// MentionsListView places the mentions list just above the composer, near the cursor, or returns nil if it is empty or the composer is not focused.
+func (m Model) MentionsListView(focused bool) tview.Widget {
+	if !focused || !m.mentionsListVisible() {
 		return nil
 	}
 	return mentionsPopup{m}
@@ -503,7 +500,7 @@ func (m *Model) MentionsView() tview.Widget {
 
 // mentionsPopup lays out the mentions list within the area above the composer, where it is drawn over the messages.
 type mentionsPopup struct {
-	c *Model
+	c Model
 }
 
 // Size returns Fill, as the popup places the list within its whole area.
@@ -601,16 +598,16 @@ func (m *Model) addMentionUser(user *discord.User) {
 	})
 }
 
-// stopTabCompletion clears and closes the mentions list when it is in use.
+// stopTabCompletion clears the mentions list, which hides it, when it is in use.
 func (m *Model) stopTabCompletion() {
 	if m.cfg.AutocompleteLimit > 0 {
 		m.mentionsList.Clear()
-		m.CloseMentions()
 	}
 }
 
-func (m *Model) CloseMentions() {
-	m.mentionsVisible = false
+// mentionsListVisible reports whether the mentions list has items to show above the composer.
+func (m Model) mentionsListVisible() bool {
+	return m.mentionsList.ItemCount() != 0
 }
 
 func (m Model) attach(name string, reader io.Reader) {
@@ -633,7 +630,7 @@ func (m Model) editAction(key tview.KeyMsg) textarea.Action {
 }
 
 func (m Model) ShortHelp() []keybind.Keybind {
-	if m.mentionsVisible {
+	if m.mentionsListVisible() {
 		cfg := m.cfg.Keybinds.MentionsList
 		ccfg := m.cfg.Keybinds.Composer
 		short := []keybind.Keybind{cfg.SelectUp.Keybind, cfg.SelectDown.Keybind, ccfg.TabComplete.Keybind, ccfg.Cancel.Keybind}
@@ -658,7 +655,7 @@ func (m Model) ShortHelp() []keybind.Keybind {
 }
 
 func (m Model) FullHelp() [][]keybind.Keybind {
-	if m.mentionsVisible {
+	if m.mentionsListVisible() {
 		mcfg := m.cfg.Keybinds.MentionsList
 		ccfg := m.cfg.Keybinds.Composer
 		return [][]keybind.Keybind{

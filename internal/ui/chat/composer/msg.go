@@ -261,7 +261,6 @@ func (m *Model) tabSuggest() tview.Cmd {
 		return nil
 	}
 	m.mentionsList.Rebuild()
-	m.mentionsVisible = true
 	return nil
 }
 

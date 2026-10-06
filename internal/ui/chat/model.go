@@ -262,15 +262,12 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	case tview.KeyMsg:
 		switch {
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusGuildsTree.Keybind):
-			m.composer.CloseMentions()
 			m.setFocus(paneGuildsTree)
 			return m, nil
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusMembersTree.Keybind):
-			m.composer.CloseMentions()
 			m.setFocus(paneMembersTree)
 			return m, nil
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusMessagesList.Keybind):
-			m.composer.CloseMentions()
 			m.setFocus(paneMessagesList)
 			return m, nil
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusComposer.Keybind):
@@ -425,7 +422,7 @@ func (m Model) View() tview.Widget {
 		m.paneView(paneMessagesList),
 		column.New(m.paneView(paneComposer)).Height(layout.Fixed(m.composer.Height())),
 	)
-	if mentions := m.composer.MentionsView(); mentions != nil {
+	if mentions := m.composer.MentionsListView(m.focused == paneComposer); mentions != nil {
 		right = stack.New(right, mentions)
 	}
 
