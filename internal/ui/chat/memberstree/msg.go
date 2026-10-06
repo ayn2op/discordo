@@ -15,7 +15,7 @@ type SelectedMsg struct {
 }
 
 // requestSelectedMembers requests the chunk of the member list after the selected member, so that the members below it load before they are reached.
-func (m *Model) requestSelectedMembers() tview.Cmd {
+func (m Model) requestSelectedMembers() tview.Cmd {
 	node := m.selectionState.CurrentNode()
 	if node == nil {
 		return nil
@@ -28,7 +28,7 @@ func (m *Model) requestSelectedMembers() tview.Cmd {
 }
 
 // requestMembers requests the member list of the selected guild channel up to chunk.
-func (m *Model) requestMembers(chunk int) tview.Cmd {
+func (m Model) requestMembers(chunk int) tview.Cmd {
 	channel := m.channel
 	if !m.Shown() || !channel.GuildID.IsValid() {
 		return nil

@@ -42,7 +42,7 @@ func NewModel(cfg *config.Config, state *ningen.State) Model {
 }
 
 // CurrentNode returns the selected node, or nil for none.
-func (m *Model) CurrentNode() *tree.Node {
+func (m Model) CurrentNode() *tree.Node {
 	return m.selectionState.CurrentNode()
 }
 
@@ -111,7 +111,7 @@ func (m *Model) rebuild(event *gateway.ReadyEvent) {
 	m.selectionState.SetCurrentNode(root)
 }
 
-func (m *Model) refreshReadStyles(event *read.UpdateEvent) {
+func (m Model) refreshReadStyles(event *read.UpdateEvent) {
 	if event.GuildID.IsValid() {
 		if node := m.findNodeByReference(event.GuildID); node != nil {
 			m.setNodeLineStyle(node, m.guildNodeStyle(event.GuildID))
@@ -131,7 +131,7 @@ func (m *Model) refreshReadStyles(event *read.UpdateEvent) {
 	m.setNodeLineStyle(node, m.channelNodeStyle(*channel))
 }
 
-func (m *Model) updateDMNodeStyle(userID discord.UserID) {
+func (m Model) updateDMNodeStyle(userID discord.UserID) {
 	channel, err := m.state.Cabinet.CreatePrivateChannel(userID)
 	if err != nil {
 		return
@@ -144,7 +144,7 @@ func (m *Model) updateDMNodeStyle(userID discord.UserID) {
 	m.setNodeLineStyle(node, m.channelNodeStyle(*channel))
 }
 
-func (m *Model) moveDMToFront(channelID discord.ChannelID) {
+func (m Model) moveDMToFront(channelID discord.ChannelID) {
 	if m.dmRootNode == nil {
 		return
 	}
@@ -157,7 +157,7 @@ func (m *Model) moveDMToFront(channelID discord.ChannelID) {
 	}
 }
 
-func (m *Model) createFolderNode(folder gateway.GuildFolder, guildsByID map[discord.GuildID]*gateway.GuildCreateEvent) {
+func (m Model) createFolderNode(folder gateway.GuildFolder, guildsByID map[discord.GuildID]*gateway.GuildCreateEvent) {
 	name := "Folder"
 	if folder.Name != "" {
 		name = folder.Name
@@ -177,12 +177,12 @@ func (m *Model) createFolderNode(folder gateway.GuildFolder, guildsByID map[disc
 	}
 }
 
-func (m *Model) guildNodeStyle(guildID discord.GuildID) tview.Style {
+func (m Model) guildNodeStyle(guildID discord.GuildID) tview.Style {
 	indication := m.state.GuildIsUnread(guildID, ningen.GuildUnreadOpts{IncludeMutedCategories: true})
 	return unreadStyle(indication)
 }
 
-func (m *Model) channelNodeStyle(channel discord.Channel) tview.Style {
+func (m Model) channelNodeStyle(channel discord.Channel) tview.Style {
 	unread := unreadStyle(m.state.ChannelIsUnread(channel.ID, ningen.UnreadOpts{IncludeMutedCategories: true}))
 	if channel.Type != discord.DirectMessage || len(channel.DMRecipients) != 1 {
 		return unread
@@ -197,7 +197,7 @@ func (m *Model) channelNodeStyle(channel discord.Channel) tview.Style {
 	return tview.MergeStyle(m.cfg.Theme.GuildsTree.StatusStyle(presence.Status), unread)
 }
 
-func (m *Model) createGuildNode(parent *tree.Node, guild discord.Guild) {
+func (m Model) createGuildNode(parent *tree.Node, guild discord.Guild) {
 	guildNode := tree.NewNode(guild.Name).
 		SetReference(guild.ID).
 		SetExpandable(true).
@@ -208,7 +208,7 @@ func (m *Model) createGuildNode(parent *tree.Node, guild discord.Guild) {
 	m.nodes[discord.Snowflake(guild.ID)] = guildNode
 }
 
-func (m *Model) createChannelNode(parent *tree.Node, channel discord.Channel) {
+func (m Model) createChannelNode(parent *tree.Node, channel discord.Channel) {
 	if channel.Type != discord.DirectMessage && channel.Type != discord.GroupDM && channel.Type != discord.GuildCategory && !m.state.HasPermissions(channel.ID, discord.PermissionViewChannel) {
 		return
 	}
@@ -234,7 +234,7 @@ func (m *Model) createChannelNode(parent *tree.Node, channel discord.Channel) {
 	m.nodes[discord.Snowflake(channel.ID)] = channelNode
 }
 
-func (m *Model) setNodeLineStyle(node *tree.Node, style tview.Style) {
+func (m Model) setNodeLineStyle(node *tree.Node, style tview.Style) {
 	line := node.Line()
 	for i := range line {
 		line[i].Style = style
@@ -242,7 +242,7 @@ func (m *Model) setNodeLineStyle(node *tree.Node, style tview.Style) {
 	node.SetLine(line)
 }
 
-func (m *Model) createChannelNodes(node *tree.Node, channels []discord.Channel) {
+func (m Model) createChannelNodes(node *tree.Node, channels []discord.Channel) {
 	// Preserve exact ordering semantics:
 	// 1) top-level non-categories (in input order),
 	// 2) categories that have at least one child in the source slice (in input order),
@@ -358,7 +358,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 }
 
 // isUnread reports whether node is an unread channel, or a guild or the direct messages whose channels are not shown yet and has one.
-func (m *Model) isUnread(node *tree.Node) bool {
+func (m Model) isUnread(node *tree.Node) bool {
 	if len(node.Children()) > 0 {
 		return false
 	}
@@ -396,7 +396,7 @@ func adjacentNode(root, current *tree.Node, match func(*tree.Node) bool, previou
 	return nodes[after%len(nodes)]
 }
 
-func (m *Model) findNodeByReference(reference any) *tree.Node {
+func (m Model) findNodeByReference(reference any) *tree.Node {
 	switch ref := reference.(type) {
 	case discord.GuildID:
 		return m.nodes[discord.Snowflake(ref)]
@@ -418,7 +418,7 @@ func (m *Model) findNodeByReference(reference any) *tree.Node {
 	}
 }
 
-func (m *Model) findNodeByChannelID(channelID discord.ChannelID) *tree.Node {
+func (m Model) findNodeByChannelID(channelID discord.ChannelID) *tree.Node {
 	channel, err := m.state.Cabinet.Channel(channelID)
 	if err != nil {
 		slog.Error("failed to get channel", "channel_id", channelID, "err", err)
@@ -441,7 +441,7 @@ func (m *Model) findNodeByChannelID(channelID discord.ChannelID) *tree.Node {
 	return node
 }
 
-func (m *Model) expandPathToNode(node *tree.Node) {
+func (m Model) expandPathToNode(node *tree.Node) {
 	if node == nil {
 		return
 	}

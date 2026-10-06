@@ -80,7 +80,7 @@ type typingExpiredMsg struct {
 }
 
 // addTyper shows userID as typing and returns a command that ends it after the typing duration.
-func (m *Model) addTyper(userID discord.UserID) tview.Cmd {
+func (m Model) addTyper(userID discord.UserID) tview.Cmd {
 	m.typers[userID] = time.Now().Add(composer.TypingDuration)
 	return func() tview.Msg {
 		time.Sleep(composer.TypingDuration)

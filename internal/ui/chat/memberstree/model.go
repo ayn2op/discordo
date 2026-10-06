@@ -135,7 +135,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 }
 
 // rebuild recreates the tree from the member list of the selected channel.
-func (m *Model) rebuild() {
+func (m Model) rebuild() {
 	m.root.ClearChildren()
 	channel := m.channel
 	switch {
@@ -155,7 +155,7 @@ func (m *Model) rebuild() {
 	})
 }
 
-func (m *Model) addGuildMembers(channel *discord.Channel) {
+func (m Model) addGuildMembers(channel *discord.Channel) {
 	list, err := m.state.MemberState.GetMemberList(channel.GuildID, channel.ID)
 	if err != nil {
 		// The list has yet to arrive.
@@ -181,7 +181,7 @@ func (m *Model) addGuildMembers(channel *discord.Channel) {
 	})
 }
 
-func (m *Model) addRecipients(recipients []discord.User) {
+func (m Model) addRecipients(recipients []discord.User) {
 	recipients = slices.Clone(recipients)
 	// Discord leaves the current user out of the recipients.
 	if me, err := m.state.Cabinet.Me(); err == nil {
@@ -200,7 +200,7 @@ func (m *Model) addRecipients(recipients []discord.User) {
 	}
 }
 
-func (m *Model) addGroup(guildID discord.GuildID, group gateway.GuildMemberListGroup) *tree.Node {
+func (m Model) addGroup(guildID discord.GuildID, group gateway.GuildMemberListGroup) *tree.Node {
 	name := "Members"
 	var style tview.Style
 	switch group.ID {
@@ -232,7 +232,7 @@ func (m *Model) addGroup(guildID discord.GuildID, group gateway.GuildMemberListG
 }
 
 // addMember adds a member as Discord shows it: a status dot, then the name in the color of their highest colored role, dimmed when offline.
-func (m *Model) addMember(group *tree.Node, guildID discord.GuildID, member discord.Member, index int) {
+func (m Model) addMember(group *tree.Node, guildID discord.GuildID, member discord.Member, index int) {
 	name := cmp.Or(member.Nick, member.User.DisplayName, member.User.Username)
 	var nameStyle tview.Style
 	color, ok := state.MemberColor(&member, func(id discord.RoleID) *discord.Role {
@@ -254,13 +254,13 @@ func (m *Model) addMember(group *tree.Node, guildID discord.GuildID, member disc
 const statusMarker = "●"
 
 // setStatus styles the status dot and name of a member line for status.
-func (m *Model) setStatus(line richtext.Line, status discord.Status) {
+func (m Model) setStatus(line richtext.Line, status discord.Status) {
 	line[0].Style = m.cfg.Theme.MembersTree.StatusStyle(status)
 	line[2].Style = line[2].Style.Dim(status == discord.OfflineStatus)
 }
 
 // reuse takes the node of id out of the index, so that it is reused once, or else returns a new node. Either way the node has no children.
-func (m *Model) reuse(id string) *tree.Node {
+func (m Model) reuse(id string) *tree.Node {
 	node, ok := m.nodes[id]
 	if !ok {
 		return tree.NewNode("")
@@ -269,7 +269,7 @@ func (m *Model) reuse(id string) *tree.Node {
 	return node.ClearChildren()
 }
 
-func (m *Model) refreshStatus(userID discord.UserID) {
+func (m Model) refreshStatus(userID discord.UserID) {
 	if node, ok := m.nodes[userID.String()]; ok {
 		line := node.Line()
 		m.setStatus(line, m.status(m.channel.GuildID, userID))
@@ -277,7 +277,7 @@ func (m *Model) refreshStatus(userID discord.UserID) {
 	}
 }
 
-func (m *Model) status(guildID discord.GuildID, userID discord.UserID) discord.Status {
+func (m Model) status(guildID discord.GuildID, userID discord.UserID) discord.Status {
 	presence, err := m.state.Cabinet.Presence(guildID, userID)
 	if err != nil {
 		return discord.OfflineStatus
@@ -299,7 +299,7 @@ func statusRank(status discord.Status) int {
 	}
 }
 
-func (m *Model) parent(node *tree.Node) *tree.Node {
+func (m Model) parent(node *tree.Node) *tree.Node {
 	path := m.root.PathTo(node)
 	if len(path) < 3 {
 		return nil

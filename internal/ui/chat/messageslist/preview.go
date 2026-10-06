@@ -63,24 +63,24 @@ func (s previewSource) cols(cellWidth, cellHeight uint) int {
 }
 
 // previewCell returns the size of a cell in image pixels: the terminal's for kitty, and one pixel by two for half blocks.
-func (ml *Model) previewCell() (width, height uint) {
+func (m Model) previewCell() (width, height uint) {
 	switch {
-	case !ml.kitty:
+	case !m.kitty:
 		return 1, 2
-	case ml.cellWidth == 0 || ml.cellHeight == 0:
+	case m.cellWidth == 0 || m.cellHeight == 0:
 		return kittyPixels, kittyPixels * 2
 	}
-	return ml.cellWidth, ml.cellHeight
+	return m.cellWidth, m.cellHeight
 }
 
-func (ml *Model) loadPreviews() tview.Cmd {
-	if !ml.cfg.Attachments.Preview {
+func (m Model) loadPreviews() tview.Cmd {
+	if !m.cfg.Attachments.Preview {
 		return nil
 	}
-	cellWidth, cellHeight := ml.previewCell()
+	cellWidth, cellHeight := m.previewCell()
 	var cmds []tview.Cmd
-	for i := range ml.items {
-		item := &ml.items[i]
+	for i := range m.items {
+		item := &m.items[i]
 		for _, s := range previewSources(item.message) {
 			if _, ok := item.previews[s.proxy]; ok {
 				continue

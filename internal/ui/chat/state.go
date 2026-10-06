@@ -38,7 +38,7 @@ func (m *Model) addMessageOrNotify(message *gateway.MessageCreateEvent) tview.Cm
 	return tview.Batch(cmd, m.notify(*message))
 }
 
-func (m *Model) notify(message gateway.MessageCreateEvent) tview.Cmd {
+func (m Model) notify(message gateway.MessageCreateEvent) tview.Cmd {
 	return func() tview.Msg {
 		if !m.cfg.Notifications.Enabled || m.cfg.Status == discord.DoNotDisturbStatus {
 			return nil
@@ -84,12 +84,12 @@ func (m *Model) notify(message gateway.MessageCreateEvent) tview.Cmd {
 	}
 }
 
-func (m *Model) refreshMemberNames(event *gateway.GuildMembersChunkEvent) tview.Cmd {
+func (m Model) refreshMemberNames(event *gateway.GuildMembersChunkEvent) tview.Cmd {
 	m.messagesList.InvalidateRendered()
 	return m.composer.CacheMemberSearch(event)
 }
 
-func (m *Model) showTypingIndicator(event *gateway.TypingStartEvent) tview.Cmd {
+func (m Model) showTypingIndicator(event *gateway.TypingStartEvent) tview.Cmd {
 	if channel := m.selectedChannel; channel == nil || channel.ID != event.ChannelID || ui.IsMe(m.state, event.UserID) {
 		return nil
 	}

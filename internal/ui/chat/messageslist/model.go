@@ -80,33 +80,33 @@ func NewModel(cfg *config.Config, state *ningen.State) Model {
 }
 
 // View shows the messages in a box titled with the channel and footed with footer, such as who is typing.
-func (ml Model) View(focused bool, footer string) tview.Widget {
-	return ui.Box(ml.listView(focused), &ml.cfg.Theme, focused).Title(ml.title()).Footer(footer)
+func (m Model) View(focused bool, footer string) tview.Widget {
+	return ui.Box(m.listView(focused), &m.cfg.Theme, focused).Title(m.title()).Footer(footer)
 }
 
 // title returns the selected channel and its topic, or "Messages" when none is selected.
-func (ml *Model) title() string {
-	if ml.channel == nil {
+func (m Model) title() string {
+	if m.channel == nil {
 		return "Messages"
 	}
-	title := ui.ChannelToString(*ml.channel, ml.cfg.Icons, ml.state)
-	if topic := ml.channel.Topic; topic != "" {
+	title := ui.ChannelToString(*m.channel, m.cfg.Icons, m.state)
+	if topic := m.channel.Topic; topic != "" {
 		title += " - " + topic
 	}
 	return title
 }
 
-func (ml *Model) listView(focused bool) list.Widget {
-	cfg := ml.cfg.Theme.ScrollBar
+func (m Model) listView(focused bool) list.Widget {
+	cfg := m.cfg.Theme.ScrollBar
 	bar := scrollbar.New().
 		SymbolSet(cfg.SymbolSet.SymbolSet).
 		Style(cfg.TrackStyle.Style).
 		ThumbStyle(cfg.ThumbStyle.Style)
-	return list.New(ml.selectionState, len(ml.items), ml.buildItem).
-		SelectedStyle(ml.cfg.Theme.MessagesList.SelectedMessageStyle.Style).
+	return list.New(m.selectionState, len(m.items), m.buildItem).
+		SelectedStyle(m.cfg.Theme.MessagesList.SelectedMessageStyle.Style).
 		ScrollBar(bar, cfg.Visibility.ScrollBarVisibility).
 		TrackEnd(true).
-		Keybind(scrollKeybind(ml.cfg.Keybinds.MessagesList.ScrollKeybinds)).
+		Keybind(scrollKeybind(m.cfg.Keybinds.MessagesList.ScrollKeybinds)).
 		Focused(focused).
 		OnChange(func(a list.Change) tview.Msg { return listMsg(a) })
 }
@@ -128,127 +128,127 @@ func scrollKeybind(kbs config.ScrollKeybinds) func(tview.KeyMsg) list.Action {
 	}
 }
 
-func (ml *Model) cursor() int {
-	return ml.selectionState.Cursor()
+func (m Model) cursor() int {
+	return m.selectionState.Cursor()
 }
 
-func (ml *Model) setCursor(index int) {
-	ml.selectionState.SetCursor(index)
+func (m *Model) setCursor(index int) {
+	m.selectionState.SetCursor(index)
 }
 
 // SetChannel shows messages of channel, newest first as Discord sends them, scrolled to the newest, and requests the members who wrote them.
-func (ml *Model) SetChannel(channel *discord.Channel, messages []discord.Message) tview.Cmd {
-	ml.channel = channel
-	ml.reset()
-	ml.setMessages(messages)
+func (m *Model) SetChannel(channel *discord.Channel, messages []discord.Message) tview.Cmd {
+	m.channel = channel
+	m.reset()
+	m.setMessages(messages)
 	if channel.GuildID.IsValid() {
-		return tview.Batch(ml.requestGuildMembers(channel.GuildID, messages), ml.loadPreviews())
+		return tview.Batch(m.requestGuildMembers(channel.GuildID, messages), m.loadPreviews())
 	}
-	return ml.loadPreviews()
+	return m.loadPreviews()
 }
 
 // ShowNewest clears the selection and scrolls to the newest message, which then stays in view as messages arrive until the user scrolls up.
-func (ml *Model) ShowNewest() {
-	ml.clearSelection()
-	ml.selectionState.ScrollToEnd()
+func (m *Model) ShowNewest() {
+	m.clearSelection()
+	m.selectionState.ScrollToEnd()
 }
 
 // UpdateMessage replaces the shown message with the same ID.
-func (ml *Model) UpdateMessage(message discord.Message) tview.Cmd {
-	ml.setMessage(ml.indexOf(message.ChannelID, message.ID), message)
-	return ml.loadPreviews()
+func (m *Model) UpdateMessage(message discord.Message) tview.Cmd {
+	m.setMessage(m.indexOf(message.ChannelID, message.ID), message)
+	return m.loadPreviews()
 }
 
 // RefreshMessage shows the cached state of a message, such as after a reaction.
-func (ml *Model) RefreshMessage(channelID discord.ChannelID, id discord.MessageID) {
-	if message, err := ml.state.Cabinet.Message(channelID, id); err == nil {
-		ml.setMessage(ml.indexOf(channelID, id), *message)
+func (m *Model) RefreshMessage(channelID discord.ChannelID, id discord.MessageID) {
+	if message, err := m.state.Cabinet.Message(channelID, id); err == nil {
+		m.setMessage(m.indexOf(channelID, id), *message)
 	}
 }
 
 // DeleteMessage removes the shown message with id.
-func (ml *Model) DeleteMessage(channelID discord.ChannelID, id discord.MessageID) {
-	ml.deleteMessage(ml.indexOf(channelID, id))
+func (m *Model) DeleteMessage(channelID discord.ChannelID, id discord.MessageID) {
+	m.deleteMessage(m.indexOf(channelID, id))
 }
 
 // indexOf returns the index of the message with id in the channel, or -1 if it is not shown.
-func (ml *Model) indexOf(channelID discord.ChannelID, id discord.MessageID) int {
-	if ml.channel == nil || ml.channel.ID != channelID {
+func (m Model) indexOf(channelID discord.ChannelID, id discord.MessageID) int {
+	if m.channel == nil || m.channel.ID != channelID {
 		return -1
 	}
-	return slices.IndexFunc(ml.items, func(item messageItem) bool { return !item.separator && item.message.ID == id })
+	return slices.IndexFunc(m.items, func(item messageItem) bool { return !item.separator && item.message.ID == id })
 }
 
-func (ml *Model) reset() {
-	ml.items = nil
-	ml.selectionState = list.NewSelectionState()
-	ml.selectionState.ScrollToEnd()
+func (m *Model) reset() {
+	m.items = nil
+	m.selectionState = list.NewSelectionState()
+	m.selectionState.ScrollToEnd()
 }
 
-func (ml *Model) setMessages(messages []discord.Message) {
-	ml.items = make([]messageItem, 0, len(messages))
+func (m *Model) setMessages(messages []discord.Message) {
+	m.items = make([]messageItem, 0, len(messages))
 	for _, message := range slices.Backward(messages) {
-		ml.items = append(ml.items, messageItem{message: message})
+		m.items = append(m.items, messageItem{message: message})
 	}
-	ml.rebuildItems()
+	m.rebuildItems()
 }
 
-func (ml *Model) AddMessage(message discord.Message) tview.Cmd {
+func (m *Model) AddMessage(message discord.Message) tview.Cmd {
 	// Appending keeps the items before it as they are, so only the separator of a new day is added rather than all rebuilt.
-	if ml.cfg.DateSeparator.Enabled && (len(ml.items) == 0 || !sameLocalDate(ml.items[len(ml.items)-1].message.Timestamp, message.Timestamp)) {
-		ml.items = append(ml.items, messageItem{separator: true})
+	if m.cfg.DateSeparator.Enabled && (len(m.items) == 0 || !sameLocalDate(m.items[len(m.items)-1].message.Timestamp, message.Timestamp)) {
+		m.items = append(m.items, messageItem{separator: true})
 	}
-	ml.items = append(ml.items, messageItem{message: message})
-	return ml.loadPreviews()
+	m.items = append(m.items, messageItem{message: message})
+	return m.loadPreviews()
 }
 
-func (ml *Model) setMessage(index int, message discord.Message) {
-	if index < 0 || index >= len(ml.items) || ml.items[index].separator {
+func (m *Model) setMessage(index int, message discord.Message) {
+	if index < 0 || index >= len(m.items) || m.items[index].separator {
 		return
 	}
 
-	ml.items[index] = messageItem{message: message, previews: ml.items[index].previews}
-	ml.rebuildItems()
+	m.items[index] = messageItem{message: message, previews: m.items[index].previews}
+	m.rebuildItems()
 }
 
-func (ml *Model) deleteMessage(index int) {
-	if index < 0 || index >= len(ml.items) || ml.items[index].separator {
+func (m *Model) deleteMessage(index int) {
+	if index < 0 || index >= len(m.items) || m.items[index].separator {
 		return
 	}
 
-	cursor := ml.cursor()
+	cursor := m.cursor()
 	if cursor == index {
-		cursor = ml.messageIndex(index, -1)
+		cursor = m.messageIndex(index, -1)
 		if cursor == -1 {
-			cursor = ml.messageIndex(index, 1)
+			cursor = m.messageIndex(index, 1)
 		}
 	}
 	if cursor > index {
 		cursor--
 	}
-	ml.items = slices.Delete(ml.items, index, index+1)
-	ml.setCursor(cursor)
-	ml.rebuildItems()
+	m.items = slices.Delete(m.items, index, index+1)
+	m.setCursor(cursor)
+	m.rebuildItems()
 }
 
-func (ml *Model) clearSelection() {
-	ml.setCursor(-1)
+func (m *Model) clearSelection() {
+	m.setCursor(-1)
 }
 
-func (ml *Model) buildItem(index int) tview.Widget {
-	if index < 0 || index >= len(ml.items) {
+func (m Model) buildItem(index int) tview.Widget {
+	if index < 0 || index >= len(m.items) {
 		return nil
 	}
-	item := &ml.items[index]
+	item := &m.items[index]
 	if item.separator {
-		date := ml.items[index+1].message.Timestamp.Time().In(time.Local).Format(ml.cfg.DateSeparator.Format)
-		return dateSeparator{date: date, fill: ml.cfg.DateSeparator.Character, style: ml.cfg.Theme.MessagesList.MessageStyle.Style.Dim(true)}
+		date := m.items[index+1].message.Timestamp.Time().In(time.Local).Format(m.cfg.DateSeparator.Format)
+		return dateSeparator{date: date, fill: m.cfg.DateSeparator.Character, style: m.cfg.Theme.MessagesList.MessageStyle.Style.Dim(true)}
 	}
 
 	if item.view == nil {
 		message := item.message
 		view := &messageView{render: func(width int) richtext.Text {
-			return ml.renderMessage(message, ml.cfg.Theme.MessagesList.MessageStyle.Style, width)
+			return m.renderMessage(message, m.cfg.Theme.MessagesList.MessageStyle.Style, width)
 		}}
 		for _, s := range previewSources(message) {
 			if preview, ok := item.previews[s.proxy]; ok {
@@ -333,22 +333,22 @@ func (d dateSeparator) Draw(screen tview.Screen, area tview.Rectangle) {
 
 func (dateSeparator) Handle(msg tview.Msg, area tview.Rectangle) tview.Msg { return msg }
 
-func (ml *Model) renderMessage(message discord.Message, baseStyle tview.Style, width int) richtext.Text {
+func (m Model) renderMessage(message discord.Message, baseStyle tview.Style, width int) richtext.Text {
 	builder := new(richtext.Builder)
-	ml.writeMessage(builder, message, baseStyle, width)
+	m.writeMessage(builder, message, baseStyle, width)
 	return builder.Finish()
 }
 
 // rebuildItems replaces date separators while retaining message views and selection.
-func (ml *Model) rebuildItems() {
-	items := make([]messageItem, 0, len(ml.items))
-	cursor, selected := ml.cursor(), -1
+func (m *Model) rebuildItems() {
+	items := make([]messageItem, 0, len(m.items))
+	cursor, selected := m.cursor(), -1
 	var previous discord.Timestamp
-	for i, item := range ml.items {
+	for i, item := range m.items {
 		if item.separator {
 			continue
 		}
-		if ml.cfg.DateSeparator.Enabled && (len(items) == 0 || !sameLocalDate(previous, item.message.Timestamp)) {
+		if m.cfg.DateSeparator.Enabled && (len(items) == 0 || !sameLocalDate(previous, item.message.Timestamp)) {
 			items = append(items, messageItem{separator: true})
 		}
 		if i == cursor {
@@ -357,8 +357,8 @@ func (ml *Model) rebuildItems() {
 		items = append(items, item)
 		previous = item.message.Timestamp
 	}
-	ml.items = items
-	ml.setCursor(selected)
+	m.items = items
+	m.setCursor(selected)
 }
 
 func sameLocalDate(a discord.Timestamp, b discord.Timestamp) bool {
@@ -368,29 +368,29 @@ func sameLocalDate(a discord.Timestamp, b discord.Timestamp) bool {
 }
 
 // messageIndex finds the next message in direction (-1 or 1), excluding start.
-func (ml *Model) messageIndex(start, direction int) int {
-	for i := start + direction; i >= 0 && i < len(ml.items); i += direction {
-		if !ml.items[i].separator {
+func (m Model) messageIndex(start, direction int) int {
+	for i := start + direction; i >= 0 && i < len(m.items); i += direction {
+		if !m.items[i].separator {
 			return i
 		}
 	}
 	return -1
 }
 
-func (ml *Model) onRowCursorChanged(index int) {
-	if index < 0 || index >= len(ml.items) || !ml.items[index].separator {
+func (m *Model) onRowCursorChanged(index int) {
+	if index < 0 || index >= len(m.items) || !m.items[index].separator {
 		return
 	}
-	target := ml.messageIndex(index, -1)
+	target := m.messageIndex(index, -1)
 	if target == -1 {
-		target = ml.messageIndex(index, 1)
+		target = m.messageIndex(index, 1)
 	}
-	ml.setCursor(target)
+	m.setCursor(target)
 }
 
-func (ml *Model) writeMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, width int) {
-	if ml.cfg.HideBlockedUsers {
-		isBlocked := ml.state.UserIsBlocked(message.Author.ID)
+func (m Model) writeMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, width int) {
+	if m.cfg.HideBlockedUsers {
+		isBlocked := m.state.UserIsBlocked(message.Author.ID)
 		if isBlocked {
 			builder.Write("Blocked message", baseStyle.Foreground(color.Red).Bold(true))
 			return
@@ -400,26 +400,26 @@ func (ml *Model) writeMessage(builder *richtext.Builder, message discord.Message
 	switch message.Type {
 	case discord.DefaultMessage:
 		if message.Reference != nil && message.Reference.Type == discord.MessageReferenceTypeForward {
-			ml.drawForwardedMessage(builder, message, baseStyle)
+			m.drawForwardedMessage(builder, message, baseStyle)
 		} else {
-			ml.drawDefaultMessage(builder, message, baseStyle, width)
+			m.drawDefaultMessage(builder, message, baseStyle, width)
 		}
 	case discord.GuildMemberJoinMessage:
-		ml.drawTimestamps(builder, message.Timestamp, baseStyle)
-		ml.drawAuthor(builder, message, baseStyle)
+		m.drawTimestamps(builder, message.Timestamp, baseStyle)
+		m.drawAuthor(builder, message, baseStyle)
 		builder.Write("joined the server.", baseStyle)
 	case discord.InlinedReplyMessage:
-		ml.drawReplyMessage(builder, message, baseStyle, width)
+		m.drawReplyMessage(builder, message, baseStyle, width)
 	case discord.ChannelPinnedMessage:
-		ml.drawPinnedMessage(builder, message, baseStyle)
+		m.drawPinnedMessage(builder, message, baseStyle)
 	default:
-		ml.drawTimestamps(builder, message.Timestamp, baseStyle)
-		ml.drawAuthor(builder, message, baseStyle)
+		m.drawTimestamps(builder, message.Timestamp, baseStyle)
+		m.drawAuthor(builder, message, baseStyle)
 	}
-	ml.drawReactions(builder, message.Reactions, baseStyle)
+	m.drawReactions(builder, message.Reactions, baseStyle)
 }
 
-func (ml *Model) drawReactions(builder *richtext.Builder, reactions []discord.Reaction, baseStyle tview.Style) {
+func (m Model) drawReactions(builder *richtext.Builder, reactions []discord.Reaction, baseStyle tview.Style) {
 	if len(reactions) == 0 {
 		return
 	}
@@ -434,34 +434,34 @@ func (ml *Model) drawReactions(builder *richtext.Builder, reactions []discord.Re
 		if reaction.Emoji.IsCustom() {
 			name = ":" + name + ":"
 		}
-		style := ml.cfg.Theme.MessagesList.ReactionStyle.Style
+		style := m.cfg.Theme.MessagesList.ReactionStyle.Style
 		if reaction.Me {
-			style = ml.cfg.Theme.MessagesList.OwnReactionStyle.Style
+			style = m.cfg.Theme.MessagesList.OwnReactionStyle.Style
 		}
 		builder.Write(name+" "+strconv.Itoa(reaction.Count), tview.MergeStyle(baseStyle, style))
 	}
 }
 
-func (ml *Model) formatTimestamp(ts discord.Timestamp) string {
-	return ts.Time().In(time.Local).Format(ml.cfg.Timestamps.Format)
+func (m Model) formatTimestamp(ts discord.Timestamp) string {
+	return ts.Time().In(time.Local).Format(m.cfg.Timestamps.Format)
 }
 
-func (ml *Model) drawTimestamps(builder *richtext.Builder, ts discord.Timestamp, baseStyle tview.Style) {
+func (m Model) drawTimestamps(builder *richtext.Builder, ts discord.Timestamp, baseStyle tview.Style) {
 	dimStyle := baseStyle.Dim(true)
-	builder.Write(ml.formatTimestamp(ts)+" ", dimStyle)
+	builder.Write(m.formatTimestamp(ts)+" ", dimStyle)
 }
 
-func (ml *Model) drawAuthor(builder *richtext.Builder, message discord.Message, baseStyle tview.Style) {
+func (m Model) drawAuthor(builder *richtext.Builder, message discord.Message, baseStyle tview.Style) {
 	name := message.Author.DisplayOrUsername()
 	foreground := tcell.ColorDefault
 
-	if member := ml.memberForMessage(message); member != nil {
+	if member := m.memberForMessage(message); member != nil {
 		if member.Nick != "" {
 			name = member.Nick
 		}
 
 		color, ok := state.MemberColor(member, func(id discord.RoleID) *discord.Role {
-			r, _ := ml.state.Cabinet.Role(message.GuildID, id)
+			r, _ := m.state.Cabinet.Role(message.GuildID, id)
 			return r
 		})
 		if ok {
@@ -474,13 +474,13 @@ func (ml *Model) drawAuthor(builder *richtext.Builder, message discord.Message, 
 	builder.Write(" ", baseStyle)
 }
 
-func (ml *Model) memberForMessage(message discord.Message) *discord.Member {
+func (m Model) memberForMessage(message discord.Message) *discord.Member {
 	// Webhooks do not have nicknames or roles.
 	if !message.GuildID.IsValid() || message.WebhookID.IsValid() {
 		return nil
 	}
 
-	member, err := ml.state.Cabinet.Member(message.GuildID, message.Author.ID)
+	member, err := m.state.Cabinet.Member(message.GuildID, message.Author.ID)
 	if err != nil {
 		slog.Error("failed to get member from state", "guild_id", message.GuildID, "member_id", message.Author.ID, "err", err)
 		return nil
@@ -490,9 +490,9 @@ func (ml *Model) memberForMessage(message discord.Message) *discord.Member {
 
 // drawContent renders the message body and returns the parsed markdown AST together with the source bytes it indexes into, so callers can reuse them instead of re-parsing the same content (see drawEmbeds).
 // root is nil when markdown rendering is disabled.
-func (ml *Model) drawContent(builder *richtext.Builder, message discord.Message, baseStyle tview.Style) (ast.Node, []byte) {
-	content, root, source := ml.renderContent(message, baseStyle, false)
-	if ml.cfg.Markdown.Enabled && !builder.LineEmpty() {
+func (m Model) drawContent(builder *richtext.Builder, message discord.Message, baseStyle tview.Style) (ast.Node, []byte) {
+	content, root, source := m.renderContent(message, baseStyle, false)
+	if m.cfg.Markdown.Enabled && !builder.LineEmpty() {
 		startsWithCodeBlock := false
 		if root != nil {
 			if first := root.FirstChild(); first != nil {
@@ -516,12 +516,12 @@ func (ml *Model) drawContent(builder *richtext.Builder, message discord.Message,
 	return root, source
 }
 
-func (ml *Model) renderContent(message discord.Message, baseStyle tview.Style, forceMarkdown bool) (richtext.Text, ast.Node, []byte) {
+func (m Model) renderContent(message discord.Message, baseStyle tview.Style, forceMarkdown bool) (richtext.Text, ast.Node, []byte) {
 	// Keep one rendering path for both normal messages and embed fragments so we preserve mention/link parsing behavior consistently across both.
-	if forceMarkdown || ml.cfg.Markdown.Enabled {
+	if forceMarkdown || m.cfg.Markdown.Enabled {
 		c := []byte(message.Content)
-		root := md.ParseWithMessage(c, *ml.state.Cabinet, &message)
-		return ml.renderer.RenderText(c, root, baseStyle), root, c
+		root := md.ParseWithMessage(c, *m.state.Cabinet, &message)
+		return m.renderer.RenderText(c, root, baseStyle), root, c
 	}
 
 	b := new(richtext.Builder)
@@ -529,7 +529,7 @@ func (ml *Model) renderContent(message discord.Message, baseStyle tview.Style, f
 	return b.Finish(), nil, nil
 }
 
-func (ml *Model) drawSnapshotContent(builder *richtext.Builder, parent discord.Message, snapshot discord.MessageSnapshotMessage, baseStyle tview.Style) {
+func (m Model) drawSnapshotContent(builder *richtext.Builder, parent discord.Message, snapshot discord.MessageSnapshotMessage, baseStyle tview.Style) {
 	// Convert discord.MessageSnapshotMessage to discord.Message with common fields.
 	message := discord.Message{
 		Type:            snapshot.Type,
@@ -546,28 +546,28 @@ func (ml *Model) drawSnapshotContent(builder *richtext.Builder, parent discord.M
 		ChannelID:       parent.ChannelID,
 		GuildID:         parent.GuildID,
 	}
-	ml.drawContent(builder, message, baseStyle)
+	m.drawContent(builder, message, baseStyle)
 }
 
-func (ml *Model) drawDefaultMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, width int) {
-	if ml.cfg.Timestamps.Enabled {
-		ml.drawTimestamps(builder, message.Timestamp, baseStyle)
+func (m Model) drawDefaultMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, width int) {
+	if m.cfg.Timestamps.Enabled {
+		m.drawTimestamps(builder, message.Timestamp, baseStyle)
 	}
 
-	ml.drawAuthor(builder, message, baseStyle)
-	contentRoot, contentSource := ml.drawContent(builder, message, baseStyle)
+	m.drawAuthor(builder, message, baseStyle)
+	contentRoot, contentSource := m.drawContent(builder, message, baseStyle)
 
 	if message.EditedTimestamp.IsValid() {
 		dimStyle := baseStyle.Dim(true)
 		builder.Write(" (edited)", dimStyle)
 	}
 
-	ml.drawEmbeds(builder, message, baseStyle, width, contentRoot, contentSource)
+	m.drawEmbeds(builder, message, baseStyle, width, contentRoot, contentSource)
 
-	attachmentStyle := tview.MergeStyle(baseStyle, ml.cfg.Theme.MessagesList.AttachmentStyle.Style)
+	attachmentStyle := tview.MergeStyle(baseStyle, m.cfg.Theme.MessagesList.AttachmentStyle.Style)
 	for _, a := range message.Attachments {
 		builder.NewLine()
-		if ml.cfg.Attachments.ShowLinks {
+		if m.cfg.Attachments.ShowLinks {
 			builder.Write(a.Filename+":", attachmentStyle)
 			builder.NewLine()
 			builder.Write(a.URL, attachmentStyle.Url(a.URL))
@@ -577,7 +577,7 @@ func (ml *Model) drawDefaultMessage(builder *richtext.Builder, message discord.M
 	}
 }
 
-func (ml *Model) drawEmbeds(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, width int, contentRoot ast.Node, contentSource []byte) {
+func (m Model) drawEmbeds(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, width int, contentRoot ast.Node, contentSource []byte) {
 	if len(message.Embeds) == 0 {
 		return
 	}
@@ -595,7 +595,7 @@ func (ml *Model) drawEmbeds(builder *richtext.Builder, message discord.Message, 
 		contentURLs[u] = struct{}{}
 	}
 
-	lineStyles := embedLineStyles(baseStyle, ml.cfg.Theme.MessagesList.Embeds)
+	lineStyles := embedLineStyles(baseStyle, m.cfg.Theme.MessagesList.Embeds)
 	defaultBarStyle := baseStyle.Dim(true)
 	prefixText := "  ▎ "
 	prefixWidth := uniseg.StringWidth(prefixText)
@@ -623,7 +623,7 @@ func (ml *Model) drawEmbeds(builder *richtext.Builder, message discord.Message, 
 			msg.Content = line.Text
 			lineStyle := lineStyles[line.Kind]
 			// Embed descriptions are always markdown-rendered to match Discord's rich embed semantics, even when message markdown is globally disabled.
-			rendered, _, _ := ml.renderContent(msg, lineStyle, line.Kind == embedLineDescription)
+			rendered, _, _ := m.renderContent(msg, lineStyle, line.Kind == embedLineDescription)
 			for _, renderedLine := range rendered {
 				if line.URL != "" {
 					renderedLine = lineWithURL(renderedLine, line.URL)
@@ -799,174 +799,174 @@ func isMarkdownEscapable(c byte) bool {
 	}
 }
 
-func (ml *Model) drawForwardedMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style) {
+func (m Model) drawForwardedMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style) {
 	dimStyle := baseStyle.Dim(true)
-	ml.drawTimestamps(builder, message.Timestamp, baseStyle)
-	ml.drawAuthor(builder, message, baseStyle)
-	builder.Write(ml.cfg.Theme.MessagesList.ForwardedIndicator+" ", dimStyle)
-	ml.drawSnapshotContent(builder, message, message.MessageSnapshots[0].Message, baseStyle)
-	builder.Write(" ("+ml.formatTimestamp(message.MessageSnapshots[0].Message.Timestamp)+") ", dimStyle)
+	m.drawTimestamps(builder, message.Timestamp, baseStyle)
+	m.drawAuthor(builder, message, baseStyle)
+	builder.Write(m.cfg.Theme.MessagesList.ForwardedIndicator+" ", dimStyle)
+	m.drawSnapshotContent(builder, message, message.MessageSnapshots[0].Message, baseStyle)
+	builder.Write(" ("+m.formatTimestamp(message.MessageSnapshots[0].Message.Timestamp)+") ", dimStyle)
 }
 
-func (ml *Model) drawReplyMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, width int) {
+func (m Model) drawReplyMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, width int) {
 	dimStyle := baseStyle.Dim(true)
-	builder.Write(ml.cfg.Theme.MessagesList.ReplyIndicator+" ", dimStyle)
+	builder.Write(m.cfg.Theme.MessagesList.ReplyIndicator+" ", dimStyle)
 
-	if m := message.ReferencedMessage; m != nil {
-		m.GuildID = message.GuildID
-		ml.drawAuthor(builder, *m, dimStyle)
-		ml.drawContent(builder, *m, dimStyle)
+	if reference := message.ReferencedMessage; reference != nil {
+		reference.GuildID = message.GuildID
+		m.drawAuthor(builder, *reference, dimStyle)
+		m.drawContent(builder, *reference, dimStyle)
 	} else {
 		builder.Write("Original message was deleted", dimStyle)
 	}
 
 	builder.NewLine()
-	ml.drawDefaultMessage(builder, message, baseStyle, width)
+	m.drawDefaultMessage(builder, message, baseStyle, width)
 }
 
-func (ml *Model) drawPinnedMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style) {
+func (m Model) drawPinnedMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style) {
 	builder.Write(message.Author.DisplayOrUsername()+" pinned a message.", baseStyle)
 }
 
-func (ml *Model) selectedMessage() (*discord.Message, bool) {
-	cursor := ml.cursor()
-	if cursor < 0 || cursor >= len(ml.items) || ml.items[cursor].separator {
+func (m Model) selectedMessage() (*discord.Message, bool) {
+	cursor := m.cursor()
+	if cursor < 0 || cursor >= len(m.items) || m.items[cursor].separator {
 		return nil, false
 	}
 
-	return &ml.items[cursor].message, true
+	return &m.items[cursor].message, true
 }
 
 // Update returns ml changed in response to msg and a command to run, or nil.
-func (ml Model) Update(msg tview.Msg) (Model, tview.Cmd) {
+func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	switch msg := msg.(type) {
 	case tview.KeyMsg:
 		switch {
-		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.Cancel.Keybind):
-			ml.clearSelection()
-		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.SelectUp.Keybind):
-			return ml, ml.selectUp()
-		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.SelectDown.Keybind):
-			ml.selectDown()
-		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.SelectTop.Keybind):
-			return ml, ml.selectTop()
-		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.SelectBottom.Keybind):
-			ml.selectBottom()
-		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.SelectReply.Keybind):
-			ml.selectReply()
-		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.YankID.Keybind):
-			return ml, ml.yankMessageID()
-		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.YankContent.Keybind):
-			return ml, ml.yankContent()
-		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.YankURL.Keybind):
-			return ml, ml.yankURL()
-		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.Open.Keybind):
-			return ml, ml.open()
-		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.OpenInBrowser.Keybind):
-			return ml, ml.openInBrowser()
-		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.Download.Keybind):
-			return ml, ml.download()
-		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.Reply.Keybind):
-			return ml, ml.reply(false)
-		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.ReplyMention.Keybind):
-			return ml, ml.reply(true)
-		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.Edit.Keybind):
-			return ml, ml.editSelectedMessage()
-		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.Delete.Keybind):
-			return ml, ml.deleteSelectedMessage()
-		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.DeleteConfirm.Keybind):
-			return ml, ml.confirmDelete()
+		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.Cancel.Keybind):
+			m.clearSelection()
+		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.SelectUp.Keybind):
+			return m, m.selectUp()
+		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.SelectDown.Keybind):
+			m.selectDown()
+		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.SelectTop.Keybind):
+			return m, m.selectTop()
+		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.SelectBottom.Keybind):
+			m.selectBottom()
+		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.SelectReply.Keybind):
+			m.selectReply()
+		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.YankID.Keybind):
+			return m, m.yankMessageID()
+		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.YankContent.Keybind):
+			return m, m.yankContent()
+		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.YankURL.Keybind):
+			return m, m.yankURL()
+		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.Open.Keybind):
+			return m, m.open()
+		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.OpenInBrowser.Keybind):
+			return m, m.openInBrowser()
+		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.Download.Keybind):
+			return m, m.download()
+		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.Reply.Keybind):
+			return m, m.reply(false)
+		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.ReplyMention.Keybind):
+			return m, m.reply(true)
+		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.Edit.Keybind):
+			return m, m.editSelectedMessage()
+		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.Delete.Keybind):
+			return m, m.deleteSelectedMessage()
+		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.DeleteConfirm.Keybind):
+			return m, m.confirmDelete()
 		}
 	case olderMessagesLoadedMsg:
-		selectedChannel := ml.channel
+		selectedChannel := m.channel
 		if selectedChannel == nil || selectedChannel.ID != msg.ChannelID {
-			return ml, nil
+			return m, nil
 		}
-		prevCursor := ml.cursor()
+		prevCursor := m.cursor()
 
 		older := make([]messageItem, len(msg.Older))
 		for i, message := range msg.Older {
 			older[i] = messageItem{message: message}
 		}
-		ml.items = slices.Concat(older, ml.items)
+		m.items = slices.Concat(older, m.items)
 		if prevCursor >= 0 {
-			ml.setCursor(prevCursor + len(older))
+			m.setCursor(prevCursor + len(older))
 		}
-		ml.rebuildItems()
+		m.rebuildItems()
 		if selectedChannel.GuildID.IsValid() {
-			return ml, tview.Batch(ml.requestGuildMembers(selectedChannel.GuildID, msg.Older), ml.loadPreviews())
+			return m, tview.Batch(m.requestGuildMembers(selectedChannel.GuildID, msg.Older), m.loadPreviews())
 		}
-		return ml, ml.loadPreviews()
+		return m, m.loadPreviews()
 	case previewLoadedMsg:
-		index := slices.IndexFunc(ml.items, func(item messageItem) bool { return !item.separator && item.message.ID == msg.messageID })
-		if index < 0 || ml.items[index].previews == nil {
-			return ml, nil
+		index := slices.IndexFunc(m.items, func(item messageItem) bool { return !item.separator && item.message.ID == msg.messageID })
+		if index < 0 || m.items[index].previews == nil {
+			return m, nil
 		}
 		preview, cmd := msg.preview, tview.Cmd(nil)
-		if ml.kitty {
-			ml.kittyImages++
-			preview = preview.Kitty(ml.kittyImages%63488 + 1)
+		if m.kitty {
+			m.kittyImages++
+			preview = preview.Kitty(m.kittyImages%63488 + 1)
 			cmd = preview.Transmit()
 		}
-		ml.items[index].previews[msg.proxy] = preview
+		m.items[index].previews[msg.proxy] = preview
 		// Invalidate the view so it is laid out with the preview.
-		ml.items[index].view = nil
-		return ml, cmd
+		m.items[index].view = nil
+		return m, cmd
 	case tview.ResizeMsg:
 		cols, rows := msg.Size()
 		width, height := msg.PixelSize()
 		if cols > 0 && rows > 0 {
-			ml.cellWidth, ml.cellHeight = uint(width/cols), uint(height/rows)
+			m.cellWidth, m.cellHeight = uint(width/cols), uint(height/rows)
 		}
 	case tview.TerminalInfoMsg:
-		switch ml.cfg.Attachments.Protocol {
+		switch m.cfg.Attachments.Protocol {
 		case "kitty":
-			ml.kitty = true
+			m.kitty = true
 		case "halfblocks":
-			ml.kitty = false
+			m.kitty = false
 		default:
 			// WezTerm and Konsole support kitty graphics but not Unicode placeholders.
-			ml.kitty = msg.Name == "kitty" || msg.Name == "ghostty"
+			m.kitty = msg.Name == "kitty" || msg.Name == "ghostty"
 		}
 	case listMsg:
-		top := ml.atTop()
-		ml.selectionState.Apply(list.Change(msg))
-		ml.onRowCursorChanged(ml.cursor())
-		if !top && ml.atTop() {
-			return ml, ml.fetchOlderMessages()
+		top := m.atTop()
+		m.selectionState.Apply(list.Change(msg))
+		m.onRowCursorChanged(m.cursor())
+		if !top && m.atTop() {
+			return m, m.fetchOlderMessages()
 		}
 	}
-	return ml, nil
+	return m, nil
 }
 
 // atTop reports whether the oldest message shown is selected.
-func (ml *Model) atTop() bool {
-	return ml.cursor() >= 0 && ml.cursor() == ml.messageIndex(-1, 1)
+func (m Model) atTop() bool {
+	return m.cursor() >= 0 && m.cursor() == m.messageIndex(-1, 1)
 }
 
-func (ml *Model) selectDown() {
-	if ml.cursor() == -1 {
-		ml.selectBottom()
-	} else if next := ml.messageIndex(ml.cursor(), 1); next >= 0 {
-		ml.setCursor(next)
+func (m *Model) selectDown() {
+	if m.cursor() == -1 {
+		m.selectBottom()
+	} else if next := m.messageIndex(m.cursor(), 1); next >= 0 {
+		m.setCursor(next)
 	}
 }
 
-func (ml *Model) selectTop() tview.Cmd {
-	if ml.atTop() {
+func (m *Model) selectTop() tview.Cmd {
+	if m.atTop() {
 		return nil
 	}
-	ml.setCursor(ml.messageIndex(-1, 1))
-	return ml.fetchOlderMessages()
+	m.setCursor(m.messageIndex(-1, 1))
+	return m.fetchOlderMessages()
 }
 
-func (ml *Model) selectBottom() {
-	ml.setCursor(ml.messageIndex(len(ml.items), -1))
+func (m *Model) selectBottom() {
+	m.setCursor(m.messageIndex(len(m.items), -1))
 }
 
-func (ml *Model) selectReply() {
-	messages := ml.items
-	cursor := ml.cursor()
+func (m *Model) selectReply() {
+	messages := m.items
+	cursor := m.cursor()
 	if cursor < 0 || cursor >= len(messages) {
 		return
 	}
@@ -976,7 +976,7 @@ func (ml *Model) selectReply() {
 			return !m.separator && m.message.ID == ref.ID
 		})
 		if refIdx != -1 {
-			ml.setCursor(refIdx)
+			m.setCursor(refIdx)
 		}
 	}
 }
@@ -1065,45 +1065,45 @@ func downloadAttachment(attachment discord.Attachment, destination string) error
 }
 
 // SelectLastOwn selects the last message in the selected channel that the user can edit, and returns it.
-func (ml *Model) SelectLastOwn() (discord.Message, bool) {
-	channel := ml.channel
+func (m *Model) SelectLastOwn() (discord.Message, bool) {
+	channel := m.channel
 	if channel == nil {
 		return discord.Message{}, false
 	}
-	for i, item := range slices.Backward(ml.items) {
+	for i, item := range slices.Backward(m.items) {
 		message := item.message
-		if item.separator || message.ChannelID != channel.ID || !ui.IsMe(ml.state, message.Author.ID) ||
+		if item.separator || message.ChannelID != channel.ID || !ui.IsMe(m.state, message.Author.ID) ||
 			!message.ID.IsValid() || message.Content == "" || len(message.MessageSnapshots) > 0 ||
 			(message.Type != discord.DefaultMessage && message.Type != discord.InlinedReplyMessage) {
 			continue
 		}
-		ml.setCursor(i)
+		m.setCursor(i)
 		return message, true
 	}
 	return discord.Message{}, false
 }
 
-func (ml *Model) canDeleteMessage(message discord.Message) bool {
-	return ui.IsMe(ml.state, message.Author.ID) ||
-		(message.GuildID.IsValid() && ml.state.HasPermissions(message.ChannelID, discord.PermissionManageMessages))
+func (m Model) canDeleteMessage(message discord.Message) bool {
+	return ui.IsMe(m.state, message.Author.ID) ||
+		(message.GuildID.IsValid() && m.state.HasPermissions(message.ChannelID, discord.PermissionManageMessages))
 }
 
-func (ml *Model) InvalidateRendered() {
-	for i := range ml.items {
-		ml.items[i].view = nil
+func (m Model) InvalidateRendered() {
+	for i := range m.items {
+		m.items[i].view = nil
 	}
 }
 
-func (ml Model) ShortHelp() []keybind.Keybind {
-	cfg := ml.cfg.Keybinds.MessagesList
+func (m Model) ShortHelp() []keybind.Keybind {
+	cfg := m.cfg.Keybinds.MessagesList
 	help := []keybind.Keybind{
 		cfg.SelectUp.Keybind,
 		cfg.SelectDown.Keybind,
 		cfg.Cancel.Keybind,
 	}
 
-	if selectedMessage, ok := ml.selectedMessage(); ok {
-		if !ui.IsMe(ml.state, selectedMessage.Author.ID) {
+	if selectedMessage, ok := m.selectedMessage(); ok {
+		if !ui.IsMe(m.state, selectedMessage.Author.ID) {
 			help = append(help, cfg.Reply.Keybind)
 		}
 		if len(selectedMessage.Attachments) != 0 || len(messageURLs(*selectedMessage)) != 0 {
@@ -1114,11 +1114,11 @@ func (ml Model) ShortHelp() []keybind.Keybind {
 	return help
 }
 
-func (ml Model) FullHelp() [][]keybind.Keybind {
-	cfg := ml.cfg.Keybinds.MessagesList
+func (m Model) FullHelp() [][]keybind.Keybind {
+	cfg := m.cfg.Keybinds.MessagesList
 	var actions, manage, attachments []keybind.Keybind
-	if message, ok := ml.selectedMessage(); ok {
-		mine := ui.IsMe(ml.state, message.Author.ID)
+	if message, ok := m.selectedMessage(); ok {
+		mine := ui.IsMe(m.state, message.Author.ID)
 		if !mine {
 			actions = append(actions, cfg.Reply.Keybind, cfg.ReplyMention.Keybind)
 		}
@@ -1128,7 +1128,7 @@ func (ml Model) FullHelp() [][]keybind.Keybind {
 		if mine {
 			manage = append(manage, cfg.Edit.Keybind)
 		}
-		if ml.canDeleteMessage(*message) {
+		if m.canDeleteMessage(*message) {
 			manage = append(manage, cfg.DeleteConfirm.Keybind)
 			if len(cfg.Delete.Keys()) != 0 {
 				manage = append(manage, cfg.Delete.Keybind)

@@ -47,35 +47,35 @@ type ShowAttachmentsMsg picker.Items
 // listMsg moves or scrolls the messages list.
 type listMsg list.Change
 
-func (ml *Model) selectUp() tview.Cmd {
-	cursor := ml.cursor()
+func (m *Model) selectUp() tview.Cmd {
+	cursor := m.cursor()
 	if cursor == -1 {
-		ml.selectBottom()
-	} else if previous := ml.messageIndex(cursor, -1); previous >= 0 {
-		ml.setCursor(previous)
+		m.selectBottom()
+	} else if previous := m.messageIndex(cursor, -1); previous >= 0 {
+		m.setCursor(previous)
 		// Older messages are fetched once as the cursor reaches the top, rather than on each key press there.
-		if ml.atTop() {
-			return ml.fetchOlderMessages()
+		if m.atTop() {
+			return m.fetchOlderMessages()
 		}
 	}
 	return nil
 }
 
-func (ml *Model) fetchOlderMessages() tview.Cmd {
-	selectedChannel := ml.channel
+func (m Model) fetchOlderMessages() tview.Cmd {
+	selectedChannel := m.channel
 	if selectedChannel == nil {
 		return nil
 	}
 
 	channelID := selectedChannel.ID
-	first := ml.messageIndex(-1, 1)
+	first := m.messageIndex(-1, 1)
 	if first == -1 {
 		return nil
 	}
-	before := ml.items[first].message.ID
-	limit := uint(ml.cfg.MessagesLimit)
+	before := m.items[first].message.ID
+	limit := uint(m.cfg.MessagesLimit)
 	return func() tview.Msg {
-		messages, err := ml.state.MessagesBefore(channelID, before, limit)
+		messages, err := m.state.MessagesBefore(channelID, before, limit)
 		if err != nil {
 			slog.Error("failed to fetch older messages", "err", err)
 			return nil
@@ -90,8 +90,8 @@ func (ml *Model) fetchOlderMessages() tview.Cmd {
 	}
 }
 
-func (ml *Model) yankMessageID() tview.Cmd {
-	selectedMessage, ok := ml.selectedMessage()
+func (m Model) yankMessageID() tview.Cmd {
+	selectedMessage, ok := m.selectedMessage()
 	if !ok {
 		return nil
 	}
@@ -104,8 +104,8 @@ func (ml *Model) yankMessageID() tview.Cmd {
 	}
 }
 
-func (ml *Model) yankContent() tview.Cmd {
-	selectedMessage, ok := ml.selectedMessage()
+func (m Model) yankContent() tview.Cmd {
+	selectedMessage, ok := m.selectedMessage()
 	if !ok {
 		return nil
 	}
@@ -118,8 +118,8 @@ func (ml *Model) yankContent() tview.Cmd {
 	}
 }
 
-func (ml *Model) yankURL() tview.Cmd {
-	selectedMessage, ok := ml.selectedMessage()
+func (m Model) yankURL() tview.Cmd {
+	selectedMessage, ok := m.selectedMessage()
 	if !ok {
 		return nil
 	}
@@ -132,16 +132,16 @@ func (ml *Model) yankURL() tview.Cmd {
 	}
 }
 
-func (ml *Model) open() tview.Cmd {
-	return ml.openWith(ml.openAttachment)
+func (m Model) open() tview.Cmd {
+	return m.openWith(m.openAttachment)
 }
 
-func (ml *Model) openInBrowser() tview.Cmd {
-	return ml.openWith(func(attachment discord.Attachment) tview.Cmd { return openURL(attachment.URL) })
+func (m Model) openInBrowser() tview.Cmd {
+	return m.openWith(func(attachment discord.Attachment) tview.Cmd { return openURL(attachment.URL) })
 }
 
-func (ml *Model) openWith(openAttachment func(discord.Attachment) tview.Cmd) tview.Cmd {
-	selectedMessage, ok := ml.selectedMessage()
+func (m Model) openWith(openAttachment func(discord.Attachment) tview.Cmd) tview.Cmd {
+	selectedMessage, ok := m.selectedMessage()
 	if !ok {
 		return nil
 	}
@@ -151,7 +151,7 @@ func (ml *Model) openWith(openAttachment func(discord.Attachment) tview.Cmd) tvi
 	case total == 0:
 		return nil
 	case total > 1:
-		return ml.showAttachmentsList(urls, selectedMessage.Attachments, openAttachment)
+		return m.showAttachmentsList(urls, selectedMessage.Attachments, openAttachment)
 	case len(urls) == 1:
 		return openURL(urls[0])
 	}
@@ -159,24 +159,24 @@ func (ml *Model) openWith(openAttachment func(discord.Attachment) tview.Cmd) tvi
 	return openAttachment(selectedMessage.Attachments[0])
 }
 
-func (ml *Model) download() tview.Cmd {
-	selectedMessage, ok := ml.selectedMessage()
+func (m Model) download() tview.Cmd {
+	selectedMessage, ok := m.selectedMessage()
 	if !ok || len(selectedMessage.Attachments) == 0 {
 		return nil
 	}
 	if len(selectedMessage.Attachments) == 1 {
 		attachment := selectedMessage.Attachments[0]
-		return ml.confirmAttachment(attachment, saveAttachment(attachment))
+		return m.confirmAttachment(attachment, saveAttachment(attachment))
 	}
 
 	items := make(picker.Items, len(selectedMessage.Attachments))
 	for i, attachment := range selectedMessage.Attachments {
-		items[i] = picker.Item{Text: attachment.Filename, Reference: ml.confirmAttachment(attachment, saveAttachment(attachment))}
+		items[i] = picker.Item{Text: attachment.Filename, Reference: m.confirmAttachment(attachment, saveAttachment(attachment))}
 	}
-	return ml.showAttachmentsPicker(items)
+	return m.showAttachmentsPicker(items)
 }
 
-func (ml *Model) showAttachmentsList(urls []string, attachments []discord.Attachment, openAttachment func(discord.Attachment) tview.Cmd) tview.Cmd {
+func (m Model) showAttachmentsList(urls []string, attachments []discord.Attachment, openAttachment func(discord.Attachment) tview.Cmd) tview.Cmd {
 	var items picker.Items
 	for _, attachment := range attachments {
 		items = append(items, picker.Item{Text: attachment.Filename, Reference: openAttachment(attachment)})
@@ -184,19 +184,19 @@ func (ml *Model) showAttachmentsList(urls []string, attachments []discord.Attach
 	for _, url := range urls {
 		items = append(items, picker.Item{Text: url, Reference: openURL(url)})
 	}
-	return ml.showAttachmentsPicker(items)
+	return m.showAttachmentsPicker(items)
 }
 
-func (ml *Model) showAttachmentsPicker(items picker.Items) tview.Cmd {
+func (m Model) showAttachmentsPicker(items picker.Items) tview.Cmd {
 	return func() tview.Msg { return ShowAttachmentsMsg(items) }
 }
 
-func (ml *Model) openAttachment(attachment discord.Attachment) tview.Cmd {
-	return ml.confirmAttachment(attachment, openDownloadedAttachment(attachment))
+func (m Model) openAttachment(attachment discord.Attachment) tview.Cmd {
+	return m.confirmAttachment(attachment, openDownloadedAttachment(attachment))
 }
 
-func (ml *Model) confirmAttachment(attachment discord.Attachment, action tview.Cmd) tview.Cmd {
-	if !ml.cfg.Attachments.AllowedMIMETypes.Has(attachment.ContentType) {
+func (m Model) confirmAttachment(attachment discord.Attachment, action tview.Cmd) tview.Cmd {
+	if !m.cfg.Attachments.AllowedMIMETypes.Has(attachment.ContentType) {
 		return ui.ShowModal(
 			"This attachment type is not allowed and may be unsafe. Continue anyway?",
 			ui.ModalButton{Label: "No"},
@@ -266,14 +266,14 @@ func openURL(url string) tview.Cmd {
 	}
 }
 
-func (ml *Model) reply(mention bool) tview.Cmd {
-	selectedMessage, ok := ml.selectedMessage()
+func (m Model) reply(mention bool) tview.Cmd {
+	selectedMessage, ok := m.selectedMessage()
 	if !ok {
 		return nil
 	}
 
 	name := selectedMessage.Author.DisplayOrUsername()
-	if member := ml.memberForMessage(*selectedMessage); member != nil && member.Nick != "" {
+	if member := m.memberForMessage(*selectedMessage); member != nil && member.Nick != "" {
 		name = member.Nick
 	}
 
@@ -281,13 +281,13 @@ func (ml *Model) reply(mention bool) tview.Cmd {
 	return func() tview.Msg { return ReplyMsg{Message: message, Name: name, Mention: mention} }
 }
 
-func (ml *Model) editSelectedMessage() tview.Cmd {
-	selectedMessage, ok := ml.selectedMessage()
+func (m Model) editSelectedMessage() tview.Cmd {
+	selectedMessage, ok := m.selectedMessage()
 	if !ok {
 		return nil
 	}
 
-	if !ui.IsMe(ml.state, selectedMessage.Author.ID) {
+	if !ui.IsMe(m.state, selectedMessage.Author.ID) {
 		slog.Error("failed to edit message; not the author", "channel_id", selectedMessage.ChannelID, "message_id", selectedMessage.ID)
 		return nil
 	}
@@ -296,47 +296,47 @@ func (ml *Model) editSelectedMessage() tview.Cmd {
 	return func() tview.Msg { return EditMsg(message) }
 }
 
-func (ml *Model) confirmDelete() tview.Cmd {
-	selectedMessage, ok := ml.selectedMessage()
-	if !ok || !ml.canDeleteMessage(*selectedMessage) {
+func (m Model) confirmDelete() tview.Cmd {
+	selectedMessage, ok := m.selectedMessage()
+	if !ok || !m.canDeleteMessage(*selectedMessage) {
 		return nil
 	}
 	message := *selectedMessage
 	return ui.ShowModal(
 		"Are you sure you want to delete this message?",
-		ui.ModalButton{Label: "Yes", Cmd: ml.requestDelete(message)},
+		ui.ModalButton{Label: "Yes", Cmd: m.requestDelete(message)},
 		ui.ModalButton{Label: "No"},
 	)
 }
 
-func (ml *Model) deleteSelectedMessage() tview.Cmd {
-	selectedMessage, ok := ml.selectedMessage()
+func (m Model) deleteSelectedMessage() tview.Cmd {
+	selectedMessage, ok := m.selectedMessage()
 	if !ok {
 		return nil
 	}
-	return ml.requestDelete(*selectedMessage)
+	return m.requestDelete(*selectedMessage)
 }
 
-func (ml *Model) requestDelete(message discord.Message) tview.Cmd {
+func (m Model) requestDelete(message discord.Message) tview.Cmd {
 	return func() tview.Msg {
-		if !ml.canDeleteMessage(message) {
+		if !m.canDeleteMessage(message) {
 			slog.Error("failed to delete message; missing relevant permissions", "channel_id", message.ChannelID, "message_id", message.ID)
 			return nil
 		}
 
-		if err := ml.state.DeleteMessage(message.ChannelID, message.ID, ""); err != nil {
+		if err := m.state.DeleteMessage(message.ChannelID, message.ID, ""); err != nil {
 			slog.Error("failed to delete message", "channel_id", message.ChannelID, "message_id", message.ID, "err", err)
 			return nil
 		}
 
-		if err := ml.state.MessageRemove(message.ChannelID, message.ID); err != nil {
+		if err := m.state.MessageRemove(message.ChannelID, message.ID); err != nil {
 			slog.Error("failed to delete message", "channel_id", message.ChannelID, "message_id", message.ID, "err", err)
 		}
 		return nil
 	}
 }
 
-func (ml *Model) requestGuildMembers(guildID discord.GuildID, messages []discord.Message) tview.Cmd {
+func (m Model) requestGuildMembers(guildID discord.GuildID, messages []discord.Message) tview.Cmd {
 	usersToFetch := make([]discord.UserID, 0, len(messages))
 	seen := make(map[discord.UserID]struct{}, len(messages))
 
@@ -346,7 +346,7 @@ func (ml *Model) requestGuildMembers(guildID discord.GuildID, messages []discord
 			continue
 		}
 
-		if member, _ := ml.state.Cabinet.Member(guildID, message.Author.ID); member == nil {
+		if member, _ := m.state.Cabinet.Member(guildID, message.Author.ID); member == nil {
 			userID := message.Author.ID
 			if _, ok := seen[userID]; !ok {
 				seen[userID] = struct{}{}
@@ -360,7 +360,7 @@ func (ml *Model) requestGuildMembers(guildID discord.GuildID, messages []discord
 	}
 
 	return func() tview.Msg {
-		if err := ml.state.SendGateway(context.Background(), &gateway.RequestGuildMembersCommand{
+		if err := m.state.SendGateway(context.Background(), &gateway.RequestGuildMembersCommand{
 			GuildIDs: []discord.GuildID{guildID},
 			UserIDs:  usersToFetch,
 		}); err != nil {

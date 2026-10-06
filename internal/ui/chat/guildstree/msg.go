@@ -44,7 +44,7 @@ func (m *Model) navigate(channelID discord.ChannelID) tview.Cmd {
 	return m.selectNode(node)
 }
 
-func (m *Model) selectNode(node *tree.Node) tview.Cmd {
+func (m Model) selectNode(node *tree.Node) tview.Cmd {
 	if len(node.Children()) != 0 {
 		node.SetExpanded(!node.Expanded())
 		return nil

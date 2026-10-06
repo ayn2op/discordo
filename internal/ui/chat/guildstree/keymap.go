@@ -11,7 +11,7 @@ import (
 
 var _ help.KeyMap = Model{}
 
-func (m *Model) selectCurrentKeybind() keybind.Keybind {
+func (m Model) selectCurrentKeybind() keybind.Keybind {
 	selectCurrent := m.cfg.Keybinds.GuildsTree.SelectCurrent.Keybind
 	selectHelp := selectCurrent.Help()
 	selectDesc := selectHelp.Desc
@@ -54,7 +54,7 @@ func (m Model) FullHelp() [][]keybind.Keybind {
 	}
 }
 
-func (m *Model) collapseKeybinds() []keybind.Keybind {
+func (m Model) collapseKeybinds() []keybind.Keybind {
 	cfg := m.cfg.Keybinds.GuildsTree
 
 	var keybinds []keybind.Keybind
@@ -67,10 +67,10 @@ func (m *Model) collapseKeybinds() []keybind.Keybind {
 	return keybinds
 }
 
-func (m *Model) canCollapseParent(node *tree.Node) bool {
+func (m Model) canCollapseParent(node *tree.Node) bool {
 	return node != nil && len(m.root.PathTo(node)) >= 3
 }
 
-func (m *Model) canCollapseAll() bool {
+func (m Model) canCollapseAll() bool {
 	return slices.ContainsFunc(m.root.Children(), (*tree.Node).Expanded)
 }
