@@ -837,64 +837,50 @@ func (ml *Model) selectedMessage() (*discord.Message, bool) {
 	return &ml.items[cursor].message, true
 }
 
+// Update returns ml changed in response to msg and a command to run, or nil.
 func (ml Model) Update(msg tview.Msg) (Model, tview.Cmd) {
-	cmd := ml.update(msg)
-	return ml, cmd
-}
-
-// atTop reports whether the oldest message shown is selected.
-func (ml *Model) atTop() bool {
-	return ml.cursor() >= 0 && ml.cursor() == ml.messageIndex(-1, 1)
-}
-
-// update changes ml in response to msg and returns a command to run, or nil.
-func (ml *Model) update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
 	case tview.KeyMsg:
 		switch {
 		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.Cancel.Keybind):
 			ml.clearSelection()
-			return nil
 		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.SelectUp.Keybind):
-			return ml.selectUp()
+			return ml, ml.selectUp()
 		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.SelectDown.Keybind):
 			ml.selectDown()
-			return nil
 		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.SelectTop.Keybind):
-			return ml.selectTop()
+			return ml, ml.selectTop()
 		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.SelectBottom.Keybind):
 			ml.selectBottom()
-			return nil
 		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.SelectReply.Keybind):
 			ml.selectReply()
-			return nil
 		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.YankID.Keybind):
-			return ml.yankMessageID()
+			return ml, ml.yankMessageID()
 		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.YankContent.Keybind):
-			return ml.yankContent()
+			return ml, ml.yankContent()
 		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.YankURL.Keybind):
-			return ml.yankURL()
+			return ml, ml.yankURL()
 		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.Open.Keybind):
-			return ml.open()
+			return ml, ml.open()
 		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.OpenInBrowser.Keybind):
-			return ml.openInBrowser()
+			return ml, ml.openInBrowser()
 		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.Download.Keybind):
-			return ml.download()
+			return ml, ml.download()
 		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.Reply.Keybind):
-			return ml.reply(false)
+			return ml, ml.reply(false)
 		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.ReplyMention.Keybind):
-			return ml.reply(true)
+			return ml, ml.reply(true)
 		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.Edit.Keybind):
-			return ml.editSelectedMessage()
+			return ml, ml.editSelectedMessage()
 		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.Delete.Keybind):
-			return ml.deleteSelectedMessage()
+			return ml, ml.deleteSelectedMessage()
 		case keybind.Matches(msg, ml.cfg.Keybinds.MessagesList.DeleteConfirm.Keybind):
-			return ml.confirmDelete()
+			return ml, ml.confirmDelete()
 		}
 	case olderMessagesLoadedMsg:
 		selectedChannel := ml.channel
 		if selectedChannel == nil || selectedChannel.ID != msg.ChannelID {
-			return nil
+			return ml, nil
 		}
 		prevCursor := ml.cursor()
 
@@ -908,13 +894,13 @@ func (ml *Model) update(msg tview.Msg) tview.Cmd {
 		}
 		ml.rebuildItems()
 		if selectedChannel.GuildID.IsValid() {
-			return tview.Batch(ml.requestGuildMembers(selectedChannel.GuildID, msg.Older), ml.loadPreviews())
+			return ml, tview.Batch(ml.requestGuildMembers(selectedChannel.GuildID, msg.Older), ml.loadPreviews())
 		}
-		return ml.loadPreviews()
+		return ml, ml.loadPreviews()
 	case previewLoadedMsg:
 		index := slices.IndexFunc(ml.items, func(item messageItem) bool { return !item.separator && item.message.ID == msg.messageID })
 		if index < 0 || ml.items[index].previews == nil {
-			return nil
+			return ml, nil
 		}
 		preview, cmd := msg.preview, tview.Cmd(nil)
 		if ml.kitty {
@@ -925,7 +911,7 @@ func (ml *Model) update(msg tview.Msg) tview.Cmd {
 		ml.items[index].previews[msg.proxy] = preview
 		// Invalidate the view so it is laid out with the preview.
 		ml.items[index].view = nil
-		return cmd
+		return ml, cmd
 	case tview.ResizeMsg:
 		cols, rows := msg.Size()
 		width, height := msg.PixelSize()
@@ -947,10 +933,15 @@ func (ml *Model) update(msg tview.Msg) tview.Cmd {
 		ml.selectionState.Apply(list.Change(msg))
 		ml.onRowCursorChanged(ml.cursor())
 		if !top && ml.atTop() {
-			return ml.fetchOlderMessages()
+			return ml, ml.fetchOlderMessages()
 		}
 	}
-	return nil
+	return ml, nil
+}
+
+// atTop reports whether the oldest message shown is selected.
+func (ml *Model) atTop() bool {
+	return ml.cursor() >= 0 && ml.cursor() == ml.messageIndex(-1, 1)
 }
 
 func (ml *Model) selectDown() {

@@ -42,80 +42,75 @@ func (Model) Init() tview.Cmd {
 	return func() tview.Msg { return startMsg{} }
 }
 
+// Update returns m changed in response to msg and a command to run, or nil.
 func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
-	cmd := m.update(msg)
-	return m, cmd
-}
-
-// update changes m in response to msg and returns a command to run, or nil.
-func (m *Model) update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
 	case startMsg:
 		m.status = "Connecting to Remote Auth Gateway..."
-		return connect()
+		return m, connect()
 	case tview.KeyMsg:
 		if msg.Key() == tcell.KeyEsc {
 			m.status = "Canceled"
-			return closeConn(m.conn)
+			return m, closeConn(m.conn)
 		}
-		return nil
+		return m, nil
 	case scrollMsg:
 		m.scrollState.Apply(textview.Change(msg))
-		return nil
+		return m, nil
 
 	case connCreateMsg:
 		m.conn = msg.conn
 		m.status = "Connected. Handshaking..."
-		return listen(m.conn)
+		return m, listen(m.conn)
 	case connCloseMsg:
 		m.conn = nil
-		return nil
+		return m, nil
 
 	case helloMsg:
 		m.heartbeatInterval = time.Duration(msg.heartbeatInterval) * time.Millisecond
-		return tview.Batch(listen(m.conn), scheduleHeartbeat(m.heartbeatInterval), generatePrivateKey())
+		return m, tview.Batch(listen(m.conn), scheduleHeartbeat(m.heartbeatInterval), generatePrivateKey())
 	case privateKeyMsg:
 		m.privateKey = msg.privateKey
-		return sendInit(m.conn, m.privateKey)
+		return m, sendInit(m.conn, m.privateKey)
 	case nonceProofMsg:
-		return tview.Batch(listen(m.conn), sendNonceProof(m.conn, m.privateKey, msg.encryptedNonce))
+		return m, tview.Batch(listen(m.conn), sendNonceProof(m.conn, m.privateKey, msg.encryptedNonce))
 	case pendingRemoteInitMsg:
 		m.fingerprint = msg.fingerprint
-		return tview.Batch(listen(m.conn), generateQRCode(msg.fingerprint))
+		return m, tview.Batch(listen(m.conn), generateQRCode(msg.fingerprint))
 	case qrCodeMsg:
 		m.qrCode = msg.qrCode
 		m.status = "Scan this with the Discord mobile app to log in instantly."
-		return nil
+		return m, nil
 	case pendingTicketMsg:
-		return tview.Batch(listen(m.conn), decryptUserPayload(m.privateKey, msg.encryptedUserPayload))
+		return m, tview.Batch(listen(m.conn), decryptUserPayload(m.privateKey, msg.encryptedUserPayload))
 	case userMsg:
 		name := msg.username
 		if msg.discriminator != "0" {
 			name += "#" + msg.discriminator
 		}
 		m.status = "Check your phone! Logging in as " + name
-		return nil
+		return m, nil
 	case pendingLoginMsg:
 		m.status = "Authenticating..."
-		return tview.Batch(closeConn(m.conn), exchangeTicket(m.fingerprint, m.privateKey, msg.ticket))
+		return m, tview.Batch(closeConn(m.conn), exchangeTicket(m.fingerprint, m.privateKey, msg.ticket))
 	case ignoredMsg:
-		return listen(m.conn)
+		return m, listen(m.conn)
 	case cancelMsg:
 		m.status = "Login canceled on mobile"
-		return closeConn(m.conn)
+		return m, closeConn(m.conn)
 
 	case heartbeatTickMsg:
 		if m.conn == nil {
-			return nil
+			return m, nil
 		}
-		return tview.Batch(scheduleHeartbeat(m.heartbeatInterval), sendHeartbeat(m.conn))
+		return m, tview.Batch(scheduleHeartbeat(m.heartbeatInterval), sendHeartbeat(m.conn))
 
 	case error:
 		m.status = msg.Error()
-		return closeConn(m.conn)
+		return m, closeConn(m.conn)
 	}
 
-	return nil
+	return m, nil
 }
 
 // halfBlock packs a vertical pair of QR pixels into one glyph, fitting two bitmap rows into a single terminal row.

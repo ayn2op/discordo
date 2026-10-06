@@ -193,27 +193,22 @@ func (m Model) Init() tview.Cmd {
 	return tview.Batch(openState(m.state), listen(m.events), tview.RequestTerminalInfo())
 }
 
+// Update returns m changed in response to msg and a command to run, or nil.
 func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
-	cmd := m.update(msg)
-	return m, cmd
-}
-
-// update changes m in response to msg and returns a command to run, or nil.
-func (m *Model) update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
 	case gateway.Event:
-		return tview.Batch(m.applyEvent(msg), listen(m.events))
+		return m, tview.Batch(m.applyEvent(msg), listen(m.events))
 	case tview.FocusMsg:
 		m.windowUnfocused = !msg.Focused
-		return nil
+		return m, nil
 	case guildstree.ChannelLoadedMsg:
 		node := m.guildsTree.CurrentNode()
 		if node == nil {
-			return nil
+			return m, nil
 		}
 		channelID, ok := node.Reference().(discord.ChannelID)
 		if !ok || channelID != msg.Channel.ID {
-			return nil
+			return m, nil
 		}
 
 		membersCmd := m.setSelectedChannel(&msg.Channel)
@@ -223,97 +218,97 @@ func (m *Model) update(msg tview.Msg) tview.Cmd {
 			m.setFocus(paneComposer)
 		}
 		title := ui.ChannelToString(msg.Channel, m.cfg.Icons, m.state) + " - " + consts.Name
-		return tview.Batch(tview.SetTitle(title), m.messagesList.SetChannel(&msg.Channel, msg.Messages), membersCmd)
+		return m, tview.Batch(tview.SetTitle(title), m.messagesList.SetChannel(&msg.Channel, msg.Messages), membersCmd)
 	case messageslist.Msg, tview.TerminalInfoMsg, tview.ResizeMsg:
-		return m.updatePane(paneMessagesList, msg)
+		return m, m.updatePane(paneMessagesList, msg)
 	case typingExpiredMsg:
 		if until, ok := m.typers[msg.userID]; ok && !time.Now().Before(until) {
 			delete(m.typers, msg.userID)
 		}
-		return nil
+		return m, nil
 	case channelspicker.SelectedMsg:
-		return m.navigateToChannel(msg.ChannelID)
+		return m, m.navigateToChannel(msg.ChannelID)
 	case channelspicker.CancelMsg:
 		m.closePicker()
-		return nil
+		return m, nil
 	case attachmentspicker.SelectedMsg:
 		m.overlay = overlayNone
-		return msg.Action
+		return m, msg.Action
 	case attachmentspicker.CancelMsg:
 		m.overlay = overlayNone
-		return nil
+		return m, nil
 	case messageslist.ShowAttachmentsMsg:
 		m.attachmentsPicker.SetItems(picker.Items(msg))
 		m.overlay = overlayAttachmentsPicker
-		return nil
+		return m, nil
 	case messageslist.ReplyMsg:
 		m.composer.StartReply(msg.Message, msg.Name, msg.Mention)
 		m.setFocus(paneComposer)
-		return nil
+		return m, nil
 	case messageslist.EditMsg:
 		m.composer.StartEdit(discord.Message(msg))
 		m.setFocus(paneComposer)
-		return nil
+		return m, nil
 	case composer.EditLastMsg:
 		if message, ok := m.messagesList.SelectLastOwn(); ok {
 			m.composer.StartEdit(message)
 		}
-		return nil
+		return m, nil
 	case composer.SentMsg:
 		m.messagesList.ShowNewest()
-		return nil
+		return m, nil
 	case QuitMsg:
-		return closeState(m.state)
+		return m, closeState(m.state)
 	case tview.KeyMsg:
 		switch {
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusGuildsTree.Keybind):
 			m.composer.CloseMentions()
 			m.setFocus(paneGuildsTree)
-			return nil
+			return m, nil
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusMembersTree.Keybind):
 			m.composer.CloseMentions()
 			m.setFocus(paneMembersTree)
-			return nil
+			return m, nil
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusMessagesList.Keybind):
 			m.composer.CloseMentions()
 			m.setFocus(paneMessagesList)
-			return nil
+			return m, nil
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusComposer.Keybind):
 			m.setFocus(paneComposer)
-			return nil
+			return m, nil
 
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusPrevious.Keybind):
 			m.cycleFocus(-1)
-			return nil
+			return m, nil
 		case keybind.Matches(msg, m.cfg.Keybinds.FocusNext.Keybind):
 			m.cycleFocus(1)
-			return nil
+			return m, nil
 
 		case keybind.Matches(msg, m.cfg.Keybinds.ToggleGuildsTree.Keybind):
 			m.toggle(&m.guildsTreeVisible, paneGuildsTree)
-			return nil
+			return m, nil
 		case keybind.Matches(msg, m.cfg.Keybinds.ToggleMembersTree.Keybind):
 			m.toggle(&m.membersTreeVisible, paneMembersTree)
-			return nil
+			return m, nil
 		case keybind.Matches(msg, m.cfg.Keybinds.ToggleChannelsPicker.Keybind):
 			m.togglePicker()
-			return nil
+			return m, nil
 
 		case keybind.Matches(msg, m.cfg.Keybinds.Logout.Keybind):
-			return tview.Sequence(closeState(m.state), logout())
+			return m, tview.Sequence(closeState(m.state), logout())
 		}
 	case composer.TabSuggestMsg, mentionslist.Msg:
-		return m.updatePane(paneComposer, msg)
+		return m, m.updatePane(paneComposer, msg)
 	case paneMsg:
 		if msg.focus {
 			m.setFocus(msg.pane)
 		}
 		if msg.msg == nil {
-			return nil
+			return m, nil
 		}
-		return m.updatePane(msg.pane, msg.msg)
+		return m, m.updatePane(msg.pane, msg.msg)
 	}
-	return m.route(msg)
+	return m, m.route(msg)
 }
 
 // route sends msg to the open picker, which takes all input, and otherwise to the focused pane.

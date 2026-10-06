@@ -300,47 +300,42 @@ func (m *Model) collapseParentNode(node *tree.Node) {
 	m.selectionState.SetCurrentNode(parent)
 }
 
+// Update returns m changed in response to msg and a command to run, or nil.
 func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
-	cmd := m.update(msg)
-	return m, cmd
-}
-
-// update changes m in response to msg and returns a command to run, or nil.
-func (m *Model) update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
 	case *gateway.ReadyEvent:
 		m.rebuild(msg)
-		return nil
+		return m, nil
 	case *gateway.MessageCreateEvent:
 		if !msg.GuildID.IsValid() {
 			m.moveDMToFront(msg.ChannelID)
 		}
-		return nil
+		return m, nil
 	case *gateway.PresenceUpdateEvent:
 		m.updateDMNodeStyle(msg.User.ID)
-		return nil
+		return m, nil
 	case *read.UpdateEvent:
 		m.refreshReadStyles(msg)
-		return nil
+		return m, nil
 
 	case NavigateMsg:
-		return m.navigate(msg.ChannelID)
+		return m, m.navigate(msg.ChannelID)
 	case Msg:
 		m.selectionState.Apply(tree.Change(msg))
-		return nil
+		return m, nil
 	case SelectedMsg:
 		m.selectionState.SetCurrentNode(msg.Node)
-		return m.selectNode(msg.Node)
+		return m, m.selectNode(msg.Node)
 	case tview.KeyMsg:
 		switch {
 		case keybind.Matches(msg, m.cfg.Keybinds.GuildsTree.CollapseAll.Keybind):
 			for _, node := range m.root.Children() {
 				node.CollapseAll()
 			}
-			return nil
+			return m, nil
 		case keybind.Matches(msg, m.cfg.Keybinds.GuildsTree.CollapseParentNode.Keybind):
 			m.collapseParentNode(m.selectionState.CurrentNode())
-			return nil
+			return m, nil
 		case keybind.Matches(msg, m.cfg.Keybinds.GuildsTree.SelectPreviousUnread.Keybind, m.cfg.Keybinds.GuildsTree.SelectNextUnread.Keybind):
 			previous := keybind.Matches(msg, m.cfg.Keybinds.GuildsTree.SelectPreviousUnread.Keybind)
 			if node := adjacentNode(m.root, m.selectionState.CurrentNode(), m.isUnread, previous); node != nil {
@@ -354,12 +349,12 @@ func (m *Model) update(msg tview.Msg) tview.Cmd {
 				m.expandPathToNode(node)
 				m.selectionState.SetCurrentNode(node)
 			}
-			return nil
+			return m, nil
 		case keybind.Matches(msg, m.cfg.Keybinds.GuildsTree.YankID.Keybind):
-			return uitree.YankID(m.selectionState.CurrentNode())
+			return m, uitree.YankID(m.selectionState.CurrentNode())
 		}
 	}
-	return nil
+	return m, nil
 }
 
 // isUnread reports whether node is an unread channel, or a guild or the direct messages whose channels are not shown yet and has one.

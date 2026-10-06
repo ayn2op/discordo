@@ -221,86 +221,81 @@ func (c *Model) reset() {
 	c.editState.SetValue("")
 }
 
+// Update returns c changed in response to msg and a command to run, or nil.
 func (c Model) Update(msg tview.Msg) (Model, tview.Cmd) {
-	cmd := c.update(msg)
-	return c, cmd
-}
-
-// update changes c in response to msg and returns a command to run, or nil.
-func (c *Model) update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
 	case TabSuggestMsg:
-		return c.tabSuggest()
+		return c, c.tabSuggest()
 	case imagePastedMsg:
 		if len(msg) == 0 {
-			return nil
+			return c, nil
 		}
 		c.attach(imageAttachmentName, bytes.NewReader(msg))
-		return nil
+		return c, nil
 	case filesPickedMsg:
 		selectedChannel := c.channel
 		if selectedChannel == nil || selectedChannel.ID != msg.channelID {
-			return closeFiles(msg.files)
+			return c, closeFiles(msg.files)
 		}
 		for _, file := range msg.files {
 			c.attach(file.Name, file.Reader)
 		}
-		return nil
+		return c, nil
 	case editorMsg:
 		c.editState.SetValue(string(msg))
-		return nil
+		return c, nil
 	case editMsg:
 		c.editState.Apply(textarea.Change(msg))
 		typingCmd := c.sendTyping()
 		if c.cfg.AutocompleteLimit > 0 {
-			return tview.Batch(typingCmd, c.tabSuggest())
+			return c, tview.Batch(typingCmd, c.tabSuggest())
 		}
-		return typingCmd
+		return c, typingCmd
 
 	case tview.KeyMsg:
 		switch {
 		case keybind.Matches(msg, c.cfg.Keybinds.Composer.EditLast.Keybind) && c.canEditLastMessage():
-			return c.editLastMessage()
+			return c, c.editLastMessage()
 		case keybind.Matches(msg, c.cfg.Keybinds.Composer.Paste.Keybind):
 			c.pasteText()
-			return pasteImage()
+			return c, pasteImage()
 		case keybind.Matches(msg, c.cfg.Keybinds.Composer.Send.Keybind):
 			if c.mentionsVisible {
-				return c.tabComplete()
+				return c, c.tabComplete()
 			}
-			return c.send()
+			return c, c.send()
 		case keybind.Matches(msg, c.cfg.Keybinds.Composer.OpenEditor.Keybind):
 			c.stopTabCompletion()
-			return c.openEditor()
+			return c, c.openEditor()
 		case keybind.Matches(msg, c.cfg.Keybinds.Composer.OpenFilePicker.Keybind):
 			c.stopTabCompletion()
-			return c.pickFiles()
+			return c, c.pickFiles()
 		case keybind.Matches(msg, c.cfg.Keybinds.Composer.Cancel.Keybind):
 			if c.mentionsVisible {
 				c.stopTabCompletion()
-				return nil
+				return c, nil
 			}
 			c.reset()
-			return nil
+			return c, nil
 		case keybind.Matches(msg, c.cfg.Keybinds.Composer.TabComplete.Keybind):
 			if c.mentionsVisible {
-				return c.tabComplete()
+				return c, c.tabComplete()
 			}
 			c.insert("\t")
-			return nil
+			return c, nil
 		case keybind.Matches(msg, c.cfg.Keybinds.Composer.ToggleReplyMention.Keybind):
 			c.toggleReplyMention()
-			return nil
+			return c, nil
 		case keybind.Matches(msg, c.cfg.Keybinds.Composer.Undo.Keybind):
 			c.editState.Undo()
-			return nil
+			return c, nil
 		}
 	case mentionslist.Msg:
 		var cmd tview.Cmd
 		c.mentionsList, cmd = c.mentionsList.Update(msg)
-		return cmd
+		return c, cmd
 	}
-	return nil
+	return c, nil
 }
 
 func (c *Model) canEditLastMessage() bool {

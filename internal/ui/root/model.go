@@ -71,28 +71,23 @@ func (m Model) Init() tview.Cmd {
 	)
 }
 
+// Update returns m changed in response to msg and a command to run, or nil.
 func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
-	cmd := m.update(msg)
-	return m, cmd
-}
-
-// update changes m in response to msg and returns a command to run, or nil.
-func (m *Model) update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
 	case loginMsg:
-		return m.showLogin()
+		return m, m.showLogin()
 	case tokenMsg:
-		return m.showChat(string(msg))
+		return m, m.showChat(string(msg))
 
 	case password.TokenMsg:
-		return tview.Batch(m.showChat(string(msg)), setToken(string(msg)))
+		return m, tview.Batch(m.showChat(string(msg)), setToken(string(msg)))
 	case qr.TokenMsg:
-		return tview.Batch(m.showChat(string(msg)), setToken(string(msg)))
+		return m, tview.Batch(m.showChat(string(msg)), setToken(string(msg)))
 	case token.TokenMsg:
-		return tview.Batch(m.showChat(string(msg)), setToken(string(msg)))
+		return m, tview.Batch(m.showChat(string(msg)), setToken(string(msg)))
 
 	case chat.LogoutMsg:
-		return tview.Batch(
+		return m, tview.Batch(
 			m.showLogin(),
 			deleteToken(),
 		)
@@ -100,41 +95,41 @@ func (m *Model) update(msg tview.Msg) tview.Cmd {
 		if m.modal == nil {
 			m.modal, m.dialogFocus = &msg, 0
 		}
-		return nil
+		return m, nil
 	case dialogFocusMsg:
 		m.dialogFocus = int(msg)
-		return nil
+		return m, nil
 	case dialogDoneMsg:
-		return m.finishModal(int(msg))
+		return m, m.finishModal(int(msg))
 
 	case tview.KeyMsg:
 		// The dialog takes all input while it is open, so nothing behind it reacts.
 		if m.modal != nil {
-			return nil
+			return m, nil
 		}
 		switch {
 		case keybind.Matches(msg, m.cfg.Keybinds.ToggleHelp.Keybind):
 			m.toggleHelp()
-			return nil
+			return m, nil
 		case keybind.Matches(msg, m.cfg.Keybinds.ToggleFullHelp.Keybind):
 			if m.cfg.Help.Enabled {
 				m.helpShowAll = !m.helpShowAll
 			}
-			return nil
+			return m, nil
 		case keybind.Matches(msg, m.cfg.Keybinds.Suspend.Keybind):
-			return suspend()
+			return m, suspend()
 		case keybind.Matches(msg, m.cfg.Keybinds.Quit.Keybind):
-			return tview.Batch(m.updateScreen(chat.QuitMsg{}), tview.Quit())
+			return m, tview.Batch(m.updateScreen(chat.QuitMsg{}), tview.Quit())
 		}
 	case tview.MouseMsg, tview.PasteMsg:
 		if m.modal != nil {
-			return nil
+			return m, nil
 		}
 	case tview.ResizeMsg:
 		m.resize = msg
 	}
 
-	return m.updateScreen(msg)
+	return m, m.updateScreen(msg)
 }
 
 // updateScreen updates the model shown above help with msg.

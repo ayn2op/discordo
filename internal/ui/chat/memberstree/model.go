@@ -88,36 +88,31 @@ func (m Model) View(focused bool) tview.Widget {
 	return uitree.New(m.root, m.selectionState, m.cfg, m.cfg.Theme.MembersTree, m.cfg.Keybinds.MembersTree, focused, onChange, onSelect).Title("Members")
 }
 
+// Update returns m changed in response to msg and a command to run, or nil.
 func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
-	cmd := m.update(msg)
-	return m, cmd
-}
-
-// update changes m in response to msg and returns a command to run, or nil.
-func (m *Model) update(msg tview.Msg) tview.Cmd {
 	switch msg := msg.(type) {
 	case *gateway.ReadyEvent:
 		// ningen drops its member lists on READY, so request the list again.
 		m.rebuild()
-		return m.requestMembers(0)
+		return m, m.requestMembers(0)
 	case *gateway.GuildMemberListUpdateEvent:
 		if channel := m.channel; channel != nil && channel.GuildID == msg.GuildID && m.state.MemberState.ListID(channel) == msg.ID {
 			m.rebuild()
 		}
-		return nil
+		return m, nil
 	case *gateway.PresenceUpdateEvent:
 		m.refreshStatus(msg.User.ID)
-		return nil
+		return m, nil
 
 	case Msg:
 		m.selectionState.Apply(tree.Change(msg))
-		return m.requestSelectedMembers()
+		return m, m.requestSelectedMembers()
 	case SelectedMsg:
 		m.selectionState.SetCurrentNode(msg.Node)
 		if _, ok := msg.Node.Reference().(groupRef); ok {
 			msg.Node.SetExpanded(!msg.Node.Expanded())
 		}
-		return m.requestSelectedMembers()
+		return m, m.requestSelectedMembers()
 	case tview.KeyMsg:
 		kbs := m.cfg.Keybinds.MembersTree
 		switch {
@@ -125,18 +120,18 @@ func (m *Model) update(msg tview.Msg) tview.Cmd {
 			for _, node := range m.root.Children() {
 				node.Collapse()
 			}
-			return nil
+			return m, nil
 		case keybind.Matches(msg, kbs.CollapseParentNode.Keybind):
 			if parent := m.parent(m.selectionState.CurrentNode()); parent != nil {
 				parent.Collapse()
 				m.selectionState.SetCurrentNode(parent)
 			}
-			return nil
+			return m, nil
 		case keybind.Matches(msg, kbs.YankID.Keybind):
-			return uitree.YankID(m.selectionState.CurrentNode())
+			return m, uitree.YankID(m.selectionState.CurrentNode())
 		}
 	}
-	return nil
+	return m, nil
 }
 
 // rebuild recreates the tree from the member list of the selected channel.
