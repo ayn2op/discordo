@@ -107,19 +107,19 @@ func (vw ScrollBarVisibilityWrapper) MarshalText() ([]byte, error) {
 type (
 	UIConfig struct {
 		// The tabs of the login screen.
-		Tabs         TabsConfig         `toml:"tabs"`
-		Title        TitleConfig        `toml:"title"`
-		Footer       TitleConfig        `toml:"footer"`
-		Border       BorderConfig       `toml:"border"`
-		GuildsTree   GuildsTreeConfig   `toml:"guilds_tree"`
-		MembersTree  TreeConfig         `toml:"members_tree"`
-		ScrollBar    ScrollBarConfig    `toml:"scroll_bar"`
-		MessagesList MessagesListConfig `toml:"messages_list"`
+		Tabs         TabsUIConfig         `toml:"tabs"`
+		Title        TitleUIConfig        `toml:"title"`
+		Footer       TitleUIConfig        `toml:"footer"`
+		Border       BorderUIConfig       `toml:"border"`
+		GuildsTree   GuildsTreeUIConfig   `toml:"guilds_tree"`
+		MembersTree  TreeUIConfig         `toml:"members_tree"`
+		ScrollBar    ScrollBarUIConfig    `toml:"scroll_bar"`
+		MessagesList MessagesListUIConfig `toml:"messages_list"`
 		// The list of mention suggestions above the composer. Its width and height are capped to the available space.
-		MentionsList MentionsListConfig `toml:"mentions_list"`
+		MentionsList MentionsListUIConfig `toml:"mentions_list"`
 	}
 
-	TabsConfig struct {
+	TabsUIConfig struct {
 		// Where tabs that fit are placed: "left", "center" or "right".
 		Alignment AlignmentWrapper `toml:"alignment"`
 		// Whether moving past the last tab selects the first, and past the first selects the last.
@@ -134,12 +134,12 @@ type (
 		ClickableArrows bool `toml:"clickable_arrows"`
 	}
 
-	TitleConfig struct {
+	TitleUIConfig struct {
 		// "left", "center" or "right".
 		Alignment AlignmentWrapper `toml:"alignment"`
 	}
 
-	BorderConfig struct {
+	BorderUIConfig struct {
 		Enabled bool `toml:"enabled"`
 		// [top, bottom, left, right]
 		Padding [4]int `toml:"padding"`
@@ -149,29 +149,29 @@ type (
 		ActiveSet BorderSetWrapper `toml:"active_set"`
 	}
 
-	TreeConfig struct {
+	TreeUIConfig struct {
 		// Whether to draw lines that give the tree its shape.
 		Graphics bool `toml:"graphics"`
 	}
 
-	GuildsTreeConfig struct {
-		TreeConfig
+	GuildsTreeUIConfig struct {
+		TreeUIConfig
 		AutoExpandFolders bool `toml:"auto_expand_folders"`
 	}
 
-	ScrollBarConfig struct {
+	ScrollBarUIConfig struct {
 		// "auto", "always" or "never".
 		Visibility ScrollBarVisibilityWrapper `toml:"visibility"`
 		// "minimal", "box_drawing", "vertical" or "double_vertical".
 		SymbolSet SymbolSetWrapper `toml:"symbol_set"`
 	}
 
-	MessagesListConfig struct {
+	MessagesListUIConfig struct {
 		ReplyIndicator     string `toml:"reply_indicator"`
 		ForwardedIndicator string `toml:"forwarded_indicator"`
 	}
 
-	MentionsListConfig struct {
+	MentionsListUIConfig struct {
 		// Minimum width. 0 makes the list as wide as possible.
 		MinWidth uint `toml:"min_width"`
 		// Maximum height. 0 makes the list as tall as needed.
@@ -180,10 +180,10 @@ type (
 )
 
 func defaultUI() UIConfig {
-	left := TitleConfig{AlignmentWrapper{tview.AlignmentLeft}}
+	left := TitleUIConfig{AlignmentWrapper{tview.AlignmentLeft}}
 	round := BorderSetWrapper{tview.BorderSetRound()}
 	return UIConfig{
-		Tabs: TabsConfig{
+		Tabs: TabsUIConfig{
 			Alignment:       AlignmentWrapper{tview.AlignmentCenter},
 			Separator:       "│",
 			Padding:         [2]string{" ", " "},
@@ -192,11 +192,11 @@ func defaultUI() UIConfig {
 		},
 		Title:        left,
 		Footer:       left,
-		Border:       BorderConfig{Enabled: true, Padding: [4]int{0, 0, 1, 1}, NormalSet: round, ActiveSet: round},
-		GuildsTree:   GuildsTreeConfig{TreeConfig{Graphics: true}, true},
-		MembersTree:  TreeConfig{Graphics: true},
-		ScrollBar:    ScrollBarConfig{SymbolSet: SymbolSetWrapper{boxDrawing}},
-		MessagesList: MessagesListConfig{ReplyIndicator: ">", ForwardedIndicator: "<"},
-		MentionsList: MentionsListConfig{MinWidth: 20},
+		Border:       BorderUIConfig{Enabled: true, Padding: [4]int{0, 0, 1, 1}, NormalSet: round, ActiveSet: round},
+		GuildsTree:   GuildsTreeUIConfig{TreeUIConfig{Graphics: true}, true},
+		MembersTree:  TreeUIConfig{Graphics: true},
+		ScrollBar:    ScrollBarUIConfig{SymbolSet: SymbolSetWrapper{boxDrawing}},
+		MessagesList: MessagesListUIConfig{ReplyIndicator: ">", ForwardedIndicator: "<"},
+		MentionsList: MentionsListUIConfig{MinWidth: 20},
 	}
 }

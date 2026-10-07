@@ -212,7 +212,7 @@ type (
 		Keybinds Keybinds `toml:"keybinds"`
 		// Styles of the widgets, each written as
 		// `{ foreground = "", background = "", attributes = "" or ["", ""], underline = "", underline_color = "" }`.
-		Theme Theme `toml:"theme"`
+		Theme ThemeConfig `toml:"theme"`
 	}
 )
 

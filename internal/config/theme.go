@@ -146,20 +146,20 @@ func colorName(c tcell.Color) string {
 }
 
 type (
-	HelpTheme struct {
+	HelpThemeConfig struct {
 		ShortKeyStyle  StyleWrapper `toml:"short_key_style"`
 		ShortDescStyle StyleWrapper `toml:"short_desc_style"`
 		FullKeyStyle   StyleWrapper `toml:"full_key_style"`
 		FullDescStyle  StyleWrapper `toml:"full_desc_style"`
 	}
 
-	ThemeStyle struct {
+	StyleThemeConfig struct {
 		NormalStyle StyleWrapper `toml:"normal_style"`
 		// The style used while the widget is focused.
 		ActiveStyle StyleWrapper `toml:"active_style"`
 	}
 
-	MessagesListTheme struct {
+	MessagesListThemeConfig struct {
 		AuthorStyle      StyleWrapper `toml:"author_style"`
 		MentionStyle     StyleWrapper `toml:"mention_style"`
 		EmojiStyle       StyleWrapper `toml:"emoji_style"`
@@ -171,10 +171,10 @@ type (
 		MessageStyle         StyleWrapper `toml:"message_style"`
 		SelectedMessageStyle StyleWrapper `toml:"selected_message_style"`
 
-		Embeds MessagesListEmbedsTheme `toml:"embeds"`
+		Embeds MessagesListEmbedsThemeConfig `toml:"embeds"`
 	}
 
-	MessagesListEmbedsTheme struct {
+	MessagesListEmbedsThemeConfig struct {
 		ProviderStyle    StyleWrapper `toml:"provider_style"`
 		AuthorStyle      StyleWrapper `toml:"author_style"`
 		TitleStyle       StyleWrapper `toml:"title_style"`
@@ -185,38 +185,38 @@ type (
 		URLStyle         StyleWrapper `toml:"url_style"`
 	}
 
-	MentionsListTheme struct {
+	MentionsListThemeConfig struct {
 		SelectedStyle StyleWrapper `toml:"selected_style"`
 	}
 
-	DialogTheme struct {
+	DialogThemeConfig struct {
 		Style StyleWrapper `toml:"style"`
 		// The style of everything behind the dialog.
 		BackgroundStyle StyleWrapper `toml:"background_style"`
 	}
 
-	ScrollBarTheme struct {
+	ScrollBarThemeConfig struct {
 		TrackStyle StyleWrapper `toml:"track_style"`
 		ThumbStyle StyleWrapper `toml:"thumb_style"`
 	}
 
-	Theme struct {
-		Title  ThemeStyle `toml:"title"`
-		Footer ThemeStyle `toml:"footer"`
-		Border ThemeStyle `toml:"border"`
+	ThemeConfig struct {
+		Title  StyleThemeConfig `toml:"title"`
+		Footer StyleThemeConfig `toml:"footer"`
+		Border StyleThemeConfig `toml:"border"`
 		// The status styles are those of direct-message recipients.
-		GuildsTree CommonTreeTheme `toml:"guilds_tree"`
+		GuildsTree TreeThemeConfig `toml:"guilds_tree"`
 		// The status styles are those of the dot before each member.
-		MembersTree  CommonTreeTheme   `toml:"members_tree"`
-		ScrollBar    ScrollBarTheme    `toml:"scroll_bar"`
-		MessagesList MessagesListTheme `toml:"messages_list"`
-		MentionsList MentionsListTheme `toml:"mentions_list"`
-		Dialog       DialogTheme       `toml:"dialog"`
-		Help         HelpTheme         `toml:"help"`
+		MembersTree  TreeThemeConfig         `toml:"members_tree"`
+		ScrollBar    ScrollBarThemeConfig    `toml:"scroll_bar"`
+		MessagesList MessagesListThemeConfig `toml:"messages_list"`
+		MentionsList MentionsListThemeConfig `toml:"mentions_list"`
+		Dialog       DialogThemeConfig       `toml:"dialog"`
+		Help         HelpThemeConfig         `toml:"help"`
 	}
 )
 
-type CommonTreeTheme struct {
+type TreeThemeConfig struct {
 	// The color of the lines that give the tree its shape.
 	GraphicsColor string `toml:"graphics_color"`
 
@@ -227,7 +227,7 @@ type CommonTreeTheme struct {
 }
 
 // StatusStyle returns the style for a user with status.
-func (ctt CommonTreeTheme) StatusStyle(status discord.Status) tview.Style {
+func (ctt TreeThemeConfig) StatusStyle(status discord.Status) tview.Style {
 	switch status {
 	case discord.OnlineStatus:
 		return ctt.OnlineStyle.Style
@@ -240,15 +240,15 @@ func (ctt CommonTreeTheme) StatusStyle(status discord.Status) tview.Style {
 	}
 }
 
-func defaultTheme() Theme {
+func defaultTheme() ThemeConfig {
 	var (
 		plain  = tcell.StyleDefault
 		dim    = StyleWrapper{plain.Dim(true)}
 		bold   = plain.Bold(true)
 		italic = plain.Italic(true)
 		blue   = plain.Foreground(tcell.ColorBlue)
-		focus  = ThemeStyle{dim, StyleWrapper{bold.Foreground(tcell.ColorGreen)}}
-		tree   = CommonTreeTheme{
+		focus  = StyleThemeConfig{dim, StyleWrapper{bold.Foreground(tcell.ColorGreen)}}
+		tree   = TreeThemeConfig{
 			GraphicsColor: "default",
 			OnlineStyle:   StyleWrapper{plain.Foreground(tcell.ColorGreen)},
 			IdleStyle:     StyleWrapper{plain.Foreground(tcell.ColorYellow)},
@@ -256,14 +256,14 @@ func defaultTheme() Theme {
 			OfflineStyle:  StyleWrapper{plain.Foreground(tcell.ColorGray)},
 		}
 	)
-	return Theme{
+	return ThemeConfig{
 		Title:       focus,
 		Footer:      focus,
 		Border:      focus,
 		GuildsTree:  tree,
 		MembersTree: tree,
-		ScrollBar:   ScrollBarTheme{TrackStyle: dim},
-		MessagesList: MessagesListTheme{
+		ScrollBar:   ScrollBarThemeConfig{TrackStyle: dim},
+		MessagesList: MessagesListThemeConfig{
 			MentionStyle:         StyleWrapper{blue.Bold(true)},
 			EmojiStyle:           StyleWrapper{plain.Foreground(tcell.ColorGreen)},
 			URLStyle:             StyleWrapper{blue},
@@ -271,7 +271,7 @@ func defaultTheme() Theme {
 			ReactionStyle:        dim,
 			OwnReactionStyle:     StyleWrapper{bold},
 			SelectedMessageStyle: StyleWrapper{plain.Reverse(true)},
-			Embeds: MessagesListEmbedsTheme{
+			Embeds: MessagesListEmbedsThemeConfig{
 				ProviderStyle:    StyleWrapper{italic.Dim(true)},
 				AuthorStyle:      StyleWrapper{italic},
 				TitleStyle:       StyleWrapper{blue.Bold(true)},
@@ -281,8 +281,8 @@ func defaultTheme() Theme {
 				URLStyle:         StyleWrapper{blue.Underline(true)},
 			},
 		},
-		MentionsList: MentionsListTheme{SelectedStyle: StyleWrapper{plain.Reverse(true)}},
-		Dialog:       DialogTheme{BackgroundStyle: dim},
-		Help:         HelpTheme{ShortKeyStyle: dim, FullKeyStyle: dim},
+		MentionsList: MentionsListThemeConfig{SelectedStyle: StyleWrapper{plain.Reverse(true)}},
+		Dialog:       DialogThemeConfig{BackgroundStyle: dim},
+		Help:         HelpThemeConfig{ShortKeyStyle: dim, FullKeyStyle: dim},
 	}
 }
