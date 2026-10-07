@@ -81,7 +81,7 @@ func NewModel(cfg *config.Config, state *ningen.State) Model {
 
 // View shows the messages in a box titled with the channel and footed with footer, such as who is typing.
 func (m Model) View(focused bool, footer string) tview.Widget {
-	return ui.Box(m.listView(focused), &m.cfg.Theme, focused).Title(m.title()).Footer(footer)
+	return ui.Box(m.listView(focused), m.cfg, focused).Title(m.title()).Footer(footer)
 }
 
 // title returns the selected channel and its topic, or "Messages" when none is selected.
@@ -97,11 +97,11 @@ func (m Model) title() string {
 }
 
 func (m Model) listView(focused bool) list.Widget {
-	cfg := m.cfg.Theme.ScrollBar
+	cfg, theme := m.cfg.UI.ScrollBar, m.cfg.Theme.ScrollBar
 	bar := scrollbar.New().
 		SymbolSet(cfg.SymbolSet.SymbolSet).
-		Style(cfg.TrackStyle.Style).
-		ThumbStyle(cfg.ThumbStyle.Style)
+		Style(theme.TrackStyle.Style).
+		ThumbStyle(theme.ThumbStyle.Style)
 	return list.New(m.selectionState, len(m.items), m.buildItem).
 		SelectedStyle(m.cfg.Theme.MessagesList.SelectedMessageStyle.Style).
 		ScrollBar(bar, cfg.Visibility.ScrollBarVisibility).
@@ -803,14 +803,14 @@ func (m Model) drawForwardedMessage(builder *richtext.Builder, message discord.M
 	dimStyle := baseStyle.Dim(true)
 	m.drawTimestamps(builder, message.Timestamp, baseStyle)
 	m.drawAuthor(builder, message, baseStyle)
-	builder.Write(m.cfg.Theme.MessagesList.ForwardedIndicator+" ", dimStyle)
+	builder.Write(m.cfg.UI.MessagesList.ForwardedIndicator+" ", dimStyle)
 	m.drawSnapshotContent(builder, message, message.MessageSnapshots[0].Message, baseStyle)
 	builder.Write(" ("+m.formatTimestamp(message.MessageSnapshots[0].Message.Timestamp)+") ", dimStyle)
 }
 
 func (m Model) drawReplyMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, width int) {
 	dimStyle := baseStyle.Dim(true)
-	builder.Write(m.cfg.Theme.MessagesList.ReplyIndicator+" ", dimStyle)
+	builder.Write(m.cfg.UI.MessagesList.ReplyIndicator+" ", dimStyle)
 
 	if reference := message.ReferencedMessage; reference != nil {
 		reference.GuildID = message.GuildID

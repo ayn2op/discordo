@@ -6,32 +6,10 @@ import (
 
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/tview"
-	"github.com/ayn2op/tview/list"
-	"github.com/ayn2op/tview/scrollbar"
 	"github.com/gdamore/tcell/v3"
 )
 
 var errInvalidType = errors.New("invalid type")
-
-type AlignmentWrapper struct{ tview.Alignment }
-
-func (aw *AlignmentWrapper) UnmarshalTOML(v any) error {
-	s, ok := v.(string)
-	if !ok {
-		return errInvalidType
-	}
-	switch s {
-	case "left":
-		aw.Alignment = tview.AlignmentLeft
-	case "center":
-		aw.Alignment = tview.AlignmentCenter
-	case "right":
-		aw.Alignment = tview.AlignmentRight
-	default:
-		return fmt.Errorf("unknown value: %q", s)
-	}
-	return nil
-}
 
 type StyleWrapper struct{ tview.Style }
 
@@ -113,72 +91,6 @@ func (sw *StyleWrapper) parseAttr(s string) {
 	}
 }
 
-type BorderSetWrapper struct{ tview.BorderSet }
-
-func (bw *BorderSetWrapper) UnmarshalTOML(val any) error {
-	s, ok := val.(string)
-	if !ok {
-		return errInvalidType
-	}
-	switch s {
-	case "hidden":
-		bw.BorderSet = tview.BorderSetHidden()
-	case "plain":
-		bw.BorderSet = tview.BorderSetPlain()
-	case "round":
-		bw.BorderSet = tview.BorderSetRound()
-	case "thick":
-		bw.BorderSet = tview.BorderSetThick()
-	case "double":
-		bw.BorderSet = tview.BorderSetDouble()
-	default:
-		return fmt.Errorf("unknown value: %q", s)
-	}
-	return nil
-}
-
-type SymbolSetWrapper struct{ scrollbar.SymbolSet }
-
-func (sw *SymbolSetWrapper) UnmarshalTOML(val any) error {
-	s, ok := val.(string)
-	if !ok {
-		return errInvalidType
-	}
-	switch s {
-	case "minimal":
-		sw.SymbolSet = scrollbar.SymbolSet{Thumb: "█", Begin: "▲", End: "▼"}
-	case "box_drawing", "boxdrawing", "box":
-		sw.SymbolSet = scrollbar.SymbolSet{Track: "│", Thumb: "█", Begin: "▲", End: "▼"}
-	case "vertical":
-		sw.SymbolSet = scrollbar.SymbolSetVertical()
-	case "double_vertical":
-		sw.SymbolSet = scrollbar.SymbolSetDoubleVertical()
-	default:
-		return fmt.Errorf("unknown value: %q", s)
-	}
-	return nil
-}
-
-type ScrollBarVisibilityWrapper struct{ list.ScrollBarVisibility }
-
-func (vw *ScrollBarVisibilityWrapper) UnmarshalTOML(val any) error {
-	s, ok := val.(string)
-	if !ok {
-		return errInvalidType
-	}
-	switch s {
-	case "automatic", "auto":
-		vw.ScrollBarVisibility = list.ScrollBarVisibilityAutomatic
-	case "always":
-		vw.ScrollBarVisibility = list.ScrollBarVisibilityAlways
-	case "never", "hidden", "off":
-		vw.ScrollBarVisibility = list.ScrollBarVisibilityNever
-	default:
-		return fmt.Errorf("unknown value: %q", s)
-	}
-	return nil
-}
-
 type (
 	HelpTheme struct {
 		ShortKeyStyle  StyleWrapper `toml:"short_key_style"`
@@ -192,40 +104,14 @@ type (
 		ActiveStyle StyleWrapper `toml:"active_style"`
 	}
 
-	TitleTheme struct {
-		ThemeStyle
-		Alignment AlignmentWrapper `toml:"alignment"`
-	}
-
-	FooterTheme struct {
-		ThemeStyle
-		Alignment AlignmentWrapper `toml:"alignment"`
-	}
-
-	BorderTheme struct {
-		ThemeStyle
-		Enabled bool   `toml:"enabled"`
-		Padding [4]int `toml:"padding"`
-
-		NormalSet BorderSetWrapper `toml:"normal_set"`
-		ActiveSet BorderSetWrapper `toml:"active_set"`
-	}
-
-	GuildsTreeTheme struct {
-		CommonTreeTheme
-		AutoExpandFolders bool `toml:"auto_expand_folders"`
-	}
-
 	MessagesListTheme struct {
-		ReplyIndicator     string       `toml:"reply_indicator"`
-		ForwardedIndicator string       `toml:"forwarded_indicator"`
-		AuthorStyle        StyleWrapper `toml:"author_style"`
-		MentionStyle       StyleWrapper `toml:"mention_style"`
-		EmojiStyle         StyleWrapper `toml:"emoji_style"`
-		URLStyle           StyleWrapper `toml:"url_style"`
-		AttachmentStyle    StyleWrapper `toml:"attachment_style"`
-		ReactionStyle      StyleWrapper `toml:"reaction_style"`
-		OwnReactionStyle   StyleWrapper `toml:"own_reaction_style"`
+		AuthorStyle      StyleWrapper `toml:"author_style"`
+		MentionStyle     StyleWrapper `toml:"mention_style"`
+		EmojiStyle       StyleWrapper `toml:"emoji_style"`
+		URLStyle         StyleWrapper `toml:"url_style"`
+		AttachmentStyle  StyleWrapper `toml:"attachment_style"`
+		ReactionStyle    StyleWrapper `toml:"reaction_style"`
+		OwnReactionStyle StyleWrapper `toml:"own_reaction_style"`
 
 		MessageStyle         StyleWrapper `toml:"message_style"`
 		SelectedMessageStyle StyleWrapper `toml:"selected_message_style"`
@@ -245,9 +131,6 @@ type (
 	}
 
 	MentionsListTheme struct {
-		MinWidth  uint `toml:"min_width"`
-		MaxHeight uint `toml:"max_height"`
-
 		SelectedStyle StyleWrapper `toml:"selected_style"`
 	}
 
@@ -257,17 +140,15 @@ type (
 	}
 
 	ScrollBarTheme struct {
-		Visibility ScrollBarVisibilityWrapper `toml:"visibility"`
-		SymbolSet  SymbolSetWrapper           `toml:"symbol_set"`
-		TrackStyle StyleWrapper               `toml:"track_style"`
-		ThumbStyle StyleWrapper               `toml:"thumb_style"`
+		TrackStyle StyleWrapper `toml:"track_style"`
+		ThumbStyle StyleWrapper `toml:"thumb_style"`
 	}
 
 	Theme struct {
-		Title        TitleTheme        `toml:"title"`
-		Footer       FooterTheme       `toml:"footer"`
-		Border       BorderTheme       `toml:"border"`
-		GuildsTree   GuildsTreeTheme   `toml:"guilds_tree"`
+		Title        ThemeStyle        `toml:"title"`
+		Footer       ThemeStyle        `toml:"footer"`
+		Border       ThemeStyle        `toml:"border"`
+		GuildsTree   CommonTreeTheme   `toml:"guilds_tree"`
 		MembersTree  CommonTreeTheme   `toml:"members_tree"`
 		ScrollBar    ScrollBarTheme    `toml:"scroll_bar"`
 		MessagesList MessagesListTheme `toml:"messages_list"`
@@ -278,7 +159,6 @@ type (
 )
 
 type CommonTreeTheme struct {
-	Graphics      bool   `toml:"graphics"`
 	GraphicsColor string `toml:"graphics_color"`
 
 	OnlineStyle  StyleWrapper `toml:"online_style"`

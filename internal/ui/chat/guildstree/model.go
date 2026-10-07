@@ -54,7 +54,8 @@ func (m Model) View(focused bool) tview.Widget {
 		m.root,
 		m.selectionState,
 		m.cfg,
-		m.cfg.Theme.GuildsTree.CommonTreeTheme,
+		m.cfg.Theme.GuildsTree,
+		m.cfg.UI.GuildsTree.Graphics,
 		m.cfg.Keybinds.GuildsTree.TreeKeybinds,
 		focused,
 		onChange,
@@ -163,7 +164,7 @@ func (m Model) createFolderNode(folder gateway.GuildFolder, guildsByID map[disco
 		name = folder.Name
 	}
 
-	folderNode := tree.NewNode(name).SetExpanded(m.cfg.Theme.GuildsTree.AutoExpandFolders)
+	folderNode := tree.NewNode(name).SetExpanded(m.cfg.UI.GuildsTree.AutoExpandFolders)
 	if folder.Color != 0 {
 		folderStyle := tcell.StyleDefault.Foreground(tcell.NewHexColor(int32(folder.Color)))
 		m.setNodeLineStyle(folderNode, folderStyle)

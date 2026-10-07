@@ -69,6 +69,47 @@ arrows = ["◀", "▶"]
 # Whether clicking an arrow selects the tab next to the active one.
 clickable_arrows = true
 
+[ui.title]
+# "left", "center" or "right".
+alignment = "left"
+
+[ui.footer]
+alignment = "left"
+
+[ui.border]
+enabled = true
+padding = [0, 0, 1, 1] # [top, bottom, left, right]
+# "hidden", "plain", "round", "thick" or "double".
+normal_set = "round"
+active_set = "round"
+
+[ui.guilds_tree]
+auto_expand_folders = true
+# Give tree-like shape
+graphics = true
+
+[ui.members_tree]
+# Give tree-like shape
+graphics = true
+
+[ui.scroll_bar]
+visibility = "auto"
+# "minimal", "box_drawing", "vertical" or "double_vertical"
+symbol_set = "box_drawing"
+
+[ui.messages_list]
+reply_indicator = ">"
+forwarded_indicator = "<"
+
+[ui.mentions_list]
+# Note: width and height are capped to the available space
+# Minimum width
+# 0 = make the list as wide as possible
+min_width = 20
+# Maximum height
+# 0 = make the list as tall as needed
+max_height = 0
+
 [timestamps]
 enabled = true
 # https://pkg.go.dev/time#Layout
@@ -259,31 +300,18 @@ select_bottom = "end"
 
 # style = { foreground = "", background = "", attributes = "" or ["",""],  underline = "", underline_color = "" }
 [theme.title]
-alignment = "left"                                           # `"left"`, `"center"`, or `"right"`.
 normal_style = { attributes = "dim" }
 active_style = { foreground = "green", attributes = "bold" }
 
 [theme.footer]
-alignment = "left"
 normal_style = { attributes = "dim" }
 active_style = { foreground = "green", attributes = "bold" }
 
 [theme.border]
-enabled = true
-padding = [0, 0, 1, 1] # [top, bottom, left, right]
-
 normal_style = { attributes = "dim" }
 active_style = { foreground = "green", attributes = "bold" }
 
-# `"hidden"`, `"plain"`, `"round"`, `"thick"`, or `"double"`.
-normal_set = "round"
-active_set = "round"
-
 [theme.guilds_tree]
-auto_expand_folders = true
-
-# Give tree-like shape
-graphics = true
 graphics_color = "default"
 
 # Direct-message recipient presence styles.
@@ -293,8 +321,6 @@ dnd_style = { foreground = "red" }
 offline_style = { foreground = "gray" }
 
 [theme.members_tree]
-# Give tree-like shape
-graphics = true
 graphics_color = "default"
 
 # Styles of the status dot before each member.
@@ -304,16 +330,10 @@ dnd_style = { foreground = "red" }
 offline_style = { foreground = "gray" }
 
 [theme.scroll_bar]
-visibility = "auto"
-# "minimal", "box_drawing", "vertical", or "double_vertical"
-symbol_set = "box_drawing"
 track_style = { attributes = "dim" }
 thumb_style = {}
 
 [theme.messages_list]
-reply_indicator = ">"
-forwarded_indicator = "<"
-
 mention_style = { foreground = "blue", attributes = "bold" }
 emoji_style = { foreground = "green" }
 url_style = { foreground = "blue" }
@@ -336,14 +356,6 @@ footer_style = { attributes = ["dim", "italic"] }
 url_style = { foreground = "blue", underline = "solid" }
 
 [theme.mentions_list]
-# Note: width and height are capped to the avaliable space
-# Minimum width
-# 0 = make the list as wide as possible
-min_width = 20
-# Maximum height
-# 0 = make the list as tall as needed
-max_height = 0
-
 selected_style = { attributes = "reverse" }
 
 [theme.dialog]

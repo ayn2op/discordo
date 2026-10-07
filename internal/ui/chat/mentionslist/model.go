@@ -22,9 +22,9 @@ func NewModel(cfg *config.Config) Model {
 
 // View shows the list in a box whose bottom corners join the composer's border below it.
 func (m Model) View() tview.Widget {
-	set := m.cfg.Theme.Border.NormalSet.BorderSet
+	set := m.cfg.UI.Border.NormalSet.BorderSet
 	set.BottomLeft, set.BottomRight = set.BottomT, set.BottomT
-	return ui.Box(m.listView(), &m.cfg.Theme, false).Title("Mentions").BorderSet(set)
+	return ui.Box(m.listView(), m.cfg, false).Title("Mentions").BorderSet(set)
 }
 
 func (Model) Init() tview.Cmd { return nil }

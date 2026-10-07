@@ -85,7 +85,7 @@ func (m *Model) SetChannel(channel *discord.Channel) tview.Cmd {
 func (m Model) View(focused bool) tview.Widget {
 	onChange := func(c tree.Change) tview.Msg { return Msg(c) }
 	onSelect := func(n *tree.Node) tview.Msg { return SelectedMsg{Node: n} }
-	return uitree.New(m.root, m.selectionState, m.cfg, m.cfg.Theme.MembersTree, m.cfg.Keybinds.MembersTree, focused, onChange, onSelect).Title("Members")
+	return uitree.New(m.root, m.selectionState, m.cfg, m.cfg.Theme.MembersTree, m.cfg.UI.MembersTree.Graphics, m.cfg.Keybinds.MembersTree, focused, onChange, onSelect).Title("Members")
 }
 
 // Update returns m changed in response to msg and a command to run, or nil.

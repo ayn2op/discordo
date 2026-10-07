@@ -28,17 +28,17 @@ func (Model) Init() tview.Cmd { return nil }
 func (m Model) View(onSelect func(picker.Item) tview.Msg, onCancel tview.Msg) tview.Widget {
 	cfg := m.cfg
 	bar := scrollbar.New().
-		SymbolSet(cfg.Theme.ScrollBar.SymbolSet.SymbolSet).
+		SymbolSet(cfg.UI.ScrollBar.SymbolSet.SymbolSet).
 		Style(cfg.Theme.ScrollBar.TrackStyle.Style).
 		ThumbStyle(cfg.Theme.ScrollBar.ThumbStyle.Style)
 	p := picker.New(m.items, &m.searchState).
-		ScrollBar(bar, cfg.Theme.ScrollBar.Visibility.ScrollBarVisibility).
+		ScrollBar(bar, cfg.UI.ScrollBar.Visibility.ScrollBarVisibility).
 		Keybind(bindKeys(cfg.Keybinds.Picker)).
 		ListKeybind(ui.SelectionKeybind(cfg.Keybinds.Picker.SelectionKeybinds)).
 		OnChange(func(c picker.Change) tview.Msg { return changeMsg(c) }).
 		OnSelect(onSelect).
 		OnCancel(onCancel)
-	return ui.Box(p, &cfg.Theme, true).Title(m.title)
+	return ui.Box(p, cfg, true).Title(m.title)
 }
 
 func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {

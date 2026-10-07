@@ -152,7 +152,7 @@ func (m *Model) box(focused bool) box.Widget {
 		Keybind(m.editAction).
 		Focused(focused && !m.disabled).
 		OnChange(func(a textarea.Change) tview.Msg { return editMsg(a) })
-	return ui.Box(text, &m.cfg.Theme, focused).Title(m.title()).Footer(m.footer())
+	return ui.Box(text, m.cfg, focused).Title(m.title()).Footer(m.footer())
 }
 
 // title returns what the composer is doing: editing, replying, or nothing.
@@ -523,16 +523,16 @@ func (p mentionsPopup) Handle(msg tview.Msg, area tview.Rectangle) tview.Msg {
 func (p mentionsPopup) area(area tview.Rectangle) tview.Rectangle {
 	c := p.c
 	borders := 0
-	if c.cfg.Theme.Border.Enabled {
+	if c.cfg.UI.Border.Enabled {
 		borders = 1
 	}
 	x, _ := c.frame()
 	maxW, maxH := area.Width, area.Height-c.Height()
-	if t := int(c.cfg.Theme.MentionsList.MaxHeight); t != 0 {
+	if t := int(c.cfg.UI.MentionsList.MaxHeight); t != 0 {
 		maxH = min(maxH, t)
 	}
-	h := min(c.mentionsList.ItemCount()+borders, maxH) + borders + c.cfg.Theme.Border.Padding[1]
-	w := int(c.cfg.Theme.MentionsList.MinWidth)
+	h := min(c.mentionsList.ItemCount()+borders, maxH) + borders + c.cfg.UI.Border.Padding[1]
+	w := int(c.cfg.UI.MentionsList.MinWidth)
 	if w == 0 {
 		w = maxW
 	} else {

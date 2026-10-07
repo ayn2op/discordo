@@ -12,24 +12,25 @@ import (
 	"github.com/ayn2op/tview/box"
 )
 
-// Box returns child in a box styled by the theme, highlighted while focused.
-func Box(child tview.Widget, theme *config.Theme, focused bool) box.Widget {
-	padding := theme.Border.Padding
+// Box returns child in a box laid out and styled by cfg, highlighted while focused.
+func Box(child tview.Widget, cfg *config.Config, focused bool) box.Widget {
+	ui, theme := cfg.UI, cfg.Theme
+	padding := ui.Border.Padding
 	b := box.New(child).
 		Padding(padding[0], padding[1], padding[2], padding[3]).
-		TitleAlignment(theme.Title.Alignment.Alignment).
-		FooterAlignment(theme.Footer.Alignment.Alignment)
-	if theme.Border.Enabled {
+		TitleAlignment(ui.Title.Alignment.Alignment).
+		FooterAlignment(ui.Footer.Alignment.Alignment)
+	if ui.Border.Enabled {
 		b = b.Borders(tview.BordersAll)
 	}
 	if focused {
 		return b.BorderStyle(theme.Border.ActiveStyle.Style).
-			BorderSet(theme.Border.ActiveSet.BorderSet).
+			BorderSet(ui.Border.ActiveSet.BorderSet).
 			TitleStyle(theme.Title.ActiveStyle.Style).
 			FooterStyle(theme.Footer.ActiveStyle.Style)
 	}
 	return b.BorderStyle(theme.Border.NormalStyle.Style).
-		BorderSet(theme.Border.NormalSet.BorderSet).
+		BorderSet(ui.Border.NormalSet.BorderSet).
 		TitleStyle(theme.Title.NormalStyle.Style).
 		FooterStyle(theme.Footer.NormalStyle.Style)
 }

@@ -11,11 +11,11 @@ import (
 	"github.com/gdamore/tcell/v3"
 )
 
-// New returns a boxed tree of the nodes under root, drawn with theme and moved with kbs, that turns changes and selected nodes into the messages onChange and onSelect return.
-func New(root *tree.Node, selectionState tree.SelectionState, cfg *config.Config, theme config.CommonTreeTheme, kbs config.TreeKeybinds, focused bool, onChange func(tree.Change) tview.Msg, onSelect func(*tree.Node) tview.Msg) box.Widget {
-	set := cfg.Theme.Border.NormalSet.BorderSet
+// New returns a boxed tree of the nodes under root, drawn with theme and graphics and moved with kbs, that turns changes and selected nodes into the messages onChange and onSelect return.
+func New(root *tree.Node, selectionState tree.SelectionState, cfg *config.Config, theme config.CommonTreeTheme, graphics bool, kbs config.TreeKeybinds, focused bool, onChange func(tree.Change) tview.Msg, onSelect func(*tree.Node) tview.Msg) box.Widget {
+	set := cfg.UI.Border.NormalSet.BorderSet
 	if focused {
-		set = cfg.Theme.Border.ActiveSet.BorderSet
+		set = cfg.UI.Border.ActiveSet.BorderSet
 	}
 	t := tree.New(root, selectionState).
 		TopLevel(1).
@@ -24,14 +24,14 @@ func New(root *tree.Node, selectionState tree.SelectionState, cfg *config.Config
 			Collapsed: cfg.Sidebar.Markers.Collapsed,
 			Leaf:      cfg.Sidebar.Markers.Leaf,
 		}).
-		Graphics(theme.Graphics).
+		Graphics(graphics).
 		GraphicsSet(set).
 		GraphicsStyle(tcell.StyleDefault.Foreground(tcell.GetColor(theme.GraphicsColor))).
 		Keybind(bindKeys(kbs)).
 		Focused(focused).
 		OnChange(onChange).
 		OnSelect(onSelect)
-	return ui.Box(t, &cfg.Theme, focused)
+	return ui.Box(t, cfg, focused)
 }
 
 func bindKeys(kbs config.TreeKeybinds) func(tview.KeyMsg) tree.Action {

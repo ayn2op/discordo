@@ -65,7 +65,7 @@ func (m Model) View() tview.Widget {
 		Content(content).
 		Keybind(tabAction).
 		OnSelect(func(i int) tview.Msg { return selectTabMsg(i) })
-	return ui.Box(t, &m.cfg.Theme, false)
+	return ui.Box(t, m.cfg, false)
 }
 
 // tabs returns the login methods as tabs set up by the tabs config.
