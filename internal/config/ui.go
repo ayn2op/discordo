@@ -8,146 +8,195 @@ import (
 	"github.com/ayn2op/tview/scrollbar"
 )
 
+// enum pairs the names an option accepts with their values; a value is written back as the first of its names.
+type enum[T comparable] []struct {
+	name  string
+	value T
+}
+
+func (e enum[T]) parse(name string) (T, error) {
+	for _, p := range e {
+		if p.name == name {
+			return p.value, nil
+		}
+	}
+	var zero T
+	return zero, fmt.Errorf("unknown value: %q", name)
+}
+
+func (e enum[T]) text(value T) ([]byte, error) {
+	for _, p := range e {
+		if p.value == value {
+			return []byte(p.name), nil
+		}
+	}
+	return nil, fmt.Errorf("unknown value: %v", value)
+}
+
+var (
+	boxDrawing = scrollbar.SymbolSet{Track: "│", Thumb: "█", Begin: "▲", End: "▼"}
+
+	alignments = enum[tview.Alignment]{
+		{"left", tview.AlignmentLeft},
+		{"center", tview.AlignmentCenter},
+		{"right", tview.AlignmentRight},
+	}
+	borderSets = enum[tview.BorderSet]{
+		{"hidden", tview.BorderSetHidden()},
+		{"plain", tview.BorderSetPlain()},
+		{"round", tview.BorderSetRound()},
+		{"thick", tview.BorderSetThick()},
+		{"double", tview.BorderSetDouble()},
+	}
+	symbolSets = enum[scrollbar.SymbolSet]{
+		{"minimal", scrollbar.SymbolSet{Thumb: "█", Begin: "▲", End: "▼"}},
+		{"box_drawing", boxDrawing},
+		{"boxdrawing", boxDrawing},
+		{"box", boxDrawing},
+		{"vertical", scrollbar.SymbolSetVertical()},
+		{"double_vertical", scrollbar.SymbolSetDoubleVertical()},
+	}
+	scrollBarVisibilities = enum[list.ScrollBarVisibility]{
+		{"auto", list.ScrollBarVisibilityAutomatic},
+		{"automatic", list.ScrollBarVisibilityAutomatic},
+		{"always", list.ScrollBarVisibilityAlways},
+		{"never", list.ScrollBarVisibilityNever},
+		{"hidden", list.ScrollBarVisibilityNever},
+		{"off", list.ScrollBarVisibilityNever},
+	}
+)
+
 type AlignmentWrapper struct{ tview.Alignment }
 
-func (aw *AlignmentWrapper) UnmarshalTOML(v any) error {
-	s, ok := v.(string)
-	if !ok {
-		return errInvalidType
-	}
-	switch s {
-	case "left":
-		aw.Alignment = tview.AlignmentLeft
-	case "center":
-		aw.Alignment = tview.AlignmentCenter
-	case "right":
-		aw.Alignment = tview.AlignmentRight
-	default:
-		return fmt.Errorf("unknown value: %q", s)
-	}
-	return nil
+func (aw *AlignmentWrapper) UnmarshalText(text []byte) (err error) {
+	aw.Alignment, err = alignments.parse(string(text))
+	return err
 }
+
+func (aw AlignmentWrapper) MarshalText() ([]byte, error) { return alignments.text(aw.Alignment) }
 
 type BorderSetWrapper struct{ tview.BorderSet }
 
-func (bw *BorderSetWrapper) UnmarshalTOML(val any) error {
-	s, ok := val.(string)
-	if !ok {
-		return errInvalidType
-	}
-	switch s {
-	case "hidden":
-		bw.BorderSet = tview.BorderSetHidden()
-	case "plain":
-		bw.BorderSet = tview.BorderSetPlain()
-	case "round":
-		bw.BorderSet = tview.BorderSetRound()
-	case "thick":
-		bw.BorderSet = tview.BorderSetThick()
-	case "double":
-		bw.BorderSet = tview.BorderSetDouble()
-	default:
-		return fmt.Errorf("unknown value: %q", s)
-	}
-	return nil
+func (bw *BorderSetWrapper) UnmarshalText(text []byte) (err error) {
+	bw.BorderSet, err = borderSets.parse(string(text))
+	return err
 }
+
+func (bw BorderSetWrapper) MarshalText() ([]byte, error) { return borderSets.text(bw.BorderSet) }
 
 type SymbolSetWrapper struct{ scrollbar.SymbolSet }
 
-func (sw *SymbolSetWrapper) UnmarshalTOML(val any) error {
-	s, ok := val.(string)
-	if !ok {
-		return errInvalidType
-	}
-	switch s {
-	case "minimal":
-		sw.SymbolSet = scrollbar.SymbolSet{Thumb: "█", Begin: "▲", End: "▼"}
-	case "box_drawing", "boxdrawing", "box":
-		sw.SymbolSet = scrollbar.SymbolSet{Track: "│", Thumb: "█", Begin: "▲", End: "▼"}
-	case "vertical":
-		sw.SymbolSet = scrollbar.SymbolSetVertical()
-	case "double_vertical":
-		sw.SymbolSet = scrollbar.SymbolSetDoubleVertical()
-	default:
-		return fmt.Errorf("unknown value: %q", s)
-	}
-	return nil
+func (sw *SymbolSetWrapper) UnmarshalText(text []byte) (err error) {
+	sw.SymbolSet, err = symbolSets.parse(string(text))
+	return err
 }
+
+func (sw SymbolSetWrapper) MarshalText() ([]byte, error) { return symbolSets.text(sw.SymbolSet) }
 
 type ScrollBarVisibilityWrapper struct{ list.ScrollBarVisibility }
 
-func (vw *ScrollBarVisibilityWrapper) UnmarshalTOML(val any) error {
-	s, ok := val.(string)
-	if !ok {
-		return errInvalidType
-	}
-	switch s {
-	case "automatic", "auto":
-		vw.ScrollBarVisibility = list.ScrollBarVisibilityAutomatic
-	case "always":
-		vw.ScrollBarVisibility = list.ScrollBarVisibilityAlways
-	case "never", "hidden", "off":
-		vw.ScrollBarVisibility = list.ScrollBarVisibilityNever
-	default:
-		return fmt.Errorf("unknown value: %q", s)
-	}
-	return nil
+func (vw *ScrollBarVisibilityWrapper) UnmarshalText(text []byte) (err error) {
+	vw.ScrollBarVisibility, err = scrollBarVisibilities.parse(string(text))
+	return err
+}
+
+func (vw ScrollBarVisibilityWrapper) MarshalText() ([]byte, error) {
+	return scrollBarVisibilities.text(vw.ScrollBarVisibility)
 }
 
 type (
 	UIConfig struct {
-		Tabs         TabsConfig         `toml:"tabs"`
-		Title        TitleConfig        `toml:"title"`
-		Footer       TitleConfig        `toml:"footer"`
-		Border       BorderConfig       `toml:"border"`
-		GuildsTree   GuildsTreeConfig   `toml:"guilds_tree"`
-		MembersTree  TreeConfig         `toml:"members_tree"`
-		ScrollBar    ScrollBarConfig    `toml:"scroll_bar"`
-		MessagesList MessagesListConfig `toml:"messages_list"`
-		MentionsList MentionsListConfig `toml:"mentions_list"`
+		// The tabs of the login screen.
+		Tabs         TabsUIConfig         `toml:"tabs"`
+		Title        TitleUIConfig        `toml:"title"`
+		Footer       TitleUIConfig        `toml:"footer"`
+		Border       BorderUIConfig       `toml:"border"`
+		GuildsTree   GuildsTreeUIConfig   `toml:"guilds_tree"`
+		MembersTree  TreeUIConfig         `toml:"members_tree"`
+		ScrollBar    ScrollBarUIConfig    `toml:"scroll_bar"`
+		MessagesList MessagesListUIConfig `toml:"messages_list"`
+		// The list of mention suggestions above the composer. Its width and height are capped to the available space.
+		MentionsList MentionsListUIConfig `toml:"mentions_list"`
 	}
 
-	TabsConfig struct {
-		Alignment       AlignmentWrapper `toml:"alignment"`
-		Wrap            bool             `toml:"wrap"`
-		Separator       string           `toml:"separator"`
-		Padding         [2]string        `toml:"padding"`
-		Arrows          [2]string        `toml:"arrows"`
-		ClickableArrows bool             `toml:"clickable_arrows"`
+	TabsUIConfig struct {
+		// Where tabs that fit are placed: "left", "center" or "right".
+		Alignment AlignmentWrapper `toml:"alignment"`
+		// Whether moving past the last tab selects the first, and past the first selects the last.
+		Wrap bool `toml:"wrap"`
+		// Text between tabs.
+		Separator string `toml:"separator"`
+		// Text on either side of each tab: [left, right]
+		Padding [2]string `toml:"padding"`
+		// Arrows shown while tabs are hidden past an end: [start, end]. An empty string turns that arrow off.
+		Arrows [2]string `toml:"arrows"`
+		// Whether clicking an arrow selects the tab next to the active one.
+		ClickableArrows bool `toml:"clickable_arrows"`
 	}
 
-	TitleConfig struct {
+	TitleUIConfig struct {
+		// "left", "center" or "right".
 		Alignment AlignmentWrapper `toml:"alignment"`
 	}
 
-	BorderConfig struct {
-		Enabled   bool             `toml:"enabled"`
-		Padding   [4]int           `toml:"padding"`
+	BorderUIConfig struct {
+		Enabled bool `toml:"enabled"`
+		// [top, bottom, left, right]
+		Padding [4]int `toml:"padding"`
+		// "hidden", "plain", "round", "thick" or "double".
 		NormalSet BorderSetWrapper `toml:"normal_set"`
+		// The set used while the widget is focused.
 		ActiveSet BorderSetWrapper `toml:"active_set"`
 	}
 
-	TreeConfig struct {
+	TreeUIConfig struct {
+		// Whether to draw lines that give the tree its shape.
 		Graphics bool `toml:"graphics"`
 	}
 
-	GuildsTreeConfig struct {
-		TreeConfig
+	GuildsTreeUIConfig struct {
+		TreeUIConfig
 		AutoExpandFolders bool `toml:"auto_expand_folders"`
 	}
 
-	ScrollBarConfig struct {
+	ScrollBarUIConfig struct {
+		// "auto", "always" or "never".
 		Visibility ScrollBarVisibilityWrapper `toml:"visibility"`
-		SymbolSet  SymbolSetWrapper           `toml:"symbol_set"`
+		// "minimal", "box_drawing", "vertical" or "double_vertical".
+		SymbolSet SymbolSetWrapper `toml:"symbol_set"`
 	}
 
-	MessagesListConfig struct {
+	MessagesListUIConfig struct {
 		ReplyIndicator     string `toml:"reply_indicator"`
 		ForwardedIndicator string `toml:"forwarded_indicator"`
 	}
 
-	MentionsListConfig struct {
-		MinWidth  uint `toml:"min_width"`
+	MentionsListUIConfig struct {
+		// Minimum width. 0 makes the list as wide as possible.
+		MinWidth uint `toml:"min_width"`
+		// Maximum height. 0 makes the list as tall as needed.
 		MaxHeight uint `toml:"max_height"`
 	}
 )
+
+func defaultUI() UIConfig {
+	left := TitleUIConfig{AlignmentWrapper{tview.AlignmentLeft}}
+	round := BorderSetWrapper{tview.BorderSetRound()}
+	return UIConfig{
+		Tabs: TabsUIConfig{
+			Alignment:       AlignmentWrapper{tview.AlignmentCenter},
+			Separator:       "│",
+			Padding:         [2]string{" ", " "},
+			Arrows:          [2]string{"◀", "▶"},
+			ClickableArrows: true,
+		},
+		Title:        left,
+		Footer:       left,
+		Border:       BorderUIConfig{Enabled: true, Padding: [4]int{0, 0, 1, 1}, NormalSet: round, ActiveSet: round},
+		GuildsTree:   GuildsTreeUIConfig{TreeUIConfig{Graphics: true}, true},
+		MembersTree:  TreeUIConfig{Graphics: true},
+		ScrollBar:    ScrollBarUIConfig{SymbolSet: SymbolSetWrapper{boxDrawing}},
+		MessagesList: MessagesListUIConfig{ReplyIndicator: ">", ForwardedIndicator: "<"},
+		MentionsList: MentionsListUIConfig{MinWidth: 20},
+	}
+}

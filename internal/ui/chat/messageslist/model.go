@@ -670,7 +670,7 @@ const (
 	embedLineURL
 )
 
-func embedLineStyles(baseStyle tview.Style, theme config.MessagesListEmbedsTheme) [8]tview.Style {
+func embedLineStyles(baseStyle tview.Style, theme config.MessagesListEmbedsThemeConfig) [8]tview.Style {
 	styles := [8]tview.Style{}
 	styles[embedLineProvider] = tview.MergeStyle(baseStyle, theme.ProviderStyle.Style)
 	styles[embedLineAuthor] = tview.MergeStyle(baseStyle, theme.AuthorStyle.Style)

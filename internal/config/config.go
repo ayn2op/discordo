@@ -1,7 +1,6 @@
 package config
 
 import (
-	_ "embed"
 	"fmt"
 	"log/slog"
 	"mime"
@@ -58,30 +57,41 @@ func (types MIMETypes) Has(mediaType string) bool {
 
 type (
 	Timestamps struct {
-		Enabled bool   `toml:"enabled"`
-		Format  string `toml:"format"`
+		Enabled bool `toml:"enabled"`
+		// https://pkg.go.dev/time#Layout
+		Format string `toml:"format"`
 	}
 
 	AttachmentsConfig struct {
-		ShowLinks        bool      `toml:"show_links"`
+		ShowLinks bool `toml:"show_links"`
+		// Attachment MIME types that can be opened or downloaded without confirmation.
+		// Exact types and wildcards such as "image/*" are supported.
 		AllowedMIMETypes MIMETypes `toml:"allowed_mime_types"`
-		Preview          bool      `toml:"preview"`
-		Protocol         string    `toml:"protocol"`
+		// Whether to draw image attachments and embedded images below their messages.
+		Preview bool `toml:"preview"`
+		// How previews are drawn: "auto", "kitty" or "halfblocks".
+		Protocol string `toml:"protocol"`
 	}
 
 	DateSeparator struct {
-		Enabled   bool   `toml:"enabled"`
-		Format    string `toml:"format"`
+		Enabled bool `toml:"enabled"`
+		// https://pkg.go.dev/time#Layout
+		Format string `toml:"format"`
+		// The fill character used on both sides of the date label.
 		Character string `toml:"character"`
 	}
 
 	Notifications struct {
-		Enabled       bool `toml:"enabled"`
+		Enabled bool `toml:"enabled"`
+		// Whether to also notify about messages in the open channel while the terminal window is unfocused.
+		// Requires a terminal that reports focus.
 		WhenUnfocused bool `toml:"when_unfocused"`
 	}
 
 	TypingIndicator struct {
-		Send    bool `toml:"send"`
+		// Whether to send typing status.
+		Send bool `toml:"send"`
+		// Whether to receive typing status.
 		Receive bool `toml:"receive"`
 	}
 
@@ -106,21 +116,27 @@ type (
 	}
 
 	MarkdownConfig struct {
-		Enabled      bool   `toml:"enabled"`
-		MaskSpoilers bool   `toml:"mask_spoilers"`
-		Theme        string `toml:"theme"`
+		// Whether to parse and render markdown in messages.
+		Enabled bool `toml:"enabled"`
+		// Replace spoiler contents with a placeholder.
+		MaskSpoilers bool `toml:"mask_spoilers"`
+		// Theme for fenced code blocks. Available themes: https://xyproto.github.io/splash/docs
+		Theme string `toml:"theme"`
 	}
 
 	HelpConfig struct {
-		Enabled          bool   `toml:"enabled"`
-		CompactModifiers bool   `toml:"compact_modifiers"`
-		Padding          [2]int `toml:"padding"`
-		Separator        string `toml:"separator"`
+		// Whether to show keybind help.
+		Enabled bool `toml:"enabled"`
+		// Show compact key modifiers in help, e.g. "^x" instead of "ctrl+x".
+		CompactModifiers bool `toml:"compact_modifiers"`
+		// [left, right]
+		Padding   [2]int `toml:"padding"`
+		Separator string `toml:"separator"`
 	}
 
 	ComposerConfig struct {
-		// MaxHeight caps how tall (in newline-separated rows) the input grows before it starts scrolling internally.
-		// Must be >= 1; values <= 0 fall back to the default.
+		// Maximum height (in newline-separated rows) the composer grows to before it starts scrolling internally.
+		// Set to 1 for a fixed single-line input. Values below 1 fall back to 10.
 		MaxHeight int `toml:"max_height"`
 	}
 
@@ -141,29 +157,37 @@ type (
 
 	// PaneConfig is a side pane that can be toggled at runtime.
 	PaneConfig struct {
-		// Visible controls whether the pane is shown by default at start-up.
+		// Whether the pane is visible at start-up. It can still be toggled at runtime with its toggle keybind.
 		Visible bool `toml:"visible"`
-		// WidthPercent is the percentage of the total window width that the pane occupies.
+		// Percentage (%) of the available width used by the pane.
+		// Valid values are 1-99. Invalid values fall back to 20.
 		WidthPercent int `toml:"width_percent"`
 	}
 
 	SidebarConfig struct {
 		PaneConfig
 		Markers SidebarMarkersConfig `toml:"markers"`
+		// Indentation for different item types.
 		Indents SidebarIndentsConfig `toml:"indents"`
 	}
 
 	Config struct {
-		AutoFocus bool   `toml:"auto_focus"`
-		Mouse     bool   `toml:"mouse"`
-		Editor    string `toml:"editor"`
+		// Whether to focus the composer automatically when a channel is selected.
+		// Set to false to preview channels without moving focus.
+		AutoFocus bool `toml:"auto_focus"`
+		// Whether to enable the mouse.
+		Mouse bool `toml:"mouse"`
+		// The program opened by the `composer.open_editor` keybind. "default" uses `$EDITOR`.
+		Editor string `toml:"editor"`
 
+		// "default" (unknown), "online", "dnd", "idle", "invisible" or "offline".
 		Status           discord.Status `toml:"status"`
 		HideBlockedUsers bool           `toml:"hide_blocked_users"`
 
-		// Use 0 to disable
+		// The maximum number of members in the mention autocomplete list. 0 disables it.
 		AutocompleteLimit uint8 `toml:"autocomplete_limit"`
-		MessagesLimit     uint8 `toml:"messages_limit"`
+		// The number of messages to fetch when a text-based channel is selected, from 1 to 100.
+		MessagesLimit uint8 `toml:"messages_limit"`
 
 		Attachments AttachmentsConfig `toml:"attachments"`
 
@@ -174,20 +198,81 @@ type (
 		DateSeparator   DateSeparator   `toml:"date_separator"`
 		Notifications   Notifications   `toml:"notifications"`
 		TypingIndicator TypingIndicator `toml:"typing_indicator"`
-		Sidebar         SidebarConfig   `toml:"sidebar"`
-		MembersTree     PaneConfig      `toml:"members_tree"`
-		Composer        ComposerConfig  `toml:"composer"`
+		// The guilds tree pane.
+		Sidebar SidebarConfig `toml:"sidebar"`
+		// The members tree pane, sized from the width right of the guilds tree.
+		MembersTree PaneConfig     `toml:"members_tree"`
+		Composer    ComposerConfig `toml:"composer"`
 
+		// Layout and behavior of the widgets.
 		UI    UIConfig `toml:"ui"`
 		Icons Icons    `toml:"icons"`
 
+		// Global shortcuts. A keybind is a key such as "ctrl+k", or a list of keys.
 		Keybinds Keybinds `toml:"keybinds"`
-		Theme    Theme    `toml:"theme"`
+		// Styles of the widgets, each written as
+		// `{ foreground = "", background = "", attributes = "" or ["", ""], underline = "", underline_color = "" }`.
+		Theme ThemeConfig `toml:"theme"`
 	}
 )
 
-//go:embed config.toml
-var defaultCfg []byte
+//go:generate go run gen.go
+
+// Default returns the default configuration.
+func Default() Config {
+	pane := PaneConfig{Visible: true, WidthPercent: 20}
+	return Config{
+		AutoFocus: true,
+		Mouse:     true,
+		Editor:    "default",
+
+		Status:           "default",
+		HideBlockedUsers: true,
+
+		AutocompleteLimit: 20,
+		MessagesLimit:     50,
+
+		Attachments: AttachmentsConfig{
+			ShowLinks:        true,
+			AllowedMIMETypes: MIMETypes{"image/*", "video/*"},
+			Preview:          true,
+			Protocol:         "auto",
+		},
+
+		Markdown:        MarkdownConfig{Enabled: true, Theme: "monokai"},
+		Help:            HelpConfig{Enabled: true, CompactModifiers: true, Padding: [2]int{1, 1}, Separator: " • "},
+		Picker:          PickerConfig{Width: 80, Height: 25},
+		Timestamps:      Timestamps{Enabled: true, Format: "3:04PM"},
+		DateSeparator:   DateSeparator{Enabled: true, Format: "January 2, 2006", Character: "─"},
+		Notifications:   Notifications{Enabled: true, WhenUnfocused: true},
+		TypingIndicator: TypingIndicator{Send: true, Receive: true},
+		Sidebar: SidebarConfig{
+			PaneConfig: pane,
+			Markers:    SidebarMarkersConfig{Expanded: "▾ ", Collapsed: "▸ "},
+			Indents:    SidebarIndentsConfig{Guild: 2, Category: 1, Channel: 2, Forum: 2, GroupDM: 1, DM: 2},
+		},
+		MembersTree: pane,
+		Composer:    ComposerConfig{MaxHeight: 10},
+
+		UI: defaultUI(),
+		Icons: Icons{
+			GuildText:       "#",
+			GuildVoice:      "♪ ",
+			GuildStageVoice: "♪ ",
+
+			GuildAnnouncementThread: "a-",
+			GuildPublicThread:       "› ",
+			GuildPrivateThread:      "› ",
+
+			GuildAnnouncement: "a-",
+			GuildForum:        "≡ ",
+			GuildStore:        "s-",
+		},
+
+		Keybinds: defaultKeybinds(),
+		Theme:    defaultTheme(),
+	}
+}
 
 var dir = sync.OnceValue(func() string {
 	path, err := os.UserConfigDir()
@@ -204,13 +289,7 @@ func DefaultPath() string {
 
 // Load reads the configuration file and parses it.
 func Load(path string) (*Config, error) {
-	cfg := Config{
-		Keybinds: defaultKeybinds(),
-	}
-	if err := toml.Unmarshal(defaultCfg, &cfg); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal default config: %w", err)
-	}
-
+	cfg := Default()
 	file, err := os.Open(path)
 	switch {
 	case os.IsNotExist(err):

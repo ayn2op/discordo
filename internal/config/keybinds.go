@@ -1,6 +1,9 @@
 package config
 
 import (
+	"encoding/json"
+	"strings"
+
 	"github.com/BurntSushi/toml"
 	"github.com/ayn2op/tview/keybind"
 )
@@ -35,14 +38,23 @@ func (k *Keybind) UnmarshalTOML(value any) error {
 	return nil
 }
 
-// desc builds a Keybind with only a help description; keys come from config.toml.
-func desc(s string) Keybind {
-	return Keybind{
-		Keybind: keybind.New().WithHelp("", s),
+// MarshalTOML writes the keys as UnmarshalTOML reads them: one key as a string, an unbound keybind as an empty one, and several keys as a list.
+func (k Keybind) MarshalTOML() ([]byte, error) {
+	if keys := k.Keys(); len(keys) > 1 {
+		return json.Marshal(keys)
 	}
+	return json.Marshal(strings.Join(k.Keys(), ""))
+}
+
+// key builds a Keybind bound to key, or unbound if key is empty, with desc as its help description.
+func key(key, desc string) Keybind {
+	k := Keybind{keybind.New().WithHelp("", desc)}
+	k.UnmarshalTOML(key)
+	return k
 }
 
 type ScrollKeybinds struct {
+	// Scroll the messages list without changing the selection.
 	ScrollUp     Keybind `toml:"scroll_up"`
 	ScrollDown   Keybind `toml:"scroll_down"`
 	ScrollTop    Keybind `toml:"scroll_top"`
@@ -64,6 +76,7 @@ type PickerKeybinds struct {
 
 type TreeKeybinds struct {
 	SelectionKeybinds
+	// Select the highlighted text-based channel, or expand or collapse the highlighted node.
 	SelectCurrent Keybind `toml:"select_current"`
 	YankID        Keybind `toml:"yank_id"`
 
@@ -74,6 +87,7 @@ type TreeKeybinds struct {
 
 type GuildsTreeKeybinds struct {
 	TreeKeybinds
+	// Highlight the previous or next unread guild or channel, wrapping around.
 	SelectPreviousUnread Keybind `toml:"select_previous_unread"`
 	SelectNextUnread     Keybind `toml:"select_next_unread"`
 }
@@ -82,32 +96,48 @@ type MessagesListKeybinds struct {
 	SelectionKeybinds
 	ScrollKeybinds
 
-	SelectReply  Keybind `toml:"select_reply"`
-	Reply        Keybind `toml:"reply"`
+	// Select the message that the selected message replies to.
+	SelectReply Keybind `toml:"select_reply"`
+	// Reply to the selected message.
+	Reply Keybind `toml:"reply"`
+	// Reply (with mention) to the selected message.
 	ReplyMention Keybind `toml:"reply_mention"`
 
 	Cancel Keybind `toml:"cancel"`
 	Edit   Keybind `toml:"edit"`
 
+	// Delete without confirmation. Unbound by default.
 	Delete        Keybind `toml:"delete"`
 	DeleteConfirm Keybind `toml:"delete_confirm"`
 
-	Open          Keybind `toml:"open"`
+	// Open attachments with their associated application. MIME types outside the
+	// allowlist require confirmation. Hyperlinks still use the browser.
+	Open Keybind `toml:"open"`
+	// Open attachments or hyperlinks in the browser.
 	OpenInBrowser Keybind `toml:"open_in_browser"`
-	Download      Keybind `toml:"download"`
+	// Download one of the selected message's attachments.
+	Download Keybind `toml:"download"`
 
+	// Yank (copy) the selected message's content/url/id.
 	YankContent Keybind `toml:"yank_content"`
 	YankURL     Keybind `toml:"yank_url"`
 	YankID      Keybind `toml:"yank_id"`
 }
 
 type ComposerKeybinds struct {
-	EditLast           Keybind `toml:"edit_last"`
-	Paste              Keybind `toml:"paste"`
-	Send               Keybind `toml:"send"`
-	Newline            Keybind `toml:"newline"`
-	Cancel             Keybind `toml:"cancel"`
-	TabComplete        Keybind `toml:"tab_complete"`
+	// Edit your newest editable message loaded in the current channel, with no age limit.
+	// Only when the composer is empty, with no reply, attachments, or edit in progress.
+	EditLast Keybind `toml:"edit_last"`
+	// Paste from clipboard (supports both text and images).
+	Paste Keybind `toml:"paste"`
+	Send  Keybind `toml:"send"`
+	// Insert a new line at the cursor.
+	Newline Keybind `toml:"newline"`
+	// Remove existing text or cancel reply.
+	Cancel Keybind `toml:"cancel"`
+	// Complete usernames when mentioning.
+	TabComplete Keybind `toml:"tab_complete"`
+	// Toggle whether a reply mentions its author.
 	ToggleReplyMention Keybind `toml:"toggle_reply_mention"`
 	Undo               Keybind `toml:"undo"`
 
@@ -120,130 +150,135 @@ type MentionsListKeybinds struct {
 }
 
 type Keybinds struct {
-	ToggleGuildsTree     Keybind `toml:"toggle_guilds_tree"`
+	// Hide/show the guilds tree.
+	ToggleGuildsTree Keybind `toml:"toggle_guilds_tree"`
+	// Hide/show the members tree.
 	ToggleMembersTree    Keybind `toml:"toggle_members_tree"`
 	ToggleChannelsPicker Keybind `toml:"toggle_channels_picker"`
-	ToggleHelp           Keybind `toml:"toggle_help"`
-	ToggleFullHelp       Keybind `toml:"toggle_full_help"`
-	Suspend              Keybind `toml:"suspend"`
+	// Hide/show keybind help.
+	ToggleHelp Keybind `toml:"toggle_help"`
+	// Switch between compact and full keybind help.
+	ToggleFullHelp Keybind `toml:"toggle_full_help"`
+	Suspend        Keybind `toml:"suspend"`
 
 	FocusGuildsTree   Keybind `toml:"focus_guilds_tree"`
 	FocusMembersTree  Keybind `toml:"focus_members_tree"`
 	FocusMessagesList Keybind `toml:"focus_messages_list"`
 	FocusComposer     Keybind `toml:"focus_composer"`
 
+	// Cycle focus between the widgets.
 	FocusPrevious Keybind `toml:"focus_previous"`
 	FocusNext     Keybind `toml:"focus_next"`
 
-	Picker       PickerKeybinds       `toml:"picker"`
-	GuildsTree   GuildsTreeKeybinds   `toml:"guilds_tree"`
-	MembersTree  TreeKeybinds         `toml:"members_tree"`
+	Picker PickerKeybinds `toml:"picker"`
+	// Only while focusing on the guilds tree.
+	GuildsTree GuildsTreeKeybinds `toml:"guilds_tree"`
+	// Only while focusing on the members tree.
+	MembersTree TreeKeybinds `toml:"members_tree"`
+	// Only while focusing on sent messages.
 	MessagesList MessagesListKeybinds `toml:"messages_list"`
-	Composer     ComposerKeybinds     `toml:"composer"`
+	// Only while typing a message.
+	Composer ComposerKeybinds `toml:"composer"`
+	// Only while the mention suggestions are shown.
 	MentionsList MentionsListKeybinds `toml:"mentions_list"`
 
+	// Log out and remove the authentication token from keyring.
+	// Requires re-login upon restart.
 	Logout Keybind `toml:"logout"`
 	Quit   Keybind `toml:"quit"`
 }
 
-func defaultSelectionKeybinds() SelectionKeybinds {
+func selectionKeybinds(up, down, top, bottom string) SelectionKeybinds {
 	return SelectionKeybinds{
-		SelectUp:     desc("up"),
-		SelectDown:   desc("down"),
-		SelectTop:    desc("top"),
-		SelectBottom: desc("btm"),
-	}
-}
-
-func defaultPickerKeybinds() PickerKeybinds {
-	return PickerKeybinds{
-		SelectionKeybinds: defaultSelectionKeybinds(),
-		Cancel:            desc("cancel"),
-		Select:            desc("sel"),
-	}
-}
-
-func defaultTreeKeybinds() TreeKeybinds {
-	return TreeKeybinds{
-		SelectionKeybinds: defaultSelectionKeybinds(),
-		SelectCurrent:     desc("select"),
-		YankID:            desc("copy id"),
-
-		CollapseAll:        desc("collapse all"),
-		CollapseParentNode: desc("collapse parent"),
-		MoveToParentNode:   desc("parent"),
-	}
-}
-
-func defaultMessagesListKeybinds() MessagesListKeybinds {
-	return MessagesListKeybinds{
-		SelectionKeybinds: defaultSelectionKeybinds(),
-		ScrollUp:          desc("scr up"),
-		ScrollDown:        desc("scr down"),
-		ScrollTop:         desc("scr top"),
-		ScrollBottom:      desc("scr btm"),
-		SelectReply:       desc("sel reply"),
-		Reply:             desc("reply"),
-		ReplyMention:      desc("@reply"),
-		Cancel:            desc("cancel"),
-		Edit:              desc("edit"),
-		Delete:            desc("force delete"),
-		DeleteConfirm:     desc("delete"),
-		Open:              desc("open"),
-		OpenInBrowser:     desc("open browser"),
-		Download:          desc("download"),
-		YankContent:       desc("copy text"),
-		YankURL:           desc("copy url"),
-		YankID:            desc("copy id"),
-	}
-}
-
-func defaultComposerKeybinds() ComposerKeybinds {
-	return ComposerKeybinds{
-		EditLast:           desc("edit last"),
-		Paste:              desc("paste"),
-		Send:               desc("send"),
-		Newline:            desc("nl"),
-		Cancel:             desc("cancel"),
-		TabComplete:        desc("complete"),
-		ToggleReplyMention: desc("toggle @reply"),
-		Undo:               desc("undo"),
-		OpenEditor:         desc("editor"),
-		OpenFilePicker:     desc("attach"),
-	}
-}
-
-func defaultMentionsListKeybinds() MentionsListKeybinds {
-	return MentionsListKeybinds{
-		SelectionKeybinds: defaultSelectionKeybinds(),
+		SelectUp:     key(up, "up"),
+		SelectDown:   key(down, "down"),
+		SelectTop:    key(top, "top"),
+		SelectBottom: key(bottom, "btm"),
 	}
 }
 
 func defaultKeybinds() Keybinds {
+	vi := selectionKeybinds("k", "j", "g", "G")
+	emacs := selectionKeybinds("ctrl+p", "ctrl+n", "home", "end")
+	tree := TreeKeybinds{
+		SelectionKeybinds: vi,
+		SelectCurrent:     key("enter", "select"),
+		YankID:            key("i", "copy id"),
+
+		CollapseAll:        key("_", "collapse all"),
+		CollapseParentNode: key("-", "collapse parent"),
+		MoveToParentNode:   key("p", "parent"),
+	}
 	return Keybinds{
-		ToggleGuildsTree:     desc("toggle guilds"),
-		ToggleMembersTree:    desc("toggle members"),
-		ToggleChannelsPicker: desc("channels picker"),
-		ToggleHelp:           desc("toggle help"),
-		ToggleFullHelp:       desc("full help"),
-		Suspend:              desc("suspend"),
+		ToggleGuildsTree:     key("alt+g", "toggle guilds"),
+		ToggleMembersTree:    key("alt+m", "toggle members"),
+		ToggleChannelsPicker: key("ctrl+k", "channels picker"),
+		ToggleHelp:           key("alt+.", "toggle help"),
+		ToggleFullHelp:       key("ctrl+.", "full help"),
+		Suspend:              key("ctrl+z", "suspend"),
 
-		FocusGuildsTree:   desc("guilds"),
-		FocusMembersTree:  desc("members"),
-		FocusMessagesList: desc("messages"),
-		FocusComposer:     desc("composer"),
+		FocusGuildsTree:   key("ctrl+g", "guilds"),
+		FocusMembersTree:  key("ctrl+y", "members"),
+		FocusMessagesList: key("ctrl+t", "messages"),
+		FocusComposer:     key("ctrl+i", "composer"),
 
-		FocusPrevious: desc("focus prev"),
-		FocusNext:     desc("focus next"),
+		FocusPrevious: key("ctrl+h", "focus prev"),
+		FocusNext:     key("ctrl+l", "focus next"),
 
-		Logout: desc("logout"),
-		Quit:   desc("quit"),
+		Picker: PickerKeybinds{
+			SelectionKeybinds: emacs,
+			Select:            key("enter", "sel"),
+			Cancel:            key("esc", "cancel"),
+		},
+		GuildsTree: GuildsTreeKeybinds{
+			TreeKeybinds:         tree,
+			SelectPreviousUnread: key("K", "prev unread"),
+			SelectNextUnread:     key("J", "next unread"),
+		},
+		MembersTree: tree,
+		MessagesList: MessagesListKeybinds{
+			SelectionKeybinds: vi,
+			ScrollKeybinds: ScrollKeybinds{
+				ScrollUp:     key("K", "scr up"),
+				ScrollDown:   key("J", "scr down"),
+				ScrollTop:    key("home", "scr top"),
+				ScrollBottom: key("end", "scr btm"),
+			},
 
-		Picker:       defaultPickerKeybinds(),
-		GuildsTree:   GuildsTreeKeybinds{TreeKeybinds: defaultTreeKeybinds(), SelectPreviousUnread: desc("prev unread"), SelectNextUnread: desc("next unread")},
-		MembersTree:  defaultTreeKeybinds(),
-		MessagesList: defaultMessagesListKeybinds(),
-		Composer:     defaultComposerKeybinds(),
-		MentionsList: defaultMentionsListKeybinds(),
+			SelectReply:  key("s", "sel reply"),
+			Reply:        key("R", "reply"),
+			ReplyMention: key("r", "@reply"),
+
+			Cancel: key("esc", "cancel"),
+			Edit:   key("e", "edit"),
+
+			Delete:        key("", "force delete"),
+			DeleteConfirm: key("d", "delete"),
+
+			Open:          key("o", "open"),
+			OpenInBrowser: key("O", "open browser"),
+			Download:      key("D", "download"),
+
+			YankContent: key("y", "copy text"),
+			YankURL:     key("u", "copy url"),
+			YankID:      key("i", "copy id"),
+		},
+		Composer: ComposerKeybinds{
+			EditLast:           key("up", "edit last"),
+			Paste:              key("ctrl+v", "paste"),
+			Send:               key("enter", "send"),
+			Newline:            key("shift+enter", "nl"),
+			Cancel:             key("esc", "cancel"),
+			TabComplete:        key("tab", "complete"),
+			ToggleReplyMention: key("shift+tab", "toggle @reply"),
+			Undo:               key("ctrl+u", "undo"),
+
+			OpenEditor:     key("ctrl+e", "editor"),
+			OpenFilePicker: key("ctrl+\\", "attach"),
+		},
+		MentionsList: MentionsListKeybinds{SelectionKeybinds: emacs},
+
+		Logout: key("ctrl+d", "logout"),
+		Quit:   key("ctrl+c", "quit"),
 	}
 }
