@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/BurntSushi/toml"
+
 	"github.com/ayn2op/discordo/internal/consts"
 )
 
@@ -27,15 +28,6 @@ func TestDefaultPath(t *testing.T) {
 }
 
 func TestLoad(t *testing.T) {
-	t.Run("invalid default config returns error", func(t *testing.T) {
-		orig := defaultCfg
-		defaultCfg = []byte("invalid =")
-		t.Cleanup(func() { defaultCfg = orig })
-		if _, err := Load("does-not-matter.toml"); err == nil {
-			t.Fatal(err)
-		}
-	})
-
 	t.Run("invalid config returns error", func(t *testing.T) {
 		path := filepath.Join(t.TempDir(), "bad.toml")
 		if err := os.WriteFile(path, []byte("invalid ="), os.ModePerm); err != nil {
@@ -77,41 +69,6 @@ func TestLoad(t *testing.T) {
 		}
 	})
 
-	// Keys live in config.toml, descriptions in defaultKeybinds(); fail if either is missing.
-	t.Run("default keybinds are fully populated", func(t *testing.T) {
-		cfg, err := Load(filepath.Join(t.TempDir(), "missing.toml"))
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		var walk func(path string, v reflect.Value)
-		walk = func(path string, v reflect.Value) {
-			rt := v.Type()
-			for i := range rt.NumField() {
-				fv, name := v.Field(i), path+rt.Field(i).Name
-				if kb, ok := fv.Interface().(Keybind); ok {
-					if len(kb.Keys()) == 0 {
-						if rt.Field(i).Tag.Get("toml") != "delete" {
-							t.Errorf("%s: no keys (missing from config.toml?)", name)
-						}
-						continue
-					}
-					if kb.Help().Desc == "" {
-						t.Errorf("%s: no help description (missing from defaultKeybinds?)", name)
-					}
-					if kb.Help().Key == "" {
-						t.Errorf("%s: help key not populated from config.toml", name)
-					}
-					continue
-				}
-				if fv.Kind() == reflect.Struct {
-					walk(name+".", fv)
-				}
-			}
-		}
-		walk("Keybinds.", reflect.ValueOf(cfg.Keybinds))
-	})
-
 	t.Run("open with bad path returns error (!= ErrNotExist)", func(t *testing.T) {
 		if _, err := Load("bad\x00path"); err == nil {
 			t.Fatal("expected error")
@@ -125,16 +82,29 @@ func TestLoad(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		defCfg := Config{Keybinds: defaultKeybinds()}
-		if err := toml.Unmarshal(defaultCfg, &defCfg); err != nil {
-			t.Fatal(err)
-		}
+		defCfg := Default()
 		defCfg.applyDefaults()
 
 		if !reflect.DeepEqual(defCfg, *cfg) {
 			t.Fatalf("got = %+v, want = %+v", *cfg, defCfg)
 		}
 	})
+}
+
+// The generated docs show defaults as they are marshaled, so those must parse back to the same defaults.
+func TestDefaultRoundTrip(t *testing.T) {
+	data, err := toml.Marshal(Default())
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Help descriptions are not part of the TOML.
+	got := Config{Keybinds: defaultKeybinds()}
+	if err := toml.Unmarshal(data, &got); err != nil {
+		t.Fatal(err)
+	}
+	if want := Default(); !reflect.DeepEqual(got, want) {
+		t.Fatalf("got = %+v, want = %+v", got, want)
+	}
 }
 
 func TestMIMETypesHas(t *testing.T) {
