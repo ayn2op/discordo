@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/ayn2op/tview"
-	"github.com/ayn2op/tview/list"
 	"github.com/ayn2op/tview/scrollbar"
+	"github.com/ayn2op/tview/viewport"
 )
 
 // enum pairs the names an option accepts with their values; a value is written back as the first of its names.
@@ -56,13 +56,13 @@ var (
 		{"vertical", scrollbar.SymbolSetVertical()},
 		{"double_vertical", scrollbar.SymbolSetDoubleVertical()},
 	}
-	scrollBarVisibilities = enum[list.ScrollBarVisibility]{
-		{"auto", list.ScrollBarVisibilityAutomatic},
-		{"automatic", list.ScrollBarVisibilityAutomatic},
-		{"always", list.ScrollBarVisibilityAlways},
-		{"never", list.ScrollBarVisibilityNever},
-		{"hidden", list.ScrollBarVisibilityNever},
-		{"off", list.ScrollBarVisibilityNever},
+	scrollBarVisibilities = enum[viewport.ScrollBarVisibility]{
+		{"auto", viewport.ScrollBarVisibilityAutomatic},
+		{"automatic", viewport.ScrollBarVisibilityAutomatic},
+		{"always", viewport.ScrollBarVisibilityAlways},
+		{"never", viewport.ScrollBarVisibilityNever},
+		{"hidden", viewport.ScrollBarVisibilityNever},
+		{"off", viewport.ScrollBarVisibilityNever},
 	}
 )
 
@@ -93,7 +93,7 @@ func (sw *SymbolSetWrapper) UnmarshalText(text []byte) (err error) {
 
 func (sw SymbolSetWrapper) MarshalText() ([]byte, error) { return symbolSets.text(sw.SymbolSet) }
 
-type ScrollBarVisibilityWrapper struct{ list.ScrollBarVisibility }
+type ScrollBarVisibilityWrapper struct{ viewport.ScrollBarVisibility }
 
 func (vw *ScrollBarVisibilityWrapper) UnmarshalText(text []byte) (err error) {
 	vw.ScrollBarVisibility, err = scrollBarVisibilities.parse(string(text))
@@ -195,7 +195,7 @@ func defaultUI() UIConfig {
 		Border:       BorderUIConfig{Enabled: true, Padding: [4]int{0, 0, 1, 1}, NormalSet: round, ActiveSet: round},
 		GuildsTree:   GuildsTreeUIConfig{TreeUIConfig{Graphics: true}, true},
 		MembersTree:  TreeUIConfig{Graphics: true},
-		ScrollBar:    ScrollBarUIConfig{SymbolSet: SymbolSetWrapper{boxDrawing}},
+		ScrollBar:    ScrollBarUIConfig{SymbolSet: SymbolSetWrapper{boxDrawing}, Visibility: ScrollBarVisibilityWrapper{viewport.ScrollBarVisibilityAutomatic}},
 		MessagesList: MessagesListUIConfig{ReplyIndicator: ">", ForwardedIndicator: "<"},
 		MentionsList: MentionsListUIConfig{MinWidth: 20},
 	}

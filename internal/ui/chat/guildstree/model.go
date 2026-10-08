@@ -14,6 +14,7 @@ import (
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/keybind"
 	"github.com/ayn2op/tview/tree"
+	"github.com/ayn2op/tview/viewport"
 	"github.com/gdamore/tcell/v3"
 )
 
@@ -22,6 +23,7 @@ type dmNode struct{}
 type Model struct {
 	root           *tree.Node
 	selectionState tree.SelectionState
+	scrollState    viewport.ScrollState
 
 	cfg   *config.Config
 	state *ningen.State
@@ -53,6 +55,7 @@ func (m Model) View(focused bool) tview.Widget {
 	return uitree.New(
 		m.root,
 		m.selectionState,
+		m.scrollState,
 		m.cfg,
 		m.cfg.Theme.GuildsTree,
 		m.cfg.UI.GuildsTree.Graphics,
@@ -109,7 +112,7 @@ func (m *Model) rebuild(event *gateway.ReadyEvent) {
 			m.createFolderNode(folder, guildsByID)
 		}
 	}
-	m.selectionState.SetCurrentNode(root)
+	m.setCurrentNode(root)
 }
 
 func (m Model) refreshReadStyles(event *read.UpdateEvent) {
@@ -298,7 +301,13 @@ func (m *Model) collapseParentNode(node *tree.Node) {
 	}
 	parent := path[len(path)-2]
 	parent.Collapse()
-	m.selectionState.SetCurrentNode(parent)
+	m.setCurrentNode(parent)
+}
+
+// setCurrentNode selects node and scrolls to it.
+func (m *Model) setCurrentNode(node *tree.Node) {
+	m.selectionState.SetCurrentNode(node)
+	m.scrollState.ScrollToTarget()
 }
 
 // Update returns m changed in response to msg and a command to run, or nil.
@@ -323,9 +332,16 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		return m, m.navigate(msg.ChannelID)
 	case Msg:
 		m.selectionState.Apply(tree.Change(msg))
+		m.scrollState.ScrollToTarget()
+		return m, nil
+	case uitree.ScrollMsg:
+		m.scrollState.Apply(msg.Change)
+		if msg.Msg != nil {
+			return m.Update(msg.Msg)
+		}
 		return m, nil
 	case SelectedMsg:
-		m.selectionState.SetCurrentNode(msg.Node)
+		m.setCurrentNode(msg.Node)
 		return m, m.selectNode(msg.Node)
 	case tview.KeyMsg:
 		switch {
@@ -348,7 +364,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 					}
 				}
 				m.expandPathToNode(node)
-				m.selectionState.SetCurrentNode(node)
+				m.setCurrentNode(node)
 			}
 			return m, nil
 		case keybind.Matches(msg, m.cfg.Keybinds.GuildsTree.YankID.Keybind):

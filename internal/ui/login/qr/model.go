@@ -10,12 +10,13 @@ import (
 	"github.com/ayn2op/tview/center"
 	"github.com/ayn2op/tview/richtext"
 	"github.com/ayn2op/tview/textview"
+	"github.com/ayn2op/tview/viewport"
 	"github.com/gdamore/tcell/v3"
 	"github.com/skip2/go-qrcode"
 )
 
 type Model struct {
-	scrollState textview.ScrollState
+	scrollState viewport.ScrollState
 
 	conn              *gatewayConn
 	heartbeatInterval time.Duration
@@ -55,7 +56,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		}
 		return m, nil
 	case scrollMsg:
-		m.scrollState.Apply(textview.Change(msg))
+		m.scrollState.Apply(viewport.Change(msg))
 		return m, nil
 
 	case connCreateMsg:
@@ -131,13 +132,10 @@ func halfBlock(top, bottom bool) rune {
 func (m Model) View() tview.Widget {
 	code := m.code()
 	return center.New(
-		textview.New(code).
-			ScrollState(&m.scrollState).
-			Wrap(false).
-			Alignment(tview.AlignmentCenter).
+		viewport.New(textview.New(code).Wrap(false).Alignment(tview.AlignmentCenter), m.scrollState).
 			Height(layout.Fixed(len(code))).
 			Focused(true).
-			OnChange(func(a textview.Change) tview.Msg { return scrollMsg(a) }),
+			OnChange(func(a viewport.Change) tview.Msg { return scrollMsg(a) }),
 	)
 }
 

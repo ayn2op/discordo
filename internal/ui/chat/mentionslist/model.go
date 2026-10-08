@@ -6,6 +6,8 @@ import (
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/layout"
 	"github.com/ayn2op/tview/list"
+	"github.com/ayn2op/tview/scrollbar"
+	"github.com/ayn2op/tview/viewport"
 	"github.com/rivo/uniseg"
 )
 
@@ -13,6 +15,7 @@ import (
 type Model struct {
 	cfg            *config.Config
 	selectionState list.SelectionState
+	scrollState    viewport.ScrollState
 	items          []Item
 }
 
@@ -29,8 +32,8 @@ func (m Model) View() tview.Widget {
 
 func (Model) Init() tview.Cmd { return nil }
 
-func (m Model) listView() list.Widget {
-	return list.New(m.selectionState, len(m.items), func(i int) tview.Widget {
+func (m Model) listView() viewport.Widget {
+	l := list.New(m.selectionState, len(m.items), func(i int) tview.Widget {
 		item := m.items[i]
 		return row{text: item.DisplayText, style: item.Style}
 	}).
@@ -38,12 +41,20 @@ func (m Model) listView() list.Widget {
 		Keybind(ui.SelectionKeybind(m.cfg.Keybinds.MentionsList.SelectionKeybinds)).
 		// The list is only shown while mentions are being completed, so it takes its keys first.
 		Focused(true).
-		OnChange(func(a list.Change) tview.Msg { return Msg(a) })
+		OnChange(func(a list.Change) tview.Msg { return listMsg(a) })
+	return viewport.New(l, m.scrollState).
+		Target(l.Target).
+		ScrollBar(scrollbar.New(), viewport.ScrollBarVisibilityAutomatic).
+		OnChange(func(a viewport.Change) tview.Msg { return scrollMsg(a) })
 }
 
 func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
-	if msg, ok := msg.(Msg); ok {
+	switch msg := msg.(type) {
+	case listMsg:
 		m.selectionState.Apply(list.Change(msg))
+		m.scrollState.ScrollToTarget()
+	case scrollMsg:
+		m.scrollState.Apply(viewport.Change(msg))
 	}
 	return m, nil
 }
@@ -79,6 +90,7 @@ func (m Model) MaxDisplayWidth() int {
 
 func (m *Model) Rebuild() {
 	m.selectionState.SetCursor(min(0, len(m.items)-1))
+	m.scrollState.ScrollToTarget()
 }
 
 var _ tview.Model[Model] = Model{}

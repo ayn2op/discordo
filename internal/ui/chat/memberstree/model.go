@@ -16,6 +16,7 @@ import (
 	"github.com/ayn2op/tview/keybind"
 	"github.com/ayn2op/tview/richtext"
 	"github.com/ayn2op/tview/tree"
+	"github.com/ayn2op/tview/viewport"
 	"github.com/gdamore/tcell/v3"
 )
 
@@ -40,6 +41,7 @@ func (r memberRef) String() string {
 type Model struct {
 	root           *tree.Node
 	selectionState tree.SelectionState
+	scrollState    viewport.ScrollState
 
 	cfg   *config.Config
 	state *ningen.State
@@ -85,7 +87,13 @@ func (m *Model) SetChannel(channel *discord.Channel) tview.Cmd {
 func (m Model) View(focused bool) tview.Widget {
 	onChange := func(c tree.Change) tview.Msg { return Msg(c) }
 	onSelect := func(n *tree.Node) tview.Msg { return SelectedMsg{Node: n} }
-	return uitree.New(m.root, m.selectionState, m.cfg, m.cfg.Theme.MembersTree, m.cfg.UI.MembersTree.Graphics, m.cfg.Keybinds.MembersTree, focused, onChange, onSelect).Title("Members")
+	return uitree.New(m.root, m.selectionState, m.scrollState, m.cfg, m.cfg.Theme.MembersTree, m.cfg.UI.MembersTree.Graphics, m.cfg.Keybinds.MembersTree, focused, onChange, onSelect).Title("Members")
+}
+
+// setCurrentNode selects node and scrolls to it.
+func (m *Model) setCurrentNode(node *tree.Node) {
+	m.selectionState.SetCurrentNode(node)
+	m.scrollState.ScrollToTarget()
 }
 
 // Update returns m changed in response to msg and a command to run, or nil.
@@ -106,9 +114,16 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 
 	case Msg:
 		m.selectionState.Apply(tree.Change(msg))
+		m.scrollState.ScrollToTarget()
 		return m, m.requestSelectedMembers()
+	case uitree.ScrollMsg:
+		m.scrollState.Apply(msg.Change)
+		if msg.Msg != nil {
+			return m.Update(msg.Msg)
+		}
+		return m, nil
 	case SelectedMsg:
-		m.selectionState.SetCurrentNode(msg.Node)
+		m.setCurrentNode(msg.Node)
 		if _, ok := msg.Node.Reference().(groupRef); ok {
 			msg.Node.SetExpanded(!msg.Node.Expanded())
 		}
@@ -124,7 +139,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		case keybind.Matches(msg, kbs.CollapseParentNode.Keybind):
 			if parent := m.parent(m.selectionState.CurrentNode()); parent != nil {
 				parent.Collapse()
-				m.selectionState.SetCurrentNode(parent)
+				m.setCurrentNode(parent)
 			}
 			return m, nil
 		case keybind.Matches(msg, kbs.YankID.Keybind):

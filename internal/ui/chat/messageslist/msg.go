@@ -16,6 +16,7 @@ import (
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/list"
 	"github.com/ayn2op/tview/picker"
+	"github.com/ayn2op/tview/viewport"
 	"github.com/ncruces/zenity"
 	"github.com/skratchdot/open-golang/open"
 	"golang.design/x/clipboard"
@@ -44,8 +45,11 @@ type EditMsg discord.Message
 // ShowAttachmentsMsg asks to pick one of the attachments and links of the selected message.
 type ShowAttachmentsMsg picker.Items
 
-// listMsg moves or scrolls the messages list.
+// listMsg moves the messages list.
 type listMsg list.Change
+
+// scrollMsg scrolls the messages list.
+type scrollMsg viewport.Change
 
 func (m *Model) selectUp() tview.Cmd {
 	cursor := m.cursor()

@@ -30,6 +30,7 @@ import (
 	"github.com/ayn2op/tview/richtext"
 	"github.com/ayn2op/tview/scrollbar"
 	"github.com/ayn2op/tview/textview"
+	"github.com/ayn2op/tview/viewport"
 	"github.com/gdamore/tcell/v3"
 	"github.com/gdamore/tcell/v3/color"
 	"github.com/rivo/uniseg"
@@ -48,6 +49,7 @@ type messageItem struct {
 
 type Model struct {
 	selectionState list.SelectionState
+	scrollState    viewport.ScrollState
 
 	cfg   *config.Config
 	state *ningen.State
@@ -75,7 +77,7 @@ func NewModel(cfg *config.Config, state *ningen.State) Model {
 		renderer:       markdown.NewRenderer(cfg),
 	}
 
-	ml.selectionState.ScrollToEnd()
+	ml.scrollState.ScrollToEnd()
 	return ml
 }
 
@@ -96,43 +98,34 @@ func (m Model) title() string {
 	return title
 }
 
-func (m Model) listView(focused bool) list.Widget {
+func (m Model) listView(focused bool) viewport.Widget {
 	cfg, theme := m.cfg.UI.ScrollBar, m.cfg.Theme.ScrollBar
 	bar := scrollbar.New().
 		SymbolSet(cfg.SymbolSet.SymbolSet).
 		Style(theme.TrackStyle.Style).
 		ThumbStyle(theme.ThumbStyle.Style)
-	return list.New(m.selectionState, len(m.items), m.buildItem).
+	// The model moves the selection itself, so the list is not focused and only takes clicks.
+	l := list.New(m.selectionState, len(m.items), m.buildItem).
 		SelectedStyle(m.cfg.Theme.MessagesList.SelectedMessageStyle.Style).
+		OnChange(func(a list.Change) tview.Msg { return listMsg(a) })
+	return viewport.New(l, m.scrollState).
+		Target(l.Target).
 		ScrollBar(bar, cfg.Visibility.ScrollBarVisibility).
 		TrackEnd(true).
-		Keybind(scrollKeybind(m.cfg.Keybinds.MessagesList.ScrollKeybinds)).
+		Keybind(ui.ScrollKeybind(m.cfg.Keybinds.MessagesList.ScrollKeybinds)).
 		Focused(focused).
-		OnChange(func(a list.Change) tview.Msg { return listMsg(a) })
-}
-
-// scrollKeybind binds kbs to scrolling the list.
-func scrollKeybind(kbs config.ScrollKeybinds) func(tview.KeyMsg) list.Action {
-	return func(key tview.KeyMsg) list.Action {
-		switch {
-		case keybind.Matches(key, kbs.ScrollUp.Keybind):
-			return list.ActionScrollUp
-		case keybind.Matches(key, kbs.ScrollDown.Keybind):
-			return list.ActionScrollDown
-		case keybind.Matches(key, kbs.ScrollTop.Keybind):
-			return list.ActionScrollTop
-		case keybind.Matches(key, kbs.ScrollBottom.Keybind):
-			return list.ActionScrollBottom
-		}
-		return list.ActionNone
-	}
+		OnChange(func(a viewport.Change) tview.Msg { return scrollMsg(a) })
 }
 
 func (m Model) cursor() int {
 	return m.selectionState.Cursor()
 }
 
+// setCursor selects the item at index and scrolls to it if it changed, or selects none if it is negative.
 func (m *Model) setCursor(index int) {
+	if index >= 0 && index != m.cursor() {
+		m.scrollState.ScrollToTarget()
+	}
 	m.selectionState.SetCursor(index)
 }
 
@@ -150,7 +143,7 @@ func (m *Model) SetChannel(channel *discord.Channel, messages []discord.Message)
 // ShowNewest clears the selection and scrolls to the newest message, which then stays in view as messages arrive until the user scrolls up.
 func (m *Model) ShowNewest() {
 	m.clearSelection()
-	m.selectionState.ScrollToEnd()
+	m.scrollState.ScrollToEnd()
 }
 
 // UpdateMessage replaces the shown message with the same ID.
@@ -182,7 +175,8 @@ func (m Model) indexOf(channelID discord.ChannelID, id discord.MessageID) int {
 func (m *Model) reset() {
 	m.items = nil
 	m.selectionState = list.NewSelectionState()
-	m.selectionState.ScrollToEnd()
+	m.scrollState = viewport.ScrollState{}
+	m.scrollState.ScrollToEnd()
 }
 
 func (m *Model) setMessages(messages []discord.Message) {
@@ -928,6 +922,8 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			// WezTerm and Konsole support kitty graphics but not Unicode placeholders.
 			m.kitty = msg.Name == "kitty" || msg.Name == "ghostty"
 		}
+	case scrollMsg:
+		m.scrollState.Apply(viewport.Change(msg))
 	case listMsg:
 		top := m.atTop()
 		m.selectionState.Apply(list.Change(msg))

@@ -10,7 +10,7 @@ import (
 	"github.com/ayn2op/tview/tree"
 )
 
-// Msg moves or scrolls the tree.
+// Msg moves the tree.
 type Msg tree.Change
 
 // SelectedMsg is sent when the user selects a node.
@@ -37,7 +37,7 @@ func (m *Model) navigate(channelID discord.ChannelID) tview.Cmd {
 		return nil
 	}
 	m.expandPathToNode(node)
-	m.selectionState.SetCurrentNode(node)
+	m.setCurrentNode(node)
 	if channel.Type == discord.GuildCategory {
 		return nil
 	}

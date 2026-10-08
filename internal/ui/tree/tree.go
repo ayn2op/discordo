@@ -7,12 +7,20 @@ import (
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/box"
 	"github.com/ayn2op/tview/keybind"
+	"github.com/ayn2op/tview/layout"
 	"github.com/ayn2op/tview/tree"
+	"github.com/ayn2op/tview/viewport"
 	"github.com/gdamore/tcell/v3"
 )
 
-// New returns a boxed tree of the nodes under root, drawn with theme and graphics and moved with kbs, that turns changes and selected nodes into the messages onChange and onSelect return.
-func New(root *tree.Node, selectionState tree.SelectionState, cfg *config.Config, theme config.TreeThemeConfig, graphics bool, kbs config.TreeKeybinds, focused bool, onChange func(tree.Change) tview.Msg, onSelect func(*tree.Node) tview.Msg) box.Widget {
+// ScrollMsg scrolls the tree, before passing on Msg if the tree sent one.
+type ScrollMsg struct {
+	Change viewport.Change
+	Msg    tview.Msg
+}
+
+// New returns a boxed tree of the nodes under root in a viewport.
+func New(root *tree.Node, selectionState tree.SelectionState, scrollState viewport.ScrollState, cfg *config.Config, theme config.TreeThemeConfig, graphics bool, kbs config.TreeKeybinds, focused bool, onChange func(tree.Change) tview.Msg, onSelect func(*tree.Node) tview.Msg) box.Widget {
 	set := cfg.UI.Border.NormalSet.BorderSet
 	if focused {
 		set = cfg.UI.Border.ActiveSet.BorderSet
@@ -31,7 +39,15 @@ func New(root *tree.Node, selectionState tree.SelectionState, cfg *config.Config
 		Focused(focused).
 		OnChange(onChange).
 		OnSelect(onSelect)
-	return ui.Box(t, cfg, focused)
+	v := viewport.New(t, scrollState).
+		Target(t.Target).
+		ContentWidth(t.RowsWidth).
+		OnChildMsg(func(c viewport.Change, msg tview.Msg) tview.Msg { return ScrollMsg{Change: c, Msg: msg} }).
+		Axes(layout.Axes{Width: true, Height: true}).
+		Keybind(bindScrollKeys(kbs)).
+		Focused(focused).
+		OnChange(func(c viewport.Change) tview.Msg { return ScrollMsg{Change: c} })
+	return ui.Box(v, cfg, focused)
 }
 
 func bindKeys(kbs config.TreeKeybinds) func(tview.KeyMsg) tree.Action {
@@ -49,19 +65,20 @@ func bindKeys(kbs config.TreeKeybinds) func(tview.KeyMsg) tree.Action {
 			return tree.ActionMoveToParent
 		case keybind.Matches(key, kbs.SelectCurrent.Keybind):
 			return tree.ActionSelect
-		case keybind.Matches(key, kbs.ScrollUp.Keybind):
-			return tree.ActionScrollUp
-		case keybind.Matches(key, kbs.ScrollDown.Keybind):
-			return tree.ActionScrollDown
-		case keybind.Matches(key, kbs.ScrollTop.Keybind):
-			return tree.ActionScrollTop
-		case keybind.Matches(key, kbs.ScrollBottom.Keybind):
-			return tree.ActionScrollBottom
-		case keybind.Matches(key, kbs.ScrollLeft.Keybind):
-			return tree.ActionScrollLeft
-		case keybind.Matches(key, kbs.ScrollRight.Keybind):
-			return tree.ActionScrollRight
 		}
 		return tree.ActionNone
+	}
+}
+
+func bindScrollKeys(kbs config.TreeKeybinds) func(tview.KeyMsg) viewport.Action {
+	scroll := ui.ScrollKeybind(kbs.ScrollKeybinds)
+	return func(key tview.KeyMsg) viewport.Action {
+		switch {
+		case keybind.Matches(key, kbs.ScrollLeft.Keybind):
+			return viewport.ActionLeft
+		case keybind.Matches(key, kbs.ScrollRight.Keybind):
+			return viewport.ActionRight
+		}
+		return scroll(key)
 	}
 }
