@@ -1041,11 +1041,6 @@ func messageURLs(msg discord.Message) []string {
 	return urls
 }
 
-func attachmentErr(what string, err error) tview.Msg {
-	slog.Error("failed to "+what, "err", err)
-	return ui.ModalMsg{Text: "Failed to " + what + ": " + err.Error(), Buttons: []ui.ModalButton{{Label: "OK"}}}
-}
-
 func downloadAttachment(attachment discord.Attachment, destination string) error {
 	resp, err := http.Get(attachment.URL)
 	if err != nil {

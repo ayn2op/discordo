@@ -42,8 +42,8 @@ type Model struct {
 	chat   chat.Model
 	// helpVisible reports whether help is shown below the inner model, and helpShowAll whether it shows every keybind.
 	helpVisible, helpShowAll bool
-	// modal is the request shown in a dialog, or nil when none is open, and dialogFocus its focused button.
-	modal       *ui.ModalMsg
+	// dialog is the dialog shown, or nil when none is open, and dialogFocus its focused button.
+	dialog      *ui.DialogMsg
 	dialogFocus int
 	// resize is the last size of the window, or nil before the first, kept for the models shown later.
 	resize tview.ResizeMsg
@@ -91,20 +91,20 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			m.showLogin(),
 			deleteToken(),
 		)
-	case ui.ModalMsg:
-		if m.modal == nil {
-			m.modal, m.dialogFocus = &msg, 0
+	case ui.DialogMsg:
+		if m.dialog == nil {
+			m.dialog, m.dialogFocus = &msg, 0
 		}
 		return m, nil
 	case dialogFocusMsg:
 		m.dialogFocus = int(msg)
 		return m, nil
 	case dialogDoneMsg:
-		return m, m.finishModal(int(msg))
+		return m, m.finishDialog(int(msg))
 
 	case tview.KeyMsg:
 		// The dialog takes all input while it is open, so nothing behind it reacts.
-		if m.modal != nil {
+		if m.dialog != nil {
 			return m, nil
 		}
 		switch {
@@ -122,7 +122,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			return m, tview.Batch(m.updateScreen(chat.QuitMsg{}), tview.Quit())
 		}
 	case tview.MouseMsg, tview.PasteMsg:
-		if m.modal != nil {
+		if m.dialog != nil {
 			return m, nil
 		}
 	case tview.ResizeMsg:
@@ -149,7 +149,7 @@ func (m Model) helpHeight() int {
 	return m.helpView().Layout(layout.Limits{Infinite: layout.Axes{Height: true}}).Height
 }
 
-// View shows the inner model above help, with the modal dialog on top of both when one is open.
+// View shows the inner model above help, with the dialog on top of both when one is open.
 func (m Model) View() tview.Widget {
 	var innerView, helpView tview.Widget
 	switch m.screen {
@@ -163,7 +163,7 @@ func (m Model) View() tview.Widget {
 		helpView = column.New(padded).Height(layout.Fixed(max(m.helpHeight(), 1)))
 	}
 	content := column.New(innerView, helpView)
-	if m.modal == nil {
+	if m.dialog == nil {
 		return content
 	}
 	return stack.New(inert.New(content), backdrop.New().Style(m.cfg.Theme.Dialog.BackgroundStyle.Style), m.dialogView())
@@ -187,15 +187,15 @@ type (
 	dialogDoneMsg  int
 )
 
-// dialogView returns the dialog for the open modal request.
+// dialogView returns the view of the open dialog.
 func (m Model) dialogView() tview.Widget {
-	labels := make([]string, len(m.modal.Buttons))
-	for i, button := range m.modal.Buttons {
+	labels := make([]string, len(m.dialog.Buttons))
+	for i, button := range m.dialog.Buttons {
 		labels[i] = button.Label
 	}
 	style := m.cfg.Theme.Dialog.Style.Style
 	d := dialog.New().
-		Text(m.modal.Text).
+		Text(m.dialog.Text).
 		Buttons(labels...).
 		Focus(m.dialogFocus).
 		ButtonStyle(style).
