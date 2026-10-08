@@ -54,7 +54,7 @@ func key(key, desc string) Keybind {
 }
 
 type ScrollKeybinds struct {
-	// Scroll the messages list without changing the selection.
+	// Scroll without changing the selection.
 	ScrollUp     Keybind `toml:"scroll_up"`
 	ScrollDown   Keybind `toml:"scroll_down"`
 	ScrollTop    Keybind `toml:"scroll_top"`
@@ -75,10 +75,16 @@ type PickerKeybinds struct {
 }
 
 type TreeKeybinds struct {
+	ScrollKeybinds
+	// Scroll sideways to read names that are cut off.
+	ScrollLeft  Keybind `toml:"scroll_left"`
+	ScrollRight Keybind `toml:"scroll_right"`
+
 	SelectionKeybinds
 	// Select the highlighted text-based channel, or expand or collapse the highlighted node.
 	SelectCurrent Keybind `toml:"select_current"`
-	YankID        Keybind `toml:"yank_id"`
+
+	YankID Keybind `toml:"yank_id"`
 
 	CollapseAll        Keybind `toml:"collapse_all"`
 	CollapseParentNode Keybind `toml:"collapse_parent_node"`
@@ -197,11 +203,23 @@ func selectionKeybinds(up, down, top, bottom string) SelectionKeybinds {
 	}
 }
 
+func scrollKeybinds(up, down, top, bottom string) ScrollKeybinds {
+	return ScrollKeybinds{
+		ScrollUp:     key(up, "scr up"),
+		ScrollDown:   key(down, "scr down"),
+		ScrollTop:    key(top, "scr top"),
+		ScrollBottom: key(bottom, "scr btm"),
+	}
+}
+
 func defaultKeybinds() Keybinds {
 	vi := selectionKeybinds("k", "j", "g", "G")
 	emacs := selectionKeybinds("ctrl+p", "ctrl+n", "home", "end")
 	tree := TreeKeybinds{
 		SelectionKeybinds: vi,
+		ScrollKeybinds:    scrollKeybinds("pgup", "pgdn", "home", "end"),
+		ScrollLeft:        key("h", "scr left"),
+		ScrollRight:       key("l", "scr right"),
 		SelectCurrent:     key("enter", "select"),
 		YankID:            key("i", "copy id"),
 
@@ -238,12 +256,7 @@ func defaultKeybinds() Keybinds {
 		MembersTree: tree,
 		MessagesList: MessagesListKeybinds{
 			SelectionKeybinds: vi,
-			ScrollKeybinds: ScrollKeybinds{
-				ScrollUp:     key("K", "scr up"),
-				ScrollDown:   key("J", "scr down"),
-				ScrollTop:    key("home", "scr top"),
-				ScrollBottom: key("end", "scr btm"),
-			},
+			ScrollKeybinds:    scrollKeybinds("K", "J", "home", "end"),
 
 			SelectReply:  key("s", "sel reply"),
 			Reply:        key("R", "reply"),

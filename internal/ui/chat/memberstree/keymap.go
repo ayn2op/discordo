@@ -29,6 +29,7 @@ func (m Model) FullHelp() [][]keybind.Keybind {
 	kbs := m.cfg.Keybinds.MembersTree
 	return [][]keybind.Keybind{
 		{kbs.SelectUp.Keybind, kbs.SelectDown.Keybind, kbs.SelectTop.Keybind, kbs.SelectBottom.Keybind},
+		{kbs.ScrollUp.Keybind, kbs.ScrollDown.Keybind, kbs.ScrollTop.Keybind, kbs.ScrollBottom.Keybind, kbs.ScrollLeft.Keybind, kbs.ScrollRight.Keybind},
 		{kbs.SelectCurrent.Keybind, kbs.MoveToParentNode.Keybind, kbs.CollapseParentNode.Keybind, kbs.CollapseAll.Keybind},
 		{kbs.YankID.Keybind},
 	}

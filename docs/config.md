@@ -540,6 +540,34 @@ Default: `"esc"`
 
 Only while focusing on the guilds tree.
 
+### keybinds.guilds_tree.scroll_up
+
+Scroll without changing the selection.
+
+Default: `"pgup"`
+
+### keybinds.guilds_tree.scroll_down
+
+Default: `"pgdn"`
+
+### keybinds.guilds_tree.scroll_top
+
+Default: `"home"`
+
+### keybinds.guilds_tree.scroll_bottom
+
+Default: `"end"`
+
+### keybinds.guilds_tree.scroll_left
+
+Scroll sideways to read names that are cut off.
+
+Default: `"h"`
+
+### keybinds.guilds_tree.scroll_right
+
+Default: `"l"`
+
 ### keybinds.guilds_tree.select_up
 
 Default: `"k"`
@@ -591,6 +619,34 @@ Default: `"J"`
 ## keybinds.members_tree
 
 Only while focusing on the members tree.
+
+### keybinds.members_tree.scroll_up
+
+Scroll without changing the selection.
+
+Default: `"pgup"`
+
+### keybinds.members_tree.scroll_down
+
+Default: `"pgdn"`
+
+### keybinds.members_tree.scroll_top
+
+Default: `"home"`
+
+### keybinds.members_tree.scroll_bottom
+
+Default: `"end"`
+
+### keybinds.members_tree.scroll_left
+
+Scroll sideways to read names that are cut off.
+
+Default: `"h"`
+
+### keybinds.members_tree.scroll_right
+
+Default: `"l"`
 
 ### keybinds.members_tree.select_up
 
@@ -652,7 +708,7 @@ Default: `"G"`
 
 ### keybinds.messages_list.scroll_up
 
-Scroll the messages list without changing the selection.
+Scroll without changing the selection.
 
 Default: `"K"`
 

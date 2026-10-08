@@ -49,6 +49,18 @@ func bindKeys(kbs config.TreeKeybinds) func(tview.KeyMsg) tree.Action {
 			return tree.ActionMoveToParent
 		case keybind.Matches(key, kbs.SelectCurrent.Keybind):
 			return tree.ActionSelect
+		case keybind.Matches(key, kbs.ScrollUp.Keybind):
+			return tree.ActionScrollUp
+		case keybind.Matches(key, kbs.ScrollDown.Keybind):
+			return tree.ActionScrollDown
+		case keybind.Matches(key, kbs.ScrollTop.Keybind):
+			return tree.ActionScrollTop
+		case keybind.Matches(key, kbs.ScrollBottom.Keybind):
+			return tree.ActionScrollBottom
+		case keybind.Matches(key, kbs.ScrollLeft.Keybind):
+			return tree.ActionScrollLeft
+		case keybind.Matches(key, kbs.ScrollRight.Keybind):
+			return tree.ActionScrollRight
 		}
 		return tree.ActionNone
 	}
