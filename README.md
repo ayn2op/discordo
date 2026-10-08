@@ -28,11 +28,15 @@ scoop install discordo
 
 ### Building from source
 
+Requires [Go](https://go.dev/dl). Voice support requires a C compiler, and `libpulse` or `libasound` on Linux.
+
 ```bash
 git clone https://github.com/ayn2op/discordo
 cd discordo
 go build .
 ```
+
+Add `-tags no_voice` to build without voice support, or `-tags no_spoof_tls_fingerprint` to build without TLS fingerprint spoofing.
 
 ## Usage
 

@@ -1,3 +1,5 @@
+//go:build !no_voice
+
 package voice
 
 import (

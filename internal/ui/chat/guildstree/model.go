@@ -355,9 +355,18 @@ func (m Model) toggleVoice(node *tree.Node) tview.Cmd {
 
 // ToggleMute starts or stops sending what the user says to the voice channel joined.
 func (m Model) ToggleMute() tview.Cmd {
+	return toggleVoiceDevice("toggle mute", m.voice.ToggleMute)
+}
+
+// ToggleDeafen stops or starts playing what is said in the voice channel joined.
+func (m Model) ToggleDeafen() tview.Cmd {
+	return toggleVoiceDevice("toggle deafen", m.voice.ToggleDeafen)
+}
+
+func toggleVoiceDevice(what string, toggle func() error) tview.Cmd {
 	return func() tview.Msg {
-		if err := m.voice.ToggleMute(); err != nil {
-			return ui.ErrorDialog("toggle mute", err)
+		if err := toggle(); err != nil {
+			return ui.ErrorDialog(what, err)
 		}
 		return nil
 	}

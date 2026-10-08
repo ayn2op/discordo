@@ -294,6 +294,8 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			return m, nil
 		case keybind.Matches(msg, m.cfg.Keybinds.ToggleMute.Keybind):
 			return m, m.guildsTree.ToggleMute()
+		case keybind.Matches(msg, m.cfg.Keybinds.ToggleDeafen.Keybind):
+			return m, m.guildsTree.ToggleDeafen()
 
 		case keybind.Matches(msg, m.cfg.Keybinds.Logout.Keybind):
 			return m, tview.Sequence(closeState(m.state), logout())

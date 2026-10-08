@@ -492,6 +492,12 @@ Start or stop sending what the microphone captures to the voice channel joined.
 
 Default: `"alt+v"`
 
+## keybinds.toggle_deafen
+
+Stop or start playing what is said in the voice channel joined. Stopping also mutes.
+
+Default: `"alt+d"`
+
 ## keybinds.toggle_help
 
 Hide/show keybind help.

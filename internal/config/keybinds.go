@@ -159,6 +159,8 @@ type Keybinds struct {
 	ToggleChannelsPicker Keybind `toml:"toggle_channels_picker"`
 	// Start or stop sending what the microphone captures to the voice channel joined.
 	ToggleMute Keybind `toml:"toggle_mute"`
+	// Stop or start playing what is said in the voice channel joined. Stopping also mutes.
+	ToggleDeafen Keybind `toml:"toggle_deafen"`
 	// Hide/show keybind help.
 	ToggleHelp Keybind `toml:"toggle_help"`
 	// Switch between compact and full keybind help.
@@ -218,6 +220,7 @@ func defaultKeybinds() Keybinds {
 		ToggleMembersTree:    key("alt+m", "toggle members"),
 		ToggleChannelsPicker: key("ctrl+k", "channels picker"),
 		ToggleMute:           key("alt+v", "toggle mute"),
+		ToggleDeafen:         key("alt+d", "toggle deafen"),
 		ToggleHelp:           key("alt+.", "toggle help"),
 		ToggleFullHelp:       key("ctrl+.", "full help"),
 		Suspend:              key("ctrl+z", "suspend"),

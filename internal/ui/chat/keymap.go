@@ -57,7 +57,7 @@ func (m Model) baseFullHelp() [][]keybind.Keybind {
 		m.focusHelp(),
 		{cfg.FocusPrevious.Keybind, cfg.FocusNext.Keybind},
 		{cfg.ToggleGuildsTree.Keybind, cfg.ToggleMembersTree.Keybind, cfg.ToggleChannelsPicker.Keybind},
-		{cfg.ToggleMute.Keybind},
+		{cfg.ToggleMute.Keybind, cfg.ToggleDeafen.Keybind},
 		{cfg.Logout.Keybind},
 	}
 }
