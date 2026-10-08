@@ -25,6 +25,17 @@ type ChannelLoadedMsg struct {
 
 type NavigateMsg struct{ ChannelID discord.ChannelID }
 
+// VoiceMsg is sent when who is speaking or the state of the voice channel joined changes.
+type VoiceMsg struct{}
+
+// ListenVoice waits for that.
+func (m Model) ListenVoice() tview.Cmd {
+	return func() tview.Msg {
+		<-m.voice.Updates()
+		return VoiceMsg{}
+	}
+}
+
 func (m *Model) navigate(channelID discord.ChannelID) tview.Cmd {
 	channel, err := m.state.Cabinet.Channel(channelID)
 	if err != nil {
@@ -45,7 +56,7 @@ func (m *Model) navigate(channelID discord.ChannelID) tview.Cmd {
 }
 
 func (m Model) selectNode(node *tree.Node) tview.Cmd {
-	if len(node.Children()) != 0 {
+	if m.expandable(node) {
 		node.SetExpanded(!node.Expanded())
 		return nil
 	}
@@ -60,6 +71,7 @@ func (m Model) selectNode(node *tree.Node) tview.Cmd {
 		}
 		ui.SortGuildChannels(channels)
 		m.createChannelNodes(node, channels)
+		m.showVoiceMembers(ref)
 		node.Expand()
 	case discord.ChannelID:
 		channel, err := m.state.Cabinet.Channel(ref)

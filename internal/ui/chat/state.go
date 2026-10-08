@@ -138,6 +138,8 @@ func (m *Model) applyEvent(event gateway.Event) tview.Cmd {
 
 	case *read.UpdateEvent:
 		return m.updatePane(paneGuildsTree, event)
+	case *gateway.VoiceStateUpdateEvent:
+		return m.updatePane(paneGuildsTree, event)
 	}
 	return nil
 }

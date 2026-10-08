@@ -4,10 +4,10 @@ go 1.27.0
 
 // replace github.com/ayn2op/tview => ../tview
 
-// replace (
-// 	github.com/ayn2op/arikawa/v3 => ../arikawa
-// 	github.com/ayn2op/ningen/v3 => ../ningen
-// )
+replace (
+	github.com/ayn2op/arikawa/v3 => ../arikawa
+	github.com/ayn2op/ningen/v3 => ../ningen
+)
 
 require (
 	github.com/BurntSushi/toml v1.6.0
@@ -15,10 +15,11 @@ require (
 	github.com/andybalholm/brotli v1.2.6
 	github.com/ayn2op/arikawa/v3 v3.0.0-20260929021956-7d0802bf4d7c
 	github.com/ayn2op/ningen/v3 v3.0.1-0.20260929010920-29794d5fa70e
-	github.com/ayn2op/tview v0.0.0-20261004231500-f79adb05b560
+	github.com/ayn2op/tview v0.0.0-20261007211003-9563fec35eee
 	github.com/bogdanfinn/fhttp v0.6.9
 	github.com/bogdanfinn/tls-client v1.16.0
 	github.com/gdamore/tcell/v3 v3.5.0
+	github.com/gen2brain/malgo v0.11.26
 	github.com/gorilla/websocket v1.5.3
 	github.com/klauspost/compress v1.20.1
 	github.com/mattn/go-shellwords v1.0.16
@@ -27,6 +28,8 @@ require (
 	github.com/sahilm/fuzzy v0.1.3
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
+	github.com/thomas-vilte/dave-go v0.5.1
+	github.com/tphakala/go-opus v1.1.0
 	github.com/yuin/goldmark v1.8.6
 	github.com/zalando/go-keyring v0.2.8
 	golang.design/x/clipboard v0.11.0
@@ -45,7 +48,8 @@ require (
 	github.com/cloudflare/circl v1.6.5 // indirect
 	github.com/danieljoos/wincred v1.2.3 // indirect
 	github.com/dchest/jsmin v1.0.0 // indirect
-	github.com/dlclark/regexp2/v2 v2.8.3 // indirect
+	github.com/disgoorg/godave v0.3.0 // indirect
+	github.com/dlclark/regexp2/v2 v2.8.4 // indirect
 	github.com/ebitengine/purego v0.11.1 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
 	github.com/godbus/dbus/v5 v5.2.2 // indirect
@@ -55,11 +59,13 @@ require (
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/randall77/makefat v0.0.0-20260406194835-1b91746796b7 // indirect
 	github.com/tam7t/hpkp v0.0.0-20160821193359-2b70b4024ed5 // indirect
+	github.com/thomas-vilte/mls-go v1.6.0 // indirect
+	github.com/tphakala/simd v1.11.0 // indirect
 	github.com/twmb/murmur3 v1.2.0 // indirect
 	go4.org v0.0.0-20260112195520-a5071408f32f // indirect
 	golang.design/x/x11 v0.2.0 // indirect
 	golang.org/x/crypto v0.57.0 // indirect
-	golang.org/x/exp/shiny v0.0.0-20260908205506-85c1c2202aba // indirect
+	golang.org/x/exp/shiny v0.0.0-20261007192929-f45ad48fbe92 // indirect
 	golang.org/x/mobile v0.0.0-20260908204917-8b95e45f8d3e // indirect
 	golang.org/x/net v0.59.0 // indirect
 	golang.org/x/sys v0.48.0 // indirect

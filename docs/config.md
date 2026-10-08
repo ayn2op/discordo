@@ -406,6 +406,14 @@ Maximum height. 0 makes the list as tall as needed.
 
 Default: `0`
 
+# voice
+
+## voice.sensitivity
+
+How loud the microphone must be for what is said to be sent, in dB below the loudest it can be.
+
+Default: `-40.0`
+
 # icons
 
 ## icons.guild_category
@@ -448,6 +456,16 @@ Default: `"≡ "`
 
 Default: `"s-"`
 
+## icons.voice_muted
+
+Shown after the members of a voice channel who are muted or deafened.
+
+Default: `" (muted)"`
+
+## icons.voice_deafened
+
+Default: `" (deafened)"`
+
 # keybinds
 
 Global shortcuts. A keybind is a key such as "ctrl+k", or a list of keys.
@@ -467,6 +485,12 @@ Default: `"alt+m"`
 ## keybinds.toggle_channels_picker
 
 Default: `"ctrl+k"`
+
+## keybinds.toggle_mute
+
+Start or stop sending what the microphone captures to the voice channel joined.
+
+Default: `"alt+v"`
 
 ## keybinds.toggle_help
 
@@ -587,6 +611,12 @@ Default: `"K"`
 ### keybinds.guilds_tree.select_next_unread
 
 Default: `"J"`
+
+### keybinds.guilds_tree.toggle_voice
+
+Join the highlighted voice channel to listen, or leave it.
+
+Default: `"v"`
 
 ## keybinds.members_tree
 
@@ -891,6 +921,12 @@ Default: `{ foreground = "red" }`
 ### theme.guilds_tree.offline_style
 
 Default: `{ foreground = "gray" }`
+
+### theme.guilds_tree.speaking_style
+
+The style of whoever is speaking in the voice channel joined.
+
+Default: `{ foreground = "green" }`
 
 ## theme.members_tree
 

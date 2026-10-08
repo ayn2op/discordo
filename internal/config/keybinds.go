@@ -90,6 +90,8 @@ type GuildsTreeKeybinds struct {
 	// Highlight the previous or next unread guild or channel, wrapping around.
 	SelectPreviousUnread Keybind `toml:"select_previous_unread"`
 	SelectNextUnread     Keybind `toml:"select_next_unread"`
+	// Join the highlighted voice channel to listen, or leave it.
+	ToggleVoice Keybind `toml:"toggle_voice"`
 }
 
 type MessagesListKeybinds struct {
@@ -155,6 +157,8 @@ type Keybinds struct {
 	// Hide/show the members tree.
 	ToggleMembersTree    Keybind `toml:"toggle_members_tree"`
 	ToggleChannelsPicker Keybind `toml:"toggle_channels_picker"`
+	// Start or stop sending what the microphone captures to the voice channel joined.
+	ToggleMute Keybind `toml:"toggle_mute"`
 	// Hide/show keybind help.
 	ToggleHelp Keybind `toml:"toggle_help"`
 	// Switch between compact and full keybind help.
@@ -213,6 +217,7 @@ func defaultKeybinds() Keybinds {
 		ToggleGuildsTree:     key("alt+g", "toggle guilds"),
 		ToggleMembersTree:    key("alt+m", "toggle members"),
 		ToggleChannelsPicker: key("ctrl+k", "channels picker"),
+		ToggleMute:           key("alt+v", "toggle mute"),
 		ToggleHelp:           key("alt+.", "toggle help"),
 		ToggleFullHelp:       key("ctrl+.", "full help"),
 		Suspend:              key("ctrl+z", "suspend"),
@@ -234,6 +239,7 @@ func defaultKeybinds() Keybinds {
 			TreeKeybinds:         tree,
 			SelectPreviousUnread: key("K", "prev unread"),
 			SelectNextUnread:     key("J", "next unread"),
+			ToggleVoice:          key("v", "join voice"),
 		},
 		MembersTree: tree,
 		MessagesList: MessagesListKeybinds{
