@@ -23,7 +23,6 @@ import (
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
-	"github.com/ayn2op/tview/help"
 	tviewimage "github.com/ayn2op/tview/image"
 	"github.com/ayn2op/tview/keybind"
 	"github.com/ayn2op/tview/list"
@@ -66,8 +65,6 @@ type Model struct {
 	// cellWidth and cellHeight are the size of a terminal cell in pixels, or zero if the terminal does not report it.
 	cellWidth, cellHeight uint
 }
-
-var _ help.KeyMap = Model{}
 
 func NewModel(cfg *config.Config, state *ningen.State) Model {
 	ml := Model{
@@ -1087,64 +1084,5 @@ func (m Model) canDeleteMessage(message discord.Message) bool {
 func (m Model) InvalidateRendered() {
 	for i := range m.items {
 		m.items[i].view = nil
-	}
-}
-
-func (m Model) ShortHelp() []keybind.Keybind {
-	cfg := m.cfg.Keybinds.MessagesList
-	help := []keybind.Keybind{
-		cfg.SelectUp.Keybind,
-		cfg.SelectDown.Keybind,
-		cfg.Cancel.Keybind,
-	}
-
-	if selectedMessage, ok := m.selectedMessage(); ok {
-		if !ui.IsMe(m.state, selectedMessage.Author.ID) {
-			help = append(help, cfg.Reply.Keybind)
-		}
-		if len(selectedMessage.Attachments) != 0 || len(messageURLs(*selectedMessage)) != 0 {
-			help = append(help, cfg.Open.Keybind)
-		}
-	}
-
-	return help
-}
-
-func (m Model) FullHelp() [][]keybind.Keybind {
-	cfg := m.cfg.Keybinds.MessagesList
-	var actions, manage, attachments []keybind.Keybind
-	if message, ok := m.selectedMessage(); ok {
-		mine := ui.IsMe(m.state, message.Author.ID)
-		if !mine {
-			actions = append(actions, cfg.Reply.Keybind, cfg.ReplyMention.Keybind)
-		}
-		if message.ReferencedMessage != nil {
-			actions = append(actions, cfg.SelectReply.Keybind)
-		}
-		if mine {
-			manage = append(manage, cfg.Edit.Keybind)
-		}
-		if m.canDeleteMessage(*message) {
-			manage = append(manage, cfg.DeleteConfirm.Keybind)
-			if len(cfg.Delete.Keys()) != 0 {
-				manage = append(manage, cfg.Delete.Keybind)
-			}
-		}
-		if len(message.Attachments) != 0 || len(messageURLs(*message)) != 0 {
-			attachments = append(attachments, cfg.Open.Keybind, cfg.OpenInBrowser.Keybind)
-		}
-		if len(message.Attachments) != 0 {
-			attachments = append(attachments, cfg.Download.Keybind)
-		}
-	}
-	actions = append(actions, cfg.Cancel.Keybind)
-
-	return [][]keybind.Keybind{
-		{cfg.SelectUp.Keybind, cfg.SelectDown.Keybind, cfg.SelectTop.Keybind, cfg.SelectBottom.Keybind},
-		{cfg.ScrollUp.Keybind, cfg.ScrollDown.Keybind, cfg.ScrollTop.Keybind, cfg.ScrollBottom.Keybind},
-		actions,
-		manage,
-		attachments,
-		{cfg.YankContent.Keybind, cfg.YankURL.Keybind, cfg.YankID.Keybind},
 	}
 }
