@@ -4,6 +4,7 @@ import (
 	"slices"
 
 	"github.com/ayn2op/arikawa/v3/discord"
+	uitree "github.com/ayn2op/discordo/internal/ui/tree"
 	"github.com/ayn2op/tview/help"
 	"github.com/ayn2op/tview/keybind"
 	"github.com/ayn2op/tview/tree"
@@ -34,7 +35,7 @@ func (m Model) selectCurrentKeybind() keybind.Keybind {
 
 func (m Model) ShortHelp() []keybind.Keybind {
 	cfg := m.cfg.Keybinds.GuildsTree
-	shortHelp := []keybind.Keybind{cfg.SelectUp.Keybind, cfg.SelectDown.Keybind, m.selectCurrentKeybind()}
+	shortHelp := append(uitree.SelectHelp(m.root, m.selectionState.CurrentNode(), cfg.TreeKeybinds), m.selectCurrentKeybind())
 	if m.canCollapseParent(m.selectionState.CurrentNode()) {
 		shortHelp = append(shortHelp, cfg.CollapseParentNode.Keybind)
 	}

@@ -1,6 +1,7 @@
 package memberstree
 
 import (
+	uitree "github.com/ayn2op/discordo/internal/ui/tree"
 	"github.com/ayn2op/tview/help"
 	"github.com/ayn2op/tview/keybind"
 )
@@ -9,7 +10,7 @@ var _ help.KeyMap = Model{}
 
 func (m Model) ShortHelp() []keybind.Keybind {
 	kbs := m.cfg.Keybinds.MembersTree
-	short := []keybind.Keybind{kbs.SelectUp.Keybind, kbs.SelectDown.Keybind}
+	short := uitree.SelectHelp(m.root, m.selectionState.CurrentNode(), kbs)
 	if node := m.selectionState.CurrentNode(); node != nil {
 		if _, ok := node.Reference().(groupRef); ok {
 			desc := "expand"
