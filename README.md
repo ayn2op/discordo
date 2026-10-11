@@ -28,15 +28,22 @@ scoop install discordo
 
 ### Building from source
 
-```bash
+Requires [Go](https://go.dev/dl). Voice support requires a C compiler, and `libpulse` or `libasound` on Linux.
+
+```sh
 git clone https://github.com/ayn2op/discordo
 cd discordo
 go build .
 ```
 
+#### Tags
+
+- `no_voice` to build without voice support.
+- `no_spoof_tls_fingerprint` to build without TLS fingerprint spoofing.
+
 ## Usage
 
-### Password (UI, recommended)
+### Password (UI)
 
 1. Run the `discordo` executable with no arguments.
 
@@ -72,7 +79,19 @@ The configuration file allows you to configure and customize the behavior, keybi
 - Darwin: `$HOME/Library/Application Support/discordo/config.toml`
 - Windows: `%AppData%/discordo/config.toml`
 
+Use `-config-path` to change the path.
+
 Discordo uses the default configuration if a configuration file is not found in the aforementioned path; however, the default configuration file is not written to the path. [The configuration reference can be found here](./docs/config.md).
+
+## Logs
+
+The log file is replaced on each run.
+
+- Unix: `$XDG_CACHE_HOME/discordo/logs.txt` or `$HOME/.cache/discordo/logs.txt`
+- Darwin: `$HOME/Library/Caches/discordo/logs.txt`
+- Windows: `%LocalAppData%/discordo/logs.txt`
+
+Use `-log-path` to change the path, and `-log-level` (`debug`, `info`, `warn`, or `error`) to set the verbosity of what is logged.
 
 ## License
 

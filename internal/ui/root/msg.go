@@ -78,20 +78,20 @@ func (m *Model) showChat(token string) tview.Cmd {
 	return m.show(init)
 }
 
-// show closes any open modal after the shown model changed and returns what it needs done, with init its first command.
+// show closes any open dialog after the shown model changed and returns what it needs done, with init its first command.
 func (m *Model) show(init tview.Cmd) tview.Cmd {
-	m.modal = nil
+	m.dialog = nil
 	return tview.Batch(tview.SetTitle(consts.Name), init)
 }
 
-func (m *Model) finishModal(index int) tview.Cmd {
-	if m.modal == nil || index < 0 || index >= len(m.modal.Buttons) {
-		m.modal = nil
+func (m *Model) finishDialog(index int) tview.Cmd {
+	if m.dialog == nil || index < 0 || index >= len(m.dialog.Buttons) {
+		m.dialog = nil
 		return nil
 	}
-	button := m.modal.Buttons[index]
+	button := m.dialog.Buttons[index]
 	if !button.KeepOpen {
-		m.modal = nil
+		m.dialog = nil
 	}
 	return button.Cmd
 }

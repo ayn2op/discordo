@@ -201,10 +201,10 @@ func (m Model) openAttachment(attachment discord.Attachment) tview.Cmd {
 
 func (m Model) confirmAttachment(attachment discord.Attachment, action tview.Cmd) tview.Cmd {
 	if !m.cfg.Attachments.AllowedMIMETypes.Has(attachment.ContentType) {
-		return ui.ShowModal(
+		return ui.ShowDialog(
 			"This attachment type is not allowed and may be unsafe. Continue anyway?",
-			ui.ModalButton{Label: "No"},
-			ui.ModalButton{Label: "Yes", Cmd: action},
+			ui.DialogButton{Label: "No"},
+			ui.DialogButton{Label: "Yes", Cmd: action},
 		)
 	}
 	return action
@@ -222,12 +222,12 @@ func openDownloadedAttachment(attachment discord.Attachment) tview.Cmd {
 
 		dir := filepath.Join(consts.CacheDir(), "attachments")
 		if err := os.MkdirAll(dir, 0o700); err != nil {
-			return attachmentErr("create attachments directory", err)
+			return ui.ErrorDialog("create attachments directory", err)
 		}
 
 		file, err := os.CreateTemp(dir, "attachment-*"+extension)
 		if err != nil {
-			return attachmentErr("create attachment file", err)
+			return ui.ErrorDialog("create attachment file", err)
 		}
 		defer file.Close()
 
@@ -235,9 +235,9 @@ func openDownloadedAttachment(attachment discord.Attachment) tview.Cmd {
 
 		if err := downloadAttachment(attachment, path); err != nil {
 			os.Remove(path)
-			return attachmentErr("download attachment", err)
+			return ui.ErrorDialog("download attachment", err)
 		} else if err := open.Start(path); err != nil {
-			return attachmentErr("open attachment file", err)
+			return ui.ErrorDialog("open attachment file", err)
 		}
 
 		return nil
@@ -251,11 +251,11 @@ func saveAttachment(attachment discord.Attachment) tview.Cmd {
 			return nil
 		}
 		if err != nil {
-			return attachmentErr("select attachment destination", err)
+			return ui.ErrorDialog("select attachment destination", err)
 		}
 
 		if err := downloadAttachment(attachment, destination); err != nil {
-			return attachmentErr("download attachment", err)
+			return ui.ErrorDialog("download attachment", err)
 		}
 		return nil
 	}
@@ -264,7 +264,7 @@ func saveAttachment(attachment discord.Attachment) tview.Cmd {
 func openURL(url string) tview.Cmd {
 	return func() tview.Msg {
 		if err := open.Start(url); err != nil {
-			return attachmentErr("open URL", err)
+			return ui.ErrorDialog("open URL", err)
 		}
 		return nil
 	}
@@ -306,10 +306,10 @@ func (m Model) confirmDelete() tview.Cmd {
 		return nil
 	}
 	message := *selectedMessage
-	return ui.ShowModal(
+	return ui.ShowDialog(
 		"Are you sure you want to delete this message?",
-		ui.ModalButton{Label: "Yes", Cmd: m.requestDelete(message)},
-		ui.ModalButton{Label: "No"},
+		ui.DialogButton{Label: "Yes", Cmd: m.requestDelete(message)},
+		ui.DialogButton{Label: "No"},
 	)
 }
 

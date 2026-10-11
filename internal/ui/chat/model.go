@@ -190,7 +190,7 @@ func (m *Model) cycleFocus(step pane) {
 }
 
 func (m Model) Init() tview.Cmd {
-	return tview.Batch(openState(m.state), listen(m.events), tview.RequestTerminalInfo())
+	return tview.Batch(openState(m.state), listen(m.events), m.guildsTree.Init(), tview.RequestTerminalInfo())
 }
 
 // Update returns m changed in response to msg and a command to run, or nil.
@@ -198,6 +198,8 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	switch msg := msg.(type) {
 	case gateway.Event:
 		return m, tview.Batch(m.applyEvent(msg), listen(m.events))
+	case guildstree.VoiceMsg:
+		return m, m.updatePane(paneGuildsTree, msg)
 	case tview.FocusMsg:
 		m.windowUnfocused = !msg.Focused
 		return m, nil
@@ -290,6 +292,9 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		case keybind.Matches(msg, m.cfg.Keybinds.ToggleChannelsPicker.Keybind):
 			m.togglePicker()
 			return m, nil
+		// The guilds tree is what the voice channel joined is in.
+		case keybind.Matches(msg, m.cfg.Keybinds.ToggleMute.Keybind, m.cfg.Keybinds.ToggleDeafen.Keybind, m.cfg.Keybinds.LeaveVoice.Keybind):
+			return m, m.updatePane(paneGuildsTree, msg)
 
 		case keybind.Matches(msg, m.cfg.Keybinds.Logout.Keybind):
 			return m, tview.Sequence(closeState(m.state), logout())

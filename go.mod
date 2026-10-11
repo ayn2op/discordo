@@ -13,12 +13,13 @@ require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/alecthomas/chroma/v2 v2.27.0
 	github.com/andybalholm/brotli v1.2.6
-	github.com/ayn2op/arikawa/v3 v3.0.0-20260929021956-7d0802bf4d7c
+	github.com/ayn2op/arikawa/v3 v3.0.0-20261011215609-c5c459e53baa
 	github.com/ayn2op/ningen/v3 v3.0.1-0.20260929010920-29794d5fa70e
 	github.com/ayn2op/tview v0.0.0-20261011173501-8bd5978952e4
 	github.com/bogdanfinn/fhttp v0.6.9
 	github.com/bogdanfinn/tls-client v1.16.0
 	github.com/gdamore/tcell/v3 v3.6.0
+	github.com/gen2brain/malgo v0.11.26
 	github.com/gorilla/websocket v1.5.3
 	github.com/klauspost/compress v1.20.1
 	github.com/mattn/go-shellwords v1.0.16
@@ -27,6 +28,8 @@ require (
 	github.com/sahilm/fuzzy v0.1.3
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
+	github.com/thomas-vilte/dave-go v0.5.1
+	github.com/tphakala/go-opus v1.1.0
 	github.com/yuin/goldmark v1.8.6
 	github.com/zalando/go-keyring v0.2.8
 	golang.design/x/clipboard v0.11.0
@@ -45,6 +48,7 @@ require (
 	github.com/cloudflare/circl v1.6.5 // indirect
 	github.com/danieljoos/wincred v1.2.3 // indirect
 	github.com/dchest/jsmin v1.0.0 // indirect
+	github.com/disgoorg/godave v0.3.0 // indirect
 	github.com/dlclark/regexp2/v2 v2.8.4 // indirect
 	github.com/ebitengine/purego v0.11.1 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
@@ -55,6 +59,8 @@ require (
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/randall77/makefat v0.0.0-20260406194835-1b91746796b7 // indirect
 	github.com/tam7t/hpkp v0.0.0-20160821193359-2b70b4024ed5 // indirect
+	github.com/thomas-vilte/mls-go v1.6.0 // indirect
+	github.com/tphakala/simd v1.11.0 // indirect
 	github.com/twmb/murmur3 v1.2.1 // indirect
 	go4.org v0.0.0-20260112195520-a5071408f32f // indirect
 	golang.design/x/x11 v0.2.0 // indirect

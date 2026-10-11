@@ -205,7 +205,7 @@ type (
 		Footer StyleThemeConfig `toml:"footer"`
 		Border StyleThemeConfig `toml:"border"`
 		// The status styles are those of direct-message recipients.
-		GuildsTree TreeThemeConfig `toml:"guilds_tree"`
+		GuildsTree GuildsTreeThemeConfig `toml:"guilds_tree"`
 		// The status styles are those of the dot before each member.
 		MembersTree  TreeThemeConfig         `toml:"members_tree"`
 		ScrollBar    ScrollBarThemeConfig    `toml:"scroll_bar"`
@@ -215,6 +215,14 @@ type (
 		Help         HelpThemeConfig         `toml:"help"`
 	}
 )
+
+type GuildsTreeThemeConfig struct {
+	TreeThemeConfig
+	// The style of whoever is speaking in the voice channel joined.
+	SpeakingStyle StyleWrapper `toml:"speaking_style"`
+	// The style of how full a voice channel that has a user limit is.
+	VoiceLimitStyle StyleWrapper `toml:"voice_limit_style"`
+}
 
 type TreeThemeConfig struct {
 	// The color of the lines that give the tree its shape.
@@ -257,10 +265,14 @@ func defaultTheme() ThemeConfig {
 		}
 	)
 	return ThemeConfig{
-		Title:       focus,
-		Footer:      focus,
-		Border:      focus,
-		GuildsTree:  tree,
+		Title:  focus,
+		Footer: focus,
+		Border: focus,
+		GuildsTree: GuildsTreeThemeConfig{
+			TreeThemeConfig: tree,
+			SpeakingStyle:   StyleWrapper{plain.Foreground(tcell.ColorGreen)},
+			VoiceLimitStyle: StyleWrapper{plain.Foreground(tcell.ColorDodgerBlue)},
+		},
 		MembersTree: tree,
 		ScrollBar:   ScrollBarThemeConfig{TrackStyle: dim},
 		MessagesList: MessagesListThemeConfig{

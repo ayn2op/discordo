@@ -1,18 +1,24 @@
 package guildstree
 
 import (
+	"cmp"
+	"errors"
+	"fmt"
 	"log/slog"
 	"slices"
+	"time"
 
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/arikawa/v3/gateway"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/ui"
 	uitree "github.com/ayn2op/discordo/internal/ui/tree"
+	"github.com/ayn2op/discordo/internal/voice"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/ningen/v3/states/read"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/keybind"
+	"github.com/ayn2op/tview/richtext"
 	"github.com/ayn2op/tview/tree"
 	"github.com/ayn2op/tview/viewport"
 	"github.com/gdamore/tcell/v3"
@@ -25,8 +31,9 @@ type Model struct {
 	selectionState tree.SelectionState
 	scrollState    viewport.ScrollState
 
-	cfg   *config.Config
-	state *ningen.State
+	cfg          *config.Config
+	state        *ningen.State
+	voiceSession *voice.Session
 
 	// nodes indexes the guild and channel nodes for frequent event handlers (read updates, picker navigation).
 	// It mirrors the current rendered tree and is rebuilt on READY before nodes are added.
@@ -36,10 +43,11 @@ type Model struct {
 
 func NewModel(cfg *config.Config, state *ningen.State) Model {
 	return Model{
-		root:  tree.NewNode(""),
-		cfg:   cfg,
-		state: state,
-		nodes: make(map[discord.Snowflake]*tree.Node),
+		root:         tree.NewNode(""),
+		cfg:          cfg,
+		state:        state,
+		voiceSession: voice.New(state.State, cfg.Voice.Sensitivity),
+		nodes:        make(map[discord.Snowflake]*tree.Node),
 	}
 }
 
@@ -57,13 +65,15 @@ func (m Model) View(focused bool) tview.Widget {
 		m.selectionState,
 		m.scrollState,
 		m.cfg,
-		m.cfg.Theme.GuildsTree,
+		m.cfg.Theme.GuildsTree.TreeThemeConfig,
 		m.cfg.UI.GuildsTree.Graphics,
 		m.cfg.Keybinds.GuildsTree.TreeKeybinds,
 		focused,
 		onChange,
 		onSelect,
-	).Title("Guilds")
+	).
+		Title("Guilds").
+		Footer(m.voiceFooter())
 }
 
 func (m *Model) reset() *tree.Node {
@@ -238,11 +248,196 @@ func (m Model) createChannelNode(parent *tree.Node, channel discord.Channel) {
 	m.nodes[discord.Snowflake(channel.ID)] = channelNode
 }
 
+// showVoiceMembers lists who is in each voice channel of the guild under it.
+func (m *Model) showVoiceMembers(guildID discord.GuildID) {
+	states, _ := m.state.Cabinet.VoiceStates(guildID)
+	slices.SortFunc(states, func(a, b discord.VoiceState) int { return cmp.Compare(a.UserID, b.UserID) })
+
+	channels, _ := m.state.Cabinet.Channels(guildID)
+	for _, channel := range channels {
+		node := m.nodes[discord.Snowflake(channel.ID)]
+		if node == nil || !isVoice(channel.Type) {
+			continue
+		}
+
+		// The members are replaced, so what is selected cannot stay one of them.
+		if slices.Contains(node.Children(), m.selectionState.CurrentNode()) {
+			m.selectionState.SetCurrentNode(node)
+		}
+
+		node.ClearChildren()
+		for _, state := range states {
+			if state.ChannelID == channel.ID {
+				node.AddChild(tree.NewNode(m.voiceMemberText(guildID, state)).SetReference(state.UserID))
+			}
+		}
+
+		// After its name, how full it is, if it can be.
+		line := node.Line()[:1]
+		if channel.VoiceUserLimit > 0 {
+			label := fmt.Sprintf("%d/%d", len(node.Children()), channel.VoiceUserLimit)
+			line = append(line, richtext.NewSegment(" ", tview.Style{}), richtext.NewSegment(label, m.cfg.Theme.GuildsTree.VoiceLimitStyle.Style))
+		}
+
+		node.SetLine(line)
+	}
+
+	m.styleVoiceMembers()
+}
+
+// voiceMemberText returns the name of the member that state is of, and whether they are muted or deafened.
+func (m Model) voiceMemberText(guildID discord.GuildID, state discord.VoiceState) string {
+	text := state.UserID.String()
+	member := state.Member
+	if member == nil {
+		member, _ = m.state.Cabinet.Member(guildID, state.UserID)
+	}
+
+	if member != nil {
+		text = cmp.Or(member.Nick, member.User.DisplayName, member.User.Username)
+	}
+
+	return text + m.voiceMarkers(state)
+}
+
+// voiceMarkers returns what shows that the user that state is of is muted or deafened.
+func (m Model) voiceMarkers(state discord.VoiceState) (markers string) {
+	if state.Mute || state.SelfMute {
+		markers += m.cfg.Icons.VoiceMuted
+	}
+
+	if state.Deaf || state.SelfDeaf {
+		markers += m.cfg.Icons.VoiceDeafened
+	}
+
+	return markers
+}
+
+// styleVoiceMembers shows who is speaking in the voice channel joined.
+func (m Model) styleVoiceMembers() {
+	node := m.nodes[discord.Snowflake(m.voiceSession.Status().ChannelID)]
+	if node == nil {
+		return
+	}
+
+	for _, member := range node.Children() {
+		var style tview.Style
+		if userID, _ := member.Reference().(discord.UserID); m.voiceSession.Speaking(userID) {
+			style = m.cfg.Theme.GuildsTree.SpeakingStyle.Style
+		}
+
+		m.setNodeLineStyle(member, style)
+	}
+}
+
+// voiceFooter returns the state of the voice channel joined or being joined and of the user in it, or "" if there is none.
+func (m Model) voiceFooter() string {
+	status := m.voiceSession.Status()
+	channel, err := m.state.Cabinet.Channel(status.ChannelID)
+	if err != nil {
+		return ""
+	}
+
+	name := ui.ChannelToString(*channel, m.cfg.Icons, m.state)
+	if me, _ := m.state.Cabinet.Me(); me != nil {
+		if state, _ := m.state.Cabinet.VoiceState(channel.GuildID, me.ID); state != nil {
+			name += m.voiceMarkers(*state)
+		}
+	}
+
+	switch {
+	case !status.Joined:
+		return "Joining " + name + "..."
+	case m.voiceSession.Latency() == 0:
+		return "In " + name
+	default:
+		return "In " + name + " (" + m.voiceSession.Latency().Round(time.Millisecond).String() + ")"
+	}
+}
+
+// voiceChannel returns the voice channel of node, or nil if it is not one.
+func (m Model) voiceChannel(node *tree.Node) *discord.Channel {
+	if node == nil {
+		return nil
+	}
+
+	channelID, _ := node.Reference().(discord.ChannelID)
+	channel, err := m.state.Cabinet.Channel(channelID)
+	if err != nil || !isVoice(channel.Type) {
+		return nil
+	}
+
+	return channel
+}
+
+// joinable returns why the voice channel of node cannot be joined, or nil if it can be.
+func (m Model) joinable(node *tree.Node, channel discord.Channel) error {
+	switch {
+	case !m.state.HasPermissions(channel.ID, discord.PermissionConnect):
+		return errors.New("you are not permitted to connect")
+	// Discord does not answer a request to join a full voice channel.
+	case channel.VoiceUserLimit > 0 && len(node.Children()) >= int(channel.VoiceUserLimit) && !m.state.HasPermissions(channel.ID, discord.PermissionMoveMembers):
+		return errors.New("it is full")
+	}
+
+	return nil
+}
+
+// toggleVoice joins the voice channel of node, or leaves it if it is joined.
+func (m Model) toggleVoice(node *tree.Node) tview.Cmd {
+	channel := m.voiceChannel(node)
+	switch {
+	case channel == nil:
+		return nil
+	case m.voiceSession.Status().ChannelID == channel.ID:
+		return voiceCmd("leave "+channel.Name, m.voiceSession.Leave)
+	}
+
+	err := m.joinable(node, *channel)
+	return voiceCmd("join "+channel.Name, func() error {
+		if err != nil {
+			return err
+		}
+
+		return m.voiceSession.Join(channel.ID)
+	})
+}
+
+// toggleMute starts or stops sending what the user says to the voice channel joined, if they are permitted to speak in it without holding a key.
+func (m Model) toggleMute() tview.Cmd {
+	return voiceCmd("toggle mute", func() error {
+		if channelID := m.voiceSession.Status().ChannelID; channelID.IsValid() && !m.state.HasPermissions(channelID, discord.PermissionSpeak|discord.PermissionUseVAD) {
+			return errors.New("you are not permitted to speak by voice activity")
+		}
+
+		return m.voiceSession.Toggle(false)
+	})
+}
+
+// voiceCmd returns a command that does f, and shows why it failed to do what if it did.
+func voiceCmd(what string, f func() error) tview.Cmd {
+	return func() tview.Msg {
+		if err := f(); err != nil {
+			return ui.ErrorDialog(what, err)
+		}
+
+		return nil
+	}
+}
+
+// expandable reports whether selecting node expands or collapses it, which the members of a voice channel do not make it.
+func (m Model) expandable(node *tree.Node) bool {
+	return len(node.Children()) > 0 && m.voiceChannel(node) == nil
+}
+
+func isVoice(t discord.ChannelType) bool {
+	return t == discord.GuildVoice || t == discord.GuildStageVoice
+}
+
+// setNodeLineStyle styles the name of node, which is the first segment of its line.
 func (m Model) setNodeLineStyle(node *tree.Node, style tview.Style) {
 	line := node.Line()
-	for i := range line {
-		line[i].Style = style
-	}
+	line[0].Style = style
 	node.SetLine(line)
 }
 
@@ -327,6 +522,12 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	case *read.UpdateEvent:
 		m.refreshReadStyles(msg)
 		return m, nil
+	case *gateway.VoiceStateUpdateEvent:
+		m.showVoiceMembers(msg.GuildID)
+		return m, nil
+	case VoiceMsg:
+		m.styleVoiceMembers()
+		return m, m.Init()
 
 	case NavigateMsg:
 		return m, m.navigate(msg.ChannelID)
@@ -369,6 +570,14 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			return m, nil
 		case keybind.Matches(msg, m.cfg.Keybinds.GuildsTree.YankID.Keybind):
 			return m, uitree.YankID(m.selectionState.CurrentNode())
+		case keybind.Matches(msg, m.cfg.Keybinds.GuildsTree.ToggleVoice.Keybind):
+			return m, m.toggleVoice(m.selectionState.CurrentNode())
+		case keybind.Matches(msg, m.cfg.Keybinds.ToggleMute.Keybind):
+			return m, m.toggleMute()
+		case keybind.Matches(msg, m.cfg.Keybinds.ToggleDeafen.Keybind):
+			return m, voiceCmd("toggle deafen", func() error { return m.voiceSession.Toggle(true) })
+		case keybind.Matches(msg, m.cfg.Keybinds.LeaveVoice.Keybind):
+			return m, voiceCmd("leave voice", m.voiceSession.Leave)
 		}
 	}
 	return m, nil
