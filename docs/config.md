@@ -604,11 +604,11 @@ Default: `"l"`
 
 ### keybinds.guilds_tree.select_up
 
-Default: `"k"`
+Default: `["k","up"]`
 
 ### keybinds.guilds_tree.select_down
 
-Default: `"j"`
+Default: `["j","down"]`
 
 ### keybinds.guilds_tree.select_top
 
@@ -690,11 +690,11 @@ Default: `"l"`
 
 ### keybinds.members_tree.select_up
 
-Default: `"k"`
+Default: `["k","up"]`
 
 ### keybinds.members_tree.select_down
 
-Default: `"j"`
+Default: `["j","down"]`
 
 ### keybinds.members_tree.select_top
 
@@ -732,11 +732,11 @@ Only while focusing on sent messages.
 
 ### keybinds.messages_list.select_up
 
-Default: `"k"`
+Default: `["k","up"]`
 
 ### keybinds.messages_list.select_down
 
-Default: `"j"`
+Default: `["j","down"]`
 
 ### keybinds.messages_list.select_top
 

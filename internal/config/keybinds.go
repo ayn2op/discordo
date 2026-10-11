@@ -46,11 +46,9 @@ func (k Keybind) MarshalTOML() ([]byte, error) {
 	return json.Marshal(strings.Join(k.Keys(), ""))
 }
 
-// key builds a Keybind bound to key, or unbound if key is empty, with desc as its help description.
-func key(key, desc string) Keybind {
-	k := Keybind{keybind.New().WithHelp("", desc)}
-	k.UnmarshalTOML(key)
-	return k
+// key builds a Keybind with desc as its help description, bound to keys, the first of which is shown in help. It is unbound if that is empty.
+func key(desc string, keys ...string) Keybind {
+	return Keybind{keybind.New(keys...).WithHelp(keys[0], desc)}
 }
 
 type ScrollKeybinds struct {
@@ -201,108 +199,108 @@ type Keybinds struct {
 	Quit   Keybind `toml:"quit"`
 }
 
-func selectionKeybinds(up, down, top, bottom string) SelectionKeybinds {
+func selectionKeybinds(up, down []string, top, bottom string) SelectionKeybinds {
 	return SelectionKeybinds{
-		SelectUp:     key(up, "up"),
-		SelectDown:   key(down, "down"),
-		SelectTop:    key(top, "top"),
-		SelectBottom: key(bottom, "btm"),
+		SelectUp:     key("up", up...),
+		SelectDown:   key("down", down...),
+		SelectTop:    key("top", top),
+		SelectBottom: key("btm", bottom),
 	}
 }
 
 func scrollKeybinds(up, down, top, bottom string) ScrollKeybinds {
 	return ScrollKeybinds{
-		ScrollUp:     key(up, "scr up"),
-		ScrollDown:   key(down, "scr down"),
-		ScrollTop:    key(top, "scr top"),
-		ScrollBottom: key(bottom, "scr btm"),
+		ScrollUp:     key("scr up", up),
+		ScrollDown:   key("scr down", down),
+		ScrollTop:    key("scr top", top),
+		ScrollBottom: key("scr btm", bottom),
 	}
 }
 
 func defaultKeybinds() Keybinds {
-	vi := selectionKeybinds("k", "j", "g", "G")
-	emacs := selectionKeybinds("ctrl+p", "ctrl+n", "home", "end")
+	vi := selectionKeybinds([]string{"k", "up"}, []string{"j", "down"}, "g", "G")
+	emacs := selectionKeybinds([]string{"ctrl+p"}, []string{"ctrl+n"}, "home", "end")
 	tree := TreeKeybinds{
 		SelectionKeybinds: vi,
 		ScrollKeybinds:    scrollKeybinds("pgup", "pgdn", "home", "end"),
-		ScrollLeft:        key("h", "scr left"),
-		ScrollRight:       key("l", "scr right"),
-		SelectCurrent:     key("enter", "select"),
-		YankID:            key("i", "copy id"),
+		ScrollLeft:        key("scr left", "h"),
+		ScrollRight:       key("scr right", "l"),
+		SelectCurrent:     key("select", "enter"),
+		YankID:            key("copy id", "i"),
 
-		CollapseAll:        key("_", "collapse all"),
-		CollapseParentNode: key("-", "collapse parent"),
-		MoveToParentNode:   key("p", "parent"),
+		CollapseAll:        key("collapse all", "_"),
+		CollapseParentNode: key("collapse parent", "-"),
+		MoveToParentNode:   key("parent", "p"),
 	}
 	return Keybinds{
-		ToggleGuildsTree:     key("alt+g", "toggle guilds"),
-		ToggleMembersTree:    key("alt+m", "toggle members"),
-		ToggleChannelsPicker: key("ctrl+k", "channels picker"),
-		ToggleMute:           key("alt+v", "toggle mute"),
-		ToggleDeafen:         key("alt+d", "toggle deafen"),
-		LeaveVoice:           key("alt+l", "leave voice"),
-		ToggleHelp:           key("alt+.", "toggle help"),
-		ToggleFullHelp:       key("ctrl+.", "full help"),
-		Suspend:              key("ctrl+z", "suspend"),
+		ToggleGuildsTree:     key("toggle guilds", "alt+g"),
+		ToggleMembersTree:    key("toggle members", "alt+m"),
+		ToggleChannelsPicker: key("channels picker", "ctrl+k"),
+		ToggleMute:           key("toggle mute", "alt+v"),
+		ToggleDeafen:         key("toggle deafen", "alt+d"),
+		LeaveVoice:           key("leave voice", "alt+l"),
+		ToggleHelp:           key("toggle help", "alt+."),
+		ToggleFullHelp:       key("full help", "ctrl+."),
+		Suspend:              key("suspend", "ctrl+z"),
 
-		FocusGuildsTree:   key("ctrl+g", "guilds"),
-		FocusMembersTree:  key("ctrl+y", "members"),
-		FocusMessagesList: key("ctrl+t", "messages"),
-		FocusComposer:     key("ctrl+i", "composer"),
+		FocusGuildsTree:   key("guilds", "ctrl+g"),
+		FocusMembersTree:  key("members", "ctrl+y"),
+		FocusMessagesList: key("messages", "ctrl+t"),
+		FocusComposer:     key("composer", "ctrl+i"),
 
-		FocusPrevious: key("ctrl+h", "focus prev"),
-		FocusNext:     key("ctrl+l", "focus next"),
+		FocusPrevious: key("focus prev", "ctrl+h"),
+		FocusNext:     key("focus next", "ctrl+l"),
 
 		Picker: PickerKeybinds{
 			SelectionKeybinds: emacs,
-			Select:            key("enter", "sel"),
-			Cancel:            key("esc", "cancel"),
+			Select:            key("sel", "enter"),
+			Cancel:            key("cancel", "esc"),
 		},
 		GuildsTree: GuildsTreeKeybinds{
 			TreeKeybinds:         tree,
-			SelectPreviousUnread: key("K", "prev unread"),
-			SelectNextUnread:     key("J", "next unread"),
-			ToggleVoice:          key("v", "join voice"),
+			SelectPreviousUnread: key("prev unread", "K"),
+			SelectNextUnread:     key("next unread", "J"),
+			ToggleVoice:          key("join voice", "v"),
 		},
 		MembersTree: tree,
 		MessagesList: MessagesListKeybinds{
 			SelectionKeybinds: vi,
 			ScrollKeybinds:    scrollKeybinds("K", "J", "home", "end"),
 
-			SelectReply:  key("s", "sel reply"),
-			Reply:        key("R", "reply"),
-			ReplyMention: key("r", "@reply"),
+			SelectReply:  key("sel reply", "s"),
+			Reply:        key("reply", "R"),
+			ReplyMention: key("@reply", "r"),
 
-			Cancel: key("esc", "cancel"),
-			Edit:   key("e", "edit"),
+			Cancel: key("cancel", "esc"),
+			Edit:   key("edit", "e"),
 
-			Delete:        key("", "force delete"),
-			DeleteConfirm: key("d", "delete"),
+			Delete:        key("force delete", ""),
+			DeleteConfirm: key("delete", "d"),
 
-			Open:          key("o", "open"),
-			OpenInBrowser: key("O", "open browser"),
-			Download:      key("D", "download"),
+			Open:          key("open", "o"),
+			OpenInBrowser: key("open browser", "O"),
+			Download:      key("download", "D"),
 
-			YankContent: key("y", "copy text"),
-			YankURL:     key("u", "copy url"),
-			YankID:      key("i", "copy id"),
+			YankContent: key("copy text", "y"),
+			YankURL:     key("copy url", "u"),
+			YankID:      key("copy id", "i"),
 		},
 		Composer: ComposerKeybinds{
-			EditLast:           key("up", "edit last"),
-			Paste:              key("ctrl+v", "paste"),
-			Send:               key("enter", "send"),
-			Newline:            key("shift+enter", "nl"),
-			Cancel:             key("esc", "cancel"),
-			TabComplete:        key("tab", "complete"),
-			ToggleReplyMention: key("shift+tab", "toggle @reply"),
-			Undo:               key("ctrl+u", "undo"),
+			EditLast:           key("edit last", "up"),
+			Paste:              key("paste", "ctrl+v"),
+			Send:               key("send", "enter"),
+			Newline:            key("nl", "shift+enter"),
+			Cancel:             key("cancel", "esc"),
+			TabComplete:        key("complete", "tab"),
+			ToggleReplyMention: key("toggle @reply", "shift+tab"),
+			Undo:               key("undo", "ctrl+u"),
 
-			OpenEditor:     key("ctrl+e", "editor"),
-			OpenFilePicker: key("ctrl+\\", "attach"),
+			OpenEditor:     key("editor", "ctrl+e"),
+			OpenFilePicker: key("attach", "ctrl+\\"),
 		},
 		MentionsList: MentionsListKeybinds{SelectionKeybinds: emacs},
 
-		Logout: key("ctrl+d", "logout"),
-		Quit:   key("ctrl+c", "quit"),
+		Logout: key("logout", "ctrl+d"),
+		Quit:   key("quit", "ctrl+c"),
 	}
 }
