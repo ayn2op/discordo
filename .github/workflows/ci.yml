@@ -26,29 +26,24 @@ jobs:
         with:
           go-version-file: go.mod
 
+      # Voice support requires a C compiler, and the one on this runner targets x64.
+      - if: ${{ matrix.os == 'windows-11-arm' }}
+        run: |
+          C:\msys64\usr\bin\pacman -Sy --noconfirm mingw-w64-clang-aarch64-clang
+          echo "C:\msys64\clangarm64\bin" >> $env:GITHUB_PATH
+          echo "CC=clang" >> $env:GITHUB_ENV
+
       - name: Check that docs/config.md is up to date
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
           go generate ./internal/config
           git diff --exit-code docs/config.md
 
-      - name: Test
-        if: ${{ matrix.os != 'windows-11-arm' }}
-        run: |
-          go test -race -v ./...
-          go test -race -v -tags no_spoof_tls_fingerprint,no_voice ./...
       # -race is not supported on windows/arm64.
       - name: Test
-        if: ${{ matrix.os == 'windows-11-arm' }}
         run: |
-          go test -v ./...
-          go test -v -tags no_spoof_tls_fingerprint,no_voice ./...
-
-      # Without voice, no C compiler is needed.
-      - name: Build without voice
-        run: go build -tags no_voice -o ${{ runner.temp }}/discordo .
-        env:
-          CGO_ENABLED: 0
+          go test ${{ matrix.os != 'windows-11-arm' && '-race' || '' }} -v ./...
+          go test ${{ matrix.os != 'windows-11-arm' && '-race' || '' }} -v -tags no_spoof_tls_fingerprint,no_voice ./...
 
       - name: Build
         run: go build -trimpath -ldflags=-s .
