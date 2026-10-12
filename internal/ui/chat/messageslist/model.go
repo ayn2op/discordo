@@ -1135,6 +1135,12 @@ func extractEmbedURLs(embeds []discord.Embed) []string {
 	return urls
 }
 
+// The schemes of the links that are opened.
+const (
+	schemeHTTP  = "http"
+	schemeHTTPS = "https"
+)
+
 func messageURLs(msg discord.Message) []string {
 	combined := slices.Concat(extractURLs(msg.Content), extractEmbedURLs(msg.Embeds))
 
@@ -1142,7 +1148,8 @@ func messageURLs(msg discord.Message) []string {
 	seen := make(map[string]struct{}, len(combined))
 	for _, u := range combined {
 		u = strings.TrimSpace(u)
-		if u == "" {
+		// Only web links are opened, as one of another scheme could run a program.
+		if parsed, err := url.Parse(u); err != nil || parsed.Scheme != schemeHTTP && parsed.Scheme != schemeHTTPS {
 			continue
 		}
 		if _, ok := seen[u]; ok {

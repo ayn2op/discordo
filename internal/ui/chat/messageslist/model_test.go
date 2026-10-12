@@ -190,3 +190,11 @@ func TestWaveformRail(t *testing.T) {
 		t.Errorf("got %q, want %q", got, want)
 	}
 }
+
+func TestMessageURLs(t *testing.T) {
+	message := discord.Message{Content: "[a](file:///etc/passwd) [b](ms-msdt:id) [c](HTTPS://example.com) https://example.org"}
+
+	if got, want := messageURLs(message), []string{"HTTPS://example.com", "https://example.org"}; !slices.Equal(got, want) {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
