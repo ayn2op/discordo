@@ -538,6 +538,18 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		m.styleVoiceMembers()
 		return m, m.Init()
 
+	case *gateway.ThreadCreateEvent:
+		m.upsertThread(msg.Channel)
+		return m, nil
+	case *gateway.ThreadUpdateEvent:
+		m.upsertThread(msg.Channel)
+		return m, nil
+	case *gateway.ThreadDeleteEvent:
+		m.removeThread(msg.ID, msg.ParentID)
+		return m, nil
+	case *gateway.ThreadListSyncEvent:
+		m.syncThreads(msg)
+		return m, nil
 	case NavigateMsg:
 		return m, m.navigate(msg.ChannelID)
 	case Msg:
