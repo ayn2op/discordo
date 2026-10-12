@@ -297,7 +297,11 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			return m, m.updatePane(paneGuildsTree, msg)
 
 		case keybind.Matches(msg, m.cfg.Keybinds.Logout.Keybind):
-			return m, tview.Sequence(closeState(m.state), logout())
+			return m, ui.ShowDialog(
+				"Are you sure you want to log out?",
+				ui.DialogButton{Label: "No"},
+				ui.DialogButton{Label: "Yes", Cmd: tview.Sequence(closeState(m.state), logout())},
+			)
 		}
 	case composer.TabSuggestMsg, mentionslist.Msg:
 		return m, m.updatePane(paneComposer, msg)
