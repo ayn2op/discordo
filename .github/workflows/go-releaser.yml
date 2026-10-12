@@ -7,19 +7,21 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
-      - uses: actions/setup-go@v6
+      - name: Setup go
+        uses: actions/setup-go@v7
         with:
           go-version: stable
 
-      - name: release publish
-        run: |
-          docker run \
-          --rm \
-          -e 'GITHUB_TOKEN=${{secrets.GITHUB_TOKEN}}' \
-          -v /var/run/docker.sock:/var/run/docker.sock \
-          -v `pwd`:/go/src/github.com/ayn2op/discordo \
-          -w /go/src/github.com/ayn2op/discordo \
-          ghcr.io/goreleaser-cross:latest \
-          release --clean
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v7
+        with:
+          # either 'goreleaser' (default) or 'goreleaser-pro'
+          distribution: goreleaser
+          # 'latest', 'nightly', or a semver
+          version: "~> v2"
+          args: release --clean
