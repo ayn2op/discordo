@@ -380,8 +380,8 @@ func (m Model) confirmDelete() tview.Cmd {
 	message := *selectedMessage
 	return ui.ShowDialog(
 		"Are you sure you want to delete this message?",
-		ui.DialogButton{Label: "Yes", Cmd: m.requestDelete(message)},
 		ui.DialogButton{Label: "No"},
+		ui.DialogButton{Label: "Yes", Cmd: m.requestDelete(message)},
 	)
 }
 
