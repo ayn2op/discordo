@@ -9,42 +9,67 @@ import (
 	"github.com/ayn2op/tview/tree"
 )
 
-func TestSyncThreadsClearsEmptyScope(t *testing.T) {
+func TestSyncThreads(t *testing.T) {
 	const (
 		guildID  discord.GuildID   = 1
 		parentID discord.ChannelID = 2
 		threadID discord.ChannelID = 3
 	)
 
-	state := ningen.New("")
-	if err := state.Cabinet.ChannelSet(&discord.Channel{
-		ID:       threadID,
-		GuildID:  guildID,
-		ParentID: parentID,
-		Type:     discord.GuildPublicThread,
-	}, false); err != nil {
-		t.Fatal(err)
+	newModel := func(t *testing.T) (Model, *tree.Node) {
+		t.Helper()
+
+		state := ningen.New("")
+		if err := state.Cabinet.ChannelSet(&discord.Channel{
+			ID:       threadID,
+			GuildID:  guildID,
+			ParentID: parentID,
+			Type:     discord.GuildPublicThread,
+		}, false); err != nil {
+			t.Fatal(err)
+		}
+
+		root := tree.NewNode("")
+		parent := tree.NewNode("").SetReference(parentID)
+		threadNode := tree.NewNode("").SetReference(threadID)
+		root.AddChild(parent)
+		parent.AddChild(threadNode)
+		return Model{
+			state: state,
+			nodes: map[discord.Snowflake]*tree.Node{
+				discord.Snowflake(parentID): parent,
+				discord.Snowflake(threadID): threadNode,
+			},
+		}, parent
 	}
 
-	root := tree.NewNode("")
-	parent := tree.NewNode("").SetReference(parentID)
-	threadNode := tree.NewNode("").SetReference(threadID)
-	root.AddChild(parent)
-	parent.AddChild(threadNode)
-	m := Model{
-		state: state,
-		nodes: map[discord.Snowflake]*tree.Node{
-			discord.Snowflake(parentID): parent,
-			discord.Snowflake(threadID): threadNode,
-		},
+	assertCleared := func(t *testing.T, m Model, parent *tree.Node) {
+		t.Helper()
+
+		if got := parent.Children(); len(got) != 0 {
+			t.Fatalf("parent children = %v, want %v", got, []*tree.Node{})
+		}
+		if node := m.nodes[discord.Snowflake(threadID)]; node != nil {
+			t.Fatalf("nodes[%d] = %v, want %v", threadID, node, nil)
+		}
 	}
 
-	m.syncThreads(&gateway.ThreadListSyncEvent{
-		GuildID:    guildID,
-		ChannelIDs: []discord.ChannelID{parentID},
+	t.Run("clears the parent the event names", func(t *testing.T) {
+		m, parent := newModel(t)
+
+		m.syncThreads(&gateway.ThreadListSyncEvent{
+			GuildID:    guildID,
+			ChannelIDs: []discord.ChannelID{parentID},
+		})
+
+		assertCleared(t, m, parent)
 	})
 
-	if len(parent.Children()) != 0 || m.nodes[discord.Snowflake(threadID)] != nil {
-		t.Fatal("stale thread was not removed")
-	}
+	t.Run("clears the whole guild when the event names no channels", func(t *testing.T) {
+		m, parent := newModel(t)
+
+		m.syncThreads(&gateway.ThreadListSyncEvent{GuildID: guildID})
+
+		assertCleared(t, m, parent)
+	})
 }

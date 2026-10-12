@@ -84,6 +84,73 @@ func TestCreateChannelNodeThreads(t *testing.T) {
 	})
 }
 
+func TestCreateChannelNodesThreadBeforeParent(t *testing.T) {
+	const (
+		categoryID discord.ChannelID = 3
+		parentID   discord.ChannelID = 4
+		threadID   discord.ChannelID = 5
+	)
+
+	category := discord.Channel{ID: categoryID, GuildID: testGuildID, Type: discord.GuildCategory, Name: "category"}
+	parent := discord.Channel{ID: parentID, GuildID: testGuildID, ParentID: categoryID, Type: discord.GuildText, Name: "parent"}
+	thread := discord.Channel{ID: threadID, GuildID: testGuildID, ParentID: parentID, Type: discord.GuildPublicThread, Name: "thread"}
+
+	cfg := config.Default()
+	m := Model{cfg: &cfg, state: testGuildState(t, parent), nodes: map[discord.Snowflake]*tree.Node{}}
+
+	m.createChannelNodes(tree.NewNode(""), []discord.Channel{category, thread, parent})
+
+	parentNode := channelNode(t, m, parentID)
+	threadNode := channelNode(t, m, threadID)
+	if got := parentNode.Children(); len(got) != 1 || got[0] != threadNode {
+		t.Fatalf("parent children = %v, want %v", got, []*tree.Node{threadNode})
+	}
+}
+
+func TestModelExpandable(t *testing.T) {
+	t.Run("a channel holding thread children is not expandable", func(t *testing.T) {
+		channel := discord.Channel{ID: 3, GuildID: testGuildID, Type: discord.GuildText, Name: "channel"}
+		cfg := config.Default()
+		m := Model{cfg: &cfg, state: testGuildState(t, channel), nodes: map[discord.Snowflake]*tree.Node{}}
+		m.createChannelNode(tree.NewNode(""), channel)
+
+		node := channelNode(t, m, channel.ID)
+		node.AddChild(tree.NewNode("thread"))
+
+		if got := m.expandable(node); got {
+			t.Fatalf("expandable = %v, want %v", got, false)
+		}
+	})
+
+	t.Run("a category with a child is expandable", func(t *testing.T) {
+		category := discord.Channel{ID: 3, GuildID: testGuildID, Type: discord.GuildCategory, Name: "category"}
+		cfg := config.Default()
+		m := Model{cfg: &cfg, state: testGuildState(t), nodes: map[discord.Snowflake]*tree.Node{}}
+		m.createChannelNode(tree.NewNode(""), category)
+
+		node := channelNode(t, m, category.ID)
+		node.AddChild(tree.NewNode("channel"))
+
+		if got := m.expandable(node); !got {
+			t.Fatalf("expandable = %v, want %v", got, true)
+		}
+	})
+
+	t.Run("a voice channel holding member children is not expandable", func(t *testing.T) {
+		channel := discord.Channel{ID: 3, GuildID: testGuildID, Type: discord.GuildVoice, Name: "voice"}
+		cfg := config.Default()
+		m := Model{cfg: &cfg, state: testGuildState(t, channel), nodes: map[discord.Snowflake]*tree.Node{}}
+		m.createChannelNode(tree.NewNode(""), channel)
+
+		node := channelNode(t, m, channel.ID)
+		node.AddChild(tree.NewNode("member"))
+
+		if got := m.expandable(node); got {
+			t.Fatalf("expandable = %v, want %v", got, false)
+		}
+	})
+}
+
 func TestAdjacentNode(t *testing.T) {
 	a, b, c := tree.NewNode("a"), tree.NewNode("b"), tree.NewNode("c")
 	root := tree.NewNode("").SetChildren([]*tree.Node{a, tree.NewNode("guild").AddChild(b), c})
@@ -99,4 +166,45 @@ func TestAdjacentNode(t *testing.T) {
 	if got := adjacentNode(root, a, func(*tree.Node) bool { return false }, false); got != nil {
 		t.Errorf("got %v, want nil", got)
 	}
+}
+
+const (
+	testGuildID discord.GuildID = 1
+	testUserID  discord.UserID  = 2
+)
+
+func testGuildState(t *testing.T, channels ...discord.Channel) *ningen.State {
+	t.Helper()
+
+	state := ningen.New("")
+	if err := state.Cabinet.MyselfSet(discord.User{ID: testUserID}, false); err != nil {
+		t.Fatal(err)
+	}
+	if err := state.Cabinet.GuildSet(&discord.Guild{ID: testGuildID}, false); err != nil {
+		t.Fatal(err)
+	}
+	if err := state.Cabinet.RoleSet(testGuildID, &discord.Role{ID: discord.RoleID(testGuildID), Permissions: discord.PermissionViewChannel}, false); err != nil {
+		t.Fatal(err)
+	}
+	if err := state.Cabinet.MemberSet(testGuildID, &discord.Member{User: discord.User{ID: testUserID}}, false); err != nil {
+		t.Fatal(err)
+	}
+	for _, channel := range channels {
+		if err := state.Cabinet.ChannelSet(&channel, false); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	return state
+}
+
+func channelNode(t *testing.T, m Model, id discord.ChannelID) *tree.Node {
+	t.Helper()
+
+	node := m.nodes[discord.Snowflake(id)]
+	if node == nil {
+		t.Fatalf("nodes[%d] = %v, want a node", id, node)
+	}
+
+	return node
 }

@@ -451,12 +451,6 @@ func (m Model) setNodeLineStyle(node *tree.Node, style tview.Style) {
 }
 
 func (m Model) createChannelNodes(node *tree.Node, channels []discord.Channel) {
-	// Preserve exact ordering semantics:
-	// 1) top-level non-categories (in input order),
-	// 2) categories that have at least one child in the source slice (in input order),
-	// 3) parented channels under already-created categories (in input order).
-	//
-	// We precompute parent presence once to avoid the O(n^2) category-child scan.
 	hasChildByParentID := make(map[discord.ChannelID]struct{}, len(channels))
 	for _, channel := range channels {
 		if channel.ParentID.IsValid() {
@@ -479,10 +473,18 @@ func (m Model) createChannelNodes(node *tree.Node, channels []discord.Channel) {
 	}
 
 	for _, channel := range channels {
-		if channel.ParentID.IsValid() {
+		if channel.ParentID.IsValid() && !isThread(channel.Type) {
 			// Parent categories are inserted earlier in this function, so this lookup is O(1) and avoids per-channel subtree walks.
 			parent := m.nodes[discord.Snowflake(channel.ParentID)]
 			if parent != nil {
+				m.createChannelNode(parent, channel)
+			}
+		}
+	}
+
+	for _, channel := range channels {
+		if isThread(channel.Type) && channel.ParentID.IsValid() {
+			if parent := m.nodes[discord.Snowflake(channel.ParentID)]; parent != nil {
 				m.createChannelNode(parent, channel)
 			}
 		}
