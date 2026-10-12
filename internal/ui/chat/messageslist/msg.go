@@ -3,11 +3,13 @@ package messageslist
 import (
 	"context"
 	"errors"
+	"io"
 	"log/slog"
 	"mime"
 	"os"
 	"path/filepath"
 	"slices"
+	"time"
 
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/arikawa/v3/gateway"
@@ -31,6 +33,19 @@ type olderMessagesLoadedMsg struct {
 }
 
 func (olderMessagesLoadedMsg) messagesList() {}
+
+// voiceMsg reports that the status of the voice message player changed.
+type voiceMsg struct{}
+
+func (voiceMsg) messagesList() {}
+
+// Init waits for that.
+func (m Model) Init() tview.Cmd {
+	return func() tview.Msg {
+		<-m.voicePlayer.Updates()
+		return voiceMsg{}
+	}
+}
 
 // ReplyMsg asks to reply to Message by Name, mentioning its author if Mention is set.
 type ReplyMsg struct {
@@ -140,6 +155,63 @@ func (m Model) open() tview.Cmd {
 	return m.openWith(m.openAttachment)
 }
 
+func isVoiceMessage(message discord.Message) bool {
+	return message.Flags&discord.IsVoiceMessage != 0 && len(message.Attachments) == 1
+}
+
+// play plays the selected voice message, or pauses or resumes it if it is the one playing.
+func (m Model) play() tview.Cmd {
+	message, ok := m.selectedMessage()
+	if !ok || !isVoiceMessage(*message) {
+		return nil
+	}
+
+	attachment := message.Attachments[0]
+	return func() tview.Msg {
+		if err := m.playVoiceMessage(attachment); err != nil {
+			return ui.ErrorDialog("play voice message", err)
+		}
+
+		return nil
+	}
+}
+
+func (m Model) playVoiceMessage(attachment discord.Attachment) error {
+	if toggled, err := m.voicePlayer.Toggle(attachment.ID); toggled || err != nil {
+		return err
+	}
+
+	resp, err := m.get(attachment.URL)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// It is read whole, for playing it not to wait for the network.
+	audio, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	return m.voicePlayer.Play(attachment.ID, audio)
+}
+
+// seekMsg asks to seek to where the waveform of a voice message was clicked.
+type seekMsg time.Duration
+
+func (seekMsg) messagesList() {}
+
+// seek moves the voice message that is playing or paused to position.
+func (m Model) seek(position time.Duration) tview.Cmd {
+	return func() tview.Msg {
+		if err := m.voicePlayer.Seek(position); err != nil {
+			return ui.ErrorDialog("seek voice message", err)
+		}
+
+		return nil
+	}
+}
+
 func (m Model) openInBrowser() tview.Cmd {
 	return m.openWith(func(attachment discord.Attachment) tview.Cmd { return openURL(attachment.URL) })
 }
@@ -170,12 +242,12 @@ func (m Model) download() tview.Cmd {
 	}
 	if len(selectedMessage.Attachments) == 1 {
 		attachment := selectedMessage.Attachments[0]
-		return m.confirmAttachment(attachment, saveAttachment(attachment))
+		return m.confirmAttachment(attachment, m.saveAttachment(attachment))
 	}
 
 	items := make(picker.Items, len(selectedMessage.Attachments))
 	for i, attachment := range selectedMessage.Attachments {
-		items[i] = picker.Item{Text: attachment.Filename, Reference: m.confirmAttachment(attachment, saveAttachment(attachment))}
+		items[i] = picker.Item{Text: attachment.Filename, Reference: m.confirmAttachment(attachment, m.saveAttachment(attachment))}
 	}
 	return m.showAttachmentsPicker(items)
 }
@@ -196,7 +268,7 @@ func (m Model) showAttachmentsPicker(items picker.Items) tview.Cmd {
 }
 
 func (m Model) openAttachment(attachment discord.Attachment) tview.Cmd {
-	return m.confirmAttachment(attachment, openDownloadedAttachment(attachment))
+	return m.confirmAttachment(attachment, m.openDownloadedAttachment(attachment))
 }
 
 func (m Model) confirmAttachment(attachment discord.Attachment, action tview.Cmd) tview.Cmd {
@@ -210,7 +282,7 @@ func (m Model) confirmAttachment(attachment discord.Attachment, action tview.Cmd
 	return action
 }
 
-func openDownloadedAttachment(attachment discord.Attachment) tview.Cmd {
+func (m Model) openDownloadedAttachment(attachment discord.Attachment) tview.Cmd {
 	return func() tview.Msg {
 		extension := filepath.Ext(attachment.Filename)
 		if extension == "" {
@@ -233,7 +305,7 @@ func openDownloadedAttachment(attachment discord.Attachment) tview.Cmd {
 
 		path := file.Name()
 
-		if err := downloadAttachment(attachment, path); err != nil {
+		if err := m.downloadAttachment(attachment, path); err != nil {
 			os.Remove(path)
 			return ui.ErrorDialog("download attachment", err)
 		} else if err := open.Start(path); err != nil {
@@ -244,7 +316,7 @@ func openDownloadedAttachment(attachment discord.Attachment) tview.Cmd {
 	}
 }
 
-func saveAttachment(attachment discord.Attachment) tview.Cmd {
+func (m Model) saveAttachment(attachment discord.Attachment) tview.Cmd {
 	return func() tview.Msg {
 		destination, err := zenity.SelectFileSave(zenity.Filename(filepath.Base(attachment.Filename)), zenity.ConfirmOverwrite())
 		if errors.Is(err, zenity.ErrCanceled) {
@@ -254,7 +326,7 @@ func saveAttachment(attachment discord.Attachment) tview.Cmd {
 			return ui.ErrorDialog("select attachment destination", err)
 		}
 
-		if err := downloadAttachment(attachment, destination); err != nil {
+		if err := m.downloadAttachment(attachment, destination); err != nil {
 			return ui.ErrorDialog("download attachment", err)
 		}
 		return nil

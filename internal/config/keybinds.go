@@ -123,6 +123,11 @@ type MessagesListKeybinds struct {
 	OpenInBrowser Keybind `toml:"open_in_browser"`
 	// Download one of the selected message's attachments.
 	Download Keybind `toml:"download"`
+	// Play, pause or resume the selected voice message.
+	Play Keybind `toml:"play"`
+	// Seek the voice message that is playing or paused.
+	SeekBackward Keybind `toml:"seek_backward"`
+	SeekForward  Keybind `toml:"seek_forward"`
 
 	// Yank (copy) the selected message's content/url/id.
 	YankContent Keybind `toml:"yank_content"`
@@ -280,6 +285,9 @@ func defaultKeybinds() Keybinds {
 			Open:          key("open", "o"),
 			OpenInBrowser: key("open browser", "O"),
 			Download:      key("download", "D"),
+			Play:          key("play", "p"),
+			SeekBackward:  key("seek back", "h", "left"),
+			SeekForward:   key("seek forward", "l", "right"),
 
 			YankContent: key("copy text", "y"),
 			YankURL:     key("copy url", "u"),

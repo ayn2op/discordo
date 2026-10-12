@@ -10,12 +10,12 @@ github.com/alecthomas/repr v0.5.2 h1:SU73FTI9D1P5UNtvseffFSGmdNci/O6RsqzeXJtP0Qs
 github.com/alecthomas/repr v0.5.2/go.mod h1:Fr0507jx4eOXV7AlPV6AVZLYrLIuIeSOWtW57eE/O/4=
 github.com/andybalholm/brotli v1.2.6 h1:ftYnfj6usCp+UGV5kSJ3+chpMQgU+gJf/AxsUQ52REI=
 github.com/andybalholm/brotli v1.2.6/go.mod h1:rzTDkvFWvIrjDXZHkuS16NPggd91W3kUSvPlQ1pLaKY=
-github.com/ayn2op/arikawa/v3 v3.0.0-20261011215609-c5c459e53baa h1:uBfUPNrKAwrKweO+vzZSaI2mawNhRZ3QFZuH7JKenq4=
-github.com/ayn2op/arikawa/v3 v3.0.0-20261011215609-c5c459e53baa/go.mod h1:YARcqZmk7hDjXB+lexlXX4wDFHULafbGnF0gsD0tuNw=
+github.com/ayn2op/arikawa/v3 v3.0.0-20261012034659-5b006907b2de h1:bO825TKutshlGQ/AsH6uYpZVjHQhDLElctgrh/T90aU=
+github.com/ayn2op/arikawa/v3 v3.0.0-20261012034659-5b006907b2de/go.mod h1:YARcqZmk7hDjXB+lexlXX4wDFHULafbGnF0gsD0tuNw=
 github.com/ayn2op/ningen/v3 v3.0.1-0.20260929010920-29794d5fa70e h1:QAei/IVEyZV7GcpkpcFUh37+QRqwrt57z7OT3ciHrhI=
 github.com/ayn2op/ningen/v3 v3.0.1-0.20260929010920-29794d5fa70e/go.mod h1:RsvYiMzi4Si1F7vmml5NCL2DaKIZXkNUQC7QlGTMtCw=
-github.com/ayn2op/tview v0.0.0-20261011173501-8bd5978952e4 h1:ViehR1nggJ7caDHIj9bp2Z8VqS00wur0xrOo1E6YNGs=
-github.com/ayn2op/tview v0.0.0-20261011173501-8bd5978952e4/go.mod h1:3aWH6S5uOqOkZv7JFePEVHukTj9hPb6Lbynm59Sks2E=
+github.com/ayn2op/tview v0.0.0-20261012034741-d8b2704e2b8e h1:uCt61XkJ0DqRiBd5ozXZVd2xWlNFcA0rR2hew9lAZx0=
+github.com/ayn2op/tview v0.0.0-20261012034741-d8b2704e2b8e/go.mod h1:3aWH6S5uOqOkZv7JFePEVHukTj9hPb6Lbynm59Sks2E=
 github.com/bdandy/go-errors v1.2.2 h1:WdFv/oukjTJCLa79UfkGmwX7ZxONAihKu4V0mLIs11Q=
 github.com/bdandy/go-errors v1.2.2/go.mod h1:NkYHl4Fey9oRRdbB1CoC6e84tuqQHiqrOcZpqFEkBxM=
 github.com/bdandy/go-socks4 v1.2.3 h1:Q6Y2heY1GRjCtHbmlKfnwrKVU/k81LS8mRGLRlmDlic=

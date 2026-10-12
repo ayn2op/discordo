@@ -819,6 +819,22 @@ Download one of the selected message's attachments.
 
 Default: `"D"`
 
+### keybinds.messages_list.play
+
+Play, pause or resume the selected voice message.
+
+Default: `"p"`
+
+### keybinds.messages_list.seek_backward
+
+Seek the voice message that is playing or paused.
+
+Default: `["h","left"]`
+
+### keybinds.messages_list.seek_forward
+
+Default: `["l","right"]`
+
 ### keybinds.messages_list.yank_content
 
 Yank (copy) the selected message's content/url/id.

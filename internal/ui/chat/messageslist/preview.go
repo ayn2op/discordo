@@ -6,7 +6,6 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 	"log/slog"
-	"net/http"
 	"net/url"
 	"slices"
 	"strconv"
@@ -96,16 +95,16 @@ func (m Model) loadPreviews() tview.Cmd {
 			}
 			// Reserve the preview's rows with a blank image of the same size, so the messages below do not shift when it loads.
 			item.previews[s.proxy] = widget(image.NewAlpha(bounds))
-			cmds = append(cmds, loadPreview(item.message.ID, s.proxy, bounds, widget))
+			cmds = append(cmds, m.loadPreview(item.message.ID, s.proxy, bounds, widget))
 		}
 	}
 	return tview.Batch(cmds...)
 }
 
 // loadPreview yields an empty preview if loading fails.
-func loadPreview(messageID discord.MessageID, proxy discord.URL, bounds image.Rectangle, widget func(image.Image) tviewimage.Widget) tview.Cmd {
+func (m Model) loadPreview(messageID discord.MessageID, proxy discord.URL, bounds image.Rectangle, widget func(image.Image) tviewimage.Widget) tview.Cmd {
 	return func() tview.Msg {
-		img, err := downloadPreview(proxy, bounds)
+		img, err := m.downloadPreview(proxy, bounds)
 		if err != nil {
 			slog.Error("failed to load preview", "err", err)
 			img = &image.Alpha{}
@@ -114,7 +113,7 @@ func loadPreview(messageID discord.MessageID, proxy discord.URL, bounds image.Re
 	}
 }
 
-func downloadPreview(proxy discord.URL, bounds image.Rectangle) (image.Image, error) {
+func (m Model) downloadPreview(proxy discord.URL, bounds image.Rectangle) (image.Image, error) {
 	u, err := url.Parse(proxy)
 	if err != nil {
 		return nil, err
@@ -124,7 +123,7 @@ func downloadPreview(proxy discord.URL, bounds image.Rectangle) (image.Image, er
 	query.Set("height", strconv.Itoa(bounds.Dy()))
 	u.RawQuery = query.Encode()
 
-	resp, err := http.Get(u.String())
+	resp, err := m.get(u.String())
 	if err != nil {
 		return nil, err
 	}
