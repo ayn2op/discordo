@@ -15,19 +15,25 @@ import (
 
 	"github.com/ayn2op/tview/layout"
 
+	"github.com/ayn2op/arikawa/v3/api"
 	"github.com/ayn2op/arikawa/v3/discord"
 	md "github.com/ayn2op/arikawa/v3/markdown"
 	"github.com/ayn2op/arikawa/v3/state"
+	"github.com/ayn2op/arikawa/v3/utils/httputil"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/markdown"
 	"github.com/ayn2op/discordo/internal/ui"
+	"github.com/ayn2op/discordo/internal/voice"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
 	tviewimage "github.com/ayn2op/tview/image"
 	"github.com/ayn2op/tview/keybind"
 	"github.com/ayn2op/tview/list"
 	"github.com/ayn2op/tview/richtext"
+	"github.com/ayn2op/tview/row"
 	"github.com/ayn2op/tview/scrollbar"
+	"github.com/ayn2op/tview/slider"
+	"github.com/ayn2op/tview/text"
 	"github.com/ayn2op/tview/textview"
 	"github.com/ayn2op/tview/viewport"
 	"github.com/gdamore/tcell/v3"
@@ -57,6 +63,9 @@ type Model struct {
 	items   []messageItem
 
 	renderer *markdown.Renderer
+	// voicePlayer plays the voice message played last, and voiceStatus is what it last said of it.
+	voicePlayer *voice.Player
+	voiceStatus voice.PlayerStatus
 
 	// kitty reports whether previews are drawn with kitty's graphics protocol.
 	// kittyImages counts the images sent to the terminal.
@@ -72,6 +81,7 @@ func NewModel(cfg *config.Config, state *ningen.State) Model {
 		cfg:            cfg,
 		state:          state,
 		renderer:       markdown.NewRenderer(cfg),
+		voicePlayer:    voice.NewPlayer(),
 	}
 
 	ml.scrollState.ScrollToEnd()
@@ -241,6 +251,10 @@ func (m Model) buildItem(index int) tview.Widget {
 		view := &messageView{render: func(width int) richtext.Text {
 			return m.renderMessage(message, m.cfg.Theme.MessagesList.MessageStyle.Style, width)
 		}}
+		if isVoiceMessage(message) {
+			view.player = m.voiceMessageView(message.Attachments[0])
+		}
+
 		for _, s := range previewSources(message) {
 			if preview, ok := item.previews[s.proxy]; ok {
 				view.images = append(view.images, preview)
@@ -251,9 +265,11 @@ func (m Model) buildItem(index int) tview.Widget {
 	return item.view
 }
 
-// messageView renders a message followed by its image previews, caching the wrapped lines until the width changes.
+// messageView renders a message followed by its voice message player, if it is one, and its image previews, caching the wrapped lines until the width changes.
 type messageView struct {
-	render   func(width int) richtext.Text
+	render func(width int) richtext.Text
+	// player is a row high, or nil.
+	player   tview.Widget
 	images   []tviewimage.Widget
 	width    int
 	rendered bool
@@ -278,6 +294,10 @@ func (v *messageView) Layout(limits layout.Limits) layout.Size {
 	return layout.Sized(limits, layout.Fill, layout.Shrink, func(limits layout.Limits) layout.Size {
 		v.at(limits.Max.Width)
 		rows := len(v.lines)
+		if v.player != nil {
+			rows++
+		}
+
 		for _, preview := range v.images {
 			_, height := preview.Size()
 			rows += height.Cells()
@@ -289,6 +309,11 @@ func (v *messageView) Layout(limits layout.Limits) layout.Size {
 func (v *messageView) Draw(screen tview.Screen, area tview.Rectangle) {
 	v.at(area.Width).Draw(screen, tview.Rectangle{X: area.X, Y: area.Y, Width: area.Width, Height: len(v.lines)})
 	y := area.Y + len(v.lines)
+	if v.player != nil {
+		v.player.Draw(screen, tview.Rectangle{X: area.X, Y: y, Width: area.Width, Height: 1})
+		y++
+	}
+
 	for _, preview := range v.images {
 		_, height := preview.Size()
 		preview.Draw(screen, tview.Rectangle{X: area.X, Y: y, Width: area.Width, Height: height.Cells()})
@@ -296,7 +321,14 @@ func (v *messageView) Draw(screen tview.Screen, area tview.Rectangle) {
 	}
 }
 
-func (v *messageView) Handle(msg tview.Msg, area tview.Rectangle) tview.Msg { return msg }
+// Handle passes msg to the player, for its waveform to be clicked.
+func (v *messageView) Handle(msg tview.Msg, area tview.Rectangle) tview.Msg {
+	if v.player == nil {
+		return msg
+	}
+
+	return v.player.Handle(msg, tview.Rectangle{X: area.X, Y: area.Y + len(v.lines), Width: area.Width, Height: 1})
+}
 
 // dateSeparator is a line with the date in the middle, filled to the width it is drawn at.
 type dateSeparator struct {
@@ -556,6 +588,11 @@ func (m Model) drawDefaultMessage(builder *richtext.Builder, message discord.Mes
 	m.drawEmbeds(builder, message, baseStyle, width, contentRoot, contentSource)
 
 	attachmentStyle := tview.MergeStyle(baseStyle, m.cfg.Theme.MessagesList.AttachmentStyle.Style)
+	// A voice message is shown as its player.
+	if isVoiceMessage(message) {
+		return
+	}
+
 	for _, a := range message.Attachments {
 		builder.NewLine()
 		if m.cfg.Attachments.ShowLinks {
@@ -566,6 +603,72 @@ func (m Model) drawDefaultMessage(builder *richtext.Builder, message discord.Mes
 			builder.Write(a.Filename, attachmentStyle)
 		}
 	}
+}
+
+const (
+	symbolPlay  = "▶"
+	symbolPause = "⏸"
+	// positionSeparator is between how much of a voice message was played and how long it is.
+	positionSeparator = " / "
+	// waveformBars is what the waveform of a voice message is drawn with, from quiet to loud.
+	waveformBars = "▁▂▃▄▅▆▇█"
+	// waveformWidth is how many bars a waveform is drawn with at most.
+	waveformWidth = 32
+	// seekStep is how far a key seeks a voice message.
+	seekStep = time.Second
+)
+
+// waveformRail returns the bars the waveform of a voice message is drawn with.
+func waveformRail(waveform []byte) []string {
+	bars := []rune(waveformBars)
+
+	var rail []string
+	for chunk := range slices.Chunk(waveform, len(waveform)/waveformWidth+1) {
+		rail = append(rail, string(bars[int(slices.Max(chunk))*len(bars)/256]))
+	}
+
+	return rail
+}
+
+func formatDuration(d time.Duration) string {
+	seconds := int(d.Round(time.Second).Seconds())
+	return fmt.Sprintf("%d:%02d", seconds/60, seconds%60)
+}
+
+// voiceMessageView returns the player of the voice message a: whether it is playing, its waveform with what was played of it, and how long it is.
+func (m Model) voiceMessageView(a discord.Attachment) tview.Widget {
+	duration := time.Duration(a.DurationSecs * float64(time.Second))
+	symbol, label := symbolPlay, formatDuration(duration)
+
+	status := m.voiceStatus
+	loaded := status.ID == a.ID
+	if loaded {
+		label = formatDuration(status.Position) + positionSeparator + label
+	}
+
+	if loaded && status.Playing {
+		symbol = symbolPause
+	}
+
+	rail := waveformRail(a.Waveform)
+	style := m.cfg.Theme.MessagesList.AttachmentStyle.Style
+	// Only the voice message that is loaded can be sought.
+	var onSeek func(time.Duration) tview.Msg
+	if loaded {
+		onSeek = func(position time.Duration) tview.Msg { return seekMsg(position) }
+	}
+
+	waveform := slider.New(0, duration, status.Position, onSeek).
+		Width(layout.Fixed(len(rail))).
+		Rail(func(cell, handle int) (string, tview.Style) {
+			if loaded && cell <= handle {
+				return rail[cell], style
+			}
+
+			return rail[cell], style.Dim(true)
+		})
+
+	return row.New(text.New(symbol), waveform, text.New(label)).Spacing(1)
 }
 
 func (m Model) drawEmbeds(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, width int, contentRoot ast.Node, contentSource []byte) {
@@ -855,6 +958,12 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			return m, m.open()
 		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.OpenInBrowser.Keybind):
 			return m, m.openInBrowser()
+		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.Play.Keybind):
+			return m, m.play()
+		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.SeekBackward.Keybind):
+			return m, m.seek(m.voiceStatus.Position - seekStep)
+		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.SeekForward.Keybind):
+			return m, m.seek(m.voiceStatus.Position + seekStep)
 		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.Download.Keybind):
 			return m, m.download()
 		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.Reply.Keybind):
@@ -903,6 +1012,17 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		// Invalidate the view so it is laid out with the preview.
 		m.items[index].view = nil
 		return m, cmd
+	case seekMsg:
+		return m, m.seek(time.Duration(msg))
+	case voiceMsg:
+		m.voiceStatus = m.voicePlayer.Status()
+		for i := range m.items {
+			if isVoiceMessage(m.items[i].message) {
+				m.items[i].view = nil
+			}
+		}
+
+		return m, m.Init()
 	case tview.ResizeMsg:
 		cols, rows := msg.Size()
 		width, height := msg.PixelSize()
@@ -1034,15 +1154,40 @@ func messageURLs(msg discord.Message) []string {
 	return urls
 }
 
-func downloadAttachment(attachment discord.Attachment, destination string) error {
-	resp, err := http.Get(attachment.URL)
+// get requests the file at url, by a new link to it if that one expired.
+func (m Model) get(url string) (*http.Response, error) {
+	resp, err := http.Get(url)
+	if err != nil || resp.StatusCode == http.StatusOK {
+		return resp, err
+	}
+	resp.Body.Close()
+
+	var links struct {
+		URLs []struct {
+			Refreshed string `json:"refreshed"`
+		} `json:"refreshed_urls"`
+	}
+	body := map[string][]string{"attachment_urls": {url}}
+	if err := m.state.RequestJSONInto(&links, http.MethodPost, api.Endpoint+"attachments/refresh-urls", httputil.WithJSONBody(body)); err != nil {
+		return nil, err
+	}
+
+	if len(links.URLs) != 0 {
+		if resp, err = http.Get(links.URLs[0].Refreshed); err != nil || resp.StatusCode == http.StatusOK {
+			return resp, err
+		}
+		resp.Body.Close()
+	}
+
+	return nil, fmt.Errorf("unexpected HTTP status: %s", resp.Status)
+}
+
+func (m Model) downloadAttachment(attachment discord.Attachment, destination string) error {
+	resp, err := m.get(attachment.URL)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected HTTP status: %s", resp.Status)
-	}
 	file, err := os.Create(destination)
 	if err != nil {
 		return err

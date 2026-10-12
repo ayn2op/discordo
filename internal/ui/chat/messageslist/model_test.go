@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/ayn2op/arikawa/v3/discord"
@@ -178,5 +179,14 @@ func TestModelSelectLastOwn(t *testing.T) {
 				t.Fatalf("returned %q, selected %v, want %q", message.Content, selected, tt.want)
 			}
 		})
+	}
+}
+
+func TestWaveformRail(t *testing.T) {
+	waveform := make([]byte, 256)
+	waveform[255] = 255
+
+	if got, want := strings.Join(waveformRail(waveform), ""), strings.Repeat("▁", 28)+"█"; got != want {
+		t.Errorf("got %q, want %q", got, want)
 	}
 }

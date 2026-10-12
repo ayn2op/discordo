@@ -23,6 +23,9 @@ func (m Model) ShortHelp() []keybind.Keybind {
 		if len(selectedMessage.Attachments) != 0 || len(messageURLs(*selectedMessage)) != 0 {
 			help = append(help, cfg.Open.Keybind)
 		}
+		if isVoiceMessage(*selectedMessage) {
+			help = append(help, cfg.Play.Keybind)
+		}
 	}
 
 	return help
@@ -54,6 +57,13 @@ func (m Model) FullHelp() [][]keybind.Keybind {
 		if len(message.Attachments) != 0 {
 			attachments = append(attachments, cfg.Download.Keybind)
 		}
+		if isVoiceMessage(*message) {
+			attachments = append(attachments, cfg.Play.Keybind)
+		}
+	}
+
+	if m.voiceStatus.ID.IsValid() {
+		attachments = append(attachments, cfg.SeekBackward.Keybind, cfg.SeekForward.Keybind)
 	}
 	actions = append(actions, cfg.Cancel.Keybind)
 

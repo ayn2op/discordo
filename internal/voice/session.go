@@ -42,7 +42,7 @@ var audio = sync.OnceValues(func() (*malgo.AllocatedContext, error) {
 })
 
 // startDevice starts a playback or capture device, which calls data with what to fill or with what was captured.
-func startDevice(kind malgo.DeviceType, data func(output, input []byte)) (*malgo.Device, error) {
+func startDevice(kind malgo.DeviceType, channels int, data func(output, input []byte)) (*malgo.Device, error) {
 	ctx, err := audio()
 	if err != nil {
 		return nil, err
@@ -51,8 +51,8 @@ func startDevice(kind malgo.DeviceType, data func(output, input []byte)) (*malgo
 	config := malgo.DefaultDeviceConfig(kind)
 	config.SampleRate = sampleRate
 	config.PeriodSizeInMilliseconds = 10
-	config.Playback.Format, config.Playback.Channels = malgo.FormatS16, channels
-	config.Capture.Format, config.Capture.Channels = malgo.FormatS16, channels
+	config.Playback.Format, config.Playback.Channels = malgo.FormatS16, uint32(channels)
+	config.Capture.Format, config.Capture.Channels = malgo.FormatS16, uint32(channels)
 
 	device, err := malgo.InitDevice(ctx.Context, config, malgo.DeviceCallbacks{
 		Data: func(output, input []byte, _ uint32) { data(output, input) },
@@ -192,7 +192,7 @@ func (s *Session) setSpeaking(userID discord.UserID, speaking bool) {
 func setDevice(device **malgo.Device, on bool, kind malgo.DeviceType, data func(output, input []byte)) (err error) {
 	switch {
 	case on && *device == nil:
-		*device, err = startDevice(kind, data)
+		*device, err = startDevice(kind, channels, data)
 	case !on && *device != nil:
 		(*device).Uninit()
 		*device = nil

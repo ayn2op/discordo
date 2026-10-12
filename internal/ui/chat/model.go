@@ -190,7 +190,7 @@ func (m *Model) cycleFocus(step pane) {
 }
 
 func (m Model) Init() tview.Cmd {
-	return tview.Batch(openState(m.state), listen(m.events), m.guildsTree.Init(), tview.RequestTerminalInfo())
+	return tview.Batch(openState(m.state), listen(m.events), m.guildsTree.Init(), m.messagesList.Init(), tview.RequestTerminalInfo())
 }
 
 // Update returns m changed in response to msg and a command to run, or nil.

@@ -13,9 +13,9 @@ require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/alecthomas/chroma/v2 v2.27.0
 	github.com/andybalholm/brotli v1.2.6
-	github.com/ayn2op/arikawa/v3 v3.0.0-20261011215609-c5c459e53baa
+	github.com/ayn2op/arikawa/v3 v3.0.0-20261012034659-5b006907b2de
 	github.com/ayn2op/ningen/v3 v3.0.1-0.20260929010920-29794d5fa70e
-	github.com/ayn2op/tview v0.0.0-20261011173501-8bd5978952e4
+	github.com/ayn2op/tview v0.0.0-20261012034741-d8b2704e2b8e
 	github.com/bogdanfinn/fhttp v0.6.9
 	github.com/bogdanfinn/tls-client v1.16.0
 	github.com/gdamore/tcell/v3 v3.6.0
