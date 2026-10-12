@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/ayn2op/arikawa/v3/discord"
+	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview/tree"
 )
 
@@ -49,6 +51,35 @@ func TestModelMoveDMToFront(t *testing.T) {
 		children := dmRoot.Children()
 		if len(children) != 1 || children[0] != first {
 			t.Fatalf("children = %v, want the original DM node", children)
+		}
+	})
+}
+
+func TestCreateChannelNodeThreads(t *testing.T) {
+	t.Run("adds a thread despite the view channel permission", func(t *testing.T) {
+		cfg := config.Default()
+		m := Model{cfg: &cfg, state: ningen.New(""), nodes: map[discord.Snowflake]*tree.Node{}}
+		parent := tree.NewNode("parent").SetReference(discord.ChannelID(2))
+
+		m.createChannelNode(parent, discord.Channel{ID: 3, GuildID: 1, ParentID: 2, Type: discord.GuildPublicThread, Name: "thread"})
+
+		if got := len(parent.Children()); got != 1 {
+			t.Fatalf("children = %v, want %v", got, 1)
+		}
+		if node := m.nodes[discord.Snowflake(discord.ChannelID(3))]; node == nil {
+			t.Fatalf("node for thread = %v, want a node", node)
+		}
+	})
+
+	t.Run("skips an archived thread", func(t *testing.T) {
+		cfg := config.Default()
+		m := Model{cfg: &cfg, state: ningen.New(""), nodes: map[discord.Snowflake]*tree.Node{}}
+		parent := tree.NewNode("parent").SetReference(discord.ChannelID(2))
+
+		m.createChannelNode(parent, discord.Channel{ID: 3, GuildID: 1, ParentID: 2, Type: discord.GuildPublicThread, Name: "thread", ThreadMetadata: &discord.ThreadMetadata{Archived: true}})
+
+		if got := len(parent.Children()); got != 0 {
+			t.Fatalf("children = %v, want %v", got, 0)
 		}
 	})
 }

@@ -197,6 +197,12 @@ func (m Model) guildNodeStyle(guildID discord.GuildID) tview.Style {
 }
 
 func (m Model) channelNodeStyle(channel discord.Channel) tview.Style {
+	if isThread(channel.Type) && channel.ParentID.IsValid() {
+		if parent, err := m.state.Cabinet.Channel(channel.ParentID); err == nil {
+			return unreadStyle(m.state.ChannelIsUnread(parent.ID, ningen.UnreadOpts{IncludeMutedCategories: true}))
+		}
+	}
+
 	unread := unreadStyle(m.state.ChannelIsUnread(channel.ID, ningen.UnreadOpts{IncludeMutedCategories: true}))
 	if channel.Type != discord.DirectMessage || len(channel.DMRecipients) != 1 {
 		return unread
@@ -223,7 +229,11 @@ func (m Model) createGuildNode(parent *tree.Node, guild discord.Guild) {
 }
 
 func (m Model) createChannelNode(parent *tree.Node, channel discord.Channel) {
-	if channel.Type != discord.DirectMessage && channel.Type != discord.GroupDM && channel.Type != discord.GuildCategory && !m.state.HasPermissions(channel.ID, discord.PermissionViewChannel) {
+	if isThread(channel.Type) {
+		if channel.ThreadMetadata != nil && channel.ThreadMetadata.Archived {
+			return
+		}
+	} else if channel.Type != discord.DirectMessage && channel.Type != discord.GroupDM && channel.Type != discord.GuildCategory && !m.state.HasPermissions(channel.ID, discord.PermissionViewChannel) {
 		return
 	}
 
@@ -425,9 +435,8 @@ func voiceCmd(what string, f func() error) tview.Cmd {
 	}
 }
 
-// expandable reports whether selecting node expands or collapses it, which the members of a voice channel do not make it.
 func (m Model) expandable(node *tree.Node) bool {
-	return len(node.Children()) > 0 && m.voiceChannel(node) == nil
+	return node.Expandable() && len(node.Children()) > 0
 }
 
 func isVoice(t discord.ChannelType) bool {
