@@ -382,6 +382,16 @@ Default: `"box_drawing"`
 
 ## ui.messages_list
 
+### ui.messages_list.compact
+
+Default: `false`
+
+### ui.messages_list.gap
+
+Empty rows between messages.
+
+Default: `1`
+
 ### ui.messages_list.reply_indicator
 
 Default: `">"`

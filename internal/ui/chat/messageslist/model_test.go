@@ -11,6 +11,7 @@ import (
 	"github.com/ayn2op/arikawa/v3/state"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/ningen/v3"
+	"github.com/ayn2op/tview"
 )
 
 func testConfig(t *testing.T) *config.Config {
@@ -196,5 +197,30 @@ func TestMessageURLs(t *testing.T) {
 
 	if got, want := messageURLs(message), []string{"HTTPS://example.com", "https://example.org"}; !slices.Equal(got, want) {
 		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func TestModelDrawLayout(t *testing.T) {
+	cfg := testConfig(t)
+	// A layout without a reference time is drawn as it is, whatever the time zone.
+	cfg.Timestamps.Format = "T"
+	ml := newTestModel(t, cfg)
+	message := discord.Message{Author: discord.User{Username: "a"}, Content: "hi", EditedTimestamp: discord.NowTimestamp()}
+
+	for compact, want := range map[bool]string{false: "a T (edited)\nhi\n", true: "T a hi (edited)\n"} {
+		cfg.UI.MessagesList.Compact = compact
+
+		var got strings.Builder
+		for _, line := range ml.renderMessage(message, tview.Style{}, 80) {
+			for _, segment := range line {
+				got.WriteString(segment.Text)
+			}
+
+			got.WriteByte('\n')
+		}
+
+		if got.String() != want {
+			t.Fatalf("got = %q, want = %q", got.String(), want)
+		}
 	}
 }

@@ -113,6 +113,7 @@ func (m Model) listView(focused bool) viewport.Widget {
 		ThumbStyle(theme.ThumbStyle.Style)
 	// The model moves the selection itself, so the list is not focused and only takes clicks.
 	l := list.New(m.selectionState, len(m.items), m.buildItem).
+		Gap(int(m.cfg.UI.MessagesList.Gap)).
 		SelectedStyle(m.cfg.Theme.MessagesList.SelectedMessageStyle.Style).
 		OnChange(func(a list.Change) tview.Msg { return listMsg(a) })
 	return viewport.New(l, m.scrollState).
@@ -428,16 +429,13 @@ func (m Model) writeMessage(builder *richtext.Builder, message discord.Message, 
 			m.drawDefaultMessage(builder, message, baseStyle, width)
 		}
 	case discord.GuildMemberJoinMessage:
-		m.drawTimestamps(builder, message.Timestamp, baseStyle)
-		m.drawAuthor(builder, message, baseStyle)
-		builder.Write("joined the server.", baseStyle)
+		m.drawLayout(builder, message, baseStyle, func() { builder.Write("joined the server.", baseStyle) })
 	case discord.InlinedReplyMessage:
 		m.drawReplyMessage(builder, message, baseStyle, width)
 	case discord.ChannelPinnedMessage:
 		m.drawPinnedMessage(builder, message, baseStyle)
 	default:
-		m.drawTimestamps(builder, message.Timestamp, baseStyle)
-		m.drawAuthor(builder, message, baseStyle)
+		m.drawLayout(builder, message, baseStyle, nil)
 	}
 	m.drawReactions(builder, message.Reactions, baseStyle)
 }
@@ -469,9 +467,49 @@ func (m Model) formatTimestamp(ts discord.Timestamp) string {
 	return ts.Time().In(time.Local).Format(m.cfg.Timestamps.Format)
 }
 
-func (m Model) drawTimestamps(builder *richtext.Builder, ts discord.Timestamp, baseStyle tview.Style) {
+const editedIndicator = " (edited)"
+
+func (m Model) drawLayout(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, content func()) {
+	if m.cfg.UI.MessagesList.Compact {
+		m.drawCompact(builder, message, baseStyle, content)
+		return
+	}
+
+	m.drawCozy(builder, message, baseStyle, content)
+}
+
+func (m Model) drawCompact(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, content func()) {
 	dimStyle := baseStyle.Dim(true)
-	builder.Write(m.formatTimestamp(ts)+" ", dimStyle)
+	if m.cfg.Timestamps.Enabled {
+		builder.Write(m.formatTimestamp(message.Timestamp)+" ", dimStyle)
+	}
+
+	m.drawAuthor(builder, message, baseStyle)
+	if content != nil {
+		builder.Write(" ", baseStyle)
+		content()
+	}
+
+	if message.EditedTimestamp.IsValid() {
+		builder.Write(editedIndicator, dimStyle)
+	}
+}
+
+func (m Model) drawCozy(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, content func()) {
+	dimStyle := baseStyle.Dim(true)
+	m.drawAuthor(builder, message, baseStyle)
+	if m.cfg.Timestamps.Enabled {
+		builder.Write(" "+m.formatTimestamp(message.Timestamp), dimStyle)
+	}
+
+	if message.EditedTimestamp.IsValid() {
+		builder.Write(editedIndicator, dimStyle)
+	}
+
+	if content != nil {
+		builder.NewLine()
+		content()
+	}
 }
 
 func (m Model) drawAuthor(builder *richtext.Builder, message discord.Message, baseStyle tview.Style) {
@@ -494,7 +532,6 @@ func (m Model) drawAuthor(builder *richtext.Builder, message discord.Message, ba
 
 	style := baseStyle.Foreground(foreground).Bold(true)
 	builder.Write(name, style)
-	builder.Write(" ", baseStyle)
 }
 
 func (m Model) memberForMessage(message discord.Message) *discord.Member {
@@ -515,7 +552,7 @@ func (m Model) memberForMessage(message discord.Message) *discord.Member {
 // root is nil when markdown rendering is disabled.
 func (m Model) drawContent(builder *richtext.Builder, message discord.Message, baseStyle tview.Style) (ast.Node, []byte) {
 	content, root, source := m.renderContent(message, baseStyle, false)
-	if m.cfg.Markdown.Enabled && !builder.LineEmpty() {
+	if m.cfg.Markdown.Enabled {
 		startsWithCodeBlock := false
 		if root != nil {
 			if first := root.FirstChild(); first != nil {
@@ -525,7 +562,10 @@ func (m Model) drawContent(builder *richtext.Builder, message discord.Message, b
 
 		if startsWithCodeBlock {
 			// Keep code blocks visually separate from "timestamp + author".
-			builder.NewLine()
+			if !builder.LineEmpty() {
+				builder.NewLine()
+			}
+
 			for len(content) > 0 && len(content[0]) == 0 {
 				content = content[1:]
 			}
@@ -573,18 +613,14 @@ func (m Model) drawSnapshotContent(builder *richtext.Builder, parent discord.Mes
 }
 
 func (m Model) drawDefaultMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, width int) {
-	if m.cfg.Timestamps.Enabled {
-		m.drawTimestamps(builder, message.Timestamp, baseStyle)
+	var contentRoot ast.Node
+	var contentSource []byte
+	content := func() { contentRoot, contentSource = m.drawContent(builder, message, baseStyle) }
+	if message.Content == "" {
+		content = nil
 	}
 
-	m.drawAuthor(builder, message, baseStyle)
-	contentRoot, contentSource := m.drawContent(builder, message, baseStyle)
-
-	if message.EditedTimestamp.IsValid() {
-		dimStyle := baseStyle.Dim(true)
-		builder.Write(" (edited)", dimStyle)
-	}
-
+	m.drawLayout(builder, message, baseStyle, content)
 	m.drawEmbeds(builder, message, baseStyle, width, contentRoot, contentSource)
 
 	attachmentStyle := tview.MergeStyle(baseStyle, m.cfg.Theme.MessagesList.AttachmentStyle.Style)
@@ -895,11 +931,11 @@ func isMarkdownEscapable(c byte) bool {
 
 func (m Model) drawForwardedMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style) {
 	dimStyle := baseStyle.Dim(true)
-	m.drawTimestamps(builder, message.Timestamp, baseStyle)
-	m.drawAuthor(builder, message, baseStyle)
-	builder.Write(m.cfg.UI.MessagesList.ForwardedIndicator+" ", dimStyle)
-	m.drawSnapshotContent(builder, message, message.MessageSnapshots[0].Message, baseStyle)
-	builder.Write(" ("+m.formatTimestamp(message.MessageSnapshots[0].Message.Timestamp)+") ", dimStyle)
+	m.drawLayout(builder, message, baseStyle, func() {
+		builder.Write(m.cfg.UI.MessagesList.ForwardedIndicator+" ", dimStyle)
+		m.drawSnapshotContent(builder, message, message.MessageSnapshots[0].Message, baseStyle)
+		builder.Write(" ("+m.formatTimestamp(message.MessageSnapshots[0].Message.Timestamp)+") ", dimStyle)
+	})
 }
 
 func (m Model) drawReplyMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, width int) {
@@ -909,6 +945,7 @@ func (m Model) drawReplyMessage(builder *richtext.Builder, message discord.Messa
 	if reference := message.ReferencedMessage; reference != nil {
 		reference.GuildID = message.GuildID
 		m.drawAuthor(builder, *reference, dimStyle)
+		builder.Write(" ", dimStyle)
 		m.drawContent(builder, *reference, dimStyle)
 	} else {
 		builder.Write("Original message was deleted", dimStyle)

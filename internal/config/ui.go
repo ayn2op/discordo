@@ -167,6 +167,10 @@ type (
 	}
 
 	MessagesListUIConfig struct {
+		Compact bool `toml:"compact"`
+		// The number of empty rows between messages.
+		Gap uint8 `toml:"gap"`
+
 		ReplyIndicator     string `toml:"reply_indicator"`
 		ForwardedIndicator string `toml:"forwarded_indicator"`
 	}
@@ -196,7 +200,7 @@ func defaultUI() UIConfig {
 		GuildsTree:   GuildsTreeUIConfig{TreeUIConfig{Graphics: true}, true},
 		MembersTree:  TreeUIConfig{Graphics: true},
 		ScrollBar:    ScrollBarUIConfig{SymbolSet: SymbolSetWrapper{boxDrawing}, Visibility: ScrollBarVisibilityWrapper{viewport.ScrollBarVisibilityAutomatic}},
-		MessagesList: MessagesListUIConfig{ReplyIndicator: ">", ForwardedIndicator: "<"},
+		MessagesList: MessagesListUIConfig{Gap: 1, ReplyIndicator: ">", ForwardedIndicator: "<"},
 		MentionsList: MentionsListUIConfig{MinWidth: 20},
 	}
 }
