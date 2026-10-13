@@ -13,14 +13,16 @@ import (
 
 // Model shows the mention suggestions as a list in a box.
 type Model struct {
-	cfg            *config.Config
-	selectionState list.SelectionState
-	scrollState    viewport.ScrollState
-	items          []Item
+	cfg *config.Config
+
+	items []Item
+	// cursor is the selected item, or -1 for none.
+	cursor      int
+	scrollState viewport.ScrollState
 }
 
 func NewModel(cfg *config.Config) Model {
-	return Model{cfg: cfg, selectionState: list.NewSelectionState()}
+	return Model{cfg: cfg, cursor: -1}
 }
 
 // View shows the list in a box whose bottom corners join the composer's border below it.
@@ -39,7 +41,7 @@ func (m Model) View() tview.Widget {
 func (Model) Init() tview.Cmd { return nil }
 
 func (m Model) listView() viewport.Widget {
-	l := list.New(m.selectionState, len(m.items), func(i int) tview.Widget {
+	l := list.New(m.cursor, len(m.items), func(i int) tview.Widget {
 		item := m.items[i]
 		return row{text: item.DisplayText, style: item.Style}
 	}).
@@ -47,20 +49,20 @@ func (m Model) listView() viewport.Widget {
 		Keybind(ui.SelectionKeybind(m.cfg.Keybinds.MentionsList.SelectionKeybinds)).
 		// The list is only shown while mentions are being completed, so it takes its keys first.
 		Focused(true).
-		OnChange(func(a list.Change) tview.Msg { return listMsg(a) })
+		OnChange(func(cursor int) tview.Msg { return listMsg(cursor) })
 	return viewport.New(l, m.scrollState).
-		Target(l.Target).
+		Target(l.Target(m.cursor)).
 		ScrollBar(scrollbar.New(), viewport.ScrollBarVisibilityAutomatic).
-		OnChange(func(a viewport.Change) tview.Msg { return scrollMsg(a) })
+		OnChange(func(s *viewport.ScrollState) tview.Msg { return scrollMsg(*s) })
 }
 
 func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	switch msg := msg.(type) {
 	case listMsg:
-		m.selectionState.Apply(list.Change(msg))
+		m.cursor = int(msg)
 		m.scrollState.ScrollToTarget()
 	case scrollMsg:
-		m.scrollState.Apply(viewport.Change(msg))
+		m.scrollState = viewport.ScrollState(msg)
 	}
 	return m, nil
 }
@@ -71,7 +73,7 @@ func (m *Model) Append(item Item) {
 
 func (m *Model) Clear() {
 	m.items = nil
-	m.selectionState.SetCursor(-1)
+	m.cursor = -1
 }
 
 func (m Model) ItemCount() int {
@@ -79,7 +81,7 @@ func (m Model) ItemCount() int {
 }
 
 func (m Model) SelectedInsertText() (string, bool) {
-	index := m.selectionState.Cursor()
+	index := m.cursor
 	if index < 0 || index >= len(m.items) {
 		return "", false
 	}
@@ -95,7 +97,7 @@ func (m Model) maxDisplayWidth() int {
 }
 
 func (m *Model) Rebuild() {
-	m.selectionState.SetCursor(min(0, len(m.items)-1))
+	m.cursor = min(0, len(m.items)-1)
 	m.scrollState.ScrollToTarget()
 }
 

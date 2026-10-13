@@ -56,7 +56,8 @@ type messageItem struct {
 }
 
 type Model struct {
-	selectionState list.SelectionState
+	// cursor is the selected item, or -1 for none, and target the item selected last, which stays in view once deselected.
+	cursor, target int
 	scrollState    viewport.ScrollState
 
 	cfg   *config.Config
@@ -83,12 +84,13 @@ type Model struct {
 
 func NewModel(cfg *config.Config, state *ningen.State) Model {
 	ml := Model{
-		selectionState: list.NewSelectionState(),
-		cfg:            cfg,
-		state:          state,
-		renderer:       markdown.NewRenderer(cfg),
-		avatars:        map[discord.URL]tviewimage.Widget{},
-		voicePlayer:    voice.NewPlayer(),
+		cursor:      -1,
+		target:      -1,
+		cfg:         cfg,
+		state:       state,
+		renderer:    markdown.NewRenderer(cfg),
+		avatars:     map[discord.URL]tviewimage.Widget{},
+		voicePlayer: voice.NewPlayer(),
 	}
 
 	ml.scrollState.ScrollToEnd()
@@ -119,29 +121,27 @@ func (m Model) listView(focused bool) viewport.Widget {
 		Style(theme.TrackStyle.Style).
 		ThumbStyle(theme.ThumbStyle.Style)
 	// The model moves the selection itself, so the list is not focused and only takes clicks.
-	l := list.New(m.selectionState, len(m.items), m.buildItem).
+	l := list.New(m.cursor, len(m.items), m.buildItem).
 		Gap(int(m.cfg.UI.MessagesList.Gap)).
 		SelectedStyle(m.cfg.Theme.MessagesList.SelectedMessageStyle.Style).
-		OnChange(func(a list.Change) tview.Msg { return listMsg(a) })
+		OnChange(func(cursor int) tview.Msg { return listMsg(cursor) })
 	return viewport.New(l, m.scrollState).
-		Target(l.Target).
+		Target(l.Target(m.target)).
 		ScrollBar(bar, cfg.Visibility.ScrollBarVisibility).
 		TrackEnd(true).
 		Keybind(ui.ScrollKeybind(m.cfg.Keybinds.MessagesList.ScrollKeybinds)).
 		Focused(focused).
-		OnChange(func(a viewport.Change) tview.Msg { return scrollMsg(a) })
-}
-
-func (m Model) cursor() int {
-	return m.selectionState.Cursor()
+		OnChange(func(s *viewport.ScrollState) tview.Msg { return scrollMsg(*s) })
 }
 
 // setCursor selects the item at index and scrolls to it if it changed, or selects none if it is negative.
 func (m *Model) setCursor(index int) {
-	if index >= 0 && index != m.cursor() {
+	if index >= 0 && index != m.cursor {
 		m.scrollState.ScrollToTarget()
+		m.target = index
 	}
-	m.selectionState.SetCursor(index)
+
+	m.cursor = max(index, -1)
 }
 
 // SetChannel shows messages of channel, newest first as Discord sends them, scrolled to the newest, and requests the members who wrote them.
@@ -190,7 +190,7 @@ func (m Model) indexOf(channelID discord.ChannelID, id discord.MessageID) int {
 func (m *Model) reset() {
 	m.items = nil
 	clear(m.avatars)
-	m.selectionState = list.NewSelectionState()
+	m.cursor, m.target = -1, -1
 	m.scrollState = viewport.ScrollState{}
 	m.scrollState.ScrollToEnd()
 }
@@ -226,7 +226,7 @@ func (m *Model) deleteMessage(index int) {
 		return
 	}
 
-	cursor := m.cursor()
+	cursor := m.cursor
 	if cursor == index {
 		cursor = m.messageIndex(index, -1)
 		if cursor == -1 {
@@ -359,7 +359,7 @@ func (m Model) renderMessage(message discord.Message, baseStyle tview.Style, wid
 // rebuildItems replaces date separators while retaining message views and selection.
 func (m *Model) rebuildItems() {
 	items := make([]messageItem, 0, len(m.items))
-	cursor, selected := m.cursor(), -1
+	cursor, selected := m.cursor, -1
 	var previous discord.Timestamp
 	for i, item := range m.items {
 		if item.separator {
@@ -953,7 +953,7 @@ func (m Model) drawPinnedMessage(builder *richtext.Builder, message discord.Mess
 }
 
 func (m Model) selectedMessage() (*discord.Message, bool) {
-	cursor := m.cursor()
+	cursor := m.cursor
 	if cursor < 0 || cursor >= len(m.items) || m.items[cursor].separator {
 		return nil, false
 	}
@@ -1014,7 +1014,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		if selectedChannel == nil || selectedChannel.ID != msg.ChannelID {
 			return m, nil
 		}
-		prevCursor := m.cursor()
+		prevCursor := m.cursor
 
 		older := make([]messageItem, len(msg.Older))
 		for i, message := range msg.Older {
@@ -1092,11 +1092,11 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			m.kitty = msg.Name == "kitty" || msg.Name == "ghostty"
 		}
 	case scrollMsg:
-		m.scrollState.Apply(viewport.Change(msg))
+		m.scrollState = viewport.ScrollState(msg)
 	case listMsg:
 		top := m.atTop()
-		m.selectionState.Apply(list.Change(msg))
-		m.onRowCursorChanged(m.cursor())
+		m.cursor, m.target = int(msg), int(msg)
+		m.onRowCursorChanged(m.cursor)
 		if !top && m.atTop() {
 			return m, m.fetchOlderMessages()
 		}
@@ -1106,13 +1106,13 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 
 // atTop reports whether the oldest message shown is selected.
 func (m Model) atTop() bool {
-	return m.cursor() >= 0 && m.cursor() == m.messageIndex(-1, 1)
+	return m.cursor >= 0 && m.cursor == m.messageIndex(-1, 1)
 }
 
 func (m *Model) selectDown() {
-	if m.cursor() == -1 {
+	if m.cursor == -1 {
 		m.selectBottom()
-	} else if next := m.messageIndex(m.cursor(), 1); next >= 0 {
+	} else if next := m.messageIndex(m.cursor, 1); next >= 0 {
 		m.setCursor(next)
 	}
 }
@@ -1131,7 +1131,7 @@ func (m *Model) selectBottom() {
 
 func (m *Model) selectReply() {
 	messages := m.items
-	cursor := m.cursor()
+	cursor := m.cursor
 	if cursor < 0 || cursor >= len(messages) {
 		return
 	}

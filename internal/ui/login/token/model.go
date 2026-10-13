@@ -13,7 +13,10 @@ import (
 
 // Model is a token input above a button. Tab and the arrow keys move the focus, Enter in the input moves to the button, and Enter on the button or clicking it logs in.
 type Model struct {
-	token         textinput.EditState
+	token string
+	// cursor is the byte offset of the cursor in token.
+	cursor int
+
 	buttonFocused bool
 }
 
@@ -28,7 +31,7 @@ func (Model) Init() tview.Cmd { return nil }
 func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	switch msg := msg.(type) {
 	case tokenMsg:
-		m.token.Apply(textinput.Change(msg))
+		m.token, m.cursor = msg.text, msg.cursor
 	case focusButtonMsg:
 		m.buttonFocused = true
 	case tview.KeyMsg:
@@ -37,20 +40,19 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			m.buttonFocused = !m.buttonFocused
 		}
 	case submitMsg:
-		token := m.token.Value()
-		if token == "" {
+		if m.token == "" {
 			return m, nil
 		}
-		return m, submitToken(token)
+		return m, submitToken(m.token)
 	}
 	return m, nil
 }
 
 func (m Model) View() tview.Widget {
-	input := textinput.New(&m.token).
+	input := textinput.New(m.token, m.cursor).
 		Mask("*").
 		Focused(!m.buttonFocused).
-		OnChange(func(c textinput.Change) tview.Msg { return tokenMsg(c) }).
+		OnInput(func(text string, cursor int) tview.Msg { return tokenMsg{text, cursor} }).
 		OnSubmit(focusButtonMsg{})
 	submit := button.New().
 		Label("Login").

@@ -302,7 +302,7 @@ func exchangeTicket(fingerprint string, privateKey *rsa.PrivateKey, ticket strin
 }
 
 // scrollMsg scrolls the code.
-type scrollMsg viewport.Change
+type scrollMsg viewport.ScrollState
 
 // startMsg starts connecting to the Remote Auth Gateway.
 type startMsg struct{}

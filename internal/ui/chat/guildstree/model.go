@@ -27,9 +27,9 @@ import (
 type dmNode struct{}
 
 type Model struct {
-	root           *tree.Node
-	selectionState tree.SelectionState
-	scrollState    viewport.ScrollState
+	root        *tree.Node
+	current     *tree.Node
+	scrollState viewport.ScrollState
 
 	cfg          *config.Config
 	state        *ningen.State
@@ -53,16 +53,16 @@ func NewModel(cfg *config.Config, state *ningen.State) Model {
 
 // CurrentNode returns the selected node, or nil for none.
 func (m Model) CurrentNode() *tree.Node {
-	return m.selectionState.CurrentNode()
+	return m.current
 }
 
 // View shows the tree in a box titled Guilds.
 func (m Model) View(focused bool) tview.Widget {
-	onChange := func(c tree.Change) tview.Msg { return Msg(c) }
+	onChange := func(current *tree.Node) tview.Msg { return Msg{current} }
 	onSelect := func(n *tree.Node) tview.Msg { return SelectedMsg{Node: n} }
 	return uitree.New(
 		m.root,
-		m.selectionState,
+		m.current,
 		m.scrollState,
 		m.cfg,
 		m.cfg.Theme.GuildsTree.TreeThemeConfig,
@@ -261,8 +261,8 @@ func (m *Model) showVoiceMembers(guildID discord.GuildID) {
 		}
 
 		// The members are replaced, so what is selected cannot stay one of them.
-		if slices.Contains(node.Children(), m.selectionState.CurrentNode()) {
-			m.selectionState.SetCurrentNode(node)
+		if slices.Contains(node.Children(), m.current) {
+			m.current = node
 		}
 
 		node.ClearChildren()
@@ -501,7 +501,7 @@ func (m *Model) collapseParentNode(node *tree.Node) {
 
 // setCurrentNode selects node and scrolls to it.
 func (m *Model) setCurrentNode(node *tree.Node) {
-	m.selectionState.SetCurrentNode(node)
+	m.current = node
 	m.scrollState.ScrollToTarget()
 }
 
@@ -532,11 +532,11 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	case NavigateMsg:
 		return m, m.navigate(msg.ChannelID)
 	case Msg:
-		m.selectionState.Apply(tree.Change(msg))
+		m.current = msg.current
 		m.scrollState.ScrollToTarget()
 		return m, nil
 	case uitree.ScrollMsg:
-		m.scrollState.Apply(msg.Change)
+		m.scrollState = msg.ScrollState
 		if msg.Msg != nil {
 			return m.Update(msg.Msg)
 		}
@@ -552,11 +552,11 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			}
 			return m, nil
 		case keybind.Matches(msg, m.cfg.Keybinds.GuildsTree.CollapseParentNode.Keybind):
-			m.collapseParentNode(m.selectionState.CurrentNode())
+			m.collapseParentNode(m.current)
 			return m, nil
 		case keybind.Matches(msg, m.cfg.Keybinds.GuildsTree.SelectPreviousUnread.Keybind, m.cfg.Keybinds.GuildsTree.SelectNextUnread.Keybind):
 			previous := keybind.Matches(msg, m.cfg.Keybinds.GuildsTree.SelectPreviousUnread.Keybind)
-			if node := adjacentNode(m.root, m.selectionState.CurrentNode(), m.isUnread, previous); node != nil {
+			if node := adjacentNode(m.root, m.current, m.isUnread, previous); node != nil {
 				// A guild or the direct messages without channels yet: load them and move on to the unread one.
 				if _, ok := node.Reference().(discord.ChannelID); !ok {
 					m.selectNode(node)
@@ -569,9 +569,9 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			}
 			return m, nil
 		case keybind.Matches(msg, m.cfg.Keybinds.GuildsTree.YankID.Keybind):
-			return m, uitree.YankID(m.selectionState.CurrentNode())
+			return m, uitree.YankID(m.current)
 		case keybind.Matches(msg, m.cfg.Keybinds.GuildsTree.ToggleVoice.Keybind):
-			return m, m.toggleVoice(m.selectionState.CurrentNode())
+			return m, m.toggleVoice(m.current)
 		case keybind.Matches(msg, m.cfg.Keybinds.ToggleMute.Keybind):
 			return m, m.toggleMute()
 		case keybind.Matches(msg, m.cfg.Keybinds.ToggleDeafen.Keybind):

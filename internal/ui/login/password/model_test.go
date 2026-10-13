@@ -23,8 +23,8 @@ func TestModelUpdate(t *testing.T) {
 	send(&m, key(tcell.KeyEnter, ""))
 	send(&m, key(tcell.KeyRune, "b"))
 	t.Run("typing fills the focused input and Enter moves on", func(t *testing.T) {
-		if m.login.Value() != "a" || m.password.Value() != "b" {
-			t.Fatalf("values = %q, %q", m.login.Value(), m.password.Value())
+		if m.login != "a" || m.password != "b" {
+			t.Fatalf("values = %q, %q", m.login, m.password)
 		}
 	})
 	t.Run("enter on the button submits", func(t *testing.T) {

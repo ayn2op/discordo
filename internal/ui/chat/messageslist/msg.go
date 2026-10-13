@@ -16,7 +16,6 @@ import (
 	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
-	"github.com/ayn2op/tview/list"
 	"github.com/ayn2op/tview/picker"
 	"github.com/ayn2op/tview/viewport"
 	"github.com/ncruces/zenity"
@@ -60,14 +59,14 @@ type EditMsg discord.Message
 // ShowAttachmentsMsg asks to pick one of the attachments and links of the selected message.
 type ShowAttachmentsMsg picker.Items
 
-// listMsg moves the messages list.
-type listMsg list.Change
+// listMsg is the item of the messages list to move the cursor to.
+type listMsg int
 
 // scrollMsg scrolls the messages list.
-type scrollMsg viewport.Change
+type scrollMsg viewport.ScrollState
 
 func (m *Model) selectUp() tview.Cmd {
-	cursor := m.cursor()
+	cursor := m.cursor
 	if cursor == -1 {
 		m.selectBottom()
 	} else if previous := m.messageIndex(cursor, -1); previous >= 0 {

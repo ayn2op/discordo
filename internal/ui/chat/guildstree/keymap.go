@@ -16,7 +16,7 @@ func (m Model) selectCurrentKeybind() keybind.Keybind {
 	selectCurrent := m.cfg.Keybinds.GuildsTree.SelectCurrent.Keybind
 	selectHelp := selectCurrent.Help()
 	selectDesc := selectHelp.Desc
-	if node := m.selectionState.CurrentNode(); node != nil {
+	if node := m.current; node != nil {
 		if m.expandable(node) {
 			if node.Expanded() {
 				selectDesc = "collapse"
@@ -35,7 +35,7 @@ func (m Model) selectCurrentKeybind() keybind.Keybind {
 
 // toggleVoiceKeybinds returns the keybind that joins or leaves the highlighted voice channel, if it is one.
 func (m Model) toggleVoiceKeybinds() []keybind.Keybind {
-	channel := m.voiceChannel(m.selectionState.CurrentNode())
+	channel := m.voiceChannel(m.current)
 	if channel == nil {
 		return nil
 	}
@@ -50,9 +50,9 @@ func (m Model) toggleVoiceKeybinds() []keybind.Keybind {
 
 func (m Model) ShortHelp() []keybind.Keybind {
 	cfg := m.cfg.Keybinds.GuildsTree
-	shortHelp := append(uitree.SelectHelp(m.root, m.selectionState.CurrentNode(), cfg.TreeKeybinds), m.selectCurrentKeybind())
+	shortHelp := append(uitree.SelectHelp(m.root, m.current, cfg.TreeKeybinds), m.selectCurrentKeybind())
 	shortHelp = append(shortHelp, m.toggleVoiceKeybinds()...)
-	if m.canCollapseParent(m.selectionState.CurrentNode()) {
+	if m.canCollapseParent(m.current) {
 		shortHelp = append(shortHelp, cfg.CollapseParentNode.Keybind)
 	}
 	return shortHelp
@@ -76,7 +76,7 @@ func (m Model) collapseKeybinds() []keybind.Keybind {
 	cfg := m.cfg.Keybinds.GuildsTree
 
 	var keybinds []keybind.Keybind
-	if m.canCollapseParent(m.selectionState.CurrentNode()) {
+	if m.canCollapseParent(m.current) {
 		keybinds = append(keybinds, cfg.CollapseParentNode.Keybind)
 	}
 	if m.canCollapseAll() {

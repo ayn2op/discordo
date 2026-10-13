@@ -51,8 +51,12 @@ const (
 var mentionRegex = regexp.MustCompile("@[a-zA-Z0-9._]+")
 
 type Model struct {
-	editState textarea.EditState
-	disabled  bool
+	text string
+	// cursor is the byte offset of the cursor in text, and history what they were before each change, for undo.
+	cursor  int
+	history []edit
+
+	disabled bool
 
 	state *ningen.State
 	// channel is the selected channel, or nil for none.
@@ -138,11 +142,11 @@ func (v view) Handle(msg tview.Msg, area tview.Rectangle) tview.Msg {
 
 // box returns the text area in a box with the title and footer.
 func (m *Model) box(focused bool) box.Widget {
-	text := textarea.New(&m.editState).
+	text := textarea.New(m.text, m.cursor).
 		Placeholder(m.placeholder()).
 		Keybind(m.editAction).
 		Focused(focused && !m.disabled).
-		OnChange(func(a textarea.Change) tview.Msg { return editMsg(a) }).
+		OnInput(func(text string, cursor int) tview.Msg { return editMsg{text, cursor} }).
 		Height(layout.Shrink.Max(m.cfg.Composer.MaxHeight))
 	return ui.Box(text, m.cfg, focused).Title(m.title()).Footer(m.footer()).Height(layout.Shrink)
 }
@@ -182,9 +186,34 @@ func (m Model) isBound(key tview.KeyMsg) bool {
 	return keybind.Matches(key, k.EditLast.Keybind) && m.canEditLastMessage()
 }
 
+// setText replaces the text and moves the cursor, remembering what they were for undo if the text changed.
+func (m *Model) setText(text string, cursor int) {
+	if text != m.text {
+		m.history = append(m.history, edit{m.text, m.cursor})
+	}
+
+	m.text, m.cursor = text, cursor
+}
+
+// replace replaces the bytes from start to end of the text with text and moves the cursor after it.
+func (m *Model) replace(start, end int, text string) {
+	m.setText(m.text[:start]+text+m.text[end:], start+len(text))
+}
+
 // insert inserts text at the cursor.
 func (m *Model) insert(text string) {
-	m.editState.Replace(m.editState.Cursor(), m.editState.Cursor(), text)
+	m.replace(m.cursor, m.cursor, text)
+}
+
+// undo restores the text and cursor from before the last change.
+func (m *Model) undo() {
+	if len(m.history) == 0 {
+		return
+	}
+
+	last := m.history[len(m.history)-1]
+	m.history = m.history[:len(m.history)-1]
+	m.text, m.cursor = last.text, last.cursor
 }
 
 // pasteText inserts the text on the clipboard at the cursor.
@@ -200,7 +229,7 @@ func (m *Model) pasteText() {
 func (m *Model) reset() {
 	m.editing = nil
 	m.sendMessageData = &api.SendMessageData{}
-	m.editState.SetValue("")
+	m.setText("", 0)
 }
 
 // Update returns c changed in response to msg and a command to run, or nil.
@@ -224,10 +253,10 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		}
 		return m, nil
 	case editorMsg:
-		m.editState.SetValue(string(msg))
+		m.setText(string(msg), len(msg))
 		return m, nil
 	case editMsg:
-		m.editState.Apply(textarea.Change(msg))
+		m.setText(msg.text, msg.cursor)
 		typingCmd := m.sendTyping()
 		if m.cfg.AutocompleteLimit > 0 {
 			return m, tview.Batch(typingCmd, m.tabSuggest())
@@ -269,7 +298,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			m.toggleReplyMention()
 			return m, nil
 		case keybind.Matches(msg, m.cfg.Keybinds.Composer.Undo.Keybind):
-			m.editState.Undo()
+			m.undo()
 			return m, nil
 		}
 	case mentionslist.Msg:
@@ -281,7 +310,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 }
 
 func (m Model) canEditLastMessage() bool {
-	return !m.Disabled() && m.editing == nil && m.editState.Value() == "" &&
+	return !m.Disabled() && m.editing == nil && m.text == "" &&
 		m.sendMessageData.Reference == nil && len(m.sendMessageData.Files) == 0 &&
 		!m.mentionsListVisible()
 }
@@ -289,7 +318,7 @@ func (m Model) canEditLastMessage() bool {
 // StartEdit puts message in the composer to be edited.
 func (m *Model) StartEdit(message discord.Message) {
 	m.editing = &message
-	m.editState.SetValue(message.Content)
+	m.setText(message.Content, len(message.Content))
 }
 
 // StartReply makes the next message a reply to message by name, mentioning its author if mention is set.
@@ -508,7 +537,7 @@ func (p mentionsPopup) Handle(msg tview.Msg, area tview.Rectangle) tview.Msg {
 func (p mentionsPopup) area(area tview.Rectangle) tview.Rectangle {
 	c := p.c
 	size := c.mentionsList.View().Layout(layout.Limits{Max: layout.Size{Width: area.Width, Height: area.Height}})
-	value, cursor := c.editState.Value(), c.editState.Cursor()
+	value, cursor := c.text, c.cursor
 	col := uniseg.StringWidth(value[strings.LastIndex(value[:cursor], "\n")+1 : cursor])
 	x := min(c.box(false).InnerArea(tview.Rectangle{}).X+col, area.Width-size.Width)
 	return tview.Rectangle{X: area.X + x, Y: area.Y + area.Height - size.Height, Width: size.Width, Height: size.Height}

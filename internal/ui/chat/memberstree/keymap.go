@@ -10,8 +10,8 @@ var _ help.KeyMap = Model{}
 
 func (m Model) ShortHelp() []keybind.Keybind {
 	kbs := m.cfg.Keybinds.MembersTree
-	short := uitree.SelectHelp(m.root, m.selectionState.CurrentNode(), kbs)
-	if node := m.selectionState.CurrentNode(); node != nil {
+	short := uitree.SelectHelp(m.root, m.current, kbs)
+	if node := m.current; node != nil {
 		if _, ok := node.Reference().(groupRef); ok {
 			desc := "expand"
 			if node.Expanded() {
@@ -20,7 +20,7 @@ func (m Model) ShortHelp() []keybind.Keybind {
 			short = append(short, kbs.SelectCurrent.WithHelp(kbs.SelectCurrent.Help().Key, desc))
 		}
 	}
-	if m.parent(m.selectionState.CurrentNode()) != nil {
+	if m.parent(m.current) != nil {
 		short = append(short, kbs.CollapseParentNode.Keybind)
 	}
 	return short

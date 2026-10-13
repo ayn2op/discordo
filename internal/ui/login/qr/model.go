@@ -56,7 +56,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		}
 		return m, nil
 	case scrollMsg:
-		m.scrollState.Apply(viewport.Change(msg))
+		m.scrollState = viewport.ScrollState(msg)
 		return m, nil
 
 	case connCreateMsg:
@@ -135,7 +135,7 @@ func (m Model) View() tview.Widget {
 		viewport.New(textview.New(code).Wrap(false).Alignment(tview.AlignmentCenter), m.scrollState).
 			Height(layout.Shrink).
 			Focused(true).
-			OnChange(func(a viewport.Change) tview.Msg { return scrollMsg(a) }),
+			OnChange(func(s *viewport.ScrollState) tview.Msg { return scrollMsg(*s) }),
 	)
 }
 

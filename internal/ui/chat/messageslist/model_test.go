@@ -55,7 +55,7 @@ func TestModelBuildItem(t *testing.T) {
 		t.Fatal("older messages were not fetched once on reaching the top")
 	}
 	ml.selectBottom()
-	if _, cmd := ml.Update(listMsg{}); cmd == nil {
+	if _, cmd := ml.Update(listMsg(0)); cmd == nil {
 		t.Fatal("clicking the top message did not fetch older messages")
 	}
 	ml.selectBottom()
@@ -144,15 +144,15 @@ func TestModelRebuildItems(t *testing.T) {
 			*ml, _ = ml.Update(olderMessagesLoadedMsg{ChannelID: 1, Older: messages[2:]})
 			assertItems(1, 2, 3)
 			assertSelected(2)
-			ml.deleteMessage(ml.cursor())
+			ml.deleteMessage(ml.cursor)
 			assertItems(1, 3)
 			assertSelected(1)
-			ml.deleteMessage(ml.cursor())
+			ml.deleteMessage(ml.cursor)
 			assertItems(3)
 			assertSelected(3)
-			ml.deleteMessage(ml.cursor())
+			ml.deleteMessage(ml.cursor)
 			assertItems()
-			if ml.cursor() != -1 {
+			if ml.cursor != -1 {
 				t.Fatal("empty list retained selection")
 			}
 		})

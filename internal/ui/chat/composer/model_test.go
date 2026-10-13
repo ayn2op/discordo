@@ -36,7 +36,7 @@ func TestModelUpdate(t *testing.T) {
 		want  bool
 	}{
 		{"empty", func(*Model, *config.Config) tview.KeyMsg { return up }, true},
-		{"draft", func(c *Model, _ *config.Config) tview.KeyMsg { c.editState.SetValue("draft"); return up }, false},
+		{"draft", func(c *Model, _ *config.Config) tview.KeyMsg { c.setText("draft", len("draft")); return up }, false},
 		{"reply", func(c *Model, _ *config.Config) tview.KeyMsg {
 			c.StartReply(discord.Message{ID: 3}, "name", false)
 			return up
@@ -79,8 +79,8 @@ func TestModelHandle(t *testing.T) {
 			t.Fatalf("got %v, want an editMsg", msg)
 		}
 		*c, _ = c.Update(msg)
-		if c.editState.Value() != "a" {
-			t.Fatalf("text = %q", c.editState.Value())
+		if c.text != "a" {
+			t.Fatalf("text = %q", c.text)
 		}
 	})
 	t.Run("the newline keybind inserts a newline", func(t *testing.T) {
@@ -89,8 +89,8 @@ func TestModelHandle(t *testing.T) {
 			t.Fatalf("got %v, want an editMsg", msg)
 		}
 		*c, _ = c.Update(msg)
-		if c.editState.Value() != "a\n" {
-			t.Fatalf("text = %q", c.editState.Value())
+		if c.text != "a\n" {
+			t.Fatalf("text = %q", c.text)
 		}
 	})
 	t.Run("bound keys are left to Update", func(t *testing.T) {
@@ -139,7 +139,7 @@ func TestModelTabSuggest(t *testing.T) {
 		}
 	}
 	c.SetChannel(&channel)
-	c.editState.SetValue("@")
+	c.setText("@", 1)
 	c.tabSuggest()
 	if got := c.mentionsList.ItemCount(); got != 2 {
 		t.Fatalf("suggested %d authors, want 2", got)
