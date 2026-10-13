@@ -427,13 +427,12 @@ func (m Model) canFocus(p pane) bool {
 func (m Model) View() tview.Widget {
 	picker := m.pickerView()
 
-	var right tview.Widget = column.New(
-		m.paneView(paneMessagesList),
-		column.New(m.paneView(paneComposer)).Height(layout.Fixed(m.composer.Height())),
-	)
+	messages := m.paneView(paneMessagesList)
 	if mentions := m.composer.MentionsListView(m.focused == paneComposer); mentions != nil {
-		right = stack.New(right, mentions)
+		messages = stack.New(messages, mentions)
 	}
+
+	var right tview.Widget = column.New(messages, m.paneView(paneComposer))
 
 	main := right
 	if m.membersTreeShown() {

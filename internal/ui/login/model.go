@@ -9,6 +9,7 @@ import (
 	"github.com/ayn2op/discordo/internal/ui/login/qr"
 	"github.com/ayn2op/discordo/internal/ui/login/token"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/column"
 )
 
 // tab is a login method shown as a tab.
@@ -62,10 +63,9 @@ func (m Model) View() tview.Widget {
 	}
 	t := m.tabs().
 		Active(int(m.active)).
-		Content(content).
 		Keybind(tabAction).
 		OnSelect(func(i int) tview.Msg { return selectTabMsg(i) })
-	return ui.Box(t, m.cfg, false)
+	return ui.Box(column.New(t, content), m.cfg, false)
 }
 
 // tabs returns the login methods as tabs set up by the tabs config.

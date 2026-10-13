@@ -78,8 +78,8 @@ func (m Model) View() tview.Widget {
 		Focused(m.focus == focusButton).
 		OnClick(submitMsg{})
 	return column.New(
-		row.New(column.New(text.New("Login")).Width(labelWidth), login).Height(layout.Fixed(1)),
-		row.New(column.New(text.New("Password")).Width(labelWidth), password).Height(layout.Fixed(1)),
+		row.New(column.New(text.New("Login")).Width(labelWidth), login).Height(layout.Shrink),
+		row.New(column.New(text.New("Password")).Width(labelWidth), password).Height(layout.Shrink),
 		submit,
-	).Spacing(1)
+	).Spacing(1).Align(tview.AlignmentCenter)
 }

@@ -60,7 +60,7 @@ func TestLoad(t *testing.T) {
 
 	t.Run("invalid allowed MIME type returns error", func(t *testing.T) {
 		path := filepath.Join(t.TempDir(), "bad-mime.toml")
-		if err := os.WriteFile(path, []byte("[attachments]\nallowed_mime_types = [\"image/\"]"), os.ModePerm); err != nil {
+		if err := os.WriteFile(path, []byte("[ui.messages_list.attachments]\nallowed_mime_types = [\"image/\"]"), os.ModePerm); err != nil {
 			t.Fatal(err)
 		}
 

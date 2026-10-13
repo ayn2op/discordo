@@ -173,6 +173,26 @@ type (
 
 		ReplyIndicator     string `toml:"reply_indicator"`
 		ForwardedIndicator string `toml:"forwarded_indicator"`
+
+		Attachments AttachmentsUIConfig `toml:"attachments"`
+		Avatars     AvatarsUIConfig     `toml:"avatars"`
+	}
+
+	AvatarsUIConfig struct {
+		Preview bool `toml:"preview"`
+		// The number of rows an avatar takes. It is recommended to use `1` with compact.
+		Height uint8 `toml:"height"`
+	}
+
+	AttachmentsUIConfig struct {
+		ShowLinks bool `toml:"show_links"`
+		// Attachment MIME types that can be opened or downloaded without confirmation.
+		// Exact types and wildcards such as "image/*" are supported.
+		AllowedMIMETypes MIMETypes `toml:"allowed_mime_types"`
+		// Whether to draw image attachments and embedded images below their messages.
+		Preview bool `toml:"preview"`
+		// How previews are drawn: "auto", "kitty" or "halfblocks".
+		Protocol string `toml:"protocol"`
 	}
 
 	MentionsListUIConfig struct {
@@ -186,6 +206,7 @@ type (
 func defaultUI() UIConfig {
 	left := TitleUIConfig{AlignmentWrapper{tview.AlignmentLeft}}
 	round := BorderSetWrapper{tview.BorderSetRound()}
+	attachments := AttachmentsUIConfig{ShowLinks: true, AllowedMIMETypes: MIMETypes{"image/*", "video/*"}, Preview: true, Protocol: "auto"}
 	return UIConfig{
 		Tabs: TabsUIConfig{
 			Alignment:       AlignmentWrapper{tview.AlignmentCenter},
@@ -200,7 +221,7 @@ func defaultUI() UIConfig {
 		GuildsTree:   GuildsTreeUIConfig{TreeUIConfig{Graphics: true}, true},
 		MembersTree:  TreeUIConfig{Graphics: true},
 		ScrollBar:    ScrollBarUIConfig{SymbolSet: SymbolSetWrapper{boxDrawing}, Visibility: ScrollBarVisibilityWrapper{viewport.ScrollBarVisibilityAutomatic}},
-		MessagesList: MessagesListUIConfig{Gap: 1, ReplyIndicator: ">", ForwardedIndicator: "<"},
+		MessagesList: MessagesListUIConfig{Gap: 1, ReplyIndicator: ">", ForwardedIndicator: "<", Attachments: attachments, Avatars: AvatarsUIConfig{Preview: true, Height: 2}},
 		MentionsList: MentionsListUIConfig{MinWidth: 20},
 	}
 }

@@ -93,12 +93,6 @@ func (m *Model) SetChannel(channel *discord.Channel) {
 	m.disabled = !isDM && !m.state.HasPermissions(channel.ID, discord.PermissionSendMessages)
 }
 
-// Height returns the number of rows the composer takes, including its border.
-func (m *Model) Height() int {
-	_, frame := m.frame()
-	return min(strings.Count(m.editState.Value(), "\n")+1, max(m.cfg.Composer.MaxHeight, 1)) + frame
-}
-
 func (m Model) Disabled() bool {
 	return m.disabled
 }
@@ -148,8 +142,9 @@ func (m *Model) box(focused bool) box.Widget {
 		Placeholder(m.placeholder()).
 		Keybind(m.editAction).
 		Focused(focused && !m.disabled).
-		OnChange(func(a textarea.Change) tview.Msg { return editMsg(a) })
-	return ui.Box(text, m.cfg, focused).Title(m.title()).Footer(m.footer())
+		OnChange(func(a textarea.Change) tview.Msg { return editMsg(a) }).
+		Height(layout.Shrink.Max(m.cfg.Composer.MaxHeight))
+	return ui.Box(text, m.cfg, focused).Title(m.title()).Footer(m.footer()).Height(layout.Shrink)
 }
 
 // title returns what the composer is doing: editing, replying, or nothing.
@@ -200,13 +195,6 @@ func (m *Model) pasteText() {
 		return
 	}
 	m.insert(string(data))
-}
-
-// frame returns the cells the composer's border and padding take on each side.
-func (m *Model) frame() (left, vertical int) {
-	const size = 100
-	inner := m.box(false).InnerArea(tview.Rectangle{Width: size, Height: size})
-	return inner.X, size - inner.Height
 }
 
 func (m *Model) reset() {
@@ -487,7 +475,7 @@ func (m Model) OnGuildMemberRemove(event *gateway.GuildMemberRemoveEvent) {
 	}
 }
 
-// MentionsListView places the mentions list just above the composer, near the cursor, or returns nil if it is empty or the composer is not focused.
+// MentionsListView places the mentions list at the bottom of the area above the composer, near the cursor, or returns nil if it is empty or the composer is not focused.
 func (m Model) MentionsListView(focused bool) tview.Widget {
 	if !focused || !m.mentionsListVisible() {
 		return nil
@@ -495,7 +483,7 @@ func (m Model) MentionsListView(focused bool) tview.Widget {
 	return mentionsPopup{m}
 }
 
-// mentionsPopup lays out the mentions list within the area above the composer, where it is drawn over the messages.
+// mentionsPopup places the mentions list within the area of the messages, which it is drawn over.
 type mentionsPopup struct {
 	c Model
 }
@@ -516,29 +504,14 @@ func (p mentionsPopup) Handle(msg tview.Msg, area tview.Rectangle) tview.Msg {
 	return p.c.mentionsList.View().Handle(msg, p.area(area))
 }
 
-// area returns where the list goes in area, the messages and composer together.
+// area returns where the list goes in area: at its bottom, at the column of the cursor where it fits.
 func (p mentionsPopup) area(area tview.Rectangle) tview.Rectangle {
 	c := p.c
-	borders := 0
-	if c.cfg.UI.Border.Enabled {
-		borders = 1
-	}
-	x, _ := c.frame()
-	maxW, maxH := area.Width, area.Height-c.Height()
-	if t := int(c.cfg.UI.MentionsList.MaxHeight); t != 0 {
-		maxH = min(maxH, t)
-	}
-	h := min(c.mentionsList.ItemCount()+borders, maxH) + borders + c.cfg.UI.Border.Padding[1]
-	w := int(c.cfg.UI.MentionsList.MinWidth)
-	if w == 0 {
-		w = maxW
-	} else {
-		w = min(max(w, c.mentionsList.MaxDisplayWidth())+borders*2, maxW)
-		value, cursor := c.editState.Value(), c.editState.Cursor()
-		col := uniseg.StringWidth(value[strings.LastIndex(value[:cursor], "\n")+1 : cursor])
-		x += min(col, maxW-w)
-	}
-	return tview.Rectangle{X: area.X + x, Y: area.Y + area.Height - c.Height() - h, Width: w, Height: h}
+	size := c.mentionsList.View().Layout(layout.Limits{Max: layout.Size{Width: area.Width, Height: area.Height}})
+	value, cursor := c.editState.Value(), c.editState.Cursor()
+	col := uniseg.StringWidth(value[strings.LastIndex(value[:cursor], "\n")+1 : cursor])
+	x := min(c.box(false).InnerArea(tview.Rectangle{}).X+col, area.Width-size.Width)
+	return tview.Rectangle{X: area.X + x, Y: area.Y + area.Height - size.Height, Width: size.Width, Height: size.Height}
 }
 
 func (m *Model) addMentionMember(gID discord.GuildID, member *discord.Member) bool {

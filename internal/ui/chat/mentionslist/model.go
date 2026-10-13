@@ -27,7 +27,13 @@ func NewModel(cfg *config.Config) Model {
 func (m Model) View() tview.Widget {
 	set := m.cfg.UI.Border.NormalSet.BorderSet
 	set.BottomLeft, set.BottomRight = set.BottomT, set.BottomT
-	return ui.Box(m.listView(), m.cfg, false).Title("Mentions").BorderSet(set)
+	cfg := m.cfg.UI.MentionsList
+	list, width := m.listView().Height(layout.Shrink.Max(int(cfg.MaxHeight))), layout.Fill
+	if cfg.MinWidth != 0 {
+		list, width = list.Width(layout.Fixed(max(int(cfg.MinWidth), m.maxDisplayWidth()))), layout.Shrink
+	}
+
+	return ui.Box(list, m.cfg, false).Title("Mentions").BorderSet(set).Width(width).Height(layout.Shrink)
 }
 
 func (Model) Init() tview.Cmd { return nil }
@@ -80,7 +86,7 @@ func (m Model) SelectedInsertText() (string, bool) {
 	return m.items[index].InsertText, true
 }
 
-func (m Model) MaxDisplayWidth() int {
+func (m Model) maxDisplayWidth() int {
 	width := 0
 	for _, item := range m.items {
 		width = max(width, uniseg.StringWidth(item.DisplayText))

@@ -12,6 +12,7 @@ import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/layout"
 )
 
 func testConfig(t *testing.T) *config.Config {
@@ -40,9 +41,15 @@ func TestModelBuildItem(t *testing.T) {
 	if ml.items[ml.messageIndex(-1, 1)].message.ID != 2 {
 		t.Fatal("messages are not oldest first")
 	}
-	view := ml.buildItem(ml.messageIndex(len(ml.items), -1))
-	if ml.buildItem(ml.messageIndex(len(ml.items), -1)) != view {
-		t.Fatal("message view was not reused")
+	// text returns the wrapped text kept for the newest message once it is shown.
+	text := func() *messageView {
+		index := ml.messageIndex(len(ml.items), -1)
+		ml.buildItem(index)
+		return ml.items[index].text
+	}
+	view := text()
+	if text() != view {
+		t.Fatal("message text was not reused")
 	}
 	if ml.selectTop() == nil || ml.selectTop() != nil || ml.selectUp() != nil {
 		t.Fatal("older messages were not fetched once on reaching the top")
@@ -54,21 +61,21 @@ func TestModelBuildItem(t *testing.T) {
 	ml.selectBottom()
 	*ml, _ = ml.Update(olderMessagesLoadedMsg{ChannelID: 1, Older: []discord.Message{{ID: 1}}})
 	selected, ok := ml.selectedMessage()
-	if !ok || selected.ID != 3 || ml.buildItem(ml.messageIndex(len(ml.items), -1)) != view {
-		t.Fatal("prepend lost selection or cached view")
+	if !ok || selected.ID != 3 || text() != view {
+		t.Fatal("prepend lost selection or cached text")
 	}
 	ml.deleteMessage(ml.messageIndex(-1, 1))
-	if ml.buildItem(ml.messageIndex(len(ml.items), -1)) != view {
-		t.Fatal("deletion discarded another message's view")
+	if text() != view {
+		t.Fatal("deletion discarded another message's text")
 	}
 	ml.setMessage(ml.messageIndex(len(ml.items), -1), discord.Message{ID: 3, Content: "edited"})
-	edited := ml.buildItem(ml.messageIndex(len(ml.items), -1))
+	edited := text()
 	if edited == view {
-		t.Fatal("edit reused a stale view")
+		t.Fatal("edit reused stale text")
 	}
 	ml.InvalidateRendered()
-	if ml.buildItem(ml.messageIndex(len(ml.items), -1)) == edited {
-		t.Fatal("global invalidation reused a stale view")
+	if text() == edited {
+		t.Fatal("global invalidation reused stale text")
 	}
 	ml.reset()
 	if len(ml.items) != 0 {
@@ -221,6 +228,21 @@ func TestModelDrawLayout(t *testing.T) {
 
 		if got.String() != want {
 			t.Fatalf("got = %q, want = %q", got.String(), want)
+		}
+	}
+}
+
+func TestMessageViewLayout(t *testing.T) {
+	cfg := testConfig(t)
+	cfg.UI.MessagesList.Compact = true
+	ml := newTestModel(t, cfg)
+	limits := layout.Limits{Max: layout.Size{Width: 80}, Infinite: layout.Axes{Height: true}}
+
+	// The avatar is 2 rows, below the row of a reply.
+	for want, messageType := range map[int]discord.MessageType{2: discord.DefaultMessage, 3: discord.InlinedReplyMessage} {
+		ml.SetChannel(ml.channel, []discord.Message{{ID: 1, Type: messageType, Content: "hi"}})
+		if got := ml.buildItem(ml.messageIndex(-1, 1)).Layout(limits).Height; got != want {
+			t.Fatalf("height = %d, want %d", got, want)
 		}
 	}
 }

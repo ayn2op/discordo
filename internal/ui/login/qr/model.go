@@ -133,7 +133,7 @@ func (m Model) View() tview.Widget {
 	code := m.code()
 	return center.New(
 		viewport.New(textview.New(code).Wrap(false).Alignment(tview.AlignmentCenter), m.scrollState).
-			Height(layout.Fixed(len(code))).
+			Height(layout.Shrink).
 			Focused(true).
 			OnChange(func(a viewport.Change) tview.Msg { return scrollMsg(a) }),
 	)

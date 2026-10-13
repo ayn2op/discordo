@@ -73,13 +73,19 @@ func (m Model) previewCell() (width, height uint) {
 }
 
 func (m Model) loadPreviews() tview.Cmd {
-	if !m.cfg.Attachments.Preview {
-		return nil
-	}
 	cellWidth, cellHeight := m.previewCell()
 	var cmds []tview.Cmd
 	for i := range m.items {
 		item := &m.items[i]
+		if item.separator {
+			continue
+		}
+
+		cmds = append(cmds, m.loadAvatar(item.message.Author))
+		if !m.cfg.UI.MessagesList.Attachments.Preview {
+			continue
+		}
+
 		for _, s := range previewSources(item.message) {
 			if _, ok := item.previews[s.proxy]; ok {
 				continue
@@ -99,6 +105,26 @@ func (m Model) loadPreviews() tview.Cmd {
 		}
 	}
 	return tview.Batch(cmds...)
+}
+
+func avatarURL(user discord.User) discord.URL {
+	return user.AvatarURLWithType(discord.PNGImage) + "?size=128"
+}
+
+func (m Model) loadAvatar(user discord.User) tview.Cmd {
+	url, cfg := avatarURL(user), m.cfg.UI.MessagesList.Avatars
+	if _, ok := m.avatars[url]; ok || !cfg.Preview || cfg.Height == 0 || m.blocked(user) {
+		return nil
+	}
+
+	cellWidth, cellHeight := m.previewCell()
+	cols := uint(cfg.Height) * cellHeight / cellWidth
+	bounds := image.Rect(0, 0, int(cols*cellWidth), int(cols*cellWidth))
+	widget := func(img image.Image) tviewimage.Widget {
+		return tviewimage.New(img).Width(int(cols)).CellSize(int(cellWidth), int(cellHeight))
+	}
+	m.avatars[url] = widget(image.NewAlpha(bounds))
+	return m.loadPreview(0, url, bounds, widget)
 }
 
 // loadPreview yields an empty preview if loading fails.
