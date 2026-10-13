@@ -159,14 +159,13 @@ func isVoiceMessage(message discord.Message) bool {
 	return message.Flags&discord.IsVoiceMessage != 0 && len(message.Attachments) == 1
 }
 
-// play plays the selected voice message, or pauses or resumes it if it is the one playing.
-func (m Model) play() tview.Cmd {
-	message, ok := m.selectedMessage()
-	if !ok || !isVoiceMessage(*message) {
-		return nil
-	}
+// playMsg asks to play the voice message whose play symbol was clicked.
+type playMsg discord.Attachment
 
-	attachment := message.Attachments[0]
+func (playMsg) messagesList() {}
+
+// play plays the voice message that is attachment, or pauses or resumes it if it is the one playing.
+func (m Model) play(attachment discord.Attachment) tview.Cmd {
 	return func() tview.Msg {
 		if err := m.playVoiceMessage(attachment); err != nil {
 			return ui.ErrorDialog("play voice message", err)
@@ -196,10 +195,16 @@ func (m Model) playVoiceMessage(attachment discord.Attachment) error {
 	return m.voicePlayer.Play(attachment.ID, audio)
 }
 
-// seekMsg asks to seek to where the waveform of a voice message was clicked.
-type seekMsg time.Duration
+// seekPressMsg is where the waveform of a voice message was pressed, seekMsg where it was dragged to after, and seekReleaseMsg that it was let go of.
+type (
+	seekPressMsg   time.Duration
+	seekMsg        time.Duration
+	seekReleaseMsg struct{}
+)
 
-func (seekMsg) messagesList() {}
+func (seekPressMsg) messagesList()   {}
+func (seekMsg) messagesList()        {}
+func (seekReleaseMsg) messagesList() {}
 
 // seek moves the voice message that is playing or paused to position.
 func (m Model) seek(position time.Duration) tview.Cmd {

@@ -26,6 +26,7 @@ import (
 	"github.com/ayn2op/discordo/internal/voice"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/button"
 	"github.com/ayn2op/tview/column"
 	tviewimage "github.com/ayn2op/tview/image"
 	"github.com/ayn2op/tview/keybind"
@@ -69,6 +70,8 @@ type Model struct {
 	// voicePlayer plays the voice message played last, and voiceStatus is what it last said of it.
 	voicePlayer *voice.Player
 	voiceStatus voice.PlayerStatus
+	// seeking reports whether the waveform of the voice message is dragged, which is sought once it is let go of.
+	seeking bool
 
 	// kitty reports whether previews are drawn with kitty's graphics protocol.
 	// kittyImages counts the images sent to the terminal.
@@ -682,6 +685,9 @@ func (m Model) voiceMessageView(a discord.Attachment) tview.Widget {
 	}
 
 	waveform := slider.New(0, duration, status.Position, onSeek).
+		OnPress(func(position time.Duration) tview.Msg { return seekPressMsg(position) }).
+		OnRelease(seekReleaseMsg{}).
+		Dragging(loaded && m.seeking).
 		Width(layout.Fixed(len(rail))).
 		Rail(func(cell, handle int) (string, tview.Style) {
 			if loaded && cell <= handle {
@@ -691,7 +697,10 @@ func (m Model) voiceMessageView(a discord.Attachment) tview.Widget {
 			return rail[cell], style.Dim(true)
 		})
 
-	return row.New(text.New(symbol), waveform, text.New(label)).Spacing(1).Height(layout.Fixed(1))
+	width, _ := text.New(symbol).Size()
+	play := button.New().Label(symbol).Width(width).OnClick(playMsg(a))
+
+	return row.New(play, waveform, text.New(label)).Spacing(1).Height(layout.Fixed(1))
 }
 
 func (m Model) drawEmbeds(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, width int, contentRoot ast.Node, contentSource []byte) {
@@ -980,7 +989,9 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.OpenInBrowser.Keybind):
 			return m, m.openInBrowser()
 		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.Play.Keybind):
-			return m, m.play()
+			if message, ok := m.selectedMessage(); ok && isVoiceMessage(*message) {
+				return m, m.play(message.Attachments[0])
+			}
 		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.SeekBackward.Keybind):
 			return m, m.seek(m.voiceStatus.Position - seekStep)
 		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.SeekForward.Keybind):
@@ -1038,10 +1049,31 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 
 		m.items[index].previews[msg.proxy] = preview
 		return m, cmd
+	case playMsg:
+		return m, m.play(discord.Attachment(msg))
+	case seekPressMsg:
+		m.seeking = true
+		m.voiceStatus.Position = time.Duration(msg)
+		return m, nil
 	case seekMsg:
-		return m, m.seek(time.Duration(msg))
+		m.voiceStatus.Position = time.Duration(msg)
+		if m.seeking {
+			return m, nil
+		}
+
+		return m, m.seek(m.voiceStatus.Position)
+	case seekReleaseMsg:
+		m.seeking = false
+		return m, m.seek(m.voiceStatus.Position)
 	case voiceMsg:
-		m.voiceStatus = m.voicePlayer.Status()
+		status := m.voicePlayer.Status()
+		// The waveform shows where it is dragged to rather than what is playing, while that voice message is the one loaded.
+		m.seeking = m.seeking && status.ID == m.voiceStatus.ID
+		if m.seeking {
+			status.Position = m.voiceStatus.Position
+		}
+
+		m.voiceStatus = status
 		return m, m.Init()
 	case tview.ResizeMsg:
 		cols, rows := msg.Size()

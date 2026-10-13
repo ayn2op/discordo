@@ -367,7 +367,8 @@ func (p paneWidget) Draw(screen tview.Screen, area tview.Rectangle) {
 
 func (p paneWidget) Handle(msg tview.Msg, area tview.Rectangle) tview.Msg {
 	out := p.child.Handle(msg, area)
-	if mouse, ok := msg.(tview.MouseMsg); ok && area.Contains(mouse.Position()) {
+	// Mouse input the pane leaves, but for a press, goes on to the other panes, for a slider dragged out of one to follow the pointer.
+	if mouse, ok := msg.(tview.MouseMsg); ok && area.Contains(mouse.Position()) && (out != msg || mouse.Action == tview.MouseLeftDown) {
 		return paneMsg{pane: p.pane, msg: out, focus: mouse.Action == tview.MouseLeftDown}
 	}
 	// Keys and paste reach only the focused pane, so what it makes of them goes to that pane through route.
