@@ -10,10 +10,10 @@ github.com/alecthomas/repr v0.5.2 h1:SU73FTI9D1P5UNtvseffFSGmdNci/O6RsqzeXJtP0Qs
 github.com/alecthomas/repr v0.5.2/go.mod h1:Fr0507jx4eOXV7AlPV6AVZLYrLIuIeSOWtW57eE/O/4=
 github.com/andybalholm/brotli v1.2.6 h1:ftYnfj6usCp+UGV5kSJ3+chpMQgU+gJf/AxsUQ52REI=
 github.com/andybalholm/brotli v1.2.6/go.mod h1:rzTDkvFWvIrjDXZHkuS16NPggd91W3kUSvPlQ1pLaKY=
-github.com/ayn2op/arikawa/v3 v3.0.0-20261014002739-596a02ea9e65 h1:Q5OgixhtizcziEwqZcBGa2ckB6W9Q3Khv427pvz+svA=
-github.com/ayn2op/arikawa/v3 v3.0.0-20261014002739-596a02ea9e65/go.mod h1:YARcqZmk7hDjXB+lexlXX4wDFHULafbGnF0gsD0tuNw=
-github.com/ayn2op/ningen/v3 v3.0.1-0.20261014021239-6232d35c8e51 h1:xNE7IpBdz0qxs11VBG9C0h1OHBOZnuZkNtbd04D7z7E=
-github.com/ayn2op/ningen/v3 v3.0.1-0.20261014021239-6232d35c8e51/go.mod h1:KEwDy4r6q9wUxxN5Iz2HlMkb8KcFEPnG9IxWvJJclQ4=
+github.com/ayn2op/arikawa/v3 v3.0.0-20261014035141-32b58d8f3755 h1:XHo9kizImaAEtJJky4GZOBTalze42GIVDViqirjuPBY=
+github.com/ayn2op/arikawa/v3 v3.0.0-20261014035141-32b58d8f3755/go.mod h1:YARcqZmk7hDjXB+lexlXX4wDFHULafbGnF0gsD0tuNw=
+github.com/ayn2op/ningen/v3 v3.0.1-0.20261014035153-5e43590a1426 h1:0ndRWpAiSSgR0z9b7K+pwMlCHEk3VzQeS5ls+zWtbr0=
+github.com/ayn2op/ningen/v3 v3.0.1-0.20261014035153-5e43590a1426/go.mod h1:4S2B9frwrjELeAldoqPgasA/VfnOySgRlektwYLuVks=
 github.com/ayn2op/tview v0.0.0-20261013225942-7c4cbe85112a h1:b92yhUuO4jsY8eTqTEEJO+SjpkIIngSzhnJA//FEw6M=
 github.com/ayn2op/tview v0.0.0-20261013225942-7c4cbe85112a/go.mod h1:3aWH6S5uOqOkZv7JFePEVHukTj9hPb6Lbynm59Sks2E=
 github.com/bdandy/go-errors v1.2.2 h1:WdFv/oukjTJCLa79UfkGmwX7ZxONAihKu4V0mLIs11Q=
@@ -94,8 +94,8 @@ github.com/thomas-vilte/dave-go v0.5.1 h1:sc0roOie5Ayn+3eKOUjry9kbBPDvFQCF8t+gy/
 github.com/thomas-vilte/dave-go v0.5.1/go.mod h1:h0UvVsCDECUe6W6dlSHEQTbx3TT13pGmHGngG0GXg1o=
 github.com/thomas-vilte/mls-go v1.6.0 h1:HGxrRe0kRfEAXu7MtTemNzqGmC/758rfGkarhYGPOYg=
 github.com/thomas-vilte/mls-go v1.6.0/go.mod h1:Cxl407ecAW94wwYLOycpQUp0UyfBk6dNmvs1hkw2yLg=
-github.com/tphakala/go-opus v1.1.0 h1:SbXQjwI/ZYy6wPXd0fafLTurkUbAhBpaYnvXYtn8uIo=
-github.com/tphakala/go-opus v1.1.0/go.mod h1:57hQHipntY2+xK7sycF4CYVSXDLW3V+AiX77iOJlojQ=
+github.com/tphakala/go-opus v1.2.1 h1:j3DlcDf+9VTUzOEZ6kODoZoLMb/MTN2+ft24VuO8FaQ=
+github.com/tphakala/go-opus v1.2.1/go.mod h1:CzYWGAXjMJHIqu/aTowxgmut2D0+OFJCjQ9+YJHDJV0=
 github.com/tphakala/simd v1.11.0 h1:3rtUU/6mO76R4rq3hQiEX+DC4yKc/twIGU62bkmIAYA=
 github.com/tphakala/simd v1.11.0/go.mod h1:eO53GkWg40mRbr2tzs0Xb1IMZQ5U8cMR+Aa1RlXUinE=
 github.com/twmb/murmur3 v1.2.1 h1:TJzZGygOc1VJ7jiBpy8m7KAAzm67zy1jvkUxxEjJp+g=
@@ -123,8 +123,8 @@ golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACk
 golang.org/x/crypto v0.0.0-20210921155107-089bfa567519/go.mod h1:GvvjBRRGRdwPK5ydBHafDWAxML/pGHZbMvKqRZ5+Abc=
 golang.org/x/crypto v0.58.0 h1:COkYLr4k7nDI4r6QtMML2AfzeIswWHAJthLS6K/M/54=
 golang.org/x/crypto v0.58.0/go.mod h1:Xh+kl5A+M0gMiWDytH2Hhr5Z7WbNCpv/eB/EFgfSk+w=
-golang.org/x/exp/shiny v0.0.0-20261013213113-2ab7f3cbc5fb h1:TOeg6q45IKFyKG+5BOYsLtYmleQjJWDlm5CIM0zB/uA=
-golang.org/x/exp/shiny v0.0.0-20261013213113-2ab7f3cbc5fb/go.mod h1:ZdXIpWF4Owq+1g/S4uCKu+fMhV3xxPseTF4wQNeKtgM=
+golang.org/x/exp/shiny v0.0.0-20261014143641-f0251eb4aa3e h1:z4P0s/a5L9p+5XPLaFdiLrek83ZClG+yXkO2J+1RKlI=
+golang.org/x/exp/shiny v0.0.0-20261014143641-f0251eb4aa3e/go.mod h1:ZdXIpWF4Owq+1g/S4uCKu+fMhV3xxPseTF4wQNeKtgM=
 golang.org/x/image v0.47.0 h1:za/8gVz++PPZqmZJBNSISICN5Rrj5zixP/8K++fgmqo=
 golang.org/x/image v0.47.0/go.mod h1:IkN5o4A7vq55vXN8FWjjnhg9Rs2GOtffqsSi9mWAKYE=
 golang.org/x/mobile v0.0.0-20261011034528-197770444867 h1:rav73cdd7OQUPgt1aIFbZQTiPNnjfueKXvfOiLCY0Ss=
