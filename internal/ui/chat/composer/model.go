@@ -94,7 +94,14 @@ func NewModel(cfg *config.Config, state *ningen.State) Model {
 func (m *Model) SetChannel(channel *discord.Channel) {
 	m.channel, m.typingUntil = channel, time.Time{}
 	isDM := channel.Type == discord.DirectMessage || channel.Type == discord.GroupDM
-	m.disabled = !isDM && !m.state.HasPermissions(channel.ID, discord.PermissionSendMessages)
+
+	// Sending in a thread takes another permission than in the channel it is in.
+	sendPerm := discord.PermissionSendMessages
+	if channel.Type.IsThread() {
+		sendPerm = discord.PermissionSendMessagesInThreads
+	}
+
+	m.disabled = !isDM && !m.state.HasPermissions(channel.ID, sendPerm)
 }
 
 func (m Model) Disabled() bool {

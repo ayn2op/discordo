@@ -8,6 +8,7 @@ import (
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/arikawa/v3/gateway"
 	"github.com/ayn2op/arikawa/v3/state"
+	"github.com/ayn2op/arikawa/v3/state/store/defaultstore"
 	"github.com/ayn2op/arikawa/v3/utils/sendpart"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/ningen/v3"
@@ -26,6 +27,45 @@ func newTestModel(t *testing.T) (*Model, *config.Config) {
 	c := NewModel(cfg, ningen.FromState(state.New("")))
 	c.disabled = false
 	return &c, cfg
+}
+
+func TestModelSetChannel(t *testing.T) {
+	// Everyone in guild 1 may send in threads, but not in channels.
+	cfg, err := config.Load(filepath.Join(t.TempDir(), "config.toml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	state := ningen.FromState(state.NewWithStore("", defaultstore.New()))
+	channel := discord.Channel{ID: 10, GuildID: 1}
+	thread := discord.Channel{ID: 11, GuildID: 1, ParentID: 10, Type: discord.GuildPublicThread}
+	for _, err := range []error{
+		state.Cabinet.MyselfSet(discord.User{ID: 3}, false),
+		state.Cabinet.GuildSet(&discord.Guild{ID: 1}, false),
+		state.Cabinet.MemberSet(1, &discord.Member{User: discord.User{ID: 3}}, false),
+		state.Cabinet.RoleSet(1, &discord.Role{ID: 1, Permissions: discord.PermissionSendMessagesInThreads}, false),
+		state.Cabinet.ChannelSet(&channel, false),
+		state.Cabinet.ChannelSet(&thread, false),
+	} {
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	c := NewModel(cfg, state)
+	for name, tt := range map[string]struct {
+		channel  discord.Channel
+		disabled bool
+	}{
+		"a channel that cannot be sent in disables it": {channel, true},
+		"a thread that can be sent in enables it":      {thread, false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if c.SetChannel(&tt.channel); c.Disabled() != tt.disabled {
+				t.Fatalf("disabled = %v, want %v", c.Disabled(), tt.disabled)
+			}
+		})
+	}
 }
 
 func TestModelUpdate(t *testing.T) {
