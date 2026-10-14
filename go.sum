@@ -10,10 +10,10 @@ github.com/alecthomas/repr v0.5.2 h1:SU73FTI9D1P5UNtvseffFSGmdNci/O6RsqzeXJtP0Qs
 github.com/alecthomas/repr v0.5.2/go.mod h1:Fr0507jx4eOXV7AlPV6AVZLYrLIuIeSOWtW57eE/O/4=
 github.com/andybalholm/brotli v1.2.6 h1:ftYnfj6usCp+UGV5kSJ3+chpMQgU+gJf/AxsUQ52REI=
 github.com/andybalholm/brotli v1.2.6/go.mod h1:rzTDkvFWvIrjDXZHkuS16NPggd91W3kUSvPlQ1pLaKY=
-github.com/ayn2op/arikawa/v3 v3.6.1-0.20261014002739-596a02ea9e65 h1:V72RWOhsuHqCIncZC8Rh9oI4bfqutEhJIwjE1Nl0AlQ=
-github.com/ayn2op/arikawa/v3 v3.6.1-0.20261014002739-596a02ea9e65/go.mod h1:YARcqZmk7hDjXB+lexlXX4wDFHULafbGnF0gsD0tuNw=
-github.com/ayn2op/ningen/v3 v3.0.1-0.20261014011527-0c6e1bd5ba9d h1:mCR4VHTcmiuCNjsg6Myg/d9WhUEQR1nhgFH9yWeCaAE=
-github.com/ayn2op/ningen/v3 v3.0.1-0.20261014011527-0c6e1bd5ba9d/go.mod h1:MF5/7UxtfyxzTfUSgGimEz9w8/HwwFclNWLEUGkWGhQ=
+github.com/ayn2op/arikawa/v3 v3.0.0-20261014002739-596a02ea9e65 h1:Q5OgixhtizcziEwqZcBGa2ckB6W9Q3Khv427pvz+svA=
+github.com/ayn2op/arikawa/v3 v3.0.0-20261014002739-596a02ea9e65/go.mod h1:YARcqZmk7hDjXB+lexlXX4wDFHULafbGnF0gsD0tuNw=
+github.com/ayn2op/ningen/v3 v3.0.1-0.20261014021239-6232d35c8e51 h1:xNE7IpBdz0qxs11VBG9C0h1OHBOZnuZkNtbd04D7z7E=
+github.com/ayn2op/ningen/v3 v3.0.1-0.20261014021239-6232d35c8e51/go.mod h1:KEwDy4r6q9wUxxN5Iz2HlMkb8KcFEPnG9IxWvJJclQ4=
 github.com/ayn2op/tview v0.0.0-20261013225942-7c4cbe85112a h1:b92yhUuO4jsY8eTqTEEJO+SjpkIIngSzhnJA//FEw6M=
 github.com/ayn2op/tview v0.0.0-20261013225942-7c4cbe85112a/go.mod h1:3aWH6S5uOqOkZv7JFePEVHukTj9hPb6Lbynm59Sks2E=
 github.com/bdandy/go-errors v1.2.2 h1:WdFv/oukjTJCLa79UfkGmwX7ZxONAihKu4V0mLIs11Q=
