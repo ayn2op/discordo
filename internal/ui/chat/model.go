@@ -297,7 +297,11 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			return m, m.updatePane(paneGuildsTree, msg)
 
 		case keybind.Matches(msg, m.cfg.Keybinds.Logout.Keybind):
-			return m, tview.Sequence(closeState(m.state), logout())
+			return m, ui.ShowDialog(
+				"Are you sure you want to log out?",
+				ui.DialogButton{Label: "No"},
+				ui.DialogButton{Label: "Yes", Cmd: tview.Sequence(closeState(m.state), logout())},
+			)
 		}
 	case composer.TabSuggestMsg, mentionslist.Msg:
 		return m, m.updatePane(paneComposer, msg)
@@ -363,7 +367,8 @@ func (p paneWidget) Draw(screen tview.Screen, area tview.Rectangle) {
 
 func (p paneWidget) Handle(msg tview.Msg, area tview.Rectangle) tview.Msg {
 	out := p.child.Handle(msg, area)
-	if mouse, ok := msg.(tview.MouseMsg); ok && area.Contains(mouse.Position()) {
+	// Mouse input the pane leaves, but for a press, goes on to the other panes, for a slider dragged out of one to follow the pointer.
+	if mouse, ok := msg.(tview.MouseMsg); ok && area.Contains(mouse.Position()) && (out != msg || mouse.Action == tview.MouseLeftDown) {
 		return paneMsg{pane: p.pane, msg: out, focus: mouse.Action == tview.MouseLeftDown}
 	}
 	// Keys and paste reach only the focused pane, so what it makes of them goes to that pane through route.
@@ -423,13 +428,12 @@ func (m Model) canFocus(p pane) bool {
 func (m Model) View() tview.Widget {
 	picker := m.pickerView()
 
-	var right tview.Widget = column.New(
-		m.paneView(paneMessagesList),
-		column.New(m.paneView(paneComposer)).Height(layout.Fixed(m.composer.Height())),
-	)
+	messages := m.paneView(paneMessagesList)
 	if mentions := m.composer.MentionsListView(m.focused == paneComposer); mentions != nil {
-		right = stack.New(right, mentions)
+		messages = stack.New(messages, mentions)
 	}
+
+	var right tview.Widget = column.New(messages, m.paneView(paneComposer))
 
 	main := right
 	if m.membersTreeShown() {

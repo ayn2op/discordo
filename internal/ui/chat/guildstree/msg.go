@@ -10,8 +10,10 @@ import (
 	"github.com/ayn2op/tview/tree"
 )
 
-// Msg moves the tree.
-type Msg tree.Change
+// Msg makes a node of the tree the current one.
+type Msg struct {
+	current *tree.Node
+}
 
 // SelectedMsg is sent when the user selects a node.
 type SelectedMsg struct {

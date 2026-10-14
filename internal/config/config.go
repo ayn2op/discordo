@@ -62,17 +62,6 @@ type (
 		Format string `toml:"format"`
 	}
 
-	AttachmentsConfig struct {
-		ShowLinks bool `toml:"show_links"`
-		// Attachment MIME types that can be opened or downloaded without confirmation.
-		// Exact types and wildcards such as "image/*" are supported.
-		AllowedMIMETypes MIMETypes `toml:"allowed_mime_types"`
-		// Whether to draw image attachments and embedded images below their messages.
-		Preview bool `toml:"preview"`
-		// How previews are drawn: "auto", "kitty" or "halfblocks".
-		Protocol string `toml:"protocol"`
-	}
-
 	DateSeparator struct {
 		Enabled bool `toml:"enabled"`
 		// https://pkg.go.dev/time#Layout
@@ -198,8 +187,6 @@ type (
 		// The number of messages to fetch when a text-based channel is selected, from 1 to 100.
 		MessagesLimit uint8 `toml:"messages_limit"`
 
-		Attachments AttachmentsConfig `toml:"attachments"`
-
 		Markdown        MarkdownConfig  `toml:"markdown"`
 		Help            HelpConfig      `toml:"help"`
 		Picker          PickerConfig    `toml:"picker"`
@@ -241,13 +228,6 @@ func Default() Config {
 
 		AutocompleteLimit: 20,
 		MessagesLimit:     50,
-
-		Attachments: AttachmentsConfig{
-			ShowLinks:        true,
-			AllowedMIMETypes: MIMETypes{"image/*", "video/*"},
-			Preview:          true,
-			Protocol:         "auto",
-		},
 
 		Markdown:        MarkdownConfig{Enabled: true, Theme: "monokai"},
 		Help:            HelpConfig{Enabled: true, CompactModifiers: true, Padding: [2]int{1, 1}, Separator: " • "},

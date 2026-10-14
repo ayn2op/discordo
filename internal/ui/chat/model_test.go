@@ -70,6 +70,8 @@ func TestModelAddMessageOrNotify(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			m := newTestModel(t)
 			m.cfg.Notifications.WhenUnfocused = tt.whenUnfocused
+			// Loading an avatar is a command too.
+			m.cfg.UI.MessagesList.Avatars.Preview = false
 			m.setSelectedChannel(&discord.Channel{ID: 1})
 			*m, _ = m.Update(tcell.NewEventFocus(tt.focused))
 			cmd := m.addMessageOrNotify(&gateway.MessageCreateEvent{Message: discord.Message{ID: 1, ChannelID: 1}})

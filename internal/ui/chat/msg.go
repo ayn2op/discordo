@@ -2,22 +2,34 @@ package chat
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"time"
 
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/arikawa/v3/gateway"
+	"github.com/ayn2op/arikawa/v3/utils/ws"
+	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/discordo/internal/ui/chat/composer"
 	"github.com/ayn2op/discordo/internal/ui/chat/guildstree"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
 )
 
+// closeCodeAuthenticationFailed is the close code of the gateway for a token it rejects.
+const closeCodeAuthenticationFailed = 4004
+
 func openState(state *ningen.State) tview.Cmd {
 	return func() tview.Msg {
 		if err := state.Open(context.Background()); err != nil {
 			slog.Error("failed to open chat state", "err", err)
+
+			// A rejected token never works again, so say so over the login.
+			if event, ok := errors.AsType[*ws.CloseEvent](err); ok && event.Code == closeCodeAuthenticationFailed {
+				return tview.Sequence(logout(), func() tview.Msg { return ui.ErrorDialog("open chat state", err) })()
+			}
 		}
+
 		return nil
 	}
 }

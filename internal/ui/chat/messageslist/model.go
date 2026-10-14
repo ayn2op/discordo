@@ -26,6 +26,8 @@ import (
 	"github.com/ayn2op/discordo/internal/voice"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/button"
+	"github.com/ayn2op/tview/column"
 	tviewimage "github.com/ayn2op/tview/image"
 	"github.com/ayn2op/tview/keybind"
 	"github.com/ayn2op/tview/list"
@@ -44,7 +46,8 @@ import (
 
 type messageItem struct {
 	message discord.Message
-	view    tview.Widget
+	// text and reply are the message and what it replies to as wrapped, or nil until they are shown.
+	text, reply *messageView
 	// A separator shows the date of the message after it.
 	separator bool
 
@@ -53,7 +56,8 @@ type messageItem struct {
 }
 
 type Model struct {
-	selectionState list.SelectionState
+	// cursor is the selected item, or -1 for none, and target the item selected last, which stays in view once deselected.
+	cursor, target int
 	scrollState    viewport.ScrollState
 
 	cfg   *config.Config
@@ -63,9 +67,12 @@ type Model struct {
 	items   []messageItem
 
 	renderer *markdown.Renderer
+	avatars  map[discord.URL]tviewimage.Widget
 	// voicePlayer plays the voice message played last, and voiceStatus is what it last said of it.
 	voicePlayer *voice.Player
 	voiceStatus voice.PlayerStatus
+	// seeking reports whether the waveform of the voice message is dragged, which is sought once it is let go of.
+	seeking bool
 
 	// kitty reports whether previews are drawn with kitty's graphics protocol.
 	// kittyImages counts the images sent to the terminal.
@@ -77,11 +84,13 @@ type Model struct {
 
 func NewModel(cfg *config.Config, state *ningen.State) Model {
 	ml := Model{
-		selectionState: list.NewSelectionState(),
-		cfg:            cfg,
-		state:          state,
-		renderer:       markdown.NewRenderer(cfg),
-		voicePlayer:    voice.NewPlayer(),
+		cursor:      -1,
+		target:      -1,
+		cfg:         cfg,
+		state:       state,
+		renderer:    markdown.NewRenderer(cfg),
+		avatars:     map[discord.URL]tviewimage.Widget{},
+		voicePlayer: voice.NewPlayer(),
 	}
 
 	ml.scrollState.ScrollToEnd()
@@ -112,28 +121,27 @@ func (m Model) listView(focused bool) viewport.Widget {
 		Style(theme.TrackStyle.Style).
 		ThumbStyle(theme.ThumbStyle.Style)
 	// The model moves the selection itself, so the list is not focused and only takes clicks.
-	l := list.New(m.selectionState, len(m.items), m.buildItem).
+	l := list.New(m.cursor, len(m.items), m.buildItem).
+		Gap(int(m.cfg.UI.MessagesList.Gap)).
 		SelectedStyle(m.cfg.Theme.MessagesList.SelectedMessageStyle.Style).
-		OnChange(func(a list.Change) tview.Msg { return listMsg(a) })
+		OnChange(func(cursor int) tview.Msg { return listMsg(cursor) })
 	return viewport.New(l, m.scrollState).
-		Target(l.Target).
+		Target(l.Target(m.target)).
 		ScrollBar(bar, cfg.Visibility.ScrollBarVisibility).
 		TrackEnd(true).
 		Keybind(ui.ScrollKeybind(m.cfg.Keybinds.MessagesList.ScrollKeybinds)).
 		Focused(focused).
-		OnChange(func(a viewport.Change) tview.Msg { return scrollMsg(a) })
-}
-
-func (m Model) cursor() int {
-	return m.selectionState.Cursor()
+		OnChange(func(s *viewport.ScrollState) tview.Msg { return scrollMsg(*s) })
 }
 
 // setCursor selects the item at index and scrolls to it if it changed, or selects none if it is negative.
 func (m *Model) setCursor(index int) {
-	if index >= 0 && index != m.cursor() {
+	if index >= 0 && index != m.cursor {
 		m.scrollState.ScrollToTarget()
+		m.target = index
 	}
-	m.selectionState.SetCursor(index)
+
+	m.cursor = max(index, -1)
 }
 
 // SetChannel shows messages of channel, newest first as Discord sends them, scrolled to the newest, and requests the members who wrote them.
@@ -181,7 +189,8 @@ func (m Model) indexOf(channelID discord.ChannelID, id discord.MessageID) int {
 
 func (m *Model) reset() {
 	m.items = nil
-	m.selectionState = list.NewSelectionState()
+	clear(m.avatars)
+	m.cursor, m.target = -1, -1
 	m.scrollState = viewport.ScrollState{}
 	m.scrollState.ScrollToEnd()
 }
@@ -217,7 +226,7 @@ func (m *Model) deleteMessage(index int) {
 		return
 	}
 
-	cursor := m.cursor()
+	cursor := m.cursor
 	if cursor == index {
 		cursor = m.messageIndex(index, -1)
 		if cursor == -1 {
@@ -246,31 +255,45 @@ func (m Model) buildItem(index int) tview.Widget {
 		return dateSeparator{date: date, fill: m.cfg.DateSeparator.Character, style: m.cfg.Theme.MessagesList.MessageStyle.Style.Dim(true)}
 	}
 
-	if item.view == nil {
-		message := item.message
-		view := &messageView{render: func(width int) richtext.Text {
-			return m.renderMessage(message, m.cfg.Theme.MessagesList.MessageStyle.Style, width)
+	message, style := item.message, m.cfg.Theme.MessagesList.MessageStyle.Style
+	if item.text == nil {
+		item.text = &messageView{render: func(width int) richtext.Text { return m.renderMessage(message, style, width) }}
+		item.reply = &messageView{render: func(int) richtext.Text {
+			builder := new(richtext.Builder)
+			m.drawReply(builder, message, style)
+			return builder.Finish()
 		}}
-		if isVoiceMessage(message) {
-			view.player = m.voiceMessageView(message.Attachments[0])
-		}
-
-		for _, s := range previewSources(message) {
-			if preview, ok := item.previews[s.proxy]; ok {
-				view.images = append(view.images, preview)
-			}
-		}
-		item.view = view
 	}
-	return item.view
+
+	body := column.New(item.text).Height(layout.Shrink)
+	if isVoiceMessage(message) {
+		body = body.Push(m.voiceMessageView(message.Attachments[0]))
+	}
+
+	for _, s := range previewSources(message) {
+		if preview, ok := item.previews[s.proxy]; ok {
+			body = body.Push(preview)
+		}
+	}
+
+	if avatar, ok := m.avatars[avatarURL(message.Author)]; ok {
+		body = row.New(avatar, body).Spacing(1).Height(layout.Shrink)
+	}
+
+	if message.Type == discord.InlinedReplyMessage && !m.blocked(message.Author) {
+		body = column.New(item.reply, body).Height(layout.Shrink)
+	}
+
+	return body
 }
 
-// messageView renders a message followed by its voice message player, if it is one, and its image previews, caching the wrapped lines until the width changes.
+func (m Model) blocked(user discord.User) bool {
+	return m.cfg.HideBlockedUsers && m.state.UserIsBlocked(user.ID)
+}
+
+// messageView is the text of a message. It keeps the wrapped lines until the width changes, as the list measures every message when it draws.
 type messageView struct {
-	render func(width int) richtext.Text
-	// player is a row high, or nil.
-	player   tview.Widget
-	images   []tviewimage.Widget
+	render   func(width int) richtext.Text
 	width    int
 	rendered bool
 	lines    richtext.Text
@@ -286,49 +309,20 @@ func (v *messageView) at(width int) textview.Widget {
 	return textview.New(v.lines).Wrap(false)
 }
 
-// Size returns Fill and Shrink, as the message is as tall as its content.
 func (v *messageView) Size() (width, height layout.Length) { return layout.Fill, layout.Shrink }
 
-// Layout returns the size of the message within limits, as tall as the rows it takes at the width of limits.
 func (v *messageView) Layout(limits layout.Limits) layout.Size {
 	return layout.Sized(limits, layout.Fill, layout.Shrink, func(limits layout.Limits) layout.Size {
 		v.at(limits.Max.Width)
-		rows := len(v.lines)
-		if v.player != nil {
-			rows++
-		}
-
-		for _, preview := range v.images {
-			_, height := preview.Size()
-			rows += height.Cells()
-		}
-		return layout.Size{Height: rows}
+		return layout.Size{Height: len(v.lines)}
 	})
 }
 
 func (v *messageView) Draw(screen tview.Screen, area tview.Rectangle) {
-	v.at(area.Width).Draw(screen, tview.Rectangle{X: area.X, Y: area.Y, Width: area.Width, Height: len(v.lines)})
-	y := area.Y + len(v.lines)
-	if v.player != nil {
-		v.player.Draw(screen, tview.Rectangle{X: area.X, Y: y, Width: area.Width, Height: 1})
-		y++
-	}
-
-	for _, preview := range v.images {
-		_, height := preview.Size()
-		preview.Draw(screen, tview.Rectangle{X: area.X, Y: y, Width: area.Width, Height: height.Cells()})
-		y += height.Cells()
-	}
+	v.at(area.Width).Draw(screen, area)
 }
 
-// Handle passes msg to the player, for its waveform to be clicked.
-func (v *messageView) Handle(msg tview.Msg, area tview.Rectangle) tview.Msg {
-	if v.player == nil {
-		return msg
-	}
-
-	return v.player.Handle(msg, tview.Rectangle{X: area.X, Y: area.Y + len(v.lines), Width: area.Width, Height: 1})
-}
+func (v *messageView) Handle(msg tview.Msg, _ tview.Rectangle) tview.Msg { return msg }
 
 // dateSeparator is a line with the date in the middle, filled to the width it is drawn at.
 type dateSeparator struct {
@@ -365,7 +359,7 @@ func (m Model) renderMessage(message discord.Message, baseStyle tview.Style, wid
 // rebuildItems replaces date separators while retaining message views and selection.
 func (m *Model) rebuildItems() {
 	items := make([]messageItem, 0, len(m.items))
-	cursor, selected := m.cursor(), -1
+	cursor, selected := m.cursor, -1
 	var previous discord.Timestamp
 	for i, item := range m.items {
 		if item.separator {
@@ -412,12 +406,9 @@ func (m *Model) onRowCursorChanged(index int) {
 }
 
 func (m Model) writeMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, width int) {
-	if m.cfg.HideBlockedUsers {
-		isBlocked := m.state.UserIsBlocked(message.Author.ID)
-		if isBlocked {
-			builder.Write("Blocked message", baseStyle.Foreground(color.Red).Bold(true))
-			return
-		}
+	if m.blocked(message.Author) {
+		builder.Write("Blocked message", baseStyle.Foreground(color.Red).Bold(true))
+		return
 	}
 
 	switch message.Type {
@@ -428,16 +419,13 @@ func (m Model) writeMessage(builder *richtext.Builder, message discord.Message, 
 			m.drawDefaultMessage(builder, message, baseStyle, width)
 		}
 	case discord.GuildMemberJoinMessage:
-		m.drawTimestamps(builder, message.Timestamp, baseStyle)
-		m.drawAuthor(builder, message, baseStyle)
-		builder.Write("joined the server.", baseStyle)
+		m.drawLayout(builder, message, baseStyle, func() { builder.Write("joined the server.", baseStyle) })
 	case discord.InlinedReplyMessage:
-		m.drawReplyMessage(builder, message, baseStyle, width)
+		m.drawDefaultMessage(builder, message, baseStyle, width)
 	case discord.ChannelPinnedMessage:
 		m.drawPinnedMessage(builder, message, baseStyle)
 	default:
-		m.drawTimestamps(builder, message.Timestamp, baseStyle)
-		m.drawAuthor(builder, message, baseStyle)
+		m.drawLayout(builder, message, baseStyle, nil)
 	}
 	m.drawReactions(builder, message.Reactions, baseStyle)
 }
@@ -469,9 +457,49 @@ func (m Model) formatTimestamp(ts discord.Timestamp) string {
 	return ts.Time().In(time.Local).Format(m.cfg.Timestamps.Format)
 }
 
-func (m Model) drawTimestamps(builder *richtext.Builder, ts discord.Timestamp, baseStyle tview.Style) {
+const editedIndicator = " (edited)"
+
+func (m Model) drawLayout(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, content func()) {
+	if m.cfg.UI.MessagesList.Compact {
+		m.drawCompact(builder, message, baseStyle, content)
+		return
+	}
+
+	m.drawCozy(builder, message, baseStyle, content)
+}
+
+func (m Model) drawCompact(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, content func()) {
 	dimStyle := baseStyle.Dim(true)
-	builder.Write(m.formatTimestamp(ts)+" ", dimStyle)
+	if m.cfg.Timestamps.Enabled {
+		builder.Write(m.formatTimestamp(message.Timestamp)+" ", dimStyle)
+	}
+
+	m.drawAuthor(builder, message, baseStyle)
+	if content != nil {
+		builder.Write(" ", baseStyle)
+		content()
+	}
+
+	if message.EditedTimestamp.IsValid() {
+		builder.Write(editedIndicator, dimStyle)
+	}
+}
+
+func (m Model) drawCozy(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, content func()) {
+	dimStyle := baseStyle.Dim(true)
+	m.drawAuthor(builder, message, baseStyle)
+	if m.cfg.Timestamps.Enabled {
+		builder.Write(" "+m.formatTimestamp(message.Timestamp), dimStyle)
+	}
+
+	if message.EditedTimestamp.IsValid() {
+		builder.Write(editedIndicator, dimStyle)
+	}
+
+	if content != nil {
+		builder.NewLine()
+		content()
+	}
 }
 
 func (m Model) drawAuthor(builder *richtext.Builder, message discord.Message, baseStyle tview.Style) {
@@ -494,7 +522,6 @@ func (m Model) drawAuthor(builder *richtext.Builder, message discord.Message, ba
 
 	style := baseStyle.Foreground(foreground).Bold(true)
 	builder.Write(name, style)
-	builder.Write(" ", baseStyle)
 }
 
 func (m Model) memberForMessage(message discord.Message) *discord.Member {
@@ -515,7 +542,7 @@ func (m Model) memberForMessage(message discord.Message) *discord.Member {
 // root is nil when markdown rendering is disabled.
 func (m Model) drawContent(builder *richtext.Builder, message discord.Message, baseStyle tview.Style) (ast.Node, []byte) {
 	content, root, source := m.renderContent(message, baseStyle, false)
-	if m.cfg.Markdown.Enabled && !builder.LineEmpty() {
+	if m.cfg.Markdown.Enabled {
 		startsWithCodeBlock := false
 		if root != nil {
 			if first := root.FirstChild(); first != nil {
@@ -525,7 +552,10 @@ func (m Model) drawContent(builder *richtext.Builder, message discord.Message, b
 
 		if startsWithCodeBlock {
 			// Keep code blocks visually separate from "timestamp + author".
-			builder.NewLine()
+			if !builder.LineEmpty() {
+				builder.NewLine()
+			}
+
 			for len(content) > 0 && len(content[0]) == 0 {
 				content = content[1:]
 			}
@@ -573,18 +603,14 @@ func (m Model) drawSnapshotContent(builder *richtext.Builder, parent discord.Mes
 }
 
 func (m Model) drawDefaultMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, width int) {
-	if m.cfg.Timestamps.Enabled {
-		m.drawTimestamps(builder, message.Timestamp, baseStyle)
+	var contentRoot ast.Node
+	var contentSource []byte
+	content := func() { contentRoot, contentSource = m.drawContent(builder, message, baseStyle) }
+	if message.Content == "" {
+		content = nil
 	}
 
-	m.drawAuthor(builder, message, baseStyle)
-	contentRoot, contentSource := m.drawContent(builder, message, baseStyle)
-
-	if message.EditedTimestamp.IsValid() {
-		dimStyle := baseStyle.Dim(true)
-		builder.Write(" (edited)", dimStyle)
-	}
-
+	m.drawLayout(builder, message, baseStyle, content)
 	m.drawEmbeds(builder, message, baseStyle, width, contentRoot, contentSource)
 
 	attachmentStyle := tview.MergeStyle(baseStyle, m.cfg.Theme.MessagesList.AttachmentStyle.Style)
@@ -595,7 +621,7 @@ func (m Model) drawDefaultMessage(builder *richtext.Builder, message discord.Mes
 
 	for _, a := range message.Attachments {
 		builder.NewLine()
-		if m.cfg.Attachments.ShowLinks {
+		if m.cfg.UI.MessagesList.Attachments.ShowLinks {
 			builder.Write(a.Filename+":", attachmentStyle)
 			builder.NewLine()
 			builder.Write(a.URL, attachmentStyle.Url(a.URL))
@@ -659,6 +685,9 @@ func (m Model) voiceMessageView(a discord.Attachment) tview.Widget {
 	}
 
 	waveform := slider.New(0, duration, status.Position, onSeek).
+		OnPress(func(position time.Duration) tview.Msg { return seekPressMsg(position) }).
+		OnRelease(seekReleaseMsg{}).
+		Dragging(loaded && m.seeking).
 		Width(layout.Fixed(len(rail))).
 		Rail(func(cell, handle int) (string, tview.Style) {
 			if loaded && cell <= handle {
@@ -668,7 +697,10 @@ func (m Model) voiceMessageView(a discord.Attachment) tview.Widget {
 			return rail[cell], style.Dim(true)
 		})
 
-	return row.New(text.New(symbol), waveform, text.New(label)).Spacing(1)
+	width, _ := text.New(symbol).Size()
+	play := button.New().Label(symbol).Width(width).OnClick(playMsg(a))
+
+	return row.New(play, waveform, text.New(label)).Spacing(1).Height(layout.Fixed(1))
 }
 
 func (m Model) drawEmbeds(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, width int, contentRoot ast.Node, contentSource []byte) {
@@ -895,27 +927,25 @@ func isMarkdownEscapable(c byte) bool {
 
 func (m Model) drawForwardedMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style) {
 	dimStyle := baseStyle.Dim(true)
-	m.drawTimestamps(builder, message.Timestamp, baseStyle)
-	m.drawAuthor(builder, message, baseStyle)
-	builder.Write(m.cfg.UI.MessagesList.ForwardedIndicator+" ", dimStyle)
-	m.drawSnapshotContent(builder, message, message.MessageSnapshots[0].Message, baseStyle)
-	builder.Write(" ("+m.formatTimestamp(message.MessageSnapshots[0].Message.Timestamp)+") ", dimStyle)
+	m.drawLayout(builder, message, baseStyle, func() {
+		builder.Write(m.cfg.UI.MessagesList.ForwardedIndicator+" ", dimStyle)
+		m.drawSnapshotContent(builder, message, message.MessageSnapshots[0].Message, baseStyle)
+		builder.Write(" ("+m.formatTimestamp(message.MessageSnapshots[0].Message.Timestamp)+") ", dimStyle)
+	})
 }
 
-func (m Model) drawReplyMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, width int) {
+func (m Model) drawReply(builder *richtext.Builder, message discord.Message, baseStyle tview.Style) {
 	dimStyle := baseStyle.Dim(true)
 	builder.Write(m.cfg.UI.MessagesList.ReplyIndicator+" ", dimStyle)
 
 	if reference := message.ReferencedMessage; reference != nil {
 		reference.GuildID = message.GuildID
 		m.drawAuthor(builder, *reference, dimStyle)
+		builder.Write(" ", dimStyle)
 		m.drawContent(builder, *reference, dimStyle)
 	} else {
 		builder.Write("Original message was deleted", dimStyle)
 	}
-
-	builder.NewLine()
-	m.drawDefaultMessage(builder, message, baseStyle, width)
 }
 
 func (m Model) drawPinnedMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style) {
@@ -923,7 +953,7 @@ func (m Model) drawPinnedMessage(builder *richtext.Builder, message discord.Mess
 }
 
 func (m Model) selectedMessage() (*discord.Message, bool) {
-	cursor := m.cursor()
+	cursor := m.cursor
 	if cursor < 0 || cursor >= len(m.items) || m.items[cursor].separator {
 		return nil, false
 	}
@@ -959,7 +989,9 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.OpenInBrowser.Keybind):
 			return m, m.openInBrowser()
 		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.Play.Keybind):
-			return m, m.play()
+			if message, ok := m.selectedMessage(); ok && isVoiceMessage(*message) {
+				return m, m.play(message.Attachments[0])
+			}
 		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.SeekBackward.Keybind):
 			return m, m.seek(m.voiceStatus.Position - seekStep)
 		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.SeekForward.Keybind):
@@ -982,7 +1014,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		if selectedChannel == nil || selectedChannel.ID != msg.ChannelID {
 			return m, nil
 		}
-		prevCursor := m.cursor()
+		prevCursor := m.cursor
 
 		older := make([]messageItem, len(msg.Older))
 		for i, message := range msg.Older {
@@ -998,30 +1030,50 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		}
 		return m, m.loadPreviews()
 	case previewLoadedMsg:
-		index := slices.IndexFunc(m.items, func(item messageItem) bool { return !item.separator && item.message.ID == msg.messageID })
-		if index < 0 || m.items[index].previews == nil {
-			return m, nil
-		}
 		preview, cmd := msg.preview, tview.Cmd(nil)
 		if m.kitty {
 			m.kittyImages++
 			preview = preview.Kitty(m.kittyImages%63488 + 1)
 			cmd = preview.Transmit()
 		}
-		m.items[index].previews[msg.proxy] = preview
-		// Invalidate the view so it is laid out with the preview.
-		m.items[index].view = nil
-		return m, cmd
-	case seekMsg:
-		return m, m.seek(time.Duration(msg))
-	case voiceMsg:
-		m.voiceStatus = m.voicePlayer.Status()
-		for i := range m.items {
-			if isVoiceMessage(m.items[i].message) {
-				m.items[i].view = nil
-			}
+
+		if _, ok := m.avatars[msg.proxy]; ok {
+			m.avatars[msg.proxy] = preview
+			return m, cmd
 		}
 
+		index := slices.IndexFunc(m.items, func(item messageItem) bool { return !item.separator && item.message.ID == msg.messageID })
+		if index < 0 || m.items[index].previews == nil {
+			return m, nil
+		}
+
+		m.items[index].previews[msg.proxy] = preview
+		return m, cmd
+	case playMsg:
+		return m, m.play(discord.Attachment(msg))
+	case seekPressMsg:
+		m.seeking = true
+		m.voiceStatus.Position = time.Duration(msg)
+		return m, nil
+	case seekMsg:
+		m.voiceStatus.Position = time.Duration(msg)
+		if m.seeking {
+			return m, nil
+		}
+
+		return m, m.seek(m.voiceStatus.Position)
+	case seekReleaseMsg:
+		m.seeking = false
+		return m, m.seek(m.voiceStatus.Position)
+	case voiceMsg:
+		status := m.voicePlayer.Status()
+		// The waveform shows where it is dragged to rather than what is playing, while that voice message is the one loaded.
+		m.seeking = m.seeking && status.ID == m.voiceStatus.ID
+		if m.seeking {
+			status.Position = m.voiceStatus.Position
+		}
+
+		m.voiceStatus = status
 		return m, m.Init()
 	case tview.ResizeMsg:
 		cols, rows := msg.Size()
@@ -1030,7 +1082,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			m.cellWidth, m.cellHeight = uint(width/cols), uint(height/rows)
 		}
 	case tview.TerminalInfoMsg:
-		switch m.cfg.Attachments.Protocol {
+		switch m.cfg.UI.MessagesList.Attachments.Protocol {
 		case "kitty":
 			m.kitty = true
 		case "halfblocks":
@@ -1040,11 +1092,11 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			m.kitty = msg.Name == "kitty" || msg.Name == "ghostty"
 		}
 	case scrollMsg:
-		m.scrollState.Apply(viewport.Change(msg))
+		m.scrollState = viewport.ScrollState(msg)
 	case listMsg:
 		top := m.atTop()
-		m.selectionState.Apply(list.Change(msg))
-		m.onRowCursorChanged(m.cursor())
+		m.cursor, m.target = int(msg), int(msg)
+		m.onRowCursorChanged(m.cursor)
 		if !top && m.atTop() {
 			return m, m.fetchOlderMessages()
 		}
@@ -1054,13 +1106,13 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 
 // atTop reports whether the oldest message shown is selected.
 func (m Model) atTop() bool {
-	return m.cursor() >= 0 && m.cursor() == m.messageIndex(-1, 1)
+	return m.cursor >= 0 && m.cursor == m.messageIndex(-1, 1)
 }
 
 func (m *Model) selectDown() {
-	if m.cursor() == -1 {
+	if m.cursor == -1 {
 		m.selectBottom()
-	} else if next := m.messageIndex(m.cursor(), 1); next >= 0 {
+	} else if next := m.messageIndex(m.cursor, 1); next >= 0 {
 		m.setCursor(next)
 	}
 }
@@ -1079,7 +1131,7 @@ func (m *Model) selectBottom() {
 
 func (m *Model) selectReply() {
 	messages := m.items
-	cursor := m.cursor()
+	cursor := m.cursor
 	if cursor < 0 || cursor >= len(messages) {
 		return
 	}
@@ -1230,6 +1282,6 @@ func (m Model) canDeleteMessage(message discord.Message) bool {
 
 func (m Model) InvalidateRendered() {
 	for i := range m.items {
-		m.items[i].view = nil
+		m.items[i].text = nil
 	}
 }

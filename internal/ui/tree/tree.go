@@ -13,19 +13,19 @@ import (
 	"github.com/gdamore/tcell/v3"
 )
 
-// ScrollMsg scrolls the tree, before passing on Msg if the tree sent one.
+// ScrollMsg scrolls the tree to ScrollState, before passing on Msg if the tree sent one.
 type ScrollMsg struct {
-	Change viewport.Change
-	Msg    tview.Msg
+	ScrollState viewport.ScrollState
+	Msg         tview.Msg
 }
 
 // New returns a boxed tree of the nodes under root in a viewport.
-func New(root *tree.Node, selectionState tree.SelectionState, scrollState viewport.ScrollState, cfg *config.Config, theme config.TreeThemeConfig, graphics bool, kbs config.TreeKeybinds, focused bool, onChange func(tree.Change) tview.Msg, onSelect func(*tree.Node) tview.Msg) box.Widget {
+func New(root, current *tree.Node, scrollState viewport.ScrollState, cfg *config.Config, theme config.TreeThemeConfig, graphics bool, kbs config.TreeKeybinds, focused bool, onChange, onSelect func(*tree.Node) tview.Msg) box.Widget {
 	set := cfg.UI.Border.NormalSet.BorderSet
 	if focused {
 		set = cfg.UI.Border.ActiveSet.BorderSet
 	}
-	t := tree.New(root, selectionState).
+	t := tree.New(root, current).
 		TopLevel(1).
 		Markers(tree.Markers{
 			Expanded:  cfg.Sidebar.Markers.Expanded,
@@ -42,11 +42,11 @@ func New(root *tree.Node, selectionState tree.SelectionState, scrollState viewpo
 	v := viewport.New(t, scrollState).
 		Target(t.Target).
 		ContentWidth(t.RowsWidth).
-		OnChildMsg(func(c viewport.Change, msg tview.Msg) tview.Msg { return ScrollMsg{Change: c, Msg: msg} }).
+		OnChildMsg(func(s *viewport.ScrollState, msg tview.Msg) tview.Msg { return ScrollMsg{ScrollState: *s, Msg: msg} }).
 		Axes(layout.Axes{Width: true, Height: true}).
 		Keybind(bindScrollKeys(kbs)).
 		Focused(focused).
-		OnChange(func(c viewport.Change) tview.Msg { return ScrollMsg{Change: c} })
+		OnChange(func(s *viewport.ScrollState) tview.Msg { return ScrollMsg{ScrollState: *s} })
 	return ui.Box(v, cfg, focused)
 }
 

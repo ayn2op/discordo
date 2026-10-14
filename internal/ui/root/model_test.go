@@ -21,10 +21,6 @@ func TestNewModel(t *testing.T) {
 		if !m.helpVisible {
 			t.Fatal("help is hidden")
 		}
-		if height := m.helpHeight(); height != 1 {
-			t.Fatalf("height = %d, want 1", height)
-		}
-
 		m, _ = m.Update(tcell.NewEventKey(tcell.KeyRune, ".", tcell.ModCtrl))
 		if !m.helpShowAll {
 			t.Fatal("toggle_full_help did not enable full help")

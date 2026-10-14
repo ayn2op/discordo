@@ -35,7 +35,7 @@ func (m Model) View(onSelect func(picker.Item) tview.Msg, onCancel tview.Msg) tv
 		ScrollBar(bar, cfg.UI.ScrollBar.Visibility.ScrollBarVisibility).
 		Keybind(bindKeys(cfg.Keybinds.Picker)).
 		ListKeybind(ui.SelectionKeybind(cfg.Keybinds.Picker.SelectionKeybinds)).
-		OnChange(func(c picker.Change) tview.Msg { return changeMsg(c) }).
+		OnChange(func(s *picker.SearchState) tview.Msg { return changeMsg(*s) }).
 		OnSelect(onSelect).
 		OnCancel(onCancel)
 	return ui.Box(p, cfg, true).Title(m.title)
@@ -43,7 +43,7 @@ func (m Model) View(onSelect func(picker.Item) tview.Msg, onCancel tview.Msg) tv
 
 func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	if msg, ok := msg.(changeMsg); ok {
-		m.searchState.Apply(picker.Change(msg))
+		m.searchState = picker.SearchState(msg)
 	}
 	return m, nil
 }

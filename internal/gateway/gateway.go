@@ -16,5 +16,5 @@ func New(id discordgateway.Identifier) *discordgateway.Gateway {
 
 	conn := ws.NewConnWithDialer(codec, NewDialer())
 	socket := ws.NewCustomWebsocket(conn, discordgateway.AddGatewayParams(gatewayURL))
-	return discordgateway.FromWebsocketGateway(ws.NewGateway(socket, nil), discordgateway.State{Identifier: id})
+	return discordgateway.FromWebsocketGateway(ws.NewGateway(socket, &discordgateway.DefaultGatewayOpts), discordgateway.State{Identifier: id})
 }

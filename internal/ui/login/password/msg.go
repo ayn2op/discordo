@@ -6,14 +6,19 @@ import (
 	"github.com/ayn2op/arikawa/v3/utils/httputil"
 	"github.com/ayn2op/discordo/internal/http"
 	"github.com/ayn2op/tview"
-	"github.com/ayn2op/tview/textinput"
 )
 
 type TokenMsg string
 
+// inputMsg is the text and cursor that typing in an input left.
+type inputMsg struct {
+	text   string
+	cursor int
+}
+
 type (
-	loginMsg    textinput.Change
-	passwordMsg textinput.Change
+	loginMsg    inputMsg
+	passwordMsg inputMsg
 	focusMsg    focus
 	submitMsg   struct{}
 )

@@ -8,6 +8,7 @@ import (
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/arikawa/v3/gateway"
 	"github.com/ayn2op/arikawa/v3/state"
+	"github.com/ayn2op/arikawa/v3/state/store/defaultstore"
 	"github.com/ayn2op/arikawa/v3/utils/sendpart"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/ningen/v3"
@@ -28,6 +29,45 @@ func newTestModel(t *testing.T) (*Model, *config.Config) {
 	return &c, cfg
 }
 
+func TestModelSetChannel(t *testing.T) {
+	// Everyone in guild 1 may send in threads, but not in channels.
+	cfg, err := config.Load(filepath.Join(t.TempDir(), "config.toml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	state := ningen.FromState(state.NewWithStore("", defaultstore.New()))
+	channel := discord.Channel{ID: 10, GuildID: 1}
+	thread := discord.Channel{ID: 11, GuildID: 1, ParentID: 10, Type: discord.GuildPublicThread}
+	for _, err := range []error{
+		state.Cabinet.MyselfSet(discord.User{ID: 3}, false),
+		state.Cabinet.GuildSet(&discord.Guild{ID: 1}, false),
+		state.Cabinet.MemberSet(1, &discord.Member{User: discord.User{ID: 3}}, false),
+		state.Cabinet.RoleSet(1, &discord.Role{ID: 1, Permissions: discord.PermissionSendMessagesInThreads}, false),
+		state.Cabinet.ChannelSet(&channel, false),
+		state.Cabinet.ChannelSet(&thread, false),
+	} {
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	c := NewModel(cfg, state)
+	for name, tt := range map[string]struct {
+		channel  discord.Channel
+		disabled bool
+	}{
+		"a channel that cannot be sent in disables it": {channel, true},
+		"a thread that can be sent in enables it":      {thread, false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if c.SetChannel(&tt.channel); c.Disabled() != tt.disabled {
+				t.Fatalf("disabled = %v, want %v", c.Disabled(), tt.disabled)
+			}
+		})
+	}
+}
+
 func TestModelUpdate(t *testing.T) {
 	up := tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone)
 	for _, tt := range []struct {
@@ -36,7 +76,7 @@ func TestModelUpdate(t *testing.T) {
 		want  bool
 	}{
 		{"empty", func(*Model, *config.Config) tview.KeyMsg { return up }, true},
-		{"draft", func(c *Model, _ *config.Config) tview.KeyMsg { c.editState.SetValue("draft"); return up }, false},
+		{"draft", func(c *Model, _ *config.Config) tview.KeyMsg { c.setText("draft", len("draft")); return up }, false},
 		{"reply", func(c *Model, _ *config.Config) tview.KeyMsg {
 			c.StartReply(discord.Message{ID: 3}, "name", false)
 			return up
@@ -79,8 +119,8 @@ func TestModelHandle(t *testing.T) {
 			t.Fatalf("got %v, want an editMsg", msg)
 		}
 		*c, _ = c.Update(msg)
-		if c.editState.Value() != "a" {
-			t.Fatalf("text = %q", c.editState.Value())
+		if c.text != "a" {
+			t.Fatalf("text = %q", c.text)
 		}
 	})
 	t.Run("the newline keybind inserts a newline", func(t *testing.T) {
@@ -89,8 +129,8 @@ func TestModelHandle(t *testing.T) {
 			t.Fatalf("got %v, want an editMsg", msg)
 		}
 		*c, _ = c.Update(msg)
-		if c.editState.Value() != "a\n" {
-			t.Fatalf("text = %q", c.editState.Value())
+		if c.text != "a\n" {
+			t.Fatalf("text = %q", c.text)
 		}
 	})
 	t.Run("bound keys are left to Update", func(t *testing.T) {
@@ -139,7 +179,7 @@ func TestModelTabSuggest(t *testing.T) {
 		}
 	}
 	c.SetChannel(&channel)
-	c.editState.SetValue("@")
+	c.setText("@", 1)
 	c.tabSuggest()
 	if got := c.mentionsList.ItemCount(); got != 2 {
 		t.Fatalf("suggested %d authors, want 2", got)

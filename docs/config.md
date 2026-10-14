@@ -41,31 +41,6 @@ The number of messages to fetch when a text-based channel is selected, from 1 to
 
 Default: `50`
 
-# attachments
-
-## attachments.show_links
-
-Default: `true`
-
-## attachments.allowed_mime_types
-
-Attachment MIME types that can be opened or downloaded without confirmation.
-Exact types and wildcards such as "image/*" are supported.
-
-Default: `["image/*", "video/*"]`
-
-## attachments.preview
-
-Whether to draw image attachments and embedded images below their messages.
-
-Default: `true`
-
-## attachments.protocol
-
-How previews are drawn: "auto", "kitty" or "halfblocks".
-
-Default: `"auto"`
-
 # markdown
 
 ## markdown.enabled
@@ -382,6 +357,16 @@ Default: `"box_drawing"`
 
 ## ui.messages_list
 
+### ui.messages_list.compact
+
+Default: `false`
+
+### ui.messages_list.gap
+
+The number of empty rows between messages.
+
+Default: `1`
+
 ### ui.messages_list.reply_indicator
 
 Default: `">"`
@@ -389,6 +374,43 @@ Default: `">"`
 ### ui.messages_list.forwarded_indicator
 
 Default: `"<"`
+
+### ui.messages_list.attachments
+
+#### ui.messages_list.attachments.show_links
+
+Default: `true`
+
+#### ui.messages_list.attachments.allowed_mime_types
+
+Attachment MIME types that can be opened or downloaded without confirmation.
+Exact types and wildcards such as "image/*" are supported.
+
+Default: `["image/*", "video/*"]`
+
+#### ui.messages_list.attachments.preview
+
+Whether to draw image attachments and embedded images below their messages.
+
+Default: `true`
+
+#### ui.messages_list.attachments.protocol
+
+How previews are drawn: "auto", "kitty" or "halfblocks".
+
+Default: `"auto"`
+
+### ui.messages_list.avatars
+
+#### ui.messages_list.avatars.preview
+
+Default: `true`
+
+#### ui.messages_list.avatars.height
+
+The number of rows an avatar takes. It is recommended to use `1` with compact.
+
+Default: `2`
 
 ## ui.mentions_list
 

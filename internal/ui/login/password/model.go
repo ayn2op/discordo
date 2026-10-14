@@ -23,8 +23,11 @@ const (
 
 // Model is a login and a password input above a button. Tab and the arrow keys move the focus, Enter in an input moves to the next one, and Enter on the button or clicking it logs in.
 type Model struct {
-	login, password textinput.EditState
-	focus           focus
+	login, password string
+	// loginCursor and passwordCursor are the byte offsets of the cursor in login and password.
+	loginCursor, passwordCursor int
+
+	focus focus
 }
 
 var _ tview.Model[Model] = Model{}
@@ -38,9 +41,9 @@ func (Model) Init() tview.Cmd { return nil }
 func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	switch msg := msg.(type) {
 	case loginMsg:
-		m.login.Apply(textinput.Change(msg))
+		m.login, m.loginCursor = msg.text, msg.cursor
 	case passwordMsg:
-		m.password.Apply(textinput.Change(msg))
+		m.password, m.passwordCursor = msg.text, msg.cursor
 	case focusMsg:
 		m.focus = focus(msg)
 	case tview.KeyMsg:
@@ -51,25 +54,24 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			m.focus = (m.focus + focusCount - 1) % focusCount
 		}
 	case submitMsg:
-		login, password := m.login.Value(), m.password.Value()
-		if login == "" || password == "" {
+		if m.login == "" || m.password == "" {
 			return m, nil
 		}
-		return m, submitLogin(login, password)
+		return m, submitLogin(m.login, m.password)
 	}
 	return m, nil
 }
 
 func (m Model) View() tview.Widget {
 	labelWidth := layout.Fixed(len("Password") + 1)
-	login := textinput.New(&m.login).
+	login := textinput.New(m.login, m.loginCursor).
 		Focused(m.focus == focusLogin).
-		OnChange(func(c textinput.Change) tview.Msg { return loginMsg(c) }).
+		OnInput(func(text string, cursor int) tview.Msg { return loginMsg{text, cursor} }).
 		OnSubmit(focusMsg(focusPassword))
-	password := textinput.New(&m.password).
+	password := textinput.New(m.password, m.passwordCursor).
 		Mask("*").
 		Focused(m.focus == focusPassword).
-		OnChange(func(c textinput.Change) tview.Msg { return passwordMsg(c) }).
+		OnInput(func(text string, cursor int) tview.Msg { return passwordMsg{text, cursor} }).
 		OnSubmit(focusMsg(focusButton))
 	submit := button.New().
 		Label("Login").
@@ -78,8 +80,8 @@ func (m Model) View() tview.Widget {
 		Focused(m.focus == focusButton).
 		OnClick(submitMsg{})
 	return column.New(
-		row.New(column.New(text.New("Login")).Width(labelWidth), login).Height(layout.Fixed(1)),
-		row.New(column.New(text.New("Password")).Width(labelWidth), password).Height(layout.Fixed(1)),
+		row.New(column.New(text.New("Login")).Width(labelWidth), login).Height(layout.Shrink),
+		row.New(column.New(text.New("Password")).Width(labelWidth), password).Height(layout.Shrink),
 		submit,
-	).Spacing(1)
+	).Spacing(1).Align(tview.AlignmentCenter)
 }

@@ -16,7 +16,6 @@ import (
 	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
-	"github.com/ayn2op/tview/list"
 	"github.com/ayn2op/tview/picker"
 	"github.com/ayn2op/tview/viewport"
 	"github.com/ncruces/zenity"
@@ -60,14 +59,14 @@ type EditMsg discord.Message
 // ShowAttachmentsMsg asks to pick one of the attachments and links of the selected message.
 type ShowAttachmentsMsg picker.Items
 
-// listMsg moves the messages list.
-type listMsg list.Change
+// listMsg is the item of the messages list to move the cursor to.
+type listMsg int
 
 // scrollMsg scrolls the messages list.
-type scrollMsg viewport.Change
+type scrollMsg viewport.ScrollState
 
 func (m *Model) selectUp() tview.Cmd {
-	cursor := m.cursor()
+	cursor := m.cursor
 	if cursor == -1 {
 		m.selectBottom()
 	} else if previous := m.messageIndex(cursor, -1); previous >= 0 {
@@ -159,14 +158,13 @@ func isVoiceMessage(message discord.Message) bool {
 	return message.Flags&discord.IsVoiceMessage != 0 && len(message.Attachments) == 1
 }
 
-// play plays the selected voice message, or pauses or resumes it if it is the one playing.
-func (m Model) play() tview.Cmd {
-	message, ok := m.selectedMessage()
-	if !ok || !isVoiceMessage(*message) {
-		return nil
-	}
+// playMsg asks to play the voice message whose play symbol was clicked.
+type playMsg discord.Attachment
 
-	attachment := message.Attachments[0]
+func (playMsg) messagesList() {}
+
+// play plays the voice message that is attachment, or pauses or resumes it if it is the one playing.
+func (m Model) play(attachment discord.Attachment) tview.Cmd {
 	return func() tview.Msg {
 		if err := m.playVoiceMessage(attachment); err != nil {
 			return ui.ErrorDialog("play voice message", err)
@@ -196,10 +194,16 @@ func (m Model) playVoiceMessage(attachment discord.Attachment) error {
 	return m.voicePlayer.Play(attachment.ID, audio)
 }
 
-// seekMsg asks to seek to where the waveform of a voice message was clicked.
-type seekMsg time.Duration
+// seekPressMsg is where the waveform of a voice message was pressed, seekMsg where it was dragged to after, and seekReleaseMsg that it was let go of.
+type (
+	seekPressMsg   time.Duration
+	seekMsg        time.Duration
+	seekReleaseMsg struct{}
+)
 
-func (seekMsg) messagesList() {}
+func (seekPressMsg) messagesList()   {}
+func (seekMsg) messagesList()        {}
+func (seekReleaseMsg) messagesList() {}
 
 // seek moves the voice message that is playing or paused to position.
 func (m Model) seek(position time.Duration) tview.Cmd {
@@ -272,7 +276,7 @@ func (m Model) openAttachment(attachment discord.Attachment) tview.Cmd {
 }
 
 func (m Model) confirmAttachment(attachment discord.Attachment, action tview.Cmd) tview.Cmd {
-	if !m.cfg.Attachments.AllowedMIMETypes.Has(attachment.ContentType) {
+	if !m.cfg.UI.MessagesList.Attachments.AllowedMIMETypes.Has(attachment.ContentType) {
 		return ui.ShowDialog(
 			"This attachment type is not allowed and may be unsafe. Continue anyway?",
 			ui.DialogButton{Label: "No"},
@@ -380,8 +384,8 @@ func (m Model) confirmDelete() tview.Cmd {
 	message := *selectedMessage
 	return ui.ShowDialog(
 		"Are you sure you want to delete this message?",
-		ui.DialogButton{Label: "Yes", Cmd: m.requestDelete(message)},
 		ui.DialogButton{Label: "No"},
+		ui.DialogButton{Label: "Yes", Cmd: m.requestDelete(message)},
 	)
 }
 

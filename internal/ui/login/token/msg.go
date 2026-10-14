@@ -2,13 +2,17 @@ package token
 
 import (
 	"github.com/ayn2op/tview"
-	"github.com/ayn2op/tview/textinput"
 )
 
 type TokenMsg string
 
+// tokenMsg is the token and cursor that typing in the input left.
+type tokenMsg struct {
+	text   string
+	cursor int
+}
+
 type (
-	tokenMsg       textinput.Change
 	focusButtonMsg struct{}
 	submitMsg      struct{}
 )

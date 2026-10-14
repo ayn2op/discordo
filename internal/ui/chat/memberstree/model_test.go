@@ -133,11 +133,11 @@ func TestModelRebuild(t *testing.T) {
 		m.rebuild()
 		online, offline := m.root.Children()[0], m.root.Children()[1]
 		selected := online.Children()[0]
-		m.selectionState.SetCurrentNode(selected)
+		m.current = selected
 		offline.Collapse()
 
 		m.rebuild()
-		if got := m.selectionState.CurrentNode(); got != selected || m.root.PathTo(got) == nil {
+		if got := m.current; got != selected || m.root.PathTo(got) == nil {
 			t.Fatal("the selected member was not kept in the tree")
 		}
 		if m.root.Children()[1].Expanded() {

@@ -144,11 +144,6 @@ func (m *Model) updateScreen(msg tview.Msg) tview.Cmd {
 	return cmd
 }
 
-// helpHeight returns the rows the help takes at an unlimited width, as the width of the screen is not known in View.
-func (m Model) helpHeight() int {
-	return m.helpView().Layout(layout.Limits{Infinite: layout.Axes{Height: true}}).Height
-}
-
 // View shows the inner model above help, with the dialog on top of both when one is open.
 func (m Model) View() tview.Widget {
 	var innerView, helpView tview.Widget
@@ -159,8 +154,7 @@ func (m Model) View() tview.Widget {
 		innerView = m.chat.View()
 	}
 	if m.helpVisible {
-		padded := box.New(m.helpView()).Padding(0, 0, m.cfg.Help.Padding[0], m.cfg.Help.Padding[1])
-		helpView = column.New(padded).Height(layout.Fixed(max(m.helpHeight(), 1)))
+		helpView = box.New(m.helpView()).Padding(0, 0, m.cfg.Help.Padding[0], m.cfg.Help.Padding[1]).Height(layout.Shrink)
 	}
 	content := column.New(innerView, helpView)
 	if m.dialog == nil {

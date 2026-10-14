@@ -16,7 +16,6 @@ import (
 	"github.com/ayn2op/arikawa/v3/utils/json/option"
 	"github.com/ayn2op/arikawa/v3/utils/sendpart"
 	"github.com/ayn2op/tview"
-	"github.com/ayn2op/tview/textarea"
 	"github.com/ncruces/zenity"
 	"github.com/sahilm/fuzzy"
 	"golang.design/x/clipboard"
@@ -33,8 +32,14 @@ type SentMsg struct{}
 
 type editorMsg string
 
-// editMsg edits the composer's text.
-type editMsg textarea.Change
+// edit is a text of the composer and the cursor in it.
+type edit struct {
+	text   string
+	cursor int
+}
+
+// editMsg is the text and cursor that typing in the composer left.
+type editMsg edit
 
 func (m Model) editLastMessage() tview.Cmd {
 	return func() tview.Msg { return EditLastMsg{} }
@@ -127,7 +132,7 @@ func (m *Model) send() tview.Cmd {
 		return nil
 	}
 
-	text := strings.TrimSpace(m.editState.Value())
+	text := strings.TrimSpace(m.text)
 	if text == "" && len(m.sendMessageData.Files) == 0 {
 		return nil
 	}
@@ -159,7 +164,7 @@ func (m *Model) send() tview.Cmd {
 }
 
 func (m *Model) tabComplete() tview.Cmd {
-	posEnd, name, r := wordBeforeCursor(m.editState.Value(), m.editState.Cursor(), isMentionChar)
+	posEnd, name, r := wordBeforeCursor(m.text, m.cursor, isMentionChar)
 	if r != '@' {
 		m.stopTabCompletion()
 		return nil
@@ -177,7 +182,7 @@ func (m *Model) tabComplete() tview.Cmd {
 			users := selectedChannel.DMRecipients
 			res := fuzzy.FindFrom(name, userList(users))
 			if len(res) > 0 {
-				m.editState.Replace(pos, posEnd, "@"+users[res[0].Index].Username+" ")
+				m.replace(pos, posEnd, "@"+users[res[0].Index].Username+" ")
 			}
 		} else {
 			cmd := m.searchMember(gID, name)
@@ -190,7 +195,7 @@ func (m *Model) tabComplete() tview.Cmd {
 			res := fuzzy.FindFrom(name, memberList(members))
 			for _, r := range res {
 				if channelHasUser(m.state, selectedChannel.ID, members[r.Index].User.ID) {
-					m.editState.Replace(pos, posEnd, "@"+members[r.Index].User.Username+" ")
+					m.replace(pos, posEnd, "@"+members[r.Index].User.Username+" ")
 					return cmd
 				}
 			}
@@ -205,13 +210,13 @@ func (m *Model) tabComplete() tview.Cmd {
 	if !ok {
 		return nil
 	}
-	m.editState.Replace(pos, posEnd, "@"+name+" ")
+	m.replace(pos, posEnd, "@"+name+" ")
 	m.stopTabCompletion()
 	return nil
 }
 
 func (m *Model) tabSuggest() tview.Cmd {
-	_, name, r := wordBeforeCursor(m.editState.Value(), m.editState.Cursor(), isMentionChar)
+	_, name, r := wordBeforeCursor(m.text, m.cursor, isMentionChar)
 	if r != '@' {
 		m.stopTabCompletion()
 		return nil
@@ -313,7 +318,7 @@ func (m Model) openEditor() tview.Cmd {
 			return nil
 		}
 	}
-	text := m.editState.Value()
+	text := m.text
 	cfg := m.cfg
 	return tview.Suspend(func() tview.Msg {
 		file, err := os.CreateTemp("", tmpFilePattern)
