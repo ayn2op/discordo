@@ -13,8 +13,8 @@ require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/alecthomas/chroma/v2 v2.27.0
 	github.com/andybalholm/brotli v1.2.6
-	github.com/ayn2op/arikawa/v3 v3.0.0-20261014002739-596a02ea9e65
-	github.com/ayn2op/ningen/v3 v3.0.1-0.20261014021239-6232d35c8e51
+	github.com/ayn2op/arikawa/v3 v3.0.0-20261014035141-32b58d8f3755
+	github.com/ayn2op/ningen/v3 v3.0.1-0.20261014035153-5e43590a1426
 	github.com/ayn2op/tview v0.0.0-20261013225942-7c4cbe85112a
 	github.com/bogdanfinn/fhttp v0.6.9
 	github.com/bogdanfinn/tls-client v1.16.0
@@ -29,7 +29,7 @@ require (
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/thomas-vilte/dave-go v0.5.1
-	github.com/tphakala/go-opus v1.1.0
+	github.com/tphakala/go-opus v1.2.1
 	github.com/yuin/goldmark v1.8.6
 	github.com/zalando/go-keyring v0.2.8
 	golang.design/x/clipboard v0.11.0
@@ -65,7 +65,7 @@ require (
 	go4.org v0.0.0-20260112195520-a5071408f32f // indirect
 	golang.design/x/x11 v0.2.0 // indirect
 	golang.org/x/crypto v0.58.0 // indirect
-	golang.org/x/exp/shiny v0.0.0-20261013213113-2ab7f3cbc5fb // indirect
+	golang.org/x/exp/shiny v0.0.0-20261014143641-f0251eb4aa3e // indirect
 	golang.org/x/mobile v0.0.0-20261011034528-197770444867 // indirect
 	golang.org/x/net v0.61.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
