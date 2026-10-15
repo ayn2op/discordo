@@ -175,6 +175,9 @@ type (
 		ReplyIndicator     string `toml:"reply_indicator"`
 		ForwardedIndicator string `toml:"forwarded_indicator"`
 
+		// How avatars and attachment previews are drawn: "auto", "kitty" or "halfblocks".
+		ImageProtocol string `toml:"image_protocol"`
+
 		Attachments AttachmentsUIConfig `toml:"attachments"`
 		Avatars     AvatarsUIConfig     `toml:"avatars"`
 		Grouping    GroupingUIConfig    `toml:"grouping"`
@@ -200,8 +203,6 @@ type (
 		AllowedMIMETypes MIMETypes `toml:"allowed_mime_types"`
 		// Whether to draw image attachments and embedded images below their messages.
 		Preview bool `toml:"preview"`
-		// How previews are drawn: "auto", "kitty" or "halfblocks".
-		Protocol string `toml:"protocol"`
 	}
 
 	MentionsListUIConfig struct {
@@ -215,7 +216,7 @@ type (
 func defaultUI() UIConfig {
 	left := TitleUIConfig{AlignmentWrapper{tview.AlignmentLeft}}
 	round := BorderSetWrapper{tview.BorderSetRound()}
-	attachments := AttachmentsUIConfig{ShowLinks: true, AllowedMIMETypes: MIMETypes{"image/*", "video/*"}, Preview: true, Protocol: "auto"}
+	attachments := AttachmentsUIConfig{ShowLinks: true, AllowedMIMETypes: MIMETypes{"image/*", "video/*"}, Preview: true}
 	return UIConfig{
 		Tabs: TabsUIConfig{
 			Alignment:       AlignmentWrapper{tview.AlignmentCenter},
@@ -230,7 +231,7 @@ func defaultUI() UIConfig {
 		GuildsTree:   GuildsTreeUIConfig{TreeUIConfig{Graphics: true}, true},
 		MembersTree:  TreeUIConfig{Graphics: true},
 		ScrollBar:    ScrollBarUIConfig{SymbolSet: SymbolSetWrapper{boxDrawing}, Visibility: ScrollBarVisibilityWrapper{viewport.ScrollBarVisibilityAutomatic}},
-		MessagesList: MessagesListUIConfig{Spacing: 1, ReplyIndicator: ">", ForwardedIndicator: "<", Attachments: attachments, Avatars: AvatarsUIConfig{Preview: true, Height: 2}, Grouping: GroupingUIConfig{Enabled: true, Interval: 10 * time.Minute}},
+		MessagesList: MessagesListUIConfig{Spacing: 1, ReplyIndicator: ">", ForwardedIndicator: "<", ImageProtocol: "auto", Attachments: attachments, Avatars: AvatarsUIConfig{Preview: true, Height: 2}, Grouping: GroupingUIConfig{Enabled: true, Interval: 10 * time.Minute}},
 		MentionsList: MentionsListUIConfig{MinWidth: 20},
 	}
 }

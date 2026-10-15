@@ -1151,7 +1151,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			m.cellWidth, m.cellHeight = uint(width/cols), uint(height/rows)
 		}
 	case tview.TerminalInfoMsg:
-		switch m.cfg.UI.MessagesList.Attachments.Protocol {
+		switch m.cfg.UI.MessagesList.ImageProtocol {
 		case "kitty":
 			m.kitty = true
 		case "halfblocks":

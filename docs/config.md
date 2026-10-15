@@ -375,6 +375,12 @@ Default: `">"`
 
 Default: `"<"`
 
+### ui.messages_list.image_protocol
+
+How avatars and attachment previews are drawn: "auto", "kitty" or "halfblocks".
+
+Default: `"auto"`
+
 ### ui.messages_list.attachments
 
 #### ui.messages_list.attachments.show_links
@@ -393,12 +399,6 @@ Default: `["image/*", "video/*"]`
 Whether to draw image attachments and embedded images below their messages.
 
 Default: `true`
-
-#### ui.messages_list.attachments.protocol
-
-How previews are drawn: "auto", "kitty" or "halfblocks".
-
-Default: `"auto"`
 
 ### ui.messages_list.avatars
 
