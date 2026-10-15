@@ -119,7 +119,11 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		case keybind.Matches(msg, m.cfg.Keybinds.Suspend.Keybind):
 			return m, suspend()
 		case keybind.Matches(msg, m.cfg.Keybinds.Quit.Keybind):
-			return m, tview.Sequence(m.updateScreen(chat.QuitMsg{}), tview.Quit())
+			return m, ui.ShowDialog(
+				"Are you sure you want to quit?",
+				ui.DialogButton{Label: "No"},
+				ui.DialogButton{Label: "Yes", Cmd: m.quit()},
+			)
 		}
 	case tview.MouseMsg, tview.PasteMsg:
 		if m.dialog != nil {

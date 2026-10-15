@@ -26,6 +26,10 @@ func useToken(token string) tview.Cmd {
 
 type loginMsg struct{}
 
+func (m *Model) quit() tview.Cmd {
+	return tview.Sequence(m.updateScreen(chat.QuitMsg{}), tview.Quit())
+}
+
 func getToken() tview.Cmd {
 	return func() tview.Msg {
 		token, err := keyring.Get(keyringService, keyringUser)
