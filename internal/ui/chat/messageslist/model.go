@@ -267,23 +267,17 @@ func (m Model) buildItem(index int) tview.Widget {
 		return dateSeparator{date: date, fill: m.cfg.DateSeparator.Character, style: m.cfg.Theme.MessagesList.MessageStyle.Style.Dim(true)}
 	}
 
-	message, style := item.message, m.cfg.Theme.MessagesList.MessageStyle.Style
+	message := &item.message
 	if item.text == nil {
-		grouped := item.grouped
-		item.text = &messageView{render: func(width int) richtext.Text { return m.renderMessage(message, style, width, grouped) }}
-		item.reply = &messageView{render: func(int) richtext.Text {
-			builder := new(richtext.Builder)
-			m.drawReply(builder, message, style)
-			return builder.Finish()
-		}}
+		item.text, item.reply = m.messageViews(*message, item.grouped)
 	}
 
 	body := column.New(item.text).Height(layout.Shrink)
-	if isVoiceMessage(message) {
+	if isVoiceMessage(*message) {
 		body = body.Push(m.voiceMessageView(message.Attachments[0]))
 	}
 
-	for _, s := range previewSources(message) {
+	for _, s := range previewSources(*message) {
 		if preview, ok := item.previews[s.proxy]; ok {
 			body = body.Push(preview)
 		}
@@ -304,6 +298,19 @@ func (m Model) buildItem(index int) tview.Widget {
 	}
 
 	return body
+}
+
+// messageViews returns the views of the text of message and of what it replies to.
+// They capture the model and the message, so they are made here: capturing them in buildItem would copy both to the heap on every call, as the list builds every item each time it is laid out.
+func (m Model) messageViews(message discord.Message, grouped bool) (text, reply *messageView) {
+	style := m.cfg.Theme.MessagesList.MessageStyle.Style
+	text = &messageView{render: func(width int) richtext.Text { return m.renderMessage(message, style, width, grouped) }}
+	reply = &messageView{render: func(int) richtext.Text {
+		builder := new(richtext.Builder)
+		m.drawReply(builder, message, style)
+		return builder.Finish()
+	}}
+	return text, reply
 }
 
 func (m Model) blocked(user discord.User) bool {
