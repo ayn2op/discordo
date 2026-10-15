@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/arikawa/v3/state"
@@ -219,7 +220,7 @@ func TestModelDrawLayout(t *testing.T) {
 		cfg.UI.MessagesList.Compact = compact
 
 		var got strings.Builder
-		for _, line := range ml.renderMessage(message, tview.Style{}, 80) {
+		for _, line := range ml.renderMessage(message, tview.Style{}, 80, false) {
 			for _, segment := range line {
 				got.WriteString(segment.Text)
 			}
@@ -230,6 +231,59 @@ func TestModelDrawLayout(t *testing.T) {
 		if got.String() != want {
 			t.Fatalf("got = %q, want = %q", got.String(), want)
 		}
+	}
+}
+
+func TestModelGrouped(t *testing.T) {
+	start := time.Date(2026, 9, 1, 12, 0, 0, 0, time.UTC)
+	message := func(author string, after time.Duration, typ discord.MessageType) discord.Message {
+		return discord.Message{Type: typ, Author: discord.User{ID: 2, Username: author}, Timestamp: discord.NewTimestamp(start.Add(after)), Content: "hi"}
+	}
+	previous := message("a", 0, discord.DefaultMessage)
+	for _, tt := range []struct {
+		name     string
+		previous discord.Message
+		message  discord.Message
+		want     bool
+	}{
+		{"same author", previous, message("a", 10*time.Minute, discord.DefaultMessage), true},
+		{"after a reply", message("a", 0, discord.InlinedReplyMessage), message("a", time.Minute, discord.DefaultMessage), true},
+		{"over the interval", previous, message("a", 10*time.Minute+time.Second, discord.DefaultMessage), false},
+		{"renamed webhook", previous, message("b", time.Minute, discord.DefaultMessage), false},
+		{"reply", previous, message("a", time.Minute, discord.InlinedReplyMessage), false},
+		{"after a system message", message("a", 0, discord.ChannelPinnedMessage), message("a", time.Minute, discord.DefaultMessage), false},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := newTestModel(t, testConfig(t)).grouped(tt.previous, tt.message); got != tt.want {
+				t.Fatalf("grouped = %v, want %v", got, tt.want)
+			}
+		})
+	}
+
+	cfg := testConfig(t)
+	cfg.Timestamps.Enabled = false
+	ml := newTestModel(t, cfg)
+	if cfg.UI.MessagesList.Grouping.Enabled = false; ml.grouped(previous, previous) {
+		t.Fatal("grouped while disabled")
+	}
+	cfg.UI.MessagesList.Grouping.Enabled = true
+	// Newest first, as Discord sends them.
+	ml.setMessages([]discord.Message{message("a", 2*time.Minute, discord.DefaultMessage), message("a", time.Minute, discord.DefaultMessage), previous})
+	newest := ml.messageIndex(len(ml.items), -1)
+	if !ml.items[newest].grouped || ml.items[ml.messageIndex(-1, 1)].grouped {
+		t.Fatal("only the first message has a header")
+	}
+	if got := ml.renderMessage(ml.items[newest].message, tview.Style{}, 80, true); len(got) != 1 || got[0][0].Text != "hi" {
+		t.Fatalf("grouped message = %v, want only its content", got)
+	}
+	second := ml.messageIndex(newest, -1)
+	ml.buildItem(second)
+	ml.deleteMessage(ml.messageIndex(-1, 1))
+	if first := ml.messageIndex(-1, 1); ml.items[first].grouped || ml.items[first].text != nil {
+		t.Fatal("deleting the first message did not give the next its header")
+	}
+	if ml.AddMessage(message("a", 3*time.Minute, discord.DefaultMessage)); !ml.items[len(ml.items)-1].grouped {
+		t.Fatal("added message was not grouped")
 	}
 }
 

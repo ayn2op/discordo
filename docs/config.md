@@ -361,9 +361,9 @@ Default: `"box_drawing"`
 
 Default: `false`
 
-### ui.messages_list.gap
+### ui.messages_list.spacing
 
-The number of empty rows between messages.
+The number of empty rows between messages, except those of a group.
 
 Default: `1`
 
@@ -411,6 +411,18 @@ Default: `true`
 The number of rows an avatar takes. It is recommended to use `1` with compact.
 
 Default: `2`
+
+### ui.messages_list.grouping
+
+#### ui.messages_list.grouping.enabled
+
+Default: `true`
+
+#### ui.messages_list.grouping.interval
+
+The longest time between two messages by the same author for them to share a header.
+
+Default: `"10m0s"`
 
 ## ui.mentions_list
 

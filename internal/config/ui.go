@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/scrollbar"
@@ -168,14 +169,22 @@ type (
 
 	MessagesListUIConfig struct {
 		Compact bool `toml:"compact"`
-		// The number of empty rows between messages.
-		Gap uint8 `toml:"gap"`
+		// The number of empty rows between messages, except those of a group.
+		Spacing uint8 `toml:"spacing"`
 
 		ReplyIndicator     string `toml:"reply_indicator"`
 		ForwardedIndicator string `toml:"forwarded_indicator"`
 
 		Attachments AttachmentsUIConfig `toml:"attachments"`
 		Avatars     AvatarsUIConfig     `toml:"avatars"`
+		Grouping    GroupingUIConfig    `toml:"grouping"`
+	}
+
+	// GroupingUIConfig shows consecutive messages by the same author under one header.
+	GroupingUIConfig struct {
+		Enabled bool `toml:"enabled"`
+		// The longest time between two messages by the same author for them to share a header.
+		Interval time.Duration `toml:"interval"`
 	}
 
 	AvatarsUIConfig struct {
@@ -221,7 +230,7 @@ func defaultUI() UIConfig {
 		GuildsTree:   GuildsTreeUIConfig{TreeUIConfig{Graphics: true}, true},
 		MembersTree:  TreeUIConfig{Graphics: true},
 		ScrollBar:    ScrollBarUIConfig{SymbolSet: SymbolSetWrapper{boxDrawing}, Visibility: ScrollBarVisibilityWrapper{viewport.ScrollBarVisibilityAutomatic}},
-		MessagesList: MessagesListUIConfig{Gap: 1, ReplyIndicator: ">", ForwardedIndicator: "<", Attachments: attachments, Avatars: AvatarsUIConfig{Preview: true, Height: 2}},
+		MessagesList: MessagesListUIConfig{Spacing: 1, ReplyIndicator: ">", ForwardedIndicator: "<", Attachments: attachments, Avatars: AvatarsUIConfig{Preview: true, Height: 2}, Grouping: GroupingUIConfig{Enabled: true, Interval: 10 * time.Minute}},
 		MentionsList: MentionsListUIConfig{MinWidth: 20},
 	}
 }

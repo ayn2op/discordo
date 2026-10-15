@@ -35,6 +35,7 @@ import (
 	"github.com/ayn2op/tview/row"
 	"github.com/ayn2op/tview/scrollbar"
 	"github.com/ayn2op/tview/slider"
+	"github.com/ayn2op/tview/spacer"
 	"github.com/ayn2op/tview/text"
 	"github.com/ayn2op/tview/textview"
 	"github.com/ayn2op/tview/viewport"
@@ -50,6 +51,8 @@ type messageItem struct {
 	text, reply *messageView
 	// A separator shows the date of the message after it.
 	separator bool
+	// grouped reports whether the message is drawn without a header, under that of the message before it.
+	grouped bool
 
 	// A preview is blank while loading and empty if loading failed.
 	previews map[discord.URL]tviewimage.Widget
@@ -122,7 +125,13 @@ func (m Model) listView(focused bool) viewport.Widget {
 		ThumbStyle(theme.ThumbStyle.Style)
 	// The model moves the selection itself, so the list is not focused and only takes clicks.
 	l := list.New(m.cursor, len(m.items), m.buildItem).
-		Gap(int(m.cfg.UI.MessagesList.Gap)).
+		// A group's messages have no spacing between them.
+		Spacing(func(index int) int {
+			if m.items[index].grouped {
+				return 0
+			}
+			return int(m.cfg.UI.MessagesList.Spacing)
+		}).
 		SelectedStyle(m.cfg.Theme.MessagesList.SelectedMessageStyle.Style).
 		OnChange(func(cursor int) tview.Msg { return listMsg(cursor) })
 	return viewport.New(l, m.scrollState).
@@ -206,10 +215,12 @@ func (m *Model) setMessages(messages []discord.Message) {
 
 func (m *Model) AddMessage(message discord.Message) tview.Cmd {
 	// Appending keeps the items before it as they are, so only the separator of a new day is added rather than all rebuilt.
-	if m.cfg.DateSeparator.Enabled && (len(m.items) == 0 || !sameLocalDate(m.items[len(m.items)-1].message.Timestamp, message.Timestamp)) {
+	last := len(m.items) - 1
+	separator := m.cfg.DateSeparator.Enabled && (last < 0 || !sameLocalDate(m.items[last].message.Timestamp, message.Timestamp))
+	if separator {
 		m.items = append(m.items, messageItem{separator: true})
 	}
-	m.items = append(m.items, messageItem{message: message})
+	m.items = append(m.items, messageItem{message: message, grouped: last >= 0 && !separator && m.grouped(m.items[last].message, message)})
 	return m.loadPreviews()
 }
 
@@ -258,7 +269,8 @@ func (m Model) buildItem(index int) tview.Widget {
 
 	message, style := item.message, m.cfg.Theme.MessagesList.MessageStyle.Style
 	if item.text == nil {
-		item.text = &messageView{render: func(width int) richtext.Text { return m.renderMessage(message, style, width) }}
+		grouped := item.grouped
+		item.text = &messageView{render: func(width int) richtext.Text { return m.renderMessage(message, style, width, grouped) }}
 		item.reply = &messageView{render: func(int) richtext.Text {
 			builder := new(richtext.Builder)
 			m.drawReply(builder, message, style)
@@ -278,7 +290,13 @@ func (m Model) buildItem(index int) tview.Widget {
 	}
 
 	if avatar, ok := m.avatars[avatarURL(message.Author)]; ok {
-		body = row.New(avatar, body).Spacing(1).Height(layout.Shrink)
+		var gutter tview.Widget = avatar
+		// A grouped message leaves the avatar's column empty, under the avatar of the group.
+		if item.grouped {
+			width, _ := avatar.Size()
+			gutter = spacer.New().Width(width)
+		}
+		body = row.New(gutter, body).Spacing(1).Height(layout.Shrink)
 	}
 
 	if message.Type == discord.InlinedReplyMessage && !m.blocked(message.Author) {
@@ -351,23 +369,45 @@ func (d dateSeparator) Draw(screen tview.Screen, area tview.Rectangle) {
 
 func (dateSeparator) Handle(msg tview.Msg, area tview.Rectangle) tview.Msg { return msg }
 
-func (m Model) renderMessage(message discord.Message, baseStyle tview.Style, width int) richtext.Text {
+func (m Model) renderMessage(message discord.Message, baseStyle tview.Style, width int, grouped bool) richtext.Text {
 	builder := new(richtext.Builder)
-	m.writeMessage(builder, message, baseStyle, width)
-	return builder.Finish()
+	m.writeMessage(builder, message, baseStyle, width, grouped)
+	text := builder.Finish()
+	// Without a header or content, the first line is the empty one that attachments and embeds start below.
+	if len(text) > 1 && len(text[0]) == 0 {
+		text = text[1:]
+	}
+	return text
 }
 
-// rebuildItems replaces date separators while retaining message views and selection.
+// grouped reports whether message is drawn under the header of previous, the message before it.
+func (m Model) grouped(previous, message discord.Message) bool {
+	cfg := m.cfg.UI.MessagesList.Grouping
+	return cfg.Enabled &&
+		// Replies and system messages start a group, as their header says more than who wrote them.
+		message.Type == discord.DefaultMessage &&
+		(previous.Type == discord.DefaultMessage || previous.Type == discord.InlinedReplyMessage) &&
+		// Webhooks post under one ID with a name of each message's own.
+		message.Author.ID == previous.Author.ID && message.Author.Username == previous.Author.Username &&
+		message.Timestamp.Time().Sub(previous.Timestamp.Time()) <= cfg.Interval
+}
+
+// rebuildItems replaces date separators and groups while retaining message views and selection.
 func (m *Model) rebuildItems() {
 	items := make([]messageItem, 0, len(m.items))
 	cursor, target := -1, -1
-	var previous discord.Timestamp
+	var previous discord.Message
 	for i, item := range m.items {
 		if item.separator {
 			continue
 		}
-		if m.cfg.DateSeparator.Enabled && (len(items) == 0 || !sameLocalDate(previous, item.message.Timestamp)) {
+		separator := m.cfg.DateSeparator.Enabled && (len(items) == 0 || !sameLocalDate(previous.Timestamp, item.message.Timestamp))
+		if separator {
 			items = append(items, messageItem{separator: true})
+		}
+		// A message that joins or leaves a group is drawn again, with or without its header.
+		if grouped := len(items) > 0 && !separator && m.grouped(previous, item.message); grouped != item.grouped {
+			item.grouped, item.text = grouped, nil
 		}
 		if i == m.cursor {
 			cursor = len(items)
@@ -376,7 +416,7 @@ func (m *Model) rebuildItems() {
 			target = len(items)
 		}
 		items = append(items, item)
-		previous = item.message.Timestamp
+		previous = item.message
 	}
 	m.items = items
 	// The selected and target messages only move with the separators, so they are not scrolled to.
@@ -410,7 +450,7 @@ func (m *Model) onRowCursorChanged(index int) {
 	m.setCursor(target)
 }
 
-func (m Model) writeMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, width int) {
+func (m Model) writeMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, width int, grouped bool) {
 	if m.blocked(message.Author) {
 		builder.Write("Blocked message", baseStyle.Foreground(color.Red).Bold(true))
 		return
@@ -419,18 +459,18 @@ func (m Model) writeMessage(builder *richtext.Builder, message discord.Message, 
 	switch message.Type {
 	case discord.DefaultMessage:
 		if message.Reference != nil && message.Reference.Type == discord.MessageReferenceTypeForward {
-			m.drawForwardedMessage(builder, message, baseStyle)
+			m.drawForwardedMessage(builder, message, baseStyle, grouped)
 		} else {
-			m.drawDefaultMessage(builder, message, baseStyle, width)
+			m.drawDefaultMessage(builder, message, baseStyle, width, grouped)
 		}
 	case discord.GuildMemberJoinMessage:
-		m.drawLayout(builder, message, baseStyle, func() { builder.Write("joined the server.", baseStyle) })
+		m.drawLayout(builder, message, baseStyle, false, func() { builder.Write("joined the server.", baseStyle) })
 	case discord.InlinedReplyMessage:
-		m.drawDefaultMessage(builder, message, baseStyle, width)
+		m.drawDefaultMessage(builder, message, baseStyle, width, false)
 	case discord.ChannelPinnedMessage:
 		m.drawPinnedMessage(builder, message, baseStyle)
 	default:
-		m.drawLayout(builder, message, baseStyle, nil)
+		m.drawLayout(builder, message, baseStyle, false, nil)
 	}
 	m.drawReactions(builder, message.Reactions, baseStyle)
 }
@@ -464,24 +504,29 @@ func (m Model) formatTimestamp(ts discord.Timestamp) string {
 
 const editedIndicator = " (edited)"
 
-func (m Model) drawLayout(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, content func()) {
+// drawLayout draws the header of message, unless it is grouped, and its content.
+func (m Model) drawLayout(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, grouped bool, content func()) {
 	if m.cfg.UI.MessagesList.Compact {
-		m.drawCompact(builder, message, baseStyle, content)
+		m.drawCompact(builder, message, baseStyle, grouped, content)
 		return
 	}
 
-	m.drawCozy(builder, message, baseStyle, content)
+	m.drawCozy(builder, message, baseStyle, grouped, content)
 }
 
-func (m Model) drawCompact(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, content func()) {
+func (m Model) drawCompact(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, grouped bool, content func()) {
 	dimStyle := baseStyle.Dim(true)
 	if m.cfg.Timestamps.Enabled {
 		builder.Write(m.formatTimestamp(message.Timestamp)+" ", dimStyle)
 	}
 
-	m.drawAuthor(builder, message, baseStyle)
+	if !grouped {
+		m.drawAuthor(builder, message, baseStyle)
+		if content != nil {
+			builder.Write(" ", baseStyle)
+		}
+	}
 	if content != nil {
-		builder.Write(" ", baseStyle)
 		content()
 	}
 
@@ -490,8 +535,18 @@ func (m Model) drawCompact(builder *richtext.Builder, message discord.Message, b
 	}
 }
 
-func (m Model) drawCozy(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, content func()) {
+func (m Model) drawCozy(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, grouped bool, content func()) {
 	dimStyle := baseStyle.Dim(true)
+	if grouped {
+		if content != nil {
+			content()
+		}
+		if message.EditedTimestamp.IsValid() {
+			builder.Write(editedIndicator, dimStyle)
+		}
+		return
+	}
+
 	m.drawAuthor(builder, message, baseStyle)
 	if m.cfg.Timestamps.Enabled {
 		builder.Write(" "+m.formatTimestamp(message.Timestamp), dimStyle)
@@ -607,7 +662,7 @@ func (m Model) drawSnapshotContent(builder *richtext.Builder, parent discord.Mes
 	m.drawContent(builder, message, baseStyle)
 }
 
-func (m Model) drawDefaultMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, width int) {
+func (m Model) drawDefaultMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, width int, grouped bool) {
 	var contentRoot ast.Node
 	var contentSource []byte
 	content := func() { contentRoot, contentSource = m.drawContent(builder, message, baseStyle) }
@@ -615,7 +670,7 @@ func (m Model) drawDefaultMessage(builder *richtext.Builder, message discord.Mes
 		content = nil
 	}
 
-	m.drawLayout(builder, message, baseStyle, content)
+	m.drawLayout(builder, message, baseStyle, grouped, content)
 	m.drawEmbeds(builder, message, baseStyle, width, contentRoot, contentSource)
 
 	attachmentStyle := tview.MergeStyle(baseStyle, m.cfg.Theme.MessagesList.AttachmentStyle.Style)
@@ -930,9 +985,9 @@ func isMarkdownEscapable(c byte) bool {
 	}
 }
 
-func (m Model) drawForwardedMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style) {
+func (m Model) drawForwardedMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, grouped bool) {
 	dimStyle := baseStyle.Dim(true)
-	m.drawLayout(builder, message, baseStyle, func() {
+	m.drawLayout(builder, message, baseStyle, grouped, func() {
 		builder.Write(m.cfg.UI.MessagesList.ForwardedIndicator+" ", dimStyle)
 		m.drawSnapshotContent(builder, message, message.MessageSnapshots[0].Message, baseStyle)
 		builder.Write(" ("+m.formatTimestamp(message.MessageSnapshots[0].Message.Timestamp)+") ", dimStyle)
