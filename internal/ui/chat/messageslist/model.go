@@ -128,7 +128,8 @@ func (m Model) listView(focused bool) viewport.Widget {
 	return viewport.New(l, m.scrollState).
 		Target(l.Target(m.target)).
 		ScrollBar(bar, cfg.Visibility.ScrollBarVisibility).
-		TrackEnd(true).
+		// Older messages are added above, so the position is kept from the newest, which also keeps the newest in view.
+		AnchorBottom().
 		Keybind(ui.ScrollKeybind(m.cfg.Keybinds.MessagesList.ScrollKeybinds)).
 		Focused(focused).
 		OnChange(func(s *viewport.ScrollState) tview.Msg { return scrollMsg(*s) })
@@ -359,7 +360,7 @@ func (m Model) renderMessage(message discord.Message, baseStyle tview.Style, wid
 // rebuildItems replaces date separators while retaining message views and selection.
 func (m *Model) rebuildItems() {
 	items := make([]messageItem, 0, len(m.items))
-	cursor, selected := m.cursor, -1
+	cursor, target := -1, -1
 	var previous discord.Timestamp
 	for i, item := range m.items {
 		if item.separator {
@@ -368,14 +369,18 @@ func (m *Model) rebuildItems() {
 		if m.cfg.DateSeparator.Enabled && (len(items) == 0 || !sameLocalDate(previous, item.message.Timestamp)) {
 			items = append(items, messageItem{separator: true})
 		}
-		if i == cursor {
-			selected = len(items)
+		if i == m.cursor {
+			cursor = len(items)
+		}
+		if i == m.target {
+			target = len(items)
 		}
 		items = append(items, item)
 		previous = item.message.Timestamp
 	}
 	m.items = items
-	m.setCursor(selected)
+	// The selected and target messages only move with the separators, so they are not scrolled to.
+	m.cursor, m.target = cursor, target
 }
 
 func sameLocalDate(a discord.Timestamp, b discord.Timestamp) bool {
@@ -1014,15 +1019,17 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		if selectedChannel == nil || selectedChannel.ID != msg.ChannelID {
 			return m, nil
 		}
-		prevCursor := m.cursor
-
 		older := make([]messageItem, len(msg.Older))
 		for i, message := range msg.Older {
 			older[i] = messageItem{message: message}
 		}
 		m.items = slices.Concat(older, m.items)
-		if prevCursor >= 0 {
-			m.setCursor(prevCursor + len(older))
+		// The selected and target messages stay the same, so they are not scrolled to.
+		if m.cursor >= 0 {
+			m.cursor += len(older)
+		}
+		if m.target >= 0 {
+			m.target += len(older)
 		}
 		m.rebuildItems()
 		if selectedChannel.GuildID.IsValid() {
@@ -1093,6 +1100,10 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		}
 	case scrollMsg:
 		m.scrollState = viewport.ScrollState(msg)
+		// Older messages are fetched once as the list is scrolled to the top, rather than on each scroll there.
+		if !scrolledToTop(m.scrollState.Origin()) && scrolledToTop(m.scrollState.Viewport()) {
+			return m, m.fetchOlderMessages()
+		}
 	case listMsg:
 		top := m.atTop()
 		m.cursor, m.target = int(msg), int(msg)
@@ -1102,6 +1113,11 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		}
 	}
 	return m, nil
+}
+
+// scrolledToTop reports whether v is scrolled to the oldest message shown, which is false while the messages fit, as there is nothing to scroll.
+func scrolledToTop(v viewport.Viewport) bool {
+	return v.Content().Height > v.Bounds().Height && v.AbsoluteOffsetReversed().Y == 0
 }
 
 // atTop reports whether the oldest message shown is selected.

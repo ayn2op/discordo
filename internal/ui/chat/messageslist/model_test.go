@@ -13,6 +13,7 @@ import (
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/layout"
+	"github.com/gdamore/tcell/v3"
 )
 
 func testConfig(t *testing.T) *config.Config {
@@ -244,5 +245,61 @@ func TestMessageViewLayout(t *testing.T) {
 		if got := ml.buildItem(ml.messageIndex(-1, 1)).Layout(limits).Height; got != want {
 			t.Fatalf("height = %d, want %d", got, want)
 		}
+	}
+}
+
+func TestModelScrollToTop(t *testing.T) {
+	ml := newTestModel(t, testConfig(t))
+	messages := make([]discord.Message, 20)
+	for i := range messages {
+		messages[i] = discord.Message{ID: discord.MessageID(len(messages) + 10 - i), Content: "hi"}
+	}
+	ml.setMessages(messages)
+	area := tview.Rectangle{Width: 40, Height: 5}
+	up := tview.MouseMsg{EventMouse: tcell.NewEventMouse(0, 0, tcell.ButtonNone, tcell.ModNone), Action: tview.MouseScrollUp}
+	// scrollUp scrolls up a row and returns what fetching older messages that does, and whether it scrolled.
+	scrollUp := func() (tview.Cmd, bool) {
+		t.Helper()
+		msg, ok := ml.listView(true).Handle(up, area).(scrollMsg)
+		if !ok {
+			return nil, false
+		}
+		var cmd tview.Cmd
+		*ml, cmd = ml.Update(msg)
+		return cmd, true
+	}
+	// scrollToTop scrolls to the top and returns how many times older messages were fetched on the way.
+	scrollToTop := func() (fetches int) {
+		t.Helper()
+		for {
+			cmd, scrolled := scrollUp()
+			if !scrolled {
+				return fetches
+			}
+			if cmd != nil {
+				fetches++
+			}
+		}
+	}
+
+	if fetches := scrollToTop(); fetches != 1 {
+		t.Fatalf("scrolling to the top fetched %d times, want once", fetches)
+	}
+	if cmd, _ := scrollUp(); cmd != nil {
+		t.Fatal("older messages were fetched again while at the top")
+	}
+
+	older := []discord.Message{{ID: 1, Content: "hi"}, {ID: 2, Content: "hi"}}
+	*ml, _ = ml.Update(olderMessagesLoadedMsg{ChannelID: 1, Older: older})
+	cmd, _ := scrollUp()
+	if cmd != nil {
+		t.Fatal("older messages were fetched again before scrolling to the new top")
+	}
+	if ml.scrollState.Viewport().AbsoluteOffsetReversed().Y == 0 {
+		t.Fatal("the older messages were scrolled into view rather than added above it")
+	}
+
+	if fetches := scrollToTop(); fetches != 1 {
+		t.Fatalf("scrolling to the new top fetched %d times, want once", fetches)
 	}
 }

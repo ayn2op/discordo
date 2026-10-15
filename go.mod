@@ -15,7 +15,7 @@ require (
 	github.com/andybalholm/brotli v1.2.6
 	github.com/ayn2op/arikawa/v3 v3.0.0-20261014035141-32b58d8f3755
 	github.com/ayn2op/ningen/v3 v3.0.1-0.20261014035153-5e43590a1426
-	github.com/ayn2op/tview v0.0.0-20261013225942-7c4cbe85112a
+	github.com/ayn2op/tview v0.0.0-20261015202917-18bf0788a772
 	github.com/bogdanfinn/fhttp v0.6.9
 	github.com/bogdanfinn/tls-client v1.16.0
 	github.com/gdamore/tcell/v3 v3.6.0
@@ -60,7 +60,7 @@ require (
 	github.com/randall77/makefat v0.0.0-20260406194835-1b91746796b7 // indirect
 	github.com/tam7t/hpkp v0.0.0-20160821193359-2b70b4024ed5 // indirect
 	github.com/thomas-vilte/mls-go v1.6.0 // indirect
-	github.com/tphakala/simd v1.11.0 // indirect
+	github.com/tphakala/simd v1.12.0 // indirect
 	github.com/twmb/murmur3 v1.2.1 // indirect
 	go4.org v0.0.0-20260112195520-a5071408f32f // indirect
 	golang.design/x/x11 v0.2.0 // indirect
