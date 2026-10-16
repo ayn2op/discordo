@@ -103,7 +103,8 @@ func (p *Player) seek(position time.Duration) error {
 	var first, last int64
 	for offset := 0; offset+oggHeaderSize <= len(p.audio); {
 		page := p.audio[offset:]
-		segments := page[oggHeaderSize:][:min(int(page[oggSegmentsOffset]), len(page)-oggHeaderSize)]
+		count := min(int(page[oggSegmentsOffset]), len(page)-oggHeaderSize)
+		segments := page[oggHeaderSize:][:count]
 		size := oggHeaderSize + len(segments)
 		for _, segment := range segments {
 			size += int(segment)
@@ -125,13 +126,19 @@ func (p *Player) seek(position time.Duration) error {
 		offset += size
 	}
 
-	decoder, err := oggopus.NewDecoder(io.MultiReader(bytes.NewReader(p.audio[:min(headers, len(p.audio))]), bytes.NewReader(p.audio[min(start, len(p.audio)):])))
+	// The decoder needs the headers, and then the pages from start on.
+	end := len(p.audio)
+	header := bytes.NewReader(p.audio[:min(headers, end)])
+	rest := bytes.NewReader(p.audio[min(start, end):])
+	decoder, err := oggopus.NewDecoder(io.MultiReader(header, rest))
 	if err != nil {
 		return err
 	}
 
+	// The samples between first and position are decoded and dropped, at 2 bytes each per channel.
+	skip := (sample - first) * int64(decoder.Info().Channels) * 2
 	// Nothing is left to play if position is past the end.
-	if _, err := io.CopyN(io.Discard, decoder, (sample-first)*int64(decoder.Info().Channels)*2); err != nil && !errors.Is(err, io.EOF) {
+	if _, err := io.CopyN(io.Discard, decoder, skip); err != nil && !errors.Is(err, io.EOF) {
 		return err
 	}
 	p.decoder, p.samples = decoder, sample
