@@ -41,7 +41,7 @@ type edit struct {
 // editMsg is the text and cursor that typing in the composer left.
 type editMsg edit
 
-func (m Model) editLastMessage() tview.Cmd {
+func editLastMessage() tview.Cmd {
 	return func() tview.Msg { return EditLastMsg{} }
 }
 

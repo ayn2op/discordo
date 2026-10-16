@@ -419,11 +419,11 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		}
 	case olderMessagesLoadedMsg:
 		selectedChannel := m.channel
-		if selectedChannel == nil || selectedChannel.ID != msg.ChannelID {
+		if selectedChannel == nil || selectedChannel.ID != msg.channelID {
 			return m, nil
 		}
-		older := make([]messageItem, len(msg.Older))
-		for i, message := range msg.Older {
+		older := make([]messageItem, len(msg.older))
+		for i, message := range msg.older {
 			older[i] = messageItem{message: message}
 		}
 		m.items = slices.Concat(older, m.items)
@@ -436,7 +436,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		}
 		m.rebuildItems()
 		if selectedChannel.GuildID.IsValid() {
-			return m, tview.Batch(m.requestGuildMembers(selectedChannel.GuildID, msg.Older), m.loadPreviews())
+			return m, tview.Batch(m.requestGuildMembers(selectedChannel.GuildID, msg.older), m.loadPreviews())
 		}
 		return m, m.loadPreviews()
 	case previewLoadedMsg:

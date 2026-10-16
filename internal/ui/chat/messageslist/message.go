@@ -124,7 +124,7 @@ func (m Model) writeMessage(builder *richtext.Builder, message discord.Message, 
 	case discord.InlinedReplyMessage:
 		m.drawDefaultMessage(builder, message, baseStyle, width, false)
 	case discord.ChannelPinnedMessage:
-		m.drawPinnedMessage(builder, message, baseStyle)
+		drawPinnedMessage(builder, message, baseStyle)
 	default:
 		m.drawLayout(builder, message, baseStyle, false, nil)
 	}
@@ -370,6 +370,6 @@ func (m Model) drawReply(builder *richtext.Builder, message discord.Message, bas
 	}
 }
 
-func (m Model) drawPinnedMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style) {
+func drawPinnedMessage(builder *richtext.Builder, message discord.Message, baseStyle tview.Style) {
 	builder.Write(message.Author.DisplayOrUsername()+" pinned a message.", baseStyle)
 }

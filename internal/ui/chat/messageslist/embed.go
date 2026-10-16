@@ -56,17 +56,17 @@ func (m Model) drawEmbeds(builder *richtext.Builder, message discord.Message, ba
 		prefix := richtext.NewSegment(embedPrefix, prefixStyle)
 		builder.NewLine()
 		for _, line := range lines {
-			if strings.TrimSpace(line.Text) == "" {
+			if strings.TrimSpace(line.text) == "" {
 				continue
 			}
 			msg := message
-			msg.Content = line.Text
-			lineStyle := lineStyles[line.Kind]
+			msg.Content = line.text
+			lineStyle := lineStyles[line.kind]
 			// Embed descriptions are always markdown-rendered to match Discord's rich embed semantics, even when message markdown is globally disabled.
-			rendered, _, _ := m.renderContent(msg, lineStyle, line.Kind == embedLineDescription)
+			rendered, _, _ := m.renderContent(msg, lineStyle, line.kind == embedLineDescription)
 			for _, renderedLine := range rendered {
-				if line.URL != "" {
-					renderedLine = lineWithURL(renderedLine, line.URL)
+				if line.url != "" {
+					renderedLine = lineWithURL(renderedLine, line.url)
 				}
 				// The prefix is added after wrapping, so every visual line has it, not only the first.
 				for _, wrapped := range richtext.Wrap(renderedLine, wrapWidth) {
@@ -91,9 +91,9 @@ func lineWithURL(line richtext.Line, rawURL string) richtext.Line {
 }
 
 type embedLine struct {
-	Text string
-	Kind embedLineKind
-	URL  string
+	text string
+	kind embedLineKind
+	url  string
 }
 
 type embedLineKind uint8
@@ -146,9 +146,9 @@ func embedLines(embed discord.Embed, contentURLs map[string]struct{}) []embedLin
 		}
 		seen[key] = struct{}{}
 		lines = append(lines, embedLine{
-			Text: s,
-			Kind: kind,
-			URL:  rawURL,
+			text: s,
+			kind: kind,
+			url:  rawURL,
 		})
 	}
 

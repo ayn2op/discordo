@@ -61,7 +61,7 @@ func TestModelBuildItem(t *testing.T) {
 		t.Fatal("clicking the top message did not fetch older messages")
 	}
 	ml.selectBottom()
-	*ml, _ = ml.Update(olderMessagesLoadedMsg{ChannelID: 1, Older: []discord.Message{{ID: 1}}})
+	*ml, _ = ml.Update(olderMessagesLoadedMsg{channelID: 1, older: []discord.Message{{ID: 1}}})
 	selected, ok := ml.selectedMessage()
 	if !ok || selected.ID != 3 || text() != view {
 		t.Fatal("prepend lost selection or cached text")
@@ -143,7 +143,7 @@ func TestModelRebuildItems(t *testing.T) {
 			assertSelected(3)
 			ml.selectUp()
 			assertSelected(2)
-			*ml, _ = ml.Update(olderMessagesLoadedMsg{ChannelID: 1, Older: messages[2:]})
+			*ml, _ = ml.Update(olderMessagesLoadedMsg{channelID: 1, older: messages[2:]})
 			assertItems(1, 2, 3)
 			assertSelected(2)
 			ml.deleteMessage(ml.cursor)
@@ -344,7 +344,7 @@ func TestModelScrollToTop(t *testing.T) {
 	}
 
 	older := []discord.Message{{ID: 1, Content: "hi"}, {ID: 2, Content: "hi"}}
-	*ml, _ = ml.Update(olderMessagesLoadedMsg{ChannelID: 1, Older: older})
+	*ml, _ = ml.Update(olderMessagesLoadedMsg{channelID: 1, older: older})
 	cmd, _ := scrollUp()
 	if cmd != nil {
 		t.Fatal("older messages were fetched again before scrolling to the new top")

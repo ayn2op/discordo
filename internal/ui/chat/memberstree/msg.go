@@ -6,14 +6,14 @@ import (
 	"github.com/ayn2op/tview/tree"
 )
 
-// Msg makes a node of the tree the current one.
-type Msg struct {
+// currentMsg makes a node of the tree the current one.
+type currentMsg struct {
 	current *tree.Node
 }
 
-// SelectedMsg is sent when the user selects a node.
-type SelectedMsg struct {
-	Node *tree.Node
+// selectedMsg is sent when the user selects a node.
+type selectedMsg struct {
+	node *tree.Node
 }
 
 // requestSelectedMembers requests the chunk of the member list after the selected member, so that the members below it load before they are reached.

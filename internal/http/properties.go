@@ -36,7 +36,7 @@ func commonProperties() gateway.IdentifyProperties {
 		"browser_version":       tls.BrowserVersion(),
 		"browser_user_agent":    BrowserUserAgent(),
 
-		"client_build_number": ClientBuildNumber,
+		"client_build_number": clientBuildNumber,
 		"client_event_source": nil,
 		"client_launch_id":    uuid.NewV4().String(),
 

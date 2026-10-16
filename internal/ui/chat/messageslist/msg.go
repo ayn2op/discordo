@@ -26,8 +26,8 @@ import (
 type Msg interface{ messagesList() }
 
 type olderMessagesLoadedMsg struct {
-	ChannelID discord.ChannelID
-	Older     []discord.Message
+	channelID discord.ChannelID
+	older     []discord.Message
 }
 
 func (olderMessagesLoadedMsg) messagesList() {}
@@ -103,7 +103,7 @@ func (m Model) fetchOlderMessages() tview.Cmd {
 
 		older := slices.Clone(messages)
 		slices.Reverse(older)
-		return olderMessagesLoadedMsg{ChannelID: channelID, Older: older}
+		return olderMessagesLoadedMsg{channelID: channelID, older: older}
 	}
 }
 
@@ -237,7 +237,7 @@ func (m Model) download() tview.Cmd {
 	for i, attachment := range selectedMessage.Attachments {
 		items[i] = picker.Item{Text: attachment.Filename, Reference: m.confirmAttachment(attachment, m.saveAttachment(attachment))}
 	}
-	return m.showAttachmentsPicker(items)
+	return showAttachmentsPicker(items)
 }
 
 func (m Model) showAttachmentsList(urls []string, attachments []discord.Attachment, openAttachment func(discord.Attachment) tview.Cmd) tview.Cmd {
@@ -248,10 +248,10 @@ func (m Model) showAttachmentsList(urls []string, attachments []discord.Attachme
 	for _, url := range urls {
 		items = append(items, picker.Item{Text: url, Reference: openURL(url)})
 	}
-	return m.showAttachmentsPicker(items)
+	return showAttachmentsPicker(items)
 }
 
-func (m Model) showAttachmentsPicker(items picker.Items) tview.Cmd {
+func showAttachmentsPicker(items picker.Items) tview.Cmd {
 	return func() tview.Msg { return ShowAttachmentsMsg(items) }
 }
 

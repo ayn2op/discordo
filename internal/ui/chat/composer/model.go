@@ -283,7 +283,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		kbs := m.cfg.Keybinds.Composer
 		switch {
 		case keybind.Matches(msg, kbs.EditLast.Keybind) && m.canEditLastMessage():
-			return m, m.editLastMessage()
+			return m, editLastMessage()
 		case keybind.Matches(msg, kbs.Paste.Keybind):
 			m.pasteText()
 			return m, pasteImage()

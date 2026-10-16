@@ -85,8 +85,8 @@ func (m *Model) SetChannel(channel *discord.Channel) tview.Cmd {
 
 // View shows the tree in a box titled Members.
 func (m Model) View(focused bool) tview.Widget {
-	onChange := func(current *tree.Node) tview.Msg { return Msg{current} }
-	onSelect := func(n *tree.Node) tview.Msg { return SelectedMsg{Node: n} }
+	onChange := func(current *tree.Node) tview.Msg { return currentMsg{current} }
+	onSelect := func(n *tree.Node) tview.Msg { return selectedMsg{node: n} }
 	return uitree.New(
 		m.root,
 		m.current,
@@ -124,7 +124,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		m.refreshStatus(msg.User.ID)
 		return m, nil
 
-	case Msg:
+	case currentMsg:
 		m.current = msg.current
 		m.scrollState.ScrollToTarget()
 		return m, m.requestSelectedMembers()
@@ -134,10 +134,10 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			return m.Update(msg.Msg)
 		}
 		return m, nil
-	case SelectedMsg:
-		m.setCurrentNode(msg.Node)
-		if _, ok := msg.Node.Reference().(groupRef); ok {
-			msg.Node.SetExpanded(!msg.Node.Expanded())
+	case selectedMsg:
+		m.setCurrentNode(msg.node)
+		if _, ok := msg.node.Reference().(groupRef); ok {
+			msg.node.SetExpanded(!msg.node.Expanded())
 		}
 		return m, m.requestSelectedMembers()
 	case tview.KeyMsg:

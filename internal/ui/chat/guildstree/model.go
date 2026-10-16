@@ -58,8 +58,8 @@ func (m Model) CurrentNode() *tree.Node {
 
 // View shows the tree in a box titled Guilds.
 func (m Model) View(focused bool) tview.Widget {
-	onChange := func(current *tree.Node) tview.Msg { return Msg{current} }
-	onSelect := func(n *tree.Node) tview.Msg { return SelectedMsg{Node: n} }
+	onChange := func(current *tree.Node) tview.Msg { return currentMsg{current} }
+	onSelect := func(n *tree.Node) tview.Msg { return selectedMsg{node: n} }
 	return uitree.New(
 		m.root,
 		m.current,
@@ -128,7 +128,7 @@ func (m *Model) rebuild(event *gateway.ReadyEvent) {
 func (m Model) refreshReadStyles(event *read.UpdateEvent) {
 	if event.GuildID.IsValid() {
 		if node := m.findNodeByReference(event.GuildID); node != nil {
-			m.setNodeLineStyle(node, m.guildNodeStyle(event.GuildID))
+			setNodeLineStyle(node, m.guildNodeStyle(event.GuildID))
 		}
 	}
 
@@ -139,10 +139,10 @@ func (m Model) refreshReadStyles(event *read.UpdateEvent) {
 	channel, err := m.state.Cabinet.Channel(event.ChannelID)
 	if err != nil {
 		indication := m.state.ChannelIsUnread(event.ChannelID, ningen.UnreadOpts{IncludeMutedCategories: true})
-		m.setNodeLineStyle(node, unreadStyle(indication))
+		setNodeLineStyle(node, unreadStyle(indication))
 		return
 	}
-	m.setNodeLineStyle(node, m.channelNodeStyle(*channel))
+	setNodeLineStyle(node, m.channelNodeStyle(*channel))
 }
 
 func (m Model) updateDMNodeStyle(userID discord.UserID) {
@@ -155,7 +155,7 @@ func (m Model) updateDMNodeStyle(userID discord.UserID) {
 	if node == nil || !ok {
 		return
 	}
-	m.setNodeLineStyle(node, m.channelNodeStyle(*channel))
+	setNodeLineStyle(node, m.channelNodeStyle(*channel))
 }
 
 func (m Model) moveDMToFront(channelID discord.ChannelID) {
@@ -180,7 +180,7 @@ func (m Model) createFolderNode(folder gateway.GuildFolder, guildsByID map[disco
 	folderNode := tree.NewNode(name).SetExpanded(m.cfg.UI.GuildsTree.AutoExpandFolders)
 	if folder.Color != 0 {
 		folderStyle := tcell.StyleDefault.Foreground(tcell.NewHexColor(int32(folder.Color)))
-		m.setNodeLineStyle(folderNode, folderStyle)
+		setNodeLineStyle(folderNode, folderStyle)
 	}
 	m.root.AddChild(folderNode)
 
@@ -217,7 +217,7 @@ func (m Model) createGuildNode(parent *tree.Node, guild discord.Guild) {
 		SetExpandable(true).
 		SetExpanded(false).
 		SetIndent(m.cfg.Sidebar.Indents.Guild)
-	m.setNodeLineStyle(guildNode, m.guildNodeStyle(guild.ID))
+	setNodeLineStyle(guildNode, m.guildNodeStyle(guild.ID))
 	parent.AddChild(guildNode)
 	m.nodes[discord.Snowflake(guild.ID)] = guildNode
 }
@@ -230,7 +230,7 @@ func (m Model) createChannelNode(parent *tree.Node, channel discord.Channel) {
 
 	indents := m.cfg.Sidebar.Indents
 	channelNode := tree.NewNode(ui.ChannelToString(channel, m.cfg.Icons, m.state)).SetReference(channel.ID)
-	m.setNodeLineStyle(channelNode, m.channelNodeStyle(channel))
+	setNodeLineStyle(channelNode, m.channelNodeStyle(channel))
 	switch channel.Type {
 	case discord.DirectMessage:
 		channelNode.SetIndent(indents.DM)
@@ -327,7 +327,7 @@ func (m Model) styleVoiceMembers() {
 			style = m.cfg.Theme.GuildsTree.SpeakingStyle.Style
 		}
 
-		m.setNodeLineStyle(member, style)
+		setNodeLineStyle(member, style)
 	}
 }
 
@@ -439,7 +439,7 @@ func isVoice(t discord.ChannelType) bool {
 }
 
 // setNodeLineStyle styles the name of node, which is the first segment of its line.
-func (m Model) setNodeLineStyle(node *tree.Node, style tview.Style) {
+func setNodeLineStyle(node *tree.Node, style tview.Style) {
 	line := node.Line()
 	line[0].Style = style
 	node.SetLine(line)
@@ -535,7 +535,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 
 	case NavigateMsg:
 		return m, m.navigate(msg.ChannelID)
-	case Msg:
+	case currentMsg:
 		m.current = msg.current
 		m.scrollState.ScrollToTarget()
 		return m, nil
@@ -545,9 +545,9 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			return m.Update(msg.Msg)
 		}
 		return m, nil
-	case SelectedMsg:
-		m.setCurrentNode(msg.Node)
-		return m, m.selectNode(msg.Node)
+	case selectedMsg:
+		m.setCurrentNode(msg.node)
+		return m, m.selectNode(msg.node)
 	case tview.KeyMsg:
 		kbs := m.cfg.Keybinds.GuildsTree
 		switch {
