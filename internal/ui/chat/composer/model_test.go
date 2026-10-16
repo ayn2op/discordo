@@ -40,12 +40,12 @@ func TestModelSetChannel(t *testing.T) {
 	channel := discord.Channel{ID: 10, GuildID: 1}
 	thread := discord.Channel{ID: 11, GuildID: 1, ParentID: 10, Type: discord.GuildPublicThread}
 	for _, err := range []error{
-		state.Cabinet.MyselfSet(discord.User{ID: 3}, false),
-		state.Cabinet.GuildSet(&discord.Guild{ID: 1}, false),
-		state.Cabinet.MemberSet(1, &discord.Member{User: discord.User{ID: 3}}, false),
-		state.Cabinet.RoleSet(1, &discord.Role{ID: 1, Permissions: discord.PermissionSendMessagesInThreads}, false),
-		state.Cabinet.ChannelSet(&channel, false),
-		state.Cabinet.ChannelSet(&thread, false),
+		state.MyselfSet(discord.User{ID: 3}, false),
+		state.GuildSet(&discord.Guild{ID: 1}, false),
+		state.MemberSet(1, &discord.Member{User: discord.User{ID: 3}}, false),
+		state.RoleSet(1, &discord.Role{ID: 1, Permissions: discord.PermissionSendMessagesInThreads}, false),
+		state.ChannelSet(&channel, false),
+		state.ChannelSet(&thread, false),
 	} {
 		if err != nil {
 			t.Fatal(err)
@@ -168,13 +168,13 @@ func TestModelSearchMember(t *testing.T) {
 
 func TestModelTabSuggest(t *testing.T) {
 	c, _ := newTestModel(t)
-	if err := c.state.Cabinet.MyselfSet(discord.User{ID: 1, Username: "1"}, false); err != nil {
+	if err := c.state.MyselfSet(discord.User{ID: 1, Username: "1"}, false); err != nil {
 		t.Fatal(err)
 	}
 	channel := discord.Channel{ID: 1, Type: discord.DirectMessage}
 	for id, author := range []discord.UserID{2, 3, 2, 1} {
 		message := discord.Message{ID: discord.MessageID(id + 1), ChannelID: 1, Author: discord.User{ID: author, Username: author.String()}}
-		if err := c.state.Cabinet.MessageSet(&message, false); err != nil {
+		if err := c.state.MessageSet(&message, false); err != nil {
 			t.Fatal(err)
 		}
 	}

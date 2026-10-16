@@ -30,7 +30,7 @@ func testConfig(t *testing.T) *config.Config {
 func newTestModel(t *testing.T, cfg *config.Config) *Model {
 	t.Helper()
 	ml := NewModel(cfg, ningen.FromState(state.New("")))
-	if err := ml.state.Cabinet.MyselfSet(discord.User{ID: 1}, false); err != nil {
+	if err := ml.state.MyselfSet(discord.User{ID: 1}, false); err != nil {
 		t.Fatal(err)
 	}
 	ml.channel = &discord.Channel{ID: 1}

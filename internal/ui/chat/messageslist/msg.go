@@ -183,7 +183,7 @@ func (m Model) playVoiceMessage(attachment discord.Attachment) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	// It is read whole, for playing it not to wait for the network.
 	audio, err := io.ReadAll(resp.Body)
@@ -305,13 +305,13 @@ func (m Model) openDownloadedAttachment(attachment discord.Attachment) tview.Cmd
 		if err != nil {
 			return ui.ErrorDialog("create attachment file", err)
 		}
-		defer file.Close()
-
 		path := file.Name()
+		if err := file.Close(); err != nil {
+			return ui.ErrorDialog("create attachment file", err)
+		}
 
 		if err := m.downloadAttachment(attachment, path); err != nil {
-			os.Remove(path)
-			return ui.ErrorDialog("download attachment", err)
+			return ui.ErrorDialog("download attachment", errors.Join(err, os.Remove(path)))
 		} else if err := open.Start(path); err != nil {
 			return ui.ErrorDialog("open attachment file", err)
 		}

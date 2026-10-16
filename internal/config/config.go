@@ -291,7 +291,7 @@ func Load(path string) (*Config, error) {
 	case err != nil:
 		return nil, fmt.Errorf("failed to open config file: %w", err)
 	default:
-		defer file.Close()
+		defer file.Close() //nolint:errcheck
 		if _, err := toml.NewDecoder(file).Decode(&cfg); err != nil {
 			return nil, fmt.Errorf("failed to decode config: %w", err)
 		}

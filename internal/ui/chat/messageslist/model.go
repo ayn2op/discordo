@@ -1,6 +1,7 @@
 package messageslist
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -264,7 +265,7 @@ func (m Model) buildItem(index int) tview.Widget {
 	item := &m.items[index]
 	if item.separator {
 		date := m.items[index+1].message.Timestamp.Time().In(time.Local).Format(m.cfg.DateSeparator.Format)
-		return dateSeparator{date: date, fill: m.cfg.DateSeparator.Character, style: m.cfg.Theme.MessagesList.MessageStyle.Style.Dim(true)}
+		return dateSeparator{date: date, fill: m.cfg.DateSeparator.Character, style: m.cfg.Theme.MessagesList.MessageStyle.Dim(true)}
 	}
 
 	message := &item.message
@@ -1234,7 +1235,7 @@ func extractURLs(content string) []string {
 // src must be the byte slice the node was parsed from (AutoLink resolves its URL against it).
 func urlsFromAST(node ast.Node, src []byte) []string {
 	var urls []string
-	ast.Walk(node, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+	_ = ast.Walk(node, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if entering {
 			switch n := n.(type) {
 			case *ast.AutoLink:
@@ -1297,7 +1298,7 @@ func (m Model) get(url string) (*http.Response, error) {
 	if err != nil || resp.StatusCode == http.StatusOK {
 		return resp, err
 	}
-	resp.Body.Close()
+	resp.Body.Close() //nolint:errcheck
 
 	var links struct {
 		URLs []struct {
@@ -1313,7 +1314,7 @@ func (m Model) get(url string) (*http.Response, error) {
 		if resp, err = http.Get(links.URLs[0].Refreshed); err != nil || resp.StatusCode == http.StatusOK {
 			return resp, err
 		}
-		resp.Body.Close()
+		resp.Body.Close() //nolint:errcheck
 	}
 
 	return nil, fmt.Errorf("unexpected HTTP status: %s", resp.Status)
@@ -1324,14 +1325,13 @@ func (m Model) downloadAttachment(attachment discord.Attachment, destination str
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 	file, err := os.Create(destination)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
 	_, err = io.Copy(file, resp.Body)
-	return err
+	return errors.Join(err, file.Close())
 }
 
 // SelectLastOwn selects the last message in the selected channel that the user can edit, and returns it.

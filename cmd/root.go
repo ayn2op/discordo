@@ -35,7 +35,7 @@ func Run() error {
 	if err != nil {
 		return fmt.Errorf("failed to load logger: %w", err)
 	}
-	defer logFile.Close()
+	defer logFile.Close() //nolint:errcheck
 
 	cfg, err := config.Load(*configPath)
 	if err != nil {

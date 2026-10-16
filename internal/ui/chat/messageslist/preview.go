@@ -153,7 +153,7 @@ func (m Model) downloadPreview(proxy discord.URL, bounds image.Rectangle) (image
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 	img, _, err := image.Decode(resp.Body)
 	return img, err
 }

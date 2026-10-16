@@ -250,7 +250,7 @@ func (m Model) createChannelNode(parent *tree.Node, channel discord.Channel) {
 
 // showVoiceMembers lists who is in each voice channel of the guild under it.
 func (m *Model) showVoiceMembers(guildID discord.GuildID) {
-	states, _ := m.state.Cabinet.VoiceStates(guildID)
+	states, _ := m.state.VoiceStates(guildID)
 	slices.SortFunc(states, func(a, b discord.VoiceState) int { return cmp.Compare(a.UserID, b.UserID) })
 
 	channels, _ := m.state.Cabinet.Channels(guildID)
@@ -340,7 +340,7 @@ func (m Model) voiceFooter() string {
 
 	name := ui.ChannelToString(*channel, m.cfg.Icons, m.state)
 	if me, _ := m.state.Cabinet.Me(); me != nil {
-		if state, _ := m.state.Cabinet.VoiceState(channel.GuildID, me.ID); state != nil {
+		if state, _ := m.state.VoiceState(channel.GuildID, me.ID); state != nil {
 			name += m.voiceMarkers(*state)
 		}
 	}

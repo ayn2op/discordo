@@ -29,16 +29,22 @@ func newTestModel(t *testing.T) Model {
 func setGuildMembers(t *testing.T, m Model, items string) *discord.Channel {
 	t.Helper()
 	channel := &discord.Channel{ID: channelID, GuildID: guildID, Type: discord.GuildText}
-	m.state.Cabinet.ChannelSet(channel, false)
-	m.state.Cabinet.RoleSet(guildID, &discord.Role{ID: guildID, Permissions: discord.PermissionViewChannel}, false)
-	m.state.Cabinet.RoleSet(guildID, &discord.Role{ID: 3, Name: "Mods"}, false)
+	if err := m.state.ChannelSet(channel, false); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.state.RoleSet(guildID, &discord.Role{ID: guildID, Permissions: discord.PermissionViewChannel}, false); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.state.RoleSet(guildID, &discord.Role{ID: 3, Name: "Mods"}, false); err != nil {
+		t.Fatal(err)
+	}
 
 	event := &gateway.GuildMemberListUpdateEvent{ID: "everyone", GuildID: guildID}
 	event.Ops = []gateway.GuildMemberListOp{{Op: "SYNC", Range: [2]int{0, 99}}}
 	if err := json.Unmarshal([]byte(items), &event.Ops[0].Items); err != nil {
 		t.Fatal(err)
 	}
-	m.state.State.Handler.Call(event)
+	m.state.State.Call(event)
 	return channel
 }
 
@@ -106,8 +112,12 @@ func TestModelRebuild(t *testing.T) {
 
 	t.Run("group dm recipients", func(t *testing.T) {
 		m := newTestModel(t)
-		m.state.Cabinet.MyselfSet(discord.User{ID: 13, Username: "me"}, false)
-		m.state.Cabinet.PresenceSet(discord.NullGuildID, &discord.Presence{User: discord.User{ID: 11}, Status: discord.OnlineStatus}, false)
+		if err := m.state.MyselfSet(discord.User{ID: 13, Username: "me"}, false); err != nil {
+			t.Fatal(err)
+		}
+		if err := m.state.PresenceSet(discord.NullGuildID, &discord.Presence{User: discord.User{ID: 11}, Status: discord.OnlineStatus}, false); err != nil {
+			t.Fatal(err)
+		}
 		m.channel = &discord.Channel{Type: discord.GroupDM, DMRecipients: []discord.User{
 			{ID: 10, Username: "a"},
 			{ID: 11, Username: "c"},

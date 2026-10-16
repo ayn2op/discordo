@@ -189,16 +189,18 @@ func (s *Session) setSpeaking(userID discord.UserID, speaking bool) {
 }
 
 // setDevice starts device, which then calls data, if on, and stops it otherwise.
-func setDevice(device **malgo.Device, on bool, kind malgo.DeviceType, data func(output, input []byte)) (err error) {
+func setDevice(device **malgo.Device, on bool, kind malgo.DeviceType, data func(output, input []byte)) error {
 	switch {
 	case on && *device == nil:
+		var err error
 		*device, err = startDevice(kind, channels, data)
+		return err
 	case !on && *device != nil:
 		(*device).Uninit()
 		*device = nil
 	}
 
-	return err
+	return nil
 }
 
 // setDevices captures what the user says unless mute, and plays what is said unless deafen.
@@ -217,12 +219,14 @@ func (s *Session) setDevices(mute, deafen bool) error {
 
 // left stops the devices, in no voice channel.
 func (s *Session) left() {
-	s.setDevices(true, true)
+	if err := s.setDevices(true, true); err != nil {
+		slog.Error("failed to stop voice devices", "err", err)
+	}
 	s.setStatus(Status{})
 }
 
 // Join joins the voice channel, muted, leaving the one that the user is in.
-func (s *Session) Join(channelID discord.ChannelID) (err error) {
+func (s *Session) Join(channelID discord.ChannelID) error {
 	if !s.mu.TryLock() {
 		return nil
 	}
@@ -230,18 +234,22 @@ func (s *Session) Join(channelID discord.ChannelID) (err error) {
 
 	s.setStatus(Status{ChannelID: channelID})
 
-	defer func() {
+	if err := s.join(channelID); err != nil {
 		// Discord may have the user in the voice channel regardless, and joining it again would then do nothing.
-		if err != nil {
-			s.leave()
-		}
-	}()
+		return errors.Join(err, s.leave())
+	}
 
+	s.setStatus(Status{ChannelID: channelID, Joined: true})
+	return nil
+}
+
+func (s *Session) join(channelID discord.ChannelID) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	session := s.session.Load()
 	if session == nil {
+		var err error
 		if session, err = voice.NewSession(s.state, s.state.Handler); err != nil {
 			return err
 		}
@@ -266,8 +274,6 @@ func (s *Session) Join(channelID discord.ChannelID) (err error) {
 	if err := session.Speaking(ctx, voicegateway.Microphone); err != nil {
 		return err
 	}
-
-	s.setStatus(Status{ChannelID: channelID, Joined: true})
 
 	return nil
 }

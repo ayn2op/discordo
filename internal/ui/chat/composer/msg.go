@@ -97,7 +97,9 @@ func closeFiles(files []sendpart.File) tview.Cmd {
 	return func() tview.Msg {
 		for _, file := range files {
 			if closer, ok := file.Reader.(io.Closer); ok {
-				closer.Close()
+				if err := closer.Close(); err != nil {
+					slog.Error("failed to close file", "err", err)
+				}
 			}
 		}
 		return nil
@@ -121,7 +123,9 @@ func (m *Model) sendTyping() tview.Cmd {
 	}
 	channelID := selectedChannel.ID
 	return func() tview.Msg {
-		m.state.Typing(channelID)
+		if err := m.state.Typing(channelID); err != nil {
+			slog.Error("failed to send typing indicator", "err", err)
+		}
 		return nil
 	}
 }
@@ -327,7 +331,11 @@ func (m Model) openEditor() tview.Cmd {
 			return nil
 		}
 		name := file.Name()
-		defer os.Remove(name)
+		defer func() {
+			if err := os.Remove(name); err != nil {
+				slog.Error("failed to remove tmp file", "err", err)
+			}
+		}()
 		_, _ = file.WriteString(text)
 		_ = file.Close()
 

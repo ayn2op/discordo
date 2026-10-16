@@ -5,6 +5,7 @@ package voice
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"io"
 	"sync"
 	"time"
@@ -130,7 +131,9 @@ func (p *Player) seek(position time.Duration) error {
 	}
 
 	// Nothing is left to play if position is past the end.
-	io.CopyN(io.Discard, decoder, (sample-first)*int64(decoder.Info().Channels)*2)
+	if _, err := io.CopyN(io.Discard, decoder, (sample-first)*int64(decoder.Info().Channels)*2); err != nil && !errors.Is(err, io.EOF) {
+		return err
+	}
 	p.decoder, p.samples = decoder, sample
 
 	return nil

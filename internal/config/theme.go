@@ -9,6 +9,7 @@ import (
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/tview"
 	"github.com/gdamore/tcell/v3"
+	"github.com/gdamore/tcell/v3/color"
 )
 
 var errInvalidType = errors.New("invalid type")
@@ -89,7 +90,7 @@ func (sw *StyleWrapper) parseAttr(s string) {
 	}
 	// An unknown attribute parses to no attribute.
 	attr, _ := attributes.parse(s)
-	sw.Style = sw.Attributes(sw.GetAttributes() | attr)
+	sw.Style = sw.Attributes(sw.GetAttributes() | attr) //nolint:staticcheck
 }
 
 // MarshalTOML writes the style as the inline table UnmarshalTOML reads.
@@ -254,14 +255,14 @@ func defaultTheme() ThemeConfig {
 		dim    = StyleWrapper{plain.Dim(true)}
 		bold   = plain.Bold(true)
 		italic = plain.Italic(true)
-		blue   = plain.Foreground(tcell.ColorBlue)
-		focus  = StyleThemeConfig{dim, StyleWrapper{bold.Foreground(tcell.ColorGreen)}}
+		blue   = plain.Foreground(color.Blue)
+		focus  = StyleThemeConfig{dim, StyleWrapper{bold.Foreground(color.Green)}}
 		tree   = TreeThemeConfig{
 			GraphicsColor: "default",
-			OnlineStyle:   StyleWrapper{plain.Foreground(tcell.ColorGreen)},
-			IdleStyle:     StyleWrapper{plain.Foreground(tcell.ColorYellow)},
-			DNDStyle:      StyleWrapper{plain.Foreground(tcell.ColorRed)},
-			OfflineStyle:  StyleWrapper{plain.Foreground(tcell.ColorGray)},
+			OnlineStyle:   StyleWrapper{plain.Foreground(color.Green)},
+			IdleStyle:     StyleWrapper{plain.Foreground(color.Yellow)},
+			DNDStyle:      StyleWrapper{plain.Foreground(color.Red)},
+			OfflineStyle:  StyleWrapper{plain.Foreground(color.Gray)},
 		}
 	)
 	return ThemeConfig{
@@ -270,16 +271,16 @@ func defaultTheme() ThemeConfig {
 		Border: focus,
 		GuildsTree: GuildsTreeThemeConfig{
 			TreeThemeConfig: tree,
-			SpeakingStyle:   StyleWrapper{plain.Foreground(tcell.ColorGreen)},
-			VoiceLimitStyle: StyleWrapper{plain.Foreground(tcell.ColorDodgerBlue)},
+			SpeakingStyle:   StyleWrapper{plain.Foreground(color.Green)},
+			VoiceLimitStyle: StyleWrapper{plain.Foreground(color.DodgerBlue)},
 		},
 		MembersTree: tree,
 		ScrollBar:   ScrollBarThemeConfig{TrackStyle: dim},
 		MessagesList: MessagesListThemeConfig{
 			MentionStyle:         StyleWrapper{blue.Bold(true)},
-			EmojiStyle:           StyleWrapper{plain.Foreground(tcell.ColorGreen)},
+			EmojiStyle:           StyleWrapper{plain.Foreground(color.Green)},
 			URLStyle:             StyleWrapper{blue},
-			AttachmentStyle:      StyleWrapper{plain.Foreground(tcell.ColorYellow)},
+			AttachmentStyle:      StyleWrapper{plain.Foreground(color.Yellow)},
 			ReactionStyle:        dim,
 			OwnReactionStyle:     StyleWrapper{bold},
 			SelectedMessageStyle: StyleWrapper{plain.Reverse(true)},

@@ -361,7 +361,7 @@ func (m Model) processText(channel *discord.Channel, src []byte) string {
 		canMention = true
 	)
 
-	ast.Walk(md.Parse(src), func(node ast.Node, enter bool) (ast.WalkStatus, error) {
+	_ = ast.Walk(md.Parse(src), func(node ast.Node, enter bool) (ast.WalkStatus, error) {
 		switch node := node.(type) {
 		case *ast.CodeBlock, *ast.FencedCodeBlock:
 			canMention = !enter
@@ -403,7 +403,7 @@ func (m Model) expandMentions(channel *discord.Channel, src []byte) []byte {
 			}
 			return output
 		}
-		state.MemberStore.Each(channel.GuildID, func(m *discord.Member) bool {
+		_ = state.MemberStore.Each(channel.GuildID, func(m *discord.Member) bool {
 			if strings.EqualFold(m.User.Username, name) {
 				if channelHasUser(state, channel.ID, m.User.ID) {
 					output = []byte(m.User.ID.Mention())

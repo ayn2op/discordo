@@ -40,7 +40,7 @@ func serveGateway(t *testing.T, acks int) http.HandlerFunc {
 			t.Error(err)
 			return
 		}
-		defer conn.Close()
+		defer conn.Close() //nolint:errcheck
 
 		if err := conn.WriteJSON(map[string]any{"op": "hello", "heartbeat_interval": 1}); err != nil {
 			return
@@ -85,7 +85,7 @@ func TestModelGateway(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		t.Cleanup(func() { conn.Close() })
+		t.Cleanup(func() { conn.Close() }) //nolint:errcheck
 
 		screen, err := tcell.NewTerminfoScreenFromTty(vt.NewMockTerm(vt.MockOptSize{X: 80, Y: 24}))
 		if err != nil {
@@ -117,7 +117,7 @@ func TestCloseConn(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		defer conn.Close()
+		defer conn.Close() //nolint:errcheck
 		_, _, _ = conn.ReadMessage()
 	}))
 	t.Cleanup(server.Close)
