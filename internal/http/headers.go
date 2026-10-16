@@ -13,7 +13,6 @@ func Headers() stdHttp.Header {
 	headers := make(stdHttp.Header)
 	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers
 	headers.Set("Accept", "*/*")
-	headers.Set("Accept-Encoding", "gzip, deflate, br, zstd")
 	headers.Set("Accept-Language", "en-US,en;q=0.9")
 	headers.Set("Origin", api.BaseEndpoint)
 	headers.Set("Priority", "u=1, i")

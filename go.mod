@@ -4,6 +4,8 @@ go 1.27.0
 
 // replace github.com/ayn2op/tview => ../tview
 
+replace github.com/bogdanfinn/fhttp => github.com/ayn2op/fhttp v0.6.10-0.20261016015330-2d5e34c6b935
+
 // replace (
 // 	github.com/ayn2op/arikawa/v3 => ../arikawa
 // 	github.com/ayn2op/ningen/v3 => ../ningen
@@ -12,7 +14,6 @@ go 1.27.0
 require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/alecthomas/chroma/v2 v2.27.0
-	github.com/andybalholm/brotli v1.2.6
 	github.com/ayn2op/arikawa/v3 v3.0.0-20261014035141-32b58d8f3755
 	github.com/ayn2op/ningen/v3 v3.0.1-0.20261014035153-5e43590a1426
 	github.com/ayn2op/tview v0.0.0-20261015233535-ab884c65f4fe
@@ -21,7 +22,6 @@ require (
 	github.com/gdamore/tcell/v3 v3.6.0
 	github.com/gen2brain/malgo v0.11.26
 	github.com/gorilla/websocket v1.5.3
-	github.com/klauspost/compress v1.20.3
 	github.com/mattn/go-shellwords v1.0.16
 	github.com/ncruces/zenity v0.10.15
 	github.com/rivo/uniseg v0.4.7
@@ -38,6 +38,7 @@ require (
 
 require (
 	github.com/akavel/rsrc v0.10.2 // indirect
+	github.com/andybalholm/brotli v1.2.6 // indirect
 	github.com/bdandy/go-errors v1.2.2 // indirect
 	github.com/bdandy/go-socks4 v1.2.3 // indirect
 	github.com/bogdanfinn/quic-go-utls v1.0.10-utls // indirect
@@ -55,6 +56,7 @@ require (
 	github.com/godbus/dbus/v5 v5.2.4 // indirect
 	github.com/gorilla/schema v1.4.1 // indirect
 	github.com/josephspurrier/goversioninfo v1.7.0 // indirect
+	github.com/klauspost/compress v1.20.3 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.1 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/randall77/makefat v0.0.0-20260406194835-1b91746796b7 // indirect
