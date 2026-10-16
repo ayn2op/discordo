@@ -17,9 +17,6 @@ import (
 
 type Renderer struct {
 	cfg *config.Config
-
-	listIx     *int
-	listNested int
 }
 
 const codeBlockIndent = "    "
@@ -29,12 +26,10 @@ func NewRenderer(cfg *config.Config) *Renderer {
 }
 
 func (r *Renderer) RenderText(source []byte, node ast.Node, base tview.Style) richtext.Text {
-	r.listIx = nil
-	r.listNested = 0
-
 	builder := new(richtext.Builder)
 	styleStack := []tview.Style{base}
 	linkDepth := 0
+	listDepth := 0
 
 	currentStyle := func() tview.Style {
 		return styleStack[len(styleStack)-1]
@@ -50,94 +45,66 @@ func (r *Renderer) RenderText(source []byte, node ast.Node, base tview.Style) ri
 
 	theme := r.cfg.Theme.MessagesList
 	_ = ast.Walk(node, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
-		switch node := node.(type) {
-		case *ast.Document:
-			// noop
-		case *ast.Heading:
-			if entering {
-				builder.Write(strings.Repeat("#", node.Level)+" ", currentStyle())
-			} else {
+		if !entering {
+			switch node := node.(type) {
+			case *ast.Heading:
 				builder.NewLine()
-			}
-		case *ast.Text:
-			if entering {
-				builder.Write(string(node.Value.Bytes(source)), currentStyle())
-				switch {
-				case node.HardLineBreak():
-					builder.NewLine()
-					builder.NewLine()
-				case node.SoftLineBreak():
+			case *ast.ListItem:
+				// A list that the item ends with already ended the line.
+				if _, ok := node.LastChild().(*ast.List); !ok {
 					builder.NewLine()
 				}
+			case *ast.Link:
+				linkDepth--
+				popStyle()
+			case *ast.List:
+				listDepth--
+			case *md.Inline:
+				if !r.shouldMask(node) {
+					popStyle()
+				}
+			}
+			return ast.WalkContinue, nil
+		}
+
+		switch node := node.(type) {
+		case *ast.Heading:
+			builder.Write(strings.Repeat("#", node.Level)+" ", currentStyle())
+		case *ast.Text:
+			builder.Write(string(node.Value.Bytes(source)), currentStyle())
+			switch {
+			case node.HardLineBreak():
+				builder.NewLine()
+				builder.NewLine()
+			case node.SoftLineBreak():
+				builder.NewLine()
 			}
 		case *ast.CodeBlock:
-			if entering {
-				builder.NewLine()
-				r.renderCodeBlock(builder, source, node, currentStyle())
-			}
+			builder.NewLine()
+			r.renderCodeBlock(builder, source, node, currentStyle())
 		case *ast.AutoLink:
-			if entering {
-				url := string(node.Destination.Bytes(source))
-				style := tview.MergeStyle(currentStyle(), theme.URLStyle.Style).Url(url)
-				builder.Write(url, style)
-			}
+			url := string(node.Destination.Bytes(source))
+			style := tview.MergeStyle(currentStyle(), theme.URLStyle.Style).Url(url)
+			builder.Write(url, style)
 		case *ast.Link:
-			if entering {
-				url := string(node.Destination.Bytes(source))
-				linkDepth++
-				pushStyle(tview.MergeStyle(currentStyle(), theme.URLStyle.Style).Url(url))
-			} else {
-				if linkDepth > 0 {
-					linkDepth--
-				}
-				popStyle()
-			}
+			url := string(node.Destination.Bytes(source))
+			linkDepth++
+			pushStyle(tview.MergeStyle(currentStyle(), theme.URLStyle.Style).Url(url))
 		case *ast.List:
-			if node.IsOrdered() {
-				start := node.Start
-				r.listIx = &start
-			} else {
-				r.listIx = nil
-			}
-
-			if entering {
-				builder.NewLine()
-				r.listNested++
-			} else {
-				r.listNested--
-			}
+			builder.NewLine()
+			listDepth++
 		case *ast.ListItem:
-			if entering {
-				builder.Write(strings.Repeat("  ", r.listNested-1), currentStyle())
-				if r.listIx != nil {
-					builder.Write(strconv.Itoa(*r.listIx)+". ", currentStyle())
-					*r.listIx++
-				} else {
-					builder.Write("- ", currentStyle())
-				}
-			} else {
-				builder.NewLine()
-			}
+			builder.Write(strings.Repeat("  ", listDepth-1)+listMarker(node), currentStyle())
 		case *md.Inline:
-			if r.cfg.Markdown.MaskSpoilers && node.Attr&md.AttrSpoiler != 0 {
-				if entering {
-					builder.Write("[spoiler]", currentStyle())
-				}
+			if r.shouldMask(node) {
+				builder.Write("[spoiler]", currentStyle())
 				return ast.WalkSkipChildren, nil
 			}
-			if entering {
-				pushStyle(applyInlineAttr(currentStyle(), node.Attr, linkDepth > 0))
-			} else {
-				popStyle()
-			}
+			pushStyle(applyInlineAttr(currentStyle(), node.Attr, linkDepth > 0))
 		case *md.Mention:
-			if entering {
-				builder.Write(mentionText(node), tview.MergeStyle(currentStyle(), theme.MentionStyle.Style))
-			}
+			builder.Write(mentionText(node), tview.MergeStyle(currentStyle(), theme.MentionStyle.Style))
 		case *md.Emoji:
-			if entering {
-				builder.Write(":"+node.Name+":", tview.MergeStyle(currentStyle(), theme.EmojiStyle.Style))
-			}
+			builder.Write(":"+node.Name+":", tview.MergeStyle(currentStyle(), theme.EmojiStyle.Style))
 		}
 		return ast.WalkContinue, nil
 	})
@@ -214,6 +181,25 @@ func (r *Renderer) renderCodeBlock(builder *richtext.Builder, source []byte, nod
 	}
 }
 
+// shouldMask reports whether node is a spoiler shown as "[spoiler]" in place of what it hides.
+func (r *Renderer) shouldMask(node *md.Inline) bool {
+	return r.cfg.Markdown.MaskSpoilers && node.Attr&md.AttrSpoiler != 0
+}
+
+// listMarker returns what goes before item: its number in an ordered list, counted from the list's start, or a dash.
+func listMarker(item *ast.ListItem) string {
+	list := item.Parent().(*ast.List)
+	if !list.IsOrdered() {
+		return "- "
+	}
+
+	number := list.Start
+	for sibling := item.PreviousSibling(); sibling != nil; sibling = sibling.PreviousSibling() {
+		number++
+	}
+	return strconv.Itoa(number) + ". "
+}
+
 func applyChromaStyle(base tview.Style, entry chroma.StyleEntry) tview.Style {
 	style := base
 	if entry.Colour.IsSet() {
@@ -224,23 +210,16 @@ func applyChromaStyle(base tview.Style, entry chroma.StyleEntry) tview.Style {
 		))
 	}
 	// Token background colors are not applied, so code blocks keep the user's terminal/chat background.
-	switch entry.Bold {
-	case chroma.Yes:
-		style = style.Bold(true)
-	case chroma.No:
-		style = style.Bold(false)
+
+	// An attribute chroma passes on is left as it is.
+	if entry.Bold != chroma.Pass {
+		style = style.Bold(entry.Bold == chroma.Yes)
 	}
-	switch entry.Italic {
-	case chroma.Yes:
-		style = style.Italic(true)
-	case chroma.No:
-		style = style.Italic(false)
+	if entry.Italic != chroma.Pass {
+		style = style.Italic(entry.Italic == chroma.Yes)
 	}
-	switch entry.Underline {
-	case chroma.Yes:
-		style = style.Underline(true)
-	case chroma.No:
-		style = style.Underline(false)
+	if entry.Underline != chroma.Pass {
+		style = style.Underline(entry.Underline == chroma.Yes)
 	}
 	return style
 }
