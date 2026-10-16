@@ -20,7 +20,6 @@ import (
 	"github.com/ayn2op/tview/viewport"
 	"github.com/ncruces/zenity"
 	"github.com/skratchdot/open-golang/open"
-	"golang.design/x/clipboard"
 )
 
 // Msg is implemented by the messages the list sends itself, which must reach it whatever has the focus.
@@ -114,12 +113,7 @@ func (m Model) yankMessageID() tview.Cmd {
 		return nil
 	}
 
-	return func() tview.Msg {
-		if _, err := clipboard.Write(context.Background(), clipboard.FmtText, []byte(selectedMessage.ID.String())); err != nil {
-			slog.Error("failed to write to clipboard", "err", err)
-		}
-		return nil
-	}
+	return ui.WriteClipboard(selectedMessage.ID.String())
 }
 
 func (m Model) yankContent() tview.Cmd {
@@ -128,12 +122,7 @@ func (m Model) yankContent() tview.Cmd {
 		return nil
 	}
 
-	return func() tview.Msg {
-		if _, err := clipboard.Write(context.Background(), clipboard.FmtText, []byte(selectedMessage.Content)); err != nil {
-			slog.Error("failed to write to clipboard", "err", err)
-		}
-		return nil
-	}
+	return ui.WriteClipboard(selectedMessage.Content)
 }
 
 func (m Model) yankURL() tview.Cmd {
@@ -142,12 +131,7 @@ func (m Model) yankURL() tview.Cmd {
 		return nil
 	}
 
-	return func() tview.Msg {
-		if _, err := clipboard.Write(context.Background(), clipboard.FmtText, []byte(selectedMessage.URL())); err != nil {
-			slog.Error("failed to write to clipboard", "err", err)
-		}
-		return nil
-	}
+	return ui.WriteClipboard(selectedMessage.URL())
 }
 
 func (m Model) open() tview.Cmd {
