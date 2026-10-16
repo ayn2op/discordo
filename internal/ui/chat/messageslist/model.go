@@ -1045,48 +1045,49 @@ func (m Model) selectedMessage() (*discord.Message, bool) {
 func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	switch msg := msg.(type) {
 	case tview.KeyMsg:
+		kbs := m.cfg.Keybinds.MessagesList
 		switch {
-		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.Cancel.Keybind):
+		case keybind.Matches(msg, kbs.Cancel.Keybind):
 			m.clearSelection()
-		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.SelectUp.Keybind):
+		case keybind.Matches(msg, kbs.SelectUp.Keybind):
 			return m, m.selectUp()
-		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.SelectDown.Keybind):
+		case keybind.Matches(msg, kbs.SelectDown.Keybind):
 			m.selectDown()
-		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.SelectTop.Keybind):
+		case keybind.Matches(msg, kbs.SelectTop.Keybind):
 			return m, m.selectTop()
-		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.SelectBottom.Keybind):
+		case keybind.Matches(msg, kbs.SelectBottom.Keybind):
 			m.selectBottom()
-		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.SelectReply.Keybind):
+		case keybind.Matches(msg, kbs.SelectReply.Keybind):
 			m.selectReply()
-		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.YankID.Keybind):
+		case keybind.Matches(msg, kbs.YankID.Keybind):
 			return m, m.yankMessageID()
-		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.YankContent.Keybind):
+		case keybind.Matches(msg, kbs.YankContent.Keybind):
 			return m, m.yankContent()
-		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.YankURL.Keybind):
+		case keybind.Matches(msg, kbs.YankURL.Keybind):
 			return m, m.yankURL()
-		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.Open.Keybind):
+		case keybind.Matches(msg, kbs.Open.Keybind):
 			return m, m.open()
-		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.OpenInBrowser.Keybind):
+		case keybind.Matches(msg, kbs.OpenInBrowser.Keybind):
 			return m, m.openInBrowser()
-		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.Play.Keybind):
+		case keybind.Matches(msg, kbs.Play.Keybind):
 			if message, ok := m.selectedMessage(); ok && isVoiceMessage(*message) {
 				return m, m.play(message.Attachments[0])
 			}
-		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.SeekBackward.Keybind):
+		case keybind.Matches(msg, kbs.SeekBackward.Keybind):
 			return m, m.seek(m.voiceStatus.Position - seekStep)
-		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.SeekForward.Keybind):
+		case keybind.Matches(msg, kbs.SeekForward.Keybind):
 			return m, m.seek(m.voiceStatus.Position + seekStep)
-		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.Download.Keybind):
+		case keybind.Matches(msg, kbs.Download.Keybind):
 			return m, m.download()
-		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.Reply.Keybind):
+		case keybind.Matches(msg, kbs.Reply.Keybind):
 			return m, m.reply(false)
-		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.ReplyMention.Keybind):
+		case keybind.Matches(msg, kbs.ReplyMention.Keybind):
 			return m, m.reply(true)
-		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.Edit.Keybind):
+		case keybind.Matches(msg, kbs.Edit.Keybind):
 			return m, m.editSelectedMessage()
-		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.Delete.Keybind):
+		case keybind.Matches(msg, kbs.Delete.Keybind):
 			return m, m.deleteSelectedMessage()
-		case keybind.Matches(msg, m.cfg.Keybinds.MessagesList.DeleteConfirm.Keybind):
+		case keybind.Matches(msg, kbs.DeleteConfirm.Keybind):
 			return m, m.confirmDelete()
 		}
 	case olderMessagesLoadedMsg:

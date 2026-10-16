@@ -107,18 +107,20 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		if m.dialog != nil {
 			return m, nil
 		}
+
+		kbs := m.cfg.Keybinds
 		switch {
-		case keybind.Matches(msg, m.cfg.Keybinds.ToggleHelp.Keybind):
+		case keybind.Matches(msg, kbs.ToggleHelp.Keybind):
 			m.toggleHelp()
 			return m, nil
-		case keybind.Matches(msg, m.cfg.Keybinds.ToggleFullHelp.Keybind):
+		case keybind.Matches(msg, kbs.ToggleFullHelp.Keybind):
 			if m.cfg.Help.Enabled {
 				m.helpShowAll = !m.helpShowAll
 			}
 			return m, nil
-		case keybind.Matches(msg, m.cfg.Keybinds.Suspend.Keybind):
+		case keybind.Matches(msg, kbs.Suspend.Keybind):
 			return m, suspend()
-		case keybind.Matches(msg, m.cfg.Keybinds.Quit.Keybind):
+		case keybind.Matches(msg, kbs.Quit.Keybind):
 			return m, ui.ShowDialog(
 				"Are you sure you want to quit?",
 				ui.DialogButton{Label: "No"},

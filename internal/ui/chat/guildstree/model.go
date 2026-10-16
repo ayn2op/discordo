@@ -549,17 +549,18 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		m.setCurrentNode(msg.Node)
 		return m, m.selectNode(msg.Node)
 	case tview.KeyMsg:
+		kbs := m.cfg.Keybinds.GuildsTree
 		switch {
-		case keybind.Matches(msg, m.cfg.Keybinds.GuildsTree.CollapseAll.Keybind):
+		case keybind.Matches(msg, kbs.CollapseAll.Keybind):
 			for _, node := range m.root.Children() {
 				node.CollapseAll()
 			}
 			return m, nil
-		case keybind.Matches(msg, m.cfg.Keybinds.GuildsTree.CollapseParentNode.Keybind):
+		case keybind.Matches(msg, kbs.CollapseParentNode.Keybind):
 			m.collapseParentNode(m.current)
 			return m, nil
-		case keybind.Matches(msg, m.cfg.Keybinds.GuildsTree.SelectPreviousUnread.Keybind, m.cfg.Keybinds.GuildsTree.SelectNextUnread.Keybind):
-			previous := keybind.Matches(msg, m.cfg.Keybinds.GuildsTree.SelectPreviousUnread.Keybind)
+		case keybind.Matches(msg, kbs.SelectPreviousUnread.Keybind, kbs.SelectNextUnread.Keybind):
+			previous := keybind.Matches(msg, kbs.SelectPreviousUnread.Keybind)
 			if node := adjacentNode(m.root, m.current, m.isUnread, previous); node != nil {
 				// A guild or the direct messages without channels yet: load them and move on to the unread one.
 				if _, ok := node.Reference().(discord.ChannelID); !ok {
@@ -572,9 +573,9 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 				m.setCurrentNode(node)
 			}
 			return m, nil
-		case keybind.Matches(msg, m.cfg.Keybinds.GuildsTree.YankID.Keybind):
+		case keybind.Matches(msg, kbs.YankID.Keybind):
 			return m, uitree.YankID(m.current)
-		case keybind.Matches(msg, m.cfg.Keybinds.GuildsTree.ToggleVoice.Keybind):
+		case keybind.Matches(msg, kbs.ToggleVoice.Keybind):
 			return m, m.toggleVoice(m.current)
 		case keybind.Matches(msg, m.cfg.Keybinds.ToggleMute.Keybind):
 			return m, m.toggleMute()

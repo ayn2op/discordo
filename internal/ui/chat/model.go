@@ -262,41 +262,42 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	case QuitMsg:
 		return m, closeState(m.state)
 	case tview.KeyMsg:
+		kbs := m.cfg.Keybinds
 		switch {
-		case keybind.Matches(msg, m.cfg.Keybinds.FocusGuildsTree.Keybind):
+		case keybind.Matches(msg, kbs.FocusGuildsTree.Keybind):
 			m.setFocus(paneGuildsTree)
 			return m, nil
-		case keybind.Matches(msg, m.cfg.Keybinds.FocusMembersTree.Keybind):
+		case keybind.Matches(msg, kbs.FocusMembersTree.Keybind):
 			m.setFocus(paneMembersTree)
 			return m, nil
-		case keybind.Matches(msg, m.cfg.Keybinds.FocusMessagesList.Keybind):
+		case keybind.Matches(msg, kbs.FocusMessagesList.Keybind):
 			m.setFocus(paneMessagesList)
 			return m, nil
-		case keybind.Matches(msg, m.cfg.Keybinds.FocusComposer.Keybind):
+		case keybind.Matches(msg, kbs.FocusComposer.Keybind):
 			m.setFocus(paneComposer)
 			return m, nil
 
-		case keybind.Matches(msg, m.cfg.Keybinds.FocusPrevious.Keybind):
+		case keybind.Matches(msg, kbs.FocusPrevious.Keybind):
 			m.cycleFocus(-1)
 			return m, nil
-		case keybind.Matches(msg, m.cfg.Keybinds.FocusNext.Keybind):
+		case keybind.Matches(msg, kbs.FocusNext.Keybind):
 			m.cycleFocus(1)
 			return m, nil
 
-		case keybind.Matches(msg, m.cfg.Keybinds.ToggleGuildsTree.Keybind):
+		case keybind.Matches(msg, kbs.ToggleGuildsTree.Keybind):
 			m.toggle(&m.guildsTreeVisible, paneGuildsTree)
 			return m, nil
-		case keybind.Matches(msg, m.cfg.Keybinds.ToggleMembersTree.Keybind):
+		case keybind.Matches(msg, kbs.ToggleMembersTree.Keybind):
 			m.toggle(&m.membersTreeVisible, paneMembersTree)
 			return m, nil
-		case keybind.Matches(msg, m.cfg.Keybinds.ToggleChannelsPicker.Keybind):
+		case keybind.Matches(msg, kbs.ToggleChannelsPicker.Keybind):
 			m.togglePicker()
 			return m, nil
 		// The guilds tree is what the voice channel joined is in.
-		case keybind.Matches(msg, m.cfg.Keybinds.ToggleMute.Keybind, m.cfg.Keybinds.ToggleDeafen.Keybind, m.cfg.Keybinds.LeaveVoice.Keybind):
+		case keybind.Matches(msg, kbs.ToggleMute.Keybind, kbs.ToggleDeafen.Keybind, kbs.LeaveVoice.Keybind):
 			return m, m.updatePane(paneGuildsTree, msg)
 
-		case keybind.Matches(msg, m.cfg.Keybinds.Logout.Keybind):
+		case keybind.Matches(msg, kbs.Logout.Keybind):
 			return m, ui.ShowDialog(
 				"Are you sure you want to log out?",
 				ui.DialogButton{Label: "No"},

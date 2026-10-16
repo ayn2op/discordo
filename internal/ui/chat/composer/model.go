@@ -186,20 +186,20 @@ func (m Model) footer() string {
 
 // isBound reports whether key is one of the composer's keybinds.
 func (m Model) isBound(key tview.KeyMsg) bool {
-	k := m.cfg.Keybinds.Composer
+	kbs := m.cfg.Keybinds.Composer
 	if keybind.Matches(key,
-		k.Paste.Keybind,
-		k.Send.Keybind,
-		k.OpenEditor.Keybind,
-		k.OpenFilePicker.Keybind,
-		k.Cancel.Keybind,
-		k.TabComplete.Keybind,
-		k.ToggleReplyMention.Keybind,
-		k.Undo.Keybind,
+		kbs.Paste.Keybind,
+		kbs.Send.Keybind,
+		kbs.OpenEditor.Keybind,
+		kbs.OpenFilePicker.Keybind,
+		kbs.Cancel.Keybind,
+		kbs.TabComplete.Keybind,
+		kbs.ToggleReplyMention.Keybind,
+		kbs.Undo.Keybind,
 	) {
 		return true
 	}
-	return keybind.Matches(key, k.EditLast.Keybind) && m.canEditLastMessage()
+	return keybind.Matches(key, kbs.EditLast.Keybind) && m.canEditLastMessage()
 }
 
 // setText replaces the text and moves the cursor, remembering what they were for undo if the text changed.
@@ -280,40 +280,41 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		return m, typingCmd
 
 	case tview.KeyMsg:
+		kbs := m.cfg.Keybinds.Composer
 		switch {
-		case keybind.Matches(msg, m.cfg.Keybinds.Composer.EditLast.Keybind) && m.canEditLastMessage():
+		case keybind.Matches(msg, kbs.EditLast.Keybind) && m.canEditLastMessage():
 			return m, m.editLastMessage()
-		case keybind.Matches(msg, m.cfg.Keybinds.Composer.Paste.Keybind):
+		case keybind.Matches(msg, kbs.Paste.Keybind):
 			m.pasteText()
 			return m, pasteImage()
-		case keybind.Matches(msg, m.cfg.Keybinds.Composer.Send.Keybind):
+		case keybind.Matches(msg, kbs.Send.Keybind):
 			if m.mentionsListVisible() {
 				return m, m.tabComplete()
 			}
 			return m, m.send()
-		case keybind.Matches(msg, m.cfg.Keybinds.Composer.OpenEditor.Keybind):
+		case keybind.Matches(msg, kbs.OpenEditor.Keybind):
 			m.stopTabCompletion()
 			return m, m.openEditor()
-		case keybind.Matches(msg, m.cfg.Keybinds.Composer.OpenFilePicker.Keybind):
+		case keybind.Matches(msg, kbs.OpenFilePicker.Keybind):
 			m.stopTabCompletion()
 			return m, m.pickFiles()
-		case keybind.Matches(msg, m.cfg.Keybinds.Composer.Cancel.Keybind):
+		case keybind.Matches(msg, kbs.Cancel.Keybind):
 			if m.mentionsListVisible() {
 				m.stopTabCompletion()
 				return m, nil
 			}
 			m.reset()
 			return m, nil
-		case keybind.Matches(msg, m.cfg.Keybinds.Composer.TabComplete.Keybind):
+		case keybind.Matches(msg, kbs.TabComplete.Keybind):
 			if m.mentionsListVisible() {
 				return m, m.tabComplete()
 			}
 			m.insert("\t")
 			return m, nil
-		case keybind.Matches(msg, m.cfg.Keybinds.Composer.ToggleReplyMention.Keybind):
+		case keybind.Matches(msg, kbs.ToggleReplyMention.Keybind):
 			m.toggleReplyMention()
 			return m, nil
-		case keybind.Matches(msg, m.cfg.Keybinds.Composer.Undo.Keybind):
+		case keybind.Matches(msg, kbs.Undo.Keybind):
 			m.undo()
 			return m, nil
 		}
