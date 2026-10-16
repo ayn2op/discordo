@@ -32,7 +32,7 @@ import (
 	"github.com/ayn2op/tview/textarea"
 	"github.com/gdamore/tcell/v3"
 	"github.com/rivo/uniseg"
-	"github.com/yuin/goldmark/ast"
+	"github.com/yuin/goldmark/v2/ast"
 	"golang.design/x/clipboard"
 )
 
@@ -363,15 +363,16 @@ func (m Model) processText(channel *discord.Channel, src []byte) string {
 
 	_ = ast.Walk(md.Parse(src), func(node ast.Node, enter bool) (ast.WalkStatus, error) {
 		switch node := node.(type) {
-		case *ast.CodeBlock, *ast.FencedCodeBlock:
+		case *ast.CodeBlock:
 			canMention = !enter
 		case *md.Inline:
 			if (node.Attr & md.AttrMonospace) != 0 {
 				canMention = !enter
 			}
 		case *ast.Text:
-			if enter && canMention {
-				ranges = append(ranges, [2]int{node.Segment.Start, node.Segment.Stop})
+			if enter && canMention && !node.Value.IsOwned() {
+				index := node.Value.Index()
+				ranges = append(ranges, [2]int{index.Start, index.Stop})
 			}
 		}
 		return ast.WalkContinue, nil

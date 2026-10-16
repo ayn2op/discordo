@@ -43,7 +43,7 @@ import (
 	"github.com/gdamore/tcell/v3"
 	"github.com/gdamore/tcell/v3/color"
 	"github.com/rivo/uniseg"
-	"github.com/yuin/goldmark/ast"
+	"github.com/yuin/goldmark/v2/ast"
 )
 
 type messageItem struct {
@@ -614,7 +614,7 @@ func (m Model) drawContent(builder *richtext.Builder, message discord.Message, b
 		startsWithCodeBlock := false
 		if root != nil {
 			if first := root.FirstChild(); first != nil {
-				_, startsWithCodeBlock = first.(*ast.FencedCodeBlock)
+				_, startsWithCodeBlock = first.(*ast.CodeBlock)
 			}
 		}
 
@@ -1239,9 +1239,9 @@ func urlsFromAST(node ast.Node, src []byte) []string {
 		if entering {
 			switch n := n.(type) {
 			case *ast.AutoLink:
-				urls = append(urls, string(n.URL(src)))
+				urls = append(urls, string(n.Destination.Bytes(src)))
 			case *ast.Link:
-				urls = append(urls, string(n.Destination))
+				urls = append(urls, string(n.Destination.Bytes(src)))
 			}
 		}
 

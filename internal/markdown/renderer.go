@@ -12,7 +12,7 @@ import (
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/richtext"
 	"github.com/gdamore/tcell/v3"
-	"github.com/yuin/goldmark/ast"
+	"github.com/yuin/goldmark/v2/ast"
 )
 
 type Renderer struct {
@@ -61,7 +61,7 @@ func (r *Renderer) RenderText(source []byte, node ast.Node, base tview.Style) ri
 			}
 		case *ast.Text:
 			if entering {
-				builder.Write(string(node.Segment.Value(source)), currentStyle())
+				builder.Write(string(node.Value.Bytes(source)), currentStyle())
 				switch {
 				case node.HardLineBreak():
 					builder.NewLine()
@@ -70,20 +70,20 @@ func (r *Renderer) RenderText(source []byte, node ast.Node, base tview.Style) ri
 					builder.NewLine()
 				}
 			}
-		case *ast.FencedCodeBlock:
+		case *ast.CodeBlock:
 			if entering {
 				builder.NewLine()
-				r.renderFencedCodeBlock(builder, source, node, currentStyle())
+				r.renderCodeBlock(builder, source, node, currentStyle())
 			}
 		case *ast.AutoLink:
 			if entering {
-				url := string(node.URL(source))
+				url := string(node.Destination.Bytes(source))
 				style := tview.MergeStyle(currentStyle(), theme.URLStyle.Style).Url(url)
 				builder.Write(url, style)
 			}
 		case *ast.Link:
 			if entering {
-				url := string(node.Destination)
+				url := string(node.Destination.Bytes(source))
 				linkDepth++
 				pushStyle(tview.MergeStyle(currentStyle(), theme.URLStyle.Style).Url(url))
 			} else {
@@ -145,15 +145,15 @@ func (r *Renderer) RenderText(source []byte, node ast.Node, base tview.Style) ri
 	return builder.Finish()
 }
 
-func (r *Renderer) renderFencedCodeBlock(builder *richtext.Builder, source []byte, node *ast.FencedCodeBlock, base tview.Style) {
+func (r *Renderer) renderCodeBlock(builder *richtext.Builder, source []byte, node *ast.CodeBlock, base tview.Style) {
 	var code strings.Builder
-	lines := node.Lines()
-	for i := range lines.Len() {
-		line := lines.At(i)
-		code.Write(line.Value(source))
+	lines := node.Value.Segments()
+	for _, line := range lines {
+		code.Write(line.Bytes(source))
 	}
 
-	language := strings.TrimSpace(string(node.Language(source)))
+	language, _ := node.Language(source)
+	language = strings.TrimSpace(language)
 	lexer := lexers.Get(language)
 	declaredLanguageSupported := lexer != nil
 
@@ -186,9 +186,8 @@ func (r *Renderer) renderFencedCodeBlock(builder *richtext.Builder, source []byt
 
 	iterator, err := lexer.Tokenise(nil, code.String())
 	if err != nil {
-		for i := range lines.Len() {
-			line := lines.At(i)
-			builder.Write(codeBlockIndent+string(line.Value(source)), base)
+		for _, line := range lines {
+			builder.Write(codeBlockIndent+string(line.Bytes(source)), base)
 		}
 		return
 	}
