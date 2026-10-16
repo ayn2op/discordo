@@ -234,7 +234,7 @@ func TestModelDrawLayout(t *testing.T) {
 	}
 }
 
-func TestModelGrouped(t *testing.T) {
+func TestModelShouldGroup(t *testing.T) {
 	start := time.Date(2026, 9, 1, 12, 0, 0, 0, time.UTC)
 	message := func(author string, after time.Duration, typ discord.MessageType) discord.Message {
 		return discord.Message{Type: typ, Author: discord.User{ID: 2, Username: author}, Timestamp: discord.NewTimestamp(start.Add(after)), Content: "hi"}
@@ -254,7 +254,7 @@ func TestModelGrouped(t *testing.T) {
 		{"after a system message", message("a", 0, discord.ChannelPinnedMessage), message("a", time.Minute, discord.DefaultMessage), false},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := newTestModel(t, testConfig(t)).grouped(tt.previous, tt.message); got != tt.want {
+			if got := newTestModel(t, testConfig(t)).shouldGroup(&tt.previous, tt.message); got != tt.want {
 				t.Fatalf("grouped = %v, want %v", got, tt.want)
 			}
 		})
@@ -263,7 +263,7 @@ func TestModelGrouped(t *testing.T) {
 	cfg := testConfig(t)
 	cfg.Timestamps.Enabled = false
 	ml := newTestModel(t, cfg)
-	if cfg.UI.MessagesList.Grouping.Enabled = false; ml.grouped(previous, previous) {
+	if cfg.UI.MessagesList.Grouping.Enabled = false; ml.shouldGroup(&previous, previous) {
 		t.Fatal("grouped while disabled")
 	}
 	cfg.UI.MessagesList.Grouping.Enabled = true

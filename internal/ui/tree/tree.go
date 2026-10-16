@@ -20,7 +20,16 @@ type ScrollMsg struct {
 }
 
 // New returns a boxed tree of the nodes under root in a viewport.
-func New(root, current *tree.Node, scrollState viewport.ScrollState, cfg *config.Config, theme config.TreeThemeConfig, graphics bool, kbs config.TreeKeybinds, focused bool, onChange, onSelect func(*tree.Node) tview.Msg) box.Widget {
+func New(
+	root, current *tree.Node,
+	scrollState viewport.ScrollState,
+	cfg *config.Config,
+	theme config.TreeThemeConfig,
+	graphics bool,
+	kbs config.TreeKeybinds,
+	focused bool,
+	onChange, onSelect func(*tree.Node) tview.Msg,
+) box.Widget {
 	set := cfg.UI.Border.NormalSet.BorderSet
 	if focused {
 		set = cfg.UI.Border.ActiveSet.BorderSet

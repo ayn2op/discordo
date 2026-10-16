@@ -216,12 +216,18 @@ func (m *Model) setMessages(messages []discord.Message) {
 
 func (m *Model) AddMessage(message discord.Message) tview.Cmd {
 	// Appending keeps the items before it as they are, so only the separator of a new day is added rather than all rebuilt.
-	last := len(m.items) - 1
-	separator := m.cfg.DateSeparator.Enabled && (last < 0 || !sameLocalDate(m.items[last].message.Timestamp, message.Timestamp))
+	var previous *discord.Message
+	if last := len(m.items) - 1; last >= 0 {
+		previous = &m.items[last].message
+	}
+
+	separator := m.shouldSeparate(previous, message)
 	if separator {
 		m.items = append(m.items, messageItem{separator: true})
 	}
-	m.items = append(m.items, messageItem{message: message, grouped: last >= 0 && !separator && m.grouped(m.items[last].message, message)})
+
+	grouped := !separator && m.shouldGroup(previous, message)
+	m.items = append(m.items, messageItem{message: message, grouped: grouped})
 	return m.loadPreviews()
 }
 
@@ -388,10 +394,10 @@ func (m Model) renderMessage(message discord.Message, baseStyle tview.Style, wid
 	return text
 }
 
-// grouped reports whether message is drawn under the header of previous, the message before it.
-func (m Model) grouped(previous, message discord.Message) bool {
+// shouldGroup reports whether message is drawn under the header of previous, the message before it, which is nil for the first.
+func (m Model) shouldGroup(previous *discord.Message, message discord.Message) bool {
 	cfg := m.cfg.UI.MessagesList.Grouping
-	return cfg.Enabled &&
+	return cfg.Enabled && previous != nil &&
 		// Replies and system messages start a group, as their header says more than who wrote them.
 		message.Type == discord.DefaultMessage &&
 		(previous.Type == discord.DefaultMessage || previous.Type == discord.InlinedReplyMessage) &&
@@ -404,17 +410,18 @@ func (m Model) grouped(previous, message discord.Message) bool {
 func (m *Model) rebuildItems() {
 	items := make([]messageItem, 0, len(m.items))
 	cursor, target := -1, -1
-	var previous discord.Message
+	var previous *discord.Message
 	for i, item := range m.items {
 		if item.separator {
 			continue
 		}
-		separator := m.cfg.DateSeparator.Enabled && (len(items) == 0 || !sameLocalDate(previous.Timestamp, item.message.Timestamp))
+
+		separator := m.shouldSeparate(previous, item.message)
 		if separator {
 			items = append(items, messageItem{separator: true})
 		}
 		// A message that joins or leaves a group is drawn again, with or without its header.
-		if grouped := len(items) > 0 && !separator && m.grouped(previous, item.message); grouped != item.grouped {
+		if grouped := !separator && m.shouldGroup(previous, item.message); grouped != item.grouped {
 			item.grouped, item.text = grouped, nil
 		}
 		if i == m.cursor {
@@ -424,11 +431,16 @@ func (m *Model) rebuildItems() {
 			target = len(items)
 		}
 		items = append(items, item)
-		previous = item.message
+		previous = &item.message
 	}
 	m.items = items
 	// The selected and target messages only move with the separators, so they are not scrolled to.
 	m.cursor, m.target = cursor, target
+}
+
+// shouldSeparate reports whether a date separator goes before message, as it is the first (previous is nil) or starts a new day.
+func (m Model) shouldSeparate(previous *discord.Message, message discord.Message) bool {
+	return m.cfg.DateSeparator.Enabled && (previous == nil || !sameLocalDate(previous.Timestamp, message.Timestamp))
 }
 
 func sameLocalDate(a discord.Timestamp, b discord.Timestamp) bool {

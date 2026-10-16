@@ -58,7 +58,11 @@ func previewSources(message discord.Message) []previewSource {
 
 // cols returns the preview's width in cells of cellWidth by cellHeight pixels: its own width at most, within the preview box.
 func (s previewSource) cols(cellWidth, cellHeight uint) int {
-	return int(max(min((s.width+cellWidth-1)/cellWidth, previewWidth, s.width*previewHeight*cellHeight/(s.height*cellWidth)), 1))
+	// The columns its own width takes, rounded up, so it is not scaled up.
+	own := (s.width + cellWidth - 1) / cellWidth
+	// The columns at which its height fills the box, so a tall image is not cut off.
+	tall := s.width * previewHeight * cellHeight / (s.height * cellWidth)
+	return int(max(min(own, previewWidth, tall), 1))
 }
 
 // previewCell returns the size of a cell in image pixels: the terminal's for kitty, and one pixel by two for half blocks.

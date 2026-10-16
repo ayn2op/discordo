@@ -223,7 +223,8 @@ func (m Model) createGuildNode(parent *tree.Node, guild discord.Guild) {
 }
 
 func (m Model) createChannelNode(parent *tree.Node, channel discord.Channel) {
-	if channel.Type != discord.DirectMessage && channel.Type != discord.GroupDM && channel.Type != discord.GuildCategory && !m.state.HasPermissions(channel.ID, discord.PermissionViewChannel) {
+	needsViewPermission := !slices.Contains([]discord.ChannelType{discord.DirectMessage, discord.GroupDM, discord.GuildCategory}, channel.Type)
+	if needsViewPermission && !m.state.HasPermissions(channel.ID, discord.PermissionViewChannel) {
 		return
 	}
 
@@ -372,11 +373,14 @@ func (m Model) voiceChannel(node *tree.Node) *discord.Channel {
 
 // joinable returns why the voice channel of node cannot be joined, or nil if it can be.
 func (m Model) joinable(node *tree.Node, channel discord.Channel) error {
+	// The users in the channel are the children of its node.
+	atUserLimit := channel.VoiceUserLimit > 0 && len(node.Children()) >= int(channel.VoiceUserLimit)
+
 	switch {
 	case !m.state.HasPermissions(channel.ID, discord.PermissionConnect):
 		return errors.New("you are not permitted to connect")
-	// Discord does not answer a request to join a full voice channel.
-	case channel.VoiceUserLimit > 0 && len(node.Children()) >= int(channel.VoiceUserLimit) && !m.state.HasPermissions(channel.ID, discord.PermissionMoveMembers):
+	// Discord does not answer a request to join a full voice channel, unless it is from someone who can move members.
+	case atUserLimit && !m.state.HasPermissions(channel.ID, discord.PermissionMoveMembers):
 		return errors.New("it is full")
 	}
 

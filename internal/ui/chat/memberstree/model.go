@@ -87,7 +87,19 @@ func (m *Model) SetChannel(channel *discord.Channel) tview.Cmd {
 func (m Model) View(focused bool) tview.Widget {
 	onChange := func(current *tree.Node) tview.Msg { return Msg{current} }
 	onSelect := func(n *tree.Node) tview.Msg { return SelectedMsg{Node: n} }
-	return uitree.New(m.root, m.current, m.scrollState, m.cfg, m.cfg.Theme.MembersTree, m.cfg.UI.MembersTree.Graphics, m.cfg.Keybinds.MembersTree, focused, onChange, onSelect).Title("Members")
+	return uitree.New(
+		m.root,
+		m.current,
+		m.scrollState,
+		m.cfg,
+		m.cfg.Theme.MembersTree,
+		m.cfg.UI.MembersTree.Graphics,
+		m.cfg.Keybinds.MembersTree,
+		focused,
+		onChange,
+		onSelect,
+	).
+		Title("Members")
 }
 
 // setCurrentNode selects node and scrolls to it.
@@ -202,11 +214,11 @@ func (m Model) addRecipients(recipients []discord.User) {
 	if me, err := m.state.Cabinet.Me(); err == nil {
 		recipients = append(recipients, *me)
 	}
+	rank := func(user discord.User) int { return statusRank(m.status(discord.NullGuildID, user.ID)) }
+	name := func(user discord.User) string { return strings.ToLower(user.DisplayOrUsername()) }
+	// By status, online first, then by name.
 	slices.SortFunc(recipients, func(a, b discord.User) int {
-		if c := cmp.Compare(statusRank(m.status(discord.NullGuildID, a.ID)), statusRank(m.status(discord.NullGuildID, b.ID))); c != 0 {
-			return c
-		}
-		return strings.Compare(strings.ToLower(a.DisplayOrUsername()), strings.ToLower(b.DisplayOrUsername()))
+		return cmp.Or(cmp.Compare(rank(a), rank(b)), strings.Compare(name(a), name(b)))
 	})
 
 	group := m.addGroup(discord.NullGuildID, gateway.GuildMemberListGroup{ID: "members", Count: uint64(len(recipients))})

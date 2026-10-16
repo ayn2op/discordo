@@ -187,7 +187,16 @@ func (m Model) footer() string {
 // isBound reports whether key is one of the composer's keybinds.
 func (m Model) isBound(key tview.KeyMsg) bool {
 	k := m.cfg.Keybinds.Composer
-	if keybind.Matches(key, k.Paste.Keybind, k.Send.Keybind, k.OpenEditor.Keybind, k.OpenFilePicker.Keybind, k.Cancel.Keybind, k.TabComplete.Keybind, k.ToggleReplyMention.Keybind, k.Undo.Keybind) {
+	if keybind.Matches(key,
+		k.Paste.Keybind,
+		k.Send.Keybind,
+		k.OpenEditor.Keybind,
+		k.OpenFilePicker.Keybind,
+		k.Cancel.Keybind,
+		k.TabComplete.Keybind,
+		k.ToggleReplyMention.Keybind,
+		k.Undo.Keybind,
+	) {
 		return true
 	}
 	return keybind.Matches(key, k.EditLast.Keybind) && m.canEditLastMessage()
