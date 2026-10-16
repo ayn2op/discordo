@@ -216,7 +216,11 @@ type (
 func defaultUI() UIConfig {
 	left := TitleUIConfig{AlignmentWrapper{tview.AlignmentLeft}}
 	round := BorderSetWrapper{tview.BorderSetRound()}
-	attachments := AttachmentsUIConfig{ShowLinks: true, AllowedMIMETypes: MIMETypes{"image/*", "video/*"}, Preview: true}
+	attachments := AttachmentsUIConfig{
+		ShowLinks:        true,
+		AllowedMIMETypes: MIMETypes{"image/*", "video/*", "audio/*"},
+		Preview:          true,
+	}
 	return UIConfig{
 		Tabs: TabsUIConfig{
 			Alignment:       AlignmentWrapper{tview.AlignmentCenter},
