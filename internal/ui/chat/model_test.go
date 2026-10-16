@@ -74,7 +74,7 @@ func TestModelAddMessageOrNotify(t *testing.T) {
 			m.cfg.UI.MessagesList.Avatars.Preview = false
 			m.setSelectedChannel(&discord.Channel{ID: 1})
 			*m, _ = m.Update(tcell.NewEventFocus(tt.focused))
-			cmd := m.addMessageOrNotify(&gateway.MessageCreateEvent{Message: discord.Message{ID: 1, ChannelID: 1}})
+			cmd := m.addMessageOrNotify(&gateway.MessageCreateEvent{ID: 1, ChannelID: 1})
 			if got := cmd != nil; got != tt.want {
 				t.Fatalf("notified = %v, want %v", got, tt.want)
 			}
