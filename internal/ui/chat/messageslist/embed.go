@@ -13,6 +13,12 @@ import (
 	"github.com/yuin/goldmark/v2/ast"
 )
 
+// embedPrefix is drawn before each line of an embed, in the embed's color.
+const embedPrefix = "  ▎ "
+
+// embedPrefixWidth is how many cells embedPrefix takes.
+var embedPrefixWidth = uniseg.StringWidth(embedPrefix)
+
 func (m Model) drawEmbeds(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, width int, contentRoot ast.Node, contentSource []byte) {
 	if len(message.Embeds) == 0 {
 		return
@@ -32,11 +38,9 @@ func (m Model) drawEmbeds(builder *richtext.Builder, message discord.Message, ba
 	}
 
 	lineStyles := embedLineStyles(baseStyle, m.cfg.Theme.MessagesList.Embeds)
-	defaultBarStyle := baseStyle.Dim(true)
-	prefixText := "  ▎ "
-	prefixWidth := uniseg.StringWidth(prefixText)
+	defaultPrefixStyle := baseStyle.Dim(true)
 	// Wrap against the list's width, so the message is rendered again when it changes.
-	wrapWidth := max(width-prefixWidth, 1)
+	wrapWidth := max(width-embedPrefixWidth, 1)
 
 	for _, embed := range message.Embeds {
 		lines := embedLines(embed, contentURLs)
@@ -45,11 +49,11 @@ func (m Model) drawEmbeds(builder *richtext.Builder, message discord.Message, ba
 		}
 
 		embedText := make(richtext.Text, 0, len(lines)*2)
-		barStyle := defaultBarStyle
+		prefixStyle := defaultPrefixStyle
 		if embed.Color != discord.NullColor && embed.Color != 0 {
-			barStyle = barStyle.Foreground(tcell.NewHexColor(int32(embed.Color)))
+			prefixStyle = prefixStyle.Foreground(tcell.NewHexColor(int32(embed.Color)))
 		}
-		prefix := richtext.NewSegment(prefixText, barStyle)
+		prefix := richtext.NewSegment(embedPrefix, prefixStyle)
 		builder.NewLine()
 		for _, line := range lines {
 			if strings.TrimSpace(line.Text) == "" {
@@ -64,7 +68,7 @@ func (m Model) drawEmbeds(builder *richtext.Builder, message discord.Message, ba
 				if line.URL != "" {
 					renderedLine = lineWithURL(renderedLine, line.URL)
 				}
-				// Prefix must be applied after wrapping so every visual line keeps the embed bar marker ("▎"), not only the first logical line.
+				// The prefix is added after wrapping, so every visual line has it, not only the first.
 				for _, wrapped := range richtext.Wrap(renderedLine, wrapWidth) {
 					embedText = append(embedText, append(richtext.Line{prefix}, wrapped...))
 				}
@@ -95,7 +99,6 @@ type embedLine struct {
 type embedLineKind uint8
 
 const (
-	// Keep this ordering stable: drawEmbeds indexes precomputed style slots by this enum.
 	embedLineProvider embedLineKind = iota
 	embedLineAuthor
 	embedLineTitle
@@ -104,19 +107,22 @@ const (
 	embedLineFieldValue
 	embedLineFooter
 	embedLineURL
+
+	// embedLineKinds is how many kinds there are.
+	embedLineKinds
 )
 
-func embedLineStyles(baseStyle tview.Style, theme config.MessagesListEmbedsThemeConfig) [8]tview.Style {
-	styles := [8]tview.Style{}
-	styles[embedLineProvider] = tview.MergeStyle(baseStyle, theme.ProviderStyle.Style)
-	styles[embedLineAuthor] = tview.MergeStyle(baseStyle, theme.AuthorStyle.Style)
-	styles[embedLineTitle] = tview.MergeStyle(baseStyle, theme.TitleStyle.Style)
-	styles[embedLineDescription] = tview.MergeStyle(baseStyle, theme.DescriptionStyle.Style)
-	styles[embedLineFieldName] = tview.MergeStyle(baseStyle, theme.FieldNameStyle.Style)
-	styles[embedLineFieldValue] = tview.MergeStyle(baseStyle, theme.FieldValueStyle.Style)
-	styles[embedLineFooter] = tview.MergeStyle(baseStyle, theme.FooterStyle.Style)
-	styles[embedLineURL] = tview.MergeStyle(baseStyle, theme.URLStyle.Style)
-	return styles
+func embedLineStyles(baseStyle tview.Style, theme config.MessagesListEmbedsThemeConfig) [embedLineKinds]tview.Style {
+	return [embedLineKinds]tview.Style{
+		embedLineProvider:    tview.MergeStyle(baseStyle, theme.ProviderStyle.Style),
+		embedLineAuthor:      tview.MergeStyle(baseStyle, theme.AuthorStyle.Style),
+		embedLineTitle:       tview.MergeStyle(baseStyle, theme.TitleStyle.Style),
+		embedLineDescription: tview.MergeStyle(baseStyle, theme.DescriptionStyle.Style),
+		embedLineFieldName:   tview.MergeStyle(baseStyle, theme.FieldNameStyle.Style),
+		embedLineFieldValue:  tview.MergeStyle(baseStyle, theme.FieldValueStyle.Style),
+		embedLineFooter:      tview.MergeStyle(baseStyle, theme.FooterStyle.Style),
+		embedLineURL:         tview.MergeStyle(baseStyle, theme.URLStyle.Style),
+	}
 }
 
 type embedLineDedupKey struct {

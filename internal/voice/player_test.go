@@ -16,7 +16,7 @@ func TestPlayerSeek(t *testing.T) {
 		const seconds = 10
 
 		var audio bytes.Buffer
-		if err := oggopus.EncodeInterleaved(&audio, oggopus.Config{SampleRate: sampleRate, Channels: 1}, make([]byte, seconds*sampleRate*2)); err != nil {
+		if err := oggopus.EncodeInterleaved(&audio, oggopus.Config{SampleRate: sampleRate, Channels: 1}, make([]byte, seconds*sampleRate*sampleBytes)); err != nil {
 			t.Fatal(err)
 		}
 

@@ -13,9 +13,11 @@ import (
 const (
 	sampleRate = 48000
 	channels   = 2
+	// sampleBytes is the size of one 16-bit PCM sample of one channel.
+	sampleBytes = 2
 	// frameSamples and frameBytes are the sizes of 20ms of PCM.
 	frameSamples = sampleRate / 50 * channels
-	frameBytes   = frameSamples * 2
+	frameBytes   = frameSamples * sampleBytes
 
 	// cushion is how much is buffered before it is played, so that packets arriving unevenly do not make gaps.
 	cushion = 3 * frameBytes

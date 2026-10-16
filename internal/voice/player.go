@@ -135,8 +135,8 @@ func (p *Player) seek(position time.Duration) error {
 		return err
 	}
 
-	// The samples between first and position are decoded and dropped, at 2 bytes each per channel.
-	skip := (sample - first) * int64(decoder.Info().Channels) * 2
+	// The samples between first and position are decoded and dropped.
+	skip := (sample - first) * int64(decoder.Info().Channels) * sampleBytes
 	// Nothing is left to play if position is past the end.
 	if _, err := io.CopyN(io.Discard, decoder, skip); err != nil && !errors.Is(err, io.EOF) {
 		return err
