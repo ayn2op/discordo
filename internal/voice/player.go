@@ -125,7 +125,7 @@ func (p *Player) seek(position time.Duration) error {
 		offset += size
 	}
 
-	decoder, err := oggopus.NewDecoder(io.MultiReader(bytes.NewReader(p.audio[:headers]), bytes.NewReader(p.audio[min(start, len(p.audio)):])))
+	decoder, err := oggopus.NewDecoder(io.MultiReader(bytes.NewReader(p.audio[:min(headers, len(p.audio))]), bytes.NewReader(p.audio[min(start, len(p.audio)):])))
 	if err != nil {
 		return err
 	}
