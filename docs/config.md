@@ -392,7 +392,7 @@ Default: `true`
 Attachment MIME types that can be opened or downloaded without confirmation.
 Exact types and wildcards such as "image/*" are supported.
 
-Default: `["image/*", "video/*"]`
+Default: `["image/*", "video/*", "audio/*"]`
 
 #### ui.messages_list.attachments.preview
 
