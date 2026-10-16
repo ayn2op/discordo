@@ -197,6 +197,12 @@ func (m Model) guildNodeStyle(guildID discord.GuildID) tview.Style {
 }
 
 func (m Model) channelNodeStyle(channel discord.Channel) tview.Style {
+	if isThread(channel.Type) && channel.ParentID.IsValid() {
+		if parent, err := m.state.Cabinet.Channel(channel.ParentID); err == nil {
+			return unreadStyle(m.state.ChannelIsUnread(parent.ID, ningen.UnreadOpts{IncludeMutedCategories: true}))
+		}
+	}
+
 	unread := unreadStyle(m.state.ChannelIsUnread(channel.ID, ningen.UnreadOpts{IncludeMutedCategories: true}))
 	if channel.Type != discord.DirectMessage || len(channel.DMRecipients) != 1 {
 		return unread
@@ -223,7 +229,11 @@ func (m Model) createGuildNode(parent *tree.Node, guild discord.Guild) {
 }
 
 func (m Model) createChannelNode(parent *tree.Node, channel discord.Channel) {
-	if channel.Type != discord.DirectMessage && channel.Type != discord.GroupDM && channel.Type != discord.GuildCategory && !m.state.HasPermissions(channel.ID, discord.PermissionViewChannel) {
+	if isThread(channel.Type) {
+		if channel.ThreadMetadata != nil && channel.ThreadMetadata.Archived {
+			return
+		}
+	} else if channel.Type != discord.DirectMessage && channel.Type != discord.GroupDM && channel.Type != discord.GuildCategory && !m.state.HasPermissions(channel.ID, discord.PermissionViewChannel) {
 		return
 	}
 
@@ -425,9 +435,8 @@ func voiceCmd(what string, f func() error) tview.Cmd {
 	}
 }
 
-// expandable reports whether selecting node expands or collapses it, which the members of a voice channel do not make it.
 func (m Model) expandable(node *tree.Node) bool {
-	return len(node.Children()) > 0 && m.voiceChannel(node) == nil
+	return node.Expandable() && len(node.Children()) > 0
 }
 
 func isVoice(t discord.ChannelType) bool {
@@ -442,12 +451,6 @@ func (m Model) setNodeLineStyle(node *tree.Node, style tview.Style) {
 }
 
 func (m Model) createChannelNodes(node *tree.Node, channels []discord.Channel) {
-	// Preserve exact ordering semantics:
-	// 1) top-level non-categories (in input order),
-	// 2) categories that have at least one child in the source slice (in input order),
-	// 3) parented channels under already-created categories (in input order).
-	//
-	// We precompute parent presence once to avoid the O(n^2) category-child scan.
 	hasChildByParentID := make(map[discord.ChannelID]struct{}, len(channels))
 	for _, channel := range channels {
 		if channel.ParentID.IsValid() {
@@ -470,10 +473,18 @@ func (m Model) createChannelNodes(node *tree.Node, channels []discord.Channel) {
 	}
 
 	for _, channel := range channels {
-		if channel.ParentID.IsValid() {
+		if channel.ParentID.IsValid() && !isThread(channel.Type) {
 			// Parent categories are inserted earlier in this function, so this lookup is O(1) and avoids per-channel subtree walks.
 			parent := m.nodes[discord.Snowflake(channel.ParentID)]
 			if parent != nil {
+				m.createChannelNode(parent, channel)
+			}
+		}
+	}
+
+	for _, channel := range channels {
+		if isThread(channel.Type) && channel.ParentID.IsValid() {
+			if parent := m.nodes[discord.Snowflake(channel.ParentID)]; parent != nil {
 				m.createChannelNode(parent, channel)
 			}
 		}
@@ -529,6 +540,18 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		m.styleVoiceMembers()
 		return m, m.Init()
 
+	case *gateway.ThreadCreateEvent:
+		m.upsertThread(msg.Channel)
+		return m, nil
+	case *gateway.ThreadUpdateEvent:
+		m.upsertThread(msg.Channel)
+		return m, nil
+	case *gateway.ThreadDeleteEvent:
+		m.removeThread(msg.ID, msg.ParentID)
+		return m, nil
+	case *gateway.ThreadListSyncEvent:
+		m.syncThreads(msg)
+		return m, nil
 	case NavigateMsg:
 		return m, m.navigate(msg.ChannelID)
 	case Msg:
