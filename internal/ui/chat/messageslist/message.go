@@ -13,6 +13,7 @@ import (
 	"github.com/ayn2op/discordo/internal/markdown"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/layout"
+	"github.com/ayn2op/tview/row"
 	"github.com/ayn2op/tview/text"
 	"github.com/gdamore/tcell/v3"
 	"github.com/gdamore/tcell/v3/color"
@@ -89,7 +90,7 @@ func (d dateSeparator) Draw(screen tview.Screen, area tview.Rectangle) {
 		fill := area.Width - labelWidth
 		line = strings.Repeat(d.fill, fill/2) + label + strings.Repeat(d.fill, fill-fill/2)
 	}
-	tview.Print(screen, line, area.X, area.Y, area.Width, tview.AlignmentLeft, d.style)
+	tview.Print(screen, line, area.X, area.Y, area.Width, tview.HorizontalAlignmentLeft, d.style)
 }
 
 func (dateSeparator) Handle(msg tview.Msg, area tview.Rectangle) tview.Msg { return msg }
@@ -134,30 +135,42 @@ func (m Model) writeMessage(builder *markdown.Builder, message discord.Message, 
 	default:
 		m.drawLayout(builder, message, baseStyle, false, nil)
 	}
-	m.drawReactions(builder, message.Reactions, baseStyle)
 }
 
-func (m Model) drawReactions(builder *markdown.Builder, reactions []discord.Reaction, baseStyle tview.Style) {
+// reactionsView returns the reactions wrapped to the width of the message, with the image of each custom emoji that has one before its name, or nil if there are none.
+func (m Model) reactionsView(reactions []discord.Reaction) tview.Widget {
 	if len(reactions) == 0 {
-		return
+		return nil
 	}
 
-	builder.NewLine()
+	theme, cfg := m.cfg.Theme.MessagesList, m.cfg.UI.MessagesList.Reactions
+	separatorStyle := tview.MergeStyle(theme.MessageStyle.Style, theme.ReactionStyle.Style)
+	chips := make([]tview.Widget, len(reactions))
 	for i, reaction := range reactions {
-		if i > 0 {
-			builder.Write("  ", baseStyle)
+		style := theme.ReactionStyle.Style
+		if reaction.Me {
+			style = theme.OwnReactionStyle.Style
 		}
+		style = tview.MergeStyle(theme.MessageStyle.Style, style)
 
 		name := reaction.Emoji.Name
-		if reaction.Emoji.IsCustom() {
+		if reaction.Emoji.IsCustom() && cfg.ColonsAroundName {
 			name = ":" + name + ":"
 		}
-		style := m.cfg.Theme.MessagesList.ReactionStyle.Style
-		if reaction.Me {
-			style = m.cfg.Theme.MessagesList.OwnReactionStyle.Style
+
+		spans := []text.Span{{Text: name + " " + strconv.Itoa(reaction.Count), Style: style}}
+		// Each reaction but the last ends with the separator, so a line never starts with one.
+		if i < len(reactions)-1 {
+			spans = append(spans, text.Span{Text: cfg.Separator, Style: separatorStyle})
 		}
-		builder.Write(name+" "+strconv.Itoa(reaction.Count), tview.MergeStyle(baseStyle, style))
+
+		var chip tview.Widget = text.Rich(spans...)
+		if emoji, ok := m.images[emojiURL(reaction.Emoji)]; ok {
+			chip = row.New(emoji, chip).Spacing(1).Width(layout.Shrink).Height(layout.Shrink)
+		}
+		chips[i] = chip
 	}
+	return row.New(chips...).Height(layout.Shrink).Wrap()
 }
 
 func (m Model) formatTimestamp(ts discord.Timestamp) string {

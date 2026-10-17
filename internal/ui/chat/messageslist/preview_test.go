@@ -1,6 +1,7 @@
 package messageslist
 
 import (
+	"image"
 	"slices"
 	"testing"
 
@@ -55,4 +56,24 @@ func TestPreviewSourceCols(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSquare(t *testing.T) {
+	t.Run("square", func(t *testing.T) {
+		img := image.NewAlpha(image.Rect(0, 0, 20, 20))
+		if got := square(img); got != image.Image(img) {
+			t.Fatal("square image was copied")
+		}
+	})
+	t.Run("tall", func(t *testing.T) {
+		img := image.NewAlpha(image.Rect(0, 0, 10, 30))
+		img.Pix[0] = 0xff
+		got := square(img)
+		if got.Bounds() != image.Rect(0, 0, 30, 30) {
+			t.Fatalf("bounds = %v, want 30 by 30", got.Bounds())
+		}
+		if _, _, _, a := got.At(10, 0).RGBA(); a == 0 {
+			t.Fatal("image is not centered")
+		}
+	})
 }

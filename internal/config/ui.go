@@ -37,10 +37,10 @@ func (e enum[T]) text(value T) ([]byte, error) {
 var (
 	boxDrawing = scrollbar.SymbolSet{Track: "│", Thumb: "█", Begin: "▲", End: "▼"}
 
-	alignments = enum[tview.Alignment]{
-		{"left", tview.AlignmentLeft},
-		{"center", tview.AlignmentCenter},
-		{"right", tview.AlignmentRight},
+	alignments = enum[tview.HorizontalAlignment]{
+		{"left", tview.HorizontalAlignmentLeft},
+		{"center", tview.HorizontalAlignmentCenter},
+		{"right", tview.HorizontalAlignmentRight},
 	}
 	borderSets = enum[tview.BorderSet]{
 		{"hidden", tview.BorderSetHidden()},
@@ -67,14 +67,16 @@ var (
 	}
 )
 
-type AlignmentWrapper struct{ tview.Alignment }
+type AlignmentWrapper struct{ tview.HorizontalAlignment }
 
 func (aw *AlignmentWrapper) UnmarshalText(text []byte) (err error) {
-	aw.Alignment, err = alignments.parse(string(text))
+	aw.HorizontalAlignment, err = alignments.parse(string(text))
 	return err
 }
 
-func (aw AlignmentWrapper) MarshalText() ([]byte, error) { return alignments.text(aw.Alignment) }
+func (aw AlignmentWrapper) MarshalText() ([]byte, error) {
+	return alignments.text(aw.HorizontalAlignment)
+}
 
 type BorderSetWrapper struct{ tview.BorderSet }
 
@@ -181,6 +183,14 @@ type (
 		Attachments AttachmentsUIConfig `toml:"attachments"`
 		Avatars     AvatarsUIConfig     `toml:"avatars"`
 		Grouping    GroupingUIConfig    `toml:"grouping"`
+		Reactions   ReactionsUIConfig   `toml:"reactions"`
+	}
+
+	ReactionsUIConfig struct {
+		// The text between reactions.
+		Separator string `toml:"separator"`
+		// Whether the names of custom emoji are shown between colons, as in `:name:`.
+		ColonsAroundName bool `toml:"colons_around_name"`
 	}
 
 	// GroupingUIConfig shows consecutive messages by the same author under one header.
@@ -214,7 +224,7 @@ type (
 )
 
 func defaultUI() UIConfig {
-	left := TitleUIConfig{AlignmentWrapper{tview.AlignmentLeft}}
+	left := TitleUIConfig{AlignmentWrapper{tview.HorizontalAlignmentLeft}}
 	round := BorderSetWrapper{tview.BorderSetRound()}
 	attachments := AttachmentsUIConfig{
 		ShowLinks:        true,
@@ -223,7 +233,7 @@ func defaultUI() UIConfig {
 	}
 	return UIConfig{
 		Tabs: TabsUIConfig{
-			Alignment:       AlignmentWrapper{tview.AlignmentCenter},
+			Alignment:       AlignmentWrapper{tview.HorizontalAlignmentCenter},
 			Separator:       "│",
 			Padding:         [2]string{" ", " "},
 			Arrows:          [2]string{"◀", "▶"},
@@ -246,6 +256,7 @@ func defaultUI() UIConfig {
 			Attachments:        attachments,
 			Avatars:            AvatarsUIConfig{Preview: true, Height: 2},
 			Grouping:           GroupingUIConfig{Enabled: true, Interval: 10 * time.Minute},
+			Reactions:          ReactionsUIConfig{Separator: " • "},
 		},
 		MentionsList: MentionsListUIConfig{MinWidth: 20},
 	}

@@ -424,6 +424,20 @@ The longest time between two messages by the same author for them to share a hea
 
 Default: `"10m0s"`
 
+### ui.messages_list.reactions
+
+#### ui.messages_list.reactions.separator
+
+The text between reactions.
+
+Default: `" • "`
+
+#### ui.messages_list.reactions.colons_around_name
+
+Whether the names of custom emoji are shown between colons, as in `:name:`.
+
+Default: `false`
+
 ## ui.mentions_list
 
 The list of mention suggestions above the composer. Its width and height are capped to the available space.

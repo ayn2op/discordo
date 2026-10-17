@@ -2,6 +2,7 @@ package messageslist
 
 import (
 	"image"
+	"image/draw"
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
@@ -86,6 +87,10 @@ func (m Model) loadPreviews() tview.Cmd {
 		}
 
 		cmds = append(cmds, m.loadAvatar(item.message.Author))
+		for _, reaction := range item.message.Reactions {
+			cmds = append(cmds, m.loadEmoji(reaction.Emoji))
+		}
+
 		if !m.cfg.UI.MessagesList.Attachments.Preview {
 			continue
 		}
@@ -116,19 +121,53 @@ func avatarURL(user discord.User) discord.URL {
 }
 
 func (m Model) loadAvatar(user discord.User) tview.Cmd {
-	url, cfg := avatarURL(user), m.cfg.UI.MessagesList.Avatars
-	if _, ok := m.avatars[url]; ok || !cfg.Preview || cfg.Height == 0 || m.blocked(user) {
+	cfg := m.cfg.UI.MessagesList.Avatars
+	if !cfg.Preview || cfg.Height == 0 || m.blocked(user) {
+		return nil
+	}
+	return m.loadImage(avatarURL(user), uint(cfg.Height))
+}
+
+func emojiURL(emoji discord.Emoji) discord.URL {
+	return emoji.EmojiURLWithType(discord.PNGImage)
+}
+
+// loadEmoji loads the image of a custom emoji, a row tall.
+func (m Model) loadEmoji(emoji discord.Emoji) tview.Cmd {
+	if !emoji.IsCustom() {
+		return nil
+	}
+	return m.loadImage(emojiURL(emoji), 1)
+}
+
+// loadImage loads the image at url in a square rows tall, unless it is loaded already.
+func (m Model) loadImage(url discord.URL, rows uint) tview.Cmd {
+	if _, ok := m.images[url]; ok {
 		return nil
 	}
 
 	cellWidth, cellHeight := m.previewCell()
-	cols := uint(cfg.Height) * cellHeight / cellWidth
+	cols := rows * cellHeight / cellWidth
 	bounds := image.Rect(0, 0, int(cols*cellWidth), int(cols*cellWidth))
 	widget := func(img image.Image) tviewimage.Widget {
-		return tviewimage.New(img).Width(int(cols)).CellSize(int(cellWidth), int(cellHeight))
+		return tviewimage.New(square(img)).Width(int(cols)).CellSize(int(cellWidth), int(cellHeight))
 	}
-	m.avatars[url] = widget(image.NewAlpha(bounds))
+	m.images[url] = widget(image.NewAlpha(bounds))
 	return m.loadPreview(0, url, bounds, widget)
+}
+
+// square returns img centered on a transparent square, so an image of any shape takes the square's cells.
+func square(img image.Image) image.Image {
+	b := img.Bounds()
+	if b.Dx() == b.Dy() {
+		return img
+	}
+
+	side := max(b.Dx(), b.Dy())
+	dst := image.NewNRGBA(image.Rect(0, 0, side, side))
+	at := image.Pt((side-b.Dx())/2, (side-b.Dy())/2)
+	draw.Draw(dst, b.Sub(b.Min).Add(at), img, b.Min, draw.Src)
+	return dst
 }
 
 // loadPreview yields an empty preview if loading fails.

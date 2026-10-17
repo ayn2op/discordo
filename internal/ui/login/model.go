@@ -72,7 +72,7 @@ func (m Model) View() tview.Widget {
 func (m Model) tabs() tabs.Widget {
 	cfg := m.cfg.UI.Tabs
 	return tabs.New(m.password.Label(), m.qr.Label(), m.token.Label()).
-		Alignment(cfg.Alignment.Alignment).
+		Alignment(cfg.Alignment.HorizontalAlignment).
 		Wrap(cfg.Wrap).
 		Separator(cfg.Separator).
 		Padding(cfg.Padding[0], cfg.Padding[1]).

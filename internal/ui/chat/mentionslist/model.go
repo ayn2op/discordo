@@ -121,7 +121,7 @@ func (r row) Draw(screen tview.Screen, area tview.Rectangle) {
 	for x := area.X; x < area.X+area.Width; x++ {
 		screen.Put(x, area.Y, " ", r.style)
 	}
-	tview.Print(screen, r.text, area.X, area.Y, area.Width, tview.AlignmentLeft, r.style)
+	tview.Print(screen, r.text, area.X, area.Y, area.Width, tview.HorizontalAlignmentLeft, r.style)
 }
 
 func (row) Handle(msg tview.Msg, area tview.Rectangle) tview.Msg { return msg }

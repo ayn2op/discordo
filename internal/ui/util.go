@@ -18,8 +18,8 @@ func Box(child tview.Widget, cfg *config.Config, focused bool) box.Widget {
 	padding := ui.Border.Padding
 	b := box.New(child).
 		Padding(padding[0], padding[1], padding[2], padding[3]).
-		TitleAlignment(ui.Title.Alignment.Alignment).
-		FooterAlignment(ui.Footer.Alignment.Alignment)
+		TitleAlignment(ui.Title.Alignment.HorizontalAlignment).
+		FooterAlignment(ui.Footer.Alignment.HorizontalAlignment)
 	if ui.Border.Enabled {
 		b = b.Borders(tview.BordersAll)
 	}

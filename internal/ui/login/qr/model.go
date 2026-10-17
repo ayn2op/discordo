@@ -2,12 +2,12 @@ package qr
 
 import (
 	"crypto/rsa"
-	"github.com/ayn2op/tview/layout"
 	"strings"
 	"time"
 
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/center"
+	"github.com/ayn2op/tview/layout"
 	"github.com/ayn2op/tview/text"
 	"github.com/ayn2op/tview/viewport"
 	"github.com/gdamore/tcell/v3"
@@ -131,7 +131,7 @@ func halfBlock(top, bottom bool) rune {
 func (m Model) View() tview.Widget {
 	code := m.code()
 	return center.New(
-		viewport.New(text.New(code).Wrapping(text.WrappingNone).AlignX(tview.AlignmentCenter), m.scrollState).
+		viewport.New(text.New(code).Wrapping(text.WrappingNone).AlignX(tview.HorizontalAlignmentCenter), m.scrollState).
 			Height(layout.Shrink).
 			Focused(true).
 			OnChange(func(s *viewport.ScrollState) tview.Msg { return scrollMsg(*s) }),

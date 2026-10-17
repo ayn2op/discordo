@@ -116,15 +116,15 @@ func (m *Model) applyEvent(event gateway.Event) tview.Cmd {
 	case *gateway.MessageDeleteEvent:
 		m.messagesList.DeleteMessage(event.ChannelID, event.ID)
 	case *gateway.MessageReactionAddEvent:
-		m.messagesList.RefreshMessage(event.ChannelID, event.MessageID)
+		return m.messagesList.RefreshMessage(event.ChannelID, event.MessageID)
 	case *gateway.MessageReactionAddManyEvent:
-		m.messagesList.RefreshMessage(event.ChannelID, event.MessageID)
+		return m.messagesList.RefreshMessage(event.ChannelID, event.MessageID)
 	case *gateway.MessageReactionRemoveEvent:
-		m.messagesList.RefreshMessage(event.ChannelID, event.MessageID)
+		return m.messagesList.RefreshMessage(event.ChannelID, event.MessageID)
 	case *gateway.MessageReactionRemoveAllEvent:
-		m.messagesList.RefreshMessage(event.ChannelID, event.MessageID)
+		return m.messagesList.RefreshMessage(event.ChannelID, event.MessageID)
 	case *gateway.MessageReactionRemoveEmojiEvent:
-		m.messagesList.RefreshMessage(event.ChannelID, event.MessageID)
+		return m.messagesList.RefreshMessage(event.ChannelID, event.MessageID)
 
 	case *gateway.GuildMembersChunkEvent:
 		return m.refreshMemberNames(event)

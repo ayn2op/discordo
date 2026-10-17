@@ -62,5 +62,5 @@ func (m Model) View() tview.Widget {
 	return column.New(
 		row.New(column.New(text.New("Token")).Width(layout.Fixed(len("Token")+1)), input).Height(layout.Shrink),
 		submit,
-	).Spacing(1).Align(tview.AlignmentCenter)
+	).Spacing(1).AlignX(tview.HorizontalAlignmentCenter)
 }

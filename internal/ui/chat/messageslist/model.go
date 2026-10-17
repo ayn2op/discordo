@@ -47,7 +47,8 @@ type Model struct {
 	items   []messageItem
 
 	renderer *markdown.Renderer
-	avatars  map[discord.URL]tviewimage.Widget
+	// images are the avatars and emoji, shared by every message that shows them.
+	images map[discord.URL]tviewimage.Widget
 	// voicePlayer plays the voice message played last, and voiceStatus is what it last said of it.
 	voicePlayer *voice.Player
 	voiceStatus voice.PlayerStatus
@@ -69,7 +70,7 @@ func NewModel(cfg *config.Config, state *ningen.State) Model {
 		cfg:         cfg,
 		state:       state,
 		renderer:    markdown.NewRenderer(cfg),
-		avatars:     map[discord.URL]tviewimage.Widget{},
+		images:      map[discord.URL]tviewimage.Widget{},
 		voicePlayer: voice.NewPlayer(),
 	}
 
@@ -155,10 +156,14 @@ func (m *Model) UpdateMessage(message discord.Message) tview.Cmd {
 }
 
 // RefreshMessage shows the cached state of a message, such as after a reaction.
-func (m *Model) RefreshMessage(channelID discord.ChannelID, id discord.MessageID) {
-	if message, err := m.state.Cabinet.Message(channelID, id); err == nil {
-		m.setMessage(m.indexOf(channelID, id), *message)
+func (m *Model) RefreshMessage(channelID discord.ChannelID, id discord.MessageID) tview.Cmd {
+	message, err := m.state.Cabinet.Message(channelID, id)
+	if err != nil {
+		return nil
 	}
+
+	m.setMessage(m.indexOf(channelID, id), *message)
+	return m.loadPreviews()
 }
 
 // DeleteMessage removes the shown message with id.
@@ -176,7 +181,7 @@ func (m Model) indexOf(channelID discord.ChannelID, id discord.MessageID) int {
 
 func (m *Model) reset() {
 	m.items = nil
-	clear(m.avatars)
+	clear(m.images)
 	m.cursor, m.target = -1, -1
 	m.scrollState = viewport.ScrollState{}
 	m.scrollState.ScrollToEnd()
@@ -266,21 +271,26 @@ func (m Model) buildItem(index int) tview.Widget {
 		}
 	}
 
-	if avatar, ok := m.avatars[avatarURL(message.Author)]; ok {
+	if !m.blocked(message.Author) {
+		body = body.Push(m.reactionsView(message.Reactions))
+	}
+
+	var view tview.Widget = body
+	if avatar, ok := m.images[avatarURL(message.Author)]; ok {
 		var gutter tview.Widget = avatar
 		// A grouped message leaves the avatar's column empty, under the avatar of the group.
 		if item.grouped {
 			width, _ := avatar.Size()
 			gutter = spacer.New().Width(width)
 		}
-		body = row.New(gutter, body).Spacing(1).Height(layout.Shrink)
+		view = row.New(gutter, body).Spacing(1).Height(layout.Shrink)
 	}
 
 	if message.Type == discord.InlinedReplyMessage && !m.blocked(message.Author) {
-		body = column.New(item.reply, body).Height(layout.Shrink)
+		view = column.New(item.reply, view).Height(layout.Shrink)
 	}
 
-	return body
+	return view
 }
 
 // shouldGroup reports whether message is drawn under the header of previous, the message before it, which is nil for the first.
@@ -447,8 +457,8 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			cmd = preview.Transmit()
 		}
 
-		if _, ok := m.avatars[msg.proxy]; ok {
-			m.avatars[msg.proxy] = preview
+		if _, ok := m.images[msg.proxy]; ok {
+			m.images[msg.proxy] = preview
 			return m, cmd
 		}
 

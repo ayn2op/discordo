@@ -2,6 +2,7 @@ package messageslist
 
 import (
 	"encoding/json"
+	"image"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -13,8 +14,10 @@ import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
+	tviewimage "github.com/ayn2op/tview/image"
 	"github.com/ayn2op/tview/layout"
 	"github.com/gdamore/tcell/v3"
+	"github.com/gdamore/tcell/v3/vt"
 )
 
 func testConfig(t *testing.T) *config.Config {
@@ -352,4 +355,47 @@ func TestModelScrollToTop(t *testing.T) {
 	if fetches := scrollToTop(); fetches != 1 {
 		t.Fatalf("scrolling to the new top fetched %d times, want once", fetches)
 	}
+}
+
+func TestModelReactionsView(t *testing.T) {
+	ml := newTestModel(t, testConfig(t))
+	custom := discord.Emoji{ID: 5, Name: "cat"}
+	reactions := []discord.Reaction{{Count: 2, Emoji: discord.Emoji{Name: "ok"}}, {Count: 1, Emoji: custom}}
+	draw := func() string {
+		screen, err := tcell.NewTerminfoScreenFromTty(vt.NewMockTerm(vt.MockOptSize{X: 20, Y: 1}))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := screen.Init(); err != nil {
+			t.Fatal(err)
+		}
+		defer screen.Fini()
+
+		ml.reactionsView(reactions).Draw(screen, tview.Rectangle{Width: 20, Height: 1})
+		var row strings.Builder
+		for x := range 20 {
+			str, _, _ := screen.Get(x, 0)
+			row.WriteString(str)
+		}
+		return strings.TrimRight(row.String(), " ")
+	}
+
+	t.Run("names", func(t *testing.T) {
+		if got := draw(); got != "ok 2 • cat 1" {
+			t.Fatalf("reactions = %q", got)
+		}
+	})
+	t.Run("emoji image", func(t *testing.T) {
+		ml.images[emojiURL(custom)] = tviewimage.New(image.NewAlpha(image.Rect(0, 0, 2, 2))).Width(2)
+		// The blank image takes two cells before the name.
+		if got := draw(); got != "ok 2 •    cat 1" {
+			t.Fatalf("reactions = %q", got)
+		}
+	})
+	t.Run("with colons", func(t *testing.T) {
+		ml.cfg.UI.MessagesList.Reactions.ColonsAroundName = true
+		if got := draw(); got != "ok 2 •    :cat: 1" {
+			t.Fatalf("reactions = %q", got)
+		}
+	})
 }
