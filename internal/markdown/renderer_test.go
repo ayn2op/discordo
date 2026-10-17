@@ -26,14 +26,12 @@ func TestRendererRenderText(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			source := []byte(test.source)
 			rendered := NewRenderer(&config.Config{Markdown: config.MarkdownConfig{MaskSpoilers: test.mask}}).RenderText(source, md.Parse(source), tcell.StyleDefault)
-			lines := make([]string, len(rendered))
-			for i, line := range rendered {
-				for _, segment := range line {
-					lines[i] += segment.Text
-				}
+			var got strings.Builder
+			for _, span := range rendered {
+				got.WriteString(span.Text)
 			}
-			if got := strings.Join(lines, "\n"); got != test.want {
-				t.Fatalf("got %q, want %q", got, test.want)
+			if got.String() != test.want {
+				t.Fatalf("got %q, want %q", got.String(), test.want)
 			}
 		})
 	}

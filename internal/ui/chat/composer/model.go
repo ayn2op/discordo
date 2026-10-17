@@ -31,7 +31,7 @@ import (
 	"github.com/ayn2op/tview/keybind"
 	"github.com/ayn2op/tview/textarea"
 	"github.com/gdamore/tcell/v3"
-	"github.com/rivo/uniseg"
+	"github.com/rockorager/go-uucode"
 	"github.com/yuin/goldmark/v2/ast"
 	"golang.design/x/clipboard"
 )
@@ -556,7 +556,7 @@ func (p mentionsPopup) area(area tview.Rectangle) tview.Rectangle {
 	c := p.c
 	size := c.mentionsList.View().Layout(layout.Limits{Max: layout.Size{Width: area.Width, Height: area.Height}})
 	value, cursor := c.text, c.cursor
-	col := uniseg.StringWidth(value[strings.LastIndex(value[:cursor], "\n")+1 : cursor])
+	col := uucode.StringWidth(value[strings.LastIndex(value[:cursor], "\n")+1 : cursor])
 	x := min(c.box(false).InnerArea(tview.Rectangle{}).X+col, area.Width-size.Width)
 	return tview.Rectangle{X: area.X + x, Y: area.Y + area.Height - size.Height, Width: size.Width, Height: size.Height}
 }

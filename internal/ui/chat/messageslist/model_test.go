@@ -216,16 +216,12 @@ func TestModelDrawLayout(t *testing.T) {
 	ml := newTestModel(t, cfg)
 	message := discord.Message{Author: discord.User{Username: "a"}, Content: "hi", EditedTimestamp: discord.NowTimestamp()}
 
-	for compact, want := range map[bool]string{false: "a T (edited)\nhi\n", true: "T a hi (edited)\n"} {
+	for compact, want := range map[bool]string{false: "a T (edited)\nhi", true: "T a hi (edited)"} {
 		cfg.UI.MessagesList.Compact = compact
 
 		var got strings.Builder
-		for _, line := range ml.renderMessage(message, tview.Style{}, 80, false) {
-			for _, segment := range line {
-				got.WriteString(segment.Text)
-			}
-
-			got.WriteByte('\n')
+		for _, span := range ml.renderMessage(message, tview.Style{}, 80, false) {
+			got.WriteString(span.Text)
 		}
 
 		if got.String() != want {
@@ -273,7 +269,7 @@ func TestModelShouldGroup(t *testing.T) {
 	if !ml.items[newest].grouped || ml.items[ml.messageIndex(-1, 1)].grouped {
 		t.Fatal("only the first message has a header")
 	}
-	if got := ml.renderMessage(ml.items[newest].message, tview.Style{}, 80, true); len(got) != 1 || got[0][0].Text != "hi" {
+	if got := ml.renderMessage(ml.items[newest].message, tview.Style{}, 80, true); len(got) != 1 || got[0].Text != "hi" {
 		t.Fatalf("grouped message = %v, want only its content", got)
 	}
 	second := ml.messageIndex(newest, -1)

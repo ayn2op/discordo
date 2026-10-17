@@ -8,7 +8,7 @@ import (
 	"github.com/ayn2op/tview/list"
 	"github.com/ayn2op/tview/scrollbar"
 	"github.com/ayn2op/tview/viewport"
-	"github.com/rivo/uniseg"
+	"github.com/rockorager/go-uucode"
 )
 
 // Model shows the mention suggestions as a list in a box.
@@ -91,7 +91,7 @@ func (m Model) SelectedInsertText() (string, bool) {
 func (m Model) maxDisplayWidth() int {
 	width := 0
 	for _, item := range m.items {
-		width = max(width, uniseg.StringWidth(item.DisplayText))
+		width = max(width, uucode.StringWidth(item.DisplayText))
 	}
 	return width
 }

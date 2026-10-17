@@ -6,10 +6,11 @@ import (
 
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/markdown"
 	"github.com/ayn2op/tview"
-	"github.com/ayn2op/tview/richtext"
+	"github.com/ayn2op/tview/text"
 	"github.com/gdamore/tcell/v3"
-	"github.com/rivo/uniseg"
+	"github.com/rockorager/go-uucode"
 	"github.com/yuin/goldmark/v2/ast"
 )
 
@@ -17,9 +18,9 @@ import (
 const embedPrefix = "  ▎ "
 
 // embedPrefixWidth is how many cells embedPrefix takes.
-var embedPrefixWidth = uniseg.StringWidth(embedPrefix)
+var embedPrefixWidth = uucode.StringWidth(embedPrefix)
 
-func (m Model) drawEmbeds(builder *richtext.Builder, message discord.Message, baseStyle tview.Style, width int, contentRoot ast.Node, contentSource []byte) {
+func (m Model) drawEmbeds(builder *markdown.Builder, message discord.Message, baseStyle tview.Style, width int, contentRoot ast.Node, contentSource []byte) {
 	if len(message.Embeds) == 0 {
 		return
 	}
@@ -48,12 +49,11 @@ func (m Model) drawEmbeds(builder *richtext.Builder, message discord.Message, ba
 			continue
 		}
 
-		embedText := make(richtext.Text, 0, len(lines)*2)
 		prefixStyle := defaultPrefixStyle
 		if embed.Color != discord.NullColor && embed.Color != 0 {
 			prefixStyle = prefixStyle.Foreground(tcell.NewHexColor(int32(embed.Color)))
 		}
-		prefix := richtext.NewSegment(embedPrefix, prefixStyle)
+		prefix := text.Span{Text: embedPrefix, Style: prefixStyle}
 		builder.NewLine()
 		for _, line := range lines {
 			if strings.TrimSpace(line.text) == "" {
@@ -64,27 +64,27 @@ func (m Model) drawEmbeds(builder *richtext.Builder, message discord.Message, ba
 			lineStyle := lineStyles[line.kind]
 			// Embed descriptions are always markdown-rendered to match Discord's rich embed semantics, even when message markdown is globally disabled.
 			rendered, _, _ := m.renderContent(msg, lineStyle, line.kind == embedLineDescription)
-			for _, renderedLine := range rendered {
-				if line.url != "" {
-					renderedLine = lineWithURL(renderedLine, line.url)
-				}
-				// The prefix is added after wrapping, so every visual line has it, not only the first.
-				for _, wrapped := range richtext.Wrap(renderedLine, wrapWidth) {
-					embedText = append(embedText, append(richtext.Line{prefix}, wrapped...))
-				}
+			if line.url != "" {
+				rendered = spansWithURL(rendered, line.url)
 			}
-		}
 
-		if len(embedText) > 0 {
-			builder.WriteText(embedText)
+			// The prefix is added after wrapping, so every visual line has it, not only the first.
+			for _, wrapped := range text.Lines(rendered, wrapWidth, text.WrappingGlyph) {
+				if !builder.LineEmpty() {
+					builder.NewLine()
+				}
+
+				builder.WriteSpans(prefix)
+				builder.WriteSpans(wrapped...)
+			}
 		}
 	}
 }
 
-func lineWithURL(line richtext.Line, rawURL string) richtext.Line {
-	out := make(richtext.Line, len(line))
-	for i, segment := range line {
-		out[i] = segment
+func spansWithURL(spans []text.Span, rawURL string) []text.Span {
+	out := make([]text.Span, len(spans))
+	for i, span := range spans {
+		out[i] = span
 		out[i].Style = out[i].Style.Url(rawURL)
 	}
 	return out

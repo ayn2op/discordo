@@ -80,8 +80,7 @@ func (m Model) voiceMessageView(a discord.Attachment) tview.Widget {
 			return rail[cell], style.Dim(true)
 		})
 
-	width, _ := text.New(symbol).Size()
-	play := button.New().Label(symbol).Width(width).OnClick(playMsg(a))
+	play := button.New().Label(symbol).OnClick(playMsg(a))
 
 	return row.New(play, waveform, text.New(label)).Spacing(1).Height(layout.Fixed(1))
 }

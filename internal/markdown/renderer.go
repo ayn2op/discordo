@@ -10,7 +10,7 @@ import (
 	md "github.com/ayn2op/arikawa/v3/markdown"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/tview"
-	"github.com/ayn2op/tview/richtext"
+	"github.com/ayn2op/tview/text"
 	"github.com/gdamore/tcell/v3"
 	"github.com/yuin/goldmark/v2/ast"
 )
@@ -25,8 +25,8 @@ func NewRenderer(cfg *config.Config) *Renderer {
 	return &Renderer{cfg: cfg}
 }
 
-func (r *Renderer) RenderText(source []byte, node ast.Node, base tview.Style) richtext.Text {
-	builder := new(richtext.Builder)
+func (r *Renderer) RenderText(source []byte, node ast.Node, base tview.Style) []text.Span {
+	builder := new(Builder)
 	styleStack := []tview.Style{base}
 	linkDepth := 0
 	listDepth := 0
@@ -112,7 +112,7 @@ func (r *Renderer) RenderText(source []byte, node ast.Node, base tview.Style) ri
 	return builder.Finish()
 }
 
-func (r *Renderer) renderCodeBlock(builder *richtext.Builder, source []byte, node *ast.CodeBlock, base tview.Style) {
+func (r *Renderer) renderCodeBlock(builder *Builder, source []byte, node *ast.CodeBlock, base tview.Style) {
 	var code strings.Builder
 	lines := node.Value.Segments()
 	for _, line := range lines {

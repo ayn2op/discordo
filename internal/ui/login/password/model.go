@@ -76,7 +76,6 @@ func (m Model) View() tview.Widget {
 	submit := button.New().
 		Label("Login").
 		Width(layout.Fixed(len("Login") + 4)).
-		Height(layout.Fixed(1)).
 		Focused(m.focus == focusButton).
 		OnClick(submitMsg{})
 	return column.New(

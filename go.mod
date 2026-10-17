@@ -16,7 +16,7 @@ require (
 	github.com/alecthomas/chroma/v2 v2.27.0
 	github.com/ayn2op/arikawa/v3 v3.0.0-20261016043052-54a68a54e42e
 	github.com/ayn2op/ningen/v3 v3.0.1-0.20261014035153-5e43590a1426
-	github.com/ayn2op/tview v0.0.0-20261015233535-ab884c65f4fe
+	github.com/ayn2op/tview v0.0.0-20261017014958-0756c1611d0f
 	github.com/bogdanfinn/fhttp v0.6.9
 	github.com/bogdanfinn/tls-client v1.16.0
 	github.com/gdamore/tcell/v3 v3.6.0
@@ -24,7 +24,7 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/mattn/go-shellwords v1.0.16
 	github.com/ncruces/zenity v0.10.15
-	github.com/rivo/uniseg v0.4.7
+	github.com/rockorager/go-uucode v1.2.2
 	github.com/sahilm/fuzzy v0.1.3
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
@@ -50,7 +50,7 @@ require (
 	github.com/danieljoos/wincred v1.2.3 // indirect
 	github.com/dchest/jsmin v1.0.0 // indirect
 	github.com/disgoorg/godave v0.3.0 // indirect
-	github.com/dlclark/regexp2/v2 v2.9.0 // indirect
+	github.com/dlclark/regexp2/v2 v2.9.1 // indirect
 	github.com/ebitengine/purego v0.11.1 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
 	github.com/godbus/dbus/v5 v5.2.4 // indirect
@@ -62,7 +62,7 @@ require (
 	github.com/randall77/makefat v0.0.0-20260406194835-1b91746796b7 // indirect
 	github.com/tam7t/hpkp v0.0.0-20160821193359-2b70b4024ed5 // indirect
 	github.com/thomas-vilte/mls-go v1.6.0 // indirect
-	github.com/tphakala/simd v1.12.0 // indirect
+	github.com/tphakala/simd v1.13.0 // indirect
 	github.com/twmb/murmur3 v1.2.1 // indirect
 	go4.org v0.0.0-20260112195520-a5071408f32f // indirect
 	golang.design/x/x11 v0.2.0 // indirect

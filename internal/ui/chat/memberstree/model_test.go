@@ -52,18 +52,18 @@ func setGuildMembers(t *testing.T, m Model, items string) *discord.Channel {
 func lines(m Model) []string {
 	var lines []string
 	for _, group := range m.root.Children() {
-		lines = append(lines, text(group))
+		lines = append(lines, nodeText(group))
 		for _, member := range group.Children() {
-			lines = append(lines, "  "+text(member))
+			lines = append(lines, "  "+nodeText(member))
 		}
 	}
 	return lines
 }
 
-func text(node *tree.Node) string {
+func nodeText(node *tree.Node) string {
 	var s string
-	for _, segment := range node.Line() {
-		s += segment.Text
+	for _, span := range node.Spans() {
+		s += span.Text
 	}
 	return s
 }

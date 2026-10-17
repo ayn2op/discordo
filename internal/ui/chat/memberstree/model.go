@@ -14,7 +14,7 @@ import (
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/keybind"
-	"github.com/ayn2op/tview/richtext"
+	"github.com/ayn2op/tview/text"
 	"github.com/ayn2op/tview/tree"
 	"github.com/ayn2op/tview/viewport"
 	"github.com/gdamore/tcell/v3"
@@ -251,7 +251,7 @@ func (m Model) addGroup(guildID discord.GuildID, group gateway.GuildMemberListGr
 
 	ref := groupRef(group.ID)
 	node := m.reuse(ref.String()).
-		SetLine(richtext.NewLine(richtext.NewSegment(name, style))).
+		SetSpans(text.Span{Text: name, Style: style}).
 		SetReference(ref).
 		SetExpandable(true)
 	m.root.AddChild(node)
@@ -269,21 +269,17 @@ func (m Model) addMember(group *tree.Node, guildID discord.GuildID, member disco
 	if ok {
 		nameStyle = nameStyle.Foreground(tcell.NewHexColor(int32(color)))
 	}
-	line := richtext.NewLine(
-		richtext.NewSegment(statusMarker, tcell.StyleDefault),
-		richtext.NewSegment(" ", tcell.StyleDefault),
-		richtext.NewSegment(name, nameStyle),
-	)
-	m.setStatus(line, m.status(guildID, member.User.ID))
-	group.AddChild(m.reuse(member.User.ID.String()).SetLine(line).SetReference(memberRef{userID: member.User.ID, index: index}))
+	spans := []text.Span{{Text: statusMarker}, {Text: " "}, {Text: name, Style: nameStyle}}
+	m.setStatus(spans, m.status(guildID, member.User.ID))
+	group.AddChild(m.reuse(member.User.ID.String()).SetSpans(spans...).SetReference(memberRef{userID: member.User.ID, index: index}))
 }
 
 const statusMarker = "●"
 
-// setStatus styles the status dot and name of a member line for status.
-func (m Model) setStatus(line richtext.Line, status discord.Status) {
-	line[0].Style = m.cfg.Theme.MembersTree.StatusStyle(status)
-	line[2].Style = line[2].Style.Dim(status == discord.OfflineStatus)
+// setStatus styles the status dot and name of a member's spans for status.
+func (m Model) setStatus(spans []text.Span, status discord.Status) {
+	spans[0].Style = m.cfg.Theme.MembersTree.StatusStyle(status)
+	spans[2].Style = spans[2].Style.Dim(status == discord.OfflineStatus)
 }
 
 // reuse takes the node of id out of the index, so that it is reused once, or else returns a new node. Either way the node has no children.
@@ -298,9 +294,9 @@ func (m Model) reuse(id string) *tree.Node {
 
 func (m Model) refreshStatus(userID discord.UserID) {
 	if node, ok := m.nodes[userID.String()]; ok {
-		line := node.Line()
-		m.setStatus(line, m.status(m.channel.GuildID, userID))
-		node.SetLine(line)
+		spans := node.Spans()
+		m.setStatus(spans, m.status(m.channel.GuildID, userID))
+		node.SetSpans(spans...)
 	}
 }
 

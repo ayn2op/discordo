@@ -8,8 +8,7 @@ import (
 
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/center"
-	"github.com/ayn2op/tview/richtext"
-	"github.com/ayn2op/tview/textview"
+	"github.com/ayn2op/tview/text"
 	"github.com/ayn2op/tview/viewport"
 	"github.com/gdamore/tcell/v3"
 	"github.com/skip2/go-qrcode"
@@ -132,7 +131,7 @@ func halfBlock(top, bottom bool) rune {
 func (m Model) View() tview.Widget {
 	code := m.code()
 	return center.New(
-		viewport.New(textview.New(code).Wrap(false).Alignment(tview.AlignmentCenter), m.scrollState).
+		viewport.New(text.New(code).Wrapping(text.WrappingNone).AlignX(tview.AlignmentCenter), m.scrollState).
 			Height(layout.Shrink).
 			Focused(true).
 			OnChange(func(s *viewport.ScrollState) tview.Msg { return scrollMsg(*s) }),
@@ -140,27 +139,27 @@ func (m Model) View() tview.Widget {
 }
 
 // code returns the QR code above the status.
-func (m Model) code() richtext.Text {
+func (m Model) code() string {
 	var out strings.Builder
 	if m.qrCode != nil {
 		bitmap := m.qrCode.Bitmap()
 		for y := 0; y < len(bitmap); y += 2 {
+			if y > 0 {
+				out.WriteByte('\n')
+			}
 			for x := range bitmap[y] {
 				top := bitmap[y][x]
 				bottom := y+1 < len(bitmap) && bitmap[y+1][x]
 				out.WriteRune(halfBlock(top, bottom))
 			}
-			out.WriteByte('\n')
 		}
 	}
 	if m.status != "" {
 		if out.Len() > 0 {
-			out.WriteByte('\n')
+			out.WriteString("\n\n")
 		}
 		out.WriteString(m.status)
 	}
 
-	builder := new(richtext.Builder)
-	builder.Write(out.String(), tcell.StyleDefault)
-	return builder.Finish()
+	return out.String()
 }

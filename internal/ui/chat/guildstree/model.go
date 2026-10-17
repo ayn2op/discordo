@@ -18,7 +18,7 @@ import (
 	"github.com/ayn2op/ningen/v3/states/read"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/keybind"
-	"github.com/ayn2op/tview/richtext"
+	"github.com/ayn2op/tview/text"
 	"github.com/ayn2op/tview/tree"
 	"github.com/ayn2op/tview/viewport"
 	"github.com/gdamore/tcell/v3"
@@ -128,7 +128,7 @@ func (m *Model) rebuild(event *gateway.ReadyEvent) {
 func (m Model) refreshReadStyles(event *read.UpdateEvent) {
 	if event.GuildID.IsValid() {
 		if node := m.findNodeByReference(event.GuildID); node != nil {
-			setNodeLineStyle(node, m.guildNodeStyle(event.GuildID))
+			setNodeNameStyle(node, m.guildNodeStyle(event.GuildID))
 		}
 	}
 
@@ -139,10 +139,10 @@ func (m Model) refreshReadStyles(event *read.UpdateEvent) {
 	channel, err := m.state.Cabinet.Channel(event.ChannelID)
 	if err != nil {
 		indication := m.state.ChannelIsUnread(event.ChannelID, ningen.UnreadOpts{IncludeMutedCategories: true})
-		setNodeLineStyle(node, unreadStyle(indication))
+		setNodeNameStyle(node, unreadStyle(indication))
 		return
 	}
-	setNodeLineStyle(node, m.channelNodeStyle(*channel))
+	setNodeNameStyle(node, m.channelNodeStyle(*channel))
 }
 
 func (m Model) updateDMNodeStyle(userID discord.UserID) {
@@ -155,7 +155,7 @@ func (m Model) updateDMNodeStyle(userID discord.UserID) {
 	if node == nil || !ok {
 		return
 	}
-	setNodeLineStyle(node, m.channelNodeStyle(*channel))
+	setNodeNameStyle(node, m.channelNodeStyle(*channel))
 }
 
 func (m Model) moveDMToFront(channelID discord.ChannelID) {
@@ -180,7 +180,7 @@ func (m Model) createFolderNode(folder gateway.GuildFolder, guildsByID map[disco
 	folderNode := tree.NewNode(name).SetExpanded(m.cfg.UI.GuildsTree.AutoExpandFolders)
 	if folder.Color != 0 {
 		folderStyle := tcell.StyleDefault.Foreground(tcell.NewHexColor(int32(folder.Color)))
-		setNodeLineStyle(folderNode, folderStyle)
+		setNodeNameStyle(folderNode, folderStyle)
 	}
 	m.root.AddChild(folderNode)
 
@@ -217,7 +217,7 @@ func (m Model) createGuildNode(parent *tree.Node, guild discord.Guild) {
 		SetExpandable(true).
 		SetExpanded(false).
 		SetIndent(m.cfg.Sidebar.Indents.Guild)
-	setNodeLineStyle(guildNode, m.guildNodeStyle(guild.ID))
+	setNodeNameStyle(guildNode, m.guildNodeStyle(guild.ID))
 	parent.AddChild(guildNode)
 	m.nodes[discord.Snowflake(guild.ID)] = guildNode
 }
@@ -230,7 +230,7 @@ func (m Model) createChannelNode(parent *tree.Node, channel discord.Channel) {
 
 	indents := m.cfg.Sidebar.Indents
 	channelNode := tree.NewNode(ui.ChannelToString(channel, m.cfg.Icons, m.state)).SetReference(channel.ID)
-	setNodeLineStyle(channelNode, m.channelNodeStyle(channel))
+	setNodeNameStyle(channelNode, m.channelNodeStyle(channel))
 	switch channel.Type {
 	case discord.DirectMessage:
 		channelNode.SetIndent(indents.DM)
@@ -274,13 +274,13 @@ func (m *Model) showVoiceMembers(guildID discord.GuildID) {
 		}
 
 		// After its name, how full it is, if it can be.
-		line := node.Line()[:1]
+		spans := node.Spans()[:1]
 		if channel.VoiceUserLimit > 0 {
 			label := fmt.Sprintf("%d/%d", len(node.Children()), channel.VoiceUserLimit)
-			line = append(line, richtext.NewSegment(" ", tview.Style{}), richtext.NewSegment(label, m.cfg.Theme.GuildsTree.VoiceLimitStyle.Style))
+			spans = append(spans, text.Span{Text: " "}, text.Span{Text: label, Style: m.cfg.Theme.GuildsTree.VoiceLimitStyle.Style})
 		}
 
-		node.SetLine(line)
+		node.SetSpans(spans...)
 	}
 
 	m.styleVoiceMembers()
@@ -327,7 +327,7 @@ func (m Model) styleVoiceMembers() {
 			style = m.cfg.Theme.GuildsTree.SpeakingStyle.Style
 		}
 
-		setNodeLineStyle(member, style)
+		setNodeNameStyle(member, style)
 	}
 }
 
@@ -438,11 +438,11 @@ func isVoice(t discord.ChannelType) bool {
 	return t == discord.GuildVoice || t == discord.GuildStageVoice
 }
 
-// setNodeLineStyle styles the name of node, which is the first segment of its line.
-func setNodeLineStyle(node *tree.Node, style tview.Style) {
-	line := node.Line()
-	line[0].Style = style
-	node.SetLine(line)
+// setNodeNameStyle styles the name of node, which is the first span of its text.
+func setNodeNameStyle(node *tree.Node, style tview.Style) {
+	spans := node.Spans()
+	spans[0].Style = style
+	node.SetSpans(spans...)
 }
 
 func (m Model) createChannelNodes(node *tree.Node, channels []discord.Channel) {
