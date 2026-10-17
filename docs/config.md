@@ -424,19 +424,39 @@ The longest time between two messages by the same author for them to share a hea
 
 Default: `"10m0s"`
 
+### ui.messages_list.emojis
+
+#### ui.messages_list.emojis.show_emoji_name
+
+Whether the name is shown after the image. Without an image, it always is.
+
+Default: `false`
+
+#### ui.messages_list.emojis.colons_around_name
+
+Whether the names of custom emoji are shown between colons, as in `:name:`.
+
+Default: `false`
+
 ### ui.messages_list.reactions
 
-#### ui.messages_list.reactions.separator
+#### ui.messages_list.reactions.show_emoji_name
 
-The text between reactions.
+Whether the name is shown after the image. Without an image, it always is.
 
-Default: `" • "`
+Default: `false`
 
 #### ui.messages_list.reactions.colons_around_name
 
 Whether the names of custom emoji are shown between colons, as in `:name:`.
 
 Default: `false`
+
+#### ui.messages_list.reactions.separator
+
+The text between reactions.
+
+Default: `" • "`
 
 ## ui.mentions_list
 

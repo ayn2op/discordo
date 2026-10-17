@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ayn2op/arikawa/v3/discord"
+	tviewimage "github.com/ayn2op/tview/image"
 )
 
 func TestPreviewSources(t *testing.T) {
@@ -76,4 +77,30 @@ func TestSquare(t *testing.T) {
 			t.Fatal("image is not centered")
 		}
 	})
+}
+
+func TestModelEmojiLine(t *testing.T) {
+	ml := newTestModel(t, testConfig(t))
+	if got := ml.emojiLine("5"); got != nil {
+		t.Fatalf("line = %v, want nil before the emoji is loaded", got)
+	}
+
+	ml.images[emojiURL(5)] = tviewimage.New(image.NewAlpha(image.Rect(0, 0, 2, 2))).Width(2)
+	if got := ml.emojiLine("5"); len(got) != 2 {
+		t.Fatalf("line = %v, want the two cells of the emoji", got)
+	}
+}
+
+func TestModelLoadPreviews(t *testing.T) {
+	ml := newTestModel(t, testConfig(t))
+	ml.setMessages([]discord.Message{{ID: 2, ChannelID: 1, Content: "hi <:cat:5>"}})
+	ml.loadPreviews()
+	if _, ok := ml.images[emojiURL(5)]; !ok {
+		t.Fatal("the emoji in the content was not loaded")
+	}
+
+	item := &ml.items[len(ml.items)-1]
+	if item.root == nil {
+		t.Fatal("the parsed content was not kept for rendering")
+	}
 }

@@ -25,7 +25,8 @@ func NewRenderer(cfg *config.Config) *Renderer {
 	return &Renderer{cfg: cfg}
 }
 
-func (r *Renderer) RenderText(source []byte, node ast.Node, base tview.Style) []text.Span {
+// RenderText returns the spans of the markdown node. emoji returns the image of the custom emoji with an ID as a line of spans, or nil if it has none.
+func (r *Renderer) RenderText(source []byte, node ast.Node, base tview.Style, emoji func(id string) []text.Span) []text.Span {
 	builder := new(Builder)
 	styleStack := []tview.Style{base}
 	linkDepth := 0
@@ -104,7 +105,16 @@ func (r *Renderer) RenderText(source []byte, node ast.Node, base tview.Style) []
 		case *md.Mention:
 			builder.Write(mentionText(node), tview.MergeStyle(currentStyle(), theme.MentionStyle.Style))
 		case *md.Emoji:
-			builder.Write(":"+node.Name+":", tview.MergeStyle(currentStyle(), theme.EmojiStyle.Style))
+			cfg := r.cfg.UI.MessagesList.Emojis
+			if image := emoji(node.ID); image != nil {
+				builder.WriteSpans(image...)
+				if !cfg.ShowEmojiName {
+					return ast.WalkContinue, nil
+				}
+
+				builder.Write(" ", currentStyle())
+			}
+			builder.Write(cfg.Name(node.Name), tview.MergeStyle(currentStyle(), theme.EmojiStyle.Style))
 		}
 		return ast.WalkContinue, nil
 	})

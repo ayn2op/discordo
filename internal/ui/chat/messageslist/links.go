@@ -10,10 +10,13 @@ import (
 	"github.com/yuin/goldmark/v2/ast"
 )
 
-func extractURLs(content string) []string {
+// contentURLs returns the link destinations in content. root is its parsed markdown, or nil to parse it here.
+func contentURLs(content string, root ast.Node) []string {
 	src := []byte(content)
-	node := md.Parse(src)
-	return urlsFromAST(node, src)
+	if root == nil {
+		root = md.Parse(src)
+	}
+	return urlsFromAST(root, src)
 }
 
 // urlsFromAST collects link destinations from an already-parsed markdown AST.
@@ -57,8 +60,9 @@ const (
 	schemeHTTPS = "https"
 )
 
-func messageURLs(msg discord.Message) []string {
-	combined := slices.Concat(extractURLs(msg.Content), extractEmbedURLs(msg.Embeds))
+// messageURLs returns the web links of msg. root is its parsed content, or nil to parse it here.
+func messageURLs(msg discord.Message, root ast.Node) []string {
+	combined := slices.Concat(contentURLs(msg.Content, root), extractEmbedURLs(msg.Embeds))
 
 	urls := make([]string, 0, len(combined))
 	seen := make(map[string]struct{}, len(combined))

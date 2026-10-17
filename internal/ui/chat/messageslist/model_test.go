@@ -207,7 +207,7 @@ func TestWaveformRail(t *testing.T) {
 func TestMessageURLs(t *testing.T) {
 	message := discord.Message{Content: "[a](file:///etc/passwd) [b](ms-msdt:id) [c](HTTPS://example.com) https://example.org"}
 
-	if got, want := messageURLs(message), []string{"HTTPS://example.com", "https://example.org"}; !slices.Equal(got, want) {
+	if got, want := messageURLs(message, nil), []string{"HTTPS://example.com", "https://example.org"}; !slices.Equal(got, want) {
 		t.Errorf("got %q, want %q", got, want)
 	}
 }
@@ -223,7 +223,7 @@ func TestModelDrawLayout(t *testing.T) {
 		cfg.UI.MessagesList.Compact = compact
 
 		var got strings.Builder
-		for _, span := range ml.renderMessage(message, tview.Style{}, 80, false) {
+		for _, span := range ml.renderMessage(message, nil, tview.Style{}, 80, false) {
 			got.WriteString(span.Text)
 		}
 
@@ -272,7 +272,7 @@ func TestModelShouldGroup(t *testing.T) {
 	if !ml.items[newest].grouped || ml.items[ml.messageIndex(-1, 1)].grouped {
 		t.Fatal("only the first message has a header")
 	}
-	if got := ml.renderMessage(ml.items[newest].message, tview.Style{}, 80, true); len(got) != 1 || got[0].Text != "hi" {
+	if got := ml.renderMessage(ml.items[newest].message, nil, tview.Style{}, 80, true); len(got) != 1 || got[0].Text != "hi" {
 		t.Fatalf("grouped message = %v, want only its content", got)
 	}
 	second := ml.messageIndex(newest, -1)
@@ -386,8 +386,14 @@ func TestModelReactionsView(t *testing.T) {
 		}
 	})
 	t.Run("emoji image", func(t *testing.T) {
-		ml.images[emojiURL(custom)] = tviewimage.New(image.NewAlpha(image.Rect(0, 0, 2, 2))).Width(2)
-		// The blank image takes two cells before the name.
+		ml.images[emojiURL(custom.ID)] = tviewimage.New(image.NewAlpha(image.Rect(0, 0, 2, 2))).Width(2)
+		// The blank image takes two cells before the count.
+		if got := draw(); got != "ok 2 •    1" {
+			t.Fatalf("reactions = %q", got)
+		}
+	})
+	t.Run("with name", func(t *testing.T) {
+		ml.cfg.UI.MessagesList.Reactions.ShowEmojiName = true
 		if got := draw(); got != "ok 2 •    cat 1" {
 			t.Fatalf("reactions = %q", got)
 		}

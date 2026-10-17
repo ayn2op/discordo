@@ -20,6 +20,7 @@ import (
 	"github.com/ayn2op/tview/scrollbar"
 	"github.com/ayn2op/tview/spacer"
 	"github.com/ayn2op/tview/viewport"
+	"github.com/yuin/goldmark/v2/ast"
 )
 
 type messageItem struct {
@@ -33,6 +34,8 @@ type messageItem struct {
 
 	// A preview is blank while loading and empty if loading failed.
 	previews map[discord.URL]tviewimage.Widget
+	// root is the parsed markdown of the message's content, or nil until it is needed and after the text is invalidated, as it resolves mentions when parsed.
+	root ast.Node
 }
 
 type Model struct {
@@ -257,7 +260,7 @@ func (m Model) buildItem(index int) tview.Widget {
 
 	message := &item.message
 	if item.text == nil {
-		item.text, item.reply = m.messageViews(*message, item.grouped)
+		item.text, item.reply = m.messageViews(*message, m.contentRoot(item), item.grouped)
 	}
 
 	body := column.New(item.text).Height(layout.Shrink)
@@ -378,6 +381,14 @@ func (m Model) selectedMessage() (*discord.Message, bool) {
 	return &m.items[cursor].message, true
 }
 
+// selectedURLs returns the web links of the selected message, from its saved markdown.
+func (m Model) selectedURLs() []string {
+	if message, ok := m.selectedMessage(); ok {
+		return messageURLs(*message, m.contentRoot(&m.items[m.cursor]))
+	}
+	return nil
+}
+
 // Update returns ml changed in response to msg and a command to run, or nil.
 func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	switch msg := msg.(type) {
@@ -459,6 +470,10 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 
 		if _, ok := m.images[msg.proxy]; ok {
 			m.images[msg.proxy] = preview
+			// An emoji is drawn within the text of the messages that use it, so the text is rendered again.
+			for i := range m.items {
+				m.items[i].text = nil
+			}
 			return m, cmd
 		}
 
@@ -601,6 +616,14 @@ func (m Model) canDeleteMessage(message discord.Message) bool {
 
 func (m Model) InvalidateRendered() {
 	for i := range m.items {
-		m.items[i].text = nil
+		m.items[i].text, m.items[i].root = nil, nil
 	}
+}
+
+// contentRoot returns the parsed markdown of the content of the item's message, parsing it the first time, or nil if markdown is disabled.
+func (m Model) contentRoot(item *messageItem) ast.Node {
+	if item.root == nil && m.cfg.Markdown.Enabled {
+		item.root = m.parse(item.message)
+	}
+	return item.root
 }

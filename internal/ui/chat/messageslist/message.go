@@ -22,9 +22,10 @@ import (
 
 // messageViews returns the views of the text of message and of what it replies to.
 // They capture the model and the message, so they are made here: capturing them in buildItem would copy both to the heap on every call, as the list builds every item each time it is laid out.
-func (m Model) messageViews(message discord.Message, grouped bool) (content, reply *messageView) {
+// root is the parsed content of message, or nil to parse it when it is rendered.
+func (m Model) messageViews(message discord.Message, root ast.Node, grouped bool) (content, reply *messageView) {
 	style := m.cfg.Theme.MessagesList.MessageStyle.Style
-	content = &messageView{render: func(width int) []text.Span { return m.renderMessage(message, style, width, grouped) }}
+	content = &messageView{render: func(width int) []text.Span { return m.renderMessage(message, root, style, width, grouped) }}
 	reply = &messageView{render: func(int) []text.Span {
 		builder := new(markdown.Builder)
 		m.drawReply(builder, message, style)
@@ -95,9 +96,9 @@ func (d dateSeparator) Draw(screen tview.Screen, area tview.Rectangle) {
 
 func (dateSeparator) Handle(msg tview.Msg, area tview.Rectangle) tview.Msg { return msg }
 
-func (m Model) renderMessage(message discord.Message, baseStyle tview.Style, width int, grouped bool) []text.Span {
+func (m Model) renderMessage(message discord.Message, root ast.Node, baseStyle tview.Style, width int, grouped bool) []text.Span {
 	builder := new(markdown.Builder)
-	m.writeMessage(builder, message, baseStyle, width, grouped)
+	m.writeMessage(builder, message, root, baseStyle, width, grouped)
 	// Without a header or content, the message starts with the line break that attachments and embeds start below.
 	return trimLeadingLineBreaks(builder.Finish())
 }
@@ -113,7 +114,7 @@ func trimLeadingLineBreaks(spans []text.Span) []text.Span {
 	return spans
 }
 
-func (m Model) writeMessage(builder *markdown.Builder, message discord.Message, baseStyle tview.Style, width int, grouped bool) {
+func (m Model) writeMessage(builder *markdown.Builder, message discord.Message, root ast.Node, baseStyle tview.Style, width int, grouped bool) {
 	if m.blocked(message.Author) {
 		builder.Write("Blocked message", baseStyle.Foreground(color.Red).Bold(true))
 		return
@@ -124,12 +125,12 @@ func (m Model) writeMessage(builder *markdown.Builder, message discord.Message, 
 		if message.Reference != nil && message.Reference.Type == discord.MessageReferenceTypeForward {
 			m.drawForwardedMessage(builder, message, baseStyle, grouped)
 		} else {
-			m.drawDefaultMessage(builder, message, baseStyle, width, grouped)
+			m.drawDefaultMessage(builder, message, root, baseStyle, width, grouped)
 		}
 	case discord.GuildMemberJoinMessage:
 		m.drawLayout(builder, message, baseStyle, false, func() { builder.Write("joined the server.", baseStyle) })
 	case discord.InlinedReplyMessage:
-		m.drawDefaultMessage(builder, message, baseStyle, width, false)
+		m.drawDefaultMessage(builder, message, root, baseStyle, width, false)
 	case discord.ChannelPinnedMessage:
 		drawPinnedMessage(builder, message, baseStyle)
 	default:
@@ -153,19 +154,24 @@ func (m Model) reactionsView(reactions []discord.Reaction) tview.Widget {
 		}
 		style = tview.MergeStyle(theme.MessageStyle.Style, style)
 
-		name := reaction.Emoji.Name
-		if reaction.Emoji.IsCustom() && cfg.ColonsAroundName {
-			name = ":" + name + ":"
+		label := strconv.Itoa(reaction.Count)
+		emoji, hasImage := m.images[emojiURL(reaction.Emoji.ID)]
+		if !hasImage || cfg.ShowEmojiName {
+			name := reaction.Emoji.Name
+			if reaction.Emoji.IsCustom() {
+				name = cfg.Name(name)
+			}
+			label = name + " " + label
 		}
 
-		spans := []text.Span{{Text: name + " " + strconv.Itoa(reaction.Count), Style: style}}
+		spans := []text.Span{{Text: label, Style: style}}
 		// Each reaction but the last ends with the separator, so a line never starts with one.
 		if i < len(reactions)-1 {
 			spans = append(spans, text.Span{Text: cfg.Separator, Style: separatorStyle})
 		}
 
 		var chip tview.Widget = text.Rich(spans...)
-		if emoji, ok := m.images[emojiURL(reaction.Emoji)]; ok {
+		if hasImage {
 			chip = row.New(emoji, chip).Spacing(1).Width(layout.Shrink).Height(layout.Shrink)
 		}
 		chips[i] = chip
@@ -273,16 +279,17 @@ func (m Model) memberForMessage(message discord.Message) *discord.Member {
 	return member
 }
 
-// drawContent renders the message body and returns the parsed markdown AST together with the source bytes it indexes into, so callers can reuse them instead of re-parsing the same content (see drawEmbeds).
-// root is nil when markdown rendering is disabled.
-func (m Model) drawContent(builder *markdown.Builder, message discord.Message, baseStyle tview.Style) (ast.Node, []byte) {
-	content, root, source := m.renderContent(message, baseStyle, false)
+// drawContent renders the message body. root is its parsed content, or nil to parse it here.
+func (m Model) drawContent(builder *markdown.Builder, message discord.Message, root ast.Node, baseStyle tview.Style) {
+	if root == nil && m.cfg.Markdown.Enabled {
+		root = m.parse(message)
+	}
+
+	content := m.renderContent(message, root, baseStyle, false)
 	if m.cfg.Markdown.Enabled {
 		startsWithCodeBlock := false
-		if root != nil {
-			if first := root.FirstChild(); first != nil {
-				_, startsWithCodeBlock = first.(*ast.CodeBlock)
-			}
+		if first := root.FirstChild(); first != nil {
+			_, startsWithCodeBlock = first.(*ast.CodeBlock)
 		}
 
 		// Keep code blocks visually separate from "timestamp + author".
@@ -293,20 +300,22 @@ func (m Model) drawContent(builder *markdown.Builder, message discord.Message, b
 		content = trimLeadingLineBreaks(content)
 	}
 	builder.WriteSpans(content...)
-	return root, source
 }
 
-func (m Model) renderContent(message discord.Message, baseStyle tview.Style, forceMarkdown bool) ([]text.Span, ast.Node, []byte) {
+// root is the parsed content of message, or nil to parse it here.
+func (m Model) renderContent(message discord.Message, root ast.Node, baseStyle tview.Style, forceMarkdown bool) []text.Span {
 	// Keep one rendering path for both normal messages and embed fragments so we preserve mention/link parsing behavior consistently across both.
 	if forceMarkdown || m.cfg.Markdown.Enabled {
-		c := []byte(message.Content)
-		root := md.ParseWithMessage(c, *m.state.Cabinet, &message)
-		return m.renderer.RenderText(c, root, baseStyle), root, c
+		if root == nil {
+			root = m.parse(message)
+		}
+
+		return m.renderer.RenderText([]byte(message.Content), root, baseStyle, m.emojiLine)
 	}
 
 	b := new(markdown.Builder)
 	b.Write(message.Content, baseStyle)
-	return b.Finish(), nil, nil
+	return b.Finish()
 }
 
 func (m Model) drawSnapshotContent(builder *markdown.Builder, parent discord.Message, snapshot discord.MessageSnapshotMessage, baseStyle tview.Style) {
@@ -326,19 +335,17 @@ func (m Model) drawSnapshotContent(builder *markdown.Builder, parent discord.Mes
 		ChannelID:       parent.ChannelID,
 		GuildID:         parent.GuildID,
 	}
-	m.drawContent(builder, message, baseStyle)
+	m.drawContent(builder, message, nil, baseStyle)
 }
 
-func (m Model) drawDefaultMessage(builder *markdown.Builder, message discord.Message, baseStyle tview.Style, width int, grouped bool) {
-	var contentRoot ast.Node
-	var contentSource []byte
-	content := func() { contentRoot, contentSource = m.drawContent(builder, message, baseStyle) }
+func (m Model) drawDefaultMessage(builder *markdown.Builder, message discord.Message, root ast.Node, baseStyle tview.Style, width int, grouped bool) {
+	content := func() { m.drawContent(builder, message, root, baseStyle) }
 	if message.Content == "" {
 		content = nil
 	}
 
 	m.drawLayout(builder, message, baseStyle, grouped, content)
-	m.drawEmbeds(builder, message, baseStyle, width, contentRoot, contentSource)
+	m.drawEmbeds(builder, message, baseStyle, width, root)
 
 	attachmentStyle := tview.MergeStyle(baseStyle, m.cfg.Theme.MessagesList.AttachmentStyle.Style)
 	// A voice message is shown as its player.
@@ -375,7 +382,7 @@ func (m Model) drawReply(builder *markdown.Builder, message discord.Message, bas
 		reference.GuildID = message.GuildID
 		m.drawAuthor(builder, *reference, dimStyle)
 		builder.Write(" ", dimStyle)
-		m.drawContent(builder, *reference, dimStyle)
+		m.drawContent(builder, *reference, nil, dimStyle)
 	} else {
 		builder.Write("Original message was deleted", dimStyle)
 	}
@@ -383,4 +390,9 @@ func (m Model) drawReply(builder *markdown.Builder, message discord.Message, bas
 
 func drawPinnedMessage(builder *markdown.Builder, message discord.Message, baseStyle tview.Style) {
 	builder.Write(message.Author.DisplayOrUsername()+" pinned a message.", baseStyle)
+}
+
+// parse returns the parsed markdown of the content of message, with its mentions resolved from the state.
+func (m Model) parse(message discord.Message) ast.Node {
+	return md.ParseWithMessage([]byte(message.Content), *m.state.Cabinet, &message)
 }

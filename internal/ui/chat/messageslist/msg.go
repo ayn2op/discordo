@@ -210,7 +210,7 @@ func (m Model) openWith(openAttachment func(discord.Attachment) tview.Cmd) tview
 		return nil
 	}
 
-	urls := messageURLs(*selectedMessage)
+	urls := m.selectedURLs()
 	switch total := len(urls) + len(selectedMessage.Attachments); {
 	case total == 0:
 		return nil

@@ -20,22 +20,17 @@ const embedPrefix = "  ▎ "
 // embedPrefixWidth is how many cells embedPrefix takes.
 var embedPrefixWidth = uucode.StringWidth(embedPrefix)
 
-func (m Model) drawEmbeds(builder *markdown.Builder, message discord.Message, baseStyle tview.Style, width int, contentRoot ast.Node, contentSource []byte) {
+// root is the parsed content of message, or nil to parse it here.
+func (m Model) drawEmbeds(builder *markdown.Builder, message discord.Message, baseStyle tview.Style, width int, root ast.Node) {
 	if len(message.Embeds) == 0 {
 		return
 	}
 
 	// Embed URLs are deduplicated against links already shown in the message body.
-	// Reuse the body's parsed AST when markdown is enabled; only the markdown-disabled path (no AST) has to parse the content here.
-	var contentListURLs []string
-	if contentRoot != nil {
-		contentListURLs = urlsFromAST(contentRoot, contentSource)
-	} else {
-		contentListURLs = extractURLs(message.Content)
-	}
-	contentURLs := make(map[string]struct{}, len(contentListURLs))
+	contentListURLs := contentURLs(message.Content, root)
+	seenURLs := make(map[string]struct{}, len(contentListURLs))
 	for _, u := range contentListURLs {
-		contentURLs[u] = struct{}{}
+		seenURLs[u] = struct{}{}
 	}
 
 	lineStyles := embedLineStyles(baseStyle, m.cfg.Theme.MessagesList.Embeds)
@@ -44,7 +39,7 @@ func (m Model) drawEmbeds(builder *markdown.Builder, message discord.Message, ba
 	wrapWidth := max(width-embedPrefixWidth, 1)
 
 	for _, embed := range message.Embeds {
-		lines := embedLines(embed, contentURLs)
+		lines := embedLines(embed, seenURLs)
 		if len(lines) == 0 {
 			continue
 		}
@@ -63,7 +58,7 @@ func (m Model) drawEmbeds(builder *markdown.Builder, message discord.Message, ba
 			msg.Content = line.text
 			lineStyle := lineStyles[line.kind]
 			// Embed descriptions are always markdown-rendered to match Discord's rich embed semantics, even when message markdown is globally disabled.
-			rendered, _, _ := m.renderContent(msg, lineStyle, line.kind == embedLineDescription)
+			rendered := m.renderContent(msg, nil, lineStyle, line.kind == embedLineDescription)
 			if line.url != "" {
 				rendered = spansWithURL(rendered, line.url)
 			}

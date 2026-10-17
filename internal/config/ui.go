@@ -183,14 +183,22 @@ type (
 		Attachments AttachmentsUIConfig `toml:"attachments"`
 		Avatars     AvatarsUIConfig     `toml:"avatars"`
 		Grouping    GroupingUIConfig    `toml:"grouping"`
+		Emojis      EmojiUIConfig       `toml:"emojis"`
 		Reactions   ReactionsUIConfig   `toml:"reactions"`
 	}
 
-	ReactionsUIConfig struct {
-		// The text between reactions.
-		Separator string `toml:"separator"`
+	// EmojiUIConfig is how custom emoji are shown: their image, then their name.
+	EmojiUIConfig struct {
+		// Whether the name is shown after the image. Without an image, it always is.
+		ShowEmojiName bool `toml:"show_emoji_name"`
 		// Whether the names of custom emoji are shown between colons, as in `:name:`.
 		ColonsAroundName bool `toml:"colons_around_name"`
+	}
+
+	ReactionsUIConfig struct {
+		EmojiUIConfig
+		// The text between reactions.
+		Separator string `toml:"separator"`
 	}
 
 	// GroupingUIConfig shows consecutive messages by the same author under one header.
@@ -260,4 +268,12 @@ func defaultUI() UIConfig {
 		},
 		MentionsList: MentionsListUIConfig{MinWidth: 20},
 	}
+}
+
+// Name returns the name of a custom emoji as it is shown.
+func (c EmojiUIConfig) Name(name string) string {
+	if c.ColonsAroundName {
+		return ":" + name + ":"
+	}
+	return name
 }

@@ -20,7 +20,7 @@ func (m Model) ShortHelp() []keybind.Keybind {
 		if !ui.IsMe(m.state, selectedMessage.Author.ID) {
 			help = append(help, cfg.Reply.Keybind)
 		}
-		if len(selectedMessage.Attachments) != 0 || len(messageURLs(*selectedMessage)) != 0 {
+		if len(selectedMessage.Attachments) != 0 || len(m.selectedURLs()) != 0 {
 			help = append(help, cfg.Open.Keybind)
 		}
 		if isVoiceMessage(*selectedMessage) {
@@ -51,7 +51,7 @@ func (m Model) FullHelp() [][]keybind.Keybind {
 				manage = append(manage, cfg.Delete.Keybind)
 			}
 		}
-		if len(message.Attachments) != 0 || len(messageURLs(*message)) != 0 {
+		if len(message.Attachments) != 0 || len(m.selectedURLs()) != 0 {
 			attachments = append(attachments, cfg.Open.Keybind, cfg.OpenInBrowser.Keybind)
 		}
 		if len(message.Attachments) != 0 {

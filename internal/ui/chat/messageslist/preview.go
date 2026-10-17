@@ -12,8 +12,11 @@ import (
 	"strconv"
 
 	"github.com/ayn2op/arikawa/v3/discord"
+	md "github.com/ayn2op/arikawa/v3/markdown"
 	"github.com/ayn2op/tview"
 	tviewimage "github.com/ayn2op/tview/image"
+	"github.com/ayn2op/tview/text"
+	"github.com/yuin/goldmark/v2/ast"
 	_ "golang.org/x/image/webp"
 )
 
@@ -88,7 +91,20 @@ func (m Model) loadPreviews() tview.Cmd {
 
 		cmds = append(cmds, m.loadAvatar(item.message.Author))
 		for _, reaction := range item.message.Reactions {
-			cmds = append(cmds, m.loadEmoji(reaction.Emoji))
+			if reaction.Emoji.IsCustom() {
+				cmds = append(cmds, m.loadEmoji(reaction.Emoji.ID))
+			}
+		}
+
+		if root := m.contentRoot(item); root != nil {
+			_ = ast.Walk(root, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
+				if emoji, ok := node.(*md.Emoji); ok && entering {
+					if id, err := discord.ParseSnowflake(emoji.ID); err == nil {
+						cmds = append(cmds, m.loadEmoji(discord.EmojiID(id)))
+					}
+				}
+				return ast.WalkContinue, nil
+			})
 		}
 
 		if !m.cfg.UI.MessagesList.Attachments.Preview {
@@ -128,16 +144,31 @@ func (m Model) loadAvatar(user discord.User) tview.Cmd {
 	return m.loadImage(avatarURL(user), uint(cfg.Height))
 }
 
-func emojiURL(emoji discord.Emoji) discord.URL {
-	return emoji.EmojiURLWithType(discord.PNGImage)
+func emojiURL(id discord.EmojiID) discord.URL {
+	return discord.Emoji{ID: id}.EmojiURLWithType(discord.PNGImage)
 }
 
-// loadEmoji loads the image of a custom emoji, a row tall.
-func (m Model) loadEmoji(emoji discord.Emoji) tview.Cmd {
-	if !emoji.IsCustom() {
+// loadEmoji loads the image of the custom emoji with id, a row tall.
+func (m Model) loadEmoji(id discord.EmojiID) tview.Cmd {
+	return m.loadImage(emojiURL(id), 1)
+}
+
+// emojiLine returns the image of the custom emoji with id as a line of spans, or nil if it is not loaded.
+func (m Model) emojiLine(id string) []text.Span {
+	snowflake, err := discord.ParseSnowflake(id)
+	if err != nil {
 		return nil
 	}
-	return m.loadImage(emojiURL(emoji), 1)
+
+	emoji, ok := m.images[emojiURL(discord.EmojiID(snowflake))]
+	if !ok {
+		return nil
+	}
+
+	if lines := emoji.Lines(); len(lines) > 0 {
+		return lines[0]
+	}
+	return nil
 }
 
 // loadImage loads the image at url in a square rows tall, unless it is loaded already.
