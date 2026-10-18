@@ -85,7 +85,7 @@ func (m Model) loadPreviews() tview.Cmd {
 	var cmds []tview.Cmd
 	for i := range m.items {
 		item := &m.items[i]
-		if item.separator {
+		if item.separator != nil {
 			continue
 		}
 

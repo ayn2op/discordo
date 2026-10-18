@@ -113,8 +113,8 @@ func TestModelRebuildItems(t *testing.T) {
 				t.Helper()
 				var got []discord.MessageID
 				for i, item := range ml.items {
-					if item.separator {
-						if !tt.separators || i+1 == len(ml.items) || ml.items[i+1].separator {
+					if item.separator != nil {
+						if !tt.separators || i+1 == len(ml.items) || ml.items[i+1].separator != nil {
 							t.Fatalf("item %d: orphaned separator", i)
 						}
 					} else {
@@ -223,7 +223,7 @@ func TestModelDrawLayout(t *testing.T) {
 		cfg.UI.MessagesList.Compact = compact
 
 		var got strings.Builder
-		for _, span := range ml.renderMessage(message, nil, tview.Style{}, 80, false) {
+		for _, span := range ml.renderMessage(message, nil, tview.Style{}, false) {
 			got.WriteString(span.Text)
 		}
 
@@ -272,7 +272,7 @@ func TestModelShouldGroup(t *testing.T) {
 	if !ml.items[newest].grouped || ml.items[ml.messageIndex(-1, 1)].grouped {
 		t.Fatal("only the first message has a header")
 	}
-	if got := ml.renderMessage(ml.items[newest].message, nil, tview.Style{}, 80, true); len(got) != 1 || got[0].Text != "hi" {
+	if got := ml.renderMessage(ml.items[newest].message, nil, tview.Style{}, true); len(got) != 1 || got[0].Text != "hi" {
 		t.Fatalf("grouped message = %v, want only its content", got)
 	}
 	second := ml.messageIndex(newest, -1)

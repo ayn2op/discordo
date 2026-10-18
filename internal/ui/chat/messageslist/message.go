@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"github.com/ayn2op/arikawa/v3/discord"
 	md "github.com/ayn2op/arikawa/v3/markdown"
@@ -25,7 +24,7 @@ import (
 // root is the parsed content of message, or nil to parse it when it is rendered.
 func (m Model) messageViews(message discord.Message, root ast.Node, grouped bool) (content, reply *messageView) {
 	style := m.cfg.Theme.MessagesList.MessageStyle.Style
-	content = &messageView{render: func(width int) []text.Span { return m.renderMessage(message, root, style, width, grouped) }}
+	content = &messageView{render: func(int) []text.Span { return m.renderMessage(message, root, style, grouped) }}
 	reply = &messageView{render: func(int) []text.Span {
 		builder := new(markdown.Builder)
 		m.drawReply(builder, message, style)
@@ -70,35 +69,9 @@ func (v *messageView) Draw(screen tview.Screen, area tview.Rectangle) {
 
 func (v *messageView) Handle(msg tview.Msg, _ tview.Rectangle) tview.Msg { return msg }
 
-// dateSeparator is a line with the date in the middle, filled to the width it is drawn at.
-type dateSeparator struct {
-	date, fill string
-	style      tview.Style
-}
-
-// Size returns Fill and a height of one row.
-func (dateSeparator) Size() (width, height layout.Length) { return layout.Fill, layout.Fixed(1) }
-
-// Layout returns a height of one row.
-func (dateSeparator) Layout(limits layout.Limits) layout.Size {
-	return layout.Atomic(limits, layout.Fill, layout.Fixed(1))
-}
-
-func (d dateSeparator) Draw(screen tview.Screen, area tview.Rectangle) {
-	line := d.date
-	label := " " + d.date + " "
-	if labelWidth := utf8.RuneCountInString(label); area.Width > labelWidth {
-		fill := area.Width - labelWidth
-		line = strings.Repeat(d.fill, fill/2) + label + strings.Repeat(d.fill, fill-fill/2)
-	}
-	tview.Print(screen, line, area.X, area.Y, area.Width, tview.HorizontalAlignmentLeft, d.style)
-}
-
-func (dateSeparator) Handle(msg tview.Msg, area tview.Rectangle) tview.Msg { return msg }
-
-func (m Model) renderMessage(message discord.Message, root ast.Node, baseStyle tview.Style, width int, grouped bool) []text.Span {
+func (m Model) renderMessage(message discord.Message, root ast.Node, baseStyle tview.Style, grouped bool) []text.Span {
 	builder := new(markdown.Builder)
-	m.writeMessage(builder, message, root, baseStyle, width, grouped)
+	m.writeMessage(builder, message, root, baseStyle, grouped)
 	// Without a header or content, the message starts with the line break that attachments and embeds start below.
 	return trimLeadingLineBreaks(builder.Finish())
 }
@@ -114,7 +87,7 @@ func trimLeadingLineBreaks(spans []text.Span) []text.Span {
 	return spans
 }
 
-func (m Model) writeMessage(builder *markdown.Builder, message discord.Message, root ast.Node, baseStyle tview.Style, width int, grouped bool) {
+func (m Model) writeMessage(builder *markdown.Builder, message discord.Message, root ast.Node, baseStyle tview.Style, grouped bool) {
 	if m.blocked(message.Author) {
 		builder.Write("Blocked message", baseStyle.Foreground(color.Red).Bold(true))
 		return
@@ -125,12 +98,12 @@ func (m Model) writeMessage(builder *markdown.Builder, message discord.Message, 
 		if message.Reference != nil && message.Reference.Type == discord.MessageReferenceTypeForward {
 			m.drawForwardedMessage(builder, message, baseStyle, grouped)
 		} else {
-			m.drawDefaultMessage(builder, message, root, baseStyle, width, grouped)
+			m.drawDefaultMessage(builder, message, root, baseStyle, grouped)
 		}
 	case discord.GuildMemberJoinMessage:
 		m.drawLayout(builder, message, baseStyle, false, func() { builder.Write("joined the server.", baseStyle) })
 	case discord.InlinedReplyMessage:
-		m.drawDefaultMessage(builder, message, root, baseStyle, width, false)
+		m.drawDefaultMessage(builder, message, root, baseStyle, false)
 	case discord.ChannelPinnedMessage:
 		drawPinnedMessage(builder, message, baseStyle)
 	default:
@@ -338,14 +311,13 @@ func (m Model) drawSnapshotContent(builder *markdown.Builder, parent discord.Mes
 	m.drawContent(builder, message, nil, baseStyle)
 }
 
-func (m Model) drawDefaultMessage(builder *markdown.Builder, message discord.Message, root ast.Node, baseStyle tview.Style, width int, grouped bool) {
+func (m Model) drawDefaultMessage(builder *markdown.Builder, message discord.Message, root ast.Node, baseStyle tview.Style, grouped bool) {
 	content := func() { m.drawContent(builder, message, root, baseStyle) }
 	if message.Content == "" {
 		content = nil
 	}
 
 	m.drawLayout(builder, message, baseStyle, grouped, content)
-	m.drawEmbeds(builder, message, baseStyle, width, root)
 
 	attachmentStyle := tview.MergeStyle(baseStyle, m.cfg.Theme.MessagesList.AttachmentStyle.Style)
 	// A voice message is shown as its player.

@@ -11,6 +11,7 @@ import (
 	"github.com/ayn2op/discordo/internal/voice"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/box"
 	"github.com/ayn2op/tview/column"
 	tviewimage "github.com/ayn2op/tview/image"
 	"github.com/ayn2op/tview/keybind"
@@ -19,6 +20,7 @@ import (
 	"github.com/ayn2op/tview/row"
 	"github.com/ayn2op/tview/scrollbar"
 	"github.com/ayn2op/tview/spacer"
+	"github.com/ayn2op/tview/text"
 	"github.com/ayn2op/tview/viewport"
 	"github.com/yuin/goldmark/v2/ast"
 )
@@ -27,8 +29,10 @@ type messageItem struct {
 	message discord.Message
 	// text and reply are the message and what it replies to as wrapped, or nil until they are shown.
 	text, reply *messageView
-	// A separator shows the date of the message after it.
-	separator bool
+	// embeds are the embeds of the message, made with text.
+	embeds []tview.Widget
+	// separator is the line with the date of the message after it, or nil for a message.
+	separator tview.Widget
 	// grouped reports whether the message is drawn without a header, under that of the message before it.
 	grouped bool
 
@@ -181,7 +185,7 @@ func (m Model) indexOf(channelID discord.ChannelID, id discord.MessageID) int {
 	if m.channel == nil || m.channel.ID != channelID {
 		return -1
 	}
-	return slices.IndexFunc(m.items, func(item messageItem) bool { return !item.separator && item.message.ID == id })
+	return slices.IndexFunc(m.items, func(item messageItem) bool { return item.separator == nil && item.message.ID == id })
 }
 
 func (m *Model) reset() {
@@ -209,7 +213,7 @@ func (m *Model) AddMessage(message discord.Message) tview.Cmd {
 
 	separator := m.shouldSeparate(previous, message)
 	if separator {
-		m.items = append(m.items, messageItem{separator: true})
+		m.items = append(m.items, messageItem{separator: m.separatorView(message)})
 	}
 
 	grouped := !separator && m.shouldGroup(previous, message)
@@ -218,7 +222,7 @@ func (m *Model) AddMessage(message discord.Message) tview.Cmd {
 }
 
 func (m *Model) setMessage(index int, message discord.Message) {
-	if index < 0 || index >= len(m.items) || m.items[index].separator {
+	if index < 0 || index >= len(m.items) || m.items[index].separator != nil {
 		return
 	}
 
@@ -227,7 +231,7 @@ func (m *Model) setMessage(index int, message discord.Message) {
 }
 
 func (m *Model) deleteMessage(index int) {
-	if index < 0 || index >= len(m.items) || m.items[index].separator {
+	if index < 0 || index >= len(m.items) || m.items[index].separator != nil {
 		return
 	}
 
@@ -255,17 +259,22 @@ func (m Model) buildItem(index int) tview.Widget {
 		return nil
 	}
 	item := &m.items[index]
-	if item.separator {
-		date := m.items[index+1].message.Timestamp.Time().In(time.Local).Format(m.cfg.DateSeparator.Format)
-		return dateSeparator{date: date, fill: m.cfg.DateSeparator.Character, style: m.cfg.Theme.MessagesList.MessageStyle.Dim(true)}
+	if item.separator != nil {
+		return item.separator
 	}
 
 	message := &item.message
 	if item.text == nil {
-		item.text, item.reply = m.messageViews(*message, m.contentRoot(item), item.grouped)
+		root := m.contentRoot(item)
+		item.text, item.reply = m.messageViews(*message, root, item.grouped)
+		item.embeds = m.embedViews(*message, root)
 	}
 
+	// Attachments are named in the text, before the embeds.
 	body := column.New(item.text).Height(layout.Shrink)
+	for _, embed := range item.embeds {
+		body = body.Push(embed)
+	}
 	if isVoiceMessage(*message) {
 		body = body.Push(m.voiceMessageView(message.Attachments[0]))
 	}
@@ -310,19 +319,35 @@ func (m Model) shouldGroup(previous *discord.Message, message discord.Message) b
 		message.Timestamp.Time().Sub(previous.Timestamp.Time()) <= cfg.Interval
 }
 
+// separatorDatePadding is on either side of the date on its separator line.
+const separatorDatePadding = " "
+
+// separatorView returns the line with the date of message in the middle of it. It is made once, when the separator is added, as the list builds every item each time it is laid out.
+func (m Model) separatorView(message discord.Message) tview.Widget {
+	date := message.Timestamp.Time().In(time.Local).Format(m.cfg.DateSeparator.Format)
+	style := m.cfg.Theme.MessagesList.MessageStyle.Dim(true)
+	return box.New(spacer.New()).
+		Borders(tview.BordersTop).
+		BorderSet(tview.BorderSet{Top: m.cfg.DateSeparator.Character}).
+		BorderStyle(style).
+		// The separator is kept, so its date is laid out once.
+		Title(text.New(separatorDatePadding + date + separatorDatePadding).Style(style).Wrapping(text.WrappingNone).Paragraph(new(text.Paragraph))).
+		Height(layout.Fixed(1))
+}
+
 // rebuildItems replaces date separators and groups while retaining message views and selection.
 func (m *Model) rebuildItems() {
 	items := make([]messageItem, 0, len(m.items))
 	cursor, target := -1, -1
 	var previous *discord.Message
 	for i, item := range m.items {
-		if item.separator {
+		if item.separator != nil {
 			continue
 		}
 
 		separator := m.shouldSeparate(previous, item.message)
 		if separator {
-			items = append(items, messageItem{separator: true})
+			items = append(items, messageItem{separator: m.separatorView(item.message)})
 		}
 		// A message that joins or leaves a group is drawn again, with or without its header.
 		if grouped := !separator && m.shouldGroup(previous, item.message); grouped != item.grouped {
@@ -356,7 +381,7 @@ func sameLocalDate(a discord.Timestamp, b discord.Timestamp) bool {
 // messageIndex finds the next message in direction (-1 or 1), excluding start.
 func (m Model) messageIndex(start, direction int) int {
 	for i := start + direction; i >= 0 && i < len(m.items); i += direction {
-		if !m.items[i].separator {
+		if m.items[i].separator == nil {
 			return i
 		}
 	}
@@ -364,7 +389,7 @@ func (m Model) messageIndex(start, direction int) int {
 }
 
 func (m *Model) onRowCursorChanged(index int) {
-	if index < 0 || index >= len(m.items) || !m.items[index].separator {
+	if index < 0 || index >= len(m.items) || m.items[index].separator == nil {
 		return
 	}
 	target := m.messageIndex(index, -1)
@@ -376,7 +401,7 @@ func (m *Model) onRowCursorChanged(index int) {
 
 func (m Model) selectedMessage() (*discord.Message, bool) {
 	cursor := m.cursor
-	if cursor < 0 || cursor >= len(m.items) || m.items[cursor].separator {
+	if cursor < 0 || cursor >= len(m.items) || m.items[cursor].separator != nil {
 		return nil, false
 	}
 
@@ -479,7 +504,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			return m, cmd
 		}
 
-		index := slices.IndexFunc(m.items, func(item messageItem) bool { return !item.separator && item.message.ID == msg.messageID })
+		index := slices.IndexFunc(m.items, func(item messageItem) bool { return item.separator == nil && item.message.ID == msg.messageID })
 		if index < 0 || m.items[index].previews == nil {
 			return m, nil
 		}
@@ -584,7 +609,7 @@ func (m *Model) selectReply() {
 
 	if ref := messages[cursor].message.ReferencedMessage; ref != nil {
 		refIdx := slices.IndexFunc(messages, func(m messageItem) bool {
-			return !m.separator && m.message.ID == ref.ID
+			return m.separator == nil && m.message.ID == ref.ID
 		})
 		if refIdx != -1 {
 			m.setCursor(refIdx)
@@ -600,7 +625,7 @@ func (m *Model) SelectLastOwn() (discord.Message, bool) {
 	}
 	for i, item := range slices.Backward(m.items) {
 		message := item.message
-		if item.separator || message.ChannelID != channel.ID || !ui.IsMe(m.state, message.Author.ID) ||
+		if item.separator != nil || message.ChannelID != channel.ID || !ui.IsMe(m.state, message.Author.ID) ||
 			!message.ID.IsValid() || message.Content == "" || len(message.MessageSnapshots) > 0 ||
 			(message.Type != discord.DefaultMessage && message.Type != discord.InlinedReplyMessage) {
 			continue

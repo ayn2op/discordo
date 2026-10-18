@@ -8,22 +8,28 @@ import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/markdown"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/box"
+	"github.com/ayn2op/tview/layout"
 	"github.com/ayn2op/tview/text"
 	"github.com/gdamore/tcell/v3"
-	"github.com/rockorager/go-uucode"
 	"github.com/yuin/goldmark/v2/ast"
 )
 
-// embedPrefix is drawn before each line of an embed, in the embed's color.
-const embedPrefix = "  ▎ "
+const (
+	// embedBar is drawn down the left of an embed, in the embed's color.
+	embedBar = "▎"
+	// embedIndent is the cells before the bar, and embedBarGap those between the bar and the text.
+	embedIndent, embedBarGap = 2, 1
+)
 
-// embedPrefixWidth is how many cells embedPrefix takes.
-var embedPrefixWidth = uucode.StringWidth(embedPrefix)
-
+// embedViews returns each embed of message as its text with a bar down its left, or nil if the message does not show its embeds: one without any, by a blocked user, or that is not drawn with its own content, as a forward.
+// The views capture the model and the message, so they are made once with the text of the message rather than in buildItem.
 // root is the parsed content of message, or nil to parse it here.
-func (m Model) drawEmbeds(builder *markdown.Builder, message discord.Message, baseStyle tview.Style, width int, root ast.Node) {
-	if len(message.Embeds) == 0 {
-		return
+func (m Model) embedViews(message discord.Message, root ast.Node) []tview.Widget {
+	forward := message.Reference != nil && message.Reference.Type == discord.MessageReferenceTypeForward
+	ownContent := message.Type == discord.DefaultMessage && !forward || message.Type == discord.InlinedReplyMessage
+	if len(message.Embeds) == 0 || m.blocked(message.Author) || !ownContent {
+		return nil
 	}
 
 	// Embed URLs are deduplicated against links already shown in the message body.
@@ -33,47 +39,52 @@ func (m Model) drawEmbeds(builder *markdown.Builder, message discord.Message, ba
 		seenURLs[u] = struct{}{}
 	}
 
+	baseStyle := m.cfg.Theme.MessagesList.MessageStyle.Style
 	lineStyles := embedLineStyles(baseStyle, m.cfg.Theme.MessagesList.Embeds)
-	defaultPrefixStyle := baseStyle.Dim(true)
-	// Wrap against the list's width, so the message is rendered again when it changes.
-	wrapWidth := max(width-embedPrefixWidth, 1)
-
+	var views []tview.Widget
 	for _, embed := range message.Embeds {
 		lines := embedLines(embed, seenURLs)
 		if len(lines) == 0 {
 			continue
 		}
 
-		prefixStyle := defaultPrefixStyle
+		barStyle := baseStyle.Dim(true)
 		if embed.Color != discord.NullColor && embed.Color != 0 {
-			prefixStyle = prefixStyle.Foreground(tcell.NewHexColor(int32(embed.Color)))
+			barStyle = barStyle.Foreground(tcell.NewHexColor(int32(embed.Color)))
 		}
-		prefix := text.Span{Text: embedPrefix, Style: prefixStyle}
-		builder.NewLine()
-		for _, line := range lines {
-			if strings.TrimSpace(line.text) == "" {
-				continue
-			}
-			msg := message
-			msg.Content = line.text
-			lineStyle := lineStyles[line.kind]
-			// Embed descriptions are always markdown-rendered to match Discord's rich embed semantics, even when message markdown is globally disabled.
-			rendered := m.renderContent(msg, nil, lineStyle, line.kind == embedLineDescription)
-			if line.url != "" {
-				rendered = spansWithURL(rendered, line.url)
-			}
 
-			// The prefix is added after wrapping, so every visual line has it, not only the first.
-			for _, wrapped := range text.Lines(rendered, wrapWidth, text.WrappingGlyph) {
-				if !builder.LineEmpty() {
-					builder.NewLine()
-				}
-
-				builder.WriteSpans(prefix)
-				builder.WriteSpans(wrapped...)
-			}
-		}
+		content := &messageView{render: func(int) []text.Span { return m.renderEmbed(message, lines, lineStyles) }}
+		bar := box.New(content).
+			Borders(tview.BordersLeft).
+			BorderSet(tview.BorderSet{Left: embedBar}).
+			BorderStyle(barStyle).
+			Padding(0, 0, embedBarGap, 0).
+			Height(layout.Shrink)
+		views = append(views, box.New(bar).Padding(0, 0, embedIndent, 0).Height(layout.Shrink))
 	}
+
+	return views
+}
+
+// renderEmbed returns lines of an embed of message, each on its own line in the style of its kind.
+func (m Model) renderEmbed(message discord.Message, lines []embedLine, lineStyles [embedLineKinds]tview.Style) []text.Span {
+	builder := new(markdown.Builder)
+	for _, line := range lines {
+		if !builder.LineEmpty() {
+			builder.NewLine()
+		}
+
+		msg := message
+		msg.Content = line.text
+		// Embed descriptions are always markdown-rendered to match Discord's rich embed semantics, even when message markdown is globally disabled.
+		rendered := m.renderContent(msg, nil, lineStyles[line.kind], line.kind == embedLineDescription)
+		if line.url != "" {
+			rendered = spansWithURL(rendered, line.url)
+		}
+		builder.WriteSpans(rendered...)
+	}
+
+	return builder.Finish()
 }
 
 func spansWithURL(spans []text.Span, rawURL string) []text.Span {
