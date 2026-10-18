@@ -64,7 +64,7 @@ func (m Model) View() tview.Widget {
 	}
 	t := m.tabs().
 		Active(int(m.active)).
-		Keybind(tabAction).
+		Keybind(tabsKeybind).
 		OnSelect(func(i int) tview.Msg { return selectTabMsg(i) })
 	return ui.Box(column.New(t, content), m.cfg, false)
 }

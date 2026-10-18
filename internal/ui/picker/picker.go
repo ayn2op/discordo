@@ -5,7 +5,6 @@ import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
-	"github.com/ayn2op/tview/keybind"
 	"github.com/ayn2op/tview/picker"
 	"github.com/ayn2op/tview/scrollbar"
 )
@@ -33,7 +32,7 @@ func (m Model) View(onSelect func(picker.Item) tview.Msg, onCancel tview.Msg) tv
 		ThumbStyle(cfg.Theme.ScrollBar.ThumbStyle.Style)
 	p := picker.New(m.items, &m.searchState).
 		ScrollBar(bar, cfg.UI.ScrollBar.Visibility.ScrollBarVisibility).
-		Keybind(bindKeys(cfg.Keybinds.Picker)).
+		Keybind(pickerKeybind(cfg.Keybinds.Picker)).
 		ListKeybind(ui.SelectionKeybind(cfg.Keybinds.Picker.SelectionKeybinds)).
 		OnChange(func(s *picker.SearchState) tview.Msg { return changeMsg(*s) }).
 		OnSelect(onSelect).
@@ -56,15 +55,3 @@ func (m *Model) SetItems(items picker.Items) {
 
 // Reset clears the query.
 func (m *Model) Reset() { m.searchState.Reset() }
-
-func bindKeys(kbs config.PickerKeybinds) func(tview.KeyMsg) picker.Action {
-	return func(key tview.KeyMsg) picker.Action {
-		switch {
-		case keybind.Matches(key, kbs.Select.Keybind):
-			return picker.ActionSelect
-		case keybind.Matches(key, kbs.Cancel.Keybind):
-			return picker.ActionCancel
-		}
-		return picker.ActionNone
-	}
-}

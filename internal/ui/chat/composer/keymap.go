@@ -1,8 +1,10 @@
 package composer
 
 import (
+	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/help"
 	"github.com/ayn2op/tview/keybind"
+	"github.com/ayn2op/tview/textarea"
 )
 
 var _ help.KeyMap = Model{}
@@ -59,4 +61,18 @@ func (m Model) FullHelp() [][]keybind.Keybind {
 		compose,
 		openEditor,
 	}
+}
+
+// keybind binds the configured newline key and textarea's other default keys, leaving the composer's own keys to Update.
+func (m Model) keybind(key tview.KeyMsg) textarea.Action {
+	if m.isBound(key) {
+		return textarea.ActionNone
+	}
+	if keybind.Matches(key, m.cfg.Keybinds.Composer.Newline.Keybind) {
+		return textarea.ActionNewline
+	}
+	if action := textarea.DefaultKeybind(key); action != textarea.ActionNewline {
+		return action
+	}
+	return textarea.ActionNone
 }

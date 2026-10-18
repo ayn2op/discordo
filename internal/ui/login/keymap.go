@@ -12,7 +12,7 @@ var (
 	nextTab     = keybind.NewSingleKeybind("ctrl+l", "next tab")
 )
 
-func tabAction(key tview.KeyMsg) tabs.Action {
+func tabsKeybind(key tview.KeyMsg) tabs.Action {
 	switch {
 	case keybind.Matches(key, previousTab):
 		return tabs.ActionPrevious

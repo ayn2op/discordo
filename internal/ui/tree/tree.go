@@ -6,7 +6,6 @@ import (
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/box"
-	"github.com/ayn2op/tview/keybind"
 	"github.com/ayn2op/tview/layout"
 	"github.com/ayn2op/tview/tree"
 	"github.com/ayn2op/tview/viewport"
@@ -44,7 +43,7 @@ func New(
 		Graphics(graphics).
 		GraphicsSet(set).
 		GraphicsStyle(tcell.StyleDefault.Foreground(tcell.GetColor(theme.GraphicsColor))).
-		Keybind(bindKeys(kbs)).
+		Keybind(treeKeybind(kbs)).
 		Focused(focused).
 		OnChange(onChange).
 		OnSelect(onSelect)
@@ -53,41 +52,8 @@ func New(
 		ContentWidth(t.RowsWidth).
 		OnChildMsg(func(s *viewport.ScrollState, msg tview.Msg) tview.Msg { return ScrollMsg{ScrollState: *s, Msg: msg} }).
 		Axes(layout.Axes{Width: true, Height: true}).
-		Keybind(bindScrollKeys(kbs)).
+		Keybind(scrollKeybind(kbs)).
 		Focused(focused).
 		OnChange(func(s *viewport.ScrollState) tview.Msg { return ScrollMsg{ScrollState: *s} })
 	return ui.Box(v, cfg, focused)
-}
-
-func bindKeys(kbs config.TreeKeybinds) func(tview.KeyMsg) tree.Action {
-	return func(key tview.KeyMsg) tree.Action {
-		switch {
-		case keybind.Matches(key, kbs.SelectUp.Keybind):
-			return tree.ActionUp
-		case keybind.Matches(key, kbs.SelectDown.Keybind):
-			return tree.ActionDown
-		case keybind.Matches(key, kbs.SelectTop.Keybind):
-			return tree.ActionTop
-		case keybind.Matches(key, kbs.SelectBottom.Keybind):
-			return tree.ActionBottom
-		case keybind.Matches(key, kbs.MoveToParentNode.Keybind):
-			return tree.ActionMoveToParent
-		case keybind.Matches(key, kbs.SelectCurrent.Keybind):
-			return tree.ActionSelect
-		}
-		return tree.ActionNone
-	}
-}
-
-func bindScrollKeys(kbs config.TreeKeybinds) func(tview.KeyMsg) viewport.Action {
-	scroll := ui.ScrollKeybind(kbs.ScrollKeybinds)
-	return func(key tview.KeyMsg) viewport.Action {
-		switch {
-		case keybind.Matches(key, kbs.ScrollLeft.Keybind):
-			return viewport.ActionLeft
-		case keybind.Matches(key, kbs.ScrollRight.Keybind):
-			return viewport.ActionRight
-		}
-		return scroll(key)
-	}
 }

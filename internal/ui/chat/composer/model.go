@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"cmp"
 	"context"
-	"github.com/ayn2op/tview/layout"
 	"io"
 	"log/slog"
 	"regexp"
@@ -13,6 +12,8 @@ import (
 	"time"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/ayn2op/tview/layout"
 
 	"github.com/ayn2op/arikawa/v3/api"
 	"github.com/ayn2op/arikawa/v3/discord"
@@ -610,20 +611,6 @@ func (m Model) attach(name string, reader io.Reader) {
 
 func (m Model) canAttachFiles() bool {
 	return m.channel != nil && m.state.HasPermissions(m.channel.ID, discord.PermissionAttachFiles)
-}
-
-// keybind binds the configured newline key and textarea's other default keys, leaving the composer's own keys to Update.
-func (m Model) keybind(key tview.KeyMsg) textarea.Action {
-	if m.isBound(key) {
-		return textarea.ActionNone
-	}
-	if keybind.Matches(key, m.cfg.Keybinds.Composer.Newline.Keybind) {
-		return textarea.ActionNewline
-	}
-	if action := textarea.DefaultKeybind(key); action != textarea.ActionNewline {
-		return action
-	}
-	return textarea.ActionNone
 }
 
 func humanJoin(items []string) string {
