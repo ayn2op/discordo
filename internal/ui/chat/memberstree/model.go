@@ -10,6 +10,7 @@ import (
 	"github.com/ayn2op/arikawa/v3/gateway"
 	"github.com/ayn2op/arikawa/v3/state"
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/ui"
 	uitree "github.com/ayn2op/discordo/internal/ui/tree"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
@@ -99,7 +100,7 @@ func (m Model) View(focused bool) tview.Widget {
 		onChange,
 		onSelect,
 	).
-		Title("Members")
+		Title(ui.Label("Members", m.cfg.Theme.Title, focused))
 }
 
 // setCurrentNode selects node and scrolls to it.

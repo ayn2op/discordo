@@ -38,7 +38,7 @@ func (m Model) View(onSelect func(picker.Item) tview.Msg, onCancel tview.Msg) tv
 		OnChange(func(s *picker.SearchState) tview.Msg { return changeMsg(*s) }).
 		OnSelect(onSelect).
 		OnCancel(onCancel)
-	return ui.Box(p, cfg, true).Title(m.title)
+	return ui.Box(p, cfg, true).Title(ui.Label(m.title, cfg.Theme.Title, true))
 }
 
 func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {

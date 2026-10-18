@@ -35,7 +35,7 @@ func (m Model) View() tview.Widget {
 		list, width = list.Width(layout.Fixed(max(int(cfg.MinWidth), m.maxDisplayWidth()))), layout.Shrink
 	}
 
-	return ui.Box(list, m.cfg, false).Title("Mentions").BorderSet(set).Width(width).Height(layout.Shrink)
+	return ui.Box(list, m.cfg, false).Title(ui.Label("Mentions", m.cfg.Theme.Title, false)).BorderSet(set).Width(width).Height(layout.Shrink)
 }
 
 func (Model) Init() tview.Cmd { return nil }

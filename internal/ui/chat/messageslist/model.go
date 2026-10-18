@@ -83,7 +83,9 @@ func NewModel(cfg *config.Config, state *ningen.State) Model {
 
 // View shows the messages in a box titled with the channel and footed with footer, such as who is typing.
 func (m Model) View(focused bool, footer string) tview.Widget {
-	return ui.Box(m.listView(focused), m.cfg, focused).Title(m.title()).Footer(footer)
+	return ui.Box(m.listView(focused), m.cfg, focused).
+		Title(ui.Label(m.title(), m.cfg.Theme.Title, focused)).
+		Footer(ui.Label(footer, m.cfg.Theme.Footer, focused))
 }
 
 // title returns the selected channel and its topic, or "Messages" when none is selected.

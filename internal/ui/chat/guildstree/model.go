@@ -72,8 +72,8 @@ func (m Model) View(focused bool) tview.Widget {
 		onChange,
 		onSelect,
 	).
-		Title("Guilds").
-		Footer(m.voiceFooter())
+		Title(ui.Label("Guilds", m.cfg.Theme.Title, focused)).
+		Footer(ui.Label(m.voiceFooter(), m.cfg.Theme.Footer, focused))
 }
 
 func (m *Model) reset() *tree.Node {

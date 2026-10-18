@@ -16,8 +16,8 @@ github.com/ayn2op/fhttp v0.6.10-0.20261016015330-2d5e34c6b935 h1:oVxkY1/nVsVQ8Cn
 github.com/ayn2op/fhttp v0.6.10-0.20261016015330-2d5e34c6b935/go.mod h1:7phoj3f/q54WuiTnCTlAhEoaVcdlruKkSzCSD47LzHk=
 github.com/ayn2op/ningen/v3 v3.0.1-0.20261014035153-5e43590a1426 h1:0ndRWpAiSSgR0z9b7K+pwMlCHEk3VzQeS5ls+zWtbr0=
 github.com/ayn2op/ningen/v3 v3.0.1-0.20261014035153-5e43590a1426/go.mod h1:4S2B9frwrjELeAldoqPgasA/VfnOySgRlektwYLuVks=
-github.com/ayn2op/tview v0.0.0-20261017205514-f83a3769b18a h1:gJyFlYT+igFchVDNUMapJdy8iM0cVA0/LxOqZ8n6FZc=
-github.com/ayn2op/tview v0.0.0-20261017205514-f83a3769b18a/go.mod h1:kn8Up2Tk2vhDUtW6H9nqAvRk9hDVyCzk18CCAo2qkjA=
+github.com/ayn2op/tview v0.0.0-20261018225919-d32257af60fc h1:Siy7K+UEnISG7BVsrTxRqL81RGcU9H3NOvn11tiHfQ8=
+github.com/ayn2op/tview v0.0.0-20261018225919-d32257af60fc/go.mod h1:kn8Up2Tk2vhDUtW6H9nqAvRk9hDVyCzk18CCAo2qkjA=
 github.com/bdandy/go-errors v1.2.2 h1:WdFv/oukjTJCLa79UfkGmwX7ZxONAihKu4V0mLIs11Q=
 github.com/bdandy/go-errors v1.2.2/go.mod h1:NkYHl4Fey9oRRdbB1CoC6e84tuqQHiqrOcZpqFEkBxM=
 github.com/bdandy/go-socks4 v1.2.3 h1:Q6Y2heY1GRjCtHbmlKfnwrKVU/k81LS8mRGLRlmDlic=
@@ -44,12 +44,12 @@ github.com/disgoorg/godave v0.3.0 h1:37F3ZuiMd8/EXeoCtTeE8iP2eT2nWsfEa4/ITwoKfe4
 github.com/disgoorg/godave v0.3.0/go.mod h1:OreAC3hpabr39bMVA+jwOVDq1EUPXH5A0XUBiZaDI1Y=
 github.com/dlclark/regexp2/v2 v2.9.1 h1:q6bZW/NN9VodqMjYXpuic2lZxdHPfFTzGS+MJxIJmKQ=
 github.com/dlclark/regexp2/v2 v2.9.1/go.mod h1:avUrQvPaLz2DrFNHJF0taWAFFX2C1GMSSoeiqFjcBmU=
-github.com/ebitengine/purego v0.11.1 h1:2zpWRSQNVKN4eKsKO9eM1ILDgWfYMY9GwqRmK6XeQ/0=
-github.com/ebitengine/purego v0.11.1/go.mod h1:DCHPP08djqhNSoTfImcnHYQRZmd0qhakvrozqaEYhGQ=
+github.com/ebitengine/purego v0.11.2 h1:WWiTx8rD8zYdOwSj8O/NiNbsOvSAgJMTlyV1XlbUSeU=
+github.com/ebitengine/purego v0.11.2/go.mod h1:DCHPP08djqhNSoTfImcnHYQRZmd0qhakvrozqaEYhGQ=
 github.com/gdamore/encoding v1.0.1 h1:YzKZckdBL6jVt2Gc+5p82qhrGiqMdG/eNs6Wy0u3Uhw=
 github.com/gdamore/encoding v1.0.1/go.mod h1:0Z0cMFinngz9kS1QfMjCP8TY7em3bZYeeklsSDPivEo=
-github.com/gdamore/tcell/v3 v3.6.0 h1:jW20qS6Tm38KVDqLHq9KWSvyjNl00FbhbD8rIAnHBws=
-github.com/gdamore/tcell/v3 v3.6.0/go.mod h1:CBZxkl2T+XxEyuBfOh4zaahqm27dngvhfBfCCZxJsgc=
+github.com/gdamore/tcell/v3 v3.6.1-0.20261018194208-6ad9db1fd512 h1:cC1srpdzj/kwTj+kJ3sORrrd5C2Quu7scDy6oLxgBIg=
+github.com/gdamore/tcell/v3 v3.6.1-0.20261018194208-6ad9db1fd512/go.mod h1:TMjaFRfs5NCU3o1aiuxoRHdEdyixCy1mdGcHdvj7lvc=
 github.com/gen2brain/malgo v0.11.26 h1:k5WcPIKw1bbJAbPqrvNPt7nehPLoaPNcOFde2+eruiM=
 github.com/gen2brain/malgo v0.11.26/go.mod h1:xLVG3ROA33Bzol1quF3e4ehqcFuqh8QK4B8T6LQUs/M=
 github.com/godbus/dbus/v5 v5.2.4 h1:F2gUCy++NMIxGmo9J+z5le/+ZC8W1OgeR51P4i9ZB/U=

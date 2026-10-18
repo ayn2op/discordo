@@ -1,6 +1,7 @@
 package login
 
 import (
+	"github.com/ayn2op/tview/layout"
 	"github.com/ayn2op/tview/tabs"
 
 	"github.com/ayn2op/discordo/internal/config"
@@ -72,6 +73,7 @@ func (m Model) View() tview.Widget {
 func (m Model) tabs() tabs.Widget {
 	cfg := m.cfg.UI.Tabs
 	return tabs.New(m.password.Label(), m.qr.Label(), m.token.Label()).
+		Width(layout.Fill).
 		Alignment(cfg.Alignment.HorizontalAlignment).
 		Wrap(cfg.Wrap).
 		Separator(cfg.Separator).

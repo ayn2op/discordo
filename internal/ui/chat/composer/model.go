@@ -155,7 +155,10 @@ func (m *Model) box(focused bool) box.Widget {
 		Focused(focused && !m.disabled).
 		OnInput(func(text string, cursor int) tview.Msg { return editMsg{text, cursor} }).
 		Height(layout.Shrink.Max(m.cfg.Composer.MaxHeight))
-	return ui.Box(text, m.cfg, focused).Title(m.title()).Footer(m.footer()).Height(layout.Shrink)
+	return ui.Box(text, m.cfg, focused).
+		Title(ui.Label(m.title(), m.cfg.Theme.Title, focused)).
+		Footer(ui.Label(m.footer(), m.cfg.Theme.Footer, focused)).
+		Height(layout.Shrink)
 }
 
 // title returns what the composer is doing: editing, replying, or nothing.

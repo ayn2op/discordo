@@ -10,6 +10,7 @@ import (
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/box"
+	"github.com/ayn2op/tview/text"
 )
 
 // Box returns child in a box laid out and styled by cfg, highlighted while focused.
@@ -24,15 +25,22 @@ func Box(child tview.Widget, cfg *config.Config, focused bool) box.Widget {
 		b = b.Borders(tview.BordersAll)
 	}
 	if focused {
-		return b.BorderStyle(theme.Border.ActiveStyle.Style).
-			BorderSet(ui.Border.ActiveSet.BorderSet).
-			TitleStyle(theme.Title.ActiveStyle.Style).
-			FooterStyle(theme.Footer.ActiveStyle.Style)
+		return b.BorderStyle(theme.Border.ActiveStyle.Style).BorderSet(ui.Border.ActiveSet.BorderSet)
 	}
-	return b.BorderStyle(theme.Border.NormalStyle.Style).
-		BorderSet(ui.Border.NormalSet.BorderSet).
-		TitleStyle(theme.Title.NormalStyle.Style).
-		FooterStyle(theme.Footer.NormalStyle.Style)
+	return b.BorderStyle(theme.Border.NormalStyle.Style).BorderSet(ui.Border.NormalSet.BorderSet)
+}
+
+// Label returns s on one line in the style of theme for whether its pane is focused, as the title or footer of a box, or nil if s is empty, so the box keeps no row for it.
+func Label(s string, theme config.StyleThemeConfig, focused bool) tview.Widget {
+	if s == "" {
+		return nil
+	}
+
+	style := theme.NormalStyle.Style
+	if focused {
+		style = theme.ActiveStyle.Style
+	}
+	return text.New(s).Style(style).Wrapping(text.WrappingNone)
 }
 
 // ChannelToString returns how channel is shown in the UI: an icon for its type and its name, or the recipients' names for a DM.
