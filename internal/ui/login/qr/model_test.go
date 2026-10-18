@@ -27,7 +27,7 @@ func TestModelView(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		m.qrCode = code
+		m.qrCode = code.Image(-1)
 		m.status = "status"
 		m.View().Draw(screen, tview.Rectangle{Width: width, Height: height})
 
@@ -41,6 +41,13 @@ func TestModelView(t *testing.T) {
 		}
 		if !strings.Contains(drawn.String(), "status") || !strings.ContainsAny(drawn.String(), "█▀▄") {
 			t.Fatalf("missing content:\n%s", drawn.String())
+		}
+
+		// The status is centered across the width, under the centered code.
+		for line := range strings.Lines(drawn.String()) {
+			if start := strings.Index(line, "status"); start >= 0 && (start < width/2-4 || start > width/2-2) {
+				t.Fatalf("status starts at %d, want it centered:\n%s", start, drawn.String())
+			}
 		}
 	})
 }

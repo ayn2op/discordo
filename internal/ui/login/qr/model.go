@@ -2,27 +2,37 @@ package qr
 
 import (
 	"crypto/rsa"
-	"strings"
+	stdimage "image"
 	"time"
 
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/box"
 	"github.com/ayn2op/tview/center"
+	"github.com/ayn2op/tview/column"
+	"github.com/ayn2op/tview/image"
 	"github.com/ayn2op/tview/layout"
 	"github.com/ayn2op/tview/text"
-	"github.com/ayn2op/tview/viewport"
 	"github.com/gdamore/tcell/v3"
-	"github.com/skip2/go-qrcode"
+	"github.com/gdamore/tcell/v3/color"
+)
+
+const (
+	// quietZoneColor is the white of the margin around the code, as go-qrcode draws its light modules.
+	quietZoneColor = color.IsRGB | color.IsValid | 0xffffff
+	// quietZoneRows and quietZoneColumns make a margin of two modules on every side, as a row holds two.
+	quietZoneRows, quietZoneColumns = 1, 2
+	// statusSpacing is the blank rows between the code and the status.
+	statusSpacing = 1
 )
 
 type Model struct {
-	scrollState viewport.ScrollState
-
 	conn              *gatewayConn
 	heartbeatInterval time.Duration
 	privateKey        *rsa.PrivateKey
 	fingerprint       string
 
-	qrCode *qrcode.QRCode
+	// qrCode is the code at one pixel per module, made once as it arrives.
+	qrCode stdimage.Image
 	status string
 }
 
@@ -53,9 +63,6 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			m.status = "Canceled"
 			return m, closeConn(m.conn)
 		}
-		return m, nil
-	case scrollMsg:
-		m.scrollState = viewport.ScrollState(msg)
 		return m, nil
 
 	case connCreateMsg:
@@ -113,53 +120,21 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	return m, nil
 }
 
-// halfBlock packs a vertical pair of QR pixels into one glyph, fitting two bitmap rows into a single terminal row.
-func halfBlock(top, bottom bool) rune {
-	switch [2]bool{top, bottom} {
-	case [2]bool{true, true}:
-		return '█'
-	case [2]bool{true, false}:
-		return '▀'
-	case [2]bool{false, true}:
-		return '▄'
-	default:
-		return ' '
-	}
-}
-
-// View centers the code, which scrolls when it is taller than the tab.
+// View centers the code above the status.
 func (m Model) View() tview.Widget {
-	code := m.code()
-	return center.New(
-		viewport.New(text.New(code).Wrapping(text.WrappingNone).AlignX(tview.HorizontalAlignmentCenter), m.scrollState).
-			Height(layout.Shrink).
-			Focused(true).
-			OnChange(func(s *viewport.ScrollState) tview.Msg { return scrollMsg(*s) }),
-	)
-}
-
-// code returns the QR code above the status.
-func (m Model) code() string {
-	var out strings.Builder
+	var qrCode tview.Widget
 	if m.qrCode != nil {
-		bitmap := m.qrCode.Bitmap()
-		for y := 0; y < len(bitmap); y += 2 {
-			if y > 0 {
-				out.WriteByte('\n')
-			}
-			for x := range bitmap[y] {
-				top := bitmap[y][x]
-				bottom := y+1 < len(bitmap) && bitmap[y+1][x]
-				out.WriteRune(halfBlock(top, bottom))
-			}
-		}
-	}
-	if m.status != "" {
-		if out.Len() > 0 {
-			out.WriteString("\n\n")
-		}
-		out.WriteString(m.status)
+		// The white margin around the code, two modules wide, is what scanners find it by against a dark terminal.
+		qrCode = box.New(image.New(m.qrCode)).
+			Background(quietZoneColor).
+			Padding(quietZoneRows, quietZoneRows, quietZoneColumns, quietZoneColumns).
+			Width(layout.Shrink).
+			Height(layout.Shrink)
 	}
 
-	return out.String()
+	return center.New(column.New(qrCode, text.New(m.status)).
+		Spacing(statusSpacing).
+		AlignX(tview.HorizontalAlignmentCenter).
+		Width(layout.Shrink).
+		Height(layout.Shrink))
 }

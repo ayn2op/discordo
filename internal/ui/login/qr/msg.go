@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	json "encoding/json/v2"
 	"errors"
+	"image"
 	"log/slog"
 	"net"
 	"strings"
@@ -18,7 +19,6 @@ import (
 	"github.com/ayn2op/discordo/internal/gateway"
 	"github.com/ayn2op/discordo/internal/http"
 	"github.com/ayn2op/tview"
-	"github.com/ayn2op/tview/viewport"
 	"github.com/gorilla/websocket"
 	"github.com/skip2/go-qrcode"
 )
@@ -231,7 +231,7 @@ func sendNonceProof(conn *gatewayConn, privateKey *rsa.PrivateKey, encryptedNonc
 }
 
 type qrCodeMsg struct {
-	qrCode *qrcode.QRCode
+	qrCode image.Image
 }
 
 func generateQRCode(fingerprint string) tview.Cmd {
@@ -242,7 +242,7 @@ func generateQRCode(fingerprint string) tview.Cmd {
 			return err
 		}
 		qrCode.DisableBorder = true
-		return qrCodeMsg{qrCode: qrCode}
+		return qrCodeMsg{qrCode: qrCode.Image(-1)}
 	}
 }
 
@@ -300,9 +300,6 @@ func exchangeTicket(fingerprint string, privateKey *rsa.PrivateKey, ticket strin
 		return TokenMsg(string(decryptedToken))
 	}
 }
-
-// scrollMsg scrolls the code.
-type scrollMsg viewport.ScrollState
 
 // startMsg starts connecting to the Remote Auth Gateway.
 type startMsg struct{}
