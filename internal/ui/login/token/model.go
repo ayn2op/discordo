@@ -59,7 +59,7 @@ func (m Model) View() tview.Widget {
 		Focused(m.buttonFocused).
 		OnClick(submitMsg{})
 	return column.New(
-		row.New(column.New(text.New("Token")).Width(layout.Fixed(len("Token")+1)), input).Height(layout.Shrink),
+		row.New(text.New("Token").Width(layout.Fixed(len("Token")+1)), input).Height(layout.Shrink),
 		submit,
 	).Spacing(1).AlignX(tview.HorizontalAlignmentCenter)
 }

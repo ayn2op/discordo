@@ -119,39 +119,13 @@ func (m Model) placeholder() string {
 }
 
 // View shows the text area in a box, taking keys if focused.
-func (m Model) View(focused bool) tview.Widget { return view{&m, focused} }
-
-// view is the composer as shown, with or without the focus.
-type view struct {
-	*Model
-	focused bool
-}
-
-func (v view) Size() (width, height layout.Length) {
-	return v.box(v.focused).Size()
-}
-
-func (v view) Layout(limits layout.Limits) layout.Size {
-	return v.box(v.focused).Layout(limits)
-}
-
-func (v view) Draw(screen tview.Screen, area tview.Rectangle) {
-	v.box(v.focused).Draw(screen, area)
-}
-
-// Handle leaves bound keys to Update and passes other messages to the text area.
-func (v view) Handle(msg tview.Msg, area tview.Rectangle) tview.Msg {
-	if key, ok := msg.(tview.KeyMsg); ok && v.isBound(key) {
-		return msg
-	}
-	return v.box(v.focused).Handle(msg, area)
-}
+func (m Model) View(focused bool) tview.Widget { return m.box(focused) }
 
 // box returns the text area in a box with the title and footer.
 func (m *Model) box(focused bool) box.Widget {
 	text := textarea.New(m.text, m.cursor).
 		Placeholder(m.placeholder()).
-		Keybind(m.editAction).
+		Keybind(m.keybind).
 		Focused(focused && !m.disabled).
 		OnInput(func(text string, cursor int) tview.Msg { return editMsg{text, cursor} }).
 		Height(layout.Shrink.Max(m.cfg.Composer.MaxHeight))
@@ -638,8 +612,11 @@ func (m Model) canAttachFiles() bool {
 	return m.channel != nil && m.state.HasPermissions(m.channel.ID, discord.PermissionAttachFiles)
 }
 
-// editAction binds the configured newline key and textarea's other default keys.
-func (m Model) editAction(key tview.KeyMsg) textarea.Action {
+// keybind binds the configured newline key and textarea's other default keys, leaving the composer's own keys to Update.
+func (m Model) keybind(key tview.KeyMsg) textarea.Action {
+	if m.isBound(key) {
+		return textarea.ActionNone
+	}
 	if keybind.Matches(key, m.cfg.Keybinds.Composer.Newline.Keybind) {
 		return textarea.ActionNewline
 	}

@@ -7,6 +7,7 @@ import (
 	"github.com/ayn2op/tview/layout"
 	"github.com/ayn2op/tview/list"
 	"github.com/ayn2op/tview/scrollbar"
+	"github.com/ayn2op/tview/text"
 	"github.com/ayn2op/tview/viewport"
 	"github.com/rockorager/go-uucode"
 )
@@ -43,7 +44,7 @@ func (Model) Init() tview.Cmd { return nil }
 func (m Model) listView() viewport.Widget {
 	l := list.New(m.cursor, len(m.items), func(i int) tview.Widget {
 		item := m.items[i]
-		return row{text: item.DisplayText, style: item.Style}
+		return text.New(item.DisplayText).Style(item.Style).Wrapping(text.WrappingNone)
 	}).
 		SelectedStyle(m.cfg.Theme.MentionsList.SelectedStyle.Style).
 		Keybind(ui.SelectionKeybind(m.cfg.Keybinds.MentionsList.SelectionKeybinds)).
@@ -102,26 +103,3 @@ func (m *Model) Rebuild() {
 }
 
 var _ tview.Model[Model] = Model{}
-
-// row is a mention on one line in its style.
-type row struct {
-	text  string
-	style tview.Style
-}
-
-// Size returns Fill and a height of one row.
-func (row) Size() (width, height layout.Length) { return layout.Fill, layout.Fixed(1) }
-
-// Layout returns a height of one row.
-func (row) Layout(limits layout.Limits) layout.Size {
-	return layout.Atomic(limits, layout.Fill, layout.Fixed(1))
-}
-
-func (r row) Draw(screen tview.Screen, area tview.Rectangle) {
-	for x := area.X; x < area.X+area.Width; x++ {
-		screen.Put(x, area.Y, " ", r.style)
-	}
-	tview.Print(screen, r.text, area.X, area.Y, area.Width, tview.HorizontalAlignmentLeft, r.style)
-}
-
-func (row) Handle(msg tview.Msg, area tview.Rectangle) tview.Msg { return msg }
