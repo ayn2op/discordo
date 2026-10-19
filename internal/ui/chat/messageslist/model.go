@@ -27,10 +27,8 @@ import (
 
 type messageItem struct {
 	message discord.Message
-	// text and reply are the message and what it replies to as wrapped, or nil until they are shown.
-	text, reply *messageView
-	// embeds are the embeds of the message, made with text.
-	embeds []tview.Widget
+	// view is the message as drawn, keeping its wrapped text, or nil until it is shown and after what it shows changes.
+	view tview.Widget
 	// separator is the line with the date of the message after it, or nil for a message.
 	separator tview.Widget
 	// grouped reports whether the message is drawn without a header, under that of the message before it.
@@ -263,16 +261,22 @@ func (m Model) buildItem(index int) tview.Widget {
 		return item.separator
 	}
 
-	message := &item.message
-	if item.text == nil {
-		root := m.contentRoot(item)
-		item.text, item.reply = m.messageViews(*message, root, item.grouped)
-		item.embeds = m.embedViews(*message, root)
+	// A voice message shows its player, which changes as it plays.
+	if item.view == nil || isVoiceMessage(item.message) {
+		item.view = m.itemView(item)
 	}
+	return item.view
+}
+
+// itemView returns the message of item with its header or avatar, embeds, previews, reactions and what it replies to.
+func (m Model) itemView(item *messageItem) tview.Widget {
+	message := &item.message
+	root := m.contentRoot(item)
+	style := m.cfg.Theme.MessagesList.MessageStyle.Style
 
 	// Attachments are named in the text, before the embeds.
-	body := column.New(item.text).Height(layout.Shrink)
-	for _, embed := range item.embeds {
+	body := column.New(messageText(m.renderMessage(*message, root, style, item.grouped))).Height(layout.Shrink)
+	for _, embed := range m.embedViews(*message, root) {
 		body = body.Push(embed)
 	}
 	if isVoiceMessage(*message) {
@@ -301,7 +305,9 @@ func (m Model) buildItem(index int) tview.Widget {
 	}
 
 	if message.Type == discord.InlinedReplyMessage && !m.blocked(message.Author) {
-		view = column.New(item.reply, view).Height(layout.Shrink)
+		builder := new(markdown.Builder)
+		m.drawReply(builder, *message, style)
+		view = column.New(messageText(builder.Finish()), view).Height(layout.Shrink)
 	}
 
 	return view
@@ -351,7 +357,7 @@ func (m *Model) rebuildItems() {
 		}
 		// A message that joins or leaves a group is drawn again, with or without its header.
 		if grouped := !separator && m.shouldGroup(previous, item.message); grouped != item.grouped {
-			item.grouped, item.text = grouped, nil
+			item.grouped, item.view = grouped, nil
 		}
 		if i == m.cursor {
 			cursor = len(items)
@@ -499,7 +505,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			m.images[msg.proxy] = preview
 			// An emoji is drawn within the text of the messages that use it, so the text is rendered again.
 			for i := range m.items {
-				m.items[i].text = nil
+				m.items[i].view = nil
 			}
 			return m, cmd
 		}
@@ -510,6 +516,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		}
 
 		m.items[index].previews[msg.proxy] = preview
+		m.items[index].view = nil
 		return m, cmd
 	case playMsg:
 		return m, m.play(discord.Attachment(msg))
@@ -643,7 +650,7 @@ func (m Model) canDeleteMessage(message discord.Message) bool {
 
 func (m Model) InvalidateRendered() {
 	for i := range m.items {
-		m.items[i].text, m.items[i].root = nil, nil
+		m.items[i].view, m.items[i].root = nil, nil
 	}
 }
 

@@ -19,55 +19,14 @@ import (
 	"github.com/yuin/goldmark/v2/ast"
 )
 
-// messageViews returns the views of the text of message and of what it replies to.
-// They capture the model and the message, so they are made here: capturing them in buildItem would copy both to the heap on every call, as the list builds every item each time it is laid out.
-// root is the parsed content of message, or nil to parse it when it is rendered.
-func (m Model) messageViews(message discord.Message, root ast.Node, grouped bool) (content, reply *messageView) {
-	style := m.cfg.Theme.MessagesList.MessageStyle.Style
-	content = &messageView{render: func(int) []text.Span { return m.renderMessage(message, root, style, grouped) }}
-	reply = &messageView{render: func(int) []text.Span {
-		builder := new(markdown.Builder)
-		m.drawReply(builder, message, style)
-		return builder.Finish()
-	}}
-	return content, reply
-}
-
 func (m Model) blocked(user discord.User) bool {
 	return m.cfg.HideBlockedUsers && m.state.UserIsBlocked(user.ID)
 }
 
-// messageView is the text of a message. It keeps the wrapped lines until the width changes, as the list measures every message when it draws.
-type messageView struct {
-	render   func(width int) []text.Span
-	width    int
-	rendered bool
-	lines    [][]text.Span
+// messageText returns spans as text that fills its width, keeping its wrapped lines until the width changes, as the list measures every message when it draws.
+func messageText(spans []text.Span) tview.Widget {
+	return text.Rich(spans...).Width(layout.Fill).Wrapping(text.WrappingWordOrGlyph).Paragraph(new(text.Paragraph))
 }
-
-func (v *messageView) wrap(width int) {
-	if !v.rendered || v.width != width {
-		v.lines, v.width, v.rendered = text.Lines(v.render(width), width, text.WrappingWordOrGlyph), width, true
-	}
-}
-
-func (v *messageView) Size() (width, height layout.Length) { return layout.Fill, layout.Shrink }
-
-func (v *messageView) Layout(limits layout.Limits) layout.Size {
-	return layout.Sized(limits, layout.Fill, layout.Shrink, func(limits layout.Limits) layout.Size {
-		v.wrap(limits.Max.Width)
-		return layout.Size{Height: len(v.lines)}
-	})
-}
-
-func (v *messageView) Draw(screen tview.Screen, area tview.Rectangle) {
-	v.wrap(area.Width)
-	for i, line := range v.lines[:min(len(v.lines), area.Height)] {
-		text.Rich(line...).Wrapping(text.WrappingNone).Draw(screen, tview.Rectangle{X: area.X, Y: area.Y + i, Width: area.Width, Height: 1})
-	}
-}
-
-func (v *messageView) Handle(msg tview.Msg, _ tview.Rectangle) tview.Msg { return msg }
 
 func (m Model) renderMessage(message discord.Message, root ast.Node, baseStyle tview.Style, grouped bool) []text.Span {
 	builder := new(markdown.Builder)
