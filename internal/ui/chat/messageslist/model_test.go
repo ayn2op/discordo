@@ -46,15 +46,11 @@ func TestModelBuildItem(t *testing.T) {
 	if ml.items[ml.messageIndex(-1, 1)].message.ID != 2 {
 		t.Fatal("messages are not oldest first")
 	}
-	// text returns the wrapped text kept for the newest message once it is shown.
-	text := func() *messageView {
-		index := ml.messageIndex(len(ml.items), -1)
-		ml.buildItem(index)
-		return ml.items[index].text
-	}
-	view := text()
-	if text() != view {
-		t.Fatal("message text was not reused")
+	// kept reports whether the newest message keeps the view it was shown with.
+	kept := func() bool { return ml.items[ml.messageIndex(len(ml.items), -1)].view != nil }
+	ml.buildItem(ml.messageIndex(len(ml.items), -1))
+	if !kept() {
+		t.Fatal("message view was not kept")
 	}
 	if ml.selectTop() == nil || ml.selectTop() != nil || ml.selectUp() != nil {
 		t.Fatal("older messages were not fetched once on reaching the top")
@@ -66,21 +62,21 @@ func TestModelBuildItem(t *testing.T) {
 	ml.selectBottom()
 	*ml, _ = ml.Update(olderMessagesLoadedMsg{channelID: 1, older: []discord.Message{{ID: 1}}})
 	selected, ok := ml.selectedMessage()
-	if !ok || selected.ID != 3 || text() != view {
-		t.Fatal("prepend lost selection or cached text")
+	if !ok || selected.ID != 3 || !kept() {
+		t.Fatal("prepend lost selection or cached view")
 	}
 	ml.deleteMessage(ml.messageIndex(-1, 1))
-	if text() != view {
-		t.Fatal("deletion discarded another message's text")
+	if !kept() {
+		t.Fatal("deletion discarded another message's view")
 	}
 	ml.setMessage(ml.messageIndex(len(ml.items), -1), discord.Message{ID: 3, Content: "edited"})
-	edited := text()
-	if edited == view {
-		t.Fatal("edit reused stale text")
+	if kept() {
+		t.Fatal("edit reused stale view")
 	}
+	ml.buildItem(ml.messageIndex(len(ml.items), -1))
 	ml.InvalidateRendered()
-	if text() == edited {
-		t.Fatal("global invalidation reused stale text")
+	if kept() {
+		t.Fatal("global invalidation reused stale view")
 	}
 	ml.reset()
 	if len(ml.items) != 0 {
@@ -278,7 +274,7 @@ func TestModelShouldGroup(t *testing.T) {
 	second := ml.messageIndex(newest, -1)
 	ml.buildItem(second)
 	ml.deleteMessage(ml.messageIndex(-1, 1))
-	if first := ml.messageIndex(-1, 1); ml.items[first].grouped || ml.items[first].text != nil {
+	if first := ml.messageIndex(-1, 1); ml.items[first].grouped || ml.items[first].view != nil {
 		t.Fatal("deleting the first message did not give the next its header")
 	}
 	if ml.AddMessage(message("a", 3*time.Minute, discord.DefaultMessage)); !ml.items[len(ml.items)-1].grouped {
@@ -286,7 +282,7 @@ func TestModelShouldGroup(t *testing.T) {
 	}
 }
 
-func TestMessageViewLayout(t *testing.T) {
+func TestModelBuildItemLayout(t *testing.T) {
 	cfg := testConfig(t)
 	cfg.UI.MessagesList.Compact = true
 	ml := newTestModel(t, cfg)

@@ -53,8 +53,7 @@ func (m Model) embedViews(message discord.Message, root ast.Node) []tview.Widget
 			barStyle = barStyle.Foreground(tcell.NewHexColor(int32(embed.Color)))
 		}
 
-		content := &messageView{render: func(int) []text.Span { return m.renderEmbed(message, lines, lineStyles) }}
-		bar := box.New(content).
+		bar := box.New(messageText(m.renderEmbed(message, lines, lineStyles))).
 			Borders(tview.BordersLeft).
 			BorderSet(tview.BorderSet{Left: embedBar}).
 			BorderStyle(barStyle).
