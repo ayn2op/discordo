@@ -200,3 +200,44 @@ func TestModelProcessText(t *testing.T) {
 		})
 	}
 }
+
+func TestModelCommandSuggest(t *testing.T) {
+	c, _ := newTestModel(t)
+	channel := discord.Channel{ID: 1, Type: discord.DirectMessage}
+	c.SetChannel(&channel)
+	c.setText("/", 1)
+	c.tabSuggest()
+	if got := c.commandsList.ItemCount(); got == 0 {
+		t.Fatal("expected command suggestions for '/', got none")
+	}
+	if !c.commandsListVisible() {
+		t.Fatal("expected commandsListVisible to be true")
+	}
+	if c.mentionsListVisible() {
+		t.Fatal("expected mentionsListVisible to be false")
+	}
+
+	c.setText("/sh", 3)
+	c.tabSuggest()
+	if got := c.commandsList.ItemCount(); got == 0 {
+		t.Fatal("expected command suggestions for '/sh', got none")
+	}
+}
+
+func TestModelCommandComplete(t *testing.T) {
+	c, _ := newTestModel(t)
+	channel := discord.Channel{ID: 1, Type: discord.DirectMessage}
+	c.SetChannel(&channel)
+	c.setText("/sh", 3)
+	c.tabSuggest()
+	if !c.commandsListVisible() {
+		t.Fatal("expected commands list visible")
+	}
+	c.tabComplete()
+	if got := c.text; got != "/shrug " {
+		t.Fatalf("text after completion = %q, want '/shrug '", got)
+	}
+	if c.commandsListVisible() {
+		t.Fatal("expected commands list hidden after completion")
+	}
+}

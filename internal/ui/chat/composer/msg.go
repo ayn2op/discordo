@@ -15,7 +15,10 @@ import (
 	"github.com/ayn2op/arikawa/v3/gateway"
 	"github.com/ayn2op/arikawa/v3/utils/json/option"
 	"github.com/ayn2op/arikawa/v3/utils/sendpart"
+	"github.com/ayn2op/discordo/internal/command"
+	"github.com/ayn2op/discordo/internal/ui/chat/commandslist"
 	"github.com/ayn2op/tview"
+	"github.com/gdamore/tcell/v3"
 	"github.com/ncruces/zenity"
 	"github.com/sahilm/fuzzy"
 	"golang.design/x/clipboard"
@@ -29,6 +32,10 @@ type EditLastMsg struct{}
 
 // SentMsg reports that the composer sent a message.
 type SentMsg struct{}
+
+type botCommandsMsg struct {
+	commands []command.Item
+}
 
 type editorMsg string
 
@@ -141,6 +148,25 @@ func (m *Model) send() tview.Cmd {
 		return nil
 	}
 
+	// Handle /nick command
+	if strings.HasPrefix(text, "/nick ") || text == "/nick" {
+		if selectedChannel.GuildID.IsValid() && m.state != nil && m.state.Client != nil {
+			newNick := strings.TrimSpace(strings.TrimPrefix(text, "/nick"))
+			gID := selectedChannel.GuildID
+			m.reset()
+			return func() tview.Msg {
+				if err := m.state.Client.ModifyCurrentMember(gID, newNick); err != nil {
+					slog.Error("failed to change nickname", "guild_id", gID, "err", err)
+				}
+				return SentMsg{}
+			}
+		}
+	}
+
+	if expanded, ok := command.ExpandBuiltin(text); ok {
+		text = expanded
+	}
+
 	text = m.processText(selectedChannel, []byte(text))
 	data := *m.sendMessageData
 	data.Files = slices.Clone(data.Files)
@@ -168,6 +194,31 @@ func (m *Model) send() tview.Cmd {
 }
 
 func (m *Model) tabComplete() tview.Cmd {
+	if m.commandsListVisible() {
+		return m.completeCommand()
+	}
+	if m.mentionsListVisible() {
+		return m.completeMention()
+	}
+	return nil
+}
+
+func (m *Model) completeCommand() tview.Cmd {
+	insertText, ok := m.commandsList.SelectedInsertText()
+	if !ok {
+		return nil
+	}
+	firstSpace := strings.Index(m.text, " ")
+	endPos := m.cursor
+	if firstSpace != -1 {
+		endPos = firstSpace
+	}
+	m.replace(0, endPos, insertText)
+	m.stopTabCompletion()
+	return nil
+}
+
+func (m *Model) completeMention() tview.Cmd {
 	posEnd, name, r := wordBeforeCursor(m.text, m.cursor, isMentionChar)
 	if r != '@' {
 		m.stopTabCompletion()
@@ -220,6 +271,16 @@ func (m *Model) tabComplete() tview.Cmd {
 }
 
 func (m *Model) tabSuggest() tview.Cmd {
+	if strings.HasPrefix(m.text, "/") {
+		firstSpace := strings.Index(m.text, " ")
+		if firstSpace == -1 || m.cursor <= firstSpace {
+			m.mentionsList.Clear()
+			query := m.text[1:m.cursor]
+			return m.suggestCommands(query)
+		}
+	}
+	m.commandsList.Clear()
+
 	_, name, r := wordBeforeCursor(m.text, m.cursor, isMentionChar)
 	if r != '@' {
 		m.stopTabCompletion()
@@ -271,6 +332,82 @@ func (m *Model) tabSuggest() tview.Cmd {
 	}
 	m.mentionsList.Rebuild()
 	return nil
+}
+
+func (m *Model) suggestCommands(query string) tview.Cmd {
+	channel := m.channel
+	if channel == nil {
+		return nil
+	}
+	m.commandsList.Clear()
+
+	var userPerms discord.Permissions
+	if channel.GuildID.IsValid() && m.state != nil {
+		if me, err := m.state.Cabinet.Me(); err == nil {
+			if perms, err := m.state.Permissions(channel.ID, me.ID); err == nil {
+				userPerms = perms
+			}
+		}
+	} else {
+		userPerms = discord.PermissionAll
+	}
+
+	limit := int(m.cfg.AutocompleteLimit)
+	if limit <= 0 {
+		limit = 20
+	}
+
+	results := command.Search(query, channel.ID, userPerms, m.botCommands, limit)
+	for _, item := range results {
+		style := tcell.StyleDefault
+		display := "/" + item.Name
+		if item.Usage != "" {
+			display += " " + item.Usage
+		}
+		if item.Description != "" {
+			display += " - " + item.Description
+		}
+		if item.Source != "" {
+			display += " (" + item.Source + ")"
+		}
+
+		m.commandsList.Append(commandslist.Item{
+			Name:        item.Name,
+			Usage:       item.Usage,
+			Description: item.Description,
+			Source:      item.Source,
+			InsertText:  "/" + item.Name + " ",
+			DisplayText: display,
+			Style:       style,
+		})
+	}
+
+	var fetchCmd tview.Cmd
+	if channel.GuildID.IsValid() && len(m.botCommands) == 0 {
+		fetchCmd = m.fetchBotCommands(channel.ID, query)
+	}
+
+	if m.commandsList.ItemCount() == 0 {
+		m.stopTabCompletion()
+		return fetchCmd
+	}
+	m.commandsList.Rebuild()
+	return fetchCmd
+}
+
+func (m *Model) fetchBotCommands(channelID discord.ChannelID, query string) tview.Cmd {
+	if m.state == nil || m.state.Client == nil {
+		return nil
+	}
+	client := m.state.Client
+	return func() tview.Msg {
+		items, err := command.FetchBotCommands(context.Background(), client, channelID, query)
+		if err != nil {
+			slog.Debug("failed to fetch bot commands", "err", err)
+			return nil
+		}
+		return botCommandsMsg{commands: items}
+	}
 }
 
 // searchMember performs member discovery in a command goroutine.

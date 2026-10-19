@@ -22,9 +22,11 @@ import (
 	"github.com/ayn2op/arikawa/v3/state"
 	"github.com/ayn2op/arikawa/v3/utils/json/option"
 	"github.com/ayn2op/arikawa/v3/utils/sendpart"
+	"github.com/ayn2op/discordo/internal/command"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/ui"
+	"github.com/ayn2op/discordo/internal/ui/chat/commandslist"
 	"github.com/ayn2op/discordo/internal/ui/chat/mentionslist"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
@@ -71,6 +73,8 @@ type Model struct {
 	sendMessageData   *api.SendMessageData
 	memberSearchCache map[string]uint
 	mentionsList      mentionslist.Model
+	commandsList      commandslist.Model
+	botCommands       []command.Item
 	lastSearch        time.Time
 
 	typingUntil time.Time
@@ -87,13 +91,14 @@ func NewModel(cfg *config.Config, state *ningen.State) Model {
 		sendMessageData:   &api.SendMessageData{},
 		memberSearchCache: make(map[string]uint),
 		mentionsList:      mentionslist.NewModel(cfg),
+		commandsList:      commandslist.NewModel(cfg),
 	}
 	return c
 }
 
 // SetChannel sets the channel messages are sent to, disabling the composer if the user may not send messages there.
 func (m *Model) SetChannel(channel *discord.Channel) {
-	m.channel, m.typingUntil = channel, time.Time{}
+	m.channel, m.typingUntil, m.botCommands = channel, time.Time{}, nil
 	isDM := channel.Type == discord.DirectMessage || channel.Type == discord.GroupDM
 
 	// Sending in a thread takes another permission than in the channel it is in.
@@ -266,7 +271,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			m.pasteText()
 			return m, pasteImage()
 		case keybind.Matches(msg, kbs.Send.Keybind):
-			if m.mentionsListVisible() {
+			if m.mentionsListVisible() || m.commandsListVisible() {
 				return m, m.tabComplete()
 			}
 			return m, m.send()
@@ -277,14 +282,14 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			m.stopTabCompletion()
 			return m, m.pickFiles()
 		case keybind.Matches(msg, kbs.Cancel.Keybind):
-			if m.mentionsListVisible() {
+			if m.mentionsListVisible() || m.commandsListVisible() {
 				m.stopTabCompletion()
 				return m, nil
 			}
 			m.reset()
 			return m, nil
 		case keybind.Matches(msg, kbs.TabComplete.Keybind):
-			if m.mentionsListVisible() {
+			if m.mentionsListVisible() || m.commandsListVisible() {
 				return m, m.tabComplete()
 			}
 			m.insert("\t")
@@ -300,6 +305,17 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		var cmd tview.Cmd
 		m.mentionsList, cmd = m.mentionsList.Update(msg)
 		return m, cmd
+	case commandslist.Msg:
+		var cmd tview.Cmd
+		m.commandsList, cmd = m.commandsList.Update(msg)
+		return m, cmd
+	case botCommandsMsg:
+		m.botCommands = msg.commands
+		if m.commandsListVisible() || (strings.HasPrefix(m.text, "/") && !strings.Contains(m.text, " ")) {
+			query := strings.TrimPrefix(m.text[:m.cursor], "/")
+			return m, m.suggestCommands(query)
+		}
+		return m, nil
 	}
 	return m, nil
 }
@@ -307,7 +323,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 func (m Model) canEditLastMessage() bool {
 	return !m.Disabled() && m.editing == nil && m.text == "" &&
 		m.sendMessageData.Reference == nil && len(m.sendMessageData.Files) == 0 &&
-		!m.mentionsListVisible()
+		!m.mentionsListVisible() && !m.commandsListVisible()
 }
 
 // StartEdit puts message in the composer to be edited.
@@ -500,12 +516,23 @@ func (m Model) OnGuildMemberRemove(event *gateway.GuildMemberRemoveEvent) {
 	}
 }
 
-// MentionsListView places the mentions list at the bottom of the area above the composer, near the cursor, or returns nil if it is empty or the composer is not focused.
-func (m Model) MentionsListView(focused bool) tview.Widget {
-	if !focused || !m.mentionsListVisible() {
+// AutocompleteView places the active completion list (mentions or commands) at the bottom of the area above the composer, near the cursor, or returns nil if none are active or the composer is not focused.
+func (m Model) AutocompleteView(focused bool) tview.Widget {
+	if !focused {
 		return nil
 	}
-	return mentionsPopup{m}
+	if m.commandsListVisible() {
+		return commandsPopup{m}
+	}
+	if m.mentionsListVisible() {
+		return mentionsPopup{m}
+	}
+	return nil
+}
+
+// MentionsListView is an alias for AutocompleteView.
+func (m Model) MentionsListView(focused bool) tview.Widget {
+	return m.AutocompleteView(focused)
 }
 
 // mentionsPopup places the mentions list within the area of the messages, which it is drawn over.
@@ -536,6 +563,31 @@ func (p mentionsPopup) area(area tview.Rectangle) tview.Rectangle {
 	value, cursor := c.text, c.cursor
 	col := uucode.StringWidth(value[strings.LastIndex(value[:cursor], "\n")+1 : cursor])
 	x := min(c.box(false).InnerArea(tview.Rectangle{}).X+col, area.Width-size.Width)
+	return tview.Rectangle{X: area.X + x, Y: area.Y + area.Height - size.Height, Width: size.Width, Height: size.Height}
+}
+
+type commandsPopup struct {
+	c Model
+}
+
+func (commandsPopup) Size() (width, height layout.Length) { return layout.Fill, layout.Fill }
+
+func (commandsPopup) Layout(limits layout.Limits) layout.Size {
+	return layout.Atomic(limits, layout.Fill, layout.Fill)
+}
+
+func (p commandsPopup) Draw(screen tview.Screen, area tview.Rectangle) {
+	p.c.commandsList.View().Draw(screen, p.area(area))
+}
+
+func (p commandsPopup) Handle(msg tview.Msg, area tview.Rectangle) tview.Msg {
+	return p.c.commandsList.View().Handle(msg, p.area(area))
+}
+
+func (p commandsPopup) area(area tview.Rectangle) tview.Rectangle {
+	c := p.c
+	size := c.commandsList.View().Layout(layout.Limits{Max: layout.Size{Width: area.Width, Height: area.Height}})
+	x := c.box(false).InnerArea(tview.Rectangle{}).X
 	return tview.Rectangle{X: area.X + x, Y: area.Y + area.Height - size.Height, Width: size.Width, Height: size.Height}
 }
 
@@ -593,16 +645,21 @@ func (m *Model) addMentionUser(user *discord.User) {
 	})
 }
 
-// stopTabCompletion clears the mentions list, which hides it, when it is in use.
+// stopTabCompletion clears the autocomplete lists, which hides them, when they are in use.
 func (m *Model) stopTabCompletion() {
 	if m.cfg.AutocompleteLimit > 0 {
 		m.mentionsList.Clear()
+		m.commandsList.Clear()
 	}
 }
 
 // mentionsListVisible reports whether the mentions list has items to show above the composer.
 func (m Model) mentionsListVisible() bool {
 	return m.mentionsList.ItemCount() != 0
+}
+
+func (m Model) commandsListVisible() bool {
+	return m.commandsList.ItemCount() != 0
 }
 
 func (m Model) attach(name string, reader io.Reader) {
