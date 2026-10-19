@@ -15,7 +15,10 @@ import (
 	"github.com/ayn2op/arikawa/v3/gateway"
 	"github.com/ayn2op/arikawa/v3/utils/json/option"
 	"github.com/ayn2op/arikawa/v3/utils/sendpart"
+	"github.com/ayn2op/discordo/internal/emoji"
+	"github.com/ayn2op/discordo/internal/ui/chat/emojislist"
 	"github.com/ayn2op/tview"
+	"github.com/gdamore/tcell/v3"
 	"github.com/ncruces/zenity"
 	"github.com/sahilm/fuzzy"
 	"golang.design/x/clipboard"
@@ -168,6 +171,16 @@ func (m *Model) send() tview.Cmd {
 }
 
 func (m *Model) tabComplete() tview.Cmd {
+	if m.mentionsListVisible() {
+		return m.completeMention()
+	}
+	if m.emojisListVisible() {
+		return m.completeEmoji()
+	}
+	return nil
+}
+
+func (m *Model) completeMention() tview.Cmd {
 	posEnd, name, r := wordBeforeCursor(m.text, m.cursor, isMentionChar)
 	if r != '@' {
 		m.stopTabCompletion()
@@ -219,12 +232,41 @@ func (m *Model) tabComplete() tview.Cmd {
 	return nil
 }
 
-func (m *Model) tabSuggest() tview.Cmd {
-	_, name, r := wordBeforeCursor(m.text, m.cursor, isMentionChar)
-	if r != '@' {
+func (m *Model) completeEmoji() tview.Cmd {
+	posEnd, name, r := wordBeforeCursor(m.text, m.cursor, isEmojiChar)
+	if r != ':' {
 		m.stopTabCompletion()
 		return nil
 	}
+	pos := posEnd - (len(name) + 1)
+
+	insertText, ok := m.emojisList.SelectedInsertText()
+	if !ok {
+		return nil
+	}
+	m.replace(pos, posEnd, insertText+" ")
+	m.stopTabCompletion()
+	return nil
+}
+
+func (m *Model) tabSuggest() tview.Cmd {
+	_, mentionName, rMention := wordBeforeCursor(m.text, m.cursor, isMentionChar)
+	if rMention == '@' {
+		m.emojisList.Clear()
+		return m.suggestMentions(mentionName)
+	}
+
+	_, emojiName, rEmoji := wordBeforeCursor(m.text, m.cursor, isEmojiChar)
+	if rEmoji == ':' {
+		m.mentionsList.Clear()
+		return m.suggestEmojis(emojiName)
+	}
+
+	m.stopTabCompletion()
+	return nil
+}
+
+func (m *Model) suggestMentions(name string) tview.Cmd {
 	channel := m.channel
 	if channel == nil {
 		return nil
@@ -270,6 +312,49 @@ func (m *Model) tabSuggest() tview.Cmd {
 		return nil
 	}
 	m.mentionsList.Rebuild()
+	return nil
+}
+
+func (m *Model) suggestEmojis(name string) tview.Cmd {
+	channel := m.channel
+	if channel == nil {
+		return nil
+	}
+	m.emojisList.Clear()
+
+	var customEmojis []discord.Emoji
+	if m.state != nil && m.state.EmojiState != nil {
+		guilds, err := m.state.EmojiState.ForGuild(channel.GuildID)
+		if err == nil {
+			for _, g := range guilds {
+				customEmojis = append(customEmojis, g.Emojis...)
+			}
+		} else {
+			slog.Debug("failed to get emojis for guild", "err", err)
+		}
+	}
+
+	limit := int(m.cfg.AutocompleteLimit)
+	if limit <= 0 {
+		limit = 20
+	}
+
+	results := emoji.Search(name, customEmojis, limit)
+	for _, item := range results {
+		style := tcell.StyleDefault
+		m.emojisList.Append(emojislist.Item{
+			Name:        item.Name,
+			InsertText:  item.InsertText,
+			DisplayText: item.Display,
+			Style:       style,
+		})
+	}
+
+	if m.emojisList.ItemCount() == 0 {
+		m.stopTabCompletion()
+		return nil
+	}
+	m.emojisList.Rebuild()
 	return nil
 }
 

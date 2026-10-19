@@ -12,6 +12,7 @@ import (
 	"github.com/ayn2op/arikawa/v3/utils/sendpart"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/ningen/v3"
+	ningenEmoji "github.com/ayn2op/ningen/v3/states/emoji"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/keybind"
 	"github.com/gdamore/tcell/v3"
@@ -198,5 +199,65 @@ func TestModelProcessText(t *testing.T) {
 				t.Fatalf("got %q, want %q", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestModelEmojiSuggest(t *testing.T) {
+	c, _ := newTestModel(t)
+	channel := discord.Channel{ID: 1, Type: discord.DirectMessage}
+	c.SetChannel(&channel)
+	c.setText(":smi", 4)
+	c.tabSuggest()
+	if got := c.emojisList.ItemCount(); got == 0 {
+		t.Fatal("expected emoji suggestions for ':smi', got none")
+	}
+	if !c.emojisListVisible() {
+		t.Fatal("expected emojisListVisible to be true")
+	}
+	if c.mentionsListVisible() {
+		t.Fatal("expected mentionsListVisible to be false")
+	}
+}
+
+func TestModelEmojiComplete(t *testing.T) {
+	c, _ := newTestModel(t)
+	channel := discord.Channel{ID: 1, Type: discord.DirectMessage}
+	c.SetChannel(&channel)
+	c.setText("hello :smile", 12)
+	c.tabSuggest()
+	if !c.emojisListVisible() {
+		t.Fatal("expected emojis list visible")
+	}
+	c.tabComplete()
+	if got := c.text; got != "hello 😄 " {
+		t.Fatalf("text after completion = %q, want 'hello 😄 '", got)
+	}
+	if c.emojisListVisible() {
+		t.Fatal("expected emojis list to be hidden after completion")
+	}
+}
+
+func TestModelCustomEmojiComplete(t *testing.T) {
+	c, _ := newTestModel(t)
+	guildID := discord.GuildID(100)
+	channel := discord.Channel{ID: 10, GuildID: guildID, Type: discord.GuildText}
+	c.state.EmojiState = ningenEmoji.NewState(c.state.Cabinet)
+	_ = c.state.Cabinet.GuildSet(&discord.Guild{ID: guildID}, false)
+	_ = c.state.Cabinet.EmojiSet(guildID, []discord.Emoji{
+		{ID: 555, Name: "custom_pepe"},
+	}, false)
+
+	c.SetChannel(&channel)
+	c.setText(":custom_pepe", 12)
+	c.tabSuggest()
+	if !c.emojisListVisible() {
+		t.Fatal("expected emojis list visible")
+	}
+	c.tabComplete()
+	if got := c.text; got != "<:custom_pepe:555> " {
+		t.Fatalf("text after completion = %q, want '<:custom_pepe:555> '", got)
+	}
+	if c.emojisListVisible() {
+		t.Fatal("expected emojis list to be hidden after completion")
 	}
 }

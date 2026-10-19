@@ -22,6 +22,7 @@ import (
 	"github.com/ayn2op/discordo/internal/ui/chat/attachmentspicker"
 	"github.com/ayn2op/discordo/internal/ui/chat/channelspicker"
 	"github.com/ayn2op/discordo/internal/ui/chat/composer"
+	"github.com/ayn2op/discordo/internal/ui/chat/emojislist"
 	"github.com/ayn2op/discordo/internal/ui/chat/guildstree"
 	"github.com/ayn2op/discordo/internal/ui/chat/memberstree"
 	"github.com/ayn2op/discordo/internal/ui/chat/mentionslist"
@@ -304,7 +305,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 				ui.DialogButton{Label: "Yes", Cmd: tview.Sequence(closeState(m.state), logout())},
 			)
 		}
-	case composer.TabSuggestMsg, mentionslist.Msg:
+	case composer.TabSuggestMsg, mentionslist.Msg, emojislist.Msg:
 		return m, m.updatePane(paneComposer, msg)
 	case paneMsg:
 		if msg.focus {
