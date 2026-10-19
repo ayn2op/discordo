@@ -25,6 +25,11 @@ import (
 // Msg is implemented by the messages the list sends itself, which must reach it whatever has the focus.
 type Msg interface{ messagesList() }
 
+// ReactMsg requests opening the reaction picker for the message.
+type ReactMsg struct {
+	Message discord.Message
+}
+
 type olderMessagesLoadedMsg struct {
 	channelID discord.ChannelID
 	older     []discord.Message
@@ -343,6 +348,15 @@ func (m Model) reply(mention bool) tview.Cmd {
 
 	message := *selectedMessage
 	return func() tview.Msg { return ReplyMsg{Message: message, Name: name, Mention: mention} }
+}
+
+func (m Model) react() tview.Cmd {
+	selectedMessage, ok := m.selectedMessage()
+	if !ok {
+		return nil
+	}
+	message := *selectedMessage
+	return func() tview.Msg { return ReactMsg{Message: message} }
 }
 
 func (m Model) editSelectedMessage() tview.Cmd {

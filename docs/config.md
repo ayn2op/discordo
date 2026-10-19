@@ -850,6 +850,12 @@ Reply (with mention) to the selected message.
 
 Default: `"r"`
 
+### keybinds.messages_list.react
+
+Add an emoji reaction to the selected message.
+
+Default: `"a"`
+
 ### keybinds.messages_list.cancel
 
 Default: `"esc"`

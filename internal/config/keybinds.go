@@ -108,6 +108,8 @@ type MessagesListKeybinds struct {
 	Reply Keybind `toml:"reply"`
 	// Reply (with mention) to the selected message.
 	ReplyMention Keybind `toml:"reply_mention"`
+	// Add an emoji reaction to the selected message.
+	React Keybind `toml:"react"`
 
 	Cancel Keybind `toml:"cancel"`
 	Edit   Keybind `toml:"edit"`
@@ -275,6 +277,7 @@ func defaultKeybinds() Keybinds {
 			SelectReply:  key("sel reply", "s"),
 			Reply:        key("reply", "R"),
 			ReplyMention: key("@reply", "r"),
+			React:        key("react", "a"),
 
 			Cancel: key("cancel", "esc"),
 			Edit:   key("edit", "e"),

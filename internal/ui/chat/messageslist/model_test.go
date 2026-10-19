@@ -401,3 +401,20 @@ func TestModelReactionsView(t *testing.T) {
 		}
 	})
 }
+
+func TestModelReact(t *testing.T) {
+	ml := newTestModel(t, testConfig(t))
+	msg := discord.Message{ID: 10, ChannelID: 1}
+	ml.items = []messageItem{{message: msg}}
+	ml.cursor = 0
+
+	cmd := ml.react()
+	if cmd == nil {
+		t.Fatal("expected non-nil cmd for react()")
+	}
+	result := cmd()
+	reactMsg, ok := result.(ReactMsg)
+	if !ok || reactMsg.Message.ID != 10 {
+		t.Fatalf("result = %v, want ReactMsg with ID 10", result)
+	}
+}

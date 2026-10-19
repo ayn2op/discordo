@@ -8,6 +8,8 @@ import (
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/arikawa/v3/gateway"
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/ui/chat/emojipicker"
+	"github.com/ayn2op/discordo/internal/ui/chat/messageslist"
 	"github.com/ayn2op/tview"
 	"github.com/gdamore/tcell/v3"
 )
@@ -97,5 +99,37 @@ func TestModelCycleFocus(t *testing.T) {
 		if m.cycleFocus(-1); m.focused != want {
 			t.Fatalf("focused = %v, want %v", m.focused, want)
 		}
+	}
+}
+
+func TestModelReactions(t *testing.T) {
+	m := newTestModel(t)
+	channel := discord.Channel{ID: 1, GuildID: 2, Type: discord.GuildText}
+	m.setSelectedChannel(&channel)
+
+	msg := discord.Message{ID: 10, ChannelID: 1}
+	*m, _ = m.Update(messageslist.ReactMsg{Message: msg})
+	if m.overlay != overlayEmojiPicker {
+		t.Fatalf("overlay = %v, want overlayEmojiPicker", m.overlay)
+	}
+	if m.reactingMessage == nil || m.reactingMessage.ID != 10 {
+		t.Fatalf("reactingMessage = %v, want ID 10", m.reactingMessage)
+	}
+
+	// Cancel closes overlay
+	*m, _ = m.Update(emojipicker.CancelMsg{})
+	if m.overlay != overlayNone {
+		t.Fatalf("overlay after cancel = %v, want overlayNone", m.overlay)
+	}
+
+	// Select triggers react command and closes overlay
+	*m, _ = m.Update(messageslist.ReactMsg{Message: msg})
+	var cmd tview.Cmd
+	*m, cmd = m.Update(emojipicker.SelectedMsg{Emoji: discord.APIEmoji("😄")})
+	if m.overlay != overlayNone {
+		t.Fatalf("overlay after select = %v, want overlayNone", m.overlay)
+	}
+	if cmd == nil {
+		t.Fatal("expected non-nil command for reaction action")
 	}
 }

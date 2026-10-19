@@ -464,6 +464,8 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			return m, m.seek(m.voiceStatus.Position + seekStep)
 		case keybind.Matches(msg, kbs.Download.Keybind):
 			return m, m.download()
+		case keybind.Matches(msg, kbs.React.Keybind):
+			return m, m.react()
 		case keybind.Matches(msg, kbs.Reply.Keybind):
 			return m, m.reply(false)
 		case keybind.Matches(msg, kbs.ReplyMention.Keybind):

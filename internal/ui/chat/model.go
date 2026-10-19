@@ -22,6 +22,7 @@ import (
 	"github.com/ayn2op/discordo/internal/ui/chat/attachmentspicker"
 	"github.com/ayn2op/discordo/internal/ui/chat/channelspicker"
 	"github.com/ayn2op/discordo/internal/ui/chat/composer"
+	"github.com/ayn2op/discordo/internal/ui/chat/emojipicker"
 	"github.com/ayn2op/discordo/internal/ui/chat/guildstree"
 	"github.com/ayn2op/discordo/internal/ui/chat/memberstree"
 	"github.com/ayn2op/discordo/internal/ui/chat/mentionslist"
@@ -52,9 +53,11 @@ type Model struct {
 	membersTree    memberstree.Model
 	messagesList   messageslist.Model
 	composer       composer.Model
-	channelsPicker channelspicker.Model
+	channelsPicker    channelspicker.Model
 	// attachmentsPicker picks an attachment or link of the selected message.
 	attachmentsPicker attachmentspicker.Model
+	emojiPicker       emojipicker.Model
+	reactingMessage   *discord.Message
 
 	selectedChannel *discord.Channel
 	// windowUnfocused reports whether the terminal window lost focus.
@@ -110,6 +113,7 @@ func NewModel(cfg *config.Config, token string) Model {
 	m.composer = composer.NewModel(cfg, m.state)
 	m.channelsPicker = channelspicker.NewModel(cfg)
 	m.attachmentsPicker = attachmentspicker.NewModel(cfg)
+	m.emojiPicker = emojipicker.NewModel(cfg)
 
 	m.guildsTreeVisible = cfg.Sidebar.Visible
 	m.membersTreeVisible = cfg.MembersTree.Visible
@@ -129,6 +133,7 @@ const (
 	overlayNone overlay = iota
 	overlayChannelsPicker
 	overlayAttachmentsPicker
+	overlayEmojiPicker
 )
 
 // pickerView returns the view of the picker shown on top, or nil if none is open.
@@ -138,6 +143,8 @@ func (m Model) pickerView() tview.Widget {
 		return m.channelsPicker.View()
 	case overlayAttachmentsPicker:
 		return m.attachmentsPicker.View()
+	case overlayEmojiPicker:
+		return m.emojiPicker.View()
 	default:
 		return nil
 	}
@@ -243,6 +250,54 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		m.attachmentsPicker.SetItems(picker.Items(msg))
 		m.overlay = overlayAttachmentsPicker
 		return m, nil
+	case messageslist.ReactMsg:
+		m.overlay = overlayEmojiPicker
+		m.reactingMessage = &msg.Message
+		var gID discord.GuildID
+		if m.selectedChannel != nil {
+			gID = m.selectedChannel.GuildID
+		}
+		m.emojiPicker.RefreshEmojis(m.state, gID)
+		return m, nil
+	case emojipicker.CancelMsg:
+		m.overlay = overlayNone
+		m.reactingMessage = nil
+		return m, nil
+	case emojipicker.SelectedMsg:
+		m.overlay = overlayNone
+		if m.reactingMessage == nil || m.selectedChannel == nil {
+			return m, nil
+		}
+		chID := m.selectedChannel.ID
+		msgID := m.reactingMessage.ID
+		targetEmoji := msg.Emoji
+		reactions := m.reactingMessage.Reactions
+		m.reactingMessage = nil
+
+		alreadyReacted := false
+		for _, r := range reactions {
+			if r.Emoji.APIString() == targetEmoji && r.Me {
+				alreadyReacted = true
+				break
+			}
+		}
+
+		return m, func() tview.Msg {
+			if m.state == nil || m.state.Client == nil {
+				return nil
+			}
+			client := m.state.Client
+			if alreadyReacted {
+				if err := client.Unreact(chID, msgID, targetEmoji); err != nil {
+					slog.Error("failed to remove reaction", "channel_id", chID, "message_id", msgID, "emoji", targetEmoji, "err", err)
+				}
+			} else {
+				if err := client.React(chID, msgID, targetEmoji); err != nil {
+					slog.Error("failed to add reaction", "channel_id", chID, "message_id", msgID, "emoji", targetEmoji, "err", err)
+				}
+			}
+			return nil
+		}
 	case messageslist.ReplyMsg:
 		m.composer.StartReply(msg.Message, msg.Name, msg.Mention)
 		m.setFocus(paneComposer)
@@ -326,6 +381,8 @@ func (m *Model) route(msg tview.Msg) tview.Cmd {
 		m.channelsPicker, cmd = m.channelsPicker.Update(msg)
 	case overlayAttachmentsPicker:
 		m.attachmentsPicker, cmd = m.attachmentsPicker.Update(msg)
+	case overlayEmojiPicker:
+		m.emojiPicker, cmd = m.emojiPicker.Update(msg)
 	default:
 		cmd = m.updatePane(m.focused, msg)
 	}

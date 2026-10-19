@@ -17,6 +17,7 @@ func (m Model) ShortHelp() []keybind.Keybind {
 	}
 
 	if selectedMessage, ok := m.selectedMessage(); ok {
+		help = append(help, cfg.React.Keybind)
 		if !ui.IsMe(m.state, selectedMessage.Author.ID) {
 			help = append(help, cfg.Reply.Keybind)
 		}
@@ -35,6 +36,7 @@ func (m Model) FullHelp() [][]keybind.Keybind {
 	cfg := m.cfg.Keybinds.MessagesList
 	var actions, manage, attachments []keybind.Keybind
 	if message, ok := m.selectedMessage(); ok {
+		actions = append(actions, cfg.React.Keybind)
 		mine := ui.IsMe(m.state, message.Author.ID)
 		if !mine {
 			actions = append(actions, cfg.Reply.Keybind, cfg.ReplyMention.Keybind)
