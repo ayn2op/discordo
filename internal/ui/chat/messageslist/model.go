@@ -25,6 +25,10 @@ import (
 	"github.com/yuin/goldmark/v2/ast"
 )
 
+// placeholderTerminals are the terminals, by XTVERSION name, that draw kitty's Unicode placeholders.
+// WezTerm and Konsole support kitty graphics but not Unicode placeholders.
+var placeholderTerminals = []string{"kitty", "ghostty", "Rio"}
+
 type messageItem struct {
 	message discord.Message
 	// view is the message as drawn, keeping its wrapped text, or nil until it is shown and after what it shows changes.
@@ -557,8 +561,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		case "halfblocks":
 			m.kitty = false
 		default:
-			// WezTerm and Konsole support kitty graphics but not Unicode placeholders.
-			m.kitty = msg.Name == "kitty" || msg.Name == "ghostty"
+			m.kitty = slices.Contains(placeholderTerminals, msg.Name)
 		}
 	case scrollMsg:
 		m.scrollState = viewport.ScrollState(msg)
