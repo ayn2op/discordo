@@ -12,6 +12,7 @@ import (
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/arikawa/v3/state"
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/markdown"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
 	tviewimage "github.com/ayn2op/tview/image"
@@ -400,4 +401,23 @@ func TestModelReactionsView(t *testing.T) {
 			t.Fatalf("reactions = %q", got)
 		}
 	})
+}
+
+func TestModelShowUserStatus(t *testing.T) {
+	cfg := testConfig(t)
+	cfg.UI.MessagesList.ShowUserStatus = true
+	ml := newTestModel(t, cfg)
+	user := discord.User{ID: 10, Username: "alice"}
+	_ = ml.state.PresenceSet(discord.NullGuildID, &discord.Presence{User: user, Status: discord.OnlineStatus}, false)
+
+	msg := discord.Message{ID: 1, Author: user, Content: "hello"}
+	builder := new(markdown.Builder)
+	ml.drawAuthor(builder, msg, tcell.StyleDefault)
+	spans := builder.Finish()
+	if len(spans) == 0 {
+		t.Fatal("expected spans from drawAuthor")
+	}
+	if !strings.HasPrefix(spans[0].Text, statusMarker) {
+		t.Fatalf("first span text = %q, want statusMarker %q", spans[0].Text, statusMarker)
+	}
 }

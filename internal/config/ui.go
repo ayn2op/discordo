@@ -174,6 +174,9 @@ type (
 		// The number of empty rows between messages, except those of a group.
 		Spacing uint8 `toml:"spacing"`
 
+		// Whether to show the author's presence status dot alongside their name.
+		ShowUserStatus bool `toml:"show_user_status"`
+
 		ReplyIndicator     string `toml:"reply_indicator"`
 		ForwardedIndicator string `toml:"forwarded_indicator"`
 

@@ -110,6 +110,9 @@ func (m *Model) applyEvent(event gateway.Event) tview.Cmd {
 	case *gateway.MessageUpdateEvent:
 		return m.messagesList.UpdateMessage(event.Message)
 	case *gateway.PresenceUpdateEvent:
+		if m.cfg.UI.MessagesList.ShowUserStatus {
+			m.messagesList.InvalidateRendered()
+		}
 		return tview.Batch(m.updatePane(paneGuildsTree, event), m.updatePane(paneMembersTree, event))
 	case *gateway.GuildMemberListUpdateEvent:
 		return m.updatePane(paneMembersTree, event)

@@ -175,7 +175,14 @@ func (m Model) drawCozy(builder *markdown.Builder, message discord.Message, base
 	}
 }
 
+const statusMarker = "●"
+
 func (m Model) drawAuthor(builder *markdown.Builder, message discord.Message, baseStyle tview.Style) {
+	if m.cfg.UI.MessagesList.ShowUserStatus && !message.WebhookID.IsValid() {
+		status := m.status(message.GuildID, message.Author.ID)
+		builder.Write(statusMarker+" ", m.cfg.Theme.MembersTree.StatusStyle(status))
+	}
+
 	name := message.Author.DisplayOrUsername()
 	foreground := tcell.ColorDefault
 
@@ -209,6 +216,17 @@ func (m Model) memberForMessage(message discord.Message) *discord.Member {
 		return nil
 	}
 	return member
+}
+
+func (m Model) status(guildID discord.GuildID, userID discord.UserID) discord.Status {
+	if m.state == nil || m.state.Cabinet == nil {
+		return discord.OfflineStatus
+	}
+	presence, err := m.state.Cabinet.Presence(guildID, userID)
+	if err != nil {
+		return discord.OfflineStatus
+	}
+	return presence.Status
 }
 
 // drawContent renders the message body. root is its parsed content, or nil to parse it here.

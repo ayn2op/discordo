@@ -367,6 +367,12 @@ The number of empty rows between messages, except those of a group.
 
 Default: `1`
 
+### ui.messages_list.show_user_status
+
+Whether to show the author's presence status dot alongside their name.
+
+Default: `false`
+
 ### ui.messages_list.reply_indicator
 
 Default: `">"`
