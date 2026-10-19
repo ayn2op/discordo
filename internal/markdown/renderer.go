@@ -4,14 +4,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/lexers"
-	"github.com/alecthomas/chroma/v2/styles"
 	md "github.com/ayn2op/arikawa/v3/markdown"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/text"
-	"github.com/gdamore/tcell/v3"
 	"github.com/yuin/goldmark/v2/ast"
 )
 
@@ -124,69 +120,23 @@ func (r *Renderer) RenderText(source []byte, node ast.Node, base tview.Style, em
 
 func (r *Renderer) renderCodeBlock(builder *Builder, source []byte, node *ast.CodeBlock, base tview.Style) {
 	var code strings.Builder
-	lines := node.Value.Segments()
-	for _, line := range lines {
+	for _, line := range node.Value.Segments() {
 		code.Write(line.Bytes(source))
 	}
 
 	language, _ := node.Language(source)
-	language = strings.TrimSpace(language)
-	lexer := lexers.Get(language)
-	declaredLanguageSupported := lexer != nil
+	r.writeCodeBlock(builder, code.String(), strings.TrimSpace(language), base)
+}
 
-	// Detect the language from its content.
-	var analyzed bool
-	if lexer == nil {
-		lexer = lexers.Analyse(code.String())
-		analyzed = lexer != nil
-	}
-	if lexer == nil {
-		lexer = lexers.Fallback
-	}
-
-	// Some lexers emit many tiny tokens; coalesce runs of the same type.
-	lexer = chroma.Coalesce(lexer)
-
-	var header string
-	switch {
-	case analyzed:
-		header = "code: analyzed"
-	case language == "":
-		header = "code"
-	case !declaredLanguageSupported:
-		header = "code: " + language
-	}
-	if header != "" {
-		builder.Write(codeBlockIndent+header, base.Dim(true))
-		builder.NewLine()
-	}
-
-	iterator, err := lexer.Tokenise(nil, code.String())
-	if err != nil {
-		for _, line := range lines {
-			builder.Write(codeBlockIndent+string(line.Bytes(source)), base)
+// writeCode writes s in style, starting each line after the first with the code block indent in base.
+func writeCode(builder *Builder, s string, style, base tview.Style) {
+	for i, part := range strings.Split(s, "\n") {
+		if i > 0 {
+			builder.NewLine()
+			builder.Write(codeBlockIndent, base)
 		}
-		return
-	}
-
-	theme := styles.Get(r.cfg.Markdown.Theme)
-	if theme == nil {
-		theme = styles.Fallback
-	}
-
-	builder.Write(codeBlockIndent, base)
-	for token := iterator(); token != chroma.EOF; token = iterator() {
-		style := applyChromaStyle(base, theme.Get(token.Type))
-		// Chroma tokens may include embedded newlines, so split and re-emit with indentation on each visual line.
-		parts := strings.Split(token.Value, "\n")
-		for i, part := range parts {
-			if i > 0 {
-				builder.NewLine()
-				builder.Write(codeBlockIndent, base)
-			}
-			if part != "" {
-				builder.Write(part, style)
-			}
+		if part != "" {
+			builder.Write(part, style)
 		}
 	}
 }
@@ -208,30 +158,6 @@ func listMarker(item *ast.ListItem) string {
 		number++
 	}
 	return strconv.Itoa(number) + ". "
-}
-
-func applyChromaStyle(base tview.Style, entry chroma.StyleEntry) tview.Style {
-	style := base
-	if entry.Colour.IsSet() {
-		style = style.Foreground(tcell.NewRGBColor(
-			int32(entry.Colour.Red()),
-			int32(entry.Colour.Green()),
-			int32(entry.Colour.Blue()),
-		))
-	}
-	// Token background colors are not applied, so code blocks keep the user's terminal/chat background.
-
-	// An attribute chroma passes on is left as it is.
-	if entry.Bold != chroma.Pass {
-		style = style.Bold(entry.Bold == chroma.Yes)
-	}
-	if entry.Italic != chroma.Pass {
-		style = style.Italic(entry.Italic == chroma.Yes)
-	}
-	if entry.Underline != chroma.Pass {
-		style = style.Underline(entry.Underline == chroma.Yes)
-	}
-	return style
 }
 
 func mentionText(node *md.Mention) string {
