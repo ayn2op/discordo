@@ -40,6 +40,7 @@ go build .
 
 - `no_voice` to build without voice support.
 - `no_spoof_tls_fingerprint` to build without TLS fingerprint spoofing.
+- `no_syntax_highlighting` to build without syntax highlighting in code blocks.
 
 ## Usage
 
