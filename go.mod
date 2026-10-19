@@ -4,7 +4,7 @@ go 1.27.0
 
 // replace github.com/ayn2op/tview => ../tview
 
-replace github.com/gdamore/tcell/v3 => github.com/ayn2op/tcell/v3 v3.0.0-20261018233832-2d0ebd98add4
+replace github.com/gdamore/tcell/v3 => github.com/ayn2op/tcell/v3 v3.0.0-20261019221010-9eb22d788dec
 
 replace github.com/bogdanfinn/fhttp => github.com/ayn2op/fhttp v0.6.10-0.20261016015330-2d5e34c6b935
 
@@ -18,10 +18,10 @@ require (
 	github.com/alecthomas/chroma/v2 v2.27.0
 	github.com/ayn2op/arikawa/v3 v3.0.0-20261016043052-54a68a54e42e
 	github.com/ayn2op/ningen/v3 v3.0.1-0.20261014035153-5e43590a1426
-	github.com/ayn2op/tview v0.0.0-20261018235036-82c614dca59b
+	github.com/ayn2op/tview v0.0.0-20261019211151-ea1754130b7f
 	github.com/bogdanfinn/fhttp v0.6.9
 	github.com/bogdanfinn/tls-client v1.16.0
-	github.com/gdamore/tcell/v3 v3.6.1-0.20261018231941-fe0db1fcff11
+	github.com/gdamore/tcell/v3 v3.6.1-0.20261019013056-bed4ae43bd30
 	github.com/gen2brain/malgo v0.11.26
 	github.com/gorilla/websocket v1.5.3
 	github.com/mattn/go-shellwords v1.0.16
@@ -64,9 +64,9 @@ require (
 	github.com/randall77/makefat v0.0.0-20260406194835-1b91746796b7 // indirect
 	github.com/tam7t/hpkp v0.0.0-20160821193359-2b70b4024ed5 // indirect
 	github.com/thomas-vilte/mls-go v1.6.0 // indirect
-	github.com/tphakala/simd v1.13.0 // indirect
+	github.com/tphakala/simd v1.14.0 // indirect
 	github.com/twmb/murmur3 v1.2.1 // indirect
-	go4.org v0.0.0-20260112195520-a5071408f32f // indirect
+	go4.org v0.0.0-20261019143151-5b882263cdaf // indirect
 	golang.design/x/x11 v0.2.0 // indirect
 	golang.org/x/crypto v0.58.0 // indirect
 	golang.org/x/exp/shiny v0.0.0-20261014143641-f0251eb4aa3e // indirect
