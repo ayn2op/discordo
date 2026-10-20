@@ -16,8 +16,8 @@ github.com/ayn2op/fhttp v0.6.10-0.20261016015330-2d5e34c6b935 h1:oVxkY1/nVsVQ8Cn
 github.com/ayn2op/fhttp v0.6.10-0.20261016015330-2d5e34c6b935/go.mod h1:7phoj3f/q54WuiTnCTlAhEoaVcdlruKkSzCSD47LzHk=
 github.com/ayn2op/ningen/v3 v3.0.1-0.20261014035153-5e43590a1426 h1:0ndRWpAiSSgR0z9b7K+pwMlCHEk3VzQeS5ls+zWtbr0=
 github.com/ayn2op/ningen/v3 v3.0.1-0.20261014035153-5e43590a1426/go.mod h1:4S2B9frwrjELeAldoqPgasA/VfnOySgRlektwYLuVks=
-github.com/ayn2op/tcell/v3 v3.0.0-20261019221010-9eb22d788dec h1:K7IrckOj1//tlFLEKqXvXygbdSoqMPnBQ9jgkVTixEs=
-github.com/ayn2op/tcell/v3 v3.0.0-20261019221010-9eb22d788dec/go.mod h1:TMjaFRfs5NCU3o1aiuxoRHdEdyixCy1mdGcHdvj7lvc=
+github.com/ayn2op/tcell/v3 v3.0.0-20261020004445-ad1df5c5d3e9 h1:ilT1n7dAy9YMprZtZoRSK2ncp8Bm1Becke9Lex5OLiU=
+github.com/ayn2op/tcell/v3 v3.0.0-20261020004445-ad1df5c5d3e9/go.mod h1:TMjaFRfs5NCU3o1aiuxoRHdEdyixCy1mdGcHdvj7lvc=
 github.com/ayn2op/tview v0.0.0-20261019211151-ea1754130b7f h1:X0YP0jgXQbmzl5m18/RUPwIyZb48pHyqgpvwv1SP5R0=
 github.com/ayn2op/tview v0.0.0-20261019211151-ea1754130b7f/go.mod h1:th/NRjP7oc1J91pGuKE6hw2nEQmGG+Wewe8wjNMPlUA=
 github.com/bdandy/go-errors v1.2.2 h1:WdFv/oukjTJCLa79UfkGmwX7ZxONAihKu4V0mLIs11Q=

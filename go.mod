@@ -4,7 +4,7 @@ go 1.27.0
 
 // replace github.com/ayn2op/tview => ../tview
 
-replace github.com/gdamore/tcell/v3 => github.com/ayn2op/tcell/v3 v3.0.0-20261019221010-9eb22d788dec
+replace github.com/gdamore/tcell/v3 => github.com/ayn2op/tcell/v3 v3.0.0-20261020004445-ad1df5c5d3e9
 
 replace github.com/bogdanfinn/fhttp => github.com/ayn2op/fhttp v0.6.10-0.20261016015330-2d5e34c6b935
 
