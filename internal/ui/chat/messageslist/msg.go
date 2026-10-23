@@ -280,7 +280,7 @@ func (m Model) openDownloadedAttachment(attachment discord.Attachment) tview.Cmd
 			}
 		}
 
-		dir := filepath.Join(consts.CacheDir(), "attachments")
+		dir := consts.AttachmentsCacheDir()
 		if err := os.MkdirAll(dir, 0o700); err != nil {
 			return ui.ErrorDialog("create attachments directory", err)
 		}
