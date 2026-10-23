@@ -4,10 +4,6 @@ go 1.27.0
 
 // replace github.com/ayn2op/tview => ../tview
 
-replace github.com/gdamore/tcell/v3 => github.com/ayn2op/tcell/v3 v3.0.0-20261020004445-ad1df5c5d3e9
-
-replace github.com/bogdanfinn/fhttp => github.com/ayn2op/fhttp v0.6.10-0.20261016015330-2d5e34c6b935
-
 // replace (
 // 	github.com/ayn2op/arikawa/v3 => ../arikawa
 // 	github.com/ayn2op/ningen/v3 => ../ningen
@@ -19,9 +15,9 @@ require (
 	github.com/ayn2op/arikawa/v3 v3.0.0-20261016043052-54a68a54e42e
 	github.com/ayn2op/ningen/v3 v3.0.1-0.20261014035153-5e43590a1426
 	github.com/ayn2op/tview v0.0.0-20261019211151-ea1754130b7f
-	github.com/bogdanfinn/fhttp v0.6.9
+	github.com/bogdanfinn/fhttp v0.7.1
 	github.com/bogdanfinn/tls-client v1.16.0
-	github.com/gdamore/tcell/v3 v3.6.1-0.20261019013056-bed4ae43bd30
+	github.com/gdamore/tcell/v3 v3.6.1-0.20261023032141-acf267d89712
 	github.com/gen2brain/malgo v0.11.26
 	github.com/gorilla/websocket v1.5.3
 	github.com/mattn/go-shellwords v1.0.16
@@ -44,11 +40,10 @@ require (
 	github.com/bdandy/go-errors v1.2.2 // indirect
 	github.com/bdandy/go-socks4 v1.2.3 // indirect
 	github.com/bogdanfinn/quic-go-utls v1.0.10-utls // indirect
-	github.com/bogdanfinn/utls v1.7.8-barnius // indirect
+	github.com/bogdanfinn/utls v1.8.2-barnius // indirect
 	github.com/bogdanfinn/websocket v1.5.6-barnius // indirect
 	github.com/clipperhouse/displaywidth v0.11.0 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
-	github.com/cloudflare/circl v1.6.5 // indirect
 	github.com/danieljoos/wincred v1.2.3 // indirect
 	github.com/dchest/jsmin v1.0.0 // indirect
 	github.com/disgoorg/godave v0.3.0 // indirect
@@ -60,6 +55,7 @@ require (
 	github.com/josephspurrier/goversioninfo v1.7.0 // indirect
 	github.com/klauspost/compress v1.20.3 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.1 // indirect
+	github.com/molecule-man/go-brrr v1.2.0 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/randall77/makefat v0.0.0-20260406194835-1b91746796b7 // indirect
 	github.com/tam7t/hpkp v0.0.0-20160821193359-2b70b4024ed5 // indirect
