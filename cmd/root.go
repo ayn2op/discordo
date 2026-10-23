@@ -3,10 +3,13 @@ package cmd
 import (
 	"flag"
 	"fmt"
+	"io"
 	"log/slog"
+	"os"
 
 	"github.com/ayn2op/arikawa/v3/utils/ws"
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/logger"
 	"github.com/ayn2op/discordo/internal/ui/root"
 	"github.com/ayn2op/tview"
@@ -40,6 +43,17 @@ func Run() error {
 	cfg, err := config.Load(*configPath)
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	if cfg.DisableCache {
+		// The log file was already created above; remove it instead of leaving an empty trace.
+		logFile.Close()     //nolint:errcheck
+		os.Remove(*logPath) //nolint:errcheck
+		slog.SetDefault(slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: level})))
+
+		// Remove attachments left behind by earlier runs, then whatever this run downloads.
+		os.RemoveAll(consts.AttachmentsCacheDir())       //nolint:errcheck
+		defer os.RemoveAll(consts.AttachmentsCacheDir()) //nolint:errcheck
 	}
 
 	screen, err := tcell.NewScreen()
