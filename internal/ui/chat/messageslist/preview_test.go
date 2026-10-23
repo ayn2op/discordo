@@ -9,8 +9,7 @@ import (
 	tviewimage "github.com/ayn2op/tview/image"
 )
 
-func TestPreviewSources(t *testing.T) {
-	ml := newTestModel(t, testConfig(t))
+func TestModelPreviewSources(t *testing.T) {
 	for _, tt := range []struct {
 		name    string
 		message discord.Message
@@ -32,6 +31,7 @@ func TestPreviewSources(t *testing.T) {
 		}}}, nil},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
+			ml := newTestModel(t, testConfig(t))
 			if got := ml.previewSources(tt.message); !slices.Equal(got, tt.want) {
 				t.Fatalf("previewSources() = %v, want %v", got, tt.want)
 			}
@@ -39,6 +39,7 @@ func TestPreviewSources(t *testing.T) {
 	}
 
 	t.Run("embeds disabled", func(t *testing.T) {
+		ml := newTestModel(t, testConfig(t))
 		ml.cfg.UI.MessagesList.Embeds.Enabled = false
 		message := discord.Message{
 			Attachments: []discord.Attachment{{Proxy: "a", Width: 2, Height: 1}},
