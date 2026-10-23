@@ -421,7 +421,7 @@ func (m Model) selectedMessage() (*discord.Message, bool) {
 // selectedURLs returns the web links of the selected message, from its saved markdown.
 func (m Model) selectedURLs() []string {
 	if message, ok := m.selectedMessage(); ok {
-		return messageURLs(*message, m.contentRoot(&m.items[m.cursor]))
+		return m.messageURLs(*message, m.contentRoot(&m.items[m.cursor]))
 	}
 	return nil
 }
