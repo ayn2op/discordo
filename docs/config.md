@@ -19,6 +19,13 @@ The program opened by the `composer.open_editor` keybind. "default" uses `$EDITO
 
 Default: `"default"`
 
+# disable_cache
+
+Whether to avoid leaving files on disk: skip the log file, and
+remove downloaded attachments once the app exits.
+
+Default: `false`
+
 # status
 
 "default" (unknown), "online", "dnd", "idle", "invisible" or "offline".
