@@ -42,18 +42,20 @@ type previewSource struct {
 	width, height uint
 }
 
-func previewSources(message discord.Message) []previewSource {
+func previewSources(message discord.Message, embedsEnabled bool) []previewSource {
 	var sources []previewSource
 	for _, a := range message.Attachments {
 		sources = append(sources, previewSource{a.Proxy, a.Width, a.Height})
 	}
-	for _, e := range message.Embeds {
-		switch {
-		case e.Image != nil:
-			sources = append(sources, previewSource{e.Image.Proxy, e.Image.Width, e.Image.Height})
-		// Image and GIF embeds carry the media itself as the thumbnail.
-		case e.Thumbnail != nil && (e.Type == discord.ImageEmbed || e.Type == discord.GIFVEmbed):
-			sources = append(sources, previewSource{e.Thumbnail.Proxy, e.Thumbnail.Width, e.Thumbnail.Height})
+	if embedsEnabled {
+		for _, e := range message.Embeds {
+			switch {
+			case e.Image != nil:
+				sources = append(sources, previewSource{e.Image.Proxy, e.Image.Width, e.Image.Height})
+			// Image and GIF embeds carry the media itself as the thumbnail.
+			case e.Thumbnail != nil && (e.Type == discord.ImageEmbed || e.Type == discord.GIFVEmbed):
+				sources = append(sources, previewSource{e.Thumbnail.Proxy, e.Thumbnail.Width, e.Thumbnail.Height})
+			}
 		}
 	}
 	// Non-image files have no dimensions.
@@ -111,7 +113,7 @@ func (m Model) loadPreviews() tview.Cmd {
 			continue
 		}
 
-		for _, s := range previewSources(item.message) {
+		for _, s := range previewSources(item.message, m.cfg.UI.MessagesList.Embeds.Enabled) {
 			if _, ok := item.previews[s.proxy]; ok {
 				continue
 			}

@@ -287,7 +287,7 @@ func (m Model) itemView(item *messageItem) tview.Widget {
 		body = body.Push(m.voiceMessageView(message.Attachments[0]))
 	}
 
-	for _, s := range previewSources(*message) {
+	for _, s := range previewSources(*message, m.cfg.UI.MessagesList.Embeds.Enabled) {
 		if preview, ok := item.previews[s.proxy]; ok {
 			body = body.Push(preview)
 		}

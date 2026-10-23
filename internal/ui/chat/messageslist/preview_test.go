@@ -31,7 +31,7 @@ func TestPreviewSources(t *testing.T) {
 		}}}, nil},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := previewSources(tt.message); !slices.Equal(got, tt.want) {
+			if got := previewSources(tt.message, true); !slices.Equal(got, tt.want) {
 				t.Fatalf("previewSources() = %v, want %v", got, tt.want)
 			}
 		})

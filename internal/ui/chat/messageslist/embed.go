@@ -28,7 +28,7 @@ const (
 func (m Model) embedViews(message discord.Message, root ast.Node) []tview.Widget {
 	forward := message.Reference != nil && message.Reference.Type == discord.MessageReferenceTypeForward
 	ownContent := message.Type == discord.DefaultMessage && !forward || message.Type == discord.InlinedReplyMessage
-	if len(message.Embeds) == 0 || m.blocked(message.Author) || !ownContent {
+	if !m.cfg.UI.MessagesList.Embeds.Enabled || len(message.Embeds) == 0 || m.blocked(message.Author) || !ownContent {
 		return nil
 	}
 
