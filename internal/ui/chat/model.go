@@ -20,12 +20,12 @@ import (
 	clientgateway "github.com/ayn2op/discordo/internal/gateway"
 	"github.com/ayn2op/discordo/internal/http"
 	"github.com/ayn2op/discordo/internal/ui"
+	"github.com/ayn2op/discordo/internal/ui/autocomplete"
 	"github.com/ayn2op/discordo/internal/ui/chat/attachmentspicker"
 	"github.com/ayn2op/discordo/internal/ui/chat/channelspicker"
 	"github.com/ayn2op/discordo/internal/ui/chat/composer"
 	"github.com/ayn2op/discordo/internal/ui/chat/guildstree"
 	"github.com/ayn2op/discordo/internal/ui/chat/memberstree"
-	"github.com/ayn2op/discordo/internal/ui/chat/mentionslist"
 	"github.com/ayn2op/discordo/internal/ui/chat/messageslist"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
@@ -350,7 +350,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 				ui.DialogButton{Label: "Yes", Cmd: tview.Sequence(closeState(m.state), logout())},
 			)
 		}
-	case composer.TabSuggestMsg, mentionslist.Msg:
+	case composer.RefreshAutocompleteMsg, autocomplete.Msg:
 		return m, m.updatePane(paneComposer, msg)
 	case paneMsg:
 		if msg.focus {
@@ -475,13 +475,13 @@ func (m Model) canFocus(target pane) bool {
 	}
 }
 
-// View shows the guilds tree left of the messages above the composer, with the mentions list over the messages and an open picker on top.
+// View shows the panes, with the autocomplete over the messages and an open picker on top.
 func (m Model) View() tview.Widget {
 	picker := m.pickerView()
 
 	messages := m.paneView(paneMessagesList)
-	if mentions := m.composer.MentionsListView(m.focused == paneComposer); mentions != nil {
-		messages = stack.New(messages, mentions)
+	if popup := m.composer.AutocompleteView(m.focused == paneComposer); popup != nil {
+		messages = stack.New(messages, popup)
 	}
 
 	var right tview.Widget = column.New(messages, m.paneView(paneComposer))
