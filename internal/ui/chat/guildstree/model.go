@@ -26,6 +26,13 @@ import (
 
 type dmNode struct{}
 
+const (
+	dmNodeName        = "Direct Messages"
+	maxMentions       = 99
+	mentionsFormat    = " (%d)"
+	maxMentionsFormat = " (%d+)"
+)
+
 type Model struct {
 	root        *tree.Node
 	current     *tree.Node
@@ -79,7 +86,7 @@ func (m Model) View(focused bool) tview.Widget {
 func (m *Model) reset() *tree.Node {
 	// Keep allocated map capacity; READY can rebuild often during reconnects.
 	clear(m.nodes)
-	m.dmRootNode = tree.NewNode("Direct Messages").
+	m.dmRootNode = tree.NewNode(m.dmNodeText()).
 		SetReference(dmNode{}).
 		SetExpandable(true).
 		SetExpanded(false)
@@ -129,11 +136,11 @@ func (m *Model) rebuild(event *gateway.ReadyEvent) {
 	m.setCurrentNode(root)
 }
 
-func (m Model) refreshReadStyles(event *read.UpdateEvent) {
+func (m Model) refreshReadState(event *read.UpdateEvent) {
 	if event.GuildID.IsValid() {
-		if node := m.findNodeByRef(event.GuildID); node != nil {
-			setNodeNameStyle(node, m.guildNodeStyle(event.GuildID))
-		}
+		m.refreshGuildNode(event.GuildID)
+	} else if m.dmRootNode != nil {
+		setNodeText(m.dmRootNode, m.dmNodeText())
 	}
 
 	node := m.findNodeByRef(event.ChannelID)
@@ -146,7 +153,22 @@ func (m Model) refreshReadStyles(event *read.UpdateEvent) {
 		setNodeNameStyle(node, unreadStyle(indication))
 		return
 	}
+
+	setNodeText(node, m.channelText(*channel))
 	setNodeNameStyle(node, m.channelNodeStyle(*channel))
+}
+
+func (m Model) refreshGuildNode(guildID discord.GuildID) {
+	node := m.findNodeByRef(guildID)
+	if node == nil {
+		return
+	}
+
+	if guild, err := m.state.Cabinet.Guild(guildID); err == nil {
+		setNodeText(node, m.guildText(*guild))
+	}
+
+	setNodeNameStyle(node, m.guildNodeStyle(guildID))
 }
 
 func (m Model) updateDMNodeStyle(userID discord.UserID) {
@@ -216,7 +238,7 @@ func (m Model) channelNodeStyle(channel discord.Channel) tview.Style {
 }
 
 func (m Model) createGuildNode(parent *tree.Node, guild discord.Guild) {
-	guildNode := tree.NewNode(guild.Name).
+	guildNode := tree.NewNode(m.guildText(guild)).
 		SetReference(guild.ID).
 		SetExpandable(true).
 		SetExpanded(false).
@@ -233,7 +255,7 @@ func (m Model) createChannelNode(parent *tree.Node, channel discord.Channel) {
 	}
 
 	indents := m.cfg.Sidebar.Indents
-	channelNode := tree.NewNode(ui.ChannelToString(channel, m.cfg.Icons, m.state)).SetReference(channel.ID)
+	channelNode := tree.NewNode(m.channelText(channel)).SetReference(channel.ID)
 	setNodeNameStyle(channelNode, m.channelNodeStyle(channel))
 	switch channel.Type {
 	case discord.DirectMessage:
@@ -454,6 +476,51 @@ func setNodeNameStyle(node *tree.Node, style tview.Style) {
 	node.SetSpans(spans...)
 }
 
+// setNodeText sets the text of the name of node, keeping its style.
+func setNodeText(node *tree.Node, name string) {
+	spans := node.Spans()
+	spans[0].Text = name
+	node.SetSpans(spans...)
+}
+
+// channelText returns the name of channel with its unread mentions after it.
+func (m Model) channelText(channel discord.Channel) string {
+	return ui.ChannelToString(channel, m.cfg.Icons, m.state) + mentionsLabel(m.mentions(channel))
+}
+
+// guildText returns the name of guild with the unread mentions in its channels after it.
+func (m Model) guildText(guild discord.Guild) string {
+	channels, _ := m.state.Cabinet.Channels(guild.ID)
+	return guild.Name + mentionsLabel(m.mentions(channels...))
+}
+
+// dmNodeText returns the name of the direct messages node with their unread mentions after it.
+func (m Model) dmNodeText() string {
+	channels, _ := m.state.Cabinet.PrivateChannels()
+	return dmNodeName + mentionsLabel(m.mentions(channels...))
+}
+
+// mentions returns the number of unread mentions in channels.
+func (m Model) mentions(channels ...discord.Channel) (total int) {
+	for _, channel := range channels {
+		if state := m.state.ReadState.ReadState(channel.ID); state != nil {
+			total += state.MentionCount
+		}
+	}
+	return total
+}
+
+// mentionsLabel returns what follows a name with count unread mentions, or nothing if there are none.
+func mentionsLabel(count int) string {
+	switch {
+	case count == 0:
+		return ""
+	case count > maxMentions:
+		return fmt.Sprintf(maxMentionsFormat, maxMentions)
+	}
+	return fmt.Sprintf(mentionsFormat, count)
+}
+
 func (m Model) createChannelNodes(node *tree.Node, channels []discord.Channel) {
 	// Preserve exact ordering semantics:
 	// 1) top-level non-categories (in input order),
@@ -532,7 +599,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		m.updateDMNodeStyle(msg.User.ID)
 		return m, nil
 	case *read.UpdateEvent:
-		m.refreshReadStyles(msg)
+		m.refreshReadState(msg)
 		return m, nil
 	case *gateway.VoiceStateUpdateEvent:
 		m.showVoiceMembers(msg.GuildID)

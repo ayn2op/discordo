@@ -5,6 +5,10 @@ import (
 	"testing"
 
 	"github.com/ayn2op/arikawa/v3/discord"
+	"github.com/ayn2op/arikawa/v3/gateway"
+	"github.com/ayn2op/arikawa/v3/state"
+	"github.com/ayn2op/arikawa/v3/state/store/defaultstore"
+	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview/tree"
 )
 
@@ -67,5 +71,37 @@ func TestAdjacentNode(t *testing.T) {
 	}
 	if got := adjacentNode(root, a, func(*tree.Node) bool { return false }, false); got != nil {
 		t.Errorf("got %v, want nil", got)
+	}
+}
+
+func TestMentionsLabel(t *testing.T) {
+	for _, test := range []struct {
+		name  string
+		count int
+		want  string
+	}{
+		{"none", 0, ""},
+		{"some", 5, " (5)"},
+		{"most counted", maxMentions, " (99)"},
+		{"more", maxMentions + 1, " (99+)"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if got := mentionsLabel(test.count); got != test.want {
+				t.Errorf("mentionsLabel(%d) = %q, want %q", test.count, got, test.want)
+			}
+		})
+	}
+}
+
+func TestModelMentions(t *testing.T) {
+	s := ningen.FromState(state.NewWithStore("", defaultstore.New()))
+	s.State.Handler.Call(&gateway.ReadyEvent{ReadyEventExtras: gateway.ReadyEventExtras{ReadStates: []gateway.ReadState{
+		{ChannelID: 1, LastMessageID: 10, MentionCount: 2},
+		{ChannelID: 2, LastMessageID: 20, MentionCount: 3},
+	}}})
+	m := Model{state: s}
+	channels := []discord.Channel{{ID: 1}, {ID: 2}, {ID: 3}}
+	if got := m.mentions(channels...); got != 5 {
+		t.Errorf("mentions = %d, want 5", got)
 	}
 }
