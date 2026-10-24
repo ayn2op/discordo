@@ -21,17 +21,24 @@ const closeCodeAuthenticationFailed = 4004
 
 func openState(state *ningen.State) tview.Cmd {
 	return func() tview.Msg {
-		if err := state.Open(context.Background()); err != nil {
-			slog.Error("failed to open chat state", "err", err)
-
-			// A rejected token never works again, so say so over the login.
-			if event, ok := errors.AsType[*ws.CloseEvent](err); ok && event.Code == closeCodeAuthenticationFailed {
-				return tview.Sequence(logout(), func() tview.Msg { return ui.ErrorDialog("open chat state", err) })()
-			}
+		err := state.Open(context.Background())
+		if err == nil {
+			return nil
 		}
 
-		return nil
+		slog.Error("failed to open chat state", "err", err)
+		// A rejected token never works again, so say so over the login.
+		if !isAuthenticationFailed(err) {
+			return nil
+		}
+
+		return tview.Sequence(logout(), func() tview.Msg { return ui.ErrorDialog("open chat state", err) })()
 	}
+}
+
+func isAuthenticationFailed(err error) bool {
+	event, ok := errors.AsType[*ws.CloseEvent](err)
+	return ok && event.Code == closeCodeAuthenticationFailed
 }
 
 func closeState(state *ningen.State) tview.Cmd {

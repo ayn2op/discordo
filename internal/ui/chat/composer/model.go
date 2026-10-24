@@ -80,7 +80,7 @@ type Model struct {
 const TypingDuration = 10 * time.Second
 
 func NewModel(cfg *config.Config, state *ningen.State) Model {
-	c := Model{
+	return Model{
 		disabled:          true,
 		cfg:               cfg,
 		state:             state,
@@ -88,7 +88,6 @@ func NewModel(cfg *config.Config, state *ningen.State) Model {
 		memberSearchCache: make(map[string]uint),
 		mentionsList:      mentionslist.NewModel(cfg),
 	}
-	return c
 }
 
 // SetChannel sets the channel messages are sent to, disabling the composer if the user may not send messages there.
@@ -164,20 +163,20 @@ func (m Model) footer() string {
 
 // isBound reports whether key is one of the composer's keybinds.
 func (m Model) isBound(key tview.KeyMsg) bool {
-	kbs := m.cfg.Keybinds.Composer
+	keybinds := m.cfg.Keybinds.Composer
 	if keybind.Matches(key,
-		kbs.Paste.Keybind,
-		kbs.Send.Keybind,
-		kbs.OpenEditor.Keybind,
-		kbs.OpenFilePicker.Keybind,
-		kbs.Cancel.Keybind,
-		kbs.TabComplete.Keybind,
-		kbs.ToggleReplyMention.Keybind,
-		kbs.Undo.Keybind,
+		keybinds.Paste.Keybind,
+		keybinds.Send.Keybind,
+		keybinds.OpenEditor.Keybind,
+		keybinds.OpenFilePicker.Keybind,
+		keybinds.Cancel.Keybind,
+		keybinds.TabComplete.Keybind,
+		keybinds.ToggleReplyMention.Keybind,
+		keybinds.Undo.Keybind,
 	) {
 		return true
 	}
-	return keybind.Matches(key, kbs.EditLast.Keybind) && m.canEditLastMessage()
+	return keybind.Matches(key, keybinds.EditLast.Keybind) && m.canEditLastMessage()
 }
 
 // setText replaces the text and moves the cursor, remembering what they were for undo if the text changed.
@@ -226,7 +225,7 @@ func (m *Model) reset() {
 	m.setText("", 0)
 }
 
-// Update returns c changed in response to msg and a command to run, or nil.
+// Update returns m changed in response to msg and a command to run, or nil.
 func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	switch msg := msg.(type) {
 	case TabSuggestMsg:
@@ -245,6 +244,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		for _, file := range msg.files {
 			m.attach(file.Name, file.Reader)
 		}
+
 		return m, nil
 	case editorMsg:
 		m.setText(string(msg), len(msg))
@@ -258,41 +258,41 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		return m, typingCmd
 
 	case tview.KeyMsg:
-		kbs := m.cfg.Keybinds.Composer
+		keybinds := m.cfg.Keybinds.Composer
 		switch {
-		case keybind.Matches(msg, kbs.EditLast.Keybind) && m.canEditLastMessage():
+		case keybind.Matches(msg, keybinds.EditLast.Keybind) && m.canEditLastMessage():
 			return m, editLastMessage()
-		case keybind.Matches(msg, kbs.Paste.Keybind):
+		case keybind.Matches(msg, keybinds.Paste.Keybind):
 			m.pasteText()
 			return m, pasteImage()
-		case keybind.Matches(msg, kbs.Send.Keybind):
+		case keybind.Matches(msg, keybinds.Send.Keybind):
 			if m.mentionsListVisible() {
 				return m, m.tabComplete()
 			}
 			return m, m.send()
-		case keybind.Matches(msg, kbs.OpenEditor.Keybind):
+		case keybind.Matches(msg, keybinds.OpenEditor.Keybind):
 			m.stopTabCompletion()
 			return m, m.openEditor()
-		case keybind.Matches(msg, kbs.OpenFilePicker.Keybind):
+		case keybind.Matches(msg, keybinds.OpenFilePicker.Keybind):
 			m.stopTabCompletion()
 			return m, m.pickFiles()
-		case keybind.Matches(msg, kbs.Cancel.Keybind):
+		case keybind.Matches(msg, keybinds.Cancel.Keybind):
 			if m.mentionsListVisible() {
 				m.stopTabCompletion()
 				return m, nil
 			}
 			m.reset()
 			return m, nil
-		case keybind.Matches(msg, kbs.TabComplete.Keybind):
+		case keybind.Matches(msg, keybinds.TabComplete.Keybind):
 			if m.mentionsListVisible() {
 				return m, m.tabComplete()
 			}
 			m.insert("\t")
 			return m, nil
-		case keybind.Matches(msg, kbs.ToggleReplyMention.Keybind):
+		case keybind.Matches(msg, keybinds.ToggleReplyMention.Keybind):
 			m.toggleReplyMention()
 			return m, nil
-		case keybind.Matches(msg, kbs.Undo.Keybind):
+		case keybind.Matches(msg, keybinds.Undo.Keybind):
 			m.undo()
 			return m, nil
 		}
@@ -333,92 +333,124 @@ func (m Model) toggleReplyMention() {
 	data.AllowedMentions.RepliedUser = option.Some(!*data.AllowedMentions.RepliedUser)
 }
 
-func (m Model) processText(channel *discord.Channel, src []byte) string {
+func (m Model) processText(channel *discord.Channel, source []byte) string {
 	// Fast path: no mentions to expand.
-	if bytes.IndexByte(src, '@') == -1 {
-		return string(src)
+	if bytes.IndexByte(source, '@') == -1 {
+		return string(source)
 	}
 
 	// Fast path: no back ticks (code blocks), so expand mentions directly.
-	if bytes.IndexByte(src, '`') == -1 {
-		return string(m.expandMentions(channel, src))
+	if bytes.IndexByte(source, '`') == -1 {
+		return string(m.expandMentions(channel, source))
 	}
 
+	// Replace back to front so that expanding a mention does not shift the ranges before it.
+	for _, textRange := range slices.Backward(mentionableRanges(source)) {
+		start, stop := textRange[0], textRange[1]
+		source = slices.Replace(source, start, stop, m.expandMentions(channel, source[start:stop])...)
+	}
+
+	return string(source)
+}
+
+// mentionableRanges returns the ranges of source that are text outside of code, where mentions are expanded.
+func mentionableRanges(source []byte) [][2]int {
 	var (
 		ranges     [][2]int
 		canMention = true
 	)
 
-	_ = ast.Walk(md.Parse(src), func(node ast.Node, enter bool) (ast.WalkStatus, error) {
-		switch node := node.(type) {
-		case *ast.CodeBlock:
+	_ = ast.Walk(md.Parse(source), func(node ast.Node, enter bool) (ast.WalkStatus, error) {
+		if isCode(node) {
 			canMention = !enter
-		case *md.Inline:
-			if (node.Attr & md.AttrMonospace) != 0 {
-				canMention = !enter
-			}
-		case *ast.Text:
-			if enter && canMention && !node.Value.IsOwned() {
-				index := node.Value.Index()
-				ranges = append(ranges, [2]int{index.Start, index.Stop})
-			}
 		}
+
+		text, ok := node.(*ast.Text)
+		if ok && enter && canMention && !text.Value.IsOwned() {
+			index := text.Value.Index()
+			ranges = append(ranges, [2]int{index.Start, index.Stop})
+		}
+
 		return ast.WalkContinue, nil
 	})
 
-	// Replace back to front so that expanding a mention does not shift the ranges before it.
-	for _, rng := range slices.Backward(ranges) {
-		src = slices.Replace(src, rng[0], rng[1], m.expandMentions(channel, src[rng[0]:rng[1]])...)
-	}
-
-	return string(src)
+	return ranges
 }
 
-func (m Model) expandMentions(channel *discord.Channel, src []byte) []byte {
-	state := m.state
-	return mentionRegex.ReplaceAllFunc(src, func(input []byte) []byte {
-		output := input
-		name := string(input[1:])
-		if channel.Type == discord.DirectMessage || channel.Type == discord.GroupDM {
-			for _, user := range channel.DMRecipients {
-				if strings.EqualFold(user.Username, name) {
-					return []byte(user.ID.Mention())
-				}
-			}
-			// self ping
-			me, _ := state.Cabinet.Me()
-			if strings.EqualFold(me.Username, name) {
-				return []byte(me.ID.Mention())
-			}
-			return output
+func isCode(node ast.Node) bool {
+	switch node := node.(type) {
+	case *ast.CodeBlock:
+		return true
+	case *md.Inline:
+		return node.Attr&md.AttrMonospace != 0
+	default:
+		return false
+	}
+}
+
+func (m Model) expandMentions(channel *discord.Channel, source []byte) []byte {
+	return mentionRegex.ReplaceAllFunc(source, func(input []byte) []byte {
+		if mention := m.mention(channel, string(input[1:])); mention != "" {
+			return []byte(mention)
 		}
-		_ = state.MemberStore.Each(channel.GuildID, func(m *discord.Member) bool {
-			if strings.EqualFold(m.User.Username, name) {
-				if channelHasUser(state, channel.ID, m.User.ID) {
-					output = []byte(m.User.ID.Mention())
-				}
-				return true
-			}
-			return false
-		})
-		return output
+
+		return input
 	})
 }
 
-// wordBeforeCursor returns cursor, the runes satisfying f just before it, and the rune before those.
-func wordBeforeCursor(value string, cursor int, f func(rune) bool) (int, string, rune) {
-	for start := cursor; start > 0; {
-		r, size := utf8.DecodeLastRuneInString(value[:start])
-		if !f(r) {
-			return cursor, value[start:cursor], r
+// mention returns the mention of the user called name who can see channel, or "" if there is none.
+func (m Model) mention(channel *discord.Channel, name string) string {
+	if channel.Type == discord.DirectMessage || channel.Type == discord.GroupDM {
+		return m.privateMention(channel, name)
+	}
+
+	var mention string
+	_ = m.state.MemberStore.Each(channel.GuildID, func(member *discord.Member) bool {
+		if !strings.EqualFold(member.User.Username, name) {
+			return false
 		}
+
+		if channelHasUser(m.state, channel.ID, member.User.ID) {
+			mention = member.User.ID.Mention()
+		}
+
+		return true
+	})
+
+	return mention
+}
+
+// privateMention returns the mention of the recipient of channel or the user called name, or "" if neither is.
+func (m Model) privateMention(channel *discord.Channel, name string) string {
+	for _, user := range channel.DMRecipients {
+		if strings.EqualFold(user.Username, name) {
+			return user.ID.Mention()
+		}
+	}
+
+	if me, _ := m.state.Cabinet.Me(); me != nil && strings.EqualFold(me.Username, name) {
+		return me.ID.Mention()
+	}
+
+	return ""
+}
+
+// wordBeforeCursor returns cursor, the runes satisfying isWordRune just before it, and the rune before those.
+func wordBeforeCursor(value string, cursor int, isWordRune func(rune) bool) (int, string, rune) {
+	for start := cursor; start > 0; {
+		previous, size := utf8.DecodeLastRuneInString(value[:start])
+		if !isWordRune(previous) {
+			return cursor, value[start:cursor], previous
+		}
+
 		start -= size
 	}
+
 	return cursor, value[:cursor], 0
 }
 
-func isMentionChar(r rune) bool {
-	return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '.'
+func isMentionChar(char rune) bool {
+	return unicode.IsLetter(char) || unicode.IsDigit(char) || char == '_' || char == '.'
 }
 
 // suggestRecentAuthors suggests the authors of the channel's recent messages, other than the user.
@@ -448,16 +480,16 @@ func (m *Model) suggestRecentAuthors(channel *discord.Channel) {
 type memberList []discord.Member
 type userList []discord.User
 
-func (ml memberList) String(i int) string {
-	return ml[i].Nick + ml[i].User.DisplayName + ml[i].User.Tag()
+func (ml memberList) String(index int) string {
+	return ml[index].Nick + ml[index].User.DisplayName + ml[index].User.Tag()
 }
 
 func (ml memberList) Len() int {
 	return len(ml)
 }
 
-func (ul userList) String(i int) string {
-	return ul[i].DisplayName + ul[i].Tag()
+func (ul userList) String(index int) string {
+	return ul[index].DisplayName + ul[index].Tag()
 }
 
 func (ul userList) Len() int {
@@ -471,6 +503,7 @@ func channelHasUser(state *ningen.State, channelID discord.ChannelID, userID dis
 		slog.Error("failed to get permissions", "err", err, "channel", channelID, "user", userID)
 		return false
 	}
+
 	return perms.Has(discord.PermissionViewChannel)
 }
 
@@ -488,15 +521,16 @@ func (m Model) CacheMemberSearch(event *gateway.GuildMembersChunkEvent) tview.Cm
 
 // OnGuildMemberRemove forgets cached member searches that the removed member may have filled.
 func (m Model) OnGuildMemberRemove(event *gateway.GuildMemberRemoveEvent) {
-	for name := event.GuildID.String() + " " + event.User.Username; name != ""; name = name[:len(name)-1] {
+	name := event.GuildID.String() + " " + event.User.Username
+	for ; name != ""; name = name[:len(name)-1] {
 		if count, ok := m.memberSearchCache[name]; ok && count >= m.state.MemberState.SearchLimit {
-			// A full result set may now be missing members; search these prefixes again.
-			for name != "" {
-				delete(m.memberSearchCache, name)
-				name = name[:len(name)-1]
-			}
-			return
+			break
 		}
+	}
+
+	// A full result set may now be missing members; search it and its prefixes again.
+	for ; name != ""; name = name[:len(name)-1] {
+		delete(m.memberSearchCache, name)
 	}
 }
 
@@ -510,7 +544,7 @@ func (m Model) MentionsListView(focused bool) tview.Widget {
 
 // mentionsPopup places the mentions list within the area of the messages, which it is drawn over.
 type mentionsPopup struct {
-	c Model
+	model Model
 }
 
 // Size returns Fill, as the popup places the list within its whole area.
@@ -522,24 +556,24 @@ func (mentionsPopup) Layout(limits layout.Limits) layout.Size {
 }
 
 func (p mentionsPopup) Draw(screen tview.Screen, area tview.Rectangle) {
-	p.c.mentionsList.View().Draw(screen, p.area(area))
+	p.model.mentionsList.View().Draw(screen, p.area(area))
 }
 
 func (p mentionsPopup) Handle(msg tview.Msg, area tview.Rectangle) tview.Msg {
-	return p.c.mentionsList.View().Handle(msg, p.area(area))
+	return p.model.mentionsList.View().Handle(msg, p.area(area))
 }
 
 // area returns where the list goes in area: at its bottom, at the column of the cursor where it fits.
 func (p mentionsPopup) area(area tview.Rectangle) tview.Rectangle {
-	c := p.c
-	size := c.mentionsList.View().Layout(layout.Limits{Max: layout.Size{Width: area.Width, Height: area.Height}})
-	value, cursor := c.text, c.cursor
-	col := uucode.StringWidth(value[strings.LastIndex(value[:cursor], "\n")+1 : cursor])
-	x := min(c.box(false).InnerArea(tview.Rectangle{}).X+col, area.Width-size.Width)
+	model := p.model
+	size := model.mentionsList.View().Layout(layout.Limits{Max: layout.Size{Width: area.Width, Height: area.Height}})
+	value, cursor := model.text, model.cursor
+	column := uucode.StringWidth(value[strings.LastIndex(value[:cursor], "\n")+1 : cursor])
+	x := min(model.box(false).InnerArea(tview.Rectangle{}).X+column, area.Width-size.Width)
 	return tview.Rectangle{X: area.X + x, Y: area.Y + area.Height - size.Height, Width: size.Width, Height: size.Height}
 }
 
-func (m *Model) addMentionMember(gID discord.GuildID, member *discord.Member) bool {
+func (m *Model) addMentionMember(guildID discord.GuildID, member *discord.Member) bool {
 	if member == nil {
 		return false
 	}
@@ -550,16 +584,16 @@ func (m *Model) addMentionMember(gID discord.GuildID, member *discord.Member) bo
 
 	// This avoids a slower member color lookup path.
 	color, ok := state.MemberColor(member, func(id discord.RoleID) *discord.Role {
-		r, _ := m.state.Cabinet.Role(gID, id)
-		return r
+		role, _ := m.state.Cabinet.Role(guildID, id)
+		return role
 	})
 	if ok {
 		style = style.Foreground(tcell.NewHexColor(int32(color)))
 	}
 
-	presence, err := m.state.Cabinet.Presence(gID, member.User.ID)
+	presence, err := m.state.Cabinet.Presence(guildID, member.User.ID)
 	if err != nil {
-		slog.Info("failed to get presence from state", "guild_id", gID, "user_id", member.User.ID, "err", err)
+		slog.Info("failed to get presence from state", "guild_id", guildID, "user_id", member.User.ID, "err", err)
 	} else if presence.Status == discord.OfflineStatus {
 		style = style.Dim(true)
 	}

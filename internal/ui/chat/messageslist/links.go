@@ -20,21 +20,24 @@ func contentURLs(content string, root ast.Node) []string {
 }
 
 // urlsFromAST collects link destinations from an already-parsed markdown AST.
-// src must be the byte slice the node was parsed from (AutoLink resolves its URL against it).
-func urlsFromAST(node ast.Node, src []byte) []string {
+// source must be the byte slice the node was parsed from (AutoLink resolves its URL against it).
+func urlsFromAST(node ast.Node, source []byte) []string {
 	var urls []string
-	_ = ast.Walk(node, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
-		if entering {
-			switch n := n.(type) {
-			case *ast.AutoLink:
-				urls = append(urls, string(n.Destination.Bytes(src)))
-			case *ast.Link:
-				urls = append(urls, string(n.Destination.Bytes(src)))
-			}
+	_ = ast.Walk(node, func(current ast.Node, entering bool) (ast.WalkStatus, error) {
+		if !entering {
+			return ast.WalkContinue, nil
+		}
+
+		switch link := current.(type) {
+		case *ast.AutoLink:
+			urls = append(urls, string(link.Destination.Bytes(source)))
+		case *ast.Link:
+			urls = append(urls, string(link.Destination.Bytes(source)))
 		}
 
 		return ast.WalkContinue, nil
 	})
+
 	return urls
 }
 
@@ -60,27 +63,29 @@ const (
 	schemeHTTPS = "https"
 )
 
-// messageURLs returns the web links of msg. root is its parsed content, or nil to parse it here.
-func (m Model) messageURLs(msg discord.Message, root ast.Node) []string {
-	embeds := msg.Embeds
+// messageURLs returns the web links of message. root is its parsed content, or nil to parse it here.
+func (m Model) messageURLs(message discord.Message, root ast.Node) []string {
+	embeds := message.Embeds
 	if !m.cfg.UI.MessagesList.Embeds.Enabled {
 		embeds = nil
 	}
-	combined := slices.Concat(contentURLs(msg.Content, root), extractEmbedURLs(embeds))
+	combined := slices.Concat(contentURLs(message.Content, root), extractEmbedURLs(embeds))
 
 	urls := make([]string, 0, len(combined))
 	seen := make(map[string]struct{}, len(combined))
-	for _, u := range combined {
-		u = strings.TrimSpace(u)
+	for _, link := range combined {
+		link = strings.TrimSpace(link)
 		// Only web links are opened, as one of another scheme could run a program.
-		if parsed, err := url.Parse(u); err != nil || parsed.Scheme != schemeHTTP && parsed.Scheme != schemeHTTPS {
+		if parsed, err := url.Parse(link); err != nil || parsed.Scheme != schemeHTTP && parsed.Scheme != schemeHTTPS {
 			continue
 		}
-		if _, ok := seen[u]; ok {
+
+		if _, ok := seen[link]; ok {
 			continue
 		}
-		seen[u] = struct{}{}
-		urls = append(urls, u)
+
+		seen[link] = struct{}{}
+		urls = append(urls, link)
 	}
 	return urls
 }

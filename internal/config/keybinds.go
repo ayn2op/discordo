@@ -20,22 +20,32 @@ func (k *Keybind) UnmarshalTOML(value any) error {
 	case string:
 		keys = []string{value}
 	case []any:
-		for _, key := range value {
-			if key, ok := key.(string); ok {
-				keys = append(keys, key)
-			}
-		}
+		keys = stringValues(value)
 	default:
 		return nil
 	}
-	kb := keybind.New(keys...)
+
+	bound := keybind.New(keys...)
 	// Keep displayed help key aligned with configured key(s).
 	help := k.Help()
-	if keys := kb.Keys(); len(keys) > 0 {
+	if keys := bound.Keys(); len(keys) > 0 {
 		help.Key = keys[0]
 	}
-	k.Keybind = kb.WithHelp(help.Key, help.Desc)
+
+	k.Keybind = bound.WithHelp(help.Key, help.Desc)
 	return nil
+}
+
+// stringValues returns the strings in values, skipping anything else.
+func stringValues(values []any) []string {
+	var keys []string
+	for _, value := range values {
+		if key, ok := value.(string); ok {
+			keys = append(keys, key)
+		}
+	}
+
+	return keys
 }
 
 // MarshalTOML writes the keys as UnmarshalTOML reads them: one key as a string, an unbound keybind as an empty one, and several keys as a list.

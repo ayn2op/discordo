@@ -16,21 +16,23 @@ type enum[T comparable] []struct {
 }
 
 func (e enum[T]) parse(name string) (T, error) {
-	for _, p := range e {
-		if p.name == name {
-			return p.value, nil
+	for _, pair := range e {
+		if pair.name == name {
+			return pair.value, nil
 		}
 	}
+
 	var zero T
 	return zero, fmt.Errorf("unknown value: %q", name)
 }
 
 func (e enum[T]) text(value T) ([]byte, error) {
-	for _, p := range e {
-		if p.value == value {
-			return []byte(p.name), nil
+	for _, pair := range e {
+		if pair.value == value {
+			return []byte(pair.name), nil
 		}
 	}
+
 	return nil, fmt.Errorf("unknown value: %v", value)
 }
 

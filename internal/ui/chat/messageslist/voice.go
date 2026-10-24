@@ -44,13 +44,13 @@ func formatDuration(d time.Duration) string {
 	return fmt.Sprintf("%d:%02d", seconds/60, seconds%60)
 }
 
-// voiceMessageView returns the player of the voice message a: whether it is playing, its waveform with what was played of it, and how long it is.
-func (m Model) voiceMessageView(a discord.Attachment) tview.Widget {
-	duration := time.Duration(a.DurationSecs * float64(time.Second))
+// voiceMessageView returns the player of the voice message attachment: whether it is playing, its waveform with what was played of it, and how long it is.
+func (m Model) voiceMessageView(attachment discord.Attachment) tview.Widget {
+	duration := time.Duration(attachment.DurationSecs * float64(time.Second))
 	symbol, label := symbolPlay, formatDuration(duration)
 
 	status := m.voiceStatus
-	loaded := status.ID == a.ID
+	loaded := status.ID == attachment.ID
 	if loaded {
 		label = formatDuration(status.Position) + positionSeparator + label
 	}
@@ -59,7 +59,7 @@ func (m Model) voiceMessageView(a discord.Attachment) tview.Widget {
 		symbol = symbolPause
 	}
 
-	rail := waveformRail(a.Waveform)
+	rail := waveformRail(attachment.Waveform)
 	style := m.cfg.Theme.MessagesList.AttachmentStyle.Style
 	// Only the voice message that is loaded can be sought.
 	var onSeek func(time.Duration) tview.Msg
@@ -80,7 +80,7 @@ func (m Model) voiceMessageView(a discord.Attachment) tview.Widget {
 			return rail[cell], style.Dim(true)
 		})
 
-	play := button.New(text.New(symbol)).OnClick(playMsg(a))
+	play := button.New(text.New(symbol)).OnClick(playMsg(attachment))
 
 	return row.New(play, waveform, text.New(label)).Spacing(1).Height(layout.Fixed(1))
 }

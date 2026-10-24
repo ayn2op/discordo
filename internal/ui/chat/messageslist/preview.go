@@ -44,25 +44,26 @@ type previewSource struct {
 
 func (m Model) previewSources(message discord.Message) []previewSource {
 	var sources []previewSource
-	for _, a := range message.Attachments {
-		sources = append(sources, previewSource{a.Proxy, a.Width, a.Height})
+	for _, attachment := range message.Attachments {
+		sources = append(sources, previewSource{attachment.Proxy, attachment.Width, attachment.Height})
 	}
 
 	embeds := message.Embeds
 	if !m.cfg.UI.MessagesList.Embeds.Enabled {
 		embeds = nil
 	}
-	for _, e := range embeds {
+	for _, embed := range embeds {
 		switch {
-		case e.Image != nil:
-			sources = append(sources, previewSource{e.Image.Proxy, e.Image.Width, e.Image.Height})
+		case embed.Image != nil:
+			sources = append(sources, previewSource{embed.Image.Proxy, embed.Image.Width, embed.Image.Height})
 		// Image and GIF embeds carry the media itself as the thumbnail.
-		case e.Thumbnail != nil && (e.Type == discord.ImageEmbed || e.Type == discord.GIFVEmbed):
-			sources = append(sources, previewSource{e.Thumbnail.Proxy, e.Thumbnail.Width, e.Thumbnail.Height})
+		case embed.Thumbnail != nil && (embed.Type == discord.ImageEmbed || embed.Type == discord.GIFVEmbed):
+			sources = append(sources, previewSource{embed.Thumbnail.Proxy, embed.Thumbnail.Width, embed.Thumbnail.Height})
 		}
 	}
+
 	// Non-image files have no dimensions.
-	return slices.DeleteFunc(sources, func(s previewSource) bool { return s.width == 0 || s.height == 0 })
+	return slices.DeleteFunc(sources, func(source previewSource) bool { return source.width == 0 || source.height == 0 })
 }
 
 // cols returns the preview's width in cells of cellWidth by cellHeight pixels: its own width at most, within the preview box.
@@ -88,53 +89,77 @@ func (m Model) previewCell() (width, height uint) {
 func (m Model) loadPreviews() tview.Cmd {
 	cellWidth, cellHeight := m.previewCell()
 	var cmds []tview.Cmd
-	for i := range m.items {
-		item := &m.items[i]
+	for index := range m.items {
+		item := &m.items[index]
 		if item.separator != nil {
 			continue
 		}
 
 		cmds = append(cmds, m.loadAvatar(item.message.Author))
-		for _, reaction := range item.message.Reactions {
-			if reaction.Emoji.IsCustom() {
-				cmds = append(cmds, m.loadEmoji(reaction.Emoji.ID))
-			}
+		cmds = append(cmds, m.loadEmojis(item)...)
+		if m.cfg.UI.MessagesList.Attachments.Preview {
+			cmds = append(cmds, m.loadMessagePreviews(item, cellWidth, cellHeight)...)
+		}
+	}
+
+	return tview.Batch(cmds...)
+}
+
+// loadEmojis loads the custom emoji of the reactions to the item's message and in its content.
+func (m Model) loadEmojis(item *messageItem) []tview.Cmd {
+	var cmds []tview.Cmd
+	for _, reaction := range item.message.Reactions {
+		if reaction.Emoji.IsCustom() {
+			cmds = append(cmds, m.loadEmoji(reaction.Emoji.ID))
+		}
+	}
+
+	root := m.contentRoot(item)
+	if root == nil {
+		return cmds
+	}
+
+	_ = ast.Walk(root, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
+		emoji, ok := node.(*md.Emoji)
+		if !ok || !entering {
+			return ast.WalkContinue, nil
 		}
 
-		if root := m.contentRoot(item); root != nil {
-			_ = ast.Walk(root, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
-				if emoji, ok := node.(*md.Emoji); ok && entering {
-					if id, err := discord.ParseSnowflake(emoji.ID); err == nil {
-						cmds = append(cmds, m.loadEmoji(discord.EmojiID(id)))
-					}
-				}
-				return ast.WalkContinue, nil
-			})
+		if id, err := discord.ParseSnowflake(emoji.ID); err == nil {
+			cmds = append(cmds, m.loadEmoji(discord.EmojiID(id)))
 		}
 
-		if !m.cfg.UI.MessagesList.Attachments.Preview {
+		return ast.WalkContinue, nil
+	})
+
+	return cmds
+}
+
+// loadMessagePreviews loads the previews of the item's message that are not loaded yet.
+func (m Model) loadMessagePreviews(item *messageItem, cellWidth, cellHeight uint) []tview.Cmd {
+	var cmds []tview.Cmd
+	for _, source := range m.previewSources(item.message) {
+		if _, ok := item.previews[source.proxy]; ok {
 			continue
 		}
 
-		for _, s := range m.previewSources(item.message) {
-			if _, ok := item.previews[s.proxy]; ok {
-				continue
-			}
-			if item.previews == nil {
-				item.previews = make(map[discord.URL]tviewimage.Widget)
-			}
-			cols := s.cols(cellWidth, cellHeight)
-			width := min(s.width, uint(cols)*cellWidth)
-			bounds := image.Rect(0, 0, int(width), int(s.height*width/s.width))
-			widget := func(img image.Image) tviewimage.Widget {
-				return tviewimage.New(img).Width(cols).CellSize(int(cellWidth), int(cellHeight))
-			}
-			// Reserve the preview's rows with a blank image of the same size, so the messages below do not shift when it loads.
-			item.previews[s.proxy] = widget(image.NewAlpha(bounds))
-			cmds = append(cmds, m.loadPreview(item.message.ID, s.proxy, bounds, widget))
+		if item.previews == nil {
+			item.previews = make(map[discord.URL]tviewimage.Widget)
 		}
+
+		cols := source.cols(cellWidth, cellHeight)
+		width := min(source.width, uint(cols)*cellWidth)
+		bounds := image.Rect(0, 0, int(width), int(source.height*width/source.width))
+		widget := func(img image.Image) tviewimage.Widget {
+			return tviewimage.New(img).Width(cols).CellSize(int(cellWidth), int(cellHeight))
+		}
+
+		// Reserve the preview's rows with a blank image of the same size, so the messages below do not shift when it loads.
+		item.previews[source.proxy] = widget(image.NewAlpha(bounds))
+		cmds = append(cmds, m.loadPreview(item.message.ID, source.proxy, bounds, widget))
 	}
-	return tview.Batch(cmds...)
+
+	return cmds
 }
 
 func avatarURL(user discord.User) discord.URL {
@@ -194,15 +219,15 @@ func (m Model) loadImage(url discord.URL, rows uint) tview.Cmd {
 
 // square returns img centered on a transparent square, so an image of any shape takes the square's cells.
 func square(img image.Image) image.Image {
-	b := img.Bounds()
-	if b.Dx() == b.Dy() {
+	bounds := img.Bounds()
+	if bounds.Dx() == bounds.Dy() {
 		return img
 	}
 
-	side := max(b.Dx(), b.Dy())
+	side := max(bounds.Dx(), bounds.Dy())
 	dst := image.NewNRGBA(image.Rect(0, 0, side, side))
-	at := image.Pt((side-b.Dx())/2, (side-b.Dy())/2)
-	draw.Draw(dst, b.Sub(b.Min).Add(at), img, b.Min, draw.Src)
+	at := image.Pt((side-bounds.Dx())/2, (side-bounds.Dy())/2)
+	draw.Draw(dst, bounds.Sub(bounds.Min).Add(at), img, bounds.Min, draw.Src)
 	return dst
 }
 
@@ -219,16 +244,17 @@ func (m Model) loadPreview(messageID discord.MessageID, proxy discord.URL, bound
 }
 
 func (m Model) downloadPreview(proxy discord.URL, bounds image.Rectangle) (image.Image, error) {
-	u, err := url.Parse(proxy)
+	previewURL, err := url.Parse(proxy)
 	if err != nil {
 		return nil, err
 	}
-	query := u.Query()
+
+	query := previewURL.Query()
 	query.Set("width", strconv.Itoa(bounds.Dx()))
 	query.Set("height", strconv.Itoa(bounds.Dy()))
-	u.RawQuery = query.Encode()
+	previewURL.RawQuery = query.Encode()
 
-	resp, err := m.get(u.String())
+	resp, err := m.get(previewURL.String())
 	if err != nil {
 		return nil, err
 	}

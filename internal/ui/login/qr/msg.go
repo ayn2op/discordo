@@ -60,12 +60,15 @@ func connect() tview.Cmd {
 
 func closeConn(conn *gatewayConn) tview.Cmd {
 	return func() tview.Msg {
-		// An error here must not reach the error case, which would close the connection again.
-		if conn != nil {
-			if err := conn.ws.Close(); err != nil {
-				slog.Error("failed to close remote auth gateway connection", "err", err)
-			}
+		if conn == nil {
+			return connCloseMsg{}
 		}
+
+		// An error here must not reach the error case, which would close the connection again.
+		if err := conn.ws.Close(); err != nil {
+			slog.Error("failed to close remote auth gateway connection", "err", err)
+		}
+
 		return connCloseMsg{}
 	}
 }

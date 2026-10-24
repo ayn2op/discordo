@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"slices"
 	"sync"
-	"unicode/utf8"
 
 	"github.com/BurntSushi/toml"
 	"github.com/ayn2op/arikawa/v3/discord"
@@ -213,7 +212,7 @@ type (
 	}
 )
 
-//go:generate go run gen.go
+//go:generate go run generator.go
 
 // Default returns the default configuration.
 func Default() Config {
@@ -324,9 +323,7 @@ func (cfg *Config) applyDefaults() {
 		cfg.DateSeparator.Format = "January 2, 2006"
 	}
 
-	if r, _ := utf8.DecodeRuneInString(cfg.DateSeparator.Character); r == utf8.RuneError {
+	if cfg.DateSeparator.Character == "" {
 		cfg.DateSeparator.Character = "─"
-	} else {
-		cfg.DateSeparator.Character = string(r)
 	}
 }

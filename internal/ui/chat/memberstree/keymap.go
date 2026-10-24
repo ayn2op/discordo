@@ -9,29 +9,30 @@ import (
 var _ help.KeyMap = Model{}
 
 func (m Model) ShortHelp() []keybind.Keybind {
-	kbs := m.cfg.Keybinds.MembersTree
-	short := uitree.SelectHelp(m.root, m.current, kbs)
-	if node := m.current; node != nil {
-		if _, ok := node.Reference().(groupRef); ok {
-			desc := "expand"
-			if node.Expanded() {
-				desc = "collapse"
-			}
-			short = append(short, kbs.SelectCurrent.WithHelp(kbs.SelectCurrent.Help().Key, desc))
+	keybinds := m.cfg.Keybinds.MembersTree
+	short := uitree.SelectHelp(m.root, m.current, keybinds)
+	if isGroup(m.current) {
+		desc := "expand"
+		if m.current.Expanded() {
+			desc = "collapse"
 		}
+
+		short = append(short, keybinds.SelectCurrent.WithHelp(keybinds.SelectCurrent.Help().Key, desc))
 	}
+
 	if m.parent(m.current) != nil {
-		short = append(short, kbs.CollapseParentNode.Keybind)
+		short = append(short, keybinds.CollapseParentNode.Keybind)
 	}
+
 	return short
 }
 
 func (m Model) FullHelp() [][]keybind.Keybind {
-	kbs := m.cfg.Keybinds.MembersTree
+	keybinds := m.cfg.Keybinds.MembersTree
 	return [][]keybind.Keybind{
-		{kbs.SelectUp.Keybind, kbs.SelectDown.Keybind, kbs.SelectTop.Keybind, kbs.SelectBottom.Keybind},
-		{kbs.ScrollUp.Keybind, kbs.ScrollDown.Keybind, kbs.ScrollTop.Keybind, kbs.ScrollBottom.Keybind, kbs.ScrollLeft.Keybind, kbs.ScrollRight.Keybind},
-		{kbs.SelectCurrent.Keybind, kbs.MoveToParentNode.Keybind, kbs.CollapseParentNode.Keybind, kbs.CollapseAll.Keybind},
-		{kbs.YankID.Keybind},
+		{keybinds.SelectUp.Keybind, keybinds.SelectDown.Keybind, keybinds.SelectTop.Keybind, keybinds.SelectBottom.Keybind},
+		{keybinds.ScrollUp.Keybind, keybinds.ScrollDown.Keybind, keybinds.ScrollTop.Keybind, keybinds.ScrollBottom.Keybind, keybinds.ScrollLeft.Keybind, keybinds.ScrollRight.Keybind},
+		{keybinds.SelectCurrent.Keybind, keybinds.MoveToParentNode.Keybind, keybinds.CollapseParentNode.Keybind, keybinds.CollapseAll.Keybind},
+		{keybinds.YankID.Keybind},
 	}
 }

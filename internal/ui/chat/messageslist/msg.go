@@ -65,17 +65,23 @@ type listMsg int
 type scrollMsg viewport.ScrollState
 
 func (m *Model) selectUp() tview.Cmd {
-	cursor := m.cursor
-	if cursor == -1 {
+	if m.cursor == -1 {
 		m.selectBottom()
-	} else if previous := m.messageIndex(cursor, -1); previous >= 0 {
-		m.setCursor(previous)
-		// Older messages are fetched once as the cursor reaches the top, rather than on each key press there.
-		if m.atTop() {
-			return m.fetchOlderMessages()
-		}
+		return nil
 	}
-	return nil
+
+	previous := m.messageIndex(m.cursor, -1)
+	if previous < 0 {
+		return nil
+	}
+
+	m.setCursor(previous)
+	// Older messages are fetched once as the cursor reaches the top, rather than on each key press there.
+	if !m.atTop() {
+		return nil
+	}
+
+	return m.fetchOlderMessages()
 }
 
 func (m Model) fetchOlderMessages() tview.Cmd {
@@ -270,22 +276,28 @@ func (m Model) confirmAttachment(attachment discord.Attachment, action tview.Cmd
 	return action
 }
 
+// attachmentExtension returns the extension of the attachment's file name, or else one of its content type.
+func attachmentExtension(attachment discord.Attachment) string {
+	if extension := filepath.Ext(attachment.Filename); extension != "" {
+		return extension
+	}
+
+	mediaType, _, _ := mime.ParseMediaType(attachment.ContentType)
+	if extensions, _ := mime.ExtensionsByType(mediaType); len(extensions) != 0 {
+		return extensions[0]
+	}
+
+	return ""
+}
+
 func (m Model) openDownloadedAttachment(attachment discord.Attachment) tview.Cmd {
 	return func() tview.Msg {
-		extension := filepath.Ext(attachment.Filename)
-		if extension == "" {
-			mediaType, _, _ := mime.ParseMediaType(attachment.ContentType)
-			if extensions, _ := mime.ExtensionsByType(mediaType); len(extensions) != 0 {
-				extension = extensions[0]
-			}
-		}
-
 		dir := filepath.Join(consts.CacheDir(), "attachments")
 		if err := os.MkdirAll(dir, 0o700); err != nil {
-			return ui.ErrorDialog("create attachments directory", err)
+			return ui.ErrorDialog("create attachments dir", err)
 		}
 
-		file, err := os.CreateTemp(dir, "attachment-*"+extension)
+		file, err := os.CreateTemp(dir, "attachment-*"+attachmentExtension(attachment))
 		if err != nil {
 			return ui.ErrorDialog("create attachment file", err)
 		}
@@ -296,7 +308,9 @@ func (m Model) openDownloadedAttachment(attachment discord.Attachment) tview.Cmd
 
 		if err := m.downloadAttachment(attachment, path); err != nil {
 			return ui.ErrorDialog("download attachment", errors.Join(err, os.Remove(path)))
-		} else if err := open.Start(path); err != nil {
+		}
+
+		if err := open.Start(path); err != nil {
 			return ui.ErrorDialog("open attachment file", err)
 		}
 
@@ -405,18 +419,22 @@ func (m Model) requestGuildMembers(guildID discord.GuildID, messages []discord.M
 	seen := make(map[discord.UserID]struct{}, len(messages))
 
 	for _, message := range messages {
+		userID := message.Author.ID
 		// Do not fetch member for a webhook message.
 		if message.WebhookID.IsValid() {
 			continue
 		}
 
-		if member, _ := m.state.Cabinet.Member(guildID, message.Author.ID); member == nil {
-			userID := message.Author.ID
-			if _, ok := seen[userID]; !ok {
-				seen[userID] = struct{}{}
-				usersToFetch = append(usersToFetch, userID)
-			}
+		if _, ok := seen[userID]; ok {
+			continue
 		}
+
+		if member, _ := m.state.Cabinet.Member(guildID, userID); member != nil {
+			continue
+		}
+
+		seen[userID] = struct{}{}
+		usersToFetch = append(usersToFetch, userID)
 	}
 
 	if len(usersToFetch) == 0 {

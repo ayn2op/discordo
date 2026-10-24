@@ -33,172 +33,200 @@ var (
 	}
 )
 
-type StyleWrapper struct{ tview.Style }
+type Style struct{ tview.Style }
 
-func (sw *StyleWrapper) UnmarshalTOML(v any) error {
-	m, ok := v.(map[string]any)
+func (s *Style) UnmarshalTOML(value any) error {
+	table, ok := value.(map[string]any)
 	if !ok {
 		return errInvalidType
 	}
 
 	// Reset on new styles
-	sw.Style = tcell.StyleDefault
+	s.Style = tcell.StyleDefault
 
-	for key, val := range m {
-		switch key {
-		case "foreground":
-			if s, ok := val.(string); ok {
-				sw.Style = sw.Foreground(tcell.GetColor(s))
-			}
-		case "background":
-			if s, ok := val.(string); ok {
-				sw.Style = sw.Background(tcell.GetColor(s))
-			}
-		case "attributes":
-			switch val := val.(type) {
-			case string:
-				sw.parseAttr(val)
-			case []any:
-				for _, attr := range val {
-					if s, ok := attr.(string); ok {
-						sw.parseAttr(s)
-					}
-				}
-			}
-		case "underline":
-			if s, ok := val.(string); ok {
-				underline, err := underlines.parse(s)
-				if err != nil {
-					return err
-				}
-				sw.Style = sw.Underline(underline)
-			}
-		case "underline_color":
-			if s, ok := val.(string); ok {
-				sw.Style = sw.Underline(tcell.GetColor(s))
-			}
+	for key, value := range table {
+		if key == "attributes" {
+			s.parseAttributes(value)
+			continue
+		}
+
+		name, ok := value.(string)
+		if !ok {
+			continue
+		}
+
+		if err := s.set(key, name); err != nil {
+			return err
 		}
 	}
 
 	return nil
 }
 
-func (sw *StyleWrapper) parseAttr(s string) {
-	if s == "underline" {
-		sw.Style = sw.Underline(true)
+// set applies the option key with the value name.
+func (s *Style) set(key, name string) error {
+	switch key {
+	case "foreground":
+		s.Style = s.Foreground(tcell.GetColor(name))
+	case "background":
+		s.Style = s.Background(tcell.GetColor(name))
+	case "underline":
+		underline, err := underlines.parse(name)
+		if err != nil {
+			return err
+		}
+
+		s.Style = s.Underline(underline)
+	case "underline_color":
+		s.Style = s.Underline(tcell.GetColor(name))
+	}
+
+	return nil
+}
+
+// parseAttributes applies one attribute name or a list of them.
+func (s *Style) parseAttributes(value any) {
+	switch value := value.(type) {
+	case string:
+		s.parseAttribute(value)
+	case []any:
+		for _, name := range stringValues(value) {
+			s.parseAttribute(name)
+		}
+	}
+}
+
+func (s *Style) parseAttribute(name string) {
+	if name == "underline" {
+		s.Style = s.Underline(true)
 		return
 	}
+
 	// An unknown attribute parses to no attribute.
-	attr, _ := attributes.parse(s)
-	sw.Style = sw.Attributes(sw.GetAttributes() | attr) //nolint:staticcheck
+	attr, _ := attributes.parse(name)
+	s.Style = s.Attributes(s.GetAttributes() | attr) //nolint:staticcheck
 }
 
 // MarshalTOML writes the style as the inline table UnmarshalTOML reads.
-func (sw StyleWrapper) MarshalTOML() ([]byte, error) {
+func (s Style) MarshalTOML() ([]byte, error) {
 	var fields []string
 	add := func(key string, value any) {
-		b, _ := json.Marshal(value)
-		fields = append(fields, key+" = "+string(b))
+		encoded, _ := json.Marshal(value)
+		fields = append(fields, key+" = "+string(encoded))
 	}
-	if c := sw.GetForeground(); c != tcell.ColorDefault {
-		add("foreground", colorName(c))
+
+	if foreground := s.GetForeground(); foreground != tcell.ColorDefault {
+		add("foreground", colorName(foreground))
 	}
-	if c := sw.GetBackground(); c != tcell.ColorDefault {
-		add("background", colorName(c))
+
+	if background := s.GetBackground(); background != tcell.ColorDefault {
+		add("background", colorName(background))
 	}
-	var attrs []string
-	for _, a := range attributes {
-		if sw.GetAttributes()&a.value != 0 {
-			attrs = append(attrs, a.name)
-		}
-	}
-	switch len(attrs) {
+
+	switch names := s.attributeNames(); len(names) {
 	case 0:
 	case 1:
-		add("attributes", attrs[0])
+		add("attributes", names[0])
 	default:
-		add("attributes", attrs)
+		add("attributes", names)
 	}
-	if u := sw.GetUnderlineStyle(); u != tcell.UnderlineStyleNone {
-		name, _ := underlines.text(u)
+
+	if underline := s.GetUnderlineStyle(); underline != tcell.UnderlineStyleNone {
+		name, _ := underlines.text(underline)
 		add("underline", string(name))
 	}
-	if c := sw.GetUnderlineColor(); c != tcell.ColorDefault {
-		add("underline_color", colorName(c))
+
+	if underlineColor := s.GetUnderlineColor(); underlineColor != tcell.ColorDefault {
+		add("underline_color", colorName(underlineColor))
 	}
+
 	if fields == nil {
 		return []byte("{}"), nil
 	}
+
 	return []byte("{ " + strings.Join(fields, ", ") + " }"), nil
 }
 
-// colorName returns the first of the names of c, or its hex code if it has none.
-func colorName(c tcell.Color) string {
+func (s Style) attributeNames() []string {
+	var names []string
+	for _, attr := range attributes {
+		if s.GetAttributes()&attr.value != 0 {
+			names = append(names, attr.name)
+		}
+	}
+
+	return names
+}
+
+// colorName returns the first of the names of target, or its hex code if it has none.
+func colorName(target tcell.Color) string {
 	var names []string
 	for name, color := range tcell.ColorNames {
-		if color == c {
+		if color == target {
 			names = append(names, name)
 		}
 	}
+
 	if names == nil {
-		return c.CSS()
+		return target.CSS()
 	}
+
 	return slices.Min(names)
 }
 
 type (
 	HelpThemeConfig struct {
-		ShortKeyStyle  StyleWrapper `toml:"short_key_style"`
-		ShortDescStyle StyleWrapper `toml:"short_desc_style"`
-		FullKeyStyle   StyleWrapper `toml:"full_key_style"`
-		FullDescStyle  StyleWrapper `toml:"full_desc_style"`
+		ShortKeyStyle  Style `toml:"short_key_style"`
+		ShortDescStyle Style `toml:"short_desc_style"`
+		FullKeyStyle   Style `toml:"full_key_style"`
+		FullDescStyle  Style `toml:"full_desc_style"`
 	}
 
 	StyleThemeConfig struct {
-		NormalStyle StyleWrapper `toml:"normal_style"`
+		NormalStyle Style `toml:"normal_style"`
 		// The style used while the widget is focused.
-		ActiveStyle StyleWrapper `toml:"active_style"`
+		ActiveStyle Style `toml:"active_style"`
 	}
 
 	MessagesListThemeConfig struct {
-		AuthorStyle      StyleWrapper `toml:"author_style"`
-		MentionStyle     StyleWrapper `toml:"mention_style"`
-		EmojiStyle       StyleWrapper `toml:"emoji_style"`
-		URLStyle         StyleWrapper `toml:"url_style"`
-		AttachmentStyle  StyleWrapper `toml:"attachment_style"`
-		ReactionStyle    StyleWrapper `toml:"reaction_style"`
-		OwnReactionStyle StyleWrapper `toml:"own_reaction_style"`
+		AuthorStyle      Style `toml:"author_style"`
+		MentionStyle     Style `toml:"mention_style"`
+		EmojiStyle       Style `toml:"emoji_style"`
+		URLStyle         Style `toml:"url_style"`
+		AttachmentStyle  Style `toml:"attachment_style"`
+		ReactionStyle    Style `toml:"reaction_style"`
+		OwnReactionStyle Style `toml:"own_reaction_style"`
 
-		MessageStyle         StyleWrapper `toml:"message_style"`
-		SelectedMessageStyle StyleWrapper `toml:"selected_message_style"`
+		MessageStyle         Style `toml:"message_style"`
+		SelectedMessageStyle Style `toml:"selected_message_style"`
 
 		Embeds MessagesListEmbedsThemeConfig `toml:"embeds"`
 	}
 
 	MessagesListEmbedsThemeConfig struct {
-		ProviderStyle    StyleWrapper `toml:"provider_style"`
-		AuthorStyle      StyleWrapper `toml:"author_style"`
-		TitleStyle       StyleWrapper `toml:"title_style"`
-		DescriptionStyle StyleWrapper `toml:"description_style"`
-		FieldNameStyle   StyleWrapper `toml:"field_name_style"`
-		FieldValueStyle  StyleWrapper `toml:"field_value_style"`
-		FooterStyle      StyleWrapper `toml:"footer_style"`
-		URLStyle         StyleWrapper `toml:"url_style"`
+		ProviderStyle    Style `toml:"provider_style"`
+		AuthorStyle      Style `toml:"author_style"`
+		TitleStyle       Style `toml:"title_style"`
+		DescriptionStyle Style `toml:"description_style"`
+		FieldNameStyle   Style `toml:"field_name_style"`
+		FieldValueStyle  Style `toml:"field_value_style"`
+		FooterStyle      Style `toml:"footer_style"`
+		URLStyle         Style `toml:"url_style"`
 	}
 
 	MentionsListThemeConfig struct {
-		SelectedStyle StyleWrapper `toml:"selected_style"`
+		SelectedStyle Style `toml:"selected_style"`
 	}
 
 	DialogThemeConfig struct {
-		Style StyleWrapper `toml:"style"`
+		Style Style `toml:"style"`
 		// The style of everything behind the dialog.
-		BackgroundStyle StyleWrapper `toml:"background_style"`
+		BackgroundStyle Style `toml:"background_style"`
 	}
 
 	ScrollBarThemeConfig struct {
-		TrackStyle StyleWrapper `toml:"track_style"`
-		ThumbStyle StyleWrapper `toml:"thumb_style"`
+		TrackStyle Style `toml:"track_style"`
+		ThumbStyle Style `toml:"thumb_style"`
 	}
 
 	ThemeConfig struct {
@@ -220,49 +248,49 @@ type (
 type GuildsTreeThemeConfig struct {
 	TreeThemeConfig
 	// The style of whoever is speaking in the voice channel joined.
-	SpeakingStyle StyleWrapper `toml:"speaking_style"`
+	SpeakingStyle Style `toml:"speaking_style"`
 	// The style of how full a voice channel that has a user limit is.
-	VoiceLimitStyle StyleWrapper `toml:"voice_limit_style"`
+	VoiceLimitStyle Style `toml:"voice_limit_style"`
 }
 
 type TreeThemeConfig struct {
 	// The color of the lines that give the tree its shape.
 	GraphicsColor string `toml:"graphics_color"`
 
-	OnlineStyle  StyleWrapper `toml:"online_style"`
-	IdleStyle    StyleWrapper `toml:"idle_style"`
-	DNDStyle     StyleWrapper `toml:"dnd_style"`
-	OfflineStyle StyleWrapper `toml:"offline_style"`
+	OnlineStyle  Style `toml:"online_style"`
+	IdleStyle    Style `toml:"idle_style"`
+	DNDStyle     Style `toml:"dnd_style"`
+	OfflineStyle Style `toml:"offline_style"`
 }
 
 // StatusStyle returns the style for a user with status.
-func (ctt TreeThemeConfig) StatusStyle(status discord.Status) tview.Style {
+func (t TreeThemeConfig) StatusStyle(status discord.Status) tview.Style {
 	switch status {
 	case discord.OnlineStatus:
-		return ctt.OnlineStyle.Style
+		return t.OnlineStyle.Style
 	case discord.IdleStatus:
-		return ctt.IdleStyle.Style
+		return t.IdleStyle.Style
 	case discord.DoNotDisturbStatus:
-		return ctt.DNDStyle.Style
+		return t.DNDStyle.Style
 	default:
-		return ctt.OfflineStyle.Style
+		return t.OfflineStyle.Style
 	}
 }
 
 func defaultTheme() ThemeConfig {
 	var (
 		plain  = tcell.StyleDefault
-		dim    = StyleWrapper{plain.Dim(true)}
+		dim    = Style{plain.Dim(true)}
 		bold   = plain.Bold(true)
 		italic = plain.Italic(true)
 		blue   = plain.Foreground(color.Blue)
-		focus  = StyleThemeConfig{dim, StyleWrapper{bold.Foreground(color.Green)}}
+		focus  = StyleThemeConfig{dim, Style{bold.Foreground(color.Green)}}
 		tree   = TreeThemeConfig{
 			GraphicsColor: "default",
-			OnlineStyle:   StyleWrapper{plain.Foreground(color.Green)},
-			IdleStyle:     StyleWrapper{plain.Foreground(color.Yellow)},
-			DNDStyle:      StyleWrapper{plain.Foreground(color.Red)},
-			OfflineStyle:  StyleWrapper{plain.Foreground(color.Gray)},
+			OnlineStyle:   Style{plain.Foreground(color.Green)},
+			IdleStyle:     Style{plain.Foreground(color.Yellow)},
+			DNDStyle:      Style{plain.Foreground(color.Red)},
+			OfflineStyle:  Style{plain.Foreground(color.Gray)},
 		}
 	)
 	return ThemeConfig{
@@ -271,30 +299,30 @@ func defaultTheme() ThemeConfig {
 		Border: focus,
 		GuildsTree: GuildsTreeThemeConfig{
 			TreeThemeConfig: tree,
-			SpeakingStyle:   StyleWrapper{plain.Foreground(color.Green)},
-			VoiceLimitStyle: StyleWrapper{plain.Foreground(color.DodgerBlue)},
+			SpeakingStyle:   Style{plain.Foreground(color.Green)},
+			VoiceLimitStyle: Style{plain.Foreground(color.DodgerBlue)},
 		},
 		MembersTree: tree,
 		ScrollBar:   ScrollBarThemeConfig{TrackStyle: dim},
 		MessagesList: MessagesListThemeConfig{
-			MentionStyle:         StyleWrapper{blue.Bold(true)},
-			EmojiStyle:           StyleWrapper{plain.Foreground(color.Green)},
-			URLStyle:             StyleWrapper{blue},
-			AttachmentStyle:      StyleWrapper{plain.Foreground(color.Yellow)},
+			MentionStyle:         Style{blue.Bold(true)},
+			EmojiStyle:           Style{plain.Foreground(color.Green)},
+			URLStyle:             Style{blue},
+			AttachmentStyle:      Style{plain.Foreground(color.Yellow)},
 			ReactionStyle:        dim,
-			OwnReactionStyle:     StyleWrapper{bold},
-			SelectedMessageStyle: StyleWrapper{plain.Reverse(true)},
+			OwnReactionStyle:     Style{bold},
+			SelectedMessageStyle: Style{plain.Reverse(true)},
 			Embeds: MessagesListEmbedsThemeConfig{
-				ProviderStyle:    StyleWrapper{italic.Dim(true)},
-				AuthorStyle:      StyleWrapper{italic},
-				TitleStyle:       StyleWrapper{blue.Bold(true)},
+				ProviderStyle:    Style{italic.Dim(true)},
+				AuthorStyle:      Style{italic},
+				TitleStyle:       Style{blue.Bold(true)},
 				DescriptionStyle: dim,
-				FieldNameStyle:   StyleWrapper{bold.Underline(true)},
-				FooterStyle:      StyleWrapper{italic.Dim(true)},
-				URLStyle:         StyleWrapper{blue.Underline(true)},
+				FieldNameStyle:   Style{bold.Underline(true)},
+				FooterStyle:      Style{italic.Dim(true)},
+				URLStyle:         Style{blue.Underline(true)},
 			},
 		},
-		MentionsList: MentionsListThemeConfig{SelectedStyle: StyleWrapper{plain.Reverse(true)}},
+		MentionsList: MentionsListThemeConfig{SelectedStyle: Style{plain.Reverse(true)}},
 		Dialog:       DialogThemeConfig{BackgroundStyle: dim},
 		Help:         HelpThemeConfig{ShortKeyStyle: dim, FullKeyStyle: dim},
 	}

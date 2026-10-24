@@ -96,8 +96,8 @@ func (m *Model) rebuild(event *gateway.ReadyEvent) {
 	}
 
 	guildsByID := make(map[discord.GuildID]*gateway.GuildCreateEvent, len(event.Guilds))
-	for i := range event.Guilds {
-		guildsByID[event.Guilds[i].ID] = &event.Guilds[i]
+	for index := range event.Guilds {
+		guildsByID[event.Guilds[index].ID] = &event.Guilds[index]
 	}
 
 	positions := event.UserSettings.GuildPositions
@@ -107,6 +107,7 @@ func (m *Model) rebuild(event *gateway.ReadyEvent) {
 			positions = append(positions, guild.ID)
 		}
 	}
+
 	for _, guildID := range positions {
 		if guild := guildsByID[guildID]; guild != nil && !guildsInFolders[guildID] {
 			m.createGuildNode(root, guild.Guild)
@@ -114,25 +115,28 @@ func (m *Model) rebuild(event *gateway.ReadyEvent) {
 	}
 
 	for _, folder := range event.UserSettings.GuildFolders {
-		if folder.ID == 0 && len(folder.GuildIDs) == 1 {
-			if guild := guildsByID[folder.GuildIDs[0]]; guild != nil {
-				m.createGuildNode(root, guild.Guild)
-			}
-		} else {
+		// A guild in a folder of its own is shown as if it were in none.
+		if folder.ID != 0 || len(folder.GuildIDs) != 1 {
 			m.createFolderNode(folder, guildsByID)
+			continue
+		}
+
+		if guild := guildsByID[folder.GuildIDs[0]]; guild != nil {
+			m.createGuildNode(root, guild.Guild)
 		}
 	}
+
 	m.setCurrentNode(root)
 }
 
 func (m Model) refreshReadStyles(event *read.UpdateEvent) {
 	if event.GuildID.IsValid() {
-		if node := m.findNodeByReference(event.GuildID); node != nil {
+		if node := m.findNodeByRef(event.GuildID); node != nil {
 			setNodeNameStyle(node, m.guildNodeStyle(event.GuildID))
 		}
 	}
 
-	node := m.findNodeByReference(event.ChannelID)
+	node := m.findNodeByRef(event.ChannelID)
 	if node == nil {
 		return
 	}
@@ -261,29 +265,34 @@ func (m *Model) showVoiceMembers(guildID discord.GuildID) {
 			continue
 		}
 
-		// The members are replaced, so what is selected cannot stay one of them.
-		if slices.Contains(node.Children(), m.current) {
-			m.current = node
-		}
-
-		node.ClearChildren()
-		for _, state := range states {
-			if state.ChannelID == channel.ID {
-				node.AddChild(tree.NewNode(m.voiceMemberText(guildID, state)).SetReference(state.UserID))
-			}
-		}
-
-		// After its name, how full it is, if it can be.
-		spans := node.Spans()[:1]
-		if channel.VoiceUserLimit > 0 {
-			label := fmt.Sprintf("%d/%d", len(node.Children()), channel.VoiceUserLimit)
-			spans = append(spans, text.Span{Text: " "}, text.Span{Text: label, Style: m.cfg.Theme.GuildsTree.VoiceLimitStyle.Style})
-		}
-
-		node.SetSpans(spans...)
+		m.setVoiceMembers(node, channel, states)
 	}
 
 	m.styleVoiceMembers()
+}
+
+// setVoiceMembers lists under node, of the voice channel, those of states who are in it.
+func (m *Model) setVoiceMembers(node *tree.Node, channel discord.Channel, states []discord.VoiceState) {
+	// The members are replaced, so what is selected cannot stay one of them.
+	if slices.Contains(node.Children(), m.current) {
+		m.current = node
+	}
+
+	node.ClearChildren()
+	for _, state := range states {
+		if state.ChannelID == channel.ID {
+			node.AddChild(tree.NewNode(m.voiceMemberText(channel.GuildID, state)).SetReference(state.UserID))
+		}
+	}
+
+	// After its name, how full it is, if it can be.
+	spans := node.Spans()[:1]
+	if channel.VoiceUserLimit > 0 {
+		label := fmt.Sprintf("%d/%d", len(node.Children()), channel.VoiceUserLimit)
+		spans = append(spans, text.Span{Text: " "}, text.Span{Text: label, Style: m.cfg.Theme.GuildsTree.VoiceLimitStyle.Style})
+	}
+
+	node.SetSpans(spans...)
 }
 
 // voiceMemberText returns the name of the member that state is of, and whether they are muted or deafened.
@@ -418,10 +427,10 @@ func (m Model) toggleMute() tview.Cmd {
 	})
 }
 
-// voiceCmd returns a command that does f, and shows why it failed to do what if it did.
-func voiceCmd(what string, f func() error) tview.Cmd {
+// voiceCmd returns a command that does action, and shows why it failed to do what if it did.
+func voiceCmd(what string, action func() error) tview.Cmd {
 	return func() tview.Msg {
-		if err := f(); err != nil {
+		if err := action(); err != nil {
 			return ui.ErrorDialog(what, err)
 		}
 
@@ -434,8 +443,8 @@ func (m Model) expandable(node *tree.Node) bool {
 	return len(node.Children()) > 0 && m.voiceChannel(node) == nil
 }
 
-func isVoice(t discord.ChannelType) bool {
-	return t == discord.GuildVoice || t == discord.GuildStageVoice
+func isVoice(channelType discord.ChannelType) bool {
+	return channelType == discord.GuildVoice || channelType == discord.GuildStageVoice
 }
 
 // setNodeNameStyle styles the name of node, which is the first span of its text.
@@ -466,26 +475,25 @@ func (m Model) createChannelNodes(node *tree.Node, channels []discord.Channel) {
 	}
 
 	for _, channel := range channels {
-		if channel.Type == discord.GuildCategory {
-			if _, ok := hasChildByParentID[channel.ID]; ok {
-				m.createChannelNode(node, channel)
-			}
+		if _, hasChild := hasChildByParentID[channel.ID]; hasChild && channel.Type == discord.GuildCategory {
+			m.createChannelNode(node, channel)
 		}
 	}
 
 	for _, channel := range channels {
-		if channel.ParentID.IsValid() {
-			// Parent categories are inserted earlier in this function, so this lookup is O(1) and avoids per-channel subtree walks.
-			parent := m.nodes[discord.Snowflake(channel.ParentID)]
-			if parent != nil {
-				m.createChannelNode(parent, channel)
-			}
+		if !channel.ParentID.IsValid() {
+			continue
+		}
+
+		// Parent categories are inserted earlier in this function, so this lookup is O(1) and avoids per-channel subtree walks.
+		if parent := m.nodes[discord.Snowflake(channel.ParentID)]; parent != nil {
+			m.createChannelNode(parent, channel)
 		}
 	}
 }
 
-func isThread(t discord.ChannelType) bool {
-	switch t {
+func isThread(channelType discord.ChannelType) bool {
+	switch channelType {
 	case discord.GuildPublicThread, discord.GuildPrivateThread, discord.GuildAnnouncementThread:
 		return true
 	default:
@@ -549,33 +557,23 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		m.setCurrentNode(msg.node)
 		return m, m.selectNode(msg.node)
 	case tview.KeyMsg:
-		kbs := m.cfg.Keybinds.GuildsTree
+		keybinds := m.cfg.Keybinds.GuildsTree
 		switch {
-		case keybind.Matches(msg, kbs.CollapseAll.Keybind):
+		case keybind.Matches(msg, keybinds.CollapseAll.Keybind):
 			for _, node := range m.root.Children() {
 				node.CollapseAll()
 			}
+
 			return m, nil
-		case keybind.Matches(msg, kbs.CollapseParentNode.Keybind):
+		case keybind.Matches(msg, keybinds.CollapseParentNode.Keybind):
 			m.collapseParentNode(m.current)
 			return m, nil
-		case keybind.Matches(msg, kbs.SelectPreviousUnread.Keybind, kbs.SelectNextUnread.Keybind):
-			previous := keybind.Matches(msg, kbs.SelectPreviousUnread.Keybind)
-			if node := adjacentNode(m.root, m.current, m.isUnread, previous); node != nil {
-				// A guild or the direct messages without channels yet: load them and move on to the unread one.
-				if _, ok := node.Reference().(discord.ChannelID); !ok {
-					m.selectNode(node)
-					if channel := adjacentNode(node, node, m.isUnread, previous); channel != nil {
-						node = channel
-					}
-				}
-				m.expandPathToNode(node)
-				m.setCurrentNode(node)
-			}
+		case keybind.Matches(msg, keybinds.SelectPreviousUnread.Keybind, keybinds.SelectNextUnread.Keybind):
+			m.selectAdjacentUnread(keybind.Matches(msg, keybinds.SelectPreviousUnread.Keybind))
 			return m, nil
-		case keybind.Matches(msg, kbs.YankID.Keybind):
+		case keybind.Matches(msg, keybinds.YankID.Keybind):
 			return m, uitree.YankID(m.current)
-		case keybind.Matches(msg, kbs.ToggleVoice.Keybind):
+		case keybind.Matches(msg, keybinds.ToggleVoice.Keybind):
 			return m, m.toggleVoice(m.current)
 		case keybind.Matches(msg, m.cfg.Keybinds.ToggleMute.Keybind):
 			return m, m.toggleMute()
@@ -585,7 +583,27 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			return m, voiceCmd("leave voice", m.voiceSession.Leave)
 		}
 	}
+
 	return m, nil
+}
+
+// selectAdjacentUnread selects the next unread node, or the previous one if previous.
+func (m *Model) selectAdjacentUnread(previous bool) {
+	node := adjacentNode(m.root, m.current, m.isUnread, previous)
+	if node == nil {
+		return
+	}
+
+	// A guild or the direct messages without channels yet: load them and move on to the unread one.
+	if _, ok := node.Reference().(discord.ChannelID); !ok {
+		m.selectNode(node)
+		if channel := adjacentNode(node, node, m.isUnread, previous); channel != nil {
+			node = channel
+		}
+	}
+
+	m.expandPathToNode(node)
+	m.setCurrentNode(node)
 }
 
 // isUnread reports whether node is an unread channel, or a guild or the direct messages whose channels are not shown yet and has one.
@@ -601,8 +619,11 @@ func (m Model) isUnread(node *tree.Node) bool {
 		return m.state.ChannelIsUnread(ref, opts) != ningen.ChannelRead
 	case dmNode:
 		channels, _ := m.state.PrivateChannels()
-		return slices.ContainsFunc(channels, func(c discord.Channel) bool { return m.state.ChannelIsUnread(c.ID, opts) != ningen.ChannelRead })
+		return slices.ContainsFunc(channels, func(channel discord.Channel) bool {
+			return m.state.ChannelIsUnread(channel.ID, opts) != ningen.ChannelRead
+		})
 	}
+
 	return false
 }
 
@@ -627,26 +648,27 @@ func adjacentNode(root, current *tree.Node, match func(*tree.Node) bool, previou
 	return nodes[after%len(nodes)]
 }
 
-func (m Model) findNodeByReference(reference any) *tree.Node {
-	switch ref := reference.(type) {
+func (m Model) findNodeByRef(ref any) *tree.Node {
+	switch ref := ref.(type) {
 	case discord.GuildID:
 		return m.nodes[discord.Snowflake(ref)]
 	case discord.ChannelID:
 		return m.nodes[discord.Snowflake(ref)]
 	case dmNode:
 		return m.dmRootNode
-	default:
-		// Fallback keeps this helper safe for non-indexed custom references.
-		var found *tree.Node
-		m.root.Walk(func(node, _ *tree.Node) bool {
-			if node.Reference() == reference {
-				found = node
-				return false
-			}
-			return true
-		})
-		return found
 	}
+
+	// Fallback keeps this helper safe for non-indexed custom references.
+	var found *tree.Node
+	m.root.Walk(func(node, _ *tree.Node) bool {
+		if node.Reference() == ref {
+			found = node
+		}
+
+		return found == nil
+	})
+
+	return found
 }
 
 func (m Model) findNodeByChannelID(channelID discord.ChannelID) *tree.Node {
@@ -656,28 +678,25 @@ func (m Model) findNodeByChannelID(channelID discord.ChannelID) *tree.Node {
 		return nil
 	}
 
-	var reference any
+	var ref any
 	if guildID := channel.GuildID; guildID.IsValid() {
-		reference = guildID
+		ref = guildID
 	} else {
-		reference = dmNode{}
+		ref = dmNode{}
 	}
-	if parent := m.findNodeByReference(reference); parent != nil {
-		if len(parent.Children()) == 0 {
-			m.selectNode(parent)
-		}
+	if parent := m.findNodeByRef(ref); parent != nil && len(parent.Children()) == 0 {
+		m.selectNode(parent)
 	}
 
-	node := m.findNodeByReference(channelID)
-	return node
+	return m.findNodeByRef(channelID)
 }
 
 func (m Model) expandPathToNode(node *tree.Node) {
 	if node == nil {
 		return
 	}
-	for _, n := range m.root.PathTo(node) {
-		n.Expand()
+	for _, ancestor := range m.root.PathTo(node) {
+		ancestor.Expand()
 	}
 }
 

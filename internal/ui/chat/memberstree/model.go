@@ -137,28 +137,31 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		return m, nil
 	case selectedMsg:
 		m.setCurrentNode(msg.node)
-		if _, ok := msg.node.Reference().(groupRef); ok {
+		if isGroup(msg.node) {
 			msg.node.SetExpanded(!msg.node.Expanded())
 		}
 		return m, m.requestSelectedMembers()
 	case tview.KeyMsg:
-		kbs := m.cfg.Keybinds.MembersTree
+		keybinds := m.cfg.Keybinds.MembersTree
 		switch {
-		case keybind.Matches(msg, kbs.CollapseAll.Keybind):
+		case keybind.Matches(msg, keybinds.CollapseAll.Keybind):
 			for _, node := range m.root.Children() {
 				node.Collapse()
 			}
+
 			return m, nil
-		case keybind.Matches(msg, kbs.CollapseParentNode.Keybind):
+		case keybind.Matches(msg, keybinds.CollapseParentNode.Keybind):
 			if parent := m.parent(m.current); parent != nil {
 				parent.Collapse()
 				m.setCurrentNode(parent)
 			}
+
 			return m, nil
-		case keybind.Matches(msg, kbs.YankID.Keybind):
+		case keybind.Matches(msg, keybinds.YankID.Keybind):
 			return m, uitree.YankID(m.current)
 		}
 	}
+
 	return m, nil
 }
 
@@ -179,6 +182,7 @@ func (m Model) rebuild() {
 		if ref, ok := node.Reference().(fmt.Stringer); ok {
 			m.nodes[ref.String()] = node
 		}
+
 		return true
 	})
 }
@@ -191,22 +195,30 @@ func (m Model) addGuildMembers(channel *discord.Channel) {
 	}
 
 	list.ViewItems(func(items []gateway.GuildMemberListOpItem) {
-		var group *tree.Node
-		for i, item := range items {
-			switch {
-			case item.Group != nil:
-				group = m.addGroup(channel.GuildID, *item.Group)
-			case item.Member != nil:
-				// Members after an unloaded range belong to a group that has yet to arrive.
-				if group == nil {
-					group = m.addGroup(channel.GuildID, gateway.GuildMemberListGroup{})
-				}
-				m.addMember(group, channel.GuildID, item.Member.Member, i)
-			default:
-				group = nil
-			}
-		}
+		m.addListItems(channel.GuildID, items)
 	})
+}
+
+func (m Model) addListItems(guildID discord.GuildID, items []gateway.GuildMemberListOpItem) {
+	var group *tree.Node
+	for index, item := range items {
+		if item.Group != nil {
+			group = m.addGroup(guildID, *item.Group)
+			continue
+		}
+
+		if item.Member == nil {
+			group = nil
+			continue
+		}
+
+		// Members after an unloaded range belong to a group that has yet to arrive.
+		if group == nil {
+			group = m.addGroup(guildID, gateway.GuildMemberListGroup{})
+		}
+
+		m.addMember(group, guildID, item.Member.Member, index)
+	}
 }
 
 func (m Model) addRecipients(recipients []discord.User) {
@@ -229,23 +241,7 @@ func (m Model) addRecipients(recipients []discord.User) {
 }
 
 func (m Model) addGroup(guildID discord.GuildID, group gateway.GuildMemberListGroup) *tree.Node {
-	name := "Members"
-	var style tview.Style
-	switch group.ID {
-	case "online":
-		name = "Online"
-	case "offline":
-		name = "Offline"
-	default:
-		if id, err := discord.ParseSnowflake(group.ID); err == nil {
-			if role, err := m.state.Cabinet.Role(guildID, discord.RoleID(id)); err == nil {
-				name = role.Name
-				if role.Color != 0 {
-					style = style.Foreground(tcell.NewHexColor(int32(role.Color)))
-				}
-			}
-		}
-	}
+	name, style := m.groupName(guildID, group.ID)
 	if group.Count > 0 {
 		name = fmt.Sprintf("%s — %d", name, group.Count)
 	}
@@ -259,13 +255,50 @@ func (m Model) addGroup(guildID discord.GuildID, group gateway.GuildMemberListGr
 	return node
 }
 
+// groupName returns the name of the group with groupID, in the color of its role if it is one.
+func (m Model) groupName(guildID discord.GuildID, groupID string) (string, tview.Style) {
+	switch groupID {
+	case "online":
+		return "Online", tview.Style{}
+	case "offline":
+		return "Offline", tview.Style{}
+	}
+
+	roleID, err := discord.ParseSnowflake(groupID)
+	if err != nil {
+		return defaultGroupName, tview.Style{}
+	}
+
+	role, err := m.state.Cabinet.Role(guildID, discord.RoleID(roleID))
+	if err != nil {
+		return defaultGroupName, tview.Style{}
+	}
+
+	var style tview.Style
+	if role.Color != 0 {
+		style = style.Foreground(tcell.NewHexColor(int32(role.Color)))
+	}
+
+	return role.Name, style
+}
+
+// isGroup reports whether node is a member list group.
+func isGroup(node *tree.Node) bool {
+	if node == nil {
+		return false
+	}
+
+	_, ok := node.Reference().(groupRef)
+	return ok
+}
+
 // addMember adds a member as Discord shows it: a status dot, then the name in the color of their highest colored role, dimmed when offline.
 func (m Model) addMember(group *tree.Node, guildID discord.GuildID, member discord.Member, index int) {
 	name := cmp.Or(member.Nick, member.User.DisplayName, member.User.Username)
 	var nameStyle tview.Style
 	color, ok := state.MemberColor(&member, func(id discord.RoleID) *discord.Role {
-		r, _ := m.state.Cabinet.Role(guildID, id)
-		return r
+		role, _ := m.state.Cabinet.Role(guildID, id)
+		return role
 	})
 	if ok {
 		nameStyle = nameStyle.Foreground(tcell.NewHexColor(int32(color)))
@@ -275,7 +308,11 @@ func (m Model) addMember(group *tree.Node, guildID discord.GuildID, member disco
 	group.AddChild(m.reuse(member.User.ID.String()).SetSpans(spans...).SetReference(memberRef{userID: member.User.ID, index: index}))
 }
 
-const statusMarker = "●"
+const (
+	statusMarker = "●"
+	// defaultGroupName is the name of a group that is not a known role.
+	defaultGroupName = "Members"
+)
 
 // setStatus styles the status dot and name of a member's spans for status.
 func (m Model) setStatus(spans []text.Span, status discord.Status) {

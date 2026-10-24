@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/ayn2op/tview/layout"
 	"log/slog"
+	"slices"
 	"time"
 
 	"github.com/ayn2op/arikawa/v3/discord"
@@ -162,12 +163,12 @@ func (m *Model) closePicker() {
 	m.channelsPicker.Reset()
 }
 
-// toggle shows or hides the side pane p and focuses it when shown.
-func (m *Model) toggle(visible *bool, p pane) {
+// toggle shows or hides the side pane target and focuses it when shown.
+func (m *Model) toggle(visible *bool, target pane) {
 	*visible = !*visible
 	if *visible {
-		m.setFocus(p)
-	} else if m.focused == p {
+		m.setFocus(target)
+	} else if m.focused == target {
 		m.focused = paneMessagesList
 	}
 }
@@ -179,11 +180,11 @@ func (m Model) membersTreeShown() bool {
 
 // cycleFocus focuses the next pane that can take the focus, going backwards if step is -1.
 func (m *Model) cycleFocus(step pane) {
-	p := m.focused
+	next := m.focused
 	for range paneCount - 1 {
-		p = (p + step + paneCount) % paneCount
-		if m.canFocus(p) {
-			m.focused = p
+		next = (next + step + paneCount) % paneCount
+		if m.canFocus(next) {
+			m.focused = next
 			return
 		}
 	}
@@ -262,42 +263,42 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	case QuitMsg:
 		return m, closeState(m.state)
 	case tview.KeyMsg:
-		kbs := m.cfg.Keybinds
+		keybinds := m.cfg.Keybinds
 		switch {
-		case keybind.Matches(msg, kbs.FocusGuildsTree.Keybind):
+		case keybind.Matches(msg, keybinds.FocusGuildsTree.Keybind):
 			m.setFocus(paneGuildsTree)
 			return m, nil
-		case keybind.Matches(msg, kbs.FocusMembersTree.Keybind):
+		case keybind.Matches(msg, keybinds.FocusMembersTree.Keybind):
 			m.setFocus(paneMembersTree)
 			return m, nil
-		case keybind.Matches(msg, kbs.FocusMessagesList.Keybind):
+		case keybind.Matches(msg, keybinds.FocusMessagesList.Keybind):
 			m.setFocus(paneMessagesList)
 			return m, nil
-		case keybind.Matches(msg, kbs.FocusComposer.Keybind):
+		case keybind.Matches(msg, keybinds.FocusComposer.Keybind):
 			m.setFocus(paneComposer)
 			return m, nil
 
-		case keybind.Matches(msg, kbs.FocusPrevious.Keybind):
+		case keybind.Matches(msg, keybinds.FocusPrevious.Keybind):
 			m.cycleFocus(-1)
 			return m, nil
-		case keybind.Matches(msg, kbs.FocusNext.Keybind):
+		case keybind.Matches(msg, keybinds.FocusNext.Keybind):
 			m.cycleFocus(1)
 			return m, nil
 
-		case keybind.Matches(msg, kbs.ToggleGuildsTree.Keybind):
+		case keybind.Matches(msg, keybinds.ToggleGuildsTree.Keybind):
 			m.toggle(&m.guildsTreeVisible, paneGuildsTree)
 			return m, nil
-		case keybind.Matches(msg, kbs.ToggleMembersTree.Keybind):
+		case keybind.Matches(msg, keybinds.ToggleMembersTree.Keybind):
 			m.toggle(&m.membersTreeVisible, paneMembersTree)
 			return m, nil
-		case keybind.Matches(msg, kbs.ToggleChannelsPicker.Keybind):
+		case keybind.Matches(msg, keybinds.ToggleChannelsPicker.Keybind):
 			m.togglePicker()
 			return m, nil
 		// The guilds tree is what the voice channel joined is in.
-		case keybind.Matches(msg, kbs.ToggleMute.Keybind, kbs.ToggleDeafen.Keybind, kbs.LeaveVoice.Keybind):
+		case keybind.Matches(msg, keybinds.ToggleMute.Keybind, keybinds.ToggleDeafen.Keybind, keybinds.LeaveVoice.Keybind):
 			return m, m.updatePane(paneGuildsTree, msg)
 
-		case keybind.Matches(msg, kbs.Logout.Keybind):
+		case keybind.Matches(msg, keybinds.Logout.Keybind):
 			return m, ui.ShowDialog(
 				"Are you sure you want to log out?",
 				ui.DialogButton{Label: "No"},
@@ -332,10 +333,10 @@ func (m *Model) route(msg tview.Msg) tview.Cmd {
 	return cmd
 }
 
-// updatePane updates pane p with msg.
-func (m *Model) updatePane(p pane, msg tview.Msg) tview.Cmd {
+// updatePane updates pane target with msg.
+func (m *Model) updatePane(target pane, msg tview.Msg) tview.Cmd {
 	var cmd tview.Cmd
-	switch p {
+	switch target {
 	case paneGuildsTree:
 		m.guildsTree, cmd = m.guildsTree.Update(msg)
 	case paneMessagesList:
@@ -391,11 +392,11 @@ const (
 	paneCount
 )
 
-// paneView returns the view of p, focused if it has the focus and no picker is open, marked so that clicking it focuses it.
-func (m Model) paneView(p pane) tview.Widget {
-	focused := m.focused == p && m.overlay == overlayNone
+// paneView returns the view of target, focused if it has the focus and no picker is open, marked so that clicking it focuses it.
+func (m Model) paneView(target pane) tview.Widget {
+	focused := m.focused == target && m.overlay == overlayNone
 	var child tview.Widget
-	switch p {
+	switch target {
 	case paneGuildsTree:
 		child = m.guildsTree.View(focused)
 	case paneMessagesList:
@@ -405,19 +406,19 @@ func (m Model) paneView(p pane) tview.Widget {
 	case paneMembersTree:
 		child = m.membersTree.View(focused)
 	}
-	return paneWidget{pane: p, child: child}
+	return paneWidget{pane: target, child: child}
 }
 
-// setFocus focuses p if it can take the focus.
-func (m *Model) setFocus(p pane) {
-	if m.canFocus(p) {
-		m.focused = p
+// setFocus focuses target if it can take the focus.
+func (m *Model) setFocus(target pane) {
+	if m.canFocus(target) {
+		m.focused = target
 	}
 }
 
-// canFocus reports whether p is shown and can take the focus.
-func (m Model) canFocus(p pane) bool {
-	switch p {
+// canFocus reports whether target is shown and can take the focus.
+func (m Model) canFocus(target pane) bool {
+	switch target {
 	case paneGuildsTree:
 		return m.guildsTreeVisible
 	case paneComposer:
@@ -473,24 +474,10 @@ func (m Model) typingFooter() string {
 	if channel == nil || len(m.typers) == 0 {
 		return ""
 	}
+
 	var names []string
 	for userID := range m.typers {
-		var name string
-		if channel.GuildID.IsValid() {
-			member, err := m.state.Cabinet.Member(channel.GuildID, userID)
-			if err != nil {
-				continue
-			}
-			name = cmp.Or(member.Nick, member.User.DisplayName, member.User.Username)
-		} else {
-			for _, recipient := range channel.DMRecipients {
-				if recipient.ID == userID {
-					name = recipient.DisplayOrUsername()
-					break
-				}
-			}
-		}
-		if name != "" {
+		if name := m.typerName(*channel, userID); name != "" {
 			names = append(names, name)
 		}
 	}
@@ -507,4 +494,23 @@ func (m Model) typingFooter() string {
 	default:
 		return "Several people are typing..."
 	}
+}
+
+// typerName returns the name of userID in channel, or "" if they are not known there.
+func (m Model) typerName(channel discord.Channel, userID discord.UserID) string {
+	if channel.GuildID.IsValid() {
+		member, err := m.state.Cabinet.Member(channel.GuildID, userID)
+		if err != nil {
+			return ""
+		}
+
+		return cmp.Or(member.Nick, member.User.DisplayName, member.User.Username)
+	}
+
+	index := slices.IndexFunc(channel.DMRecipients, func(recipient discord.User) bool { return recipient.ID == userID })
+	if index == -1 {
+		return ""
+	}
+
+	return channel.DMRecipients[index].DisplayOrUsername()
 }

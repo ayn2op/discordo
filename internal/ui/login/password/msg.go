@@ -35,12 +35,15 @@ func submitLogin(login, password string) tview.Cmd {
 		if err != nil {
 			return err
 		}
-		if loginResp.Token == "" {
-			if loginResp.MFA {
-				return errors.New("multi-factor authentication is required; use token or QR login")
-			}
-			return errors.New("login response did not include a token")
+
+		if loginResp.Token != "" {
+			return TokenMsg(loginResp.Token)
 		}
-		return TokenMsg(loginResp.Token)
+
+		if loginResp.MFA {
+			return errors.New("multi-factor authentication is required; use token or QR login")
+		}
+
+		return errors.New("login response did not include a token")
 	}
 }

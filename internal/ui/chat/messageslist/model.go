@@ -287,8 +287,8 @@ func (m Model) itemView(item *messageItem) tview.Widget {
 		body = body.Push(m.voiceMessageView(message.Attachments[0]))
 	}
 
-	for _, s := range m.previewSources(*message) {
-		if preview, ok := item.previews[s.proxy]; ok {
+	for _, source := range m.previewSources(*message) {
+		if preview, ok := item.previews[source.proxy]; ok {
 			body = body.Push(preview)
 		}
 	}
@@ -350,7 +350,7 @@ func (m *Model) rebuildItems() {
 	items := make([]messageItem, 0, len(m.items))
 	cursor, target := -1, -1
 	var previous *discord.Message
-	for i, item := range m.items {
+	for index, item := range m.items {
 		if item.separator != nil {
 			continue
 		}
@@ -363,12 +363,15 @@ func (m *Model) rebuildItems() {
 		if grouped := !separator && m.shouldGroup(previous, item.message); grouped != item.grouped {
 			item.grouped, item.view = grouped, nil
 		}
-		if i == m.cursor {
+
+		if index == m.cursor {
 			cursor = len(items)
 		}
-		if i == m.target {
+
+		if index == m.target {
 			target = len(items)
 		}
+
 		items = append(items, item)
 		previous = &item.message
 	}
@@ -382,19 +385,19 @@ func (m Model) shouldSeparate(previous *discord.Message, message discord.Message
 	return m.cfg.DateSeparator.Enabled && (previous == nil || !sameLocalDate(previous.Timestamp, message.Timestamp))
 }
 
-func sameLocalDate(a discord.Timestamp, b discord.Timestamp) bool {
-	ta := a.Time().In(time.Local)
-	tb := b.Time().In(time.Local)
-	return ta.Year() == tb.Year() && ta.YearDay() == tb.YearDay()
+func sameLocalDate(first, second discord.Timestamp) bool {
+	firstTime, secondTime := first.Time().In(time.Local), second.Time().In(time.Local)
+	return firstTime.Year() == secondTime.Year() && firstTime.YearDay() == secondTime.YearDay()
 }
 
 // messageIndex finds the next message in direction (-1 or 1), excluding start.
 func (m Model) messageIndex(start, direction int) int {
-	for i := start + direction; i >= 0 && i < len(m.items); i += direction {
-		if m.items[i].separator == nil {
-			return i
+	for index := start + direction; index >= 0 && index < len(m.items); index += direction {
+		if m.items[index].separator == nil {
+			return index
 		}
 	}
+
 	return -1
 }
 
@@ -426,102 +429,59 @@ func (m Model) selectedURLs() []string {
 	return nil
 }
 
-// Update returns ml changed in response to msg and a command to run, or nil.
+// Update returns m changed in response to msg and a command to run, or nil.
 func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	switch msg := msg.(type) {
 	case tview.KeyMsg:
-		kbs := m.cfg.Keybinds.MessagesList
+		keybinds := m.cfg.Keybinds.MessagesList
 		switch {
-		case keybind.Matches(msg, kbs.Cancel.Keybind):
+		case keybind.Matches(msg, keybinds.Cancel.Keybind):
 			m.clearSelection()
-		case keybind.Matches(msg, kbs.SelectUp.Keybind):
+		case keybind.Matches(msg, keybinds.SelectUp.Keybind):
 			return m, m.selectUp()
-		case keybind.Matches(msg, kbs.SelectDown.Keybind):
+		case keybind.Matches(msg, keybinds.SelectDown.Keybind):
 			m.selectDown()
-		case keybind.Matches(msg, kbs.SelectTop.Keybind):
+		case keybind.Matches(msg, keybinds.SelectTop.Keybind):
 			return m, m.selectTop()
-		case keybind.Matches(msg, kbs.SelectBottom.Keybind):
+		case keybind.Matches(msg, keybinds.SelectBottom.Keybind):
 			m.selectBottom()
-		case keybind.Matches(msg, kbs.SelectReply.Keybind):
+		case keybind.Matches(msg, keybinds.SelectReply.Keybind):
 			m.selectReply()
-		case keybind.Matches(msg, kbs.YankID.Keybind):
+		case keybind.Matches(msg, keybinds.YankID.Keybind):
 			return m, m.yankMessageID()
-		case keybind.Matches(msg, kbs.YankContent.Keybind):
+		case keybind.Matches(msg, keybinds.YankContent.Keybind):
 			return m, m.yankContent()
-		case keybind.Matches(msg, kbs.YankURL.Keybind):
+		case keybind.Matches(msg, keybinds.YankURL.Keybind):
 			return m, m.yankURL()
-		case keybind.Matches(msg, kbs.Open.Keybind):
+		case keybind.Matches(msg, keybinds.Open.Keybind):
 			return m, m.open()
-		case keybind.Matches(msg, kbs.OpenInBrowser.Keybind):
+		case keybind.Matches(msg, keybinds.OpenInBrowser.Keybind):
 			return m, m.openInBrowser()
-		case keybind.Matches(msg, kbs.Play.Keybind):
+		case keybind.Matches(msg, keybinds.Play.Keybind):
 			if message, ok := m.selectedMessage(); ok && isVoiceMessage(*message) {
 				return m, m.play(message.Attachments[0])
 			}
-		case keybind.Matches(msg, kbs.SeekBackward.Keybind):
+		case keybind.Matches(msg, keybinds.SeekBackward.Keybind):
 			return m, m.seek(m.voiceStatus.Position - seekStep)
-		case keybind.Matches(msg, kbs.SeekForward.Keybind):
+		case keybind.Matches(msg, keybinds.SeekForward.Keybind):
 			return m, m.seek(m.voiceStatus.Position + seekStep)
-		case keybind.Matches(msg, kbs.Download.Keybind):
+		case keybind.Matches(msg, keybinds.Download.Keybind):
 			return m, m.download()
-		case keybind.Matches(msg, kbs.Reply.Keybind):
+		case keybind.Matches(msg, keybinds.Reply.Keybind):
 			return m, m.reply(false)
-		case keybind.Matches(msg, kbs.ReplyMention.Keybind):
+		case keybind.Matches(msg, keybinds.ReplyMention.Keybind):
 			return m, m.reply(true)
-		case keybind.Matches(msg, kbs.Edit.Keybind):
+		case keybind.Matches(msg, keybinds.Edit.Keybind):
 			return m, m.editSelectedMessage()
-		case keybind.Matches(msg, kbs.Delete.Keybind):
+		case keybind.Matches(msg, keybinds.Delete.Keybind):
 			return m, m.deleteSelectedMessage()
-		case keybind.Matches(msg, kbs.DeleteConfirm.Keybind):
+		case keybind.Matches(msg, keybinds.DeleteConfirm.Keybind):
 			return m, m.confirmDelete()
 		}
 	case olderMessagesLoadedMsg:
-		selectedChannel := m.channel
-		if selectedChannel == nil || selectedChannel.ID != msg.channelID {
-			return m, nil
-		}
-		older := make([]messageItem, len(msg.older))
-		for i, message := range msg.older {
-			older[i] = messageItem{message: message}
-		}
-		m.items = slices.Concat(older, m.items)
-		// The selected and target messages stay the same, so they are not scrolled to.
-		if m.cursor >= 0 {
-			m.cursor += len(older)
-		}
-		if m.target >= 0 {
-			m.target += len(older)
-		}
-		m.rebuildItems()
-		if selectedChannel.GuildID.IsValid() {
-			return m, tview.Batch(m.requestGuildMembers(selectedChannel.GuildID, msg.older), m.loadPreviews())
-		}
-		return m, m.loadPreviews()
+		return m, m.prependOlder(msg)
 	case previewLoadedMsg:
-		preview, cmd := msg.preview, tview.Cmd(nil)
-		if m.kitty {
-			m.kittyImages++
-			preview = preview.Kitty(m.kittyImages%63488 + 1)
-			cmd = preview.Transmit()
-		}
-
-		if _, ok := m.images[msg.proxy]; ok {
-			m.images[msg.proxy] = preview
-			// An emoji is drawn within the text of the messages that use it, so the text is rendered again.
-			for i := range m.items {
-				m.items[i].view = nil
-			}
-			return m, cmd
-		}
-
-		index := slices.IndexFunc(m.items, func(item messageItem) bool { return item.separator == nil && item.message.ID == msg.messageID })
-		if index < 0 || m.items[index].previews == nil {
-			return m, nil
-		}
-
-		m.items[index].previews[msg.proxy] = preview
-		m.items[index].view = nil
-		return m, cmd
+		return m, m.addPreview(msg)
 	case playMsg:
 		return m, m.play(discord.Attachment(msg))
 	case seekPressMsg:
@@ -580,9 +540,68 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	return m, nil
 }
 
-// scrolledToTop reports whether v is scrolled to the oldest message shown, which is false while the messages fit, as there is nothing to scroll.
-func scrolledToTop(v viewport.Viewport) bool {
-	return v.Content().Height > v.Bounds().Height && v.AbsoluteOffsetReversed().Y == 0
+// prependOlder shows the older messages loaded above those of the same channel.
+func (m *Model) prependOlder(msg olderMessagesLoadedMsg) tview.Cmd {
+	selectedChannel := m.channel
+	if selectedChannel == nil || selectedChannel.ID != msg.channelID {
+		return nil
+	}
+
+	older := make([]messageItem, len(msg.older))
+	for index, message := range msg.older {
+		older[index] = messageItem{message: message}
+	}
+
+	m.items = slices.Concat(older, m.items)
+	// The selected and target messages stay the same, so they are not scrolled to.
+	if m.cursor >= 0 {
+		m.cursor += len(older)
+	}
+
+	if m.target >= 0 {
+		m.target += len(older)
+	}
+
+	m.rebuildItems()
+	if selectedChannel.GuildID.IsValid() {
+		return tview.Batch(m.requestGuildMembers(selectedChannel.GuildID, msg.older), m.loadPreviews())
+	}
+
+	return m.loadPreviews()
+}
+
+// addPreview shows the loaded image as the emoji it is, or below the message it is of.
+func (m *Model) addPreview(msg previewLoadedMsg) tview.Cmd {
+	preview, cmd := msg.preview, tview.Cmd(nil)
+	if m.kitty {
+		m.kittyImages++
+		preview = preview.Kitty(m.kittyImages%63488 + 1)
+		cmd = preview.Transmit()
+	}
+
+	if _, ok := m.images[msg.proxy]; ok {
+		m.images[msg.proxy] = preview
+		// An emoji is drawn within the text of the messages that use it, so the text is rendered again.
+		for index := range m.items {
+			m.items[index].view = nil
+		}
+
+		return cmd
+	}
+
+	index := slices.IndexFunc(m.items, func(item messageItem) bool { return item.separator == nil && item.message.ID == msg.messageID })
+	if index < 0 || m.items[index].previews == nil {
+		return nil
+	}
+
+	m.items[index].previews[msg.proxy] = preview
+	m.items[index].view = nil
+	return cmd
+}
+
+// scrolledToTop reports whether view is scrolled to the oldest message shown, which is false while the messages fit, as there is nothing to scroll.
+func scrolledToTop(view viewport.Viewport) bool {
+	return view.Content().Height > view.Bounds().Height && view.AbsoluteOffsetReversed().Y == 0
 }
 
 // atTop reports whether the oldest message shown is selected.
@@ -617,13 +636,16 @@ func (m *Model) selectReply() {
 		return
 	}
 
-	if ref := messages[cursor].message.ReferencedMessage; ref != nil {
-		refIdx := slices.IndexFunc(messages, func(m messageItem) bool {
-			return m.separator == nil && m.message.ID == ref.ID
-		})
-		if refIdx != -1 {
-			m.setCursor(refIdx)
-		}
+	ref := messages[cursor].message.ReferencedMessage
+	if ref == nil {
+		return
+	}
+
+	index := slices.IndexFunc(messages, func(item messageItem) bool {
+		return item.separator == nil && item.message.ID == ref.ID
+	})
+	if index != -1 {
+		m.setCursor(index)
 	}
 }
 
@@ -633,17 +655,22 @@ func (m *Model) SelectLastOwn() (discord.Message, bool) {
 	if channel == nil {
 		return discord.Message{}, false
 	}
-	for i, item := range slices.Backward(m.items) {
-		message := item.message
-		if item.separator != nil || message.ChannelID != channel.ID || !ui.IsMe(m.state, message.Author.ID) ||
-			!message.ID.IsValid() || message.Content == "" || len(message.MessageSnapshots) > 0 ||
-			(message.Type != discord.DefaultMessage && message.Type != discord.InlinedReplyMessage) {
-			continue
+	for index, item := range slices.Backward(m.items) {
+		if m.isEditable(item, channel.ID) {
+			m.setCursor(index)
+			return item.message, true
 		}
-		m.setCursor(i)
-		return message, true
 	}
+
 	return discord.Message{}, false
+}
+
+// isEditable reports whether item is a message of the user in channelID with text content they can edit.
+func (m Model) isEditable(item messageItem, channelID discord.ChannelID) bool {
+	message := item.message
+	isText := message.Type == discord.DefaultMessage || message.Type == discord.InlinedReplyMessage
+	return item.separator == nil && message.ChannelID == channelID && ui.IsMe(m.state, message.Author.ID) &&
+		message.ID.IsValid() && message.Content != "" && len(message.MessageSnapshots) == 0 && isText
 }
 
 func (m Model) canDeleteMessage(message discord.Message) bool {
@@ -652,8 +679,8 @@ func (m Model) canDeleteMessage(message discord.Message) bool {
 }
 
 func (m Model) InvalidateRendered() {
-	for i := range m.items {
-		m.items[i].view, m.items[i].root = nil, nil
+	for index := range m.items {
+		m.items[index].view, m.items[index].root = nil, nil
 	}
 }
 

@@ -108,19 +108,19 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			return m, nil
 		}
 
-		kbs := m.cfg.Keybinds
+		keybinds := m.cfg.Keybinds
 		switch {
-		case keybind.Matches(msg, kbs.ToggleHelp.Keybind):
+		case keybind.Matches(msg, keybinds.ToggleHelp.Keybind):
 			m.toggleHelp()
 			return m, nil
-		case keybind.Matches(msg, kbs.ToggleFullHelp.Keybind):
+		case keybind.Matches(msg, keybinds.ToggleFullHelp.Keybind):
 			if m.cfg.Help.Enabled {
 				m.helpShowAll = !m.helpShowAll
 			}
 			return m, nil
-		case keybind.Matches(msg, kbs.Suspend.Keybind):
+		case keybind.Matches(msg, keybinds.Suspend.Keybind):
 			return m, suspend()
-		case keybind.Matches(msg, kbs.Quit.Keybind):
+		case keybind.Matches(msg, keybinds.Quit.Keybind):
 			return m, ui.ShowDialog(
 				"Are you sure you want to quit?",
 				ui.DialogButton{Label: "No"},
@@ -194,7 +194,7 @@ func (m Model) dialogView() tview.Widget {
 		labels[i] = button.Label
 	}
 	style := m.cfg.Theme.Dialog.Style.Style
-	d := dialog.New().
+	widget := dialog.New().
 		Text(m.dialog.Text).
 		Buttons(labels...).
 		Focus(m.dialogFocus).
@@ -203,12 +203,14 @@ func (m Model) dialogView() tview.Widget {
 		OnFocus(func(i int) tview.Msg { return dialogFocusMsg(i) }).
 		OnDone(func(i int, _ string) tview.Msg { return dialogDoneMsg(i) })
 	if bg := style.GetBackground(); bg != tcell.ColorDefault {
-		d = d.Background(bg)
+		widget = widget.Background(bg)
 	}
+
 	if fg := style.GetForeground(); fg != tcell.ColorDefault {
-		d = d.TextColor(fg)
+		widget = widget.TextColor(fg)
 	}
-	return d
+
+	return widget
 }
 
 func (m *Model) toggleHelp() {
