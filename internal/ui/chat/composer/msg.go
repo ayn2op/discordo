@@ -16,14 +16,15 @@ import (
 	"github.com/ayn2op/arikawa/v3/utils/json/option"
 	"github.com/ayn2op/arikawa/v3/utils/sendpart"
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/ui/autocomplete/emojis"
+	"github.com/ayn2op/discordo/internal/ui/autocomplete/mentions"
 	"github.com/ayn2op/tview"
 	"github.com/ncruces/zenity"
-	"github.com/sahilm/fuzzy"
 	"golang.design/x/clipboard"
 )
 
-// TabSuggestMsg suggests mentions for the word before the cursor.
-type TabSuggestMsg struct{}
+// RefreshAutocompleteMsg refreshes the autocomplete.
+type RefreshAutocompleteMsg struct{}
 
 // EditLastMsg asks to edit the user's last message.
 type EditLastMsg struct{}
@@ -194,131 +195,33 @@ func (m Model) sendMessage(channelID discord.ChannelID, data api.SendMessageData
 	}
 }
 
-func (m *Model) tabComplete() tview.Cmd {
-	end, name, previous := wordBeforeCursor(m.text, m.cursor, isMentionChar)
-	if previous != '@' {
-		m.stopTabCompletion()
-		return nil
+func (m *Model) complete() tview.Cmd {
+	if item, ok := m.autocomplete.Selected(); ok {
+		_, name := m.query()
+		m.replace(m.cursor-len(name)-1, m.cursor, item.Insert()+" ")
 	}
 
-	start := end - (len(name) + 1)
-	channel := m.channel
-	if channel == nil {
-		return nil
-	}
-
-	if m.cfg.AutocompleteLimit == 0 {
-		return m.completeBestMatch(channel, name, start, end)
-	}
-
-	if m.mentionsList.ItemCount() == 0 {
-		return nil
-	}
-
-	name, ok := m.mentionsList.SelectedInsertText()
-	if !ok {
-		return nil
-	}
-
-	m.replace(start, end, "@"+name+" ")
-	m.stopTabCompletion()
-	return nil
+	return m.showCompletions("", nil)
 }
 
-// completeBestMatch replaces the name between start and end with the user that matches it best, as there is no mentions list to choose from.
-func (m *Model) completeBestMatch(channel *discord.Channel, name string, start, end int) tview.Cmd {
-	guildID := channel.GuildID
-	if !guildID.IsValid() {
-		users := channel.DMRecipients
-		if matches := fuzzy.FindFrom(name, userList(users)); len(matches) > 0 {
-			m.replace(start, end, "@"+users[matches[0].Index].Username+" ")
-		}
-
-		return nil
+func (m *Model) showAutocomplete() tview.Cmd {
+	trigger, name := m.query()
+	if trigger == 0 || m.channel == nil {
+		return m.showCompletions("", nil)
 	}
 
-	cmd := m.searchMember(guildID, name)
-	members, err := m.state.Cabinet.Members(guildID)
-	if err != nil {
-		slog.Error("failed to get members from state", "guild_id", guildID, "err", err)
-		return cmd
+	guildID, limit := m.channel.GuildID, int(m.cfg.UI.Autocomplete.Limit)
+	if trigger == '@' {
+		return tview.Batch(m.showCompletions(mentions.Title, mentions.Items(m.state, m.channel, name, limit)), m.searchMember(guildID, name))
 	}
 
-	for _, match := range fuzzy.FindFrom(name, memberList(members)) {
-		if channelHasUser(m.state, channel.ID, members[match.Index].User.ID) {
-			m.replace(start, end, "@"+members[match.Index].User.Username+" ")
-			return cmd
-		}
-	}
-
-	return cmd
+	items, loadImages := emojis.Items(m.cfg, m.state, guildID, name, limit)
+	return tview.Batch(m.showCompletions(emojis.Title, items), loadImages)
 }
 
-func (m *Model) tabSuggest() tview.Cmd {
-	_, name, previous := wordBeforeCursor(m.text, m.cursor, isMentionChar)
-	if previous != '@' {
-		m.stopTabCompletion()
-		return nil
-	}
-
-	channel := m.channel
-	if channel == nil {
-		return nil
-	}
-
-	m.mentionsList.Clear()
-
-	var searchCmd tview.Cmd
-	switch {
-	case name == "":
-		m.suggestRecentAuthors(channel)
-	case !channel.GuildID.IsValid():
-		m.suggestRecipients(channel, name)
-	default:
-		searchCmd = m.suggestMembers(channel, name)
-	}
-
-	if m.mentionsList.ItemCount() == 0 {
-		m.stopTabCompletion()
-		return searchCmd
-	}
-
-	m.mentionsList.Rebuild()
-	return nil
-}
-
-// suggestRecipients suggests the recipients of the DM channel and the user that match name, as DMs have recipients, not members.
-func (m *Model) suggestRecipients(channel *discord.Channel, name string) {
-	me, _ := m.state.Cabinet.Me()
-	users := append(slices.Clone(channel.DMRecipients), *me)
-	for _, match := range fuzzy.FindFrom(name, userList(users)) {
-		m.addMentionUser(&users[match.Index])
-	}
-}
-
-// suggestMembers suggests the members who can see channel that match name, and returns the search for more of them.
-func (m *Model) suggestMembers(channel *discord.Channel, name string) tview.Cmd {
-	searchCmd := m.searchMember(channel.GuildID, name)
-	members, err := m.state.Cabinet.Members(channel.GuildID)
-	if err != nil {
-		slog.Error("fetching members failed", "err", err)
-		return searchCmd
-	}
-
-	matches := fuzzy.FindFrom(name, memberList(members))
-	for _, match := range matches[:min(len(matches), int(m.cfg.AutocompleteLimit))] {
-		if channelHasUser(m.state, channel.ID, members[match.Index].User.ID) && m.addMentionMember(channel.GuildID, &members[match.Index]) {
-			break
-		}
-	}
-
-	return searchCmd
-}
-
-// searchMember performs member discovery in a command goroutine.
-// It emits a follow-up suggestion message once results are loaded.
+// searchMember asks Discord for members matching name; they arrive later as a gateway event.
 func (m *Model) searchMember(guildID discord.GuildID, name string) tview.Cmd {
-	if name == "" {
+	if name == "" || !guildID.IsValid() {
 		return nil
 	}
 

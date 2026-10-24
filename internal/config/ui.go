@@ -120,8 +120,8 @@ type (
 		MembersTree  TreeUIConfig         `toml:"members_tree"`
 		ScrollBar    ScrollBarUIConfig    `toml:"scroll_bar"`
 		MessagesList MessagesListUIConfig `toml:"messages_list"`
-		// The list of mention suggestions above the composer. Its width and height are capped to the available space.
-		MentionsList MentionsListUIConfig `toml:"mentions_list"`
+		// The list of mention and emoji suggestions above the composer. Its width and height are capped to the available space.
+		Autocomplete AutocompleteUIConfig `toml:"autocomplete"`
 	}
 
 	TabsUIConfig struct {
@@ -231,11 +231,22 @@ type (
 		Enabled bool `toml:"enabled"`
 	}
 
-	MentionsListUIConfig struct {
+	AutocompleteUIConfig struct {
+		// Members suggested after `@`.
+		Mentions SuggestionsUIConfig `toml:"mentions"`
+		// Emojis suggested after `:`.
+		Emojis SuggestionsUIConfig `toml:"emojis"`
+		// The maximum number of suggestions.
+		Limit uint8 `toml:"limit"`
 		// Minimum width. 0 makes the list as wide as possible.
 		MinWidth uint `toml:"min_width"`
 		// Maximum height. 0 makes the list as tall as needed.
 		MaxHeight uint `toml:"max_height"`
+	}
+
+	SuggestionsUIConfig struct {
+		// Whether to show these suggestions.
+		Enabled bool `toml:"enabled"`
 	}
 )
 
@@ -275,7 +286,12 @@ func defaultUI() UIConfig {
 			Grouping:           GroupingUIConfig{Enabled: true, Interval: 10 * time.Minute},
 			Reactions:          ReactionsUIConfig{Separator: " • "},
 		},
-		MentionsList: MentionsListUIConfig{MinWidth: 20},
+		Autocomplete: AutocompleteUIConfig{
+			Mentions: SuggestionsUIConfig{Enabled: true},
+			Emojis:   SuggestionsUIConfig{Enabled: true},
+			Limit:    20,
+			MinWidth: 20,
+		},
 	}
 }
 

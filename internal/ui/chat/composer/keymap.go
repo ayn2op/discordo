@@ -10,8 +10,8 @@ import (
 var _ help.KeyMap = Model{}
 
 func (m Model) ShortHelp() []keybind.Keybind {
-	if m.mentionsListVisible() {
-		cfg := m.cfg.Keybinds.MentionsList
+	if m.autocomplete.Visible() {
+		cfg := m.cfg.Keybinds.Autocomplete
 		ccfg := m.cfg.Keybinds.Composer
 		short := []keybind.Keybind{cfg.SelectUp.Keybind, cfg.SelectDown.Keybind, ccfg.TabComplete.Keybind, ccfg.Cancel.Keybind}
 		if m.canAttachFiles() {
@@ -35,8 +35,8 @@ func (m Model) ShortHelp() []keybind.Keybind {
 }
 
 func (m Model) FullHelp() [][]keybind.Keybind {
-	if m.mentionsListVisible() {
-		mcfg := m.cfg.Keybinds.MentionsList
+	if m.autocomplete.Visible() {
+		mcfg := m.cfg.Keybinds.Autocomplete
 		ccfg := m.cfg.Keybinds.Composer
 		return [][]keybind.Keybind{
 			{mcfg.SelectUp.Keybind, mcfg.SelectDown.Keybind, mcfg.SelectTop.Keybind, mcfg.SelectBottom.Keybind},

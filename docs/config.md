@@ -29,12 +29,6 @@ Default: `"default"`
 
 Default: `true`
 
-# autocomplete_limit
-
-The maximum number of members in the mention autocomplete list. 0 disables it.
-
-Default: `20`
-
 # messages_limit
 
 The number of messages to fetch when a text-based channel is selected, from 1 to 100.
@@ -466,17 +460,43 @@ The text between reactions.
 
 Default: `" • "`
 
-## ui.mentions_list
+## ui.autocomplete
 
-The list of mention suggestions above the composer. Its width and height are capped to the available space.
+The list of mention and emoji suggestions above the composer. Its width and height are capped to the available space.
 
-### ui.mentions_list.min_width
+### ui.autocomplete.mentions
+
+Members suggested after `@`.
+
+#### ui.autocomplete.mentions.enabled
+
+Whether to show these suggestions.
+
+Default: `true`
+
+### ui.autocomplete.emojis
+
+Emojis suggested after `:`.
+
+#### ui.autocomplete.emojis.enabled
+
+Whether to show these suggestions.
+
+Default: `true`
+
+### ui.autocomplete.limit
+
+The maximum number of suggestions.
+
+Default: `20`
+
+### ui.autocomplete.min_width
 
 Minimum width. 0 makes the list as wide as possible.
 
 Default: `20`
 
-### ui.mentions_list.max_height
+### ui.autocomplete.max_height
 
 Maximum height. 0 makes the list as tall as needed.
 
@@ -982,23 +1002,23 @@ Default: `"ctrl+e"`
 
 Default: `"ctrl+\\"`
 
-## keybinds.mentions_list
+## keybinds.autocomplete
 
-Only while the mention suggestions are shown.
+Only while the autocomplete is shown.
 
-### keybinds.mentions_list.select_up
+### keybinds.autocomplete.select_up
 
 Default: `"ctrl+p"`
 
-### keybinds.mentions_list.select_down
+### keybinds.autocomplete.select_down
 
 Default: `"ctrl+n"`
 
-### keybinds.mentions_list.select_top
+### keybinds.autocomplete.select_top
 
 Default: `"home"`
 
-### keybinds.mentions_list.select_bottom
+### keybinds.autocomplete.select_bottom
 
 Default: `"end"`
 
@@ -1200,9 +1220,9 @@ Default: `{ attributes = ["dim","italic"] }`
 
 Default: `{ foreground = "blue", underline = "solid" }`
 
-## theme.mentions_list
+## theme.autocomplete
 
-### theme.mentions_list.selected_style
+### theme.autocomplete.selected_style
 
 Default: `{ attributes = "reverse" }`
 

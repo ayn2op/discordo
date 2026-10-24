@@ -2,7 +2,6 @@ package composer
 
 import (
 	"bytes"
-	"cmp"
 	"context"
 	"io"
 	"log/slog"
@@ -19,19 +18,18 @@ import (
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/arikawa/v3/gateway"
 	md "github.com/ayn2op/arikawa/v3/markdown"
-	"github.com/ayn2op/arikawa/v3/state"
 	"github.com/ayn2op/arikawa/v3/utils/json/option"
 	"github.com/ayn2op/arikawa/v3/utils/sendpart"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/ui"
-	"github.com/ayn2op/discordo/internal/ui/chat/mentionslist"
+	"github.com/ayn2op/discordo/internal/ui/autocomplete"
+	"github.com/ayn2op/discordo/internal/ui/autocomplete/mentions"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/box"
 	"github.com/ayn2op/tview/keybind"
 	"github.com/ayn2op/tview/textarea"
-	"github.com/gdamore/tcell/v3"
 	"github.com/rockorager/go-uucode"
 	"github.com/yuin/goldmark/v2/ast"
 	"golang.design/x/clipboard"
@@ -70,7 +68,7 @@ type Model struct {
 	replyName         string
 	sendMessageData   *api.SendMessageData
 	memberSearchCache map[string]uint
-	mentionsList      mentionslist.Model
+	autocomplete      autocomplete.Model
 	lastSearch        time.Time
 
 	typingUntil time.Time
@@ -86,7 +84,7 @@ func NewModel(cfg *config.Config, state *ningen.State) Model {
 		state:             state,
 		sendMessageData:   &api.SendMessageData{},
 		memberSearchCache: make(map[string]uint),
-		mentionsList:      mentionslist.NewModel(cfg),
+		autocomplete:      autocomplete.NewModel(cfg),
 	}
 }
 
@@ -228,8 +226,8 @@ func (m *Model) reset() {
 // Update returns m changed in response to msg and a command to run, or nil.
 func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	switch msg := msg.(type) {
-	case TabSuggestMsg:
-		return m, m.tabSuggest()
+	case RefreshAutocompleteMsg:
+		return m, m.showAutocomplete()
 	case imagePastedMsg:
 		if len(msg) == 0 {
 			return m, nil
@@ -252,10 +250,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	case editMsg:
 		m.setText(msg.text, msg.cursor)
 		typingCmd := m.sendTyping()
-		if m.cfg.AutocompleteLimit > 0 {
-			return m, tview.Batch(typingCmd, m.tabSuggest())
-		}
-		return m, typingCmd
+		return m, tview.Batch(typingCmd, m.showAutocomplete())
 
 	case tview.KeyMsg:
 		keybinds := m.cfg.Keybinds.Composer
@@ -266,26 +261,23 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			m.pasteText()
 			return m, pasteImage()
 		case keybind.Matches(msg, keybinds.Send.Keybind):
-			if m.mentionsListVisible() {
-				return m, m.tabComplete()
+			if m.autocomplete.Visible() {
+				return m, m.complete()
 			}
 			return m, m.send()
 		case keybind.Matches(msg, keybinds.OpenEditor.Keybind):
-			m.stopTabCompletion()
-			return m, m.openEditor()
+			return m, tview.Batch(m.showCompletions("", nil), m.openEditor())
 		case keybind.Matches(msg, keybinds.OpenFilePicker.Keybind):
-			m.stopTabCompletion()
-			return m, m.pickFiles()
+			return m, tview.Batch(m.showCompletions("", nil), m.pickFiles())
 		case keybind.Matches(msg, keybinds.Cancel.Keybind):
-			if m.mentionsListVisible() {
-				m.stopTabCompletion()
-				return m, nil
+			if m.autocomplete.Visible() {
+				return m, m.showCompletions("", nil)
 			}
 			m.reset()
 			return m, nil
 		case keybind.Matches(msg, keybinds.TabComplete.Keybind):
-			if m.mentionsListVisible() {
-				return m, m.tabComplete()
+			if m.autocomplete.Visible() {
+				return m, m.complete()
 			}
 			m.insert("\t")
 			return m, nil
@@ -296,9 +288,9 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			m.undo()
 			return m, nil
 		}
-	case mentionslist.Msg:
+	case autocomplete.Msg, ui.ImagesUpdatedMsg:
 		var cmd tview.Cmd
-		m.mentionsList, cmd = m.mentionsList.Update(msg)
+		m.autocomplete, cmd = m.autocomplete.Update(msg)
 		return m, cmd
 	}
 	return m, nil
@@ -307,7 +299,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 func (m Model) canEditLastMessage() bool {
 	return !m.Disabled() && m.editing == nil && m.text == "" &&
 		m.sendMessageData.Reference == nil && len(m.sendMessageData.Files) == 0 &&
-		!m.mentionsListVisible()
+		!m.autocomplete.Visible()
 }
 
 // StartEdit puts message in the composer to be edited.
@@ -324,7 +316,7 @@ func (m *Model) StartReply(message discord.Message, name string, mention bool) {
 	m.replyName = name
 }
 
-func (m Model) toggleReplyMention() {
+func (m *Model) toggleReplyMention() {
 	data := m.sendMessageData
 	if data.Reference == nil || data.AllowedMentions == nil || data.AllowedMentions.RepliedUser == nil {
 		return
@@ -410,7 +402,7 @@ func (m Model) mention(channel *discord.Channel, name string) string {
 			return false
 		}
 
-		if channelHasUser(m.state, channel.ID, member.User.ID) {
+		if mentions.ChannelHasUser(m.state, channel.ID, member.User.ID) {
 			mention = member.User.ID.Mention()
 		}
 
@@ -435,78 +427,54 @@ func (m Model) privateMention(channel *discord.Channel, name string) string {
 	return ""
 }
 
-// wordBeforeCursor returns cursor, the runes satisfying isWordRune just before it, and the rune before those.
-func wordBeforeCursor(value string, cursor int, isWordRune func(rune) bool) (int, string, rune) {
+// wordBeforeCursor returns the runes satisfying isWordRune just before cursor, and the rune before those.
+func wordBeforeCursor(value string, cursor int, isWordRune func(rune) bool) (string, rune) {
 	for start := cursor; start > 0; {
 		previous, size := utf8.DecodeLastRuneInString(value[:start])
 		if !isWordRune(previous) {
-			return cursor, value[start:cursor], previous
+			return value[start:cursor], previous
 		}
 
 		start -= size
 	}
 
-	return cursor, value[:cursor], 0
+	return value[:cursor], 0
 }
 
 func isMentionChar(char rune) bool {
 	return unicode.IsLetter(char) || unicode.IsDigit(char) || char == '_' || char == '.'
 }
 
-// suggestRecentAuthors suggests the authors of the channel's recent messages, other than the user.
-func (m *Model) suggestRecentAuthors(channel *discord.Channel) {
-	messages, err := m.state.Cabinet.Messages(channel.ID)
-	if err != nil {
-		return
-	}
-	me, _ := m.state.Cabinet.Me()
-	shown := map[discord.UserID]bool{me.ID: true}
-	for _, message := range messages {
-		if shown[message.Author.ID] {
-			continue
-		}
-		shown[message.Author.ID] = true
-		if !channel.GuildID.IsValid() {
-			m.addMentionUser(&message.Author)
-			continue
-		}
-		m.state.MemberState.RequestMember(channel.GuildID, message.Author.ID)
-		if member, err := m.state.Cabinet.Member(channel.GuildID, message.Author.ID); err == nil && m.addMentionMember(channel.GuildID, member) {
-			return
-		}
-	}
+func isEmojiChar(char rune) bool {
+	return unicode.IsLetter(char) || unicode.IsDigit(char) || char == '_' || char == '+' || char == '-'
 }
 
-type memberList []discord.Member
-type userList []discord.User
-
-func (ml memberList) String(index int) string {
-	return ml[index].Nick + ml[index].User.DisplayName + ml[index].User.Tag()
-}
-
-func (ml memberList) Len() int {
-	return len(ml)
-}
-
-func (ul userList) String(index int) string {
-	return ul[index].DisplayName + ul[index].Tag()
-}
-
-func (ul userList) Len() int {
-	return len(ul)
-}
-
-// channelHasUser checks if a user has permission to view the specified channel.
-func channelHasUser(state *ningen.State, channelID discord.ChannelID, userID discord.UserID) bool {
-	perms, err := state.Permissions(channelID, userID)
-	if err != nil {
-		slog.Error("failed to get permissions", "err", err, "channel", channelID, "user", userID)
-		return false
+// query returns the trigger rune and the name being completed, or 0 if none.
+func (m Model) query() (rune, string) {
+	if name, trigger := wordBeforeCursor(m.text, m.cursor, isMentionChar); trigger == '@' && m.cfg.UI.Autocomplete.Mentions.Enabled {
+		return trigger, name
 	}
 
-	return perms.Has(discord.PermissionViewChannel)
+	if !m.cfg.UI.Autocomplete.Emojis.Enabled {
+		return 0, ""
+	}
+
+	name, trigger := wordBeforeCursor(m.text, m.cursor, isEmojiChar)
+	if trigger != ':' {
+		return 0, ""
+	}
+
+	colon := m.cursor - len(name) - 1
+	before, _ := utf8.DecodeLastRuneInString(m.text[:colon])
+	startsWord := colon == 0 || unicode.IsSpace(before)
+	if !startsWord {
+		return 0, ""
+	}
+
+	return trigger, name
 }
 
+// CacheMemberSearch returns the command that refreshes the autocomplete with the members found.
 func (m Model) CacheMemberSearch(event *gateway.GuildMembersChunkEvent) tview.Cmd {
 	key, ok := strings.CutPrefix(event.Nonce, memberSearchNonce)
 	if !ok {
@@ -515,7 +483,7 @@ func (m Model) CacheMemberSearch(event *gateway.GuildMembersChunkEvent) tview.Cm
 
 	m.memberSearchCache[key] = uint(len(event.Members))
 	return func() tview.Msg {
-		return TabSuggestMsg{}
+		return RefreshAutocompleteMsg{}
 	}
 }
 
@@ -534,112 +502,53 @@ func (m Model) OnGuildMemberRemove(event *gateway.GuildMemberRemoveEvent) {
 	}
 }
 
-// MentionsListView places the mentions list at the bottom of the area above the composer, near the cursor, or returns nil if it is empty or the composer is not focused.
-func (m Model) MentionsListView(focused bool) tview.Widget {
-	if !focused || !m.mentionsListVisible() {
+// AutocompleteView returns the autocomplete popup, or nil if it is hidden.
+func (m Model) AutocompleteView(focused bool) tview.Widget {
+	if !focused || !m.autocomplete.Visible() {
 		return nil
 	}
-	return mentionsPopup{m}
+	return autocompletePopup{m}
 }
 
-// mentionsPopup places the mentions list within the area of the messages, which it is drawn over.
-type mentionsPopup struct {
+// autocompletePopup places the autocomplete within the area of the messages, which it is drawn over.
+type autocompletePopup struct {
 	model Model
 }
 
 // Size returns Fill, as the popup places the list within its whole area.
-func (mentionsPopup) Size() (width, height layout.Length) { return layout.Fill, layout.Fill }
+func (autocompletePopup) Size() (width, height layout.Length) { return layout.Fill, layout.Fill }
 
 // Layout returns the size of limits, as the popup places the list within its whole area.
-func (mentionsPopup) Layout(limits layout.Limits) layout.Size {
+func (autocompletePopup) Layout(limits layout.Limits) layout.Size {
 	return layout.Atomic(limits, layout.Fill, layout.Fill)
 }
 
-func (p mentionsPopup) Draw(screen tview.Screen, area tview.Rectangle) {
-	p.model.mentionsList.View().Draw(screen, p.area(area))
+func (p autocompletePopup) Draw(screen tview.Screen, area tview.Rectangle) {
+	p.model.autocomplete.View().Draw(screen, p.area(area))
 }
 
-func (p mentionsPopup) Handle(msg tview.Msg, area tview.Rectangle) tview.Msg {
-	return p.model.mentionsList.View().Handle(msg, p.area(area))
+func (p autocompletePopup) Handle(msg tview.Msg, area tview.Rectangle) tview.Msg {
+	return p.model.autocomplete.View().Handle(msg, p.area(area))
 }
 
 // area returns where the list goes in area: at its bottom, at the column of the cursor where it fits.
-func (p mentionsPopup) area(area tview.Rectangle) tview.Rectangle {
+func (p autocompletePopup) area(area tview.Rectangle) tview.Rectangle {
 	model := p.model
-	size := model.mentionsList.View().Layout(layout.Limits{Max: layout.Size{Width: area.Width, Height: area.Height}})
+	size := model.autocomplete.View().Layout(layout.Limits{Max: layout.Size{Width: area.Width, Height: area.Height}})
 	value, cursor := model.text, model.cursor
 	column := uucode.StringWidth(value[strings.LastIndex(value[:cursor], "\n")+1 : cursor])
 	x := min(model.box(false).InnerArea(tview.Rectangle{}).X+column, area.Width-size.Width)
 	return tview.Rectangle{X: area.X + x, Y: area.Y + area.Height - size.Height, Width: size.Width, Height: size.Height}
 }
 
-func (m *Model) addMentionMember(guildID discord.GuildID, member *discord.Member) bool {
-	if member == nil {
-		return false
-	}
-
-	name := cmp.Or(member.Nick, member.User.DisplayName, member.User.Username)
-
-	style := tcell.StyleDefault
-
-	// This avoids a slower member color lookup path.
-	color, ok := state.MemberColor(member, func(id discord.RoleID) *discord.Role {
-		role, _ := m.state.Cabinet.Role(guildID, id)
-		return role
-	})
-	if ok {
-		style = style.Foreground(tcell.NewHexColor(int32(color)))
-	}
-
-	presence, err := m.state.Cabinet.Presence(guildID, member.User.ID)
-	if err != nil {
-		slog.Info("failed to get presence from state", "guild_id", guildID, "user_id", member.User.ID, "err", err)
-	} else if presence.Status == discord.OfflineStatus {
-		style = style.Dim(true)
-	}
-
-	m.mentionsList.Append(mentionslist.Item{
-		InsertText:  member.User.Username,
-		DisplayText: name,
-		Style:       style,
-	})
-	return m.mentionsList.ItemCount() > int(m.cfg.AutocompleteLimit)
+// showCompletions hides the autocomplete if items is empty.
+func (m *Model) showCompletions(title string, items []autocomplete.Item) tview.Cmd {
+	var cmd tview.Cmd
+	m.autocomplete, cmd = m.autocomplete.Update(autocomplete.SetItemsMsg{Title: title, Items: items})
+	return cmd
 }
 
-func (m *Model) addMentionUser(user *discord.User) {
-	if user == nil {
-		return
-	}
-
-	name := user.DisplayOrUsername()
-	style := tcell.StyleDefault
-	presence, err := m.state.Cabinet.Presence(discord.NullGuildID, user.ID)
-	if err != nil {
-		slog.Info("failed to get presence from state", "user_id", user.ID, "err", err)
-	} else if presence.Status == discord.OfflineStatus {
-		style = style.Dim(true)
-	}
-
-	m.mentionsList.Append(mentionslist.Item{
-		InsertText:  user.Username,
-		DisplayText: name,
-		Style:       style,
-	})
-}
-
-// stopTabCompletion clears the mentions list, which hides it, when it is in use.
-func (m *Model) stopTabCompletion() {
-	if m.cfg.AutocompleteLimit > 0 {
-		m.mentionsList.Clear()
-	}
-}
-
-// mentionsListVisible reports whether the mentions list has items to show above the composer.
-func (m Model) mentionsListVisible() bool {
-	return m.mentionsList.ItemCount() != 0
-}
-
-func (m Model) attach(name string, reader io.Reader) {
+func (m *Model) attach(name string, reader io.Reader) {
 	m.sendMessageData.Files = append(m.sendMessageData.Files, sendpart.File{Name: name, Reader: reader})
 }
 

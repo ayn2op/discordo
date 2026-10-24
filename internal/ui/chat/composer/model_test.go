@@ -1,6 +1,7 @@
 package composer
 
 import (
+	"image"
 	"maps"
 	"path/filepath"
 	"testing"
@@ -11,8 +12,10 @@ import (
 	"github.com/ayn2op/arikawa/v3/state/store/defaultstore"
 	"github.com/ayn2op/arikawa/v3/utils/sendpart"
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
+	tviewimage "github.com/ayn2op/tview/image"
 	"github.com/ayn2op/tview/keybind"
 	"github.com/gdamore/tcell/v3"
 )
@@ -107,6 +110,11 @@ func TestModelUpdate(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("images before completing", func(t *testing.T) {
+		c, _ := newTestModel(t)
+		c.Update(ui.ImagesUpdatedMsg{"cat": tviewimage.New(image.NewAlpha(image.Rect(0, 0, 2, 2)))})
+	})
 }
 
 func TestModelHandle(t *testing.T) {
@@ -166,7 +174,7 @@ func TestModelSearchMember(t *testing.T) {
 	}
 }
 
-func TestModelTabSuggest(t *testing.T) {
+func TestModelShowAutocomplete(t *testing.T) {
 	c, _ := newTestModel(t)
 	if err := c.state.MyselfSet(discord.User{ID: 1, Username: "1"}, false); err != nil {
 		t.Fatal(err)
@@ -180,9 +188,9 @@ func TestModelTabSuggest(t *testing.T) {
 	}
 	c.SetChannel(&channel)
 	c.setText("@", 1)
-	c.tabSuggest()
-	if got := c.mentionsList.ItemCount(); got != 2 {
-		t.Fatalf("suggested %d authors, want 2", got)
+	c.showAutocomplete()
+	if !c.autocomplete.Visible() {
+		t.Fatal("no authors completed")
 	}
 }
 
@@ -198,5 +206,66 @@ func TestModelProcessText(t *testing.T) {
 				t.Fatalf("got %q, want %q", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestModelQuery(t *testing.T) {
+	c, _ := newTestModel(t)
+	for _, test := range []struct {
+		text string
+		r    rune
+		name string
+	}{
+		{":jo", ':', "jo"},
+		{"hi :+1", ':', "+1"},
+		{"hi :", ':', ""},
+		{"@ab", '@', "ab"},
+		{"hi @", '@', ""},
+		{"12:30", 0, ""},
+		{"a:joy", 0, ""},
+		{"joy", 0, ""},
+	} {
+		t.Run(test.text, func(t *testing.T) {
+			c.setText(test.text, len(test.text))
+			if r, name := c.query(); r != test.r || name != test.name {
+				t.Errorf("query() = %q, %q; want %q, %q", r, name, test.r, test.name)
+			}
+		})
+	}
+	t.Run("mentions disabled", func(t *testing.T) {
+		c, cfg := newTestModel(t)
+		cfg.UI.Autocomplete.Mentions.Enabled = false
+		c.setText("@ab", len("@ab"))
+		if trigger, _ := c.query(); trigger != 0 {
+			t.Errorf("query() trigger = %q, want 0", trigger)
+		}
+	})
+
+	t.Run("emojis disabled", func(t *testing.T) {
+		c, cfg := newTestModel(t)
+		cfg.UI.Autocomplete.Emojis.Enabled = false
+		c.setText(":jo", len(":jo"))
+		if trigger, _ := c.query(); trigger != 0 {
+			t.Errorf("query() trigger = %q, want 0", trigger)
+		}
+	})
+}
+
+func TestModelComplete(t *testing.T) {
+	c, _ := newTestModel(t)
+	c.SetChannel(&discord.Channel{ID: 1, Type: discord.DirectMessage})
+	c.setText("hi :joy", len("hi :joy"))
+	c.showAutocomplete()
+	if !c.autocomplete.Visible() {
+		t.Fatal("no emojis completed")
+	}
+
+	c.complete()
+	if want := "hi 😂 "; c.text != want || c.cursor != len(want) {
+		t.Errorf("text = %q, cursor = %d; want %q, %d", c.text, c.cursor, want, len(want))
+	}
+
+	if c.autocomplete.Visible() {
+		t.Error("autocomplete still shown after completing")
 	}
 }

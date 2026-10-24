@@ -214,7 +214,7 @@ type (
 		URLStyle         Style `toml:"url_style"`
 	}
 
-	MentionsListThemeConfig struct {
+	AutocompleteThemeConfig struct {
 		SelectedStyle Style `toml:"selected_style"`
 	}
 
@@ -239,7 +239,7 @@ type (
 		MembersTree  TreeThemeConfig         `toml:"members_tree"`
 		ScrollBar    ScrollBarThemeConfig    `toml:"scroll_bar"`
 		MessagesList MessagesListThemeConfig `toml:"messages_list"`
-		MentionsList MentionsListThemeConfig `toml:"mentions_list"`
+		Autocomplete AutocompleteThemeConfig `toml:"autocomplete"`
 		Dialog       DialogThemeConfig       `toml:"dialog"`
 		Help         HelpThemeConfig         `toml:"help"`
 	}
@@ -322,7 +322,7 @@ func defaultTheme() ThemeConfig {
 				URLStyle:         Style{blue.Underline(true)},
 			},
 		},
-		MentionsList: MentionsListThemeConfig{SelectedStyle: Style{plain.Reverse(true)}},
+		Autocomplete: AutocompleteThemeConfig{SelectedStyle: Style{plain.Reverse(true)}},
 		Dialog:       DialogThemeConfig{BackgroundStyle: dim},
 		Help:         HelpThemeConfig{ShortKeyStyle: dim, FullKeyStyle: dim},
 	}

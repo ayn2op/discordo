@@ -166,7 +166,7 @@ type ComposerKeybinds struct {
 	OpenFilePicker Keybind `toml:"open_file_picker"`
 }
 
-type MentionsListKeybinds struct {
+type AutocompleteKeybinds struct {
 	SelectionKeybinds
 }
 
@@ -205,8 +205,8 @@ type Keybinds struct {
 	MessagesList MessagesListKeybinds `toml:"messages_list"`
 	// Only while typing a message.
 	Composer ComposerKeybinds `toml:"composer"`
-	// Only while the mention suggestions are shown.
-	MentionsList MentionsListKeybinds `toml:"mentions_list"`
+	// Only while the autocomplete is shown.
+	Autocomplete AutocompleteKeybinds `toml:"autocomplete"`
 
 	// Log out and remove the authentication token from keyring.
 	// Requires re-login upon restart.
@@ -316,7 +316,7 @@ func defaultKeybinds() Keybinds {
 			OpenEditor:     key("editor", "ctrl+e"),
 			OpenFilePicker: key("attach", "ctrl+\\"),
 		},
-		MentionsList: MentionsListKeybinds{SelectionKeybinds: emacs},
+		Autocomplete: AutocompleteKeybinds{SelectionKeybinds: emacs},
 
 		Logout: key("logout", "ctrl+d"),
 		Quit:   key("quit", "ctrl+c"),

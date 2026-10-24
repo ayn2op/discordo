@@ -25,10 +25,6 @@ import (
 	"github.com/yuin/goldmark/v2/ast"
 )
 
-// placeholderTerminals are the terminals, by XTVERSION name, that draw kitty's Unicode placeholders.
-// WezTerm and Konsole support kitty graphics but not Unicode placeholders.
-var placeholderTerminals = []string{"kitty", "ghostty", "Rio"}
-
 type messageItem struct {
 	message discord.Message
 	// view is the message as drawn, keeping its wrapped text, or nil until it is shown and after what it shows changes.
@@ -38,8 +34,6 @@ type messageItem struct {
 	// grouped reports whether the message is drawn without a header, under that of the message before it.
 	grouped bool
 
-	// A preview is blank while loading and empty if loading failed.
-	previews map[discord.URL]tviewimage.Widget
 	// root is the parsed markdown of the message's content, or nil until it is needed and after the text is invalidated, as it resolves mentions when parsed.
 	root ast.Node
 }
@@ -56,20 +50,13 @@ type Model struct {
 	items   []messageItem
 
 	renderer *markdown.Renderer
-	// images are the avatars and emoji, shared by every message that shows them.
+	// images is set by View, as the chat model owns them.
 	images map[discord.URL]tviewimage.Widget
 	// voicePlayer plays the voice message played last, and voiceStatus is what it last said of it.
 	voicePlayer *voice.Player
 	voiceStatus voice.PlayerStatus
 	// seeking reports whether the waveform of the voice message is dragged, which is sought once it is let go of.
 	seeking bool
-
-	// kitty reports whether previews are drawn with kitty's graphics protocol.
-	// kittyImages counts the images sent to the terminal.
-	kitty       bool
-	kittyImages int
-	// cellWidth and cellHeight are the size of a terminal cell in pixels, or zero if the terminal does not report it.
-	cellWidth, cellHeight uint
 }
 
 func NewModel(cfg *config.Config, state *ningen.State) Model {
@@ -79,7 +66,6 @@ func NewModel(cfg *config.Config, state *ningen.State) Model {
 		cfg:         cfg,
 		state:       state,
 		renderer:    markdown.NewRenderer(cfg),
-		images:      map[discord.URL]tviewimage.Widget{},
 		voicePlayer: voice.NewPlayer(),
 	}
 
@@ -87,8 +73,9 @@ func NewModel(cfg *config.Config, state *ningen.State) Model {
 	return ml
 }
 
-// View shows the messages in a box titled with the channel and footed with footer, such as who is typing.
-func (m Model) View(focused bool, footer string) tview.Widget {
+// View shows the messages with images by URL, footed with footer, such as who is typing.
+func (m Model) View(focused bool, footer string, images map[discord.URL]tviewimage.Widget) tview.Widget {
+	m.images = images
 	return ui.Box(m.listView(focused), m.cfg, focused).
 		Title(ui.Label(m.title(), m.cfg.Theme.Title, focused)).
 		Footer(ui.Label(footer, m.cfg.Theme.Footer, focused))
@@ -149,9 +136,9 @@ func (m *Model) SetChannel(channel *discord.Channel, messages []discord.Message)
 	m.reset()
 	m.setMessages(messages)
 	if channel.GuildID.IsValid() {
-		return tview.Batch(m.requestGuildMembers(channel.GuildID, messages), m.loadPreviews())
+		return tview.Batch(m.requestGuildMembers(channel.GuildID, messages), m.loadImages())
 	}
-	return m.loadPreviews()
+	return m.loadImages()
 }
 
 // ShowNewest clears the selection and scrolls to the newest message, which then stays in view as messages arrive until the user scrolls up.
@@ -163,7 +150,7 @@ func (m *Model) ShowNewest() {
 // UpdateMessage replaces the shown message with the same ID.
 func (m *Model) UpdateMessage(message discord.Message) tview.Cmd {
 	m.setMessage(m.indexOf(message.ChannelID, message.ID), message)
-	return m.loadPreviews()
+	return m.loadImages()
 }
 
 // RefreshMessage shows the cached state of a message, such as after a reaction.
@@ -174,7 +161,7 @@ func (m *Model) RefreshMessage(channelID discord.ChannelID, id discord.MessageID
 	}
 
 	m.setMessage(m.indexOf(channelID, id), *message)
-	return m.loadPreviews()
+	return m.loadImages()
 }
 
 // DeleteMessage removes the shown message with id.
@@ -190,9 +177,14 @@ func (m Model) indexOf(channelID discord.ChannelID, id discord.MessageID) int {
 	return slices.IndexFunc(m.items, func(item messageItem) bool { return item.separator == nil && item.message.ID == id })
 }
 
+func (m *Model) clearViews() {
+	for i := range m.items {
+		m.items[i].view = nil
+	}
+}
+
 func (m *Model) reset() {
 	m.items = nil
-	clear(m.images)
 	m.cursor, m.target = -1, -1
 	m.scrollState = viewport.ScrollState{}
 	m.scrollState.ScrollToEnd()
@@ -220,7 +212,7 @@ func (m *Model) AddMessage(message discord.Message) tview.Cmd {
 
 	grouped := !separator && m.shouldGroup(previous, message)
 	m.items = append(m.items, messageItem{message: message, grouped: grouped})
-	return m.loadPreviews()
+	return m.loadImages()
 }
 
 func (m *Model) setMessage(index int, message discord.Message) {
@@ -228,7 +220,7 @@ func (m *Model) setMessage(index int, message discord.Message) {
 		return
 	}
 
-	m.items[index] = messageItem{message: message, previews: m.items[index].previews}
+	m.items[index] = messageItem{message: message}
 	m.rebuildItems()
 }
 
@@ -288,7 +280,7 @@ func (m Model) itemView(item *messageItem) tview.Widget {
 	}
 
 	for _, source := range m.previewSources(*message) {
-		if preview, ok := item.previews[source.proxy]; ok {
+		if preview, ok := m.images[source.proxy]; ok {
 			body = body.Push(preview)
 		}
 	}
@@ -432,6 +424,9 @@ func (m Model) selectedURLs() []string {
 // Update returns m changed in response to msg and a command to run, or nil.
 func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	switch msg := msg.(type) {
+	case ui.LoadImagesMsg, ui.ImageLoadedMsg:
+		m.clearViews()
+		return m, nil
 	case tview.KeyMsg:
 		keybinds := m.cfg.Keybinds.MessagesList
 		switch {
@@ -480,8 +475,6 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		}
 	case olderMessagesLoadedMsg:
 		return m, m.prependOlder(msg)
-	case previewLoadedMsg:
-		return m, m.addPreview(msg)
 	case playMsg:
 		return m, m.play(discord.Attachment(msg))
 	case seekPressMsg:
@@ -508,21 +501,6 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 
 		m.voiceStatus = status
 		return m, m.Init()
-	case tview.ResizeMsg:
-		cols, rows := msg.Size()
-		width, height := msg.PixelSize()
-		if cols > 0 && rows > 0 {
-			m.cellWidth, m.cellHeight = uint(width/cols), uint(height/rows)
-		}
-	case tview.TerminalInfoMsg:
-		switch m.cfg.UI.MessagesList.ImageProtocol {
-		case "kitty":
-			m.kitty = true
-		case "halfblocks":
-			m.kitty = false
-		default:
-			m.kitty = slices.Contains(placeholderTerminals, msg.Name)
-		}
 	case scrollMsg:
 		m.scrollState = viewport.ScrollState(msg)
 		// Older messages are fetched once as the list is scrolled to the top, rather than on each scroll there.
@@ -564,39 +542,10 @@ func (m *Model) prependOlder(msg olderMessagesLoadedMsg) tview.Cmd {
 
 	m.rebuildItems()
 	if selectedChannel.GuildID.IsValid() {
-		return tview.Batch(m.requestGuildMembers(selectedChannel.GuildID, msg.older), m.loadPreviews())
+		return tview.Batch(m.requestGuildMembers(selectedChannel.GuildID, msg.older), m.loadImages())
 	}
 
-	return m.loadPreviews()
-}
-
-// addPreview shows the loaded image as the emoji it is, or below the message it is of.
-func (m *Model) addPreview(msg previewLoadedMsg) tview.Cmd {
-	preview, cmd := msg.preview, tview.Cmd(nil)
-	if m.kitty {
-		m.kittyImages++
-		preview = preview.Kitty(m.kittyImages%63488 + 1)
-		cmd = preview.Transmit()
-	}
-
-	if _, ok := m.images[msg.proxy]; ok {
-		m.images[msg.proxy] = preview
-		// An emoji is drawn within the text of the messages that use it, so the text is rendered again.
-		for index := range m.items {
-			m.items[index].view = nil
-		}
-
-		return cmd
-	}
-
-	index := slices.IndexFunc(m.items, func(item messageItem) bool { return item.separator == nil && item.message.ID == msg.messageID })
-	if index < 0 || m.items[index].previews == nil {
-		return nil
-	}
-
-	m.items[index].previews[msg.proxy] = preview
-	m.items[index].view = nil
-	return cmd
+	return m.loadImages()
 }
 
 // scrolledToTop reports whether view is scrolled to the oldest message shown, which is false while the messages fit, as there is nothing to scroll.

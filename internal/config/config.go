@@ -181,8 +181,6 @@ type (
 		Status           discord.Status `toml:"status"`
 		HideBlockedUsers bool           `toml:"hide_blocked_users"`
 
-		// The maximum number of members in the mention autocomplete list. 0 disables it.
-		AutocompleteLimit uint8 `toml:"autocomplete_limit"`
 		// The number of messages to fetch when a text-based channel is selected, from 1 to 100.
 		MessagesLimit uint8 `toml:"messages_limit"`
 
@@ -225,8 +223,7 @@ func Default() Config {
 		Status:           "default",
 		HideBlockedUsers: true,
 
-		AutocompleteLimit: 20,
-		MessagesLimit:     50,
+		MessagesLimit: 50,
 
 		Markdown:        MarkdownConfig{Enabled: true, Theme: "monokai"},
 		Help:            HelpConfig{Enabled: true, CompactModifiers: true, Padding: [2]int{1, 1}, Separator: " • "},
