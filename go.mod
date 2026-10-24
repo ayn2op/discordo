@@ -4,8 +4,6 @@ go 1.27.0
 
 // replace github.com/ayn2op/tview => ../tview
 
-replace github.com/gdamore/tcell/v3 => github.com/ayn2op/tcell/v3 v3.0.0-20261024200736-0788978aab0d
-
 // replace (
 // 	github.com/ayn2op/arikawa/v3 => ../arikawa
 // 	github.com/ayn2op/ningen/v3 => ../ningen
@@ -19,7 +17,7 @@ require (
 	github.com/ayn2op/tview v0.0.0-20261024233546-98e13602d772
 	github.com/bogdanfinn/fhttp v0.7.1
 	github.com/bogdanfinn/tls-client v1.16.0
-	github.com/gdamore/tcell/v3 v3.6.1-0.20261023032141-acf267d89712
+	github.com/gdamore/tcell/v3 v3.6.1-0.20261024233502-62aecba7acc7
 	github.com/gen2brain/malgo v0.11.26
 	github.com/gorilla/websocket v1.5.3
 	github.com/mattn/go-shellwords v1.0.16
