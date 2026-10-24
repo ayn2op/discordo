@@ -287,7 +287,7 @@ func (m Model) itemView(item *messageItem) tview.Widget {
 		body = body.Push(m.voiceMessageView(message.Attachments[0]))
 	}
 
-	for _, s := range previewSources(*message) {
+	for _, s := range m.previewSources(*message) {
 		if preview, ok := item.previews[s.proxy]; ok {
 			body = body.Push(preview)
 		}
@@ -421,7 +421,7 @@ func (m Model) selectedMessage() (*discord.Message, bool) {
 // selectedURLs returns the web links of the selected message, from its saved markdown.
 func (m Model) selectedURLs() []string {
 	if message, ok := m.selectedMessage(); ok {
-		return messageURLs(*message, m.contentRoot(&m.items[m.cursor]))
+		return m.messageURLs(*message, m.contentRoot(&m.items[m.cursor]))
 	}
 	return nil
 }

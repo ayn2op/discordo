@@ -182,6 +182,7 @@ type (
 
 		Attachments AttachmentsUIConfig `toml:"attachments"`
 		Avatars     AvatarsUIConfig     `toml:"avatars"`
+		Embeds      EmbedsUIConfig      `toml:"embeds"`
 		Grouping    GroupingUIConfig    `toml:"grouping"`
 		Emojis      EmojiUIConfig       `toml:"emojis"`
 		Reactions   ReactionsUIConfig   `toml:"reactions"`
@@ -221,6 +222,11 @@ type (
 		AllowedMIMETypes MIMETypes `toml:"allowed_mime_types"`
 		// Whether to draw image attachments and embedded images below their messages.
 		Preview bool `toml:"preview"`
+	}
+
+	EmbedsUIConfig struct {
+		// Whether to show embeds (link previews, rich cards) attached to messages.
+		Enabled bool `toml:"enabled"`
 	}
 
 	MentionsListUIConfig struct {
@@ -263,6 +269,7 @@ func defaultUI() UIConfig {
 			ImageProtocol:      "auto",
 			Attachments:        attachments,
 			Avatars:            AvatarsUIConfig{Preview: true, Height: 2},
+			Embeds:             EmbedsUIConfig{Enabled: true},
 			Grouping:           GroupingUIConfig{Enabled: true, Interval: 10 * time.Minute},
 			Reactions:          ReactionsUIConfig{Separator: " • "},
 		},
