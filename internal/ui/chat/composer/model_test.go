@@ -216,8 +216,13 @@ func TestModelQuery(t *testing.T) {
 		r    rune
 		name string
 	}{
+		{":jo", ':', "jo"},
+		{"hi :+1", ':', "+1"},
+		{"hi :", ':', ""},
 		{"@ab", '@', "ab"},
 		{"hi @", '@', ""},
+		{"12:30", 0, ""},
+		{"a:joy", 0, ""},
 		{"joy", 0, ""},
 	} {
 		t.Run(test.text, func(t *testing.T) {
@@ -235,4 +240,32 @@ func TestModelQuery(t *testing.T) {
 			t.Errorf("query() trigger = %q, want 0", trigger)
 		}
 	})
+
+	t.Run("emojis disabled", func(t *testing.T) {
+		c, cfg := newTestModel(t)
+		cfg.UI.Autocomplete.Emojis.Enabled = false
+		c.setText(":jo", len(":jo"))
+		if trigger, _ := c.query(); trigger != 0 {
+			t.Errorf("query() trigger = %q, want 0", trigger)
+		}
+	})
+}
+
+func TestModelComplete(t *testing.T) {
+	c, _ := newTestModel(t)
+	c.SetChannel(&discord.Channel{ID: 1, Type: discord.DirectMessage})
+	c.setText("hi :joy", len("hi :joy"))
+	c.showAutocomplete()
+	if !c.autocomplete.Visible() {
+		t.Fatal("no emojis completed")
+	}
+
+	c.complete()
+	if want := "hi 😂 "; c.text != want || c.cursor != len(want) {
+		t.Errorf("text = %q, cursor = %d; want %q, %d", c.text, c.cursor, want, len(want))
+	}
+
+	if c.autocomplete.Visible() {
+		t.Error("autocomplete still shown after completing")
+	}
 }

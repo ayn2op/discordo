@@ -462,13 +462,23 @@ Default: `" • "`
 
 ## ui.autocomplete
 
-The list of mention suggestions above the composer. Its width and height are capped to the available space.
+The list of mention and emoji suggestions above the composer. Its width and height are capped to the available space.
 
 ### ui.autocomplete.mentions
 
 Members suggested after `@`.
 
 #### ui.autocomplete.mentions.enabled
+
+Whether to show these suggestions.
+
+Default: `true`
+
+### ui.autocomplete.emojis
+
+Emojis suggested after `:`.
+
+#### ui.autocomplete.emojis.enabled
 
 Whether to show these suggestions.
 

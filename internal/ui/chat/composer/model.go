@@ -445,13 +445,33 @@ func isMentionChar(char rune) bool {
 	return unicode.IsLetter(char) || unicode.IsDigit(char) || char == '_' || char == '.'
 }
 
+func isEmojiChar(char rune) bool {
+	return unicode.IsLetter(char) || unicode.IsDigit(char) || char == '_' || char == '+' || char == '-'
+}
+
 // query returns the trigger rune and the name being completed, or 0 if none.
 func (m Model) query() (rune, string) {
 	if name, trigger := wordBeforeCursor(m.text, m.cursor, isMentionChar); trigger == '@' && m.cfg.UI.Autocomplete.Mentions.Enabled {
 		return trigger, name
 	}
 
-	return 0, ""
+	if !m.cfg.UI.Autocomplete.Emojis.Enabled {
+		return 0, ""
+	}
+
+	name, trigger := wordBeforeCursor(m.text, m.cursor, isEmojiChar)
+	if trigger != ':' {
+		return 0, ""
+	}
+
+	colon := m.cursor - len(name) - 1
+	before, _ := utf8.DecodeLastRuneInString(m.text[:colon])
+	startsWord := colon == 0 || unicode.IsSpace(before)
+	if !startsWord {
+		return 0, ""
+	}
+
+	return trigger, name
 }
 
 // CacheMemberSearch returns the command that refreshes the autocomplete with the members found.

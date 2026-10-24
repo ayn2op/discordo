@@ -16,6 +16,7 @@ import (
 	"github.com/ayn2op/arikawa/v3/utils/json/option"
 	"github.com/ayn2op/arikawa/v3/utils/sendpart"
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/ui/autocomplete/emojis"
 	"github.com/ayn2op/discordo/internal/ui/autocomplete/mentions"
 	"github.com/ayn2op/tview"
 	"github.com/ncruces/zenity"
@@ -210,7 +211,12 @@ func (m *Model) showAutocomplete() tview.Cmd {
 	}
 
 	guildID, limit := m.channel.GuildID, int(m.cfg.UI.Autocomplete.Limit)
-	return tview.Batch(m.showCompletions(mentions.Title, mentions.Items(m.state, m.channel, name, limit)), m.searchMember(guildID, name))
+	if trigger == '@' {
+		return tview.Batch(m.showCompletions(mentions.Title, mentions.Items(m.state, m.channel, name, limit)), m.searchMember(guildID, name))
+	}
+
+	items, loadImages := emojis.Items(m.cfg, m.state, guildID, name, limit)
+	return tview.Batch(m.showCompletions(emojis.Title, items), loadImages)
 }
 
 // searchMember asks Discord for members matching name; they arrive later as a gateway event.
