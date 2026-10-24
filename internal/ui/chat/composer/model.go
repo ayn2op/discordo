@@ -90,6 +90,15 @@ func NewModel(cfg *config.Config, state *ningen.State) Model {
 
 // SetChannel sets the channel messages are sent to, disabling the composer if the user may not send messages there.
 func (m *Model) SetChannel(channel *discord.Channel) {
+	// A reply or an edit is of a message in the channel left; typed text and attachments stay.
+	if m.channel != nil && m.channel.ID != channel.ID {
+		m.sendMessageData.Reference, m.sendMessageData.AllowedMentions = nil, nil
+		if m.editing != nil {
+			m.editing = nil
+			m.setText("", 0)
+		}
+	}
+
 	m.channel, m.typingUntil = channel, time.Time{}
 	isDM := channel.Type == discord.DirectMessage || channel.Type == discord.GroupDM
 

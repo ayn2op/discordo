@@ -69,6 +69,48 @@ func TestModelSetChannel(t *testing.T) {
 			}
 		})
 	}
+
+	first := discord.Channel{ID: 1, Type: discord.DirectMessage}
+	second := discord.Channel{ID: 2, Type: discord.DirectMessage}
+
+	t.Run("drops the reply, keeping the text and files", func(t *testing.T) {
+		c, _ := newTestModel(t)
+		c.SetChannel(&first)
+		c.StartReply(discord.Message{ID: 5}, "ann", true)
+		c.setText("hi", 2)
+		c.sendMessageData.Files = []sendpart.File{{Name: "a.png"}}
+
+		c.SetChannel(&second)
+		if c.sendMessageData.Reference != nil || c.title() != "" {
+			t.Errorf("still replying: title %q", c.title())
+		}
+
+		if c.text != "hi" || len(c.sendMessageData.Files) != 1 {
+			t.Errorf("text %q and %d files, want the text and file kept", c.text, len(c.sendMessageData.Files))
+		}
+	})
+
+	t.Run("drops the edit and its text", func(t *testing.T) {
+		c, _ := newTestModel(t)
+		c.SetChannel(&first)
+		c.StartEdit(discord.Message{ID: 5, Content: "old"})
+
+		c.SetChannel(&second)
+		if c.editing != nil || c.text != "" {
+			t.Errorf("still editing %v with text %q", c.editing, c.text)
+		}
+	})
+
+	t.Run("keeps the reply in the same channel", func(t *testing.T) {
+		c, _ := newTestModel(t)
+		c.SetChannel(&first)
+		c.StartReply(discord.Message{ID: 5}, "ann", false)
+
+		c.SetChannel(&first)
+		if c.sendMessageData.Reference == nil {
+			t.Error("reply dropped though the channel did not change")
+		}
+	})
 }
 
 func TestModelUpdate(t *testing.T) {
