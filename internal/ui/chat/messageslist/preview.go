@@ -74,7 +74,7 @@ func (m Model) loadImages() tview.Cmd {
 // addEmojis adds the custom emoji of the reactions to the item's message and in its content to squares.
 func (m Model) addEmojis(squares map[discord.URL]uint, item *messageItem) {
 	for _, reaction := range item.message.Reactions {
-		if reaction.Emoji.IsCustom() {
+		if m.cfg.UI.MessagesList.Reactions.Enabled && reaction.Emoji.IsCustom() {
 			squares[emojiURL(reaction.Emoji.ID)] = ui.EmojiRows
 		}
 	}

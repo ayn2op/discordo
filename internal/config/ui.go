@@ -200,6 +200,8 @@ type (
 
 	ReactionsUIConfig struct {
 		EmojiUIConfig
+		// Whether to show reactions below messages.
+		Enabled bool `toml:"enabled"`
 		// The text between reactions.
 		Separator string `toml:"separator"`
 	}
@@ -286,7 +288,7 @@ func defaultUI() UIConfig {
 			Avatars:            AvatarsUIConfig{Preview: true, Height: 2},
 			Embeds:             EmbedsUIConfig{Enabled: true},
 			Grouping:           GroupingUIConfig{Enabled: true, Interval: 10 * time.Minute},
-			Reactions:          ReactionsUIConfig{Separator: " • "},
+			Reactions:          ReactionsUIConfig{Enabled: true, Separator: " • "},
 		},
 		Autocomplete: AutocompleteUIConfig{
 			Mentions: SuggestionsUIConfig{Enabled: true, Preview: true},

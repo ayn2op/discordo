@@ -285,7 +285,7 @@ func (m Model) itemView(item *messageItem) tview.Widget {
 		}
 	}
 
-	if !m.blocked(message.Author) {
+	if m.cfg.UI.MessagesList.Reactions.Enabled && !m.blocked(message.Author) {
 		body = body.Push(m.reactionsView(message.Reactions))
 	}
 
