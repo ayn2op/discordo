@@ -442,12 +442,6 @@ Default: `false`
 
 ### ui.messages_list.reactions
 
-#### ui.messages_list.reactions.enabled
-
-Whether to show reactions below messages.
-
-Default: `true`
-
 #### ui.messages_list.reactions.show_emoji_name
 
 Whether the name is shown after the image. Without an image, it always is.
@@ -459,6 +453,12 @@ Default: `false`
 Whether the names of custom emoji are shown between colons, as in `:name:`.
 
 Default: `false`
+
+#### ui.messages_list.reactions.enabled
+
+Whether to show reactions below messages.
+
+Default: `true`
 
 #### ui.messages_list.reactions.separator
 
