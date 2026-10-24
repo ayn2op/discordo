@@ -41,7 +41,8 @@ func (m Model) previewSources(message discord.Message) []previewSource {
 	return slices.DeleteFunc(sources, func(source previewSource) bool { return source.width == 0 || source.height == 0 })
 }
 
-func (m Model) loadImages() tview.Cmd {
+// LoadImages returns the command that loads the images of the shown messages, or nil.
+func (m Model) LoadImages() tview.Cmd {
 	msg := ui.LoadImagesMsg{Squares: map[discord.URL]uint{}, Previews: map[discord.URL]image.Point{}}
 	avatars := m.cfg.UI.MessagesList.Avatars
 	for index := range m.items {

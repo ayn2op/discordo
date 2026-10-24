@@ -34,18 +34,29 @@ const maxKittyImages = 63488
 var placeholderTerminals = []string{"kitty", "ghostty", "Rio"}
 
 // imageCell returns the size of a cell in image pixels.
-func (m Model) imageCell() (width, height uint) {
+func (m Model) imageCell() image.Point {
 	switch {
 	case !m.kitty:
-		return 1, 2
+		return image.Pt(1, 2)
 	case m.cellWidth == 0 || m.cellHeight == 0:
-		return kittyPixels, kittyPixels * 2
+		return image.Pt(kittyPixels, kittyPixels*2)
 	}
-	return m.cellWidth, m.cellHeight
+	return image.Pt(int(m.cellWidth), int(m.cellHeight))
+}
+
+// reloadImages loads the shown images again if the cell size is no longer cell, as they were sized for it.
+func (m *Model) reloadImages(cell image.Point) tview.Cmd {
+	if m.imageCell() == cell || len(m.images) == 0 {
+		return nil
+	}
+
+	clear(m.images)
+	return m.messagesList.LoadImages()
 }
 
 func (m *Model) loadImages(msg ui.LoadImagesMsg) tview.Cmd {
-	cellWidth, cellHeight := m.imageCell()
+	cell := m.imageCell()
+	cellWidth, cellHeight := uint(cell.X), uint(cell.Y)
 	var cmds []tview.Cmd
 	for url, rows := range msg.Squares {
 		cols := rows * cellHeight / cellWidth
@@ -74,13 +85,14 @@ func (m *Model) loadImage(url discord.URL, bounds image.Rectangle, widget func(i
 	}
 
 	m.images[url] = widget(image.NewAlpha(bounds))
+	cell := m.imageCell()
 	return func() tview.Msg {
 		img, err := m.downloadImage(url, bounds)
 		if err != nil {
 			slog.Error("failed to load image", "url", url, "err", err)
 			img = &image.Alpha{}
 		}
-		return ui.ImageLoadedMsg{URL: url, Image: widget(img)}
+		return ui.ImageLoadedMsg{URL: url, Image: widget(img), Cell: cell}
 	}
 }
 

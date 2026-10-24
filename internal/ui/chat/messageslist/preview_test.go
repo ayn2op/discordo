@@ -71,7 +71,7 @@ func TestModelEmojiLine(t *testing.T) {
 func TestModelLoadImages(t *testing.T) {
 	ml := newTestModel(t, testConfig(t))
 	ml.setMessages([]discord.Message{{ID: 2, ChannelID: 1, Content: "hi <:cat:5>"}})
-	msg := ml.loadImages()().(ui.LoadImagesMsg)
+	msg := ml.LoadImages()().(ui.LoadImagesMsg)
 	if rows := msg.Squares[emojiURL(5)]; rows != ui.EmojiRows {
 		t.Fatalf("the emoji in the content was asked for %d rows tall, want %d", rows, ui.EmojiRows)
 	}

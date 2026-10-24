@@ -14,6 +14,8 @@ github.com/ayn2op/arikawa/v3 v3.0.0-20261016043052-54a68a54e42e h1:jYi14tMaIrOr8
 github.com/ayn2op/arikawa/v3 v3.0.0-20261016043052-54a68a54e42e/go.mod h1:h2k8uDqPkJ8oQmBe5brLwuBaJWMSglq9sZ5B1TjmTdo=
 github.com/ayn2op/ningen/v3 v3.0.1-0.20261014035153-5e43590a1426 h1:0ndRWpAiSSgR0z9b7K+pwMlCHEk3VzQeS5ls+zWtbr0=
 github.com/ayn2op/ningen/v3 v3.0.1-0.20261014035153-5e43590a1426/go.mod h1:4S2B9frwrjELeAldoqPgasA/VfnOySgRlektwYLuVks=
+github.com/ayn2op/tcell/v3 v3.0.0-20261024200736-0788978aab0d h1:pkUW+BQVgvCZR6NqJlSmMNzNi2i6vSu1SHjGiQNu5IA=
+github.com/ayn2op/tcell/v3 v3.0.0-20261024200736-0788978aab0d/go.mod h1:TMjaFRfs5NCU3o1aiuxoRHdEdyixCy1mdGcHdvj7lvc=
 github.com/ayn2op/tview v0.0.0-20261019211151-ea1754130b7f h1:X0YP0jgXQbmzl5m18/RUPwIyZb48pHyqgpvwv1SP5R0=
 github.com/ayn2op/tview v0.0.0-20261019211151-ea1754130b7f/go.mod h1:th/NRjP7oc1J91pGuKE6hw2nEQmGG+Wewe8wjNMPlUA=
 github.com/bdandy/go-errors v1.2.2 h1:WdFv/oukjTJCLa79UfkGmwX7ZxONAihKu4V0mLIs11Q=
@@ -46,8 +48,6 @@ github.com/ebitengine/purego v0.11.2 h1:WWiTx8rD8zYdOwSj8O/NiNbsOvSAgJMTlyV1XlbU
 github.com/ebitengine/purego v0.11.2/go.mod h1:DCHPP08djqhNSoTfImcnHYQRZmd0qhakvrozqaEYhGQ=
 github.com/gdamore/encoding v1.0.1 h1:YzKZckdBL6jVt2Gc+5p82qhrGiqMdG/eNs6Wy0u3Uhw=
 github.com/gdamore/encoding v1.0.1/go.mod h1:0Z0cMFinngz9kS1QfMjCP8TY7em3bZYeeklsSDPivEo=
-github.com/gdamore/tcell/v3 v3.6.1-0.20261023032141-acf267d89712 h1:tfkr/NesYAu5vCtNXq4n5wYREbKu9Mb7jC2mew2ZGJk=
-github.com/gdamore/tcell/v3 v3.6.1-0.20261023032141-acf267d89712/go.mod h1:TMjaFRfs5NCU3o1aiuxoRHdEdyixCy1mdGcHdvj7lvc=
 github.com/gen2brain/malgo v0.11.26 h1:k5WcPIKw1bbJAbPqrvNPt7nehPLoaPNcOFde2+eruiM=
 github.com/gen2brain/malgo v0.11.26/go.mod h1:xLVG3ROA33Bzol1quF3e4ehqcFuqh8QK4B8T6LQUs/M=
 github.com/godbus/dbus/v5 v5.2.4 h1:F2gUCy++NMIxGmo9J+z5le/+ZC8W1OgeR51P4i9ZB/U=

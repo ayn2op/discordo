@@ -4,6 +4,8 @@ go 1.27.0
 
 // replace github.com/ayn2op/tview => ../tview
 
+replace github.com/gdamore/tcell/v3 => github.com/ayn2op/tcell/v3 v3.0.0-20261024200736-0788978aab0d
+
 // replace (
 // 	github.com/ayn2op/arikawa/v3 => ../arikawa
 // 	github.com/ayn2op/ningen/v3 => ../ningen

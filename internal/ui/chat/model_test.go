@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"image"
 	"path/filepath"
 	"testing"
 	"time"
@@ -8,7 +9,9 @@ import (
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/arikawa/v3/gateway"
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
+	tviewimage "github.com/ayn2op/tview/image"
 	"github.com/gdamore/tcell/v3"
 )
 
@@ -98,4 +101,41 @@ func TestModelCycleFocus(t *testing.T) {
 			t.Fatalf("focused = %v, want %v", m.focused, want)
 		}
 	}
+}
+
+func TestModelReloadImages(t *testing.T) {
+	const url = "avatar.png"
+	m := newTestModel(t)
+	m.kitty, m.cellWidth, m.cellHeight = true, 9, 18
+	m.images[url] = tviewimage.New(image.NewAlpha(image.Rect(0, 0, 1, 1)))
+	cell := m.imageCell()
+
+	t.Run("same cell size", func(t *testing.T) {
+		m.reloadImages(cell)
+		if len(m.images) != 1 {
+			t.Fatal("images were dropped though the cell size did not change")
+		}
+	})
+
+	t.Run("new cell size", func(t *testing.T) {
+		m.cellWidth, m.cellHeight = 25, 49
+		m.reloadImages(cell)
+		if len(m.images) != 0 {
+			t.Fatal("images sized for the old cell size were kept")
+		}
+	})
+
+	t.Run("stale download", func(t *testing.T) {
+		m.images[url] = tviewimage.New(image.NewAlpha(image.Rect(0, 0, 1, 1)))
+		// Only an accepted image is sent to kitty.
+		*m, _ = m.Update(ui.ImageLoadedMsg{URL: url, Image: m.images[url], Cell: cell})
+		if m.kittyImages != 0 {
+			t.Fatal("an image sized for the old cell size was shown")
+		}
+
+		*m, _ = m.Update(ui.ImageLoadedMsg{URL: url, Image: m.images[url], Cell: m.imageCell()})
+		if m.kittyImages != 1 {
+			t.Fatal("an image sized for the cell size was not shown")
+		}
+	})
 }

@@ -237,15 +237,18 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	case messageslist.Msg:
 		return m, m.updatePane(paneMessagesList, msg)
 	case tview.ResizeMsg:
+		cell := m.imageCell()
 		cols, rows := msg.Size()
 		width, height := msg.PixelSize()
-		if cols > 0 && rows > 0 {
+		// A resize without a size in pixels may be followed by the terminal's own report of it.
+		if cols > 0 && rows > 0 && width > 0 && height > 0 {
 			m.cellWidth, m.cellHeight = uint(width/cols), uint(height/rows)
 		}
-		return m, nil
+		return m, m.reloadImages(cell)
 	case tview.TerminalInfoMsg:
+		cell := m.imageCell()
 		m.kitty = m.isKitty(msg.Name)
-		return m, nil
+		return m, m.reloadImages(cell)
 	case ui.LoadImagesMsg:
 		cmd := m.loadImages(msg)
 		images := ui.ImagesUpdatedMsg{}
@@ -255,8 +258,8 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 
 		return m, tview.Batch(cmd, m.updatePane(paneMessagesList, msg), m.updatePane(paneComposer, images))
 	case ui.ImageLoadedMsg:
-		// Another channel was selected while it loaded.
-		if _, ok := m.images[msg.URL]; !ok {
+		// Another channel was selected, or the cell size changed, while it loaded.
+		if _, ok := m.images[msg.URL]; !ok || msg.Cell != m.imageCell() {
 			return m, nil
 		}
 

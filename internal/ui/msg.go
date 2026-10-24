@@ -20,6 +20,8 @@ type LoadImagesMsg struct {
 type ImageLoadedMsg struct {
 	URL   discord.URL
 	Image tviewimage.Widget
+	// Cell is the size of a cell in image pixels that the image was sized for.
+	Cell image.Point
 }
 
 // ImagesUpdatedMsg holds images by URL, blank while they load.

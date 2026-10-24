@@ -136,9 +136,9 @@ func (m *Model) SetChannel(channel *discord.Channel, messages []discord.Message)
 	m.reset()
 	m.setMessages(messages)
 	if channel.GuildID.IsValid() {
-		return tview.Batch(m.requestGuildMembers(channel.GuildID, messages), m.loadImages())
+		return tview.Batch(m.requestGuildMembers(channel.GuildID, messages), m.LoadImages())
 	}
-	return m.loadImages()
+	return m.LoadImages()
 }
 
 // ShowNewest clears the selection and scrolls to the newest message, which then stays in view as messages arrive until the user scrolls up.
@@ -150,7 +150,7 @@ func (m *Model) ShowNewest() {
 // UpdateMessage replaces the shown message with the same ID.
 func (m *Model) UpdateMessage(message discord.Message) tview.Cmd {
 	m.setMessage(m.indexOf(message.ChannelID, message.ID), message)
-	return m.loadImages()
+	return m.LoadImages()
 }
 
 // RefreshMessage shows the cached state of a message, such as after a reaction.
@@ -161,7 +161,7 @@ func (m *Model) RefreshMessage(channelID discord.ChannelID, id discord.MessageID
 	}
 
 	m.setMessage(m.indexOf(channelID, id), *message)
-	return m.loadImages()
+	return m.LoadImages()
 }
 
 // DeleteMessage removes the shown message with id.
@@ -212,7 +212,7 @@ func (m *Model) AddMessage(message discord.Message) tview.Cmd {
 
 	grouped := !separator && m.shouldGroup(previous, message)
 	m.items = append(m.items, messageItem{message: message, grouped: grouped})
-	return m.loadImages()
+	return m.LoadImages()
 }
 
 func (m *Model) setMessage(index int, message discord.Message) {
@@ -542,10 +542,10 @@ func (m *Model) prependOlder(msg olderMessagesLoadedMsg) tview.Cmd {
 
 	m.rebuildItems()
 	if selectedChannel.GuildID.IsValid() {
-		return tview.Batch(m.requestGuildMembers(selectedChannel.GuildID, msg.older), m.loadImages())
+		return tview.Batch(m.requestGuildMembers(selectedChannel.GuildID, msg.older), m.LoadImages())
 	}
 
-	return m.loadImages()
+	return m.LoadImages()
 }
 
 // scrolledToTop reports whether view is scrolled to the oldest message shown, which is false while the messages fit, as there is nothing to scroll.
