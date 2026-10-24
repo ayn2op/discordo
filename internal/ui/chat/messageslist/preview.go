@@ -42,12 +42,17 @@ type previewSource struct {
 	width, height uint
 }
 
-func previewSources(message discord.Message) []previewSource {
+func (m Model) previewSources(message discord.Message) []previewSource {
 	var sources []previewSource
 	for _, a := range message.Attachments {
 		sources = append(sources, previewSource{a.Proxy, a.Width, a.Height})
 	}
-	for _, e := range message.Embeds {
+
+	embeds := message.Embeds
+	if !m.cfg.UI.MessagesList.Embeds.Enabled {
+		embeds = nil
+	}
+	for _, e := range embeds {
 		switch {
 		case e.Image != nil:
 			sources = append(sources, previewSource{e.Image.Proxy, e.Image.Width, e.Image.Height})
@@ -111,7 +116,7 @@ func (m Model) loadPreviews() tview.Cmd {
 			continue
 		}
 
-		for _, s := range previewSources(item.message) {
+		for _, s := range m.previewSources(item.message) {
 			if _, ok := item.previews[s.proxy]; ok {
 				continue
 			}

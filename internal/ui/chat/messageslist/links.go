@@ -61,8 +61,12 @@ const (
 )
 
 // messageURLs returns the web links of msg. root is its parsed content, or nil to parse it here.
-func messageURLs(msg discord.Message, root ast.Node) []string {
-	combined := slices.Concat(contentURLs(msg.Content, root), extractEmbedURLs(msg.Embeds))
+func (m Model) messageURLs(msg discord.Message, root ast.Node) []string {
+	embeds := msg.Embeds
+	if !m.cfg.UI.MessagesList.Embeds.Enabled {
+		embeds = nil
+	}
+	combined := slices.Concat(contentURLs(msg.Content, root), extractEmbedURLs(embeds))
 
 	urls := make([]string, 0, len(combined))
 	seen := make(map[string]struct{}, len(combined))

@@ -200,12 +200,25 @@ func TestWaveformRail(t *testing.T) {
 	}
 }
 
-func TestMessageURLs(t *testing.T) {
-	message := discord.Message{Content: "[a](file:///etc/passwd) [b](ms-msdt:id) [c](HTTPS://example.com) https://example.org"}
+func TestModelMessageURLs(t *testing.T) {
+	t.Run("schemes", func(t *testing.T) {
+		ml := newTestModel(t, testConfig(t))
+		message := discord.Message{Content: "[a](file:///etc/passwd) [b](ms-msdt:id) [c](HTTPS://example.com) https://example.org"}
 
-	if got, want := messageURLs(message, nil), []string{"HTTPS://example.com", "https://example.org"}; !slices.Equal(got, want) {
-		t.Errorf("got %q, want %q", got, want)
-	}
+		if got, want := ml.messageURLs(message, nil), []string{"HTTPS://example.com", "https://example.org"}; !slices.Equal(got, want) {
+			t.Errorf("got %q, want %q", got, want)
+		}
+	})
+
+	t.Run("embeds disabled", func(t *testing.T) {
+		ml := newTestModel(t, testConfig(t))
+		ml.cfg.UI.MessagesList.Embeds.Enabled = false
+		message := discord.Message{Embeds: []discord.Embed{{URL: "https://example.org"}}}
+
+		if got := ml.messageURLs(message, nil); len(got) != 0 {
+			t.Errorf("got %q, want none while embeds are disabled", got)
+		}
+	})
 }
 
 func TestModelDrawLayout(t *testing.T) {

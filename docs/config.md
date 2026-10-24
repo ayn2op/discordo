@@ -419,6 +419,14 @@ The number of rows an avatar takes. It is recommended to use `1` with compact.
 
 Default: `2`
 
+### ui.messages_list.embeds
+
+#### ui.messages_list.embeds.enabled
+
+Whether to show embeds (link previews, rich cards) attached to messages.
+
+Default: `true`
+
 ### ui.messages_list.grouping
 
 #### ui.messages_list.grouping.enabled
