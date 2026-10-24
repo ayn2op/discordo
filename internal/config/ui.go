@@ -247,6 +247,8 @@ type (
 	SuggestionsUIConfig struct {
 		// Whether to show these suggestions.
 		Enabled bool `toml:"enabled"`
+		// Whether to draw avatars and custom emoji images before the names.
+		Preview bool `toml:"preview"`
 	}
 )
 
@@ -287,8 +289,8 @@ func defaultUI() UIConfig {
 			Reactions:          ReactionsUIConfig{Separator: " • "},
 		},
 		Autocomplete: AutocompleteUIConfig{
-			Mentions: SuggestionsUIConfig{Enabled: true},
-			Emojis:   SuggestionsUIConfig{Enabled: true},
+			Mentions: SuggestionsUIConfig{Enabled: true, Preview: true},
+			Emojis:   SuggestionsUIConfig{Enabled: true, Preview: true},
 			Limit:    20,
 			MinWidth: 20,
 		},

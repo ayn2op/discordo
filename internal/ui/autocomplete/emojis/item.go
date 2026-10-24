@@ -25,6 +25,8 @@ const (
 type customEmoji struct {
 	emoji discord.Emoji
 	name  string
+	// image is empty if images are off, so none loaded for other panes is drawn.
+	image discord.URL
 	style tview.Style
 }
 
@@ -32,15 +34,13 @@ func (e customEmoji) Insert() string { return e.emoji.String() }
 
 func (e customEmoji) Line(images map[discord.URL]tviewimage.Widget) []text.Span {
 	line := []text.Span{{Text: e.name, Style: e.style}}
-	if image, ok := images[e.image()]; ok {
+	if image, ok := images[e.image]; ok {
 		if lines := image.Lines(); len(lines) > 0 {
 			line = slices.Concat(lines[0], []text.Span{{Text: separator}}, line)
 		}
 	}
 	return line
 }
-
-func (e customEmoji) image() discord.URL { return e.emoji.EmojiURLWithType(discord.PNGImage) }
 
 type unicodeEmoji struct{ emoji, name string }
 
@@ -83,8 +83,12 @@ func Items(cfg *config.Config, s *ningen.State, gID discord.GuildID, query strin
 
 		name := emojisCfg.Name(match.Str)
 		if match.Index < len(custom) {
-			emoji := customEmoji{custom[match.Index], name, cfg.Theme.MessagesList.EmojiStyle.Style}
-			images.Squares[emoji.image()] = ui.EmojiRows
+			emoji := customEmoji{custom[match.Index], name, "", cfg.Theme.MessagesList.EmojiStyle.Style}
+			if cfg.UI.Autocomplete.Emojis.Preview {
+				emoji.image = emoji.emoji.EmojiURLWithType(discord.PNGImage)
+				images.Squares[emoji.image] = ui.EmojiRows
+			}
+
 			items = append(items, emoji)
 			continue
 		}

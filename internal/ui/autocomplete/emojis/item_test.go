@@ -68,16 +68,16 @@ func TestItems(t *testing.T) {
 }
 
 func TestCustomEmojiLine(t *testing.T) {
-	loaded := customEmoji{emoji: discord.Emoji{ID: 1}, name: "cat"}
+	loaded := customEmoji{name: "cat", image: "cat.png"}
 	// Only the image of loaded is loaded.
-	images := map[discord.URL]tviewimage.Widget{loaded.image(): tviewimage.New(image.NewAlpha(image.Rect(0, 0, 2, 2))).Width(2)}
+	images := map[discord.URL]tviewimage.Widget{loaded.image: tviewimage.New(image.NewAlpha(image.Rect(0, 0, 2, 2))).Width(2)}
 	for _, test := range []struct {
 		name  string
 		emoji customEmoji
 		want  int
 	}{
 		{"loaded", loaded, 4},
-		{"not loaded", customEmoji{emoji: discord.Emoji{ID: 2}, name: "dog"}, 1},
+		{"not loaded", customEmoji{name: "dog", image: "dog.png"}, 1},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			got := test.emoji.Line(images)

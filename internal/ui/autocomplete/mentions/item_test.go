@@ -57,7 +57,7 @@ func TestItems(t *testing.T) {
 func loadItems(t *testing.T, cfg *config.Config, s *ningen.State, channel *discord.Channel, query string, limit int) []autocomplete.Item {
 	t.Helper()
 	items, loadImages := Items(cfg, s, channel, query, limit)
-	if shown := len(items) > 0 && cfg.UI.MessagesList.Avatars.Preview; shown != (loadImages != nil) {
+	if shown := len(items) > 0 && cfg.UI.Autocomplete.Mentions.Preview; shown != (loadImages != nil) {
 		t.Errorf("loads avatars = %t, want %t", loadImages != nil, shown)
 	}
 	return items

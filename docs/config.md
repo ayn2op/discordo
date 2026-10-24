@@ -474,6 +474,12 @@ Whether to show these suggestions.
 
 Default: `true`
 
+#### ui.autocomplete.mentions.preview
+
+Whether to draw avatars and custom emoji images before the names.
+
+Default: `true`
+
 ### ui.autocomplete.emojis
 
 Emojis suggested after `:`.
@@ -481,6 +487,12 @@ Emojis suggested after `:`.
 #### ui.autocomplete.emojis.enabled
 
 Whether to show these suggestions.
+
+Default: `true`
+
+#### ui.autocomplete.emojis.preview
+
+Whether to draw avatars and custom emoji images before the names.
 
 Default: `true`
 

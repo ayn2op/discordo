@@ -55,7 +55,7 @@ func Items(cfg *config.Config, s *ningen.State, channel *discord.Channel, query 
 		images.Squares[mention.avatar] = avatarRows
 	}
 
-	if !cfg.UI.MessagesList.Avatars.Preview || len(images.Squares) == 0 {
+	if !cfg.UI.Autocomplete.Mentions.Preview || len(images.Squares) == 0 {
 		return items, nil
 	}
 	return items, func() tview.Msg { return images }
