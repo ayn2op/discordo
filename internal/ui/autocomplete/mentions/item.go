@@ -8,6 +8,8 @@ import (
 
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/arikawa/v3/state"
+	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/discordo/internal/ui/autocomplete"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
@@ -17,27 +19,54 @@ import (
 	"github.com/sahilm/fuzzy"
 )
 
-// Title is the autocomplete's title for mentions.
-const Title = "Mentions"
+const (
+	// Title is the autocomplete's title for mentions.
+	Title     = "Mentions"
+	separator = " "
+	// avatarRows is one line, so avatars use their own URL instead of sharing the taller ones in the messages list.
+	avatarRows = 1
+	avatarSize = "?size=32"
+)
 
 type mention struct {
 	username, name string
+	avatar         discord.URL
 	style          tview.Style
 }
 
 func (m mention) Insert() string { return "@" + m.username }
 
-func (m mention) Line(map[discord.URL]tviewimage.Widget) []text.Span {
-	return []text.Span{{Text: m.name, Style: m.style}}
+func (m mention) Line(images map[discord.URL]tviewimage.Widget) []text.Span {
+	line := []text.Span{{Text: m.name, Style: m.style}}
+	if image, ok := images[m.avatar]; ok {
+		if lines := image.Lines(); len(lines) > 0 {
+			line = slices.Concat(lines[0], []text.Span{{Text: separator}}, line)
+		}
+	}
+	return line
 }
 
-// Items returns up to limit users in channel matching query, best first, or its recent authors if query is empty.
-func Items(s *ningen.State, channel *discord.Channel, query string, limit int) []autocomplete.Item {
+// Items returns up to limit users in channel matching query, best first, or its recent authors if query is empty, and the command that loads their avatars, or nil.
+func Items(cfg *config.Config, s *ningen.State, channel *discord.Channel, query string, limit int) ([]autocomplete.Item, tview.Cmd) {
+	var items []autocomplete.Item
+	images := ui.LoadImagesMsg{Squares: map[discord.URL]uint{}}
+	for _, mention := range mentions(s, channel, query, limit) {
+		items = append(items, mention)
+		images.Squares[mention.avatar] = avatarRows
+	}
+
+	if !cfg.UI.MessagesList.Avatars.Preview || len(images.Squares) == 0 {
+		return items, nil
+	}
+	return items, func() tview.Msg { return images }
+}
+
+func mentions(s *ningen.State, channel *discord.Channel, query string, limit int) []mention {
 	if query == "" {
 		return recentAuthors(s, channel, limit)
 	}
 
-	var items []autocomplete.Item
+	var items []mention
 	if !channel.GuildID.IsValid() {
 		// DMs have recipients, not members.
 		me, _ := s.Cabinet.Me()
@@ -70,7 +99,7 @@ func Items(s *ningen.State, channel *discord.Channel, query string, limit int) [
 	return items
 }
 
-func recentAuthors(s *ningen.State, channel *discord.Channel, limit int) []autocomplete.Item {
+func recentAuthors(s *ningen.State, channel *discord.Channel, limit int) []mention {
 	messages, err := s.Cabinet.Messages(channel.ID)
 	if err != nil {
 		return nil
@@ -78,7 +107,7 @@ func recentAuthors(s *ningen.State, channel *discord.Channel, limit int) []autoc
 
 	me, _ := s.Cabinet.Me()
 	shown := map[discord.UserID]bool{me.ID: true}
-	var items []autocomplete.Item
+	var items []mention
 	for _, message := range messages {
 		if len(items) == limit {
 			break
@@ -113,11 +142,15 @@ func memberMention(s *ningen.State, gID discord.GuildID, member *discord.Member)
 		style = style.Foreground(tcell.NewHexColor(int32(color)))
 	}
 
-	return mention{member.User.Username, cmp.Or(member.Nick, member.User.DisplayName, member.User.Username), style}
+	return mention{member.User.Username, cmp.Or(member.Nick, member.User.DisplayName, member.User.Username), avatarURL(member.User), style}
 }
 
 func userMention(s *ningen.State, user *discord.User) mention {
-	return mention{user.Username, user.DisplayOrUsername(), presenceStyle(s, discord.NullGuildID, user.ID)}
+	return mention{user.Username, user.DisplayOrUsername(), avatarURL(*user), presenceStyle(s, discord.NullGuildID, user.ID)}
+}
+
+func avatarURL(user discord.User) discord.URL {
+	return user.AvatarURLWithType(discord.PNGImage) + avatarSize
 }
 
 // presenceStyle dims offline users.

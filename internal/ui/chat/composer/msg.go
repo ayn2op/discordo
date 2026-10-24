@@ -212,7 +212,8 @@ func (m *Model) showAutocomplete() tview.Cmd {
 
 	guildID, limit := m.channel.GuildID, int(m.cfg.UI.Autocomplete.Limit)
 	if trigger == '@' {
-		return tview.Batch(m.showCompletions(mentions.Title, mentions.Items(m.state, m.channel, name, limit)), m.searchMember(guildID, name))
+		items, loadImages := mentions.Items(m.cfg, m.state, m.channel, name, limit)
+		return tview.Batch(m.showCompletions(mentions.Title, items), loadImages, m.searchMember(guildID, name))
 	}
 
 	items, loadImages := emojis.Items(m.cfg, m.state, guildID, name, limit)
