@@ -169,7 +169,7 @@ func (m Model) playVoiceMessage(attachment discord.Attachment) error {
 		return err
 	}
 
-	resp, err := m.get(attachment.URL)
+	resp, err := m.Get(attachment.URL)
 	if err != nil {
 		return err
 	}

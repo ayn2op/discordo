@@ -302,6 +302,8 @@ func TestModelBuildItemLayout(t *testing.T) {
 	limits := layout.Limits{Max: layout.Size{Width: 80}, Infinite: layout.Axes{Height: true}}
 
 	// The avatar is 2 rows, below the row of a reply.
+	avatar := tviewimage.New(image.NewAlpha(image.Rect(0, 0, 4, 4))).Width(4).CellSize(1, 2)
+	ml.images = map[discord.URL]tviewimage.Widget{avatarURL(discord.User{}): avatar}
 	for want, messageType := range map[int]discord.MessageType{2: discord.DefaultMessage, 3: discord.InlinedReplyMessage} {
 		ml.SetChannel(ml.channel, []discord.Message{{ID: 1, Type: messageType, Content: "hi"}})
 		if got := ml.buildItem(ml.messageIndex(-1, 1)).Layout(limits).Height; got != want {
@@ -395,7 +397,7 @@ func TestModelReactionsView(t *testing.T) {
 		}
 	})
 	t.Run("emoji image", func(t *testing.T) {
-		ml.images[emojiURL(custom.ID)] = tviewimage.New(image.NewAlpha(image.Rect(0, 0, 2, 2))).Width(2)
+		ml.images = map[discord.URL]tviewimage.Widget{emojiURL(custom.ID): tviewimage.New(image.NewAlpha(image.Rect(0, 0, 2, 2))).Width(2)}
 		// The blank image takes two cells before the count.
 		if got := draw(); got != "ok 2 •    1" {
 			t.Fatalf("reactions = %q", got)

@@ -32,6 +32,7 @@ import (
 	"github.com/ayn2op/tview/backdrop"
 	"github.com/ayn2op/tview/center"
 	"github.com/ayn2op/tview/column"
+	tviewimage "github.com/ayn2op/tview/image"
 	"github.com/ayn2op/tview/inert"
 	"github.com/ayn2op/tview/keybind"
 	"github.com/ayn2op/tview/picker"
@@ -67,6 +68,14 @@ type Model struct {
 	// typers maps the users typing in the selected channel to when their typing indicator expires.
 	typers map[discord.UserID]time.Time
 
+	// images are shared by the panes.
+	images map[discord.URL]tviewimage.Widget
+	kitty  bool
+	// kittyImages counts the images sent to the terminal.
+	kittyImages int
+	// Zero if the terminal does not report its cell size.
+	cellWidth, cellHeight uint
+
 	cfg *config.Config
 }
 
@@ -75,6 +84,7 @@ var _ tview.Model[Model] = Model{}
 func NewModel(cfg *config.Config, token string) Model {
 	m := Model{
 		typers: make(map[discord.UserID]time.Time),
+		images: make(map[discord.URL]tviewimage.Widget),
 
 		cfg: cfg,
 	}
@@ -221,9 +231,44 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			m.setFocus(paneComposer)
 		}
 		title := ui.ChannelToString(msg.Channel, m.cfg.Icons, m.state) + " - " + consts.Name
+		// Not shown again soon.
+		clear(m.images)
 		return m, tview.Batch(tview.SetTitle(title), m.messagesList.SetChannel(&msg.Channel, msg.Messages), membersCmd)
-	case messageslist.Msg, tview.TerminalInfoMsg, tview.ResizeMsg:
+	case messageslist.Msg:
 		return m, m.updatePane(paneMessagesList, msg)
+	case tview.ResizeMsg:
+		cols, rows := msg.Size()
+		width, height := msg.PixelSize()
+		if cols > 0 && rows > 0 {
+			m.cellWidth, m.cellHeight = uint(width/cols), uint(height/rows)
+		}
+		return m, nil
+	case tview.TerminalInfoMsg:
+		m.kitty = m.isKitty(msg.Name)
+		return m, nil
+	case ui.LoadImagesMsg:
+		cmd := m.loadImages(msg)
+		images := ui.ImagesUpdatedMsg{}
+		for url := range msg.Squares {
+			images[url] = m.images[url]
+		}
+
+		return m, tview.Batch(cmd, m.updatePane(paneMessagesList, msg), m.updatePane(paneComposer, images))
+	case ui.ImageLoadedMsg:
+		// Another channel was selected while it loaded.
+		if _, ok := m.images[msg.URL]; !ok {
+			return m, nil
+		}
+
+		image, cmd := msg.Image, tview.Cmd(nil)
+		if m.kitty {
+			m.kittyImages++
+			image = image.Kitty(m.kittyImages%maxKittyImages + 1)
+			cmd = image.Transmit()
+		}
+
+		m.images[msg.URL] = image
+		return m, tview.Batch(cmd, m.updatePane(paneMessagesList, msg), m.updatePane(paneComposer, ui.ImagesUpdatedMsg{msg.URL: image}))
 	case typingExpiredMsg:
 		if until, ok := m.typers[msg.userID]; ok && !time.Now().Before(until) {
 			delete(m.typers, msg.userID)
@@ -400,7 +445,7 @@ func (m Model) paneView(target pane) tview.Widget {
 	case paneGuildsTree:
 		child = m.guildsTree.View(focused)
 	case paneMessagesList:
-		child = m.messagesList.View(focused, m.typingFooter())
+		child = m.messagesList.View(focused, m.typingFooter(), m.images)
 	case paneComposer:
 		child = m.composer.View(focused)
 	case paneMembersTree:

@@ -12,8 +12,8 @@ import (
 	"github.com/ayn2op/arikawa/v3/utils/httputil"
 )
 
-// get requests the file at url, by a new link to it if that one expired.
-func (m Model) get(url string) (*http.Response, error) {
+// Get requests the file at url, by a new link to it if that one expired.
+func (m Model) Get(url string) (*http.Response, error) {
 	resp, err := http.Get(url)
 	if err != nil || resp.StatusCode == http.StatusOK {
 		return resp, err
@@ -41,7 +41,7 @@ func (m Model) get(url string) (*http.Response, error) {
 }
 
 func (m Model) downloadAttachment(attachment discord.Attachment, destination string) error {
-	resp, err := m.get(attachment.URL)
+	resp, err := m.Get(attachment.URL)
 	if err != nil {
 		return err
 	}
