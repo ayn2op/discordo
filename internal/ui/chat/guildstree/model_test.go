@@ -95,7 +95,7 @@ func TestMentionsLabel(t *testing.T) {
 
 func TestModelMentions(t *testing.T) {
 	s := ningen.FromState(state.NewWithStore("", defaultstore.New()))
-	s.State.Handler.Call(&gateway.ReadyEvent{ReadyEventExtras: gateway.ReadyEventExtras{ReadStates: []gateway.ReadState{
+	s.State.Call(&gateway.ReadyEvent{ReadyEventExtras: gateway.ReadyEventExtras{ReadStates: []gateway.ReadState{
 		{ChannelID: 1, LastMessageID: 10, MentionCount: 2},
 		{ChannelID: 2, LastMessageID: 20, MentionCount: 3},
 	}}})

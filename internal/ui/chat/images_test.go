@@ -1,7 +1,10 @@
 package chat
 
 import (
+	"bytes"
+	"compress/zlib"
 	"image"
+	"io"
 	"testing"
 )
 
@@ -44,4 +47,31 @@ func TestSquare(t *testing.T) {
 			t.Fatal("image is not centered")
 		}
 	})
+}
+
+func TestNewPooledCompressor(t *testing.T) {
+	want := []byte("pixels")
+	// The second round reuses the pooled writer.
+	for range 2 {
+		var buf bytes.Buffer
+		compressor, err := newPooledCompressor(&buf)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := compressor.Write(want); err != nil {
+			t.Fatal(err)
+		}
+		if err := compressor.Close(); err != nil {
+			t.Fatal(err)
+		}
+
+		reader, err := zlib.NewReader(&buf)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, err := io.ReadAll(reader)
+		if err != nil || !bytes.Equal(got, want) {
+			t.Fatalf("got %q, %v, want %q", got, err, want)
+		}
+	}
 }

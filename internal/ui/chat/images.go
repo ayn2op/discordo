@@ -1,15 +1,18 @@
 package chat
 
 import (
+	"compress/zlib"
 	"image"
 	"image/draw"
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
+	"io"
 	"log/slog"
 	"net/url"
 	"slices"
 	"strconv"
+	"sync"
 
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/discordo/internal/ui"
@@ -29,6 +32,29 @@ const kittyPixels = 10
 
 // maxKittyImages is how many images kitty's placeholders tell apart.
 const maxKittyImages = 63488
+
+// compressorPool reuses compressors, as each holds about a megabyte of state.
+var compressorPool = sync.Pool{New: func() any {
+	compressor, _ := zlib.NewWriterLevel(nil, zlib.BestSpeed)
+	return compressor
+}}
+
+// pooledCompressor returns its writer to the pool on Close.
+type pooledCompressor struct {
+	*zlib.Writer
+}
+
+func newPooledCompressor(w io.Writer) (io.WriteCloser, error) {
+	compressor := compressorPool.Get().(*zlib.Writer)
+	compressor.Reset(w)
+	return pooledCompressor{compressor}, nil
+}
+
+func (compressor pooledCompressor) Close() error {
+	err := compressor.Writer.Close()
+	compressorPool.Put(compressor.Writer)
+	return err
+}
 
 // WezTerm and Konsole support kitty graphics but not Unicode placeholders.
 var placeholderTerminals = []string{"kitty", "ghostty", "Rio"}
@@ -50,8 +76,18 @@ func (m *Model) reloadImages(cell image.Point) tview.Cmd {
 		return nil
 	}
 
+	return tview.Batch(m.clearImages(), m.messagesList.LoadImages())
+}
+
+// clearImages drops the images and returns a command that frees them in the terminal.
+func (m *Model) clearImages() tview.Cmd {
+	var cmds []tview.Cmd
+	for _, image := range m.images {
+		cmds = append(cmds, image.Delete())
+	}
+
 	clear(m.images)
-	return m.messagesList.LoadImages()
+	return tview.Batch(cmds...)
 }
 
 func (m *Model) loadImages(msg ui.LoadImagesMsg) tview.Cmd {

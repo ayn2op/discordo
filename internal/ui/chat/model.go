@@ -232,8 +232,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		}
 		title := ui.ChannelToString(msg.Channel, m.cfg.Icons, m.state) + " - " + consts.Name
 		// Not shown again soon.
-		clear(m.images)
-		return m, tview.Batch(tview.SetTitle(title), m.messagesList.SetChannel(&msg.Channel, msg.Messages), membersCmd)
+		return m, tview.Batch(m.clearImages(), tview.SetTitle(title), m.messagesList.SetChannel(&msg.Channel, msg.Messages), membersCmd)
 	case messageslist.Msg:
 		return m, m.updatePane(paneMessagesList, msg)
 	case tview.ResizeMsg:
@@ -266,7 +265,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		image, cmd := msg.Image, tview.Cmd(nil)
 		if m.kitty {
 			m.kittyImages++
-			image = image.Kitty(m.kittyImages%maxKittyImages + 1)
+			image = image.Kitty(m.kittyImages%maxKittyImages + 1).Compressor(newPooledCompressor)
 			cmd = image.Transmit()
 		}
 
