@@ -46,11 +46,11 @@ jobs:
           echo "C:\msys64\clangarm64\bin" >> $env:GITHUB_PATH
           echo "CC=clang" >> $env:GITHUB_ENV
 
-      - name: Check that docs/config.md is up to date
+      - name: Check that generated files are up to date
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
-          go generate ./internal/config
-          git diff --exit-code docs/config.md
+          go generate ./internal/config ./pkg/discordemoji
+          git diff --exit-code docs/config.md pkg/discordemoji
 
       # -race is not supported on windows/arm64.
       - name: Test
