@@ -27,6 +27,7 @@ import (
 	"github.com/ayn2op/discordo/internal/ui/chat/guildstree"
 	"github.com/ayn2op/discordo/internal/ui/chat/memberstree"
 	"github.com/ayn2op/discordo/internal/ui/chat/messageslist"
+	"github.com/ayn2op/discordo/internal/ui/images"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/backdrop"
@@ -115,7 +116,7 @@ func NewModel(cfg *config.Config, token string) Model {
 
 	m.guildsTree = guildstree.NewModel(cfg, m.state)
 	m.membersTree = memberstree.NewModel(cfg, m.state)
-	m.messagesList = messageslist.NewModel(cfg, m.state, m.images)
+	m.messagesList = messageslist.NewModel(cfg, m.state)
 	m.composer = composer.NewModel(cfg, m.state)
 	m.channelsPicker = channelspicker.NewModel(cfg)
 	m.attachmentsPicker = attachmentspicker.NewModel(cfg)
@@ -252,15 +253,10 @@ func (m Model) update(msg tview.Msg) (Model, tview.Cmd) {
 		cell := m.imageCell()
 		m.kitty = m.isKitty(msg.Name)
 		return m, m.reloadImages(cell)
-	case ui.LoadImagesMsg:
+	case images.RequestedMsg:
 		cmd := m.loadImages(msg)
-		images := ui.ImagesUpdatedMsg{}
-		for url := range msg.Squares {
-			images[url] = m.images[url]
-		}
-
-		return m, tview.Batch(cmd, m.updatePane(paneMessagesList, msg), m.updatePane(paneComposer, images))
-	case ui.ImageLoadedMsg:
+		return m, tview.Batch(cmd, m.sendImages())
+	case images.LoadedMsg:
 		// Another channel was selected, or the cell size changed, while it loaded.
 		if _, ok := m.images[msg.URL]; !ok || msg.Cell != m.imageCell() {
 			return m, nil
@@ -274,7 +270,7 @@ func (m Model) update(msg tview.Msg) (Model, tview.Cmd) {
 		}
 
 		m.images[msg.URL] = image
-		return m, tview.Batch(cmd, m.updatePane(paneMessagesList, msg), m.updatePane(paneComposer, ui.ImagesUpdatedMsg{msg.URL: image}))
+		return m, tview.Batch(cmd, m.sendImages())
 	case typingExpiredMsg:
 		if until, ok := m.typers[msg.userID]; ok && !time.Now().Before(until) {
 			delete(m.typers, msg.userID)

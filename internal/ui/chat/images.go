@@ -9,13 +9,14 @@ import (
 	_ "image/png"
 	"io"
 	"log/slog"
+	"maps"
 	"net/url"
 	"slices"
 	"strconv"
 	"sync"
 
 	"github.com/ayn2op/arikawa/v3/discord"
-	"github.com/ayn2op/discordo/internal/ui"
+	"github.com/ayn2op/discordo/internal/ui/images"
 	"github.com/ayn2op/tview"
 	tviewimage "github.com/ayn2op/tview/image"
 	_ "golang.org/x/image/webp"
@@ -87,10 +88,16 @@ func (m *Model) clearImages() tview.Cmd {
 	}
 
 	clear(m.images)
-	return tview.Batch(cmds...)
+	return tview.Batch(append(cmds, m.sendImages())...)
 }
 
-func (m *Model) loadImages(msg ui.LoadImagesMsg) tview.Cmd {
+// sendImages passes a copy of the images to the models that draw them.
+func (m *Model) sendImages() tview.Cmd {
+	images := images.ChangedMsg(maps.Clone(m.images))
+	return tview.Batch(m.updatePane(paneMessagesList, images), m.updatePane(paneComposer, images))
+}
+
+func (m *Model) loadImages(msg images.RequestedMsg) tview.Cmd {
 	cell := m.imageCell()
 	cellWidth, cellHeight := uint(cell.X), uint(cell.Y)
 	var cmds []tview.Cmd
@@ -128,7 +135,7 @@ func (m *Model) loadImage(url discord.URL, bounds image.Rectangle, widget func(i
 			slog.Error("failed to load image", "url", url, "err", err)
 			img = &image.Alpha{}
 		}
-		return ui.ImageLoadedMsg{URL: url, Image: widget(img), Cell: cell}
+		return images.LoadedMsg{URL: url, Image: widget(img), Cell: cell}
 	}
 }
 

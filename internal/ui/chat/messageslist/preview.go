@@ -7,6 +7,7 @@ import (
 	"github.com/ayn2op/arikawa/v3/discord"
 	md "github.com/ayn2op/arikawa/v3/markdown"
 	"github.com/ayn2op/discordo/internal/ui"
+	"github.com/ayn2op/discordo/internal/ui/images"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/text"
 	"github.com/yuin/goldmark/v2/ast"
@@ -43,7 +44,7 @@ func (m Model) previewSources(message discord.Message) []previewSource {
 
 // LoadImages returns the command that loads the images of the shown messages, or nil.
 func (m Model) LoadImages() tview.Cmd {
-	msg := ui.LoadImagesMsg{Squares: map[discord.URL]uint{}, Previews: map[discord.URL]image.Point{}}
+	msg := images.RequestedMsg{Squares: map[discord.URL]uint{}, Previews: map[discord.URL]image.Point{}}
 	for index := range m.items {
 		item := &m.items[index]
 		if item.separator != nil {

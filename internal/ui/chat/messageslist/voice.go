@@ -94,7 +94,7 @@ func isVoiceMessage(message discord.Message) bool {
 // playMsg asks to play the voice message whose play symbol was clicked.
 type playMsg discord.Attachment
 
-func (playMsg) messagesList() {}
+func (playMsg) isMsg() {}
 
 // play plays the voice message that is attachment, or pauses or resumes it if it is the one playing.
 func (m Model) play(attachment discord.Attachment) tview.Cmd {
@@ -134,9 +134,9 @@ type (
 	seekReleaseMsg struct{}
 )
 
-func (seekPressMsg) messagesList()   {}
-func (seekMsg) messagesList()        {}
-func (seekReleaseMsg) messagesList() {}
+func (seekPressMsg) isMsg()   {}
+func (seekMsg) isMsg()        {}
+func (seekReleaseMsg) isMsg() {}
 
 // seek moves the voice message that is playing or paused to position.
 func (m Model) seek(position time.Duration) tview.Cmd {

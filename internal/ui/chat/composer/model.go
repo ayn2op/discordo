@@ -25,6 +25,7 @@ import (
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/discordo/internal/ui/autocomplete"
 	"github.com/ayn2op/discordo/internal/ui/autocomplete/mentions"
+	"github.com/ayn2op/discordo/internal/ui/images"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/box"
@@ -580,7 +581,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			m.undo()
 			return m, nil
 		}
-	case autocomplete.Msg, ui.ImagesUpdatedMsg:
+	case autocomplete.Msg, images.ChangedMsg:
 		var cmd tview.Cmd
 		m.autocomplete, cmd = m.autocomplete.Update(msg)
 		return m, cmd

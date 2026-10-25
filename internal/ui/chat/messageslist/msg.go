@@ -13,19 +13,19 @@ import (
 )
 
 // Msg is implemented by the messages the list sends itself, which must reach it whatever has the focus.
-type Msg interface{ messagesList() }
+type Msg interface{ isMsg() }
 
 type olderMessagesLoadedMsg struct {
 	channelID discord.ChannelID
 	older     []discord.Message
 }
 
-func (olderMessagesLoadedMsg) messagesList() {}
+func (olderMessagesLoadedMsg) isMsg() {}
 
 // voiceMsg reports that the status of the voice message player changed.
 type voiceMsg struct{}
 
-func (voiceMsg) messagesList() {}
+func (voiceMsg) isMsg() {}
 
 // ReplyMsg asks to reply to Message by Name, mentioning its author if Mention is set.
 type ReplyMsg struct {

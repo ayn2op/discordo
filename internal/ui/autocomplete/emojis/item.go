@@ -8,6 +8,7 @@ import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/discordo/internal/ui/autocomplete"
+	"github.com/ayn2op/discordo/internal/ui/images"
 	"github.com/ayn2op/discordo/pkg/discordemoji"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
@@ -74,7 +75,7 @@ func Items(cfg *config.Config, s *ningen.State, gID discord.GuildID, query strin
 
 	emojisCfg := cfg.UI.MessagesList.Emojis
 	var items []autocomplete.Item
-	images := ui.LoadImagesMsg{Squares: map[discord.URL]uint{}}
+	images := images.RequestedMsg{Squares: map[discord.URL]uint{}}
 	shown := make(map[string]bool)
 	for _, match := range matches {
 		if len(items) == limit {

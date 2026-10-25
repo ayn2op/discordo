@@ -32,7 +32,7 @@ func testConfig(t *testing.T) *config.Config {
 // newTestModel returns a list showing channel 1, logged in as user 1.
 func newTestModel(t *testing.T, cfg *config.Config) *Model {
 	t.Helper()
-	ml := NewModel(cfg, ningen.FromState(state.New("")), map[discord.URL]tviewimage.Widget{})
+	ml := NewModel(cfg, ningen.FromState(state.New("")))
 	if err := ml.state.MyselfSet(discord.User{ID: 1}, false); err != nil {
 		t.Fatal(err)
 	}

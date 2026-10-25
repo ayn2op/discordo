@@ -9,7 +9,7 @@ import (
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/arikawa/v3/gateway"
 	"github.com/ayn2op/discordo/internal/config"
-	"github.com/ayn2op/discordo/internal/ui"
+	"github.com/ayn2op/discordo/internal/ui/images"
 	"github.com/ayn2op/tview"
 	tviewimage "github.com/ayn2op/tview/image"
 	"github.com/gdamore/tcell/v3"
@@ -128,12 +128,12 @@ func TestModelReloadImages(t *testing.T) {
 	t.Run("stale download", func(t *testing.T) {
 		m.images[url] = tviewimage.New(image.NewAlpha(image.Rect(0, 0, 1, 1)))
 		// Only an accepted image is sent to kitty.
-		*m, _ = m.Update(ui.ImageLoadedMsg{URL: url, Image: m.images[url], Cell: cell})
+		*m, _ = m.Update(images.LoadedMsg{URL: url, Image: m.images[url], Cell: cell})
 		if m.kittyImages != 0 {
 			t.Fatal("an image sized for the old cell size was shown")
 		}
 
-		*m, _ = m.Update(ui.ImageLoadedMsg{URL: url, Image: m.images[url], Cell: m.imageCell()})
+		*m, _ = m.Update(images.LoadedMsg{URL: url, Image: m.images[url], Cell: m.imageCell()})
 		if m.kittyImages != 1 {
 			t.Fatal("an image sized for the cell size was not shown")
 		}

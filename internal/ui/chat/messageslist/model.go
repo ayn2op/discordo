@@ -8,6 +8,7 @@ import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/markdown"
 	"github.com/ayn2op/discordo/internal/ui"
+	"github.com/ayn2op/discordo/internal/ui/images"
 	"github.com/ayn2op/discordo/internal/voice"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
@@ -50,7 +51,7 @@ type Model struct {
 	items   []messageItem
 
 	renderer *markdown.Renderer
-	// images are shared with the chat model, which loads them.
+	// images are the chat model's, which loads them, by URL.
 	images map[discord.URL]tviewimage.Widget
 	// focused, footer and avatarWidth, in cells, are set by the chat model, which keeps what they follow from.
 	focused     bool
@@ -63,14 +64,12 @@ type Model struct {
 	seeking bool
 }
 
-// NewModel returns the messages list, drawn with the images by URL.
-func NewModel(cfg *config.Config, state *ningen.State, images map[discord.URL]tviewimage.Widget) Model {
+func NewModel(cfg *config.Config, state *ningen.State) Model {
 	ml := Model{
 		cursor:      -1,
 		target:      -1,
 		cfg:         cfg,
 		state:       state,
-		images:      images,
 		renderer:    markdown.NewRenderer(cfg),
 		voicePlayer: voice.NewPlayer(),
 	}
@@ -574,7 +573,8 @@ func (m Model) Init() tview.Cmd {
 // Update returns m changed in response to msg and a command to run, or nil.
 func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	switch msg := msg.(type) {
-	case ui.LoadImagesMsg, ui.ImageLoadedMsg:
+	case images.ChangedMsg:
+		m.images = msg
 		m.clearViews()
 		return m, nil
 	case tview.KeyMsg:

@@ -9,8 +9,8 @@ import (
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/arikawa/v3/state"
 	"github.com/ayn2op/discordo/internal/config"
-	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/discordo/internal/ui/autocomplete"
+	"github.com/ayn2op/discordo/internal/ui/images"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
 	tviewimage "github.com/ayn2op/tview/image"
@@ -49,7 +49,7 @@ func (m mention) Line(images map[discord.URL]tviewimage.Widget) []text.Span {
 // Items returns up to limit users in channel matching query, best first, or its recent authors if query is empty, and the command that loads their avatars, or nil.
 func Items(cfg *config.Config, s *ningen.State, channel *discord.Channel, query string, limit int) ([]autocomplete.Item, tview.Cmd) {
 	var items []autocomplete.Item
-	images := ui.LoadImagesMsg{Squares: map[discord.URL]uint{}}
+	images := images.RequestedMsg{Squares: map[discord.URL]uint{}}
 	for _, mention := range mentions(s, channel, query, limit) {
 		items = append(items, mention)
 		images.Squares[mention.avatar] = avatarRows

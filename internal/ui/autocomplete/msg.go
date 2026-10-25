@@ -11,12 +11,12 @@ type SetItemsMsg struct {
 }
 
 // Msg is a message for the list.
-type Msg interface{ autocomplete() }
+type Msg interface{ isMsg() }
 
 type listMsg int
 
-func (listMsg) autocomplete() {}
+func (listMsg) isMsg() {}
 
 type scrollMsg viewport.ScrollState
 
-func (scrollMsg) autocomplete() {}
+func (scrollMsg) isMsg() {}

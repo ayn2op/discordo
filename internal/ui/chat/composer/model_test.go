@@ -12,7 +12,7 @@ import (
 	"github.com/ayn2op/arikawa/v3/state/store/defaultstore"
 	"github.com/ayn2op/arikawa/v3/utils/sendpart"
 	"github.com/ayn2op/discordo/internal/config"
-	"github.com/ayn2op/discordo/internal/ui"
+	"github.com/ayn2op/discordo/internal/ui/images"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
 	tviewimage "github.com/ayn2op/tview/image"
@@ -155,7 +155,7 @@ func TestModelUpdate(t *testing.T) {
 
 	t.Run("images before completing", func(t *testing.T) {
 		c, _ := newTestModel(t)
-		c.Update(ui.ImagesUpdatedMsg{"cat": tviewimage.New(image.NewAlpha(image.Rect(0, 0, 2, 2)))})
+		c.Update(images.ChangedMsg{"cat": tviewimage.New(image.NewAlpha(image.Rect(0, 0, 2, 2)))})
 	})
 }
 

@@ -2,11 +2,10 @@
 package autocomplete
 
 import (
-	"maps"
-
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/ui"
+	"github.com/ayn2op/discordo/internal/ui/images"
 	"github.com/ayn2op/tview"
 	tviewimage "github.com/ayn2op/tview/image"
 	"github.com/ayn2op/tview/layout"
@@ -22,7 +21,7 @@ type Model struct {
 	cfg   *config.Config
 	title string
 	items []Item
-	// images are blank while they load.
+	// images are the chat model's, which loads them, by URL.
 	images      map[discord.URL]tviewimage.Widget
 	cursor      int
 	scrollState viewport.ScrollState
@@ -79,18 +78,15 @@ func (m Model) Init() tview.Cmd { return nil }
 func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	switch msg := msg.(type) {
 	case SetItemsMsg:
-		m.title, m.items, m.images, m.cursor = msg.Title, msg.Items, map[discord.URL]tviewimage.Widget{}, 0
+		m.title, m.items, m.cursor = msg.Title, msg.Items, 0
 		m.scrollState.ScrollToTarget()
 	case listMsg:
 		m.cursor = int(msg)
 		m.scrollState.ScrollToTarget()
 	case scrollMsg:
 		m.scrollState = viewport.ScrollState(msg)
-	case ui.ImagesUpdatedMsg:
-		// Images arrive for other panes too.
-		if m.Visible() {
-			maps.Copy(m.images, msg)
-		}
+	case images.ChangedMsg:
+		m.images = msg
 	}
 	return m, nil
 }
