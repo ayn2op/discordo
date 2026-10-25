@@ -6,7 +6,7 @@ import (
 
 	"github.com/ayn2op/arikawa/v3/discord"
 	md "github.com/ayn2op/arikawa/v3/markdown"
-	"github.com/ayn2op/discordo/internal/ui"
+	"github.com/ayn2op/discordo/internal/ui/emojis"
 	"github.com/ayn2op/discordo/internal/ui/images"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/text"
@@ -76,7 +76,7 @@ func (m Model) LoadImages() tview.Cmd {
 func (m Model) addEmojis(squares map[discord.URL]uint, item *messageItem) {
 	for _, reaction := range item.message.Reactions {
 		if m.cfg.UI.MessagesList.Reactions.Enabled && reaction.Emoji.IsCustom() {
-			squares[emojiURL(reaction.Emoji.ID)] = ui.EmojiRows
+			squares[emojis.URLFromID(reaction.Emoji.ID)] = emojis.Rows
 		}
 	}
 
@@ -92,7 +92,7 @@ func (m Model) addEmojis(squares map[discord.URL]uint, item *messageItem) {
 		}
 
 		if id, err := discord.ParseSnowflake(emoji.ID); err == nil {
-			squares[emojiURL(discord.EmojiID(id))] = ui.EmojiRows
+			squares[emojis.URLFromID(discord.EmojiID(id))] = emojis.Rows
 		}
 
 		return ast.WalkContinue, nil
@@ -109,10 +109,6 @@ func avatarURL(user discord.User) discord.URL {
 	return user.AvatarURLWithType(discord.PNGImage) + "?size=128"
 }
 
-func emojiURL(id discord.EmojiID) discord.URL {
-	return discord.Emoji{ID: id}.EmojiURLWithType(discord.PNGImage)
-}
-
 // emojiLine returns the image of the custom emoji with id as a line of spans, or nil if it is not loaded.
 func (m Model) emojiLine(id string) []text.Span {
 	snowflake, err := discord.ParseSnowflake(id)
@@ -120,7 +116,7 @@ func (m Model) emojiLine(id string) []text.Span {
 		return nil
 	}
 
-	emoji, ok := m.images[emojiURL(discord.EmojiID(snowflake))]
+	emoji, ok := m.images[emojis.URLFromID(discord.EmojiID(snowflake))]
 	if !ok {
 		return nil
 	}

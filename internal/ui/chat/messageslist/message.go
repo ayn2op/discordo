@@ -10,6 +10,7 @@ import (
 	md "github.com/ayn2op/arikawa/v3/markdown"
 	"github.com/ayn2op/arikawa/v3/state"
 	"github.com/ayn2op/discordo/internal/markdown"
+	"github.com/ayn2op/discordo/internal/ui/emojis"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/layout"
 	"github.com/ayn2op/tview/row"
@@ -87,7 +88,7 @@ func (m Model) reactionsView(reactions []discord.Reaction) tview.Widget {
 
 		style = tview.MergeStyle(theme.MessageStyle.Style, style)
 
-		emoji, hasImage := m.images[emojiURL(reaction.Emoji.ID)]
+		emoji, hasImage := m.images[emojis.URLFromID(reaction.Emoji.ID)]
 		spans := []text.Span{{Text: m.reactionLabel(reaction, hasImage), Style: style}}
 		// Each reaction but the last ends with the separator, so a line never starts with one.
 		if index < len(reactions)-1 {

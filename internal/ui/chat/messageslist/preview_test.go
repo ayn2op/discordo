@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/ayn2op/arikawa/v3/discord"
-	"github.com/ayn2op/discordo/internal/ui"
+	"github.com/ayn2op/discordo/internal/ui/emojis"
 	"github.com/ayn2op/discordo/internal/ui/images"
 	tviewimage "github.com/ayn2op/tview/image"
 )
@@ -63,7 +63,7 @@ func TestModelEmojiLine(t *testing.T) {
 		t.Fatalf("line = %v, want nil before the emoji is loaded", got)
 	}
 
-	ml.images = map[discord.URL]tviewimage.Widget{emojiURL(5): tviewimage.New(image.NewAlpha(image.Rect(0, 0, 2, 2))).Width(2)}
+	ml.images = map[discord.URL]tviewimage.Widget{emojis.URLFromID(5): tviewimage.New(image.NewAlpha(image.Rect(0, 0, 2, 2))).Width(2)}
 	if got := ml.emojiLine("5"); len(got) != 2 {
 		t.Fatalf("line = %v, want the two cells of the emoji", got)
 	}
@@ -73,8 +73,8 @@ func TestModelLoadImages(t *testing.T) {
 	ml := newTestModel(t, testConfig(t))
 	ml.setMessages([]discord.Message{{ID: 2, ChannelID: 1, Content: "hi <:cat:5>"}})
 	msg := ml.LoadImages()().(images.RequestedMsg)
-	if rows := msg.Squares[emojiURL(5)]; rows != ui.EmojiRows {
-		t.Fatalf("the emoji in the content was asked for %d rows tall, want %d", rows, ui.EmojiRows)
+	if rows := msg.Squares[emojis.URLFromID(5)]; rows != emojis.Rows {
+		t.Fatalf("the emoji in the content was asked for %d rows tall, want %d", rows, emojis.Rows)
 	}
 
 	item := &ml.items[len(ml.items)-1]

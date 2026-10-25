@@ -12,6 +12,7 @@ import (
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/arikawa/v3/state"
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/ui/emojis"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
 	tviewimage "github.com/ayn2op/tview/image"
@@ -398,7 +399,7 @@ func TestModelReactionsView(t *testing.T) {
 		}
 	})
 	t.Run("emoji image", func(t *testing.T) {
-		ml.images = map[discord.URL]tviewimage.Widget{emojiURL(custom.ID): tviewimage.New(image.NewAlpha(image.Rect(0, 0, 2, 2))).Width(2)}
+		ml.images = map[discord.URL]tviewimage.Widget{emojis.URLFromID(custom.ID): tviewimage.New(image.NewAlpha(image.Rect(0, 0, 2, 2))).Width(2)}
 		// The blank image takes two cells before the count.
 		if got := draw(); got != "ok 2 •    1" {
 			t.Fatalf("reactions = %q", got)
