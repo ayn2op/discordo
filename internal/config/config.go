@@ -119,6 +119,8 @@ type (
 		MaskSpoilers bool `toml:"mask_spoilers"`
 		// Theme for fenced code blocks. Available themes: https://xyproto.github.io/splash/docs
 		Theme string `toml:"theme"`
+		// Guess the language of a fenced code block that names none, to highlight it.
+		DetectCodeLanguage bool `toml:"detect_code_language"`
 	}
 
 	HelpConfig struct {

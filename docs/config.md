@@ -55,6 +55,12 @@ Theme for fenced code blocks. Available themes: https://xyproto.github.io/splash
 
 Default: `"monokai"`
 
+## markdown.detect_code_language
+
+Guess the language of a fenced code block that names none, to highlight it.
+
+Default: `false`
+
 # help
 
 ## help.enabled

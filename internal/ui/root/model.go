@@ -127,7 +127,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 				ui.DialogButton{Label: "Yes", Cmd: m.quit()},
 			)
 		}
-	case tview.MouseMsg, tview.PasteMsg:
+	case tview.PasteMsg:
 		if m.dialog != nil {
 			return m, nil
 		}

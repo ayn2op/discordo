@@ -73,7 +73,12 @@ func (m Model) View() tview.Widget {
 		Focused(m.focus == focusPassword).
 		OnInput(func(text string, cursor int) tview.Msg { return passwordMsg{text, cursor} }).
 		OnSubmit(focusMsg(focusButton))
+	buttonStyle := tcell.StyleDefault
+	if m.focus == focusButton {
+		buttonStyle = buttonStyle.Reverse(true)
+	}
 	submit := button.New(text.New("Login")).
+		Style(buttonStyle).
 		Width(layout.Fixed(len("Login") + 4)).
 		Focused(m.focus == focusButton).
 		OnClick(submitMsg{})

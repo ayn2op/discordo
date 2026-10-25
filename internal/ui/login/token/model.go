@@ -54,7 +54,12 @@ func (m Model) View() tview.Widget {
 		Focused(!m.buttonFocused).
 		OnInput(func(text string, cursor int) tview.Msg { return tokenMsg{text, cursor} }).
 		OnSubmit(focusButtonMsg{})
+	buttonStyle := tcell.StyleDefault
+	if m.buttonFocused {
+		buttonStyle = buttonStyle.Reverse(true)
+	}
 	submit := button.New(text.New("Login")).
+		Style(buttonStyle).
 		Width(layout.Fixed(len("Login") + 4)).
 		Focused(m.buttonFocused).
 		OnClick(submitMsg{})

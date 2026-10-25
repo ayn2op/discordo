@@ -14,9 +14,9 @@ require (
 	github.com/alecthomas/chroma/v2 v2.27.0
 	github.com/ayn2op/arikawa/v3 v3.0.0-20261016043052-54a68a54e42e
 	github.com/ayn2op/ningen/v3 v3.0.1-0.20261014035153-5e43590a1426
-	github.com/ayn2op/tview v0.0.0-20261024233546-98e13602d772
+	github.com/ayn2op/tview v0.0.0-20261025020023-cd3c5a5a8d26
 	github.com/bogdanfinn/fhttp v0.7.1
-	github.com/bogdanfinn/tls-client v1.16.0
+	github.com/bogdanfinn/tls-client v1.17.1
 	github.com/gdamore/tcell/v3 v3.6.1-0.20261024233502-62aecba7acc7
 	github.com/gen2brain/malgo v0.11.26
 	github.com/gorilla/websocket v1.5.3
@@ -27,8 +27,8 @@ require (
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/thomas-vilte/dave-go v0.5.1
-	github.com/tphakala/go-opus v1.2.1
-	github.com/yuin/goldmark/v2 v2.1.6
+	github.com/tphakala/go-opus v1.3.0
+	github.com/yuin/goldmark/v2 v2.1.8
 	github.com/zalando/go-keyring v0.2.8
 	golang.design/x/clipboard v0.11.0
 	golang.org/x/image v0.47.0
@@ -36,18 +36,18 @@ require (
 
 require (
 	github.com/akavel/rsrc v0.10.2 // indirect
-	github.com/andybalholm/brotli v1.2.6 // indirect
+	github.com/andybalholm/brotli v1.2.7 // indirect
 	github.com/bdandy/go-errors v1.2.2 // indirect
 	github.com/bdandy/go-socks4 v1.2.3 // indirect
-	github.com/bogdanfinn/quic-go-utls v1.0.10-utls // indirect
+	github.com/bogdanfinn/quic-go-utls v1.0.12-utls // indirect
 	github.com/bogdanfinn/utls v1.8.2-barnius // indirect
-	github.com/bogdanfinn/websocket v1.5.6-barnius // indirect
+	github.com/bogdanfinn/websocket v1.5.8-barnius // indirect
 	github.com/clipperhouse/displaywidth v0.11.0 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/danieljoos/wincred v1.2.3 // indirect
 	github.com/dchest/jsmin v1.0.0 // indirect
 	github.com/disgoorg/godave v0.3.0 // indirect
-	github.com/dlclark/regexp2/v2 v2.9.1 // indirect
+	github.com/dlclark/regexp2/v2 v2.10.0 // indirect
 	github.com/ebitengine/purego v0.11.2 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
 	github.com/godbus/dbus/v5 v5.2.4 // indirect
@@ -55,7 +55,7 @@ require (
 	github.com/josephspurrier/goversioninfo v1.7.0 // indirect
 	github.com/klauspost/compress v1.20.3 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.1 // indirect
-	github.com/molecule-man/go-brrr v1.2.0 // indirect
+	github.com/molecule-man/go-brrr v1.3.1 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/randall77/makefat v0.0.0-20260406194835-1b91746796b7 // indirect
 	github.com/tam7t/hpkp v0.0.0-20160821193359-2b70b4024ed5 // indirect
