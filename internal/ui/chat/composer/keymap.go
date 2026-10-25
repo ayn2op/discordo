@@ -1,6 +1,7 @@
 package composer
 
 import (
+	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/help"
 	"github.com/ayn2op/tview/keybind"
@@ -63,16 +64,49 @@ func (m Model) FullHelp() [][]keybind.Keybind {
 	}
 }
 
-// keybind binds the configured newline key and textarea's other default keys, leaving the composer's own keys to Update.
+// keybind binds the configured newline and editing keys and textarea's other default keys, leaving the composer's own keys and the global ones to Update.
 func (m Model) keybind(key tview.KeyMsg) textarea.Action {
-	if m.isBound(key) {
+	if m.isBound(key) || keybind.Matches(key, m.cfg.Keybinds.Global()...) {
 		return textarea.ActionNone
 	}
 	if keybind.Matches(key, m.cfg.Keybinds.Composer.Newline.Keybind) {
 		return textarea.ActionNewline
 	}
+	if action := m.editAction(key); action != textarea.ActionNone {
+		return action
+	}
 	if action := textarea.DefaultKeybind(key); action != textarea.ActionNewline {
 		return action
+	}
+	return textarea.ActionNone
+}
+
+// editAction returns the action of the editing keybind key matches, or ActionNone.
+func (m Model) editAction(key tview.KeyMsg) textarea.Action {
+	keybinds := m.cfg.Keybinds.Composer
+	for _, bind := range []struct {
+		keybind config.Keybind
+		action  textarea.Action
+	}{
+		{keybinds.CursorLeft, textarea.ActionLeft},
+		{keybinds.CursorRight, textarea.ActionRight},
+		{keybinds.CursorUp, textarea.ActionUp},
+		{keybinds.CursorDown, textarea.ActionDown},
+		{keybinds.LineStart, textarea.ActionHome},
+		{keybinds.LineEnd, textarea.ActionEnd},
+		{keybinds.WordLeft, textarea.ActionWordLeft},
+		{keybinds.WordRight, textarea.ActionWordRight},
+		{keybinds.DeleteBackward, textarea.ActionBackspace},
+		{keybinds.DeleteForward, textarea.ActionDelete},
+		{keybinds.DeleteWordBackward, textarea.ActionDeleteWordBackward},
+		{keybinds.DeleteWordForward, textarea.ActionDeleteWordForward},
+		{keybinds.DeleteToSpaceBackward, textarea.ActionDeleteToSpaceBackward},
+		{keybinds.DeleteToLineStart, textarea.ActionDeleteToLineStart},
+		{keybinds.DeleteToLineEnd, textarea.ActionDeleteToLineEnd},
+	} {
+		if keybind.Matches(key, bind.keybind.Keybind) {
+			return bind.action
+		}
 	}
 	return textarea.ActionNone
 }

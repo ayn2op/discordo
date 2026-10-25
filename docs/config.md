@@ -1026,6 +1026,80 @@ Default: `"ctrl+e"`
 
 Default: `"ctrl+\\"`
 
+### keybinds.composer.cursor_left
+
+Move the cursor. Readline's keys, with shift added to those other keybinds take.
+Shift with ctrl is told apart from ctrl alone only in terminals with an enhanced keyboard protocol, such as kitty's.
+
+Default: `"ctrl+b"`
+
+### keybinds.composer.cursor_right
+
+Default: `"ctrl+f"`
+
+### keybinds.composer.cursor_up
+
+Default: `"ctrl+p"`
+
+### keybinds.composer.cursor_down
+
+Default: `"ctrl+n"`
+
+### keybinds.composer.line_start
+
+Default: `"ctrl+a"`
+
+### keybinds.composer.line_end
+
+Default: `"ctrl+shift+e"`
+
+### keybinds.composer.word_left
+
+Move over a word, a run of letters and digits, and what is before it.
+
+Default: `"alt+b"`
+
+### keybinds.composer.word_right
+
+Default: `"alt+f"`
+
+### keybinds.composer.delete_backward
+
+Delete text. Readline's keys, with shift added to those other keybinds take.
+
+Default: `"ctrl+shift+h"`
+
+### keybinds.composer.delete_forward
+
+Default: `"ctrl+shift+d"`
+
+### keybinds.composer.delete_word_backward
+
+Delete what word_left and word_right move over.
+
+Default: `"alt+backspace"`
+
+### keybinds.composer.delete_word_forward
+
+Default: `"alt+shift+d"`
+
+### keybinds.composer.delete_to_space_backward
+
+Delete back to the whitespace before the cursor.
+
+Default: `"ctrl+w"`
+
+### keybinds.composer.delete_to_line_start
+
+Delete to the start or end of the line, or the newline there if the cursor is at it.
+Readline deletes to the start of the line with ctrl+u, which is undo here, so it is on ctrl+j.
+
+Default: `"ctrl+j"`
+
+### keybinds.composer.delete_to_line_end
+
+Default: `"ctrl+shift+k"`
+
 ## keybinds.autocomplete
 
 Only while the autocomplete is shown.

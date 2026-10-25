@@ -190,6 +190,36 @@ func TestModelHandle(t *testing.T) {
 			t.Fatalf("got %v", got)
 		}
 	})
+	t.Run("readline keys edit the text", func(t *testing.T) {
+		for _, str := range []string{"w", "j"} {
+			msg := c.View().Handle(tcell.NewEventKey(tcell.KeyRune, str, tcell.ModCtrl), area)
+			if _, ok := msg.(editMsg); !ok {
+				t.Fatalf("ctrl+%s: got %v, want an editMsg", str, msg)
+			}
+		}
+	})
+	t.Run("shift reaches readline keys bound elsewhere", func(t *testing.T) {
+		for _, key := range []tview.KeyMsg{
+			tcell.NewEventKey(tcell.KeyRune, "k", tcell.ModCtrl|tcell.ModShift),
+			tcell.NewEventKey(tcell.KeyRune, "e", tcell.ModCtrl|tcell.ModShift),
+			tcell.NewEventKey(tcell.KeyRune, "d", tcell.ModCtrl|tcell.ModShift),
+			tcell.NewEventKey(tcell.KeyRune, "h", tcell.ModCtrl|tcell.ModShift),
+			tcell.NewEventKey(tcell.KeyRune, "d", tcell.ModAlt|tcell.ModShift),
+		} {
+			if msg := c.View().Handle(key, area); msg == key {
+				t.Fatalf("%v was not bound", key.Name())
+			}
+		}
+	})
+	t.Run("keys bound elsewhere are left to Update", func(t *testing.T) {
+		// Readline binds these too, but they toggle the channels picker, undo, open the editor, and log out.
+		for _, str := range []string{"k", "u", "e", "d"} {
+			key := tcell.NewEventKey(tcell.KeyRune, str, tcell.ModCtrl)
+			if got := c.View().Handle(key, area); got != key {
+				t.Fatalf("ctrl+%s: got %v", str, got)
+			}
+		}
+	})
 }
 
 func TestModelSearchMember(t *testing.T) {

@@ -14,7 +14,7 @@ require (
 	github.com/alecthomas/chroma/v2 v2.27.0
 	github.com/ayn2op/arikawa/v3 v3.0.0-20261016043052-54a68a54e42e
 	github.com/ayn2op/ningen/v3 v3.0.1-0.20261014035153-5e43590a1426
-	github.com/ayn2op/tview v0.0.0-20261025020023-cd3c5a5a8d26
+	github.com/ayn2op/tview v0.0.0-20261025205104-7e318c04a737
 	github.com/bogdanfinn/fhttp v0.7.1
 	github.com/bogdanfinn/tls-client v1.17.1
 	github.com/gdamore/tcell/v3 v3.6.1-0.20261025165013-3f9243d555d9
