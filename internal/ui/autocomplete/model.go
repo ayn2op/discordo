@@ -45,6 +45,33 @@ func (m Model) Selected() (Item, bool) {
 	return m.items[m.cursor], true
 }
 
+func (m Model) listView() viewport.Widget {
+	l := list.New(m.cursor, len(m.items), func(i int) tview.Widget {
+		return text.Rich(m.items[i].Line(m.images)...).Wrapping(text.WrappingNone)
+	}).
+		SelectedStyle(m.cfg.Theme.Autocomplete.SelectedStyle.Style).
+		Keybind(ui.SelectionKeybind(m.cfg.Keybinds.Autocomplete.SelectionKeybinds)).
+		// Shown only while completing, so it takes keys first.
+		Focused(true).
+		OnChange(func(cursor int) tview.Msg { return listMsg(cursor) })
+	return viewport.New(l, m.scrollState).
+		Target(l.Target(m.cursor)).
+		ScrollBar(scrollbar.New(), viewport.ScrollBarVisibilityAutomatic).
+		OnChange(func(s *viewport.ScrollState) tview.Msg { return scrollMsg(*s) })
+}
+
+func (m Model) maxDisplayWidth() int {
+	width := 0
+	for _, item := range m.items {
+		lineWidth := 0
+		for _, span := range item.Line(m.images) {
+			lineWidth += uucode.StringWidth(span.Text)
+		}
+		width = max(width, lineWidth)
+	}
+	return width
+}
+
 var _ tview.Model[Model] = Model{}
 
 func (m Model) Init() tview.Cmd { return nil }
@@ -79,31 +106,4 @@ func (m Model) View() tview.Widget {
 	}
 
 	return ui.Box(list, m.cfg, false).Title(ui.Label(m.title, m.cfg.Theme.Title, false)).BorderSet(set).Width(width).Height(layout.Shrink)
-}
-
-func (m Model) listView() viewport.Widget {
-	l := list.New(m.cursor, len(m.items), func(i int) tview.Widget {
-		return text.Rich(m.items[i].Line(m.images)...).Wrapping(text.WrappingNone)
-	}).
-		SelectedStyle(m.cfg.Theme.Autocomplete.SelectedStyle.Style).
-		Keybind(ui.SelectionKeybind(m.cfg.Keybinds.Autocomplete.SelectionKeybinds)).
-		// Shown only while completing, so it takes keys first.
-		Focused(true).
-		OnChange(func(cursor int) tview.Msg { return listMsg(cursor) })
-	return viewport.New(l, m.scrollState).
-		Target(l.Target(m.cursor)).
-		ScrollBar(scrollbar.New(), viewport.ScrollBarVisibilityAutomatic).
-		OnChange(func(s *viewport.ScrollState) tview.Msg { return scrollMsg(*s) })
-}
-
-func (m Model) maxDisplayWidth() int {
-	width := 0
-	for _, item := range m.items {
-		lineWidth := 0
-		for _, span := range item.Line(m.images) {
-			lineWidth += uucode.StringWidth(span.Text)
-		}
-		width = max(width, lineWidth)
-	}
-	return width
 }

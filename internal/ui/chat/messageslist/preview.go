@@ -44,15 +44,14 @@ func (m Model) previewSources(message discord.Message) []previewSource {
 // LoadImages returns the command that loads the images of the shown messages, or nil.
 func (m Model) LoadImages() tview.Cmd {
 	msg := ui.LoadImagesMsg{Squares: map[discord.URL]uint{}, Previews: map[discord.URL]image.Point{}}
-	avatars := m.cfg.UI.MessagesList.Avatars
 	for index := range m.items {
 		item := &m.items[index]
 		if item.separator != nil {
 			continue
 		}
 
-		if author := item.message.Author; avatars.Preview && avatars.Height != 0 && !m.blocked(author) {
-			msg.Squares[avatarURL(author)] = uint(avatars.Height)
+		if author := item.message.Author; m.showsAvatar(author) {
+			msg.Squares[avatarURL(author)] = uint(m.cfg.UI.MessagesList.Avatars.Height)
 		}
 
 		m.addEmojis(msg.Squares, item)
@@ -97,6 +96,12 @@ func (m Model) addEmojis(squares map[discord.URL]uint, item *messageItem) {
 
 		return ast.WalkContinue, nil
 	})
+}
+
+// showsAvatar reports whether messages by user are drawn beside their avatar.
+func (m Model) showsAvatar(user discord.User) bool {
+	avatars := m.cfg.UI.MessagesList.Avatars
+	return avatars.Preview && avatars.Height != 0 && !m.blocked(user)
 }
 
 func avatarURL(user discord.User) discord.URL {

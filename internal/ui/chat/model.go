@@ -79,8 +79,6 @@ type Model struct {
 	cfg *config.Config
 }
 
-var _ tview.Model[Model] = Model{}
-
 func NewModel(cfg *config.Config, token string) Model {
 	m := Model{
 		typers: make(map[discord.UserID]time.Time),
@@ -117,7 +115,7 @@ func NewModel(cfg *config.Config, token string) Model {
 
 	m.guildsTree = guildstree.NewModel(cfg, m.state)
 	m.membersTree = memberstree.NewModel(cfg, m.state)
-	m.messagesList = messageslist.NewModel(cfg, m.state)
+	m.messagesList = messageslist.NewModel(cfg, m.state, m.images)
 	m.composer = composer.NewModel(cfg, m.state)
 	m.channelsPicker = channelspicker.NewModel(cfg)
 	m.attachmentsPicker = attachmentspicker.NewModel(cfg)
@@ -130,6 +128,7 @@ func NewModel(cfg *config.Config, token string) Model {
 	} else {
 		m.focused = paneMessagesList
 	}
+	m.syncPanes()
 	return m
 }
 
@@ -200,12 +199,17 @@ func (m *Model) cycleFocus(step pane) {
 	}
 }
 
-func (m Model) Init() tview.Cmd {
-	return tview.Batch(openState(m.state), listen(m.events), m.guildsTree.Init(), m.messagesList.Init(), tview.RequestTerminalInfo())
+// syncPanes passes the panes the state of m that they show.
+func (m *Model) syncPanes() {
+	m.guildsTree.SetFocused(m.paneFocused(paneGuildsTree))
+	m.messagesList.SetFocused(m.paneFocused(paneMessagesList))
+	m.composer.SetFocused(m.paneFocused(paneComposer))
+	m.membersTree.SetFocused(m.paneFocused(paneMembersTree))
+	m.messagesList.SetFooter(m.typingFooter())
+	m.messagesList.SetAvatarWidth(int(squareCols(uint(m.cfg.UI.MessagesList.Avatars.Height), m.imageCell())))
 }
 
-// Update returns m changed in response to msg and a command to run, or nil.
-func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
+func (m Model) update(msg tview.Msg) (Model, tview.Cmd) {
 	switch msg := msg.(type) {
 	case gateway.Event:
 		return m, tview.Batch(m.applyEvent(msg), listen(m.events))
@@ -439,21 +443,25 @@ const (
 	paneCount
 )
 
-// paneView returns the view of target, focused if it has the focus and no picker is open, marked so that clicking it focuses it.
+// paneView returns the view of target, marked so that clicking it focuses it.
 func (m Model) paneView(target pane) tview.Widget {
-	focused := m.focused == target && m.overlay == overlayNone
 	var child tview.Widget
 	switch target {
 	case paneGuildsTree:
-		child = m.guildsTree.View(focused)
+		child = m.guildsTree.View()
 	case paneMessagesList:
-		child = m.messagesList.View(focused, m.typingFooter(), m.images)
+		child = m.messagesList.View()
 	case paneComposer:
-		child = m.composer.View(focused)
+		child = m.composer.View()
 	case paneMembersTree:
-		child = m.membersTree.View(focused)
+		child = m.membersTree.View()
 	}
 	return paneWidget{pane: target, child: child}
+}
+
+// paneFocused reports whether target has the focus and no picker is open.
+func (m Model) paneFocused(target pane) bool {
+	return m.focused == target && m.overlay == overlayNone
 }
 
 // setFocus focuses target if it can take the focus.
@@ -475,44 +483,6 @@ func (m Model) canFocus(target pane) bool {
 	default:
 		return true
 	}
-}
-
-// View shows the panes, with the autocomplete over the messages and an open picker on top.
-func (m Model) View() tview.Widget {
-	picker := m.pickerView()
-
-	messages := m.paneView(paneMessagesList)
-	if popup := m.composer.AutocompleteView(m.focused == paneComposer); popup != nil {
-		messages = stack.New(messages, popup)
-	}
-
-	var right tview.Widget = column.New(messages, m.paneView(paneComposer))
-
-	main := right
-	if m.membersTreeShown() {
-		width := m.cfg.MembersTree.WidthPercent
-		main = row.New(
-			column.New(main).Width(layout.FillPortion(100-width)),
-			column.New(m.paneView(paneMembersTree)).Width(layout.FillPortion(width)),
-		)
-	}
-	if m.guildsTreeVisible {
-		width := m.cfg.Sidebar.WidthPercent
-		main = row.New(
-			column.New(m.paneView(paneGuildsTree)).Width(layout.FillPortion(width)),
-			column.New(main).Width(layout.FillPortion(100-width)),
-		)
-	}
-
-	if picker == nil {
-		return main
-	}
-	return stack.New(
-		// The panes behind the picker take no input.
-		inert.New(main),
-		backdrop.New().Style(m.cfg.Theme.Dialog.BackgroundStyle.Style),
-		center.New(column.New(picker).Width(layout.Fixed(m.cfg.Picker.Width)).Height(layout.Fixed(m.cfg.Picker.Height))),
-	)
 }
 
 // typingFooter returns who is typing in the selected channel, or "" if nobody is.
@@ -560,4 +530,55 @@ func (m Model) typerName(channel discord.Channel, userID discord.UserID) string 
 	}
 
 	return channel.DMRecipients[index].DisplayOrUsername()
+}
+
+var _ tview.Model[Model] = Model{}
+
+func (m Model) Init() tview.Cmd {
+	return tview.Batch(openState(m.state), listen(m.events), m.guildsTree.Init(), m.messagesList.Init(), tview.RequestTerminalInfo())
+}
+
+// Update returns m changed in response to msg and a command to run, or nil.
+func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
+	m, cmd := m.update(msg)
+	m.syncPanes()
+	return m, cmd
+}
+
+// View shows the panes, with the autocomplete over the messages and an open picker on top.
+func (m Model) View() tview.Widget {
+	picker := m.pickerView()
+
+	messages := m.paneView(paneMessagesList)
+	if popup := m.composer.AutocompleteView(); popup != nil {
+		messages = stack.New(messages, popup)
+	}
+
+	var right tview.Widget = column.New(messages, m.paneView(paneComposer))
+
+	main := right
+	if m.membersTreeShown() {
+		width := m.cfg.MembersTree.WidthPercent
+		main = row.New(
+			column.New(main).Width(layout.FillPortion(100-width)),
+			column.New(m.paneView(paneMembersTree)).Width(layout.FillPortion(width)),
+		)
+	}
+	if m.guildsTreeVisible {
+		width := m.cfg.Sidebar.WidthPercent
+		main = row.New(
+			column.New(m.paneView(paneGuildsTree)).Width(layout.FillPortion(width)),
+			column.New(main).Width(layout.FillPortion(100-width)),
+		)
+	}
+
+	if picker == nil {
+		return main
+	}
+	return stack.New(
+		// The panes behind the picker take no input.
+		inert.New(main),
+		backdrop.New().Style(m.cfg.Theme.Dialog.BackgroundStyle.Style),
+		center.New(column.New(picker).Width(layout.Fixed(m.cfg.Picker.Width)).Height(layout.Fixed(m.cfg.Picker.Height))),
+	)
 }

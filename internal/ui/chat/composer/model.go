@@ -72,6 +72,9 @@ type Model struct {
 	lastSearch        time.Time
 
 	typingUntil time.Time
+
+	// focused reports whether the composer takes keys and shows its completions.
+	focused bool
 }
 
 // TypingDuration is how long Discord shows someone as typing after they start.
@@ -125,8 +128,10 @@ func (m Model) placeholder() string {
 	return messagePlaceholder
 }
 
-// View shows the text area in a box, taking keys if focused.
-func (m Model) View(focused bool) tview.Widget { return m.box(focused) }
+// SetFocused sets whether the composer takes keys and shows its completions.
+func (m *Model) SetFocused(focused bool) {
+	m.focused = focused
+}
 
 // box returns the text area in a box with the title and footer.
 func (m *Model) box(focused bool) box.Widget {
@@ -230,79 +235,6 @@ func (m *Model) reset() {
 	m.editing = nil
 	m.sendMessageData = &api.SendMessageData{}
 	m.setText("", 0)
-}
-
-// Update returns m changed in response to msg and a command to run, or nil.
-func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
-	switch msg := msg.(type) {
-	case RefreshAutocompleteMsg:
-		return m, m.showAutocomplete()
-	case imagePastedMsg:
-		if len(msg) == 0 {
-			return m, nil
-		}
-		m.attach(imageAttachmentName, bytes.NewReader(msg))
-		return m, nil
-	case filesPickedMsg:
-		selectedChannel := m.channel
-		if selectedChannel == nil || selectedChannel.ID != msg.channelID {
-			return m, closeFiles(msg.files)
-		}
-		for _, file := range msg.files {
-			m.attach(file.Name, file.Reader)
-		}
-
-		return m, nil
-	case editorMsg:
-		m.setText(string(msg), len(msg))
-		return m, nil
-	case editMsg:
-		m.setText(msg.text, msg.cursor)
-		typingCmd := m.sendTyping()
-		return m, tview.Batch(typingCmd, m.showAutocomplete())
-
-	case tview.KeyMsg:
-		keybinds := m.cfg.Keybinds.Composer
-		switch {
-		case keybind.Matches(msg, keybinds.EditLast.Keybind) && m.canEditLastMessage():
-			return m, editLastMessage()
-		case keybind.Matches(msg, keybinds.Paste.Keybind):
-			m.pasteText()
-			return m, pasteImage()
-		case keybind.Matches(msg, keybinds.Send.Keybind):
-			if m.autocomplete.Visible() {
-				return m, m.complete()
-			}
-			return m, m.send()
-		case keybind.Matches(msg, keybinds.OpenEditor.Keybind):
-			return m, tview.Batch(m.showCompletions("", nil), m.openEditor())
-		case keybind.Matches(msg, keybinds.OpenFilePicker.Keybind):
-			return m, tview.Batch(m.showCompletions("", nil), m.pickFiles())
-		case keybind.Matches(msg, keybinds.Cancel.Keybind):
-			if m.autocomplete.Visible() {
-				return m, m.showCompletions("", nil)
-			}
-			m.reset()
-			return m, nil
-		case keybind.Matches(msg, keybinds.TabComplete.Keybind):
-			if m.autocomplete.Visible() {
-				return m, m.complete()
-			}
-			m.insert("\t")
-			return m, nil
-		case keybind.Matches(msg, keybinds.ToggleReplyMention.Keybind):
-			m.toggleReplyMention()
-			return m, nil
-		case keybind.Matches(msg, keybinds.Undo.Keybind):
-			m.undo()
-			return m, nil
-		}
-	case autocomplete.Msg, ui.ImagesUpdatedMsg:
-		var cmd tview.Cmd
-		m.autocomplete, cmd = m.autocomplete.Update(msg)
-		return m, cmd
-	}
-	return m, nil
 }
 
 func (m Model) canEditLastMessage() bool {
@@ -511,9 +443,9 @@ func (m Model) OnGuildMemberRemove(event *gateway.GuildMemberRemoveEvent) {
 	}
 }
 
-// AutocompleteView returns the autocomplete popup, or nil if it is hidden.
-func (m Model) AutocompleteView(focused bool) tview.Widget {
-	if !focused || !m.autocomplete.Visible() {
+// AutocompleteView returns the autocomplete popup, or nil if it is hidden or the composer is not focused.
+func (m Model) AutocompleteView() tview.Widget {
+	if !m.focused || !m.autocomplete.Visible() {
 		return nil
 	}
 	return autocompletePopup{m}
@@ -578,3 +510,83 @@ func humanJoin(items []string) string {
 		return strings.Join(items[:count-1], ", ") + ", and " + items[count-1]
 	}
 }
+
+var _ tview.Model[Model] = Model{}
+
+func (m Model) Init() tview.Cmd { return nil }
+
+// Update returns m changed in response to msg and a command to run, or nil.
+func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
+	switch msg := msg.(type) {
+	case RefreshAutocompleteMsg:
+		return m, m.showAutocomplete()
+	case imagePastedMsg:
+		if len(msg) == 0 {
+			return m, nil
+		}
+		m.attach(imageAttachmentName, bytes.NewReader(msg))
+		return m, nil
+	case filesPickedMsg:
+		selectedChannel := m.channel
+		if selectedChannel == nil || selectedChannel.ID != msg.channelID {
+			return m, closeFiles(msg.files)
+		}
+		for _, file := range msg.files {
+			m.attach(file.Name, file.Reader)
+		}
+
+		return m, nil
+	case editorMsg:
+		m.setText(string(msg), len(msg))
+		return m, nil
+	case editMsg:
+		m.setText(msg.text, msg.cursor)
+		typingCmd := m.sendTyping()
+		return m, tview.Batch(typingCmd, m.showAutocomplete())
+
+	case tview.KeyMsg:
+		keybinds := m.cfg.Keybinds.Composer
+		switch {
+		case keybind.Matches(msg, keybinds.EditLast.Keybind) && m.canEditLastMessage():
+			return m, editLastMessage()
+		case keybind.Matches(msg, keybinds.Paste.Keybind):
+			m.pasteText()
+			return m, pasteImage()
+		case keybind.Matches(msg, keybinds.Send.Keybind):
+			if m.autocomplete.Visible() {
+				return m, m.complete()
+			}
+			return m, m.send()
+		case keybind.Matches(msg, keybinds.OpenEditor.Keybind):
+			return m, tview.Batch(m.showCompletions("", nil), m.openEditor())
+		case keybind.Matches(msg, keybinds.OpenFilePicker.Keybind):
+			return m, tview.Batch(m.showCompletions("", nil), m.pickFiles())
+		case keybind.Matches(msg, keybinds.Cancel.Keybind):
+			if m.autocomplete.Visible() {
+				return m, m.showCompletions("", nil)
+			}
+			m.reset()
+			return m, nil
+		case keybind.Matches(msg, keybinds.TabComplete.Keybind):
+			if m.autocomplete.Visible() {
+				return m, m.complete()
+			}
+			m.insert("\t")
+			return m, nil
+		case keybind.Matches(msg, keybinds.ToggleReplyMention.Keybind):
+			m.toggleReplyMention()
+			return m, nil
+		case keybind.Matches(msg, keybinds.Undo.Keybind):
+			m.undo()
+			return m, nil
+		}
+	case autocomplete.Msg, ui.ImagesUpdatedMsg:
+		var cmd tview.Cmd
+		m.autocomplete, cmd = m.autocomplete.Update(msg)
+		return m, cmd
+	}
+	return m, nil
+}
+
+// View shows the text area in a box, taking keys if focused.
+func (m Model) View() tview.Widget { return m.box(m.focused) }

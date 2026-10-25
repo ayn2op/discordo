@@ -46,6 +46,9 @@ type Model struct {
 	// It mirrors the current rendered tree and is rebuilt on READY before nodes are added.
 	nodes      map[discord.Snowflake]*tree.Node
 	dmRootNode *tree.Node
+
+	// focused reports whether the tree takes keys.
+	focused bool
 }
 
 func NewModel(cfg *config.Config, state *ningen.State) Model {
@@ -63,24 +66,9 @@ func (m Model) CurrentNode() *tree.Node {
 	return m.current
 }
 
-// View shows the tree in a box titled Guilds.
-func (m Model) View(focused bool) tview.Widget {
-	onChange := func(current *tree.Node) tview.Msg { return currentMsg{current} }
-	onSelect := func(n *tree.Node) tview.Msg { return selectedMsg{node: n} }
-	return uitree.New(
-		m.root,
-		m.current,
-		m.scrollState,
-		m.cfg,
-		m.cfg.Theme.GuildsTree.TreeThemeConfig,
-		m.cfg.UI.GuildsTree.Graphics,
-		m.cfg.Keybinds.GuildsTree.TreeKeybinds,
-		focused,
-		onChange,
-		onSelect,
-	).
-		Title(ui.Label("Guilds", m.cfg.Theme.Title, focused)).
-		Footer(ui.Label(m.voiceFooter(), m.cfg.Theme.Footer, focused))
+// SetFocused sets whether the tree takes keys.
+func (m *Model) SetFocused(focused bool) {
+	m.focused = focused
 }
 
 func (m *Model) reset() *tree.Node {
@@ -584,76 +572,6 @@ func (m *Model) setCurrentNode(node *tree.Node) {
 	m.scrollState.ScrollToTarget()
 }
 
-// Update returns m changed in response to msg and a command to run, or nil.
-func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
-	switch msg := msg.(type) {
-	case *gateway.ReadyEvent:
-		m.rebuild(msg)
-		return m, nil
-	case *gateway.MessageCreateEvent:
-		if !msg.GuildID.IsValid() {
-			m.moveDMToFront(msg.ChannelID)
-		}
-		return m, nil
-	case *gateway.PresenceUpdateEvent:
-		m.updateDMNodeStyle(msg.User.ID)
-		return m, nil
-	case *read.UpdateEvent:
-		m.refreshReadState(msg)
-		return m, nil
-	case *gateway.VoiceStateUpdateEvent:
-		m.showVoiceMembers(msg.GuildID)
-		return m, nil
-	case VoiceMsg:
-		m.styleVoiceMembers()
-		return m, m.Init()
-
-	case NavigateMsg:
-		return m, m.navigate(msg.ChannelID)
-	case currentMsg:
-		m.current = msg.current
-		m.scrollState.ScrollToTarget()
-		return m, nil
-	case uitree.ScrollMsg:
-		m.scrollState = msg.ScrollState
-		if msg.Msg != nil {
-			return m.Update(msg.Msg)
-		}
-		return m, nil
-	case selectedMsg:
-		m.setCurrentNode(msg.node)
-		return m, m.selectNode(msg.node)
-	case tview.KeyMsg:
-		keybinds := m.cfg.Keybinds.GuildsTree
-		switch {
-		case keybind.Matches(msg, keybinds.CollapseAll.Keybind):
-			for _, node := range m.root.Children() {
-				node.CollapseAll()
-			}
-
-			return m, nil
-		case keybind.Matches(msg, keybinds.CollapseParentNode.Keybind):
-			m.collapseParentNode(m.current)
-			return m, nil
-		case keybind.Matches(msg, keybinds.SelectPreviousUnread.Keybind, keybinds.SelectNextUnread.Keybind):
-			m.selectAdjacentUnread(keybind.Matches(msg, keybinds.SelectPreviousUnread.Keybind))
-			return m, nil
-		case keybind.Matches(msg, keybinds.YankID.Keybind):
-			return m, uitree.YankID(m.current)
-		case keybind.Matches(msg, keybinds.ToggleVoice.Keybind):
-			return m, m.toggleVoice(m.current)
-		case keybind.Matches(msg, m.cfg.Keybinds.ToggleMute.Keybind):
-			return m, m.toggleMute()
-		case keybind.Matches(msg, m.cfg.Keybinds.ToggleDeafen.Keybind):
-			return m, voiceCmd("toggle deafen", func() error { return m.voiceSession.Toggle(true) })
-		case keybind.Matches(msg, m.cfg.Keybinds.LeaveVoice.Keybind):
-			return m, voiceCmd("leave voice", m.voiceSession.Leave)
-		}
-	}
-
-	return m, nil
-}
-
 // selectAdjacentUnread selects the next unread node, or the previous one if previous.
 func (m *Model) selectAdjacentUnread(previous bool) {
 	node := adjacentNode(m.root, m.current, m.isUnread, previous)
@@ -779,4 +697,104 @@ func unreadStyle(indication ningen.UnreadIndication) tview.Style {
 		style = style.Bold(true)
 	}
 	return style
+}
+
+var _ tview.Model[Model] = Model{}
+
+// Init waits for who is speaking or the state of the voice channel joined to change.
+func (m Model) Init() tview.Cmd {
+	return func() tview.Msg {
+		<-m.voiceSession.Updates()
+		return VoiceMsg{}
+	}
+}
+
+// Update returns m changed in response to msg and a command to run, or nil.
+func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
+	switch msg := msg.(type) {
+	case *gateway.ReadyEvent:
+		m.rebuild(msg)
+		return m, nil
+	case *gateway.MessageCreateEvent:
+		if !msg.GuildID.IsValid() {
+			m.moveDMToFront(msg.ChannelID)
+		}
+		return m, nil
+	case *gateway.PresenceUpdateEvent:
+		m.updateDMNodeStyle(msg.User.ID)
+		return m, nil
+	case *read.UpdateEvent:
+		m.refreshReadState(msg)
+		return m, nil
+	case *gateway.VoiceStateUpdateEvent:
+		m.showVoiceMembers(msg.GuildID)
+		return m, nil
+	case VoiceMsg:
+		m.styleVoiceMembers()
+		return m, m.Init()
+
+	case NavigateMsg:
+		return m, m.navigate(msg.ChannelID)
+	case currentMsg:
+		m.current = msg.current
+		m.scrollState.ScrollToTarget()
+		return m, nil
+	case uitree.ScrollMsg:
+		m.scrollState = msg.ScrollState
+		if msg.Msg != nil {
+			return m.Update(msg.Msg)
+		}
+		return m, nil
+	case selectedMsg:
+		m.setCurrentNode(msg.node)
+		return m, m.selectNode(msg.node)
+	case tview.KeyMsg:
+		keybinds := m.cfg.Keybinds.GuildsTree
+		switch {
+		case keybind.Matches(msg, keybinds.CollapseAll.Keybind):
+			for _, node := range m.root.Children() {
+				node.CollapseAll()
+			}
+
+			return m, nil
+		case keybind.Matches(msg, keybinds.CollapseParentNode.Keybind):
+			m.collapseParentNode(m.current)
+			return m, nil
+		case keybind.Matches(msg, keybinds.SelectPreviousUnread.Keybind, keybinds.SelectNextUnread.Keybind):
+			m.selectAdjacentUnread(keybind.Matches(msg, keybinds.SelectPreviousUnread.Keybind))
+			return m, nil
+		case keybind.Matches(msg, keybinds.YankID.Keybind):
+			return m, uitree.YankID(m.current)
+		case keybind.Matches(msg, keybinds.ToggleVoice.Keybind):
+			return m, m.toggleVoice(m.current)
+		case keybind.Matches(msg, m.cfg.Keybinds.ToggleMute.Keybind):
+			return m, m.toggleMute()
+		case keybind.Matches(msg, m.cfg.Keybinds.ToggleDeafen.Keybind):
+			return m, voiceCmd("toggle deafen", func() error { return m.voiceSession.Toggle(true) })
+		case keybind.Matches(msg, m.cfg.Keybinds.LeaveVoice.Keybind):
+			return m, voiceCmd("leave voice", m.voiceSession.Leave)
+		}
+	}
+
+	return m, nil
+}
+
+// View shows the tree in a box titled Guilds.
+func (m Model) View() tview.Widget {
+	onChange := func(current *tree.Node) tview.Msg { return currentMsg{current} }
+	onSelect := func(n *tree.Node) tview.Msg { return selectedMsg{node: n} }
+	return uitree.New(
+		m.root,
+		m.current,
+		m.scrollState,
+		m.cfg,
+		m.cfg.Theme.GuildsTree.TreeThemeConfig,
+		m.cfg.UI.GuildsTree.Graphics,
+		m.cfg.Keybinds.GuildsTree.TreeKeybinds,
+		m.focused,
+		onChange,
+		onSelect,
+	).
+		Title(ui.Label("Guilds", m.cfg.Theme.Title, m.focused)).
+		Footer(ui.Label(m.voiceFooter(), m.cfg.Theme.Footer, m.focused))
 }

@@ -42,11 +42,11 @@ func NewModel() Model {
 	return m
 }
 
-var _ tview.Model[Model] = Model{}
-
 func (Model) Label() string {
 	return "QR"
 }
+
+var _ tview.Model[Model] = Model{}
 
 func (Model) Init() tview.Cmd {
 	return func() tview.Msg { return startMsg{} }

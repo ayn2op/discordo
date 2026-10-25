@@ -32,7 +32,7 @@ func testConfig(t *testing.T) *config.Config {
 // newTestModel returns a list showing channel 1, logged in as user 1.
 func newTestModel(t *testing.T, cfg *config.Config) *Model {
 	t.Helper()
-	ml := NewModel(cfg, ningen.FromState(state.New("")))
+	ml := NewModel(cfg, ningen.FromState(state.New("")), map[discord.URL]tviewimage.Widget{})
 	if err := ml.state.MyselfSet(discord.User{ID: 1}, false); err != nil {
 		t.Fatal(err)
 	}
@@ -314,6 +314,7 @@ func TestModelBuildItemLayout(t *testing.T) {
 
 func TestModelScrollToTop(t *testing.T) {
 	ml := newTestModel(t, testConfig(t))
+	ml.SetFocused(true)
 	messages := make([]discord.Message, 20)
 	for i := range messages {
 		messages[i] = discord.Message{ID: discord.MessageID(len(messages) + 10 - i), Content: "hi"}
@@ -324,7 +325,7 @@ func TestModelScrollToTop(t *testing.T) {
 	// scrollUp scrolls up a row and returns what fetching older messages that does, and whether it scrolled.
 	scrollUp := func() (tview.Cmd, bool) {
 		t.Helper()
-		msg, ok := ml.listView(true).Handle(up, area).(scrollMsg)
+		msg, ok := ml.listView().Handle(up, area).(scrollMsg)
 		if !ok {
 			return nil, false
 		}

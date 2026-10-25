@@ -32,41 +32,8 @@ type Model struct {
 	active   tab
 }
 
-var _ tview.Model[Model] = Model{}
-
 func NewModel(cfg *config.Config) Model {
 	return Model{cfg: cfg, qr: qr.NewModel()}
-}
-
-// Init initializes the active tab.
-func (m Model) Init() tview.Cmd {
-	switch m.active {
-	case tabPassword:
-		return m.password.Init()
-	case tabQR:
-		return m.qr.Init()
-	case tabToken:
-		return m.token.Init()
-	}
-	return nil
-}
-
-// View shows the tabs in a box.
-func (m Model) View() tview.Widget {
-	var content tview.Widget
-	switch m.active {
-	case tabPassword:
-		content = m.password.View()
-	case tabQR:
-		content = m.qr.View()
-	case tabToken:
-		content = m.token.View()
-	}
-	t := m.tabs().
-		Active(int(m.active)).
-		Keybind(tabsKeybind).
-		OnSelect(func(i int) tview.Msg { return selectTabMsg(i) })
-	return ui.Box(column.New(t, content), m.cfg, false)
 }
 
 // tabs returns the login methods as tabs set up by the tabs config.
@@ -80,6 +47,21 @@ func (m Model) tabs() tabs.Widget {
 		Padding(cfg.Padding[0], cfg.Padding[1]).
 		Arrows(cfg.Arrows[0], cfg.Arrows[1]).
 		ClickableArrows(cfg.ClickableArrows)
+}
+
+var _ tview.Model[Model] = Model{}
+
+// Init initializes the active tab.
+func (m Model) Init() tview.Cmd {
+	switch m.active {
+	case tabPassword:
+		return m.password.Init()
+	case tabQR:
+		return m.qr.Init()
+	case tabToken:
+		return m.token.Init()
+	}
+	return nil
 }
 
 func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
@@ -103,4 +85,22 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		m.token, cmd = m.token.Update(msg)
 	}
 	return m, tview.Batch(errCmd, cmd)
+}
+
+// View shows the tabs in a box.
+func (m Model) View() tview.Widget {
+	var content tview.Widget
+	switch m.active {
+	case tabPassword:
+		content = m.password.View()
+	case tabQR:
+		content = m.qr.View()
+	case tabToken:
+		content = m.token.View()
+	}
+	t := m.tabs().
+		Active(int(m.active)).
+		Keybind(tabsKeybind).
+		OnSelect(func(i int) tview.Msg { return selectTabMsg(i) })
+	return ui.Box(column.New(t, content), m.cfg, false)
 }

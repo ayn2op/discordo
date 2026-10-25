@@ -30,14 +30,6 @@ type NavigateMsg struct{ ChannelID discord.ChannelID }
 // VoiceMsg is sent when who is speaking or the state of the voice channel joined changes.
 type VoiceMsg struct{}
 
-// Init waits for that.
-func (m Model) Init() tview.Cmd {
-	return func() tview.Msg {
-		<-m.voiceSession.Updates()
-		return VoiceMsg{}
-	}
-}
-
 func (m *Model) navigate(channelID discord.ChannelID) tview.Cmd {
 	channel, err := m.state.Cabinet.Channel(channelID)
 	if err != nil {

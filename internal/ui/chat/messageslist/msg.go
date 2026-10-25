@@ -27,14 +27,6 @@ type voiceMsg struct{}
 
 func (voiceMsg) messagesList() {}
 
-// Init waits for that.
-func (m Model) Init() tview.Cmd {
-	return func() tview.Msg {
-		<-m.voicePlayer.Updates()
-		return voiceMsg{}
-	}
-}
-
 // ReplyMsg asks to reply to Message by Name, mentioning its author if Mention is set.
 type ReplyMsg struct {
 	Message discord.Message

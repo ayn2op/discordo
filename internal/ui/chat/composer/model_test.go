@@ -161,10 +161,11 @@ func TestModelUpdate(t *testing.T) {
 
 func TestModelHandle(t *testing.T) {
 	c, _ := newTestModel(t)
+	c.SetFocused(true)
 	area := tview.Rectangle{Width: 20, Height: 3}
 
 	t.Run("typing edits the text", func(t *testing.T) {
-		msg := c.View(true).Handle(tcell.NewEventKey(tcell.KeyRune, "a", tcell.ModNone), area)
+		msg := c.View().Handle(tcell.NewEventKey(tcell.KeyRune, "a", tcell.ModNone), area)
 		if _, ok := msg.(editMsg); !ok {
 			t.Fatalf("got %v, want an editMsg", msg)
 		}
@@ -174,7 +175,7 @@ func TestModelHandle(t *testing.T) {
 		}
 	})
 	t.Run("the newline keybind inserts a newline", func(t *testing.T) {
-		msg := c.View(true).Handle(tcell.NewEventKey(tcell.KeyEnter, "", tcell.ModShift), area)
+		msg := c.View().Handle(tcell.NewEventKey(tcell.KeyEnter, "", tcell.ModShift), area)
 		if _, ok := msg.(editMsg); !ok {
 			t.Fatalf("got %v, want an editMsg", msg)
 		}
@@ -185,7 +186,7 @@ func TestModelHandle(t *testing.T) {
 	})
 	t.Run("bound keys are left to Update", func(t *testing.T) {
 		enter := tcell.NewEventKey(tcell.KeyEnter, "", tcell.ModNone)
-		if got := c.View(true).Handle(enter, area); got != enter {
+		if got := c.View().Handle(enter, area); got != enter {
 			t.Fatalf("got %v", got)
 		}
 	})

@@ -50,6 +50,9 @@ type Model struct {
 	channel *discord.Channel
 	// nodes indexes the tree by group and user ID, so that a rebuild reuses the nodes and keeps the selection and collapsed groups.
 	nodes map[string]*tree.Node
+
+	// focused reports whether the tree takes keys.
+	focused bool
 }
 
 func NewModel(cfg *config.Config, state *ningen.State) Model {
@@ -84,85 +87,15 @@ func (m *Model) SetChannel(channel *discord.Channel) tview.Cmd {
 	return m.requestMembers(0)
 }
 
-// View shows the tree in a box titled Members.
-func (m Model) View(focused bool) tview.Widget {
-	onChange := func(current *tree.Node) tview.Msg { return currentMsg{current} }
-	onSelect := func(n *tree.Node) tview.Msg { return selectedMsg{node: n} }
-	return uitree.New(
-		m.root,
-		m.current,
-		m.scrollState,
-		m.cfg,
-		m.cfg.Theme.MembersTree,
-		m.cfg.UI.MembersTree.Graphics,
-		m.cfg.Keybinds.MembersTree,
-		focused,
-		onChange,
-		onSelect,
-	).
-		Title(ui.Label("Members", m.cfg.Theme.Title, focused))
+// SetFocused sets whether the tree takes keys.
+func (m *Model) SetFocused(focused bool) {
+	m.focused = focused
 }
 
 // setCurrentNode selects node and scrolls to it.
 func (m *Model) setCurrentNode(node *tree.Node) {
 	m.current = node
 	m.scrollState.ScrollToTarget()
-}
-
-// Update returns m changed in response to msg and a command to run, or nil.
-func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
-	switch msg := msg.(type) {
-	case *gateway.ReadyEvent:
-		// ningen drops its member lists on READY, so request the list again.
-		m.rebuild()
-		return m, m.requestMembers(0)
-	case *gateway.GuildMemberListUpdateEvent:
-		if channel := m.channel; channel != nil && channel.GuildID == msg.GuildID && m.state.MemberState.ListID(channel) == msg.ID {
-			m.rebuild()
-		}
-		return m, nil
-	case *gateway.PresenceUpdateEvent:
-		m.refreshStatus(msg.User.ID)
-		return m, nil
-
-	case currentMsg:
-		m.current = msg.current
-		m.scrollState.ScrollToTarget()
-		return m, m.requestSelectedMembers()
-	case uitree.ScrollMsg:
-		m.scrollState = msg.ScrollState
-		if msg.Msg != nil {
-			return m.Update(msg.Msg)
-		}
-		return m, nil
-	case selectedMsg:
-		m.setCurrentNode(msg.node)
-		if isGroup(msg.node) {
-			msg.node.SetExpanded(!msg.node.Expanded())
-		}
-		return m, m.requestSelectedMembers()
-	case tview.KeyMsg:
-		keybinds := m.cfg.Keybinds.MembersTree
-		switch {
-		case keybind.Matches(msg, keybinds.CollapseAll.Keybind):
-			for _, node := range m.root.Children() {
-				node.Collapse()
-			}
-
-			return m, nil
-		case keybind.Matches(msg, keybinds.CollapseParentNode.Keybind):
-			if parent := m.parent(m.current); parent != nil {
-				parent.Collapse()
-				m.setCurrentNode(parent)
-			}
-
-			return m, nil
-		case keybind.Matches(msg, keybinds.YankID.Keybind):
-			return m, uitree.YankID(m.current)
-		}
-	}
-
-	return m, nil
 }
 
 // rebuild recreates the tree from the member list of the selected channel.
@@ -366,4 +299,83 @@ func (m Model) parent(node *tree.Node) *tree.Node {
 		return nil
 	}
 	return path[len(path)-2]
+}
+
+var _ tview.Model[Model] = Model{}
+
+func (m Model) Init() tview.Cmd { return nil }
+
+// Update returns m changed in response to msg and a command to run, or nil.
+func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
+	switch msg := msg.(type) {
+	case *gateway.ReadyEvent:
+		// ningen drops its member lists on READY, so request the list again.
+		m.rebuild()
+		return m, m.requestMembers(0)
+	case *gateway.GuildMemberListUpdateEvent:
+		if channel := m.channel; channel != nil && channel.GuildID == msg.GuildID && m.state.MemberState.ListID(channel) == msg.ID {
+			m.rebuild()
+		}
+		return m, nil
+	case *gateway.PresenceUpdateEvent:
+		m.refreshStatus(msg.User.ID)
+		return m, nil
+
+	case currentMsg:
+		m.current = msg.current
+		m.scrollState.ScrollToTarget()
+		return m, m.requestSelectedMembers()
+	case uitree.ScrollMsg:
+		m.scrollState = msg.ScrollState
+		if msg.Msg != nil {
+			return m.Update(msg.Msg)
+		}
+		return m, nil
+	case selectedMsg:
+		m.setCurrentNode(msg.node)
+		if isGroup(msg.node) {
+			msg.node.SetExpanded(!msg.node.Expanded())
+		}
+		return m, m.requestSelectedMembers()
+	case tview.KeyMsg:
+		keybinds := m.cfg.Keybinds.MembersTree
+		switch {
+		case keybind.Matches(msg, keybinds.CollapseAll.Keybind):
+			for _, node := range m.root.Children() {
+				node.Collapse()
+			}
+
+			return m, nil
+		case keybind.Matches(msg, keybinds.CollapseParentNode.Keybind):
+			if parent := m.parent(m.current); parent != nil {
+				parent.Collapse()
+				m.setCurrentNode(parent)
+			}
+
+			return m, nil
+		case keybind.Matches(msg, keybinds.YankID.Keybind):
+			return m, uitree.YankID(m.current)
+		}
+	}
+
+	return m, nil
+}
+
+// View shows the tree in a box titled Members.
+func (m Model) View() tview.Widget {
+	onChange := func(current *tree.Node) tview.Msg { return currentMsg{current} }
+	onSelect := func(n *tree.Node) tview.Msg { return selectedMsg{node: n} }
+	return uitree.New(
+		m.root,
+		m.current,
+		m.scrollState,
+		m.cfg,
+		m.cfg.Theme.MembersTree,
+		m.cfg.UI.MembersTree.Graphics,
+		m.cfg.Keybinds.MembersTree,
+		m.focused,
+		onChange,
+		onSelect,
+	).
+		Title(ui.Label("Members", m.cfg.Theme.Title, m.focused))
 }

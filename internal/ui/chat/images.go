@@ -95,7 +95,7 @@ func (m *Model) loadImages(msg ui.LoadImagesMsg) tview.Cmd {
 	cellWidth, cellHeight := uint(cell.X), uint(cell.Y)
 	var cmds []tview.Cmd
 	for url, rows := range msg.Squares {
-		cols := rows * cellHeight / cellWidth
+		cols := squareCols(rows, cell)
 		bounds := image.Rect(0, 0, int(cols*cellWidth), int(cols*cellWidth))
 		cmds = append(cmds, m.loadImage(url, bounds, func(img image.Image) tviewimage.Widget {
 			return tviewimage.New(square(img)).Width(int(cols)).CellSize(int(cellWidth), int(cellHeight))
@@ -162,6 +162,11 @@ func (m Model) isKitty(name string) bool {
 		return false
 	}
 	return slices.Contains(placeholderTerminals, name)
+}
+
+// squareCols returns the width in cells of a square image rows tall.
+func squareCols(rows uint, cell image.Point) uint {
+	return rows * uint(cell.Y) / uint(cell.X)
 }
 
 // previewCols returns the width of a preview in cells.

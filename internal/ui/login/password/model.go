@@ -32,11 +32,11 @@ type Model struct {
 	buttonHovered bool
 }
 
-var _ tview.Model[Model] = Model{}
-
 func (Model) Label() string {
 	return "Password"
 }
+
+var _ tview.Model[Model] = Model{}
 
 func (Model) Init() tview.Cmd { return nil }
 

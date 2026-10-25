@@ -50,8 +50,12 @@ type Model struct {
 	items   []messageItem
 
 	renderer *markdown.Renderer
-	// images is set by View, as the chat model owns them.
+	// images are shared with the chat model, which loads them.
 	images map[discord.URL]tviewimage.Widget
+	// focused, footer and avatarWidth, in cells, are set by the chat model, which keeps what they follow from.
+	focused     bool
+	footer      string
+	avatarWidth int
 	// voicePlayer plays the voice message played last, and voiceStatus is what it last said of it.
 	voicePlayer *voice.Player
 	voiceStatus voice.PlayerStatus
@@ -59,12 +63,14 @@ type Model struct {
 	seeking bool
 }
 
-func NewModel(cfg *config.Config, state *ningen.State) Model {
+// NewModel returns the messages list, drawn with the images by URL.
+func NewModel(cfg *config.Config, state *ningen.State, images map[discord.URL]tviewimage.Widget) Model {
 	ml := Model{
 		cursor:      -1,
 		target:      -1,
 		cfg:         cfg,
 		state:       state,
+		images:      images,
 		renderer:    markdown.NewRenderer(cfg),
 		voicePlayer: voice.NewPlayer(),
 	}
@@ -73,12 +79,22 @@ func NewModel(cfg *config.Config, state *ningen.State) Model {
 	return ml
 }
 
-// View shows the messages with images by URL, footed with footer, such as who is typing.
-func (m Model) View(focused bool, footer string, images map[discord.URL]tviewimage.Widget) tview.Widget {
-	m.images = images
-	return ui.Box(m.listView(focused), m.cfg, focused).
-		Title(ui.Label(m.title(), m.cfg.Theme.Title, focused)).
-		Footer(ui.Label(footer, m.cfg.Theme.Footer, focused))
+// SetFocused sets whether the list takes keys.
+func (m *Model) SetFocused(focused bool) {
+	m.focused = focused
+}
+
+// SetFooter sets what is shown under the messages, such as who is typing.
+func (m *Model) SetFooter(footer string) {
+	m.footer = footer
+}
+
+// SetAvatarWidth sets how many cells wide avatars are, which the list leaves for them before they load.
+func (m *Model) SetAvatarWidth(width int) {
+	if width != m.avatarWidth {
+		m.avatarWidth = width
+		m.clearViews()
+	}
 }
 
 // title returns the selected channel and its topic, or "Messages" when none is selected.
@@ -93,7 +109,7 @@ func (m Model) title() string {
 	return title
 }
 
-func (m Model) listView(focused bool) viewport.Widget {
+func (m Model) listView() viewport.Widget {
 	cfg, theme := m.cfg.UI.ScrollBar, m.cfg.Theme.ScrollBar
 	bar := scrollbar.New().
 		SymbolSet(cfg.SymbolSet.SymbolSet).
@@ -116,7 +132,7 @@ func (m Model) listView(focused bool) viewport.Widget {
 		// Older messages are added above, so the position is kept from the newest, which also keeps the newest in view.
 		AnchorBottom().
 		Keybind(ui.ScrollKeybind(m.cfg.Keybinds.MessagesList.ScrollKeybinds)).
-		Focused(focused).
+		Focused(m.focused).
 		OnChange(func(s *viewport.ScrollState) tview.Msg { return scrollMsg(*s) })
 }
 
@@ -290,12 +306,13 @@ func (m Model) itemView(item *messageItem) tview.Widget {
 	}
 
 	var view tview.Widget = body
-	if avatar, ok := m.images[avatarURL(message.Author)]; ok {
-		var gutter tview.Widget = avatar
-		// A grouped message leaves the avatar's column empty, under the avatar of the group.
-		if item.grouped {
-			width, _ := avatar.Size()
-			gutter = spacer.New().Width(width)
+	if m.showsAvatar(message.Author) {
+		// The avatar's column is left empty before it is requested, if it fails to load, and under the avatar of a group, so the text does not shift.
+		var gutter tview.Widget = spacer.New().Width(layout.Fixed(m.avatarWidth))
+		if avatar, ok := m.images[avatarURL(message.Author)]; ok && !item.grouped {
+			if width, _ := avatar.Size(); width != layout.Fixed(0) {
+				gutter = avatar
+			}
 		}
 		view = row.New(gutter, body).Spacing(1).Height(layout.Shrink)
 	}
@@ -421,103 +438,6 @@ func (m Model) selectedURLs() []string {
 	return nil
 }
 
-// Update returns m changed in response to msg and a command to run, or nil.
-func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
-	switch msg := msg.(type) {
-	case ui.LoadImagesMsg, ui.ImageLoadedMsg:
-		m.clearViews()
-		return m, nil
-	case tview.KeyMsg:
-		keybinds := m.cfg.Keybinds.MessagesList
-		switch {
-		case keybind.Matches(msg, keybinds.Cancel.Keybind):
-			m.clearSelection()
-		case keybind.Matches(msg, keybinds.SelectUp.Keybind):
-			return m, m.selectUp()
-		case keybind.Matches(msg, keybinds.SelectDown.Keybind):
-			m.selectDown()
-		case keybind.Matches(msg, keybinds.SelectTop.Keybind):
-			return m, m.selectTop()
-		case keybind.Matches(msg, keybinds.SelectBottom.Keybind):
-			m.selectBottom()
-		case keybind.Matches(msg, keybinds.SelectReply.Keybind):
-			m.selectReply()
-		case keybind.Matches(msg, keybinds.YankID.Keybind):
-			return m, m.yankMessageID()
-		case keybind.Matches(msg, keybinds.YankContent.Keybind):
-			return m, m.yankContent()
-		case keybind.Matches(msg, keybinds.YankURL.Keybind):
-			return m, m.yankURL()
-		case keybind.Matches(msg, keybinds.Open.Keybind):
-			return m, m.open()
-		case keybind.Matches(msg, keybinds.OpenInBrowser.Keybind):
-			return m, m.openInBrowser()
-		case keybind.Matches(msg, keybinds.Play.Keybind):
-			if message, ok := m.selectedMessage(); ok && isVoiceMessage(*message) {
-				return m, m.play(message.Attachments[0])
-			}
-		case keybind.Matches(msg, keybinds.SeekBackward.Keybind):
-			return m, m.seek(m.voiceStatus.Position - seekStep)
-		case keybind.Matches(msg, keybinds.SeekForward.Keybind):
-			return m, m.seek(m.voiceStatus.Position + seekStep)
-		case keybind.Matches(msg, keybinds.Download.Keybind):
-			return m, m.download()
-		case keybind.Matches(msg, keybinds.Reply.Keybind):
-			return m, m.reply(false)
-		case keybind.Matches(msg, keybinds.ReplyMention.Keybind):
-			return m, m.reply(true)
-		case keybind.Matches(msg, keybinds.Edit.Keybind):
-			return m, m.editSelectedMessage()
-		case keybind.Matches(msg, keybinds.Delete.Keybind):
-			return m, m.deleteSelectedMessage()
-		case keybind.Matches(msg, keybinds.DeleteConfirm.Keybind):
-			return m, m.confirmDelete()
-		}
-	case olderMessagesLoadedMsg:
-		return m, m.prependOlder(msg)
-	case playMsg:
-		return m, m.play(discord.Attachment(msg))
-	case seekPressMsg:
-		m.seeking = true
-		m.voiceStatus.Position = time.Duration(msg)
-		return m, nil
-	case seekMsg:
-		m.voiceStatus.Position = time.Duration(msg)
-		if m.seeking {
-			return m, nil
-		}
-
-		return m, m.seek(m.voiceStatus.Position)
-	case seekReleaseMsg:
-		m.seeking = false
-		return m, m.seek(m.voiceStatus.Position)
-	case voiceMsg:
-		status := m.voicePlayer.Status()
-		// The waveform shows where it is dragged to rather than what is playing, while that voice message is the one loaded.
-		m.seeking = m.seeking && status.ID == m.voiceStatus.ID
-		if m.seeking {
-			status.Position = m.voiceStatus.Position
-		}
-
-		m.voiceStatus = status
-		return m, m.Init()
-	case scrollMsg:
-		m.scrollState = viewport.ScrollState(msg)
-		// Older messages are fetched once as the list is scrolled to the top, rather than on each scroll there.
-		if !scrolledToTop(m.scrollState.Origin()) && scrolledToTop(m.scrollState.Viewport()) {
-			return m, m.fetchOlderMessages()
-		}
-	case listMsg:
-		top := m.atTop()
-		m.cursor, m.target = int(msg), int(msg)
-		m.onRowCursorChanged(m.cursor)
-		if !top && m.atTop() {
-			return m, m.fetchOlderMessages()
-		}
-	}
-	return m, nil
-}
-
 // prependOlder shows the older messages loaded above those of the same channel.
 func (m *Model) prependOlder(msg olderMessagesLoadedMsg) tview.Cmd {
 	selectedChannel := m.channel
@@ -639,4 +559,117 @@ func (m Model) contentRoot(item *messageItem) ast.Node {
 		item.root = m.parse(item.message)
 	}
 	return item.root
+}
+
+var _ tview.Model[Model] = Model{}
+
+// Init waits for the status of the voice message player to change.
+func (m Model) Init() tview.Cmd {
+	return func() tview.Msg {
+		<-m.voicePlayer.Updates()
+		return voiceMsg{}
+	}
+}
+
+// Update returns m changed in response to msg and a command to run, or nil.
+func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
+	switch msg := msg.(type) {
+	case ui.LoadImagesMsg, ui.ImageLoadedMsg:
+		m.clearViews()
+		return m, nil
+	case tview.KeyMsg:
+		keybinds := m.cfg.Keybinds.MessagesList
+		switch {
+		case keybind.Matches(msg, keybinds.Cancel.Keybind):
+			m.clearSelection()
+		case keybind.Matches(msg, keybinds.SelectUp.Keybind):
+			return m, m.selectUp()
+		case keybind.Matches(msg, keybinds.SelectDown.Keybind):
+			m.selectDown()
+		case keybind.Matches(msg, keybinds.SelectTop.Keybind):
+			return m, m.selectTop()
+		case keybind.Matches(msg, keybinds.SelectBottom.Keybind):
+			m.selectBottom()
+		case keybind.Matches(msg, keybinds.SelectReply.Keybind):
+			m.selectReply()
+		case keybind.Matches(msg, keybinds.YankID.Keybind):
+			return m, m.yankMessageID()
+		case keybind.Matches(msg, keybinds.YankContent.Keybind):
+			return m, m.yankContent()
+		case keybind.Matches(msg, keybinds.YankURL.Keybind):
+			return m, m.yankURL()
+		case keybind.Matches(msg, keybinds.Open.Keybind):
+			return m, m.open()
+		case keybind.Matches(msg, keybinds.OpenInBrowser.Keybind):
+			return m, m.openInBrowser()
+		case keybind.Matches(msg, keybinds.Play.Keybind):
+			if message, ok := m.selectedMessage(); ok && isVoiceMessage(*message) {
+				return m, m.play(message.Attachments[0])
+			}
+		case keybind.Matches(msg, keybinds.SeekBackward.Keybind):
+			return m, m.seek(m.voiceStatus.Position - seekStep)
+		case keybind.Matches(msg, keybinds.SeekForward.Keybind):
+			return m, m.seek(m.voiceStatus.Position + seekStep)
+		case keybind.Matches(msg, keybinds.Download.Keybind):
+			return m, m.download()
+		case keybind.Matches(msg, keybinds.Reply.Keybind):
+			return m, m.reply(false)
+		case keybind.Matches(msg, keybinds.ReplyMention.Keybind):
+			return m, m.reply(true)
+		case keybind.Matches(msg, keybinds.Edit.Keybind):
+			return m, m.editSelectedMessage()
+		case keybind.Matches(msg, keybinds.Delete.Keybind):
+			return m, m.deleteSelectedMessage()
+		case keybind.Matches(msg, keybinds.DeleteConfirm.Keybind):
+			return m, m.confirmDelete()
+		}
+	case olderMessagesLoadedMsg:
+		return m, m.prependOlder(msg)
+	case playMsg:
+		return m, m.play(discord.Attachment(msg))
+	case seekPressMsg:
+		m.seeking = true
+		m.voiceStatus.Position = time.Duration(msg)
+		return m, nil
+	case seekMsg:
+		m.voiceStatus.Position = time.Duration(msg)
+		if m.seeking {
+			return m, nil
+		}
+
+		return m, m.seek(m.voiceStatus.Position)
+	case seekReleaseMsg:
+		m.seeking = false
+		return m, m.seek(m.voiceStatus.Position)
+	case voiceMsg:
+		status := m.voicePlayer.Status()
+		// The waveform shows where it is dragged to rather than what is playing, while that voice message is the one loaded.
+		m.seeking = m.seeking && status.ID == m.voiceStatus.ID
+		if m.seeking {
+			status.Position = m.voiceStatus.Position
+		}
+
+		m.voiceStatus = status
+		return m, m.Init()
+	case scrollMsg:
+		m.scrollState = viewport.ScrollState(msg)
+		// Older messages are fetched once as the list is scrolled to the top, rather than on each scroll there.
+		if !scrolledToTop(m.scrollState.Origin()) && scrolledToTop(m.scrollState.Viewport()) {
+			return m, m.fetchOlderMessages()
+		}
+	case listMsg:
+		top := m.atTop()
+		m.cursor, m.target = int(msg), int(msg)
+		m.onRowCursorChanged(m.cursor)
+		if !top && m.atTop() {
+			return m, m.fetchOlderMessages()
+		}
+	}
+	return m, nil
+}
+
+func (m Model) View() tview.Widget {
+	return ui.Box(m.listView(), m.cfg, m.focused).
+		Title(ui.Label(m.title(), m.cfg.Theme.Title, m.focused)).
+		Footer(ui.Label(m.footer, m.cfg.Theme.Footer, m.focused))
 }
