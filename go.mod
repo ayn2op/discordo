@@ -17,7 +17,7 @@ require (
 	github.com/ayn2op/tview v0.0.0-20261025020023-cd3c5a5a8d26
 	github.com/bogdanfinn/fhttp v0.7.1
 	github.com/bogdanfinn/tls-client v1.17.1
-	github.com/gdamore/tcell/v3 v3.6.1-0.20261024233502-62aecba7acc7
+	github.com/gdamore/tcell/v3 v3.6.1-0.20261025165013-3f9243d555d9
 	github.com/gen2brain/malgo v0.11.26
 	github.com/gorilla/websocket v1.5.3
 	github.com/mattn/go-shellwords v1.0.16
