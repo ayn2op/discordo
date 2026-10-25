@@ -28,6 +28,8 @@ type Model struct {
 	loginCursor, passwordCursor int
 
 	focus focus
+	// buttonHovered reports whether the pointer is over the button.
+	buttonHovered bool
 }
 
 var _ tview.Model[Model] = Model{}
@@ -46,6 +48,8 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		m.password, m.passwordCursor = msg.text, msg.cursor
 	case focusMsg:
 		m.focus = focus(msg)
+	case hoverMsg:
+		m.buttonHovered = bool(msg)
 	case tview.KeyMsg:
 		switch msg.Key() {
 		case tcell.KeyTab, tcell.KeyDown:
@@ -74,13 +78,18 @@ func (m Model) View() tview.Widget {
 		OnInput(func(text string, cursor int) tview.Msg { return passwordMsg{text, cursor} }).
 		OnSubmit(focusMsg(focusButton))
 	buttonStyle := tcell.StyleDefault
-	if m.focus == focusButton {
+	switch {
+	case m.focus == focusButton:
 		buttonStyle = buttonStyle.Reverse(true)
+	case m.buttonHovered:
+		buttonStyle = buttonStyle.Underline(true)
 	}
 	submit := button.New(text.New("Login")).
 		Style(buttonStyle).
 		Width(layout.Fixed(len("Login") + 4)).
 		Focused(m.focus == focusButton).
+		Hovered(m.buttonHovered).
+		OnHover(func(hovered bool) tview.Msg { return hoverMsg(hovered) }).
 		OnClick(submitMsg{})
 	return column.New(
 		row.New(text.New("Login").Width(labelWidth), login).Height(layout.Shrink),

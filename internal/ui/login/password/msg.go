@@ -20,6 +20,7 @@ type (
 	loginMsg    inputMsg
 	passwordMsg inputMsg
 	focusMsg    focus
+	hoverMsg    bool
 	submitMsg   struct{}
 )
 
