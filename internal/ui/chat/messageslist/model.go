@@ -546,6 +546,12 @@ func (m Model) canDeleteMessage(message discord.Message) bool {
 		(message.GuildID.IsValid() && m.state.HasPermissions(message.ChannelID, discord.PermissionManageMessages))
 }
 
+// canReact reports whether the user may react to messages in the channel, which is always so in DMs.
+// Reacting with an emoji nobody has reacted with takes adding reactions as well as reading the message history.
+func (m Model) canReact() bool {
+	return m.channel != nil && (!m.channel.GuildID.IsValid() || m.state.HasPermissions(m.channel.ID, discord.PermissionAddReactions|discord.PermissionReadMessageHistory))
+}
+
 func (m Model) InvalidateRendered() {
 	for index := range m.items {
 		m.items[index].view, m.items[index].root = nil, nil
@@ -612,6 +618,8 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			return m, m.seek(m.voiceStatus.Position + seekStep)
 		case keybind.Matches(msg, keybinds.Download.Keybind):
 			return m, m.download()
+		case keybind.Matches(msg, keybinds.React.Keybind):
+			return m, m.showReactions()
 		case keybind.Matches(msg, keybinds.Reply.Keybind):
 			return m, m.reply(false)
 		case keybind.Matches(msg, keybinds.ReplyMention.Keybind):

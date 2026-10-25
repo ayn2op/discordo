@@ -65,6 +65,9 @@ func (m Model) messageHelp(message discord.Message) (actions, manage, attachment
 	if message.ReferencedMessage != nil {
 		actions = append(actions, keybinds.SelectReply.Keybind)
 	}
+	if m.canReact() {
+		actions = append(actions, keybinds.React.Keybind)
+	}
 
 	if mine {
 		manage = append(manage, keybinds.Edit.Keybind)

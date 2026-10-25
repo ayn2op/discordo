@@ -418,3 +418,18 @@ func TestModelReactionsView(t *testing.T) {
 		}
 	})
 }
+
+func TestModelCanReact(t *testing.T) {
+	ml := newTestModel(t, testConfig(t))
+	t.Run("dm", func(t *testing.T) {
+		if ml.channel = (&discord.Channel{ID: 1, Type: discord.DirectMessage}); !ml.canReact() {
+			t.Error("cannot react in a DM")
+		}
+	})
+	t.Run("without permissions", func(t *testing.T) {
+		// The permissions in the guild are unknown.
+		if ml.channel = (&discord.Channel{ID: 2, GuildID: 3}); ml.canReact() {
+			t.Error("can react without the permissions")
+		}
+	})
+}

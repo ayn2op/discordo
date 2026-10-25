@@ -94,7 +94,9 @@ func (m *Model) clearImages() tview.Cmd {
 // sendImages passes a copy of the images to the models that draw them.
 func (m *Model) sendImages() tview.Cmd {
 	images := images.ChangedMsg(maps.Clone(m.images))
-	return tview.Batch(m.updatePane(paneMessagesList, images), m.updatePane(paneComposer, images))
+	var cmd tview.Cmd
+	m.reactionsPicker, cmd = m.reactionsPicker.Update(images)
+	return tview.Batch(cmd, m.updatePane(paneMessagesList, images), m.updatePane(paneComposer, images))
 }
 
 func (m *Model) loadImages(msg images.RequestedMsg) tview.Cmd {

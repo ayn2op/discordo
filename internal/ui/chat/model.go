@@ -27,6 +27,7 @@ import (
 	"github.com/ayn2op/discordo/internal/ui/chat/guildstree"
 	"github.com/ayn2op/discordo/internal/ui/chat/memberstree"
 	"github.com/ayn2op/discordo/internal/ui/chat/messageslist"
+	"github.com/ayn2op/discordo/internal/ui/chat/reactionspicker"
 	"github.com/ayn2op/discordo/internal/ui/images"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
@@ -58,6 +59,8 @@ type Model struct {
 	channelsPicker channelspicker.Model
 	// attachmentsPicker picks an attachment or link of the selected message.
 	attachmentsPicker attachmentspicker.Model
+	// reactionsPicker picks an emoji to react to the selected message with.
+	reactionsPicker reactionspicker.Model
 
 	selectedChannel *discord.Channel
 	// windowUnfocused reports whether the terminal window lost focus.
@@ -120,6 +123,7 @@ func NewModel(cfg *config.Config, token string) Model {
 	m.composer = composer.NewModel(cfg, m.state)
 	m.channelsPicker = channelspicker.NewModel(cfg)
 	m.attachmentsPicker = attachmentspicker.NewModel(cfg)
+	m.reactionsPicker = reactionspicker.NewModel(cfg, m.state)
 
 	m.guildsTreeVisible = cfg.Sidebar.Visible
 	m.membersTreeVisible = cfg.MembersTree.Visible
@@ -140,6 +144,7 @@ const (
 	overlayNone overlay = iota
 	overlayChannelsPicker
 	overlayAttachmentsPicker
+	overlayReactionsPicker
 )
 
 // pickerView returns the view of the picker shown on top, or nil if none is open.
@@ -149,6 +154,8 @@ func (m Model) pickerView() tview.Widget {
 		return m.channelsPicker.View()
 	case overlayAttachmentsPicker:
 		return m.attachmentsPicker.View()
+	case overlayReactionsPicker:
+		return m.reactionsPicker.View()
 	default:
 		return nil
 	}
@@ -291,6 +298,17 @@ func (m Model) update(msg tview.Msg) (Model, tview.Cmd) {
 		m.attachmentsPicker.SetItems(picker.Items(msg))
 		m.overlay = overlayAttachmentsPicker
 		return m, nil
+	case messageslist.ShowReactionsMsg:
+		m.overlay = overlayReactionsPicker
+		var cmd tview.Cmd
+		m.reactionsPicker, cmd = m.reactionsPicker.Update(reactionspicker.ShowMsg(msg))
+		return m, cmd
+	case reactionspicker.SelectedMsg:
+		m.overlay = overlayNone
+		return m, m.react(msg)
+	case reactionspicker.CancelMsg:
+		m.overlay = overlayNone
+		return m, nil
 	case messageslist.ReplyMsg:
 		m.composer.StartReply(msg.Message, msg.Name, msg.Mention)
 		m.setFocus(paneComposer)
@@ -374,6 +392,8 @@ func (m *Model) route(msg tview.Msg) tview.Cmd {
 		m.channelsPicker, cmd = m.channelsPicker.Update(msg)
 	case overlayAttachmentsPicker:
 		m.attachmentsPicker, cmd = m.attachmentsPicker.Update(msg)
+	case overlayReactionsPicker:
+		m.reactionsPicker, cmd = m.reactionsPicker.Update(msg)
 	default:
 		cmd = m.updatePane(m.focused, msg)
 	}

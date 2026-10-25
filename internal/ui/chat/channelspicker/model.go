@@ -10,6 +10,7 @@ import (
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/picker"
+	"github.com/ayn2op/tview/text"
 )
 
 type Model struct {
@@ -61,7 +62,7 @@ func (m Model) channelItem(state *ningen.State, guild *discord.Guild, channel di
 	if guild != nil {
 		name += " - " + guild.Name
 	}
-	return picker.Item{Text: name, FilterText: name, Reference: channel.ID}
+	return picker.Item{Content: text.New(name), FilterText: name, Reference: channel.ID}
 }
 
 var _ tview.Model[Model] = Model{}

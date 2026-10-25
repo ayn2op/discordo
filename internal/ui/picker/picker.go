@@ -27,6 +27,9 @@ func (m *Model) SetItems(items picker.Items) {
 	m.searchState.Reset()
 }
 
+// ReplaceItems replaces the items with the same ones changed, such as drawn with new images, keeping the query.
+func (m *Model) ReplaceItems(items picker.Items) { m.items = items }
+
 // Reset clears the query.
 func (m *Model) Reset() { m.searchState.Reset() }
 

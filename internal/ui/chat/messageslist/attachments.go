@@ -16,6 +16,7 @@ import (
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/picker"
+	"github.com/ayn2op/tview/text"
 	"github.com/ncruces/zenity"
 	"github.com/skratchdot/open-golang/open"
 )
@@ -62,7 +63,7 @@ func (m Model) download() tview.Cmd {
 
 	items := make(picker.Items, len(selectedMessage.Attachments))
 	for i, attachment := range selectedMessage.Attachments {
-		items[i] = picker.Item{Text: attachment.Filename, Reference: m.confirmAttachment(attachment, m.saveAttachment(attachment))}
+		items[i] = picker.Item{Content: text.New(attachment.Filename), FilterText: attachment.Filename, Reference: m.confirmAttachment(attachment, m.saveAttachment(attachment))}
 	}
 	return showAttachmentsPicker(items)
 }
@@ -70,10 +71,10 @@ func (m Model) download() tview.Cmd {
 func (m Model) showAttachmentsList(urls []string, attachments []discord.Attachment, openAttachment func(discord.Attachment) tview.Cmd) tview.Cmd {
 	var items picker.Items
 	for _, attachment := range attachments {
-		items = append(items, picker.Item{Text: attachment.Filename, Reference: openAttachment(attachment)})
+		items = append(items, picker.Item{Content: text.New(attachment.Filename), FilterText: attachment.Filename, Reference: openAttachment(attachment)})
 	}
 	for _, url := range urls {
-		items = append(items, picker.Item{Text: url, Reference: openURL(url)})
+		items = append(items, picker.Item{Content: text.New(url), FilterText: url, Reference: openURL(url)})
 	}
 	return showAttachmentsPicker(items)
 }

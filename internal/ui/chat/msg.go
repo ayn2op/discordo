@@ -12,6 +12,7 @@ import (
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/discordo/internal/ui/chat/composer"
 	"github.com/ayn2op/discordo/internal/ui/chat/guildstree"
+	"github.com/ayn2op/discordo/internal/ui/chat/reactionspicker"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
 )
@@ -104,5 +105,15 @@ func (m Model) addTyper(userID discord.UserID) tview.Cmd {
 	return func() tview.Msg {
 		time.Sleep(composer.TypingDuration)
 		return typingExpiredMsg{userID}
+	}
+}
+
+// react reacts as msg asks. The reaction is shown once the gateway reports it.
+func (m Model) react(msg reactionspicker.SelectedMsg) tview.Cmd {
+	return func() tview.Msg {
+		if err := m.state.React(msg.ChannelID, msg.MessageID, msg.Emoji); err != nil {
+			slog.Error("failed to react", "channel_id", msg.ChannelID, "message_id", msg.MessageID, "emoji", msg.Emoji, "err", err)
+		}
+		return nil
 	}
 }

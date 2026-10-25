@@ -34,6 +34,22 @@ type ReplyMsg struct {
 	Mention bool
 }
 
+// ShowReactionsMsg asks to pick an emoji to react to the message with MessageID in ChannelID with, in GuildID.
+type ShowReactionsMsg struct {
+	GuildID   discord.GuildID
+	ChannelID discord.ChannelID
+	MessageID discord.MessageID
+}
+
+func (m Model) showReactions() tview.Cmd {
+	message, ok := m.selectedMessage()
+	if !ok || !m.canReact() {
+		return nil
+	}
+	msg := ShowReactionsMsg{m.channel.GuildID, message.ChannelID, message.ID}
+	return func() tview.Msg { return msg }
+}
+
 // EditMsg asks to edit a message.
 type EditMsg discord.Message
 

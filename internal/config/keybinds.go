@@ -143,6 +143,8 @@ type MessagesListKeybinds struct {
 	Open Keybind `toml:"open"`
 	// Open attachments or hyperlinks in the browser.
 	OpenInBrowser Keybind `toml:"open_in_browser"`
+	// React to the selected message with an emoji picked from a list.
+	React Keybind `toml:"react"`
 	// Download one of the selected message's attachments.
 	Download Keybind `toml:"download"`
 	// Play, pause or resume the selected voice message.
@@ -331,6 +333,7 @@ func defaultKeybinds() Keybinds {
 
 			Open:          key("open", "o"),
 			OpenInBrowser: key("open browser", "O"),
+			React:         key("react", "a"),
 			Download:      key("download", "D"),
 			Play:          key("play", "p"),
 			SeekBackward:  key("seek back", "h", "left"),

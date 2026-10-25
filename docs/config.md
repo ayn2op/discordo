@@ -933,6 +933,12 @@ Open attachments or hyperlinks in the browser.
 
 Default: `"O"`
 
+### keybinds.messages_list.react
+
+React to the selected message with an emoji picked from a list.
+
+Default: `"a"`
+
 ### keybinds.messages_list.download
 
 Download one of the selected message's attachments.
