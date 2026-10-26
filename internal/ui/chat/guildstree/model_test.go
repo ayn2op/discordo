@@ -61,17 +61,30 @@ func TestAdjacentNode(t *testing.T) {
 	a, b, c := tree.NewNode("a"), tree.NewNode("b"), tree.NewNode("c")
 	root := tree.NewNode("").SetChildren([]*tree.Node{a, tree.NewNode("guild").AddChild(b), c})
 	match := func(n *tree.Node) bool { return n == a || n == b }
-	for current, want := range map[*tree.Node][2]*tree.Node{nil: {a, b}, a: {b, b}, b: {a, a}, c: {a, b}} {
-		if got := adjacentNode(root, current, match, false); got != want[0] {
-			t.Errorf("after %v = %v, want %v", current, got, want[0])
-		}
-		if got := adjacentNode(root, current, match, true); got != want[1] {
-			t.Errorf("before %v = %v, want %v", current, got, want[1])
-		}
+	for _, test := range []struct {
+		name          string
+		current       *tree.Node
+		after, before *tree.Node
+	}{
+		{"none", nil, a, b},
+		{"a", a, b, b},
+		{"b", b, a, a},
+		{"c", c, a, b},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if got := adjacentNode(root, test.current, match, false); got != test.after {
+				t.Errorf("after = %v, want %v", got, test.after)
+			}
+			if got := adjacentNode(root, test.current, match, true); got != test.before {
+				t.Errorf("before = %v, want %v", got, test.before)
+			}
+		})
 	}
-	if got := adjacentNode(root, a, func(*tree.Node) bool { return false }, false); got != nil {
-		t.Errorf("got %v, want nil", got)
-	}
+	t.Run("no match", func(t *testing.T) {
+		if got := adjacentNode(root, a, func(*tree.Node) bool { return false }, false); got != nil {
+			t.Errorf("got %v, want nil", got)
+		}
+	})
 }
 
 func TestMentionsLabel(t *testing.T) {

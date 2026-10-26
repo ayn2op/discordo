@@ -159,7 +159,7 @@ func TestModelUpdate(t *testing.T) {
 	})
 }
 
-func TestModelHandle(t *testing.T) {
+func TestModelView(t *testing.T) {
 	c, _ := newTestModel(t)
 	c.SetFocused(true)
 	area := tview.Rectangle{Width: 20, Height: 3}
@@ -192,10 +192,12 @@ func TestModelHandle(t *testing.T) {
 	})
 	t.Run("readline keys edit the text", func(t *testing.T) {
 		for _, str := range []string{"w", "j"} {
-			msg := c.View().Handle(tcell.NewEventKey(tcell.KeyRune, str, tcell.ModCtrl), area)
-			if _, ok := msg.(editMsg); !ok {
-				t.Fatalf("ctrl+%s: got %v, want an editMsg", str, msg)
-			}
+			t.Run("ctrl+"+str, func(t *testing.T) {
+				msg := c.View().Handle(tcell.NewEventKey(tcell.KeyRune, str, tcell.ModCtrl), area)
+				if _, ok := msg.(editMsg); !ok {
+					t.Fatalf("got %v, want an editMsg", msg)
+				}
+			})
 		}
 	})
 	t.Run("shift reaches readline keys bound elsewhere", func(t *testing.T) {
@@ -206,18 +208,22 @@ func TestModelHandle(t *testing.T) {
 			tcell.NewEventKey(tcell.KeyRune, "h", tcell.ModCtrl|tcell.ModShift),
 			tcell.NewEventKey(tcell.KeyRune, "d", tcell.ModAlt|tcell.ModShift),
 		} {
-			if msg := c.View().Handle(key, area); msg == key {
-				t.Fatalf("%v was not bound", key.Name())
-			}
+			t.Run(key.Name(), func(t *testing.T) {
+				if msg := c.View().Handle(key, area); msg == key {
+					t.Fatal("not bound")
+				}
+			})
 		}
 	})
 	t.Run("keys bound elsewhere are left to Update", func(t *testing.T) {
 		// Readline binds these too, but they toggle the channels picker, undo, open the editor, and log out.
 		for _, str := range []string{"k", "u", "e", "d"} {
-			key := tcell.NewEventKey(tcell.KeyRune, str, tcell.ModCtrl)
-			if got := c.View().Handle(key, area); got != key {
-				t.Fatalf("ctrl+%s: got %v", str, got)
-			}
+			t.Run("ctrl+"+str, func(t *testing.T) {
+				key := tcell.NewEventKey(tcell.KeyRune, str, tcell.ModCtrl)
+				if got := c.View().Handle(key, area); got != key {
+					t.Fatalf("got %v", got)
+				}
+			})
 		}
 	})
 }
@@ -229,22 +235,28 @@ func TestModelSearchMember(t *testing.T) {
 		Nonce:   memberSearchNonce + "1 ab",
 		Members: []discord.Member{{}},
 	})
-	if cmd := c.searchMember(1, "ab"); cmd != nil {
-		t.Fatal("cached query returned a network command")
-	}
-	if cmd := c.searchMember(1, "abc"); cmd != nil || c.memberSearchCache["1 abc"] != 1 {
-		t.Fatal("incomplete prefix results were not reused")
-	}
-	c.memberSearchCache["1 a"] = 2
-	c.memberSearchCache["2 a"] = 2
-	c.OnGuildMemberRemove(&gateway.GuildMemberRemoveEvent{
-		GuildID: 1,
-		User:    discord.User{Username: "abc"},
+	t.Run("cached query", func(t *testing.T) {
+		if cmd := c.searchMember(1, "ab"); cmd != nil {
+			t.Fatal("cached query returned a network command")
+		}
 	})
-	want := map[string]uint{"1 ab": 1, "1 abc": 1, "2 a": 2}
-	if !maps.Equal(c.memberSearchCache, want) {
-		t.Fatalf("cache after invalidation = %v, want %v", c.memberSearchCache, want)
-	}
+	t.Run("incomplete prefix reused", func(t *testing.T) {
+		if cmd := c.searchMember(1, "abc"); cmd != nil || c.memberSearchCache["1 abc"] != 1 {
+			t.Fatal("incomplete prefix results were not reused")
+		}
+	})
+	t.Run("member removed", func(t *testing.T) {
+		c.memberSearchCache["1 a"] = 2
+		c.memberSearchCache["2 a"] = 2
+		c.OnGuildMemberRemove(&gateway.GuildMemberRemoveEvent{
+			GuildID: 1,
+			User:    discord.User{Username: "abc"},
+		})
+		want := map[string]uint{"1 ab": 1, "1 abc": 1, "2 a": 2}
+		if !maps.Equal(c.memberSearchCache, want) {
+			t.Fatalf("cache after invalidation = %v, want %v", c.memberSearchCache, want)
+		}
+	})
 }
 
 func TestModelShowAutocomplete(t *testing.T) {
@@ -329,16 +341,21 @@ func TestModelComplete(t *testing.T) {
 	c.SetChannel(&discord.Channel{ID: 1, Type: discord.DirectMessage})
 	c.setText("hi :joy", len("hi :joy"))
 	c.showAutocomplete()
-	if !c.autocomplete.Visible() {
-		t.Fatal("no emojis completed")
-	}
+	t.Run("shows emojis", func(t *testing.T) {
+		if !c.autocomplete.Visible() {
+			t.Fatal("no emojis completed")
+		}
+	})
 
 	c.complete()
-	if want := "hi 😂 "; c.text != want || c.cursor != len(want) {
-		t.Errorf("text = %q, cursor = %d; want %q, %d", c.text, c.cursor, want, len(want))
-	}
-
-	if c.autocomplete.Visible() {
-		t.Error("autocomplete still shown after completing")
-	}
+	t.Run("inserts the emoji", func(t *testing.T) {
+		if want := "hi 😂 "; c.text != want || c.cursor != len(want) {
+			t.Errorf("text = %q, cursor = %d; want %q, %d", c.text, c.cursor, want, len(want))
+		}
+	})
+	t.Run("hides the completions", func(t *testing.T) {
+		if c.autocomplete.Visible() {
+			t.Error("autocomplete still shown after completing")
+		}
+	})
 }

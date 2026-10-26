@@ -36,40 +36,40 @@ func TestRendererRenderText(t *testing.T) {
 			}
 		})
 	}
-}
 
-func TestRendererRenderTextEmoji(t *testing.T) {
-	source := []byte("hi <:cat:5> <:dog:6>")
-	// Only the emoji with ID 5 has an image.
-	emoji := func(id string) []text.Span {
-		if id == "5" {
-			return []text.Span{{Text: "I"}}
+	t.Run("emoji", func(t *testing.T) {
+		source := []byte("hi <:cat:5> <:dog:6>")
+		// Only the emoji with ID 5 has an image.
+		emoji := func(id string) []text.Span {
+			if id == "5" {
+				return []text.Span{{Text: "I"}}
+			}
+			return nil
 		}
-		return nil
-	}
 
-	for _, test := range []struct {
-		name     string
-		colons   bool
-		showName bool
-		want     string
-	}{
-		{"plain", false, true, "hi I cat dog"},
-		{"colons", true, true, "hi I :cat: :dog:"},
-		// The emoji without an image keeps its name.
-		{"image only", false, false, "hi I dog"},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			var cfg config.Config
-			cfg.UI.MessagesList.Emojis.ColonsAroundName = test.colons
-			cfg.UI.MessagesList.Emojis.ShowEmojiName = test.showName
-			var got strings.Builder
-			for _, span := range NewRenderer(&cfg).RenderText(source, md.Parse(source), tcell.StyleDefault, emoji) {
-				got.WriteString(span.Text)
-			}
-			if got.String() != test.want {
-				t.Fatalf("got %q, want %q", got.String(), test.want)
-			}
-		})
-	}
+		for _, test := range []struct {
+			name     string
+			colons   bool
+			showName bool
+			want     string
+		}{
+			{"plain", false, true, "hi I cat dog"},
+			{"colons", true, true, "hi I :cat: :dog:"},
+			// The emoji without an image keeps its name.
+			{"image only", false, false, "hi I dog"},
+		} {
+			t.Run(test.name, func(t *testing.T) {
+				var cfg config.Config
+				cfg.UI.MessagesList.Emojis.ColonsAroundName = test.colons
+				cfg.UI.MessagesList.Emojis.ShowEmojiName = test.showName
+				var got strings.Builder
+				for _, span := range NewRenderer(&cfg).RenderText(source, md.Parse(source), tcell.StyleDefault, emoji) {
+					got.WriteString(span.Text)
+				}
+				if got.String() != test.want {
+					t.Fatalf("got %q, want %q", got.String(), test.want)
+				}
+			})
+		}
+	})
 }

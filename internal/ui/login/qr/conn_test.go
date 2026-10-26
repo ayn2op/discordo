@@ -77,7 +77,7 @@ func serveGateway(t *testing.T, acks int) http.HandlerFunc {
 	}
 }
 
-func TestModelGateway(t *testing.T) {
+func TestListen(t *testing.T) {
 	t.Run("reads messages after heartbeat acks", func(t *testing.T) {
 		server := httptest.NewServer(serveGateway(t, 5))
 		t.Cleanup(server.Close)
@@ -128,12 +128,16 @@ func TestCloseConn(t *testing.T) {
 	conn := &gatewayConn{ws: ws}
 
 	// Closing twice must not error, or the error case would close it again forever.
-	for range 2 {
-		if msg := closeConn(conn)(); msg != (connCloseMsg{}) {
-			t.Fatalf("closeConn() = %#v, want connCloseMsg", msg)
+	for _, name := range []string{"close", "close again"} {
+		t.Run(name, func(t *testing.T) {
+			if msg := closeConn(conn)(); msg != (connCloseMsg{}) {
+				t.Fatalf("got %#v, want connCloseMsg", msg)
+			}
+		})
+	}
+	t.Run("listen after close", func(t *testing.T) {
+		if msg := listen(conn)(); msg != nil {
+			t.Fatalf("got %#v, want nil", msg)
 		}
-	}
-	if msg := listen(conn)(); msg != nil {
-		t.Fatalf("listen() after close = %#v, want nil", msg)
-	}
+	})
 }

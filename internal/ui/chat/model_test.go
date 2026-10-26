@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"fmt"
 	"image"
 	"path/filepath"
 	"testing"
@@ -25,7 +26,7 @@ func newTestModel(t *testing.T) *Model {
 	return &m
 }
 
-func TestModelHandle(t *testing.T) {
+func TestModelView(t *testing.T) {
 	t.Run("typing in the channels picker", func(t *testing.T) {
 		m := newTestModel(t)
 		m.openPicker()
@@ -91,15 +92,24 @@ func TestModelCycleFocus(t *testing.T) {
 	m.focused = paneGuildsTree
 
 	// The composer is disabled without permission to send messages, so it is skipped.
-	for _, want := range []pane{paneMessagesList, paneMembersTree, paneGuildsTree} {
-		if m.cycleFocus(1); m.focused != want {
-			t.Fatalf("focused = %v, want %v", m.focused, want)
-		}
-	}
-	for _, want := range []pane{paneMembersTree, paneMessagesList, paneGuildsTree} {
-		if m.cycleFocus(-1); m.focused != want {
-			t.Fatalf("focused = %v, want %v", m.focused, want)
-		}
+	for _, test := range []struct {
+		name  string
+		step  pane
+		panes []pane
+	}{
+		{"forward", 1, []pane{paneMessagesList, paneMembersTree, paneGuildsTree}},
+		{"backward", -1, []pane{paneMembersTree, paneMessagesList, paneGuildsTree}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			m.focused = paneGuildsTree
+			for i, want := range test.panes {
+				t.Run(fmt.Sprintf("step %d", i+1), func(t *testing.T) {
+					if m.cycleFocus(test.step); m.focused != want {
+						t.Fatalf("focused = %v, want %v", m.focused, want)
+					}
+				})
+			}
+		})
 	}
 }
 

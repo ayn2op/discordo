@@ -65,17 +65,27 @@ func TestModelQuit(t *testing.T) {
 	m := NewModel(cfg)
 
 	m, cmd := m.Update(tcell.NewEventKey(tcell.KeyCtrlC, "", tcell.ModCtrl))
-	if cmd == nil {
-		t.Fatal("quit did not ask")
+	t.Run("asks", func(t *testing.T) {
+		if cmd == nil {
+			t.Fatal("quit did not ask")
+		}
+	})
+	if cmd != nil {
+		m, _ = m.Update(cmd())
 	}
-	m, _ = m.Update(cmd())
-	if m.dialog == nil || m.dialog.Text != "Are you sure you want to quit?" {
-		t.Fatalf("dialog = %+v, want the quit confirmation", m.dialog)
-	}
-	if no, _ := m.Update(dialogDoneMsg(0)); no.dialog != nil {
-		t.Fatal("No left the dialog open")
-	}
-	if _, cmd = m.Update(dialogDoneMsg(1)); cmd == nil {
-		t.Fatal("Yes did not quit")
-	}
+	t.Run("confirmation", func(t *testing.T) {
+		if m.dialog == nil || m.dialog.Text != "Are you sure you want to quit?" {
+			t.Fatalf("dialog = %+v, want the quit confirmation", m.dialog)
+		}
+	})
+	t.Run("no", func(t *testing.T) {
+		if no, _ := m.Update(dialogDoneMsg(0)); no.dialog != nil {
+			t.Fatal("No left the dialog open")
+		}
+	})
+	t.Run("yes", func(t *testing.T) {
+		if _, cmd := m.Update(dialogDoneMsg(1)); cmd == nil {
+			t.Fatal("Yes did not quit")
+		}
+	})
 }

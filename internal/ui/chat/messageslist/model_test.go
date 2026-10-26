@@ -44,45 +44,89 @@ func newTestModel(t *testing.T, cfg *config.Config) *Model {
 func TestModelBuildItem(t *testing.T) {
 	ml := newTestModel(t, testConfig(t))
 	ml.setMessages([]discord.Message{{ID: 3}, {ID: 2}})
-	if ml.items[ml.messageIndex(-1, 1)].message.ID != 2 {
-		t.Fatal("messages are not oldest first")
-	}
 	// kept reports whether the newest message keeps the view it was shown with.
 	kept := func() bool { return ml.items[ml.messageIndex(len(ml.items), -1)].view != nil }
-	ml.buildItem(ml.messageIndex(len(ml.items), -1))
-	if !kept() {
-		t.Fatal("message view was not kept")
-	}
-	if ml.selectTop() == nil || ml.selectTop() != nil || ml.selectUp() != nil {
-		t.Fatal("older messages were not fetched once on reaching the top")
-	}
-	ml.selectBottom()
-	if _, cmd := ml.Update(listMsg(0)); cmd == nil {
-		t.Fatal("clicking the top message did not fetch older messages")
-	}
-	ml.selectBottom()
-	*ml, _ = ml.Update(olderMessagesLoadedMsg{channelID: 1, older: []discord.Message{{ID: 1}}})
-	selected, ok := ml.selectedMessage()
-	if !ok || selected.ID != 3 || !kept() {
-		t.Fatal("prepend lost selection or cached view")
-	}
-	ml.deleteMessage(ml.messageIndex(-1, 1))
-	if !kept() {
-		t.Fatal("deletion discarded another message's view")
-	}
-	ml.setMessage(ml.messageIndex(len(ml.items), -1), discord.Message{ID: 3, Content: "edited"})
-	if kept() {
-		t.Fatal("edit reused stale view")
-	}
-	ml.buildItem(ml.messageIndex(len(ml.items), -1))
-	ml.InvalidateRendered()
-	if kept() {
-		t.Fatal("global invalidation reused stale view")
-	}
-	ml.reset()
-	if len(ml.items) != 0 {
-		t.Fatal("reset retained messages or rows")
-	}
+
+	t.Run("oldest first", func(t *testing.T) {
+		if ml.items[ml.messageIndex(-1, 1)].message.ID != 2 {
+			t.Fatal("messages are not oldest first")
+		}
+	})
+	t.Run("keeps the view", func(t *testing.T) {
+		ml.buildItem(ml.messageIndex(len(ml.items), -1))
+		if !kept() {
+			t.Fatal("message view was not kept")
+		}
+	})
+	t.Run("fetches older messages once at the top", func(t *testing.T) {
+		if ml.selectTop() == nil || ml.selectTop() != nil || ml.selectUp() != nil {
+			t.Fatal("older messages were not fetched once on reaching the top")
+		}
+	})
+	t.Run("fetches older messages on clicking the top", func(t *testing.T) {
+		ml.selectBottom()
+		if _, cmd := ml.Update(listMsg(0)); cmd == nil {
+			t.Fatal("clicking the top message did not fetch older messages")
+		}
+	})
+	t.Run("prepend", func(t *testing.T) {
+		ml.selectBottom()
+		*ml, _ = ml.Update(olderMessagesLoadedMsg{channelID: 1, older: []discord.Message{{ID: 1}}})
+		if selected, ok := ml.selectedMessage(); !ok || selected.ID != 3 || !kept() {
+			t.Fatal("prepend lost selection or cached view")
+		}
+	})
+	t.Run("delete", func(t *testing.T) {
+		ml.deleteMessage(ml.messageIndex(-1, 1))
+		if !kept() {
+			t.Fatal("deletion discarded another message's view")
+		}
+	})
+	t.Run("edit", func(t *testing.T) {
+		ml.setMessage(ml.messageIndex(len(ml.items), -1), discord.Message{ID: 3, Content: "edited"})
+		if kept() {
+			t.Fatal("edit reused stale view")
+		}
+	})
+	t.Run("invalidate", func(t *testing.T) {
+		ml.buildItem(ml.messageIndex(len(ml.items), -1))
+		ml.InvalidateRendered()
+		if kept() {
+			t.Fatal("global invalidation reused stale view")
+		}
+	})
+	t.Run("reset", func(t *testing.T) {
+		ml.reset()
+		if len(ml.items) != 0 {
+			t.Fatal("reset retained messages or rows")
+		}
+	})
+
+	t.Run("layout", func(t *testing.T) {
+		cfg := testConfig(t)
+		cfg.UI.MessagesList.Compact = true
+		ml := newTestModel(t, cfg)
+		limits := layout.Limits{Max: layout.Size{Width: 80}, Infinite: layout.Axes{Height: true}}
+
+		// The avatar is 2 rows, below the row of a reply.
+		avatar := tviewimage.New(image.NewAlpha(image.Rect(0, 0, 4, 4))).Width(4).CellSize(1, 2)
+		ml.images = map[discord.URL]tviewimage.Widget{avatarURL(discord.User{}): avatar}
+		for _, test := range []struct {
+			name        string
+			messageType discord.MessageType
+			want        int
+		}{
+			{"default", discord.DefaultMessage, 2},
+			{"reply", discord.InlinedReplyMessage, 3},
+		} {
+			t.Run(test.name, func(t *testing.T) {
+				ml.SetChannel(ml.channel, []discord.Message{{ID: 1, Type: test.messageType, Content: "hi"}})
+				if got := ml.buildItem(ml.messageIndex(-1, 1)).Layout(limits).Height; got != test.want {
+					t.Fatalf("height = %d, want %d", got, test.want)
+				}
+			})
+		}
+	})
 }
 
 func TestModelRebuildItems(t *testing.T) {
@@ -229,17 +273,26 @@ func TestModelDrawLayout(t *testing.T) {
 	ml := newTestModel(t, cfg)
 	message := discord.Message{Author: discord.User{Username: "a"}, Content: "hi", EditedTimestamp: discord.NowTimestamp()}
 
-	for compact, want := range map[bool]string{false: "a T (edited)\nhi", true: "T a hi (edited)"} {
-		cfg.UI.MessagesList.Compact = compact
+	for _, test := range []struct {
+		name    string
+		compact bool
+		want    string
+	}{
+		{"cozy", false, "a T (edited)\nhi"},
+		{"compact", true, "T a hi (edited)"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			cfg.UI.MessagesList.Compact = test.compact
 
-		var got strings.Builder
-		for _, span := range ml.renderMessage(message, nil, tview.Style{}, false) {
-			got.WriteString(span.Text)
-		}
+			var got strings.Builder
+			for _, span := range ml.renderMessage(message, nil, tview.Style{}, false) {
+				got.WriteString(span.Text)
+			}
 
-		if got.String() != want {
-			t.Fatalf("got = %q, want = %q", got.String(), want)
-		}
+			if got.String() != test.want {
+				t.Fatalf("got = %q, want = %q", got.String(), test.want)
+			}
+		})
 	}
 }
 
@@ -272,48 +325,41 @@ func TestModelShouldGroup(t *testing.T) {
 	cfg := testConfig(t)
 	cfg.Timestamps.Enabled = false
 	ml := newTestModel(t, cfg)
-	if cfg.UI.MessagesList.Grouping.Enabled = false; ml.shouldGroup(&previous, previous) {
-		t.Fatal("grouped while disabled")
-	}
+	t.Run("disabled", func(t *testing.T) {
+		if cfg.UI.MessagesList.Grouping.Enabled = false; ml.shouldGroup(&previous, previous) {
+			t.Fatal("grouped while disabled")
+		}
+	})
+
 	cfg.UI.MessagesList.Grouping.Enabled = true
 	// Newest first, as Discord sends them.
 	ml.setMessages([]discord.Message{message("a", 2*time.Minute, discord.DefaultMessage), message("a", time.Minute, discord.DefaultMessage), previous})
 	newest := ml.messageIndex(len(ml.items), -1)
-	if !ml.items[newest].grouped || ml.items[ml.messageIndex(-1, 1)].grouped {
-		t.Fatal("only the first message has a header")
-	}
-	if got := ml.renderMessage(ml.items[newest].message, nil, tview.Style{}, true); len(got) != 1 || got[0].Text != "hi" {
-		t.Fatalf("grouped message = %v, want only its content", got)
-	}
-	second := ml.messageIndex(newest, -1)
-	ml.buildItem(second)
-	ml.deleteMessage(ml.messageIndex(-1, 1))
-	if first := ml.messageIndex(-1, 1); ml.items[first].grouped || ml.items[first].view != nil {
-		t.Fatal("deleting the first message did not give the next its header")
-	}
-	if ml.AddMessage(message("a", 3*time.Minute, discord.DefaultMessage)); !ml.items[len(ml.items)-1].grouped {
-		t.Fatal("added message was not grouped")
-	}
-}
-
-func TestModelBuildItemLayout(t *testing.T) {
-	cfg := testConfig(t)
-	cfg.UI.MessagesList.Compact = true
-	ml := newTestModel(t, cfg)
-	limits := layout.Limits{Max: layout.Size{Width: 80}, Infinite: layout.Axes{Height: true}}
-
-	// The avatar is 2 rows, below the row of a reply.
-	avatar := tviewimage.New(image.NewAlpha(image.Rect(0, 0, 4, 4))).Width(4).CellSize(1, 2)
-	ml.images = map[discord.URL]tviewimage.Widget{avatarURL(discord.User{}): avatar}
-	for want, messageType := range map[int]discord.MessageType{2: discord.DefaultMessage, 3: discord.InlinedReplyMessage} {
-		ml.SetChannel(ml.channel, []discord.Message{{ID: 1, Type: messageType, Content: "hi"}})
-		if got := ml.buildItem(ml.messageIndex(-1, 1)).Layout(limits).Height; got != want {
-			t.Fatalf("height = %d, want %d", got, want)
+	t.Run("only the first has a header", func(t *testing.T) {
+		if !ml.items[newest].grouped || ml.items[ml.messageIndex(-1, 1)].grouped {
+			t.Fatal("only the first message has a header")
 		}
-	}
+	})
+	t.Run("grouped content", func(t *testing.T) {
+		if got := ml.renderMessage(ml.items[newest].message, nil, tview.Style{}, true); len(got) != 1 || got[0].Text != "hi" {
+			t.Fatalf("grouped message = %v, want only its content", got)
+		}
+	})
+	t.Run("delete the first", func(t *testing.T) {
+		ml.buildItem(ml.messageIndex(newest, -1))
+		ml.deleteMessage(ml.messageIndex(-1, 1))
+		if first := ml.messageIndex(-1, 1); ml.items[first].grouped || ml.items[first].view != nil {
+			t.Fatal("deleting the first message did not give the next its header")
+		}
+	})
+	t.Run("add", func(t *testing.T) {
+		if ml.AddMessage(message("a", 3*time.Minute, discord.DefaultMessage)); !ml.items[len(ml.items)-1].grouped {
+			t.Fatal("added message was not grouped")
+		}
+	})
 }
 
-func TestModelScrollToTop(t *testing.T) {
+func TestModelUpdate(t *testing.T) {
 	ml := newTestModel(t, testConfig(t))
 	ml.SetFocused(true)
 	messages := make([]discord.Message, 20)
@@ -348,26 +394,32 @@ func TestModelScrollToTop(t *testing.T) {
 		}
 	}
 
-	if fetches := scrollToTop(); fetches != 1 {
-		t.Fatalf("scrolling to the top fetched %d times, want once", fetches)
-	}
-	if cmd, _ := scrollUp(); cmd != nil {
-		t.Fatal("older messages were fetched again while at the top")
-	}
+	t.Run("scrolling to the top fetches once", func(t *testing.T) {
+		if fetches := scrollToTop(); fetches != 1 {
+			t.Fatalf("scrolling to the top fetched %d times, want once", fetches)
+		}
+	})
+	t.Run("at the top", func(t *testing.T) {
+		if cmd, _ := scrollUp(); cmd != nil {
+			t.Fatal("older messages were fetched again while at the top")
+		}
+	})
 
 	older := []discord.Message{{ID: 1, Content: "hi"}, {ID: 2, Content: "hi"}}
 	*ml, _ = ml.Update(olderMessagesLoadedMsg{channelID: 1, older: older})
-	cmd, _ := scrollUp()
-	if cmd != nil {
-		t.Fatal("older messages were fetched again before scrolling to the new top")
-	}
-	if ml.scrollState.Viewport().AbsoluteOffsetReversed().Y == 0 {
-		t.Fatal("the older messages were scrolled into view rather than added above it")
-	}
-
-	if fetches := scrollToTop(); fetches != 1 {
-		t.Fatalf("scrolling to the new top fetched %d times, want once", fetches)
-	}
+	t.Run("after older messages", func(t *testing.T) {
+		if cmd, _ := scrollUp(); cmd != nil {
+			t.Fatal("older messages were fetched again before scrolling to the new top")
+		}
+		if ml.scrollState.Viewport().AbsoluteOffsetReversed().Y == 0 {
+			t.Fatal("the older messages were scrolled into view rather than added above it")
+		}
+	})
+	t.Run("scrolling to the new top fetches once", func(t *testing.T) {
+		if fetches := scrollToTop(); fetches != 1 {
+			t.Fatalf("scrolling to the new top fetched %d times, want once", fetches)
+		}
+	})
 }
 
 func TestModelReactionsView(t *testing.T) {

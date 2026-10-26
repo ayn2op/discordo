@@ -59,26 +59,31 @@ func TestModelPreviewSources(t *testing.T) {
 
 func TestModelEmojiLine(t *testing.T) {
 	ml := newTestModel(t, testConfig(t))
-	if got := ml.emojiLine("5"); got != nil {
-		t.Fatalf("line = %v, want nil before the emoji is loaded", got)
-	}
-
-	ml.images = map[discord.URL]tviewimage.Widget{emojis.URLFromID(5): tviewimage.New(image.NewAlpha(image.Rect(0, 0, 2, 2))).Width(2)}
-	if got := ml.emojiLine("5"); len(got) != 2 {
-		t.Fatalf("line = %v, want the two cells of the emoji", got)
-	}
+	t.Run("not loaded", func(t *testing.T) {
+		if got := ml.emojiLine("5"); got != nil {
+			t.Fatalf("line = %v, want nil before the emoji is loaded", got)
+		}
+	})
+	t.Run("loaded", func(t *testing.T) {
+		ml.images = map[discord.URL]tviewimage.Widget{emojis.URLFromID(5): tviewimage.New(image.NewAlpha(image.Rect(0, 0, 2, 2))).Width(2)}
+		if got := ml.emojiLine("5"); len(got) != 2 {
+			t.Fatalf("line = %v, want the two cells of the emoji", got)
+		}
+	})
 }
 
 func TestModelLoadImages(t *testing.T) {
 	ml := newTestModel(t, testConfig(t))
 	ml.setMessages([]discord.Message{{ID: 2, ChannelID: 1, Content: "hi <:cat:5>"}})
 	msg := ml.LoadImages()().(images.RequestedMsg)
-	if rows := msg.Squares[emojis.URLFromID(5)]; rows != emojis.Rows {
-		t.Fatalf("the emoji in the content was asked for %d rows tall, want %d", rows, emojis.Rows)
-	}
-
-	item := &ml.items[len(ml.items)-1]
-	if item.root == nil {
-		t.Fatal("the parsed content was not kept for rendering")
-	}
+	t.Run("content emoji", func(t *testing.T) {
+		if rows := msg.Squares[emojis.URLFromID(5)]; rows != emojis.Rows {
+			t.Fatalf("the emoji in the content was asked for %d rows tall, want %d", rows, emojis.Rows)
+		}
+	})
+	t.Run("keeps the parsed content", func(t *testing.T) {
+		if ml.items[len(ml.items)-1].root == nil {
+			t.Fatal("the parsed content was not kept for rendering")
+		}
+	})
 }

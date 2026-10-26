@@ -38,7 +38,9 @@ func TestItems(t *testing.T) {
 		if items, _ := Items(cfg, s, discord.NullGuildID, "face", 3); len(items) != 3 {
 			t.Errorf("got %d items, want 3", len(items))
 		}
+	})
 
+	t.Run("zero limit", func(t *testing.T) {
 		if items, _ := Items(cfg, s, discord.NullGuildID, "face", 0); len(items) != 0 {
 			t.Errorf("got %d items, want 0", len(items))
 		}
