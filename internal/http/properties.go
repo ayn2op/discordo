@@ -1,6 +1,9 @@
 package http
 
 import (
+	"fmt"
+	"strconv"
+	"strings"
 	"uuid"
 
 	"github.com/ayn2op/arikawa/v3/discord"
@@ -21,8 +24,27 @@ func BrowserUserAgent() string {
 }
 
 func browserBrands() string {
-	version := tls.BrowserMajorVersion()
-	return `"Chromium";v="` + version + `", "Not-A.Brand";v="24", "Google ` + tls.BrowserName() + `";v="` + version + `"`
+	return brands(tls.BrowserName(), tls.BrowserMajorVersion())
+}
+
+// brands returns the Sec-Ch-Ua of browser name at major version, whose GREASE brand and order Chromium derives from the version.
+func brands(name, version string) string {
+	seed, _ := strconv.Atoi(version)
+	// Reference: https://github.com/chromium/chromium/blob/dfb6413cdd961f33d080d48d851dfe8ac66715f5/components/embedder_support/user_agent_utils.cc#L535
+	chars := []string{" ", "(", ":", "-", ".", "/", ")", ";", "=", "?", "_"}
+	list := []string{
+		fmt.Sprintf(`"Not%sA%sBrand";v="%s"`, chars[seed%11], chars[(seed+1)%11], []string{"8", "99", "24"}[seed%3]),
+		fmt.Sprintf(`"Chromium";v="%s"`, version),
+		fmt.Sprintf(`"Google %s";v="%s"`, name, version),
+	}
+
+	// Reference: https://github.com/chromium/chromium/blob/dfb6413cdd961f33d080d48d851dfe8ac66715f5/components/embedder_support/user_agent_utils.cc#L242
+	order := [][3]int{{0, 1, 2}, {0, 2, 1}, {1, 0, 2}, {1, 2, 0}, {2, 0, 1}, {2, 1, 0}}[seed%6]
+	shuffled := make([]string, len(list))
+	for i, at := range order {
+		shuffled[at] = list[i]
+	}
+	return strings.Join(shuffled, ", ")
 }
 
 func commonProperties() gateway.IdentifyProperties {
