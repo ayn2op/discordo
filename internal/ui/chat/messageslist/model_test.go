@@ -293,6 +293,14 @@ func TestModelDrawLayout(t *testing.T) {
 				t.Fatalf("got = %q, want = %q", got.String(), test.want)
 			}
 		})
+		t.Run(test.name+" spaces around dimmed text in the base style", func(t *testing.T) {
+			cfg.UI.MessagesList.Compact = test.compact
+			for _, span := range ml.renderMessage(message, nil, tview.Style{}, false) {
+				if span.Style.HasDim() && strings.TrimSpace(span.Text) != span.Text {
+					t.Fatalf("dimmed span %q has spaces around it", span.Text)
+				}
+			}
+		})
 	}
 }
 

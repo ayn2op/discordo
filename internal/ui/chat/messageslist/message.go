@@ -125,7 +125,7 @@ func (m Model) formatTimestamp(timestamp discord.Timestamp) string {
 	return timestamp.Time().In(time.Local).Format(m.cfg.Timestamps.Format)
 }
 
-const editedIndicator = " (edited)"
+const editedIndicator = "(edited)"
 
 // drawLayout draws the header of message, unless it is grouped, and its content.
 func (m Model) drawLayout(builder *markdown.Builder, message discord.Message, baseStyle tview.Style, grouped bool, content func()) {
@@ -140,7 +140,8 @@ func (m Model) drawLayout(builder *markdown.Builder, message discord.Message, ba
 func (m Model) drawCompact(builder *markdown.Builder, message discord.Message, baseStyle tview.Style, grouped bool, content func()) {
 	dimStyle := baseStyle.Dim(true)
 	if m.cfg.Timestamps.Enabled {
-		builder.Write(m.formatTimestamp(message.Timestamp)+" ", dimStyle)
+		builder.Write(m.formatTimestamp(message.Timestamp), dimStyle)
+		builder.Write(" ", baseStyle)
 	}
 
 	if !grouped {
@@ -154,6 +155,7 @@ func (m Model) drawCompact(builder *markdown.Builder, message discord.Message, b
 	}
 
 	if message.EditedTimestamp.IsValid() {
+		builder.Write(" ", baseStyle)
 		builder.Write(editedIndicator, dimStyle)
 	}
 }
@@ -165,6 +167,7 @@ func (m Model) drawCozy(builder *markdown.Builder, message discord.Message, base
 			content()
 		}
 		if message.EditedTimestamp.IsValid() {
+			builder.Write(" ", baseStyle)
 			builder.Write(editedIndicator, dimStyle)
 		}
 		return
@@ -172,10 +175,12 @@ func (m Model) drawCozy(builder *markdown.Builder, message discord.Message, base
 
 	m.drawAuthor(builder, message, baseStyle)
 	if m.cfg.Timestamps.Enabled {
-		builder.Write(" "+m.formatTimestamp(message.Timestamp), dimStyle)
+		builder.Write(" ", baseStyle)
+		builder.Write(m.formatTimestamp(message.Timestamp), dimStyle)
 	}
 
 	if message.EditedTimestamp.IsValid() {
+		builder.Write(" ", baseStyle)
 		builder.Write(editedIndicator, dimStyle)
 	}
 
@@ -310,20 +315,24 @@ func (m Model) drawDefaultMessage(builder *markdown.Builder, message discord.Mes
 func (m Model) drawForwardedMessage(builder *markdown.Builder, message discord.Message, baseStyle tview.Style, grouped bool) {
 	dimStyle := baseStyle.Dim(true)
 	m.drawLayout(builder, message, baseStyle, grouped, func() {
-		builder.Write(m.cfg.UI.MessagesList.ForwardedIndicator+" ", dimStyle)
+		builder.Write(m.cfg.UI.MessagesList.ForwardedIndicator, dimStyle)
+		builder.Write(" ", baseStyle)
 		m.drawSnapshotContent(builder, message, message.MessageSnapshots[0].Message, baseStyle)
-		builder.Write(" ("+m.formatTimestamp(message.MessageSnapshots[0].Message.Timestamp)+") ", dimStyle)
+		builder.Write(" ", baseStyle)
+		builder.Write("("+m.formatTimestamp(message.MessageSnapshots[0].Message.Timestamp)+")", dimStyle)
+		builder.Write(" ", baseStyle)
 	})
 }
 
 func (m Model) drawReply(builder *markdown.Builder, message discord.Message, baseStyle tview.Style) {
 	dimStyle := baseStyle.Dim(true)
-	builder.Write(m.cfg.UI.MessagesList.ReplyIndicator+" ", dimStyle)
+	builder.Write(m.cfg.UI.MessagesList.ReplyIndicator, dimStyle)
+	builder.Write(" ", baseStyle)
 
 	if ref := message.ReferencedMessage; ref != nil {
 		ref.GuildID = message.GuildID
 		m.drawAuthor(builder, *ref, dimStyle)
-		builder.Write(" ", dimStyle)
+		builder.Write(" ", baseStyle)
 		m.drawContent(builder, *ref, nil, dimStyle)
 	} else {
 		builder.Write("Original message was deleted", dimStyle)
