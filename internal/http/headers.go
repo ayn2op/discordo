@@ -7,6 +7,7 @@ import (
 	stdHttp "net/http"
 
 	"github.com/ayn2op/arikawa/v3/api"
+	"github.com/ayn2op/discordo/pkg/tzlocal"
 )
 
 func Headers() stdHttp.Header {
@@ -28,6 +29,11 @@ func Headers() stdHttp.Header {
 
 	headers.Set("X-Debug-Options", "bugReporterEnabled")
 	headers.Set("X-Discord-Locale", string(locale))
+	if timezone, err := tzlocal.Name(); err != nil {
+		slog.Error("failed to get the local time zone", "err", err)
+	} else {
+		headers.Set("X-Discord-Timezone", timezone)
+	}
 
 	superProps, err := json.Marshal(xSuperProperties())
 	if err != nil {
