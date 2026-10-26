@@ -33,4 +33,38 @@ func TestModelUpdate(t *testing.T) {
 			t.Fatalf("got %v", got)
 		}
 	})
+
+	t.Run("a second factor switches to the code stage", func(t *testing.T) {
+		var m Model
+		m, _ = m.Update(mfaMsg{mfaMethodTOTP, "ticket", "instance"})
+		if m.stage != stageCode || m.ticket != "ticket" || m.loginInstanceID != "instance" {
+			t.Fatalf("stage = %v, ticket = %q, loginInstanceID = %q", m.stage, m.ticket, m.loginInstanceID)
+		}
+	})
+
+	t.Run("submitting an empty code does nothing", func(t *testing.T) {
+		m := Model{stage: stageCode}
+		if _, cmd := m.Update(submitMsg{}); cmd != nil {
+			t.Fatal("expected no command for an empty code")
+		}
+	})
+
+	t.Run("submitting a code submits", func(t *testing.T) {
+		m := Model{stage: stageCode, code: "123456"}
+		if _, cmd := m.Update(submitMsg{}); cmd == nil {
+			t.Fatal("expected a command for a non-empty code")
+		}
+	})
+
+	t.Run("tab cycles between the code input and the button only in the code stage", func(t *testing.T) {
+		m := Model{stage: stageCode}
+		m, _ = m.Update(tcell.NewEventKey(tcell.KeyTab, "", tcell.ModNone))
+		if m.focus != focusCodeButton {
+			t.Fatalf("focus = %v, want focusCodeButton", m.focus)
+		}
+		m, _ = m.Update(tcell.NewEventKey(tcell.KeyTab, "", tcell.ModNone))
+		if m.focus != focusCode {
+			t.Fatalf("focus = %v, want focusCode", m.focus)
+		}
+	})
 }
