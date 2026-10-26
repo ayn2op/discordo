@@ -46,17 +46,21 @@ func TestModelView(t *testing.T) {
 func TestModelUpdate(t *testing.T) {
 	t.Run("typing expires unless extended", func(t *testing.T) {
 		m := newTestModel(t)
-		m.addTyper(1)
-		m.addTyper(1)
-		*m, _ = m.Update(typingExpiredMsg{userID: 1})
-		if _, ok := m.typers[1]; !ok {
-			t.Fatal("an extended typing indicator expired early")
-		}
-		m.typers[1] = time.Now().Add(-time.Second)
-		*m, _ = m.Update(typingExpiredMsg{userID: 1})
-		if _, ok := m.typers[1]; ok {
-			t.Fatal("the typing indicator did not expire")
-		}
+		t.Run("extended", func(t *testing.T) {
+			m.addTyper(1)
+			m.addTyper(1)
+			*m, _ = m.Update(typingExpiredMsg{userID: 1})
+			if _, ok := m.typers[1]; !ok {
+				t.Fatal("an extended typing indicator expired early")
+			}
+		})
+		t.Run("expired", func(t *testing.T) {
+			m.typers[1] = time.Now().Add(-time.Second)
+			*m, _ = m.Update(typingExpiredMsg{userID: 1})
+			if _, ok := m.typers[1]; ok {
+				t.Fatal("the typing indicator did not expire")
+			}
+		})
 	})
 }
 
@@ -138,14 +142,17 @@ func TestModelReloadImages(t *testing.T) {
 	t.Run("stale download", func(t *testing.T) {
 		m.images[url] = tviewimage.New(image.NewAlpha(image.Rect(0, 0, 1, 1)))
 		// Only an accepted image is sent to kitty.
-		*m, _ = m.Update(images.LoadedMsg{URL: url, Image: m.images[url], Cell: cell})
-		if m.kittyImages != 0 {
-			t.Fatal("an image sized for the old cell size was shown")
-		}
-
-		*m, _ = m.Update(images.LoadedMsg{URL: url, Image: m.images[url], Cell: m.imageCell()})
-		if m.kittyImages != 1 {
-			t.Fatal("an image sized for the cell size was not shown")
-		}
+		t.Run("for the old cell size", func(t *testing.T) {
+			*m, _ = m.Update(images.LoadedMsg{URL: url, Image: m.images[url], Cell: cell})
+			if m.kittyImages != 0 {
+				t.Fatal("an image sized for the old cell size was shown")
+			}
+		})
+		t.Run("for the cell size", func(t *testing.T) {
+			*m, _ = m.Update(images.LoadedMsg{URL: url, Image: m.images[url], Cell: m.imageCell()})
+			if m.kittyImages != 1 {
+				t.Fatal("an image sized for the cell size was not shown")
+			}
+		})
 	})
 }

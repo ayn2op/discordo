@@ -59,9 +59,21 @@ func TestModelBuildItem(t *testing.T) {
 		}
 	})
 	t.Run("fetches older messages once at the top", func(t *testing.T) {
-		if ml.selectTop() == nil || ml.selectTop() != nil || ml.selectUp() != nil {
-			t.Fatal("older messages were not fetched once on reaching the top")
-		}
+		t.Run("select top", func(t *testing.T) {
+			if ml.selectTop() == nil {
+				t.Fatal("older messages were not fetched on reaching the top")
+			}
+		})
+		t.Run("select top again", func(t *testing.T) {
+			if ml.selectTop() != nil {
+				t.Fatal("older messages were fetched again")
+			}
+		})
+		t.Run("select up at the top", func(t *testing.T) {
+			if ml.selectUp() != nil {
+				t.Fatal("older messages were fetched again")
+			}
+		})
 	})
 	t.Run("fetches older messages on clicking the top", func(t *testing.T) {
 		ml.selectBottom()
@@ -150,7 +162,7 @@ func TestModelRebuildItems(t *testing.T) {
 				t.Fatal(err)
 			}
 			ml.setMessages(messages[:2])
-			assertItems := func(want ...discord.MessageID) {
+			assertItems := func(t *testing.T, want ...discord.MessageID) {
 				t.Helper()
 				var got []discord.MessageID
 				for i, item := range ml.items {
@@ -173,34 +185,50 @@ func TestModelRebuildItems(t *testing.T) {
 					t.Fatalf("item count = %d, want %d", len(ml.items), expected)
 				}
 			}
-			assertSelected := func(want discord.MessageID) {
+			assertSelected := func(t *testing.T, want discord.MessageID) {
 				t.Helper()
 				message, ok := ml.selectedMessage()
 				if !ok || message.ID != want {
 					t.Fatalf("selected = %v, want %v", message, want)
 				}
 			}
-			assertItems(2, 3)
-			ml.selectTop()
-			assertSelected(2)
-			ml.selectDown()
-			assertSelected(3)
-			ml.selectUp()
-			assertSelected(2)
-			*ml, _ = ml.Update(olderMessagesLoadedMsg{channelID: 1, older: messages[2:]})
-			assertItems(1, 2, 3)
-			assertSelected(2)
-			ml.deleteMessage(ml.cursor)
-			assertItems(1, 3)
-			assertSelected(1)
-			ml.deleteMessage(ml.cursor)
-			assertItems(3)
-			assertSelected(3)
-			ml.deleteMessage(ml.cursor)
-			assertItems()
-			if ml.cursor != -1 {
-				t.Fatal("empty list retained selection")
-			}
+			t.Run("set", func(t *testing.T) {
+				assertItems(t, 2, 3)
+			})
+			t.Run("select top", func(t *testing.T) {
+				ml.selectTop()
+				assertSelected(t, 2)
+			})
+			t.Run("select down", func(t *testing.T) {
+				ml.selectDown()
+				assertSelected(t, 3)
+			})
+			t.Run("select up", func(t *testing.T) {
+				ml.selectUp()
+				assertSelected(t, 2)
+			})
+			t.Run("prepend older", func(t *testing.T) {
+				*ml, _ = ml.Update(olderMessagesLoadedMsg{channelID: 1, older: messages[2:]})
+				assertItems(t, 1, 2, 3)
+				assertSelected(t, 2)
+			})
+			t.Run("delete the middle", func(t *testing.T) {
+				ml.deleteMessage(ml.cursor)
+				assertItems(t, 1, 3)
+				assertSelected(t, 1)
+			})
+			t.Run("delete the first", func(t *testing.T) {
+				ml.deleteMessage(ml.cursor)
+				assertItems(t, 3)
+				assertSelected(t, 3)
+			})
+			t.Run("delete the last", func(t *testing.T) {
+				ml.deleteMessage(ml.cursor)
+				assertItems(t)
+				if ml.cursor != -1 {
+					t.Fatal("empty list retained selection")
+				}
+			})
 		})
 	}
 }

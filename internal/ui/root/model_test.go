@@ -18,42 +18,47 @@ func TestNewModel(t *testing.T) {
 		cfg := *cfg
 		cfg.Help.Enabled = true
 		m := NewModel(&cfg)
-		if !m.helpVisible {
-			t.Fatal("help is hidden")
-		}
-		m, _ = m.Update(tcell.NewEventKey(tcell.KeyRune, ".", tcell.ModCtrl))
-		if !m.helpShowAll {
-			t.Fatal("toggle_full_help did not enable full help")
-		}
-
-		m, _ = m.Update(tcell.NewEventKey(tcell.KeyRune, ".", tcell.ModAlt))
-		if m.helpVisible {
-			t.Fatal("help is visible")
-		}
-
-		m, _ = m.Update(tcell.NewEventKey(tcell.KeyRune, ".", tcell.ModAlt))
-		if !m.helpVisible {
-			t.Fatal("help is hidden")
-		}
+		t.Run("shown", func(t *testing.T) {
+			if !m.helpVisible {
+				t.Fatal("help is hidden")
+			}
+		})
+		t.Run("toggle full help", func(t *testing.T) {
+			if m, _ = m.Update(tcell.NewEventKey(tcell.KeyRune, ".", tcell.ModCtrl)); !m.helpShowAll {
+				t.Fatal("toggle_full_help did not enable full help")
+			}
+		})
+		t.Run("toggle help hides it", func(t *testing.T) {
+			if m, _ = m.Update(tcell.NewEventKey(tcell.KeyRune, ".", tcell.ModAlt)); m.helpVisible {
+				t.Fatal("help is visible")
+			}
+		})
+		t.Run("toggle help shows it again", func(t *testing.T) {
+			if m, _ = m.Update(tcell.NewEventKey(tcell.KeyRune, ".", tcell.ModAlt)); !m.helpVisible {
+				t.Fatal("help is hidden")
+			}
+		})
 	})
 
 	t.Run("help disabled", func(t *testing.T) {
 		cfg := *cfg
 		cfg.Help.Enabled = false
 		m := NewModel(&cfg)
-		if m.helpVisible {
-			t.Fatal("help is visible")
-		}
-
-		m, _ = m.Update(tcell.NewEventKey(tcell.KeyRune, ".", tcell.ModCtrl))
-		if m.helpShowAll {
-			t.Fatal("toggle_full_help enabled full help")
-		}
-
-		m, _ = m.Update(tcell.NewEventKey(tcell.KeyRune, ".", tcell.ModAlt))
-		if m.helpVisible {
-			t.Fatal("help is visible")
-		}
+		t.Run("hidden", func(t *testing.T) {
+			if m.helpVisible {
+				t.Fatal("help is visible")
+			}
+		})
+		t.Run("toggle full help does nothing", func(t *testing.T) {
+			if m, _ = m.Update(tcell.NewEventKey(tcell.KeyRune, ".", tcell.ModCtrl)); m.helpShowAll {
+				t.Fatal("toggle_full_help enabled full help")
+			}
+		})
+		t.Run("toggle help does nothing", func(t *testing.T) {
+			if m, _ = m.Update(tcell.NewEventKey(tcell.KeyRune, ".", tcell.ModAlt)); m.helpVisible {
+				t.Fatal("help is visible")
+			}
+		})
 	})
 }
 

@@ -22,20 +22,22 @@ func TestPlayerSeek(t *testing.T) {
 
 		p := Player{audio: audio.Bytes()}
 		for _, position := range []time.Duration{0, 500 * time.Millisecond, 6 * time.Second, seconds * time.Second, time.Hour} {
-			if err := p.seek(position); err != nil {
-				t.Fatal(err)
-			}
+			t.Run(position.String(), func(t *testing.T) {
+				if err := p.seek(position); err != nil {
+					t.Fatal(err)
+				}
 
-			left, err := io.Copy(io.Discard, p.decoder)
-			if err != nil {
-				t.Fatal(err)
-			}
+				left, err := io.Copy(io.Discard, p.decoder)
+				if err != nil {
+					t.Fatal(err)
+				}
 
-			// What is left is a packet longer at most, as the end is only trimmed when played from the start.
-			want := max(seconds*time.Second-position, 0)
-			if got := time.Duration(left/2) * time.Second / sampleRate; got < want || got > want+20*time.Millisecond {
-				t.Errorf("seek to %v: %v is left, want %v", position, got, want)
-			}
+				// What is left is a packet longer at most, as the end is only trimmed when played from the start.
+				want := max(seconds*time.Second-position, 0)
+				if got := time.Duration(left/2) * time.Second / sampleRate; got < want || got > want+20*time.Millisecond {
+					t.Errorf("%v is left, want %v", got, want)
+				}
+			})
 		}
 	})
 

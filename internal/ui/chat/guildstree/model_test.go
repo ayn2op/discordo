@@ -72,12 +72,16 @@ func TestAdjacentNode(t *testing.T) {
 		{"c", c, a, b},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			if got := adjacentNode(root, test.current, match, false); got != test.after {
-				t.Errorf("after = %v, want %v", got, test.after)
-			}
-			if got := adjacentNode(root, test.current, match, true); got != test.before {
-				t.Errorf("before = %v, want %v", got, test.before)
-			}
+			t.Run("after", func(t *testing.T) {
+				if got := adjacentNode(root, test.current, match, false); got != test.after {
+					t.Errorf("got %v, want %v", got, test.after)
+				}
+			})
+			t.Run("before", func(t *testing.T) {
+				if got := adjacentNode(root, test.current, match, true); got != test.before {
+					t.Errorf("got %v, want %v", got, test.before)
+				}
+			})
 		})
 	}
 	t.Run("no match", func(t *testing.T) {
