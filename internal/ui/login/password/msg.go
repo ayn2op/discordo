@@ -51,15 +51,40 @@ func submitLogin(login, password string) tview.Cmd {
 		if err != nil {
 			return err
 		}
-
 		if loginResp.Token != "" {
 			return TokenMsg(loginResp.Token)
 		}
-
-		if loginResp.MFA {
-			return errors.New("multi-factor authentication is required; use token or QR login")
+		if !loginResp.MFA {
+			return errors.New("login response did not include a token")
 		}
 
-		return errors.New("login response did not include a token")
+		if loginResp.SMS && !loginResp.TOTP {
+			if _, err := client.SendMFASMS(loginResp.Ticket); err != nil {
+				return err
+			}
+			return mfaMsg{mfaMethodSMS, loginResp.Ticket, loginResp.LoginInstanceID}
+		}
+		// Either an authenticator is set up, or only a backup code is available; both go through the TOTP endpoint.
+		return mfaMsg{mfaMethodTOTP, loginResp.Ticket, loginResp.LoginInstanceID}
+	}
+}
+
+func verifyMFACode(method mfaMethod, code, ticket, loginInstanceID string) tview.Cmd {
+	return func() tview.Msg {
+		client := loginClient()
+
+		verify := client.TOTP
+		if method == mfaMethodSMS {
+			verify = client.SMS
+		}
+
+		loginResp, err := verify(code, ticket, loginInstanceID)
+		if err != nil {
+			return err
+		}
+		if loginResp.Token == "" {
+			return errors.New("login response did not include a token")
+		}
+		return TokenMsg(loginResp.Token)
 	}
 }

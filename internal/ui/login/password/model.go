@@ -83,6 +83,11 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		m.focus = focus(msg)
 	case hoverMsg:
 		m.buttonHovered = bool(msg)
+	case mfaMsg:
+		m.stage = stageCode
+		m.method = msg.method
+		m.ticket, m.loginInstanceID = msg.ticket, msg.loginInstanceID
+		m.code, m.codeCursor, m.focus = "", 0, focusCode
 	case tview.KeyMsg:
 		count := focusCount
 		if m.stage == stageCode {
