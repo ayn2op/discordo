@@ -24,3 +24,8 @@ var CacheDir = sync.OnceValue(func() string {
 
 	return path
 })
+
+// AttachmentsCacheDir returns the directory attachments are downloaded to before being opened.
+func AttachmentsCacheDir() string {
+	return filepath.Join(CacheDir(), "attachments")
+}

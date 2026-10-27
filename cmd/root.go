@@ -3,10 +3,13 @@ package cmd
 import (
 	"flag"
 	"fmt"
+	"io"
 	"log/slog"
+	"os"
 
 	"github.com/ayn2op/arikawa/v3/utils/ws"
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/logger"
 	"github.com/ayn2op/discordo/internal/ui/root"
 	"github.com/ayn2op/tview"
@@ -31,15 +34,26 @@ func Run() error {
 	}
 	ws.EnableRawEvents = level == slog.LevelDebug
 
-	logFile, err := logger.Load(*logPath, level)
-	if err != nil {
-		return fmt.Errorf("failed to load logger: %w", err)
-	}
-	defer logFile.Close() //nolint:errcheck
-
 	cfg, err := config.Load(*configPath)
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	if cfg.DisableCache {
+		// Never touch the log file at all, rather than creating then deleting
+		// whatever path the user gave us, which could be something other than our own log file.
+		slog.SetDefault(slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: level})))
+
+		// Remove attachments left behind by earlier runs, then whatever this run downloads.
+		// Running two instances with disable_cache at once can race on this directory.
+		os.RemoveAll(consts.AttachmentsCacheDir())       //nolint:errcheck
+		defer os.RemoveAll(consts.AttachmentsCacheDir()) //nolint:errcheck
+	} else {
+		logFile, err := logger.Load(*logPath, level)
+		if err != nil {
+			return fmt.Errorf("failed to load logger: %w", err)
+		}
+		defer logFile.Close() //nolint:errcheck
 	}
 
 	screen, err := tcell.NewScreen()
