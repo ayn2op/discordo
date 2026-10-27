@@ -2,10 +2,12 @@ package messageslist
 
 import (
 	"fmt"
+	"io"
 	"slices"
 	"time"
 
 	"github.com/ayn2op/arikawa/v3/discord"
+	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/button"
 	"github.com/ayn2op/tview/layout"
@@ -44,13 +46,13 @@ func formatDuration(d time.Duration) string {
 	return fmt.Sprintf("%d:%02d", seconds/60, seconds%60)
 }
 
-// voiceMessageView returns the player of the voice message a: whether it is playing, its waveform with what was played of it, and how long it is.
-func (m Model) voiceMessageView(a discord.Attachment) tview.Widget {
-	duration := time.Duration(a.DurationSecs * float64(time.Second))
+// voiceMessageView returns the player of the voice message attachment: whether it is playing, its waveform with what was played of it, and how long it is.
+func (m Model) voiceMessageView(attachment discord.Attachment) tview.Widget {
+	duration := time.Duration(attachment.DurationSecs * float64(time.Second))
 	symbol, label := symbolPlay, formatDuration(duration)
 
 	status := m.voiceStatus
-	loaded := status.ID == a.ID
+	loaded := status.ID == attachment.ID
 	if loaded {
 		label = formatDuration(status.Position) + positionSeparator + label
 	}
@@ -59,7 +61,7 @@ func (m Model) voiceMessageView(a discord.Attachment) tview.Widget {
 		symbol = symbolPause
 	}
 
-	rail := waveformRail(a.Waveform)
+	rail := waveformRail(attachment.Waveform)
 	style := m.cfg.Theme.MessagesList.AttachmentStyle.Style
 	// Only the voice message that is loaded can be sought.
 	var onSeek func(time.Duration) tview.Msg
@@ -80,7 +82,69 @@ func (m Model) voiceMessageView(a discord.Attachment) tview.Widget {
 			return rail[cell], style.Dim(true)
 		})
 
-	play := button.New(text.New(symbol)).OnClick(playMsg(a))
+	play := button.New(text.New(symbol)).OnClick(playMsg(attachment))
 
 	return row.New(play, waveform, text.New(label)).Spacing(1).Height(layout.Fixed(1))
+}
+
+func isVoiceMessage(message discord.Message) bool {
+	return message.Flags&discord.IsVoiceMessage != 0 && len(message.Attachments) == 1
+}
+
+// playMsg asks to play the voice message whose play symbol was clicked.
+type playMsg discord.Attachment
+
+func (playMsg) isMsg() {}
+
+// play plays the voice message that is attachment, or pauses or resumes it if it is the one playing.
+func (m Model) play(attachment discord.Attachment) tview.Cmd {
+	return func() tview.Msg {
+		if err := m.playVoiceMessage(attachment); err != nil {
+			return ui.ErrorDialog("play voice message", err)
+		}
+
+		return nil
+	}
+}
+
+func (m Model) playVoiceMessage(attachment discord.Attachment) error {
+	if toggled, err := m.voicePlayer.Toggle(attachment.ID); toggled || err != nil {
+		return err
+	}
+
+	resp, err := m.Get(attachment.URL)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close() //nolint:errcheck
+
+	// It is read whole, for playing it not to wait for the network.
+	audio, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	return m.voicePlayer.Play(attachment.ID, audio)
+}
+
+// seekPressMsg is where the waveform of a voice message was pressed, seekMsg where it was dragged to after, and seekReleaseMsg that it was let go of.
+type (
+	seekPressMsg   time.Duration
+	seekMsg        time.Duration
+	seekReleaseMsg struct{}
+)
+
+func (seekPressMsg) isMsg()   {}
+func (seekMsg) isMsg()        {}
+func (seekReleaseMsg) isMsg() {}
+
+// seek moves the voice message that is playing or paused to position.
+func (m Model) seek(position time.Duration) tview.Cmd {
+	return func() tview.Msg {
+		if err := m.voicePlayer.Seek(position); err != nil {
+			return ui.ErrorDialog("seek voice message", err)
+		}
+
+		return nil
+	}
 }

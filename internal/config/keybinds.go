@@ -20,22 +20,32 @@ func (k *Keybind) UnmarshalTOML(value any) error {
 	case string:
 		keys = []string{value}
 	case []any:
-		for _, key := range value {
-			if key, ok := key.(string); ok {
-				keys = append(keys, key)
-			}
-		}
+		keys = stringValues(value)
 	default:
 		return nil
 	}
-	kb := keybind.New(keys...)
+
+	bound := keybind.New(keys...)
 	// Keep displayed help key aligned with configured key(s).
 	help := k.Help()
-	if keys := kb.Keys(); len(keys) > 0 {
+	if keys := bound.Keys(); len(keys) > 0 {
 		help.Key = keys[0]
 	}
-	k.Keybind = kb.WithHelp(help.Key, help.Desc)
+
+	k.Keybind = bound.WithHelp(help.Key, help.Desc)
 	return nil
+}
+
+// stringValues returns the strings in values, skipping anything else.
+func stringValues(values []any) []string {
+	var keys []string
+	for _, value := range values {
+		if key, ok := value.(string); ok {
+			keys = append(keys, key)
+		}
+	}
+
+	return keys
 }
 
 // MarshalTOML writes the keys as UnmarshalTOML reads them: one key as a string, an unbound keybind as an empty one, and several keys as a list.
@@ -44,6 +54,18 @@ func (k Keybind) MarshalTOML() ([]byte, error) {
 		return json.Marshal(keys)
 	}
 	return json.Marshal(strings.Join(k.Keys(), ""))
+}
+
+// Global returns the keybinds that act wherever the focus is.
+func (k Keybinds) Global() []keybind.Keybind {
+	return []keybind.Keybind{
+		k.ToggleGuildsTree.Keybind, k.ToggleMembersTree.Keybind, k.ToggleChannelsPicker.Keybind,
+		k.ToggleMute.Keybind, k.ToggleDeafen.Keybind, k.LeaveVoice.Keybind,
+		k.ToggleHelp.Keybind, k.ToggleFullHelp.Keybind, k.Suspend.Keybind,
+		k.FocusGuildsTree.Keybind, k.FocusMembersTree.Keybind, k.FocusMessagesList.Keybind, k.FocusComposer.Keybind,
+		k.FocusPrevious.Keybind, k.FocusNext.Keybind,
+		k.Logout.Keybind, k.Quit.Keybind,
+	}
 }
 
 // key builds a Keybind with desc as its help description, bound to keys, the first of which is shown in help. It is unbound if that is empty.
@@ -121,6 +143,8 @@ type MessagesListKeybinds struct {
 	Open Keybind `toml:"open"`
 	// Open attachments or hyperlinks in the browser.
 	OpenInBrowser Keybind `toml:"open_in_browser"`
+	// React to the selected message with an emoji picked from a list.
+	React Keybind `toml:"react"`
 	// Download one of the selected message's attachments.
 	Download Keybind `toml:"download"`
 	// Play, pause or resume the selected voice message.
@@ -154,9 +178,34 @@ type ComposerKeybinds struct {
 
 	OpenEditor     Keybind `toml:"open_editor"`
 	OpenFilePicker Keybind `toml:"open_file_picker"`
+
+	// Move the cursor. Readline's keys, with shift added to those other keybinds take.
+	// Shift with ctrl is told apart from ctrl alone only in terminals with an enhanced keyboard protocol, such as kitty's.
+	CursorLeft  Keybind `toml:"cursor_left"`
+	CursorRight Keybind `toml:"cursor_right"`
+	CursorUp    Keybind `toml:"cursor_up"`
+	CursorDown  Keybind `toml:"cursor_down"`
+	LineStart   Keybind `toml:"line_start"`
+	LineEnd     Keybind `toml:"line_end"`
+	// Move over a word, a run of letters and digits, and what is before it.
+	WordLeft  Keybind `toml:"word_left"`
+	WordRight Keybind `toml:"word_right"`
+
+	// Delete text. Readline's keys, with shift added to those other keybinds take.
+	DeleteBackward Keybind `toml:"delete_backward"`
+	DeleteForward  Keybind `toml:"delete_forward"`
+	// Delete what word_left and word_right move over.
+	DeleteWordBackward Keybind `toml:"delete_word_backward"`
+	DeleteWordForward  Keybind `toml:"delete_word_forward"`
+	// Delete back to the whitespace before the cursor.
+	DeleteToSpaceBackward Keybind `toml:"delete_to_space_backward"`
+	// Delete to the start or end of the line, or the newline there if the cursor is at it.
+	// Readline deletes to the start of the line with ctrl+u, which is undo here, so it is on ctrl+j.
+	DeleteToLineStart Keybind `toml:"delete_to_line_start"`
+	DeleteToLineEnd   Keybind `toml:"delete_to_line_end"`
 }
 
-type MentionsListKeybinds struct {
+type AutocompleteKeybinds struct {
 	SelectionKeybinds
 }
 
@@ -195,8 +244,8 @@ type Keybinds struct {
 	MessagesList MessagesListKeybinds `toml:"messages_list"`
 	// Only while typing a message.
 	Composer ComposerKeybinds `toml:"composer"`
-	// Only while the mention suggestions are shown.
-	MentionsList MentionsListKeybinds `toml:"mentions_list"`
+	// Only while the autocomplete is shown.
+	Autocomplete AutocompleteKeybinds `toml:"autocomplete"`
 
 	// Log out and remove the authentication token from keyring.
 	// Requires re-login upon restart.
@@ -284,6 +333,7 @@ func defaultKeybinds() Keybinds {
 
 			Open:          key("open", "o"),
 			OpenInBrowser: key("open browser", "O"),
+			React:         key("react", "a"),
 			Download:      key("download", "D"),
 			Play:          key("play", "p"),
 			SeekBackward:  key("seek back", "h", "left"),
@@ -305,8 +355,25 @@ func defaultKeybinds() Keybinds {
 
 			OpenEditor:     key("editor", "ctrl+e"),
 			OpenFilePicker: key("attach", "ctrl+\\"),
+
+			CursorLeft:  key("left", "ctrl+b"),
+			CursorRight: key("right", "ctrl+f"),
+			CursorUp:    key("up", "ctrl+p"),
+			CursorDown:  key("down", "ctrl+n"),
+			LineStart:   key("line start", "ctrl+a"),
+			LineEnd:     key("line end", "ctrl+shift+e"),
+			WordLeft:    key("word left", "alt+b"),
+			WordRight:   key("word right", "alt+f"),
+
+			DeleteBackward:        key("del back", "ctrl+shift+h"),
+			DeleteForward:         key("del", "ctrl+shift+d"),
+			DeleteWordBackward:    key("del word back", "alt+backspace"),
+			DeleteWordForward:     key("del word", "alt+shift+d"),
+			DeleteToSpaceBackward: key("del to space", "ctrl+w"),
+			DeleteToLineStart:     key("del to line start", "ctrl+j"),
+			DeleteToLineEnd:       key("del to line end", "ctrl+shift+k"),
 		},
-		MentionsList: MentionsListKeybinds{SelectionKeybinds: emacs},
+		Autocomplete: AutocompleteKeybinds{SelectionKeybinds: emacs},
 
 		Logout: key("logout", "ctrl+d"),
 		Quit:   key("quit", "ctrl+c"),

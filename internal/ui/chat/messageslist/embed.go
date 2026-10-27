@@ -35,8 +35,8 @@ func (m Model) embedViews(message discord.Message, root ast.Node) []tview.Widget
 	// Embed URLs are deduplicated against links already shown in the message body.
 	contentListURLs := contentURLs(message.Content, root)
 	seenURLs := make(map[string]struct{}, len(contentListURLs))
-	for _, u := range contentListURLs {
-		seenURLs[u] = struct{}{}
+	for _, link := range contentListURLs {
+		seenURLs[link] = struct{}{}
 	}
 
 	baseStyle := m.cfg.Theme.MessagesList.MessageStyle.Style
@@ -158,15 +158,17 @@ func embedLines(embed discord.Embed, contentURLs map[string]struct{}) []embedLin
 	}
 
 	appendURL := func(url discord.URL) {
-		u := strings.TrimSpace(url)
-		if u == "" {
+		link := strings.TrimSpace(url)
+		if link == "" {
 			return
 		}
+
 		// Avoid duplicating links that already appear in message body content.
-		if _, ok := contentURLs[u]; ok {
+		if _, ok := contentURLs[link]; ok {
 			return
 		}
-		appendUnique(linkDisplayText(u), embedLineURL, u)
+
+		appendUnique(linkDisplayText(link), embedLineURL, link)
 	}
 
 	if embed.Provider != nil {

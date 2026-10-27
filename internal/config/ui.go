@@ -16,21 +16,23 @@ type enum[T comparable] []struct {
 }
 
 func (e enum[T]) parse(name string) (T, error) {
-	for _, p := range e {
-		if p.name == name {
-			return p.value, nil
+	for _, pair := range e {
+		if pair.name == name {
+			return pair.value, nil
 		}
 	}
+
 	var zero T
 	return zero, fmt.Errorf("unknown value: %q", name)
 }
 
 func (e enum[T]) text(value T) ([]byte, error) {
-	for _, p := range e {
-		if p.value == value {
-			return []byte(p.name), nil
+	for _, pair := range e {
+		if pair.value == value {
+			return []byte(pair.name), nil
 		}
 	}
+
 	return nil, fmt.Errorf("unknown value: %v", value)
 }
 
@@ -118,8 +120,8 @@ type (
 		MembersTree  TreeUIConfig         `toml:"members_tree"`
 		ScrollBar    ScrollBarUIConfig    `toml:"scroll_bar"`
 		MessagesList MessagesListUIConfig `toml:"messages_list"`
-		// The list of mention suggestions above the composer. Its width and height are capped to the available space.
-		MentionsList MentionsListUIConfig `toml:"mentions_list"`
+		// The list of mention and emoji suggestions above the composer. Its width and height are capped to the available space.
+		Autocomplete AutocompleteUIConfig `toml:"autocomplete"`
 	}
 
 	TabsUIConfig struct {
@@ -198,6 +200,8 @@ type (
 
 	ReactionsUIConfig struct {
 		EmojiUIConfig
+		// Whether to show reactions below messages.
+		Enabled bool `toml:"enabled"`
 		// The text between reactions.
 		Separator string `toml:"separator"`
 	}
@@ -229,11 +233,24 @@ type (
 		Enabled bool `toml:"enabled"`
 	}
 
-	MentionsListUIConfig struct {
+	AutocompleteUIConfig struct {
+		// Members suggested after `@`.
+		Mentions SuggestionsUIConfig `toml:"mentions"`
+		// Emojis suggested after `:`.
+		Emojis SuggestionsUIConfig `toml:"emojis"`
+		// The maximum number of suggestions.
+		Limit uint8 `toml:"limit"`
 		// Minimum width. 0 makes the list as wide as possible.
 		MinWidth uint `toml:"min_width"`
 		// Maximum height. 0 makes the list as tall as needed.
 		MaxHeight uint `toml:"max_height"`
+	}
+
+	SuggestionsUIConfig struct {
+		// Whether to show these suggestions.
+		Enabled bool `toml:"enabled"`
+		// Whether to draw avatars and custom emoji images before the names.
+		Preview bool `toml:"preview"`
 	}
 )
 
@@ -271,9 +288,14 @@ func defaultUI() UIConfig {
 			Avatars:            AvatarsUIConfig{Preview: true, Height: 2},
 			Embeds:             EmbedsUIConfig{Enabled: true},
 			Grouping:           GroupingUIConfig{Enabled: true, Interval: 10 * time.Minute},
-			Reactions:          ReactionsUIConfig{Separator: " • "},
+			Reactions:          ReactionsUIConfig{Enabled: true, Separator: " • "},
 		},
-		MentionsList: MentionsListUIConfig{MinWidth: 20},
+		Autocomplete: AutocompleteUIConfig{
+			Mentions: SuggestionsUIConfig{Enabled: true, Preview: true},
+			Emojis:   SuggestionsUIConfig{Enabled: true, Preview: true},
+			Limit:    20,
+			MinWidth: 20,
+		},
 	}
 }
 

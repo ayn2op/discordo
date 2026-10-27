@@ -14,6 +14,7 @@ type tokenMsg struct {
 
 type (
 	focusButtonMsg struct{}
+	hoverMsg       bool
 	submitMsg      struct{}
 )
 

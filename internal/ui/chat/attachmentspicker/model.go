@@ -17,6 +17,12 @@ func NewModel(cfg *config.Config) Model {
 
 var _ tview.Model[Model] = Model{}
 
+func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
+	var cmd tview.Cmd
+	m.Model, cmd = m.Model.Update(msg)
+	return m, cmd
+}
+
 // View shows the picker in a box titled Attachments.
 func (m Model) View() tview.Widget {
 	return m.Model.View(func(item picker.Item) tview.Msg {
@@ -26,10 +32,4 @@ func (m Model) View() tview.Widget {
 		}
 		return SelectedMsg{Action: action}
 	}, CancelMsg{})
-}
-
-func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
-	var cmd tview.Cmd
-	m.Model, cmd = m.Model.Update(msg)
-	return m, cmd
 }

@@ -63,22 +63,22 @@ func (m Model) baseFullHelp() [][]keybind.Keybind {
 }
 
 func (m Model) focusHelp() []keybind.Keybind {
-	kbs := m.cfg.Keybinds
+	keybinds := m.cfg.Keybinds
 	focused := m.focused
-	focusKbs := make([]keybind.Keybind, 0, 4)
+	focusKeybinds := make([]keybind.Keybind, 0, 4)
 
 	if focused != paneGuildsTree {
-		focusKbs = append(focusKbs, kbs.FocusGuildsTree.Keybind)
+		focusKeybinds = append(focusKeybinds, keybinds.FocusGuildsTree.Keybind)
 	}
 	if focused != paneMessagesList {
-		focusKbs = append(focusKbs, kbs.FocusMessagesList.Keybind)
+		focusKeybinds = append(focusKeybinds, keybinds.FocusMessagesList.Keybind)
 	}
 	if !m.composer.Disabled() && focused != paneComposer {
-		focusKbs = append(focusKbs, kbs.FocusComposer.Keybind)
+		focusKeybinds = append(focusKeybinds, keybinds.FocusComposer.Keybind)
 	}
 	if m.membersTreeShown() && focused != paneMembersTree {
-		focusKbs = append(focusKbs, kbs.FocusMembersTree.Keybind)
+		focusKeybinds = append(focusKeybinds, keybinds.FocusMembersTree.Keybind)
 	}
 
-	return focusKbs
+	return focusKeybinds
 }

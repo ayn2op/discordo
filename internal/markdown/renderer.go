@@ -23,99 +23,124 @@ func NewRenderer(cfg *config.Config) *Renderer {
 
 // RenderText returns the spans of the markdown node. emoji returns the image of the custom emoji with an ID as a line of spans, or nil if it has none.
 func (r *Renderer) RenderText(source []byte, node ast.Node, base tview.Style, emoji func(id string) []text.Span) []text.Span {
-	builder := new(Builder)
-	styleStack := []tview.Style{base}
-	linkDepth := 0
-	listDepth := 0
+	walker := &walker{renderer: r, source: source, emoji: emoji, builder: new(Builder), styles: []tview.Style{base}}
+	_ = ast.Walk(node, walker.walk)
+	return walker.builder.Finish()
+}
 
-	currentStyle := func() tview.Style {
-		return styleStack[len(styleStack)-1]
+// walker holds the state of one RenderText walk.
+type walker struct {
+	renderer *Renderer
+	source   []byte
+	emoji    func(id string) []text.Span
+
+	builder   *Builder
+	styles    []tview.Style
+	linkDepth int
+	listDepth int
+}
+
+func (w *walker) walk(node ast.Node, entering bool) (ast.WalkStatus, error) {
+	if entering {
+		return w.enter(node), nil
 	}
-	pushStyle := func(style tview.Style) {
-		styleStack = append(styleStack, style)
+
+	w.exit(node)
+	return ast.WalkContinue, nil
+}
+
+func (w *walker) enter(node ast.Node) ast.WalkStatus {
+	theme := w.renderer.cfg.Theme.MessagesList
+	switch node := node.(type) {
+	case *ast.Heading:
+		w.builder.Write(strings.Repeat("#", node.Level)+" ", w.style())
+	case *ast.Text:
+		w.builder.Write(string(node.Value.Bytes(w.source)), w.style())
+		switch {
+		case node.HardLineBreak():
+			w.builder.NewLine()
+			w.builder.NewLine()
+		case node.SoftLineBreak():
+			w.builder.NewLine()
+		}
+	case *ast.CodeBlock:
+		w.builder.NewLine()
+		w.renderer.renderCodeBlock(w.builder, w.source, node, w.style())
+	case *ast.AutoLink:
+		url := string(node.Destination.Bytes(w.source))
+		w.builder.Write(url, tview.MergeStyle(w.style(), theme.URLStyle.Style).Url(url))
+	case *ast.Link:
+		url := string(node.Destination.Bytes(w.source))
+		w.linkDepth++
+		w.pushStyle(tview.MergeStyle(w.style(), theme.URLStyle.Style).Url(url))
+	case *ast.List:
+		w.builder.NewLine()
+		w.listDepth++
+	case *ast.ListItem:
+		w.builder.Write(strings.Repeat("  ", w.listDepth-1)+listMarker(node), w.style())
+	case *md.Inline:
+		if w.renderer.shouldMask(node) {
+			w.builder.Write("[spoiler]", w.style())
+			return ast.WalkSkipChildren
+		}
+
+		w.pushStyle(applyInlineAttr(w.style(), node.Attr, w.linkDepth > 0))
+	case *md.Mention:
+		w.builder.Write(mentionText(node), tview.MergeStyle(w.style(), theme.MentionStyle.Style))
+	case *md.Emoji:
+		w.writeEmoji(node)
 	}
-	popStyle := func() {
-		if len(styleStack) > 1 {
-			styleStack = styleStack[:len(styleStack)-1]
+
+	return ast.WalkContinue
+}
+
+func (w *walker) exit(node ast.Node) {
+	switch node := node.(type) {
+	case *ast.Heading:
+		w.builder.NewLine()
+	case *ast.ListItem:
+		// A list that the item ends with already ended the line.
+		if _, ok := node.LastChild().(*ast.List); !ok {
+			w.builder.NewLine()
+		}
+	case *ast.Link:
+		w.linkDepth--
+		w.popStyle()
+	case *ast.List:
+		w.listDepth--
+	case *md.Inline:
+		if !w.renderer.shouldMask(node) {
+			w.popStyle()
 		}
 	}
+}
 
-	theme := r.cfg.Theme.MessagesList
-	_ = ast.Walk(node, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
-		if !entering {
-			switch node := node.(type) {
-			case *ast.Heading:
-				builder.NewLine()
-			case *ast.ListItem:
-				// A list that the item ends with already ended the line.
-				if _, ok := node.LastChild().(*ast.List); !ok {
-					builder.NewLine()
-				}
-			case *ast.Link:
-				linkDepth--
-				popStyle()
-			case *ast.List:
-				listDepth--
-			case *md.Inline:
-				if !r.shouldMask(node) {
-					popStyle()
-				}
-			}
-			return ast.WalkContinue, nil
+func (w *walker) writeEmoji(node *md.Emoji) {
+	emojis := w.renderer.cfg.UI.MessagesList.Emojis
+	if image := w.emoji(node.ID); image != nil {
+		w.builder.WriteSpans(image...)
+		if !emojis.ShowEmojiName {
+			return
 		}
 
-		switch node := node.(type) {
-		case *ast.Heading:
-			builder.Write(strings.Repeat("#", node.Level)+" ", currentStyle())
-		case *ast.Text:
-			builder.Write(string(node.Value.Bytes(source)), currentStyle())
-			switch {
-			case node.HardLineBreak():
-				builder.NewLine()
-				builder.NewLine()
-			case node.SoftLineBreak():
-				builder.NewLine()
-			}
-		case *ast.CodeBlock:
-			builder.NewLine()
-			r.renderCodeBlock(builder, source, node, currentStyle())
-		case *ast.AutoLink:
-			url := string(node.Destination.Bytes(source))
-			style := tview.MergeStyle(currentStyle(), theme.URLStyle.Style).Url(url)
-			builder.Write(url, style)
-		case *ast.Link:
-			url := string(node.Destination.Bytes(source))
-			linkDepth++
-			pushStyle(tview.MergeStyle(currentStyle(), theme.URLStyle.Style).Url(url))
-		case *ast.List:
-			builder.NewLine()
-			listDepth++
-		case *ast.ListItem:
-			builder.Write(strings.Repeat("  ", listDepth-1)+listMarker(node), currentStyle())
-		case *md.Inline:
-			if r.shouldMask(node) {
-				builder.Write("[spoiler]", currentStyle())
-				return ast.WalkSkipChildren, nil
-			}
-			pushStyle(applyInlineAttr(currentStyle(), node.Attr, linkDepth > 0))
-		case *md.Mention:
-			builder.Write(mentionText(node), tview.MergeStyle(currentStyle(), theme.MentionStyle.Style))
-		case *md.Emoji:
-			cfg := r.cfg.UI.MessagesList.Emojis
-			if image := emoji(node.ID); image != nil {
-				builder.WriteSpans(image...)
-				if !cfg.ShowEmojiName {
-					return ast.WalkContinue, nil
-				}
+		w.builder.Write(" ", w.style())
+	}
 
-				builder.Write(" ", currentStyle())
-			}
-			builder.Write(cfg.Name(node.Name), tview.MergeStyle(currentStyle(), theme.EmojiStyle.Style))
-		}
-		return ast.WalkContinue, nil
-	})
+	w.builder.Write(emojis.Name(node.Name), tview.MergeStyle(w.style(), w.renderer.cfg.Theme.MessagesList.EmojiStyle.Style))
+}
 
-	return builder.Finish()
+func (w *walker) style() tview.Style {
+	return w.styles[len(w.styles)-1]
+}
+
+func (w *walker) pushStyle(style tview.Style) {
+	w.styles = append(w.styles, style)
+}
+
+func (w *walker) popStyle() {
+	if len(w.styles) > 1 {
+		w.styles = w.styles[:len(w.styles)-1]
+	}
 }
 
 func (r *Renderer) renderCodeBlock(builder *Builder, source []byte, node *ast.CodeBlock, base tview.Style) {
@@ -128,15 +153,16 @@ func (r *Renderer) renderCodeBlock(builder *Builder, source []byte, node *ast.Co
 	r.writeCodeBlock(builder, code.String(), strings.TrimSpace(language), base)
 }
 
-// writeCode writes s in style, starting each line after the first with the code block indent in base.
-func writeCode(builder *Builder, s string, style, base tview.Style) {
-	for i, part := range strings.Split(s, "\n") {
-		if i > 0 {
+// writeCode writes code in style, starting each line after the first with the code block indent in base.
+func writeCode(builder *Builder, code string, style, base tview.Style) {
+	for index, line := range strings.Split(code, "\n") {
+		if index > 0 {
 			builder.NewLine()
 			builder.Write(codeBlockIndent, base)
 		}
-		if part != "" {
-			builder.Write(part, style)
+
+		if line != "" {
+			builder.Write(line, style)
 		}
 	}
 }
@@ -190,12 +216,10 @@ func applyInlineAttr(style tview.Style, attr md.Attribute, inLink bool) tview.St
 	if attr&md.AttrStrikethrough != 0 {
 		style = style.StrikeThrough(true)
 	}
-	if attr&md.AttrMonospace != 0 {
-		// Avoid reverse-video inside links.
-		// Link labels like `hash` should still look like links, not highlighted blocks.
-		if !inLink {
-			style = style.Reverse(true)
-		}
+	// Link labels like `hash` should still look like links, not highlighted blocks.
+	if attr&md.AttrMonospace != 0 && !inLink {
+		style = style.Reverse(true)
 	}
+
 	return style
 }

@@ -44,7 +44,7 @@ func TestHeaders(t *testing.T) {
 		name string
 		want string
 	}{
-		{"Sec-Ch-Ua", `"Chromium";v="` + version + `", "Not-A.Brand";v="24", "Google Chrome";v="` + version + `"`},
+		{"Sec-Ch-Ua", brands("Chrome", version)},
 		{"Sec-Ch-Ua-Mobile", "?0"},
 		{"Sec-Ch-Ua-Platform", `"Windows"`},
 	}
@@ -72,6 +72,20 @@ func TestXSuperProperties(t *testing.T) {
 			}
 			if id[6]>>4 != 4 || id[8]>>6 != 2 {
 				t.Errorf("got non-v4 UUID %q", id)
+			}
+		})
+	}
+}
+
+func TestBrands(t *testing.T) {
+	// As Chrome 150 and 156 send them.
+	for version, want := range map[string]string{
+		"150": `"Not;A=Brand";v="8", "Chromium";v="150", "Google Chrome";v="150"`,
+		"156": `"Not:A-Brand";v="8", "Chromium";v="156", "Google Chrome";v="156"`,
+	} {
+		t.Run(version, func(t *testing.T) {
+			if got := brands("Chrome", version); got != want {
+				t.Errorf("got %q, want %q", got, want)
 			}
 		})
 	}

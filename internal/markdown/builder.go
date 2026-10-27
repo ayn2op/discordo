@@ -36,11 +36,14 @@ func (b *Builder) NewLine() {
 
 // Finish returns the spans, without a line break at the end, which would add an empty line.
 func (b *Builder) Finish() []text.Span {
-	if n := len(b.spans); n > 0 {
-		last := &b.spans[n-1]
-		if last.Text = strings.TrimSuffix(last.Text, "\n"); last.Text == "" {
-			b.spans = b.spans[:n-1]
-		}
+	if len(b.spans) == 0 {
+		return b.spans
 	}
+
+	last := &b.spans[len(b.spans)-1]
+	if last.Text = strings.TrimSuffix(last.Text, "\n"); last.Text == "" {
+		b.spans = b.spans[:len(b.spans)-1]
+	}
+
 	return b.spans
 }

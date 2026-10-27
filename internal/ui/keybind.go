@@ -8,34 +8,34 @@ import (
 	"github.com/ayn2op/tview/viewport"
 )
 
-// SelectionKeybind binds kbs to moving a list's selection.
-func SelectionKeybind(kbs config.SelectionKeybinds) func(tview.KeyMsg) list.Action {
+// SelectionKeybind binds keybinds to moving a list's selection.
+func SelectionKeybind(keybinds config.SelectionKeybinds) func(tview.KeyMsg) list.Action {
 	return func(key tview.KeyMsg) list.Action {
 		switch {
-		case keybind.Matches(key, kbs.SelectUp.Keybind):
+		case keybind.Matches(key, keybinds.SelectUp.Keybind):
 			return list.ActionSelectUp
-		case keybind.Matches(key, kbs.SelectDown.Keybind):
+		case keybind.Matches(key, keybinds.SelectDown.Keybind):
 			return list.ActionSelectDown
-		case keybind.Matches(key, kbs.SelectTop.Keybind):
+		case keybind.Matches(key, keybinds.SelectTop.Keybind):
 			return list.ActionSelectTop
-		case keybind.Matches(key, kbs.SelectBottom.Keybind):
+		case keybind.Matches(key, keybinds.SelectBottom.Keybind):
 			return list.ActionSelectBottom
 		}
 		return list.ActionNone
 	}
 }
 
-// ScrollKeybind binds kbs to scrolling a viewport.
-func ScrollKeybind(kbs config.ScrollKeybinds) func(tview.KeyMsg) viewport.Action {
+// ScrollKeybind binds keybinds to scrolling a viewport.
+func ScrollKeybind(keybinds config.ScrollKeybinds) func(tview.KeyMsg) viewport.Action {
 	return func(key tview.KeyMsg) viewport.Action {
 		switch {
-		case keybind.Matches(key, kbs.ScrollUp.Keybind):
+		case keybind.Matches(key, keybinds.ScrollUp.Keybind):
 			return viewport.ActionUp
-		case keybind.Matches(key, kbs.ScrollDown.Keybind):
+		case keybind.Matches(key, keybinds.ScrollDown.Keybind):
 			return viewport.ActionDown
-		case keybind.Matches(key, kbs.ScrollTop.Keybind):
+		case keybind.Matches(key, keybinds.ScrollTop.Keybind):
 			return viewport.ActionTop
-		case keybind.Matches(key, kbs.ScrollBottom.Keybind):
+		case keybind.Matches(key, keybinds.ScrollBottom.Keybind):
 			return viewport.ActionBottom
 		}
 		return viewport.ActionNone

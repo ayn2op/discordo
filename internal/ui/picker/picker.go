@@ -21,7 +21,26 @@ func NewModel(cfg *config.Config, title string) Model {
 	return Model{searchState: picker.NewSearchState(), cfg: cfg, title: title}
 }
 
+// SetItems replaces the items and clears the query.
+func (m *Model) SetItems(items picker.Items) {
+	m.items = items
+	m.searchState.Reset()
+}
+
+// ReplaceItems replaces the items with the same ones changed, such as drawn with new images, keeping the query.
+func (m *Model) ReplaceItems(items picker.Items) { m.items = items }
+
+// Reset clears the query.
+func (m *Model) Reset() { m.searchState.Reset() }
+
 func (Model) Init() tview.Cmd { return nil }
+
+func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
+	if msg, ok := msg.(changeMsg); ok {
+		m.searchState = picker.SearchState(msg)
+	}
+	return m, nil
+}
 
 // View shows the picker, turning the selected item into the message onSelect returns and canceling with onCancel.
 func (m Model) View(onSelect func(picker.Item) tview.Msg, onCancel tview.Msg) tview.Widget {
@@ -39,19 +58,3 @@ func (m Model) View(onSelect func(picker.Item) tview.Msg, onCancel tview.Msg) tv
 		OnCancel(onCancel)
 	return ui.Box(p, cfg, true).Title(ui.Label(m.title, cfg.Theme.Title, true))
 }
-
-func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
-	if msg, ok := msg.(changeMsg); ok {
-		m.searchState = picker.SearchState(msg)
-	}
-	return m, nil
-}
-
-// SetItems replaces the items and clears the query.
-func (m *Model) SetItems(items picker.Items) {
-	m.items = items
-	m.searchState.Reset()
-}
-
-// Reset clears the query.
-func (m *Model) Reset() { m.searchState.Reset() }

@@ -10,6 +10,7 @@ import (
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/picker"
+	"github.com/ayn2op/tview/text"
 )
 
 type Model struct {
@@ -19,25 +20,6 @@ type Model struct {
 
 func NewModel(cfg *config.Config) Model {
 	return Model{Model: uipicker.NewModel(cfg, "Channels"), cfg: cfg}
-}
-
-var _ tview.Model[Model] = Model{}
-
-// View shows the picker in a box titled Channels.
-func (m Model) View() tview.Widget {
-	return m.Model.View(func(item picker.Item) tview.Msg {
-		channelID, ok := item.Reference.(discord.ChannelID)
-		if !ok || !channelID.IsValid() {
-			return nil
-		}
-		return SelectedMsg{ChannelID: channelID}
-	}, CancelMsg{})
-}
-
-func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
-	var cmd tview.Cmd
-	m.Model, cmd = m.Model.Update(msg)
-	return m, cmd
 }
 
 func (m *Model) RefreshChannels(state *ningen.State) {
@@ -80,5 +62,24 @@ func (m Model) channelItem(state *ningen.State, guild *discord.Guild, channel di
 	if guild != nil {
 		name += " - " + guild.Name
 	}
-	return picker.Item{Text: name, FilterText: name, Reference: channel.ID}
+	return picker.Item{Content: text.New(name), FilterText: name, Reference: channel.ID}
+}
+
+var _ tview.Model[Model] = Model{}
+
+func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
+	var cmd tview.Cmd
+	m.Model, cmd = m.Model.Update(msg)
+	return m, cmd
+}
+
+// View shows the picker in a box titled Channels.
+func (m Model) View() tview.Widget {
+	return m.Model.View(func(item picker.Item) tview.Msg {
+		channelID, ok := item.Reference.(discord.ChannelID)
+		if !ok || !channelID.IsValid() {
+			return nil
+		}
+		return SelectedMsg{ChannelID: channelID}
+	}, CancelMsg{})
 }

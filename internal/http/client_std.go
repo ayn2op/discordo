@@ -4,6 +4,7 @@ package http
 
 import (
 	"net/http"
+	"net/http/cookiejar"
 
 	"github.com/ayn2op/arikawa/v3/api"
 	"github.com/ayn2op/arikawa/v3/utils/httputil"
@@ -11,7 +12,8 @@ import (
 )
 
 func NewClient(token string) *api.Client {
-	stdClient := http.Client{}
+	jar, _ := cookiejar.New(nil)
+	stdClient := http.Client{Jar: jar}
 	httpClient := httputil.NewClientWithDriver(httpdriver.WrapClient(stdClient))
 	client := api.NewCustomClient(token, httpClient)
 	client.UserAgent = BrowserUserAgent()

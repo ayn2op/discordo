@@ -6,28 +6,60 @@ import (
 	"github.com/ayn2op/tview/tree"
 )
 
-func TestCanSelect(t *testing.T) {
-	root := tree.NewNode("")
-	first, last, child := tree.NewNode("first"), tree.NewNode("last"), tree.NewNode("child")
-	root.AddChild(first).AddChild(last.AddChild(child).Collapse())
-
-	check := func(name string, current *tree.Node, up, down bool) {
-		t.Helper()
-		if got := canSelectUp(root, current); got != up {
-			t.Errorf("%s: canSelectUp = %v, want %v", name, got, up)
-		}
-		if got := canSelectDown(root, current); got != down {
-			t.Errorf("%s: canSelectDown = %v, want %v", name, got, down)
-		}
+// selectTree returns a root with first, then last, which holds child and is collapsed if collapsed is set.
+func selectTree(collapsed bool) (root, first, last, child *tree.Node) {
+	root = tree.NewNode("")
+	first, last, child = tree.NewNode("first"), tree.NewNode("last"), tree.NewNode("child")
+	root.AddChild(first).AddChild(last.AddChild(child))
+	if collapsed {
+		last.Collapse()
 	}
+	return root, first, last, child
+}
 
-	check("none", nil, false, true)
-	check("first", first, false, true)
-	check("collapsed last", last, true, false)
-	last.Expand()
-	check("expanded last", last, true, true)
-	check("last child", child, true, false)
-	if canSelectDown(tree.NewNode(""), nil) {
-		t.Error("empty tree: canSelectDown = true, want false")
+func TestCanSelectUp(t *testing.T) {
+	root, first, last, _ := selectTree(true)
+	expanded, _, expandedLast, expandedChild := selectTree(false)
+	for _, test := range []struct {
+		name    string
+		root    *tree.Node
+		current *tree.Node
+		want    bool
+	}{
+		{"none", root, nil, false},
+		{"first", root, first, false},
+		{"collapsed last", root, last, true},
+		{"expanded last", expanded, expandedLast, true},
+		{"last child", expanded, expandedChild, true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if got := canSelectUp(test.root, test.current); got != test.want {
+				t.Errorf("got %v, want %v", got, test.want)
+			}
+		})
+	}
+}
+
+func TestCanSelectDown(t *testing.T) {
+	root, first, last, _ := selectTree(true)
+	expanded, _, expandedLast, expandedChild := selectTree(false)
+	for _, test := range []struct {
+		name    string
+		root    *tree.Node
+		current *tree.Node
+		want    bool
+	}{
+		{"none", root, nil, true},
+		{"first", root, first, true},
+		{"collapsed last", root, last, false},
+		{"expanded last", expanded, expandedLast, true},
+		{"last child", expanded, expandedChild, false},
+		{"empty tree", tree.NewNode(""), nil, false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if got := canSelectDown(test.root, test.current); got != test.want {
+				t.Errorf("got %v, want %v", got, test.want)
+			}
+		})
 	}
 }

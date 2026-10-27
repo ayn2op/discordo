@@ -12,6 +12,7 @@ import (
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/discordo/internal/ui/chat/composer"
 	"github.com/ayn2op/discordo/internal/ui/chat/guildstree"
+	"github.com/ayn2op/discordo/internal/ui/chat/reactionspicker"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
 )
@@ -21,17 +22,24 @@ const closeCodeAuthenticationFailed = 4004
 
 func openState(state *ningen.State) tview.Cmd {
 	return func() tview.Msg {
-		if err := state.Open(context.Background()); err != nil {
-			slog.Error("failed to open chat state", "err", err)
-
-			// A rejected token never works again, so say so over the login.
-			if event, ok := errors.AsType[*ws.CloseEvent](err); ok && event.Code == closeCodeAuthenticationFailed {
-				return tview.Sequence(logout(), func() tview.Msg { return ui.ErrorDialog("open chat state", err) })()
-			}
+		err := state.Open(context.Background())
+		if err == nil {
+			return nil
 		}
 
-		return nil
+		slog.Error("failed to open chat state", "err", err)
+		// A rejected token never works again, so say so over the login.
+		if !isAuthenticationFailed(err) {
+			return nil
+		}
+
+		return tview.Sequence(logout(), func() tview.Msg { return ui.ErrorDialog("open chat state", err) })()
 	}
+}
+
+func isAuthenticationFailed(err error) bool {
+	event, ok := errors.AsType[*ws.CloseEvent](err)
+	return ok && event.Code == closeCodeAuthenticationFailed
 }
 
 func closeState(state *ningen.State) tview.Cmd {
@@ -97,5 +105,15 @@ func (m Model) addTyper(userID discord.UserID) tview.Cmd {
 	return func() tview.Msg {
 		time.Sleep(composer.TypingDuration)
 		return typingExpiredMsg{userID}
+	}
+}
+
+// react reacts as msg asks. The reaction is shown once the gateway reports it.
+func (m Model) react(msg reactionspicker.SelectedMsg) tview.Cmd {
+	return func() tview.Msg {
+		if err := m.state.React(msg.ChannelID, msg.MessageID, msg.Emoji); err != nil {
+			slog.Error("failed to react", "channel_id", msg.ChannelID, "message_id", msg.MessageID, "emoji", msg.Emoji, "err", err)
+		}
+		return nil
 	}
 }

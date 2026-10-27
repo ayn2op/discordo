@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"slices"
 	"sync"
-	"unicode/utf8"
 
 	"github.com/BurntSushi/toml"
 	"github.com/ayn2op/arikawa/v3/discord"
@@ -120,6 +119,8 @@ type (
 		MaskSpoilers bool `toml:"mask_spoilers"`
 		// Theme for fenced code blocks. Available themes: https://xyproto.github.io/splash/docs
 		Theme string `toml:"theme"`
+		// Guess the language of a fenced code block that names none, to highlight it.
+		DetectCodeLanguage bool `toml:"detect_code_language"`
 	}
 
 	HelpConfig struct {
@@ -185,8 +186,6 @@ type (
 		Status           discord.Status `toml:"status"`
 		HideBlockedUsers bool           `toml:"hide_blocked_users"`
 
-		// The maximum number of members in the mention autocomplete list. 0 disables it.
-		AutocompleteLimit uint8 `toml:"autocomplete_limit"`
 		// The number of messages to fetch when a text-based channel is selected, from 1 to 100.
 		MessagesLimit uint8 `toml:"messages_limit"`
 
@@ -216,7 +215,7 @@ type (
 	}
 )
 
-//go:generate go run gen.go
+//go:generate go run generator.go
 
 // Default returns the default configuration.
 func Default() Config {
@@ -229,8 +228,7 @@ func Default() Config {
 		Status:           "default",
 		HideBlockedUsers: true,
 
-		AutocompleteLimit: 20,
-		MessagesLimit:     50,
+		MessagesLimit: 50,
 
 		Markdown:        MarkdownConfig{Enabled: true, Theme: "monokai"},
 		Help:            HelpConfig{Enabled: true, CompactModifiers: true, Padding: [2]int{1, 1}, Separator: " • "},
@@ -327,9 +325,7 @@ func (cfg *Config) applyDefaults() {
 		cfg.DateSeparator.Format = "January 2, 2006"
 	}
 
-	if r, _ := utf8.DecodeRuneInString(cfg.DateSeparator.Character); r == utf8.RuneError {
+	if cfg.DateSeparator.Character == "" {
 		cfg.DateSeparator.Character = "─"
-	} else {
-		cfg.DateSeparator.Character = string(r)
 	}
 }

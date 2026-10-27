@@ -18,13 +18,15 @@ type Model struct {
 	cursor int
 
 	buttonFocused bool
+	// buttonHovered reports whether the pointer is over the button.
+	buttonHovered bool
 }
-
-var _ tview.Model[Model] = Model{}
 
 func (Model) Label() string {
 	return "Token"
 }
+
+var _ tview.Model[Model] = Model{}
 
 func (Model) Init() tview.Cmd { return nil }
 
@@ -34,6 +36,8 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		m.token, m.cursor = msg.text, msg.cursor
 	case focusButtonMsg:
 		m.buttonFocused = true
+	case hoverMsg:
+		m.buttonHovered = bool(msg)
 	case tview.KeyMsg:
 		switch msg.Key() {
 		case tcell.KeyTab, tcell.KeyDown, tcell.KeyBacktab, tcell.KeyUp:
@@ -54,9 +58,19 @@ func (m Model) View() tview.Widget {
 		Focused(!m.buttonFocused).
 		OnInput(func(text string, cursor int) tview.Msg { return tokenMsg{text, cursor} }).
 		OnSubmit(focusButtonMsg{})
+	buttonStyle := tcell.StyleDefault
+	switch {
+	case m.buttonFocused:
+		buttonStyle = buttonStyle.Reverse(true)
+	case m.buttonHovered:
+		buttonStyle = buttonStyle.Underline(true)
+	}
 	submit := button.New(text.New("Login")).
+		Style(buttonStyle).
 		Width(layout.Fixed(len("Login") + 4)).
 		Focused(m.buttonFocused).
+		Hovered(m.buttonHovered).
+		OnHover(func(hovered bool) tview.Msg { return hoverMsg(hovered) }).
 		OnClick(submitMsg{})
 	return column.New(
 		row.New(text.New("Token").Width(layout.Fixed(len("Token")+1)), input).Height(layout.Shrink),

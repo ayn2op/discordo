@@ -192,7 +192,7 @@ func (p *Player) Play(id discord.AttachmentID, audio []byte) error {
 		}
 
 		n, err := io.ReadFull(p.decoder, output)
-		played := p.samples + int64(n/channels/2)
+		played := p.samples + int64(n/channels/sampleBytes)
 		if played/progressSamples != p.samples/progressSamples {
 			p.update()
 		}

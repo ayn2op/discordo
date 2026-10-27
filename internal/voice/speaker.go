@@ -81,12 +81,8 @@ func (s *speaker) write(seq uint16, packet []byte) error {
 		return nil
 	}
 
-	if gap > 1 && gap <= maxLost+1 {
-		for range gap - 1 {
-			if err := s.decode(nil); err != nil {
-				return err
-			}
-		}
+	if err := s.makeUpLost(gap); err != nil {
+		return err
 	}
 
 	s.seq, s.last = seq, time.Now()
@@ -97,6 +93,21 @@ func (s *speaker) write(seq uint16, packet []byte) error {
 
 	if len(s.buf) > maxBuffered {
 		s.buf = s.buf[len(s.buf)-cushion:]
+	}
+
+	return nil
+}
+
+// makeUpLost decodes a made up frame for each packet lost before the one gap packets after the last, unless too many were.
+func (s *speaker) makeUpLost(gap uint16) error {
+	if gap <= 1 || gap > maxLost+1 {
+		return nil
+	}
+
+	for range gap - 1 {
+		if err := s.decode(nil); err != nil {
+			return err
+		}
 	}
 
 	return nil

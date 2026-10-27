@@ -10,6 +10,7 @@ import (
 	md "github.com/ayn2op/arikawa/v3/markdown"
 	"github.com/ayn2op/arikawa/v3/state"
 	"github.com/ayn2op/discordo/internal/markdown"
+	"github.com/ayn2op/discordo/internal/ui/emojis"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/layout"
 	"github.com/ayn2op/tview/row"
@@ -79,26 +80,18 @@ func (m Model) reactionsView(reactions []discord.Reaction) tview.Widget {
 	theme, cfg := m.cfg.Theme.MessagesList, m.cfg.UI.MessagesList.Reactions
 	separatorStyle := tview.MergeStyle(theme.MessageStyle.Style, theme.ReactionStyle.Style)
 	chips := make([]tview.Widget, len(reactions))
-	for i, reaction := range reactions {
+	for index, reaction := range reactions {
 		style := theme.ReactionStyle.Style
 		if reaction.Me {
 			style = theme.OwnReactionStyle.Style
 		}
+
 		style = tview.MergeStyle(theme.MessageStyle.Style, style)
 
-		label := strconv.Itoa(reaction.Count)
-		emoji, hasImage := m.images[emojiURL(reaction.Emoji.ID)]
-		if !hasImage || cfg.ShowEmojiName {
-			name := reaction.Emoji.Name
-			if reaction.Emoji.IsCustom() {
-				name = cfg.Name(name)
-			}
-			label = name + " " + label
-		}
-
-		spans := []text.Span{{Text: label, Style: style}}
+		emoji, hasImage := m.images[emojis.URLFromID(reaction.Emoji.ID)]
+		spans := []text.Span{{Text: m.reactionLabel(reaction, hasImage), Style: style}}
 		// Each reaction but the last ends with the separator, so a line never starts with one.
-		if i < len(reactions)-1 {
+		if index < len(reactions)-1 {
 			spans = append(spans, text.Span{Text: cfg.Separator, Style: separatorStyle})
 		}
 
@@ -106,16 +99,33 @@ func (m Model) reactionsView(reactions []discord.Reaction) tview.Widget {
 		if hasImage {
 			chip = row.New(emoji, chip).Spacing(1).Width(layout.Shrink).Height(layout.Shrink)
 		}
-		chips[i] = chip
+		chips[index] = chip
 	}
+
 	return row.New(chips...).Height(layout.Shrink).Wrap()
 }
 
-func (m Model) formatTimestamp(ts discord.Timestamp) string {
-	return ts.Time().In(time.Local).Format(m.cfg.Timestamps.Format)
+// reactionLabel returns the count of reaction, after the name of its emoji unless its image is shown alone.
+func (m Model) reactionLabel(reaction discord.Reaction, hasImage bool) string {
+	cfg := m.cfg.UI.MessagesList.Reactions
+	label := strconv.Itoa(reaction.Count)
+	if hasImage && !cfg.ShowEmojiName {
+		return label
+	}
+
+	name := reaction.Emoji.Name
+	if reaction.Emoji.IsCustom() {
+		name = cfg.Name(name)
+	}
+
+	return name + " " + label
 }
 
-const editedIndicator = " (edited)"
+func (m Model) formatTimestamp(timestamp discord.Timestamp) string {
+	return timestamp.Time().In(time.Local).Format(m.cfg.Timestamps.Format)
+}
+
+const editedIndicator = "(edited)"
 
 // drawLayout draws the header of message, unless it is grouped, and its content.
 func (m Model) drawLayout(builder *markdown.Builder, message discord.Message, baseStyle tview.Style, grouped bool, content func()) {
@@ -130,7 +140,8 @@ func (m Model) drawLayout(builder *markdown.Builder, message discord.Message, ba
 func (m Model) drawCompact(builder *markdown.Builder, message discord.Message, baseStyle tview.Style, grouped bool, content func()) {
 	dimStyle := baseStyle.Dim(true)
 	if m.cfg.Timestamps.Enabled {
-		builder.Write(m.formatTimestamp(message.Timestamp)+" ", dimStyle)
+		builder.Write(m.formatTimestamp(message.Timestamp), dimStyle)
+		builder.Write(" ", baseStyle)
 	}
 
 	if !grouped {
@@ -144,6 +155,7 @@ func (m Model) drawCompact(builder *markdown.Builder, message discord.Message, b
 	}
 
 	if message.EditedTimestamp.IsValid() {
+		builder.Write(" ", baseStyle)
 		builder.Write(editedIndicator, dimStyle)
 	}
 }
@@ -155,6 +167,7 @@ func (m Model) drawCozy(builder *markdown.Builder, message discord.Message, base
 			content()
 		}
 		if message.EditedTimestamp.IsValid() {
+			builder.Write(" ", baseStyle)
 			builder.Write(editedIndicator, dimStyle)
 		}
 		return
@@ -162,10 +175,12 @@ func (m Model) drawCozy(builder *markdown.Builder, message discord.Message, base
 
 	m.drawAuthor(builder, message, baseStyle)
 	if m.cfg.Timestamps.Enabled {
-		builder.Write(" "+m.formatTimestamp(message.Timestamp), dimStyle)
+		builder.Write(" ", baseStyle)
+		builder.Write(m.formatTimestamp(message.Timestamp), dimStyle)
 	}
 
 	if message.EditedTimestamp.IsValid() {
+		builder.Write(" ", baseStyle)
 		builder.Write(editedIndicator, dimStyle)
 	}
 
@@ -185,8 +200,8 @@ func (m Model) drawAuthor(builder *markdown.Builder, message discord.Message, ba
 		}
 
 		color, ok := state.MemberColor(member, func(id discord.RoleID) *discord.Role {
-			r, _ := m.state.Cabinet.Role(message.GuildID, id)
-			return r
+			role, _ := m.state.Cabinet.Role(message.GuildID, id)
+			return role
 		})
 		if ok {
 			foreground = tcell.NewHexColor(int32(color))
@@ -245,9 +260,9 @@ func (m Model) renderContent(message discord.Message, root ast.Node, baseStyle t
 		return m.renderer.RenderText([]byte(message.Content), root, baseStyle, m.emojiLine)
 	}
 
-	b := new(markdown.Builder)
-	b.Write(message.Content, baseStyle)
-	return b.Finish()
+	builder := new(markdown.Builder)
+	builder.Write(message.Content, baseStyle)
+	return builder.Finish()
 }
 
 func (m Model) drawSnapshotContent(builder *markdown.Builder, parent discord.Message, snapshot discord.MessageSnapshotMessage, baseStyle tview.Style) {
@@ -284,36 +299,41 @@ func (m Model) drawDefaultMessage(builder *markdown.Builder, message discord.Mes
 		return
 	}
 
-	for _, a := range message.Attachments {
+	for _, attachment := range message.Attachments {
 		builder.NewLine()
-		if m.cfg.UI.MessagesList.Attachments.ShowLinks {
-			builder.Write(a.Filename+":", attachmentStyle)
-			builder.NewLine()
-			builder.Write(a.URL, attachmentStyle.Url(a.URL))
-		} else {
-			builder.Write(a.Filename, attachmentStyle)
+		if !m.cfg.UI.MessagesList.Attachments.ShowLinks {
+			builder.Write(attachment.Filename, attachmentStyle)
+			continue
 		}
+
+		builder.Write(attachment.Filename+":", attachmentStyle)
+		builder.NewLine()
+		builder.Write(attachment.URL, attachmentStyle.Url(attachment.URL))
 	}
 }
 
 func (m Model) drawForwardedMessage(builder *markdown.Builder, message discord.Message, baseStyle tview.Style, grouped bool) {
 	dimStyle := baseStyle.Dim(true)
 	m.drawLayout(builder, message, baseStyle, grouped, func() {
-		builder.Write(m.cfg.UI.MessagesList.ForwardedIndicator+" ", dimStyle)
+		builder.Write(m.cfg.UI.MessagesList.ForwardedIndicator, dimStyle)
+		builder.Write(" ", baseStyle)
 		m.drawSnapshotContent(builder, message, message.MessageSnapshots[0].Message, baseStyle)
-		builder.Write(" ("+m.formatTimestamp(message.MessageSnapshots[0].Message.Timestamp)+") ", dimStyle)
+		builder.Write(" ", baseStyle)
+		builder.Write("("+m.formatTimestamp(message.MessageSnapshots[0].Message.Timestamp)+")", dimStyle)
+		builder.Write(" ", baseStyle)
 	})
 }
 
 func (m Model) drawReply(builder *markdown.Builder, message discord.Message, baseStyle tview.Style) {
 	dimStyle := baseStyle.Dim(true)
-	builder.Write(m.cfg.UI.MessagesList.ReplyIndicator+" ", dimStyle)
+	builder.Write(m.cfg.UI.MessagesList.ReplyIndicator, dimStyle)
+	builder.Write(" ", baseStyle)
 
-	if reference := message.ReferencedMessage; reference != nil {
-		reference.GuildID = message.GuildID
-		m.drawAuthor(builder, *reference, dimStyle)
-		builder.Write(" ", dimStyle)
-		m.drawContent(builder, *reference, nil, dimStyle)
+	if ref := message.ReferencedMessage; ref != nil {
+		ref.GuildID = message.GuildID
+		m.drawAuthor(builder, *ref, dimStyle)
+		builder.Write(" ", baseStyle)
+		m.drawContent(builder, *ref, nil, dimStyle)
 	} else {
 		builder.Write("Original message was deleted", dimStyle)
 	}

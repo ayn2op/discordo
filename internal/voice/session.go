@@ -29,6 +29,10 @@ const (
 	timeout = 15 * time.Second
 	// hangover is how many frames are still sent after the last that was loud enough, for the ends of words not to be cut off.
 	hangover = 15
+	// silenceFrames is how many frames of silence are sent after the hangover.
+	silenceFrames = 5
+	// maxPacketBytes is the most an encoded frame is given room for.
+	maxPacketBytes = 4000
 )
 
 // audio is what the audio devices are opened with. It is of the first backend that works but the null one, which malgo would otherwise silently use when the system has no audio library.
@@ -94,7 +98,7 @@ type Session struct {
 
 // New returns a Session that sends what the microphone captures louder than sensitivity, in dB.
 func New(state *state.State, sensitivity float64) *Session {
-	s := &Session{
+	session := &Session{
 		state:     state,
 		threshold: int(math.Pow(10, sensitivity/20) * math.MaxInt16),
 		updates:   make(chan struct{}, 1),
@@ -102,9 +106,9 @@ func New(state *state.State, sensitivity float64) *Session {
 		speaking:  make(map[discord.UserID]bool),
 		speakers:  make(map[uint32]*speaker),
 	}
-	state.AddHandler(s.follow)
+	state.AddHandler(session.follow)
 
-	return s
+	return session
 }
 
 // follow keeps up with the user being moved to another voice channel or disconnected, by someone else or by connecting from another client.
@@ -156,10 +160,10 @@ func (s *Session) Latency() time.Duration {
 	return 0
 }
 
-// update changes the state with f and tells Updates if f reports that it did.
-func (s *Session) update(f func() bool) {
+// update changes the state with change and tells Updates if change reports that it did.
+func (s *Session) update(change func() bool) {
 	s.stateMu.Lock()
-	changed := f()
+	changed := change()
 	s.stateMu.Unlock()
 
 	if changed {
@@ -371,19 +375,11 @@ func (s *Session) receive(session *voice.Session) {
 			continue
 		}
 
-		s.stateMu.Lock()
-		speaker := s.speakers[packet.SSRC()]
-		if speaker == nil {
-			if speaker, err = newSpeaker(packet.Sequence()); err != nil {
-				s.stateMu.Unlock()
-				slog.Error("failed to create Opus decoder", "err", err)
-				return
-			}
-
-			s.speakers[packet.SSRC()] = speaker
+		speaker, err := s.speaker(packet.SSRC(), packet.Sequence())
+		if err != nil {
+			slog.Error("failed to create Opus decoder", "err", err)
+			return
 		}
-
-		s.stateMu.Unlock()
 
 		if err := speaker.write(packet.Sequence(), packet.Opus); err != nil {
 			slog.Debug("failed to decode voice packet", "err", err, "ssrc", packet.SSRC())
@@ -391,6 +387,24 @@ func (s *Session) receive(session *voice.Session) {
 
 		s.setSpeaking(session.User(packet.SSRC()), string(packet.Opus) != voice.Silence)
 	}
+}
+
+// speaker returns the speaker of ssrc, created if it is new with sequence as its first packet.
+func (s *Session) speaker(ssrc uint32, sequence uint16) (*speaker, error) {
+	s.stateMu.Lock()
+	defer s.stateMu.Unlock()
+
+	if speaker := s.speakers[ssrc]; speaker != nil {
+		return speaker, nil
+	}
+
+	speaker, err := newSpeaker(sequence)
+	if err != nil {
+		return nil, err
+	}
+
+	s.speakers[ssrc] = speaker
+	return speaker, nil
 }
 
 // send sends what the microphone captures to the voice channels that session joins, while it is loud enough.
@@ -401,46 +415,66 @@ func (s *Session) send(session *voice.Session) {
 		return
 	}
 
-	me, _ := s.state.Cabinet.Me()
-
 	var (
-		pcm     []byte
-		samples = make([]int16, frameSamples)
-		packet  = make([]byte, 4000)
-		silence = []byte(voice.Silence)
+		pcm []byte
 		// quiet is how many frames ago the last that was loud enough was.
 		quiet = hangover
 	)
 
 	for captured := range s.mic {
 		for pcm = append(pcm, captured...); len(pcm) >= frameBytes; pcm = pcm[frameBytes:] {
-			quiet++
-			for i := range samples {
-				samples[i] = int16(binary.LittleEndian.Uint16(pcm[2*i:]))
-				if int(samples[i]) >= s.threshold || -int(samples[i]) >= s.threshold {
-					quiet = 0
-				}
-			}
-
-			var err error
-			switch {
-			case quiet < hangover:
-				var n int
-				if n, err = encoder.Encode(samples, packet); err == nil {
-					_, err = session.Write(packet[:n])
-				}
-			case quiet < hangover+5:
-				// A few frames of silence are for what was said not to be interpolated with what is said next.
-				_, err = session.Write(silence)
-			}
-
-			if err != nil {
-				slog.Debug("failed to send voice packet", "err", err)
-			}
-
-			if me != nil {
-				s.setSpeaking(me.ID, quiet < hangover)
-			}
+			quiet = s.sendFrame(session, encoder, pcm[:frameBytes], quiet)
 		}
 	}
+}
+
+// sendFrame sends one frame of PCM, given how many frames ago the last that was loud enough was, and returns that count with frame in it.
+func (s *Session) sendFrame(session *voice.Session, encoder *opus.Encoder, frame []byte, quiet int) int {
+	samples, loud := decodeSamples(frame, s.threshold)
+	quiet++
+	if loud {
+		quiet = 0
+	}
+
+	if err := writeFrame(session, encoder, samples, quiet); err != nil {
+		slog.Debug("failed to send voice packet", "err", err)
+	}
+
+	if me, _ := s.state.Cabinet.Me(); me != nil {
+		s.setSpeaking(me.ID, quiet < hangover)
+	}
+
+	return quiet
+}
+
+// decodeSamples returns the samples of frame and whether any is at least threshold loud.
+func decodeSamples(frame []byte, threshold int) ([]int16, bool) {
+	samples := make([]int16, frameSamples)
+	loud := false
+	for index := range samples {
+		samples[index] = int16(binary.LittleEndian.Uint16(frame[sampleBytes*index:]))
+		loud = loud || int(samples[index]) >= threshold || -int(samples[index]) >= threshold
+	}
+
+	return samples, loud
+}
+
+// writeFrame sends samples while what is said is loud enough, then a few frames of silence for it not to be interpolated with what is said next.
+func writeFrame(session *voice.Session, encoder *opus.Encoder, samples []int16, quiet int) error {
+	switch {
+	case quiet < hangover:
+		packet := make([]byte, maxPacketBytes)
+		length, err := encoder.Encode(samples, packet)
+		if err != nil {
+			return err
+		}
+
+		_, err = session.Write(packet[:length])
+		return err
+	case quiet < hangover+silenceFrames:
+		_, err := session.Write([]byte(voice.Silence))
+		return err
+	}
+
+	return nil
 }

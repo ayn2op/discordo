@@ -1,6 +1,7 @@
 package composer
 
 import (
+	"image"
 	"maps"
 	"path/filepath"
 	"testing"
@@ -11,8 +12,10 @@ import (
 	"github.com/ayn2op/arikawa/v3/state/store/defaultstore"
 	"github.com/ayn2op/arikawa/v3/utils/sendpart"
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/ui/images"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
+	tviewimage "github.com/ayn2op/tview/image"
 	"github.com/ayn2op/tview/keybind"
 	"github.com/gdamore/tcell/v3"
 )
@@ -66,6 +69,48 @@ func TestModelSetChannel(t *testing.T) {
 			}
 		})
 	}
+
+	first := discord.Channel{ID: 1, Type: discord.DirectMessage}
+	second := discord.Channel{ID: 2, Type: discord.DirectMessage}
+
+	t.Run("drops the reply, keeping the text and files", func(t *testing.T) {
+		c, _ := newTestModel(t)
+		c.SetChannel(&first)
+		c.StartReply(discord.Message{ID: 5}, "ann", true)
+		c.setText("hi", 2)
+		c.sendMessageData.Files = []sendpart.File{{Name: "a.png"}}
+
+		c.SetChannel(&second)
+		if c.sendMessageData.Reference != nil || c.title() != "" {
+			t.Errorf("still replying: title %q", c.title())
+		}
+
+		if c.text != "hi" || len(c.sendMessageData.Files) != 1 {
+			t.Errorf("text %q and %d files, want the text and file kept", c.text, len(c.sendMessageData.Files))
+		}
+	})
+
+	t.Run("drops the edit and its text", func(t *testing.T) {
+		c, _ := newTestModel(t)
+		c.SetChannel(&first)
+		c.StartEdit(discord.Message{ID: 5, Content: "old"})
+
+		c.SetChannel(&second)
+		if c.editing != nil || c.text != "" {
+			t.Errorf("still editing %v with text %q", c.editing, c.text)
+		}
+	})
+
+	t.Run("keeps the reply in the same channel", func(t *testing.T) {
+		c, _ := newTestModel(t)
+		c.SetChannel(&first)
+		c.StartReply(discord.Message{ID: 5}, "ann", false)
+
+		c.SetChannel(&first)
+		if c.sendMessageData.Reference == nil {
+			t.Error("reply dropped though the channel did not change")
+		}
+	})
 }
 
 func TestModelUpdate(t *testing.T) {
@@ -107,14 +152,20 @@ func TestModelUpdate(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("images before completing", func(t *testing.T) {
+		c, _ := newTestModel(t)
+		c.Update(images.ChangedMsg{"cat": tviewimage.New(image.NewAlpha(image.Rect(0, 0, 2, 2)))})
+	})
 }
 
-func TestModelHandle(t *testing.T) {
+func TestModelView(t *testing.T) {
 	c, _ := newTestModel(t)
+	c.SetFocused(true)
 	area := tview.Rectangle{Width: 20, Height: 3}
 
 	t.Run("typing edits the text", func(t *testing.T) {
-		msg := c.View(true).Handle(tcell.NewEventKey(tcell.KeyRune, "a", tcell.ModNone), area)
+		msg := c.View().Handle(tcell.NewEventKey(tcell.KeyRune, "a", tcell.ModNone), area)
 		if _, ok := msg.(editMsg); !ok {
 			t.Fatalf("got %v, want an editMsg", msg)
 		}
@@ -124,7 +175,7 @@ func TestModelHandle(t *testing.T) {
 		}
 	})
 	t.Run("the newline keybind inserts a newline", func(t *testing.T) {
-		msg := c.View(true).Handle(tcell.NewEventKey(tcell.KeyEnter, "", tcell.ModShift), area)
+		msg := c.View().Handle(tcell.NewEventKey(tcell.KeyEnter, "", tcell.ModShift), area)
 		if _, ok := msg.(editMsg); !ok {
 			t.Fatalf("got %v, want an editMsg", msg)
 		}
@@ -135,8 +186,44 @@ func TestModelHandle(t *testing.T) {
 	})
 	t.Run("bound keys are left to Update", func(t *testing.T) {
 		enter := tcell.NewEventKey(tcell.KeyEnter, "", tcell.ModNone)
-		if got := c.View(true).Handle(enter, area); got != enter {
+		if got := c.View().Handle(enter, area); got != enter {
 			t.Fatalf("got %v", got)
+		}
+	})
+	t.Run("readline keys edit the text", func(t *testing.T) {
+		for _, str := range []string{"w", "j"} {
+			t.Run("ctrl+"+str, func(t *testing.T) {
+				msg := c.View().Handle(tcell.NewEventKey(tcell.KeyRune, str, tcell.ModCtrl), area)
+				if _, ok := msg.(editMsg); !ok {
+					t.Fatalf("got %v, want an editMsg", msg)
+				}
+			})
+		}
+	})
+	t.Run("shift reaches readline keys bound elsewhere", func(t *testing.T) {
+		for _, key := range []tview.KeyMsg{
+			tcell.NewEventKey(tcell.KeyRune, "k", tcell.ModCtrl|tcell.ModShift),
+			tcell.NewEventKey(tcell.KeyRune, "e", tcell.ModCtrl|tcell.ModShift),
+			tcell.NewEventKey(tcell.KeyRune, "d", tcell.ModCtrl|tcell.ModShift),
+			tcell.NewEventKey(tcell.KeyRune, "h", tcell.ModCtrl|tcell.ModShift),
+			tcell.NewEventKey(tcell.KeyRune, "d", tcell.ModAlt|tcell.ModShift),
+		} {
+			t.Run(key.Name(), func(t *testing.T) {
+				if msg := c.View().Handle(key, area); msg == key {
+					t.Fatal("not bound")
+				}
+			})
+		}
+	})
+	t.Run("keys bound elsewhere are left to Update", func(t *testing.T) {
+		// Readline binds these too, but they toggle the channels picker, undo, open the editor, and log out.
+		for _, str := range []string{"k", "u", "e", "d"} {
+			t.Run("ctrl+"+str, func(t *testing.T) {
+				key := tcell.NewEventKey(tcell.KeyRune, str, tcell.ModCtrl)
+				if got := c.View().Handle(key, area); got != key {
+					t.Fatalf("got %v", got)
+				}
+			})
 		}
 	})
 }
@@ -148,25 +235,31 @@ func TestModelSearchMember(t *testing.T) {
 		Nonce:   memberSearchNonce + "1 ab",
 		Members: []discord.Member{{}},
 	})
-	if cmd := c.searchMember(1, "ab"); cmd != nil {
-		t.Fatal("cached query returned a network command")
-	}
-	if cmd := c.searchMember(1, "abc"); cmd != nil || c.memberSearchCache["1 abc"] != 1 {
-		t.Fatal("incomplete prefix results were not reused")
-	}
-	c.memberSearchCache["1 a"] = 2
-	c.memberSearchCache["2 a"] = 2
-	c.OnGuildMemberRemove(&gateway.GuildMemberRemoveEvent{
-		GuildID: 1,
-		User:    discord.User{Username: "abc"},
+	t.Run("cached query", func(t *testing.T) {
+		if cmd := c.searchMember(1, "ab"); cmd != nil {
+			t.Fatal("cached query returned a network command")
+		}
 	})
-	want := map[string]uint{"1 ab": 1, "1 abc": 1, "2 a": 2}
-	if !maps.Equal(c.memberSearchCache, want) {
-		t.Fatalf("cache after invalidation = %v, want %v", c.memberSearchCache, want)
-	}
+	t.Run("incomplete prefix reused", func(t *testing.T) {
+		if cmd := c.searchMember(1, "abc"); cmd != nil || c.memberSearchCache["1 abc"] != 1 {
+			t.Fatal("incomplete prefix results were not reused")
+		}
+	})
+	t.Run("member removed", func(t *testing.T) {
+		c.memberSearchCache["1 a"] = 2
+		c.memberSearchCache["2 a"] = 2
+		c.OnGuildMemberRemove(&gateway.GuildMemberRemoveEvent{
+			GuildID: 1,
+			User:    discord.User{Username: "abc"},
+		})
+		want := map[string]uint{"1 ab": 1, "1 abc": 1, "2 a": 2}
+		if !maps.Equal(c.memberSearchCache, want) {
+			t.Fatalf("cache after invalidation = %v, want %v", c.memberSearchCache, want)
+		}
+	})
 }
 
-func TestModelTabSuggest(t *testing.T) {
+func TestModelShowAutocomplete(t *testing.T) {
 	c, _ := newTestModel(t)
 	if err := c.state.MyselfSet(discord.User{ID: 1, Username: "1"}, false); err != nil {
 		t.Fatal(err)
@@ -180,9 +273,9 @@ func TestModelTabSuggest(t *testing.T) {
 	}
 	c.SetChannel(&channel)
 	c.setText("@", 1)
-	c.tabSuggest()
-	if got := c.mentionsList.ItemCount(); got != 2 {
-		t.Fatalf("suggested %d authors, want 2", got)
+	c.showAutocomplete()
+	if !c.autocomplete.Visible() {
+		t.Fatal("no authors completed")
 	}
 }
 
@@ -199,4 +292,70 @@ func TestModelProcessText(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestModelQuery(t *testing.T) {
+	c, _ := newTestModel(t)
+	for _, test := range []struct {
+		text string
+		r    rune
+		name string
+	}{
+		{":jo", ':', "jo"},
+		{"hi :+1", ':', "+1"},
+		{"hi :", ':', ""},
+		{"@ab", '@', "ab"},
+		{"hi @", '@', ""},
+		{"12:30", 0, ""},
+		{"a:joy", 0, ""},
+		{"joy", 0, ""},
+	} {
+		t.Run(test.text, func(t *testing.T) {
+			c.setText(test.text, len(test.text))
+			if r, name := c.query(); r != test.r || name != test.name {
+				t.Errorf("query() = %q, %q; want %q, %q", r, name, test.r, test.name)
+			}
+		})
+	}
+	t.Run("mentions disabled", func(t *testing.T) {
+		c, cfg := newTestModel(t)
+		cfg.UI.Autocomplete.Mentions.Enabled = false
+		c.setText("@ab", len("@ab"))
+		if trigger, _ := c.query(); trigger != 0 {
+			t.Errorf("query() trigger = %q, want 0", trigger)
+		}
+	})
+
+	t.Run("emojis disabled", func(t *testing.T) {
+		c, cfg := newTestModel(t)
+		cfg.UI.Autocomplete.Emojis.Enabled = false
+		c.setText(":jo", len(":jo"))
+		if trigger, _ := c.query(); trigger != 0 {
+			t.Errorf("query() trigger = %q, want 0", trigger)
+		}
+	})
+}
+
+func TestModelComplete(t *testing.T) {
+	c, _ := newTestModel(t)
+	c.SetChannel(&discord.Channel{ID: 1, Type: discord.DirectMessage})
+	c.setText("hi :joy", len("hi :joy"))
+	c.showAutocomplete()
+	t.Run("shows emojis", func(t *testing.T) {
+		if !c.autocomplete.Visible() {
+			t.Fatal("no emojis completed")
+		}
+	})
+
+	c.complete()
+	t.Run("inserts the emoji", func(t *testing.T) {
+		if want := "hi 😂 "; c.text != want || c.cursor != len(want) {
+			t.Errorf("text = %q, cursor = %d; want %q, %d", c.text, c.cursor, want, len(want))
+		}
+	})
+	t.Run("hides the completions", func(t *testing.T) {
+		if c.autocomplete.Visible() {
+			t.Error("autocomplete still shown after completing")
+		}
+	})
 }

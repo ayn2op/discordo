@@ -10,13 +10,13 @@ import (
 )
 
 // SelectHelp returns the up and down keybinds that move the selection away from current.
-func SelectHelp(root, current *tree.Node, kbs config.TreeKeybinds) []keybind.Keybind {
+func SelectHelp(root, current *tree.Node, keybinds config.TreeKeybinds) []keybind.Keybind {
 	var help []keybind.Keybind
 	if canSelectUp(root, current) {
-		help = append(help, kbs.SelectUp.Keybind)
+		help = append(help, keybinds.SelectUp.Keybind)
 	}
 	if canSelectDown(root, current) {
-		help = append(help, kbs.SelectDown.Keybind)
+		help = append(help, keybinds.SelectDown.Keybind)
 	}
 	return help
 }
@@ -36,33 +36,33 @@ func canSelectDown(root, current *tree.Node) bool {
 	return last != root && current != last
 }
 
-func treeKeybind(kbs config.TreeKeybinds) func(tview.KeyMsg) tree.Action {
+func treeKeybind(keybinds config.TreeKeybinds) func(tview.KeyMsg) tree.Action {
 	return func(key tview.KeyMsg) tree.Action {
 		switch {
-		case keybind.Matches(key, kbs.SelectUp.Keybind):
+		case keybind.Matches(key, keybinds.SelectUp.Keybind):
 			return tree.ActionUp
-		case keybind.Matches(key, kbs.SelectDown.Keybind):
+		case keybind.Matches(key, keybinds.SelectDown.Keybind):
 			return tree.ActionDown
-		case keybind.Matches(key, kbs.SelectTop.Keybind):
+		case keybind.Matches(key, keybinds.SelectTop.Keybind):
 			return tree.ActionTop
-		case keybind.Matches(key, kbs.SelectBottom.Keybind):
+		case keybind.Matches(key, keybinds.SelectBottom.Keybind):
 			return tree.ActionBottom
-		case keybind.Matches(key, kbs.MoveToParentNode.Keybind):
+		case keybind.Matches(key, keybinds.MoveToParentNode.Keybind):
 			return tree.ActionMoveToParent
-		case keybind.Matches(key, kbs.SelectCurrent.Keybind):
+		case keybind.Matches(key, keybinds.SelectCurrent.Keybind):
 			return tree.ActionSelect
 		}
 		return tree.ActionNone
 	}
 }
 
-func scrollKeybind(kbs config.TreeKeybinds) func(tview.KeyMsg) viewport.Action {
-	scroll := ui.ScrollKeybind(kbs.ScrollKeybinds)
+func scrollKeybind(keybinds config.TreeKeybinds) func(tview.KeyMsg) viewport.Action {
+	scroll := ui.ScrollKeybind(keybinds.ScrollKeybinds)
 	return func(key tview.KeyMsg) viewport.Action {
 		switch {
-		case keybind.Matches(key, kbs.ScrollLeft.Keybind):
+		case keybind.Matches(key, keybinds.ScrollLeft.Keybind):
 			return viewport.ActionLeft
-		case keybind.Matches(key, kbs.ScrollRight.Keybind):
+		case keybind.Matches(key, keybinds.ScrollRight.Keybind):
 			return viewport.ActionRight
 		}
 		return scroll(key)

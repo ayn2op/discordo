@@ -8,6 +8,7 @@ import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/markdown"
 	"github.com/ayn2op/discordo/internal/ui"
+	"github.com/ayn2op/discordo/internal/ui/images"
 	"github.com/ayn2op/discordo/internal/voice"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
@@ -25,10 +26,6 @@ import (
 	"github.com/yuin/goldmark/v2/ast"
 )
 
-// placeholderTerminals are the terminals, by XTVERSION name, that draw kitty's Unicode placeholders.
-// WezTerm and Konsole support kitty graphics but not Unicode placeholders.
-var placeholderTerminals = []string{"kitty", "ghostty", "Rio"}
-
 type messageItem struct {
 	message discord.Message
 	// view is the message as drawn, keeping its wrapped text, or nil until it is shown and after what it shows changes.
@@ -38,8 +35,6 @@ type messageItem struct {
 	// grouped reports whether the message is drawn without a header, under that of the message before it.
 	grouped bool
 
-	// A preview is blank while loading and empty if loading failed.
-	previews map[discord.URL]tviewimage.Widget
 	// root is the parsed markdown of the message's content, or nil until it is needed and after the text is invalidated, as it resolves mentions when parsed.
 	root ast.Node
 }
@@ -56,20 +51,17 @@ type Model struct {
 	items   []messageItem
 
 	renderer *markdown.Renderer
-	// images are the avatars and emoji, shared by every message that shows them.
+	// images are the chat model's, which loads them, by URL.
 	images map[discord.URL]tviewimage.Widget
+	// focused, footer and avatarWidth, in cells, are set by the chat model, which keeps what they follow from.
+	focused     bool
+	footer      string
+	avatarWidth int
 	// voicePlayer plays the voice message played last, and voiceStatus is what it last said of it.
 	voicePlayer *voice.Player
 	voiceStatus voice.PlayerStatus
 	// seeking reports whether the waveform of the voice message is dragged, which is sought once it is let go of.
 	seeking bool
-
-	// kitty reports whether previews are drawn with kitty's graphics protocol.
-	// kittyImages counts the images sent to the terminal.
-	kitty       bool
-	kittyImages int
-	// cellWidth and cellHeight are the size of a terminal cell in pixels, or zero if the terminal does not report it.
-	cellWidth, cellHeight uint
 }
 
 func NewModel(cfg *config.Config, state *ningen.State) Model {
@@ -79,7 +71,6 @@ func NewModel(cfg *config.Config, state *ningen.State) Model {
 		cfg:         cfg,
 		state:       state,
 		renderer:    markdown.NewRenderer(cfg),
-		images:      map[discord.URL]tviewimage.Widget{},
 		voicePlayer: voice.NewPlayer(),
 	}
 
@@ -87,11 +78,22 @@ func NewModel(cfg *config.Config, state *ningen.State) Model {
 	return ml
 }
 
-// View shows the messages in a box titled with the channel and footed with footer, such as who is typing.
-func (m Model) View(focused bool, footer string) tview.Widget {
-	return ui.Box(m.listView(focused), m.cfg, focused).
-		Title(ui.Label(m.title(), m.cfg.Theme.Title, focused)).
-		Footer(ui.Label(footer, m.cfg.Theme.Footer, focused))
+// SetFocused sets whether the list takes keys.
+func (m *Model) SetFocused(focused bool) {
+	m.focused = focused
+}
+
+// SetFooter sets what is shown under the messages, such as who is typing.
+func (m *Model) SetFooter(footer string) {
+	m.footer = footer
+}
+
+// SetAvatarWidth sets how many cells wide avatars are, which the list leaves for them before they load.
+func (m *Model) SetAvatarWidth(width int) {
+	if width != m.avatarWidth {
+		m.avatarWidth = width
+		m.clearViews()
+	}
 }
 
 // title returns the selected channel and its topic, or "Messages" when none is selected.
@@ -106,7 +108,7 @@ func (m Model) title() string {
 	return title
 }
 
-func (m Model) listView(focused bool) viewport.Widget {
+func (m Model) listView() viewport.Widget {
 	cfg, theme := m.cfg.UI.ScrollBar, m.cfg.Theme.ScrollBar
 	bar := scrollbar.New().
 		SymbolSet(cfg.SymbolSet.SymbolSet).
@@ -129,7 +131,7 @@ func (m Model) listView(focused bool) viewport.Widget {
 		// Older messages are added above, so the position is kept from the newest, which also keeps the newest in view.
 		AnchorBottom().
 		Keybind(ui.ScrollKeybind(m.cfg.Keybinds.MessagesList.ScrollKeybinds)).
-		Focused(focused).
+		Focused(m.focused).
 		OnChange(func(s *viewport.ScrollState) tview.Msg { return scrollMsg(*s) })
 }
 
@@ -149,9 +151,9 @@ func (m *Model) SetChannel(channel *discord.Channel, messages []discord.Message)
 	m.reset()
 	m.setMessages(messages)
 	if channel.GuildID.IsValid() {
-		return tview.Batch(m.requestGuildMembers(channel.GuildID, messages), m.loadPreviews())
+		return tview.Batch(m.requestGuildMembers(channel.GuildID, messages), m.LoadImages())
 	}
-	return m.loadPreviews()
+	return m.LoadImages()
 }
 
 // ShowNewest clears the selection and scrolls to the newest message, which then stays in view as messages arrive until the user scrolls up.
@@ -163,7 +165,7 @@ func (m *Model) ShowNewest() {
 // UpdateMessage replaces the shown message with the same ID.
 func (m *Model) UpdateMessage(message discord.Message) tview.Cmd {
 	m.setMessage(m.indexOf(message.ChannelID, message.ID), message)
-	return m.loadPreviews()
+	return m.LoadImages()
 }
 
 // RefreshMessage shows the cached state of a message, such as after a reaction.
@@ -174,7 +176,7 @@ func (m *Model) RefreshMessage(channelID discord.ChannelID, id discord.MessageID
 	}
 
 	m.setMessage(m.indexOf(channelID, id), *message)
-	return m.loadPreviews()
+	return m.LoadImages()
 }
 
 // DeleteMessage removes the shown message with id.
@@ -190,9 +192,14 @@ func (m Model) indexOf(channelID discord.ChannelID, id discord.MessageID) int {
 	return slices.IndexFunc(m.items, func(item messageItem) bool { return item.separator == nil && item.message.ID == id })
 }
 
+func (m *Model) clearViews() {
+	for i := range m.items {
+		m.items[i].view = nil
+	}
+}
+
 func (m *Model) reset() {
 	m.items = nil
-	clear(m.images)
 	m.cursor, m.target = -1, -1
 	m.scrollState = viewport.ScrollState{}
 	m.scrollState.ScrollToEnd()
@@ -220,7 +227,7 @@ func (m *Model) AddMessage(message discord.Message) tview.Cmd {
 
 	grouped := !separator && m.shouldGroup(previous, message)
 	m.items = append(m.items, messageItem{message: message, grouped: grouped})
-	return m.loadPreviews()
+	return m.LoadImages()
 }
 
 func (m *Model) setMessage(index int, message discord.Message) {
@@ -228,7 +235,7 @@ func (m *Model) setMessage(index int, message discord.Message) {
 		return
 	}
 
-	m.items[index] = messageItem{message: message, previews: m.items[index].previews}
+	m.items[index] = messageItem{message: message}
 	m.rebuildItems()
 }
 
@@ -287,23 +294,24 @@ func (m Model) itemView(item *messageItem) tview.Widget {
 		body = body.Push(m.voiceMessageView(message.Attachments[0]))
 	}
 
-	for _, s := range m.previewSources(*message) {
-		if preview, ok := item.previews[s.proxy]; ok {
+	for _, source := range m.previewSources(*message) {
+		if preview, ok := m.images[source.proxy]; ok {
 			body = body.Push(preview)
 		}
 	}
 
-	if !m.blocked(message.Author) {
+	if m.cfg.UI.MessagesList.Reactions.Enabled && !m.blocked(message.Author) {
 		body = body.Push(m.reactionsView(message.Reactions))
 	}
 
 	var view tview.Widget = body
-	if avatar, ok := m.images[avatarURL(message.Author)]; ok {
-		var gutter tview.Widget = avatar
-		// A grouped message leaves the avatar's column empty, under the avatar of the group.
-		if item.grouped {
-			width, _ := avatar.Size()
-			gutter = spacer.New().Width(width)
+	if m.showsAvatar(message.Author) {
+		// The avatar's column is left empty before it is requested, if it fails to load, and under the avatar of a group, so the text does not shift.
+		var gutter tview.Widget = spacer.New().Width(layout.Fixed(m.avatarWidth))
+		if avatar, ok := m.images[avatarURL(message.Author)]; ok && !item.grouped {
+			if width, _ := avatar.Size(); width != layout.Fixed(0) {
+				gutter = avatar
+			}
 		}
 		view = row.New(gutter, body).Spacing(1).Height(layout.Shrink)
 	}
@@ -350,7 +358,7 @@ func (m *Model) rebuildItems() {
 	items := make([]messageItem, 0, len(m.items))
 	cursor, target := -1, -1
 	var previous *discord.Message
-	for i, item := range m.items {
+	for index, item := range m.items {
 		if item.separator != nil {
 			continue
 		}
@@ -363,12 +371,15 @@ func (m *Model) rebuildItems() {
 		if grouped := !separator && m.shouldGroup(previous, item.message); grouped != item.grouped {
 			item.grouped, item.view = grouped, nil
 		}
-		if i == m.cursor {
+
+		if index == m.cursor {
 			cursor = len(items)
 		}
-		if i == m.target {
+
+		if index == m.target {
 			target = len(items)
 		}
+
 		items = append(items, item)
 		previous = &item.message
 	}
@@ -382,19 +393,19 @@ func (m Model) shouldSeparate(previous *discord.Message, message discord.Message
 	return m.cfg.DateSeparator.Enabled && (previous == nil || !sameLocalDate(previous.Timestamp, message.Timestamp))
 }
 
-func sameLocalDate(a discord.Timestamp, b discord.Timestamp) bool {
-	ta := a.Time().In(time.Local)
-	tb := b.Time().In(time.Local)
-	return ta.Year() == tb.Year() && ta.YearDay() == tb.YearDay()
+func sameLocalDate(first, second discord.Timestamp) bool {
+	firstTime, secondTime := first.Time().In(time.Local), second.Time().In(time.Local)
+	return firstTime.Year() == secondTime.Year() && firstTime.YearDay() == secondTime.YearDay()
 }
 
 // messageIndex finds the next message in direction (-1 or 1), excluding start.
 func (m Model) messageIndex(start, direction int) int {
-	for i := start + direction; i >= 0 && i < len(m.items); i += direction {
-		if m.items[i].separator == nil {
-			return i
+	for index := start + direction; index >= 0 && index < len(m.items); index += direction {
+		if m.items[index].separator == nil {
+			return index
 		}
 	}
+
 	return -1
 }
 
@@ -426,163 +437,39 @@ func (m Model) selectedURLs() []string {
 	return nil
 }
 
-// Update returns ml changed in response to msg and a command to run, or nil.
-func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
-	switch msg := msg.(type) {
-	case tview.KeyMsg:
-		kbs := m.cfg.Keybinds.MessagesList
-		switch {
-		case keybind.Matches(msg, kbs.Cancel.Keybind):
-			m.clearSelection()
-		case keybind.Matches(msg, kbs.SelectUp.Keybind):
-			return m, m.selectUp()
-		case keybind.Matches(msg, kbs.SelectDown.Keybind):
-			m.selectDown()
-		case keybind.Matches(msg, kbs.SelectTop.Keybind):
-			return m, m.selectTop()
-		case keybind.Matches(msg, kbs.SelectBottom.Keybind):
-			m.selectBottom()
-		case keybind.Matches(msg, kbs.SelectReply.Keybind):
-			m.selectReply()
-		case keybind.Matches(msg, kbs.YankID.Keybind):
-			return m, m.yankMessageID()
-		case keybind.Matches(msg, kbs.YankContent.Keybind):
-			return m, m.yankContent()
-		case keybind.Matches(msg, kbs.YankURL.Keybind):
-			return m, m.yankURL()
-		case keybind.Matches(msg, kbs.Open.Keybind):
-			return m, m.open()
-		case keybind.Matches(msg, kbs.OpenInBrowser.Keybind):
-			return m, m.openInBrowser()
-		case keybind.Matches(msg, kbs.Play.Keybind):
-			if message, ok := m.selectedMessage(); ok && isVoiceMessage(*message) {
-				return m, m.play(message.Attachments[0])
-			}
-		case keybind.Matches(msg, kbs.SeekBackward.Keybind):
-			return m, m.seek(m.voiceStatus.Position - seekStep)
-		case keybind.Matches(msg, kbs.SeekForward.Keybind):
-			return m, m.seek(m.voiceStatus.Position + seekStep)
-		case keybind.Matches(msg, kbs.Download.Keybind):
-			return m, m.download()
-		case keybind.Matches(msg, kbs.Reply.Keybind):
-			return m, m.reply(false)
-		case keybind.Matches(msg, kbs.ReplyMention.Keybind):
-			return m, m.reply(true)
-		case keybind.Matches(msg, kbs.Edit.Keybind):
-			return m, m.editSelectedMessage()
-		case keybind.Matches(msg, kbs.Delete.Keybind):
-			return m, m.deleteSelectedMessage()
-		case keybind.Matches(msg, kbs.DeleteConfirm.Keybind):
-			return m, m.confirmDelete()
-		}
-	case olderMessagesLoadedMsg:
-		selectedChannel := m.channel
-		if selectedChannel == nil || selectedChannel.ID != msg.channelID {
-			return m, nil
-		}
-		older := make([]messageItem, len(msg.older))
-		for i, message := range msg.older {
-			older[i] = messageItem{message: message}
-		}
-		m.items = slices.Concat(older, m.items)
-		// The selected and target messages stay the same, so they are not scrolled to.
-		if m.cursor >= 0 {
-			m.cursor += len(older)
-		}
-		if m.target >= 0 {
-			m.target += len(older)
-		}
-		m.rebuildItems()
-		if selectedChannel.GuildID.IsValid() {
-			return m, tview.Batch(m.requestGuildMembers(selectedChannel.GuildID, msg.older), m.loadPreviews())
-		}
-		return m, m.loadPreviews()
-	case previewLoadedMsg:
-		preview, cmd := msg.preview, tview.Cmd(nil)
-		if m.kitty {
-			m.kittyImages++
-			preview = preview.Kitty(m.kittyImages%63488 + 1)
-			cmd = preview.Transmit()
-		}
-
-		if _, ok := m.images[msg.proxy]; ok {
-			m.images[msg.proxy] = preview
-			// An emoji is drawn within the text of the messages that use it, so the text is rendered again.
-			for i := range m.items {
-				m.items[i].view = nil
-			}
-			return m, cmd
-		}
-
-		index := slices.IndexFunc(m.items, func(item messageItem) bool { return item.separator == nil && item.message.ID == msg.messageID })
-		if index < 0 || m.items[index].previews == nil {
-			return m, nil
-		}
-
-		m.items[index].previews[msg.proxy] = preview
-		m.items[index].view = nil
-		return m, cmd
-	case playMsg:
-		return m, m.play(discord.Attachment(msg))
-	case seekPressMsg:
-		m.seeking = true
-		m.voiceStatus.Position = time.Duration(msg)
-		return m, nil
-	case seekMsg:
-		m.voiceStatus.Position = time.Duration(msg)
-		if m.seeking {
-			return m, nil
-		}
-
-		return m, m.seek(m.voiceStatus.Position)
-	case seekReleaseMsg:
-		m.seeking = false
-		return m, m.seek(m.voiceStatus.Position)
-	case voiceMsg:
-		status := m.voicePlayer.Status()
-		// The waveform shows where it is dragged to rather than what is playing, while that voice message is the one loaded.
-		m.seeking = m.seeking && status.ID == m.voiceStatus.ID
-		if m.seeking {
-			status.Position = m.voiceStatus.Position
-		}
-
-		m.voiceStatus = status
-		return m, m.Init()
-	case tview.ResizeMsg:
-		cols, rows := msg.Size()
-		width, height := msg.PixelSize()
-		if cols > 0 && rows > 0 {
-			m.cellWidth, m.cellHeight = uint(width/cols), uint(height/rows)
-		}
-	case tview.TerminalInfoMsg:
-		switch m.cfg.UI.MessagesList.ImageProtocol {
-		case "kitty":
-			m.kitty = true
-		case "halfblocks":
-			m.kitty = false
-		default:
-			m.kitty = slices.Contains(placeholderTerminals, msg.Name)
-		}
-	case scrollMsg:
-		m.scrollState = viewport.ScrollState(msg)
-		// Older messages are fetched once as the list is scrolled to the top, rather than on each scroll there.
-		if !scrolledToTop(m.scrollState.Origin()) && scrolledToTop(m.scrollState.Viewport()) {
-			return m, m.fetchOlderMessages()
-		}
-	case listMsg:
-		top := m.atTop()
-		m.cursor, m.target = int(msg), int(msg)
-		m.onRowCursorChanged(m.cursor)
-		if !top && m.atTop() {
-			return m, m.fetchOlderMessages()
-		}
+// prependOlder shows the older messages loaded above those of the same channel.
+func (m *Model) prependOlder(msg olderMessagesLoadedMsg) tview.Cmd {
+	selectedChannel := m.channel
+	if selectedChannel == nil || selectedChannel.ID != msg.channelID {
+		return nil
 	}
-	return m, nil
+
+	older := make([]messageItem, len(msg.older))
+	for index, message := range msg.older {
+		older[index] = messageItem{message: message}
+	}
+
+	m.items = slices.Concat(older, m.items)
+	// The selected and target messages stay the same, so they are not scrolled to.
+	if m.cursor >= 0 {
+		m.cursor += len(older)
+	}
+
+	if m.target >= 0 {
+		m.target += len(older)
+	}
+
+	m.rebuildItems()
+	if selectedChannel.GuildID.IsValid() {
+		return tview.Batch(m.requestGuildMembers(selectedChannel.GuildID, msg.older), m.LoadImages())
+	}
+
+	return m.LoadImages()
 }
 
-// scrolledToTop reports whether v is scrolled to the oldest message shown, which is false while the messages fit, as there is nothing to scroll.
-func scrolledToTop(v viewport.Viewport) bool {
-	return v.Content().Height > v.Bounds().Height && v.AbsoluteOffsetReversed().Y == 0
+// scrolledToTop reports whether view is scrolled to the oldest message shown, which is false while the messages fit, as there is nothing to scroll.
+func scrolledToTop(view viewport.Viewport) bool {
+	return view.Content().Height > view.Bounds().Height && view.AbsoluteOffsetReversed().Y == 0
 }
 
 // atTop reports whether the oldest message shown is selected.
@@ -617,13 +504,16 @@ func (m *Model) selectReply() {
 		return
 	}
 
-	if ref := messages[cursor].message.ReferencedMessage; ref != nil {
-		refIdx := slices.IndexFunc(messages, func(m messageItem) bool {
-			return m.separator == nil && m.message.ID == ref.ID
-		})
-		if refIdx != -1 {
-			m.setCursor(refIdx)
-		}
+	ref := messages[cursor].message.ReferencedMessage
+	if ref == nil {
+		return
+	}
+
+	index := slices.IndexFunc(messages, func(item messageItem) bool {
+		return item.separator == nil && item.message.ID == ref.ID
+	})
+	if index != -1 {
+		m.setCursor(index)
 	}
 }
 
@@ -633,17 +523,22 @@ func (m *Model) SelectLastOwn() (discord.Message, bool) {
 	if channel == nil {
 		return discord.Message{}, false
 	}
-	for i, item := range slices.Backward(m.items) {
-		message := item.message
-		if item.separator != nil || message.ChannelID != channel.ID || !ui.IsMe(m.state, message.Author.ID) ||
-			!message.ID.IsValid() || message.Content == "" || len(message.MessageSnapshots) > 0 ||
-			(message.Type != discord.DefaultMessage && message.Type != discord.InlinedReplyMessage) {
-			continue
+	for index, item := range slices.Backward(m.items) {
+		if m.isEditable(item, channel.ID) {
+			m.setCursor(index)
+			return item.message, true
 		}
-		m.setCursor(i)
-		return message, true
 	}
+
 	return discord.Message{}, false
+}
+
+// isEditable reports whether item is a message of the user in channelID with text content they can edit.
+func (m Model) isEditable(item messageItem, channelID discord.ChannelID) bool {
+	message := item.message
+	isText := message.Type == discord.DefaultMessage || message.Type == discord.InlinedReplyMessage
+	return item.separator == nil && message.ChannelID == channelID && ui.IsMe(m.state, message.Author.ID) &&
+		message.ID.IsValid() && message.Content != "" && len(message.MessageSnapshots) == 0 && isText
 }
 
 func (m Model) canDeleteMessage(message discord.Message) bool {
@@ -651,9 +546,15 @@ func (m Model) canDeleteMessage(message discord.Message) bool {
 		(message.GuildID.IsValid() && m.state.HasPermissions(message.ChannelID, discord.PermissionManageMessages))
 }
 
+// canReact reports whether the user may react to messages in the channel, which is always so in DMs.
+// Reacting with an emoji nobody has reacted with takes adding reactions as well as reading the message history.
+func (m Model) canReact() bool {
+	return m.channel != nil && (!m.channel.GuildID.IsValid() || m.state.HasPermissions(m.channel.ID, discord.PermissionAddReactions|discord.PermissionReadMessageHistory))
+}
+
 func (m Model) InvalidateRendered() {
-	for i := range m.items {
-		m.items[i].view, m.items[i].root = nil, nil
+	for index := range m.items {
+		m.items[index].view, m.items[index].root = nil, nil
 	}
 }
 
@@ -663,4 +564,120 @@ func (m Model) contentRoot(item *messageItem) ast.Node {
 		item.root = m.parse(item.message)
 	}
 	return item.root
+}
+
+var _ tview.Model[Model] = Model{}
+
+// Init waits for the status of the voice message player to change.
+func (m Model) Init() tview.Cmd {
+	return func() tview.Msg {
+		<-m.voicePlayer.Updates()
+		return voiceMsg{}
+	}
+}
+
+// Update returns m changed in response to msg and a command to run, or nil.
+func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
+	switch msg := msg.(type) {
+	case images.ChangedMsg:
+		m.images = msg
+		m.clearViews()
+		return m, nil
+	case tview.KeyMsg:
+		keybinds := m.cfg.Keybinds.MessagesList
+		switch {
+		case keybind.Matches(msg, keybinds.Cancel.Keybind):
+			m.clearSelection()
+		case keybind.Matches(msg, keybinds.SelectUp.Keybind):
+			return m, m.selectUp()
+		case keybind.Matches(msg, keybinds.SelectDown.Keybind):
+			m.selectDown()
+		case keybind.Matches(msg, keybinds.SelectTop.Keybind):
+			return m, m.selectTop()
+		case keybind.Matches(msg, keybinds.SelectBottom.Keybind):
+			m.selectBottom()
+		case keybind.Matches(msg, keybinds.SelectReply.Keybind):
+			m.selectReply()
+		case keybind.Matches(msg, keybinds.YankID.Keybind):
+			return m, m.yankMessageID()
+		case keybind.Matches(msg, keybinds.YankContent.Keybind):
+			return m, m.yankContent()
+		case keybind.Matches(msg, keybinds.YankURL.Keybind):
+			return m, m.yankURL()
+		case keybind.Matches(msg, keybinds.Open.Keybind):
+			return m, m.open()
+		case keybind.Matches(msg, keybinds.OpenInBrowser.Keybind):
+			return m, m.openInBrowser()
+		case keybind.Matches(msg, keybinds.Play.Keybind):
+			if message, ok := m.selectedMessage(); ok && isVoiceMessage(*message) {
+				return m, m.play(message.Attachments[0])
+			}
+		case keybind.Matches(msg, keybinds.SeekBackward.Keybind):
+			return m, m.seek(m.voiceStatus.Position - seekStep)
+		case keybind.Matches(msg, keybinds.SeekForward.Keybind):
+			return m, m.seek(m.voiceStatus.Position + seekStep)
+		case keybind.Matches(msg, keybinds.Download.Keybind):
+			return m, m.download()
+		case keybind.Matches(msg, keybinds.React.Keybind):
+			return m, m.showReactions()
+		case keybind.Matches(msg, keybinds.Reply.Keybind):
+			return m, m.reply(false)
+		case keybind.Matches(msg, keybinds.ReplyMention.Keybind):
+			return m, m.reply(true)
+		case keybind.Matches(msg, keybinds.Edit.Keybind):
+			return m, m.editSelectedMessage()
+		case keybind.Matches(msg, keybinds.Delete.Keybind):
+			return m, m.deleteSelectedMessage()
+		case keybind.Matches(msg, keybinds.DeleteConfirm.Keybind):
+			return m, m.confirmDelete()
+		}
+	case olderMessagesLoadedMsg:
+		return m, m.prependOlder(msg)
+	case playMsg:
+		return m, m.play(discord.Attachment(msg))
+	case seekPressMsg:
+		m.seeking = true
+		m.voiceStatus.Position = time.Duration(msg)
+		return m, nil
+	case seekMsg:
+		m.voiceStatus.Position = time.Duration(msg)
+		if m.seeking {
+			return m, nil
+		}
+
+		return m, m.seek(m.voiceStatus.Position)
+	case seekReleaseMsg:
+		m.seeking = false
+		return m, m.seek(m.voiceStatus.Position)
+	case voiceMsg:
+		status := m.voicePlayer.Status()
+		// The waveform shows where it is dragged to rather than what is playing, while that voice message is the one loaded.
+		m.seeking = m.seeking && status.ID == m.voiceStatus.ID
+		if m.seeking {
+			status.Position = m.voiceStatus.Position
+		}
+
+		m.voiceStatus = status
+		return m, m.Init()
+	case scrollMsg:
+		m.scrollState = viewport.ScrollState(msg)
+		// Older messages are fetched once as the list is scrolled to the top, rather than on each scroll there.
+		if !scrolledToTop(m.scrollState.Origin()) && scrolledToTop(m.scrollState.Viewport()) {
+			return m, m.fetchOlderMessages()
+		}
+	case listMsg:
+		top := m.atTop()
+		m.cursor, m.target = int(msg), int(msg)
+		m.onRowCursorChanged(m.cursor)
+		if !top && m.atTop() {
+			return m, m.fetchOlderMessages()
+		}
+	}
+	return m, nil
+}
+
+func (m Model) View() tview.Widget {
+	return ui.Box(m.listView(), m.cfg, m.focused).
+		Title(ui.Label(m.title(), m.cfg.Theme.Title, m.focused)).
+		Footer(ui.Label(m.footer, m.cfg.Theme.Footer, m.focused))
 }

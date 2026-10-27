@@ -1,6 +1,7 @@
 package messageslist
 
 import (
+	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview/help"
 	"github.com/ayn2op/tview/keybind"
@@ -9,22 +10,22 @@ import (
 var _ help.KeyMap = Model{}
 
 func (m Model) ShortHelp() []keybind.Keybind {
-	cfg := m.cfg.Keybinds.MessagesList
+	keybinds := m.cfg.Keybinds.MessagesList
 	help := []keybind.Keybind{
-		cfg.SelectUp.Keybind,
-		cfg.SelectDown.Keybind,
-		cfg.Cancel.Keybind,
+		keybinds.SelectUp.Keybind,
+		keybinds.SelectDown.Keybind,
+		keybinds.Cancel.Keybind,
 	}
 
 	if selectedMessage, ok := m.selectedMessage(); ok {
 		if !ui.IsMe(m.state, selectedMessage.Author.ID) {
-			help = append(help, cfg.Reply.Keybind)
+			help = append(help, keybinds.Reply.Keybind)
 		}
 		if len(selectedMessage.Attachments) != 0 || len(m.selectedURLs()) != 0 {
-			help = append(help, cfg.Open.Keybind)
+			help = append(help, keybinds.Open.Keybind)
 		}
 		if isVoiceMessage(*selectedMessage) {
-			help = append(help, cfg.Play.Keybind)
+			help = append(help, keybinds.Play.Keybind)
 		}
 	}
 
@@ -32,47 +33,64 @@ func (m Model) ShortHelp() []keybind.Keybind {
 }
 
 func (m Model) FullHelp() [][]keybind.Keybind {
-	cfg := m.cfg.Keybinds.MessagesList
+	keybinds := m.cfg.Keybinds.MessagesList
 	var actions, manage, attachments []keybind.Keybind
 	if message, ok := m.selectedMessage(); ok {
-		mine := ui.IsMe(m.state, message.Author.ID)
-		if !mine {
-			actions = append(actions, cfg.Reply.Keybind, cfg.ReplyMention.Keybind)
-		}
-		if message.ReferencedMessage != nil {
-			actions = append(actions, cfg.SelectReply.Keybind)
-		}
-		if mine {
-			manage = append(manage, cfg.Edit.Keybind)
-		}
-		if m.canDeleteMessage(*message) {
-			manage = append(manage, cfg.DeleteConfirm.Keybind)
-			if len(cfg.Delete.Keys()) != 0 {
-				manage = append(manage, cfg.Delete.Keybind)
-			}
-		}
-		if len(message.Attachments) != 0 || len(m.selectedURLs()) != 0 {
-			attachments = append(attachments, cfg.Open.Keybind, cfg.OpenInBrowser.Keybind)
-		}
-		if len(message.Attachments) != 0 {
-			attachments = append(attachments, cfg.Download.Keybind)
-		}
-		if isVoiceMessage(*message) {
-			attachments = append(attachments, cfg.Play.Keybind)
-		}
+		actions, manage, attachments = m.messageHelp(*message)
 	}
 
 	if m.voiceStatus.ID.IsValid() {
-		attachments = append(attachments, cfg.SeekBackward.Keybind, cfg.SeekForward.Keybind)
+		attachments = append(attachments, keybinds.SeekBackward.Keybind, keybinds.SeekForward.Keybind)
 	}
-	actions = append(actions, cfg.Cancel.Keybind)
+	actions = append(actions, keybinds.Cancel.Keybind)
 
 	return [][]keybind.Keybind{
-		{cfg.SelectUp.Keybind, cfg.SelectDown.Keybind, cfg.SelectTop.Keybind, cfg.SelectBottom.Keybind},
-		{cfg.ScrollUp.Keybind, cfg.ScrollDown.Keybind, cfg.ScrollTop.Keybind, cfg.ScrollBottom.Keybind},
+		{keybinds.SelectUp.Keybind, keybinds.SelectDown.Keybind, keybinds.SelectTop.Keybind, keybinds.SelectBottom.Keybind},
+		{keybinds.ScrollUp.Keybind, keybinds.ScrollDown.Keybind, keybinds.ScrollTop.Keybind, keybinds.ScrollBottom.Keybind},
 		actions,
 		manage,
 		attachments,
-		{cfg.YankContent.Keybind, cfg.YankURL.Keybind, cfg.YankID.Keybind},
+		{keybinds.YankContent.Keybind, keybinds.YankURL.Keybind, keybinds.YankID.Keybind},
 	}
+}
+
+// messageHelp returns the keybinds that act on message: replying to it, managing it and opening what it has.
+func (m Model) messageHelp(message discord.Message) (actions, manage, attachments []keybind.Keybind) {
+	keybinds := m.cfg.Keybinds.MessagesList
+	mine := ui.IsMe(m.state, message.Author.ID)
+	if !mine {
+		actions = append(actions, keybinds.Reply.Keybind, keybinds.ReplyMention.Keybind)
+	}
+
+	if message.ReferencedMessage != nil {
+		actions = append(actions, keybinds.SelectReply.Keybind)
+	}
+	if m.canReact() {
+		actions = append(actions, keybinds.React.Keybind)
+	}
+
+	if mine {
+		manage = append(manage, keybinds.Edit.Keybind)
+	}
+
+	if m.canDeleteMessage(message) {
+		manage = append(manage, keybinds.DeleteConfirm.Keybind)
+		if len(keybinds.Delete.Keys()) != 0 {
+			manage = append(manage, keybinds.Delete.Keybind)
+		}
+	}
+
+	if len(message.Attachments) != 0 || len(m.selectedURLs()) != 0 {
+		attachments = append(attachments, keybinds.Open.Keybind, keybinds.OpenInBrowser.Keybind)
+	}
+
+	if len(message.Attachments) != 0 {
+		attachments = append(attachments, keybinds.Download.Keybind)
+	}
+
+	if isVoiceMessage(message) {
+		attachments = append(attachments, keybinds.Play.Keybind)
+	}
+
+	return actions, manage, attachments
 }

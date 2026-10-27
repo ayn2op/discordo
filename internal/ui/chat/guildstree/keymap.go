@@ -15,22 +15,29 @@ var _ help.KeyMap = Model{}
 func (m Model) selectCurrentKeybind() keybind.Keybind {
 	selectCurrent := m.cfg.Keybinds.GuildsTree.SelectCurrent.Keybind
 	selectHelp := selectCurrent.Help()
-	selectDesc := selectHelp.Desc
-	if node := m.current; node != nil {
-		if m.expandable(node) {
-			if node.Expanded() {
-				selectDesc = "collapse"
-			} else {
-				selectDesc = "expand"
-			}
-		} else {
-			switch node.Reference().(type) {
-			case discord.GuildID, dmNode:
-				selectDesc = "expand"
-			}
-		}
+	return selectCurrent.WithHelp(selectHelp.Key, m.selectDesc(m.current, selectHelp.Desc))
+}
+
+// selectDesc returns what selecting node does, or desc if it does nothing more specific.
+func (m Model) selectDesc(node *tree.Node, desc string) string {
+	if node == nil {
+		return desc
 	}
-	return selectCurrent.WithHelp(selectHelp.Key, selectDesc)
+
+	if m.expandable(node) {
+		if node.Expanded() {
+			return "collapse"
+		}
+
+		return "expand"
+	}
+
+	switch node.Reference().(type) {
+	case discord.GuildID, dmNode:
+		return "expand"
+	}
+
+	return desc
 }
 
 // toggleVoiceKeybinds returns the keybind that joins or leaves the highlighted voice channel, if it is one.

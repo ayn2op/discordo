@@ -92,19 +92,21 @@ func TestLoad(t *testing.T) {
 }
 
 // The generated docs show defaults as they are marshaled, so those must parse back to the same defaults.
-func TestDefaultRoundTrip(t *testing.T) {
-	data, err := toml.Marshal(Default())
-	if err != nil {
-		t.Fatal(err)
-	}
-	// Help descriptions are not part of the TOML.
-	got := Config{Keybinds: defaultKeybinds()}
-	if err := toml.Unmarshal(data, &got); err != nil {
-		t.Fatal(err)
-	}
-	if want := Default(); !reflect.DeepEqual(got, want) {
-		t.Fatalf("got = %+v, want = %+v", got, want)
-	}
+func TestDefault(t *testing.T) {
+	t.Run("round trips through TOML", func(t *testing.T) {
+		data, err := toml.Marshal(Default())
+		if err != nil {
+			t.Fatal(err)
+		}
+		// Help descriptions are not part of the TOML.
+		got := Config{Keybinds: defaultKeybinds()}
+		if err := toml.Unmarshal(data, &got); err != nil {
+			t.Fatal(err)
+		}
+		if want := Default(); !reflect.DeepEqual(got, want) {
+			t.Fatalf("got = %+v, want = %+v", got, want)
+		}
+	})
 }
 
 func TestMIMETypesHas(t *testing.T) {

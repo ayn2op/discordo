@@ -2,48 +2,30 @@ package messageslist
 
 import (
 	"context"
-	"errors"
-	"io"
 	"log/slog"
-	"mime"
-	"os"
-	"path/filepath"
 	"slices"
-	"time"
 
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/arikawa/v3/gateway"
-	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
-	"github.com/ayn2op/tview/picker"
 	"github.com/ayn2op/tview/viewport"
-	"github.com/ncruces/zenity"
-	"github.com/skratchdot/open-golang/open"
 )
 
 // Msg is implemented by the messages the list sends itself, which must reach it whatever has the focus.
-type Msg interface{ messagesList() }
+type Msg interface{ isMsg() }
 
 type olderMessagesLoadedMsg struct {
 	channelID discord.ChannelID
 	older     []discord.Message
 }
 
-func (olderMessagesLoadedMsg) messagesList() {}
+func (olderMessagesLoadedMsg) isMsg() {}
 
 // voiceMsg reports that the status of the voice message player changed.
 type voiceMsg struct{}
 
-func (voiceMsg) messagesList() {}
-
-// Init waits for that.
-func (m Model) Init() tview.Cmd {
-	return func() tview.Msg {
-		<-m.voicePlayer.Updates()
-		return voiceMsg{}
-	}
-}
+func (voiceMsg) isMsg() {}
 
 // ReplyMsg asks to reply to Message by Name, mentioning its author if Mention is set.
 type ReplyMsg struct {
@@ -52,11 +34,24 @@ type ReplyMsg struct {
 	Mention bool
 }
 
+// ShowReactionsMsg asks to pick an emoji to react to the message with MessageID in ChannelID with, in GuildID.
+type ShowReactionsMsg struct {
+	GuildID   discord.GuildID
+	ChannelID discord.ChannelID
+	MessageID discord.MessageID
+}
+
+func (m Model) showReactions() tview.Cmd {
+	message, ok := m.selectedMessage()
+	if !ok || !m.canReact() {
+		return nil
+	}
+	msg := ShowReactionsMsg{m.channel.GuildID, message.ChannelID, message.ID}
+	return func() tview.Msg { return msg }
+}
+
 // EditMsg asks to edit a message.
 type EditMsg discord.Message
-
-// ShowAttachmentsMsg asks to pick one of the attachments and links of the selected message.
-type ShowAttachmentsMsg picker.Items
 
 // listMsg is the item of the messages list to move the cursor to.
 type listMsg int
@@ -65,17 +60,23 @@ type listMsg int
 type scrollMsg viewport.ScrollState
 
 func (m *Model) selectUp() tview.Cmd {
-	cursor := m.cursor
-	if cursor == -1 {
+	if m.cursor == -1 {
 		m.selectBottom()
-	} else if previous := m.messageIndex(cursor, -1); previous >= 0 {
-		m.setCursor(previous)
-		// Older messages are fetched once as the cursor reaches the top, rather than on each key press there.
-		if m.atTop() {
-			return m.fetchOlderMessages()
-		}
+		return nil
 	}
-	return nil
+
+	previous := m.messageIndex(m.cursor, -1)
+	if previous < 0 {
+		return nil
+	}
+
+	m.setCursor(previous)
+	// Older messages are fetched once as the cursor reaches the top, rather than on each key press there.
+	if !m.atTop() {
+		return nil
+	}
+
+	return m.fetchOlderMessages()
 }
 
 func (m Model) fetchOlderMessages() tview.Cmd {
@@ -132,202 +133,6 @@ func (m Model) yankURL() tview.Cmd {
 	}
 
 	return ui.WriteClipboard(selectedMessage.URL())
-}
-
-func (m Model) open() tview.Cmd {
-	return m.openWith(m.openAttachment)
-}
-
-func isVoiceMessage(message discord.Message) bool {
-	return message.Flags&discord.IsVoiceMessage != 0 && len(message.Attachments) == 1
-}
-
-// playMsg asks to play the voice message whose play symbol was clicked.
-type playMsg discord.Attachment
-
-func (playMsg) messagesList() {}
-
-// play plays the voice message that is attachment, or pauses or resumes it if it is the one playing.
-func (m Model) play(attachment discord.Attachment) tview.Cmd {
-	return func() tview.Msg {
-		if err := m.playVoiceMessage(attachment); err != nil {
-			return ui.ErrorDialog("play voice message", err)
-		}
-
-		return nil
-	}
-}
-
-func (m Model) playVoiceMessage(attachment discord.Attachment) error {
-	if toggled, err := m.voicePlayer.Toggle(attachment.ID); toggled || err != nil {
-		return err
-	}
-
-	resp, err := m.get(attachment.URL)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close() //nolint:errcheck
-
-	// It is read whole, for playing it not to wait for the network.
-	audio, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	return m.voicePlayer.Play(attachment.ID, audio)
-}
-
-// seekPressMsg is where the waveform of a voice message was pressed, seekMsg where it was dragged to after, and seekReleaseMsg that it was let go of.
-type (
-	seekPressMsg   time.Duration
-	seekMsg        time.Duration
-	seekReleaseMsg struct{}
-)
-
-func (seekPressMsg) messagesList()   {}
-func (seekMsg) messagesList()        {}
-func (seekReleaseMsg) messagesList() {}
-
-// seek moves the voice message that is playing or paused to position.
-func (m Model) seek(position time.Duration) tview.Cmd {
-	return func() tview.Msg {
-		if err := m.voicePlayer.Seek(position); err != nil {
-			return ui.ErrorDialog("seek voice message", err)
-		}
-
-		return nil
-	}
-}
-
-func (m Model) openInBrowser() tview.Cmd {
-	return m.openWith(func(attachment discord.Attachment) tview.Cmd { return openURL(attachment.URL) })
-}
-
-func (m Model) openWith(openAttachment func(discord.Attachment) tview.Cmd) tview.Cmd {
-	selectedMessage, ok := m.selectedMessage()
-	if !ok {
-		return nil
-	}
-
-	urls := m.selectedURLs()
-	switch total := len(urls) + len(selectedMessage.Attachments); {
-	case total == 0:
-		return nil
-	case total > 1:
-		return m.showAttachmentsList(urls, selectedMessage.Attachments, openAttachment)
-	case len(urls) == 1:
-		return openURL(urls[0])
-	}
-
-	return openAttachment(selectedMessage.Attachments[0])
-}
-
-func (m Model) download() tview.Cmd {
-	selectedMessage, ok := m.selectedMessage()
-	if !ok || len(selectedMessage.Attachments) == 0 {
-		return nil
-	}
-	if len(selectedMessage.Attachments) == 1 {
-		attachment := selectedMessage.Attachments[0]
-		return m.confirmAttachment(attachment, m.saveAttachment(attachment))
-	}
-
-	items := make(picker.Items, len(selectedMessage.Attachments))
-	for i, attachment := range selectedMessage.Attachments {
-		items[i] = picker.Item{Text: attachment.Filename, Reference: m.confirmAttachment(attachment, m.saveAttachment(attachment))}
-	}
-	return showAttachmentsPicker(items)
-}
-
-func (m Model) showAttachmentsList(urls []string, attachments []discord.Attachment, openAttachment func(discord.Attachment) tview.Cmd) tview.Cmd {
-	var items picker.Items
-	for _, attachment := range attachments {
-		items = append(items, picker.Item{Text: attachment.Filename, Reference: openAttachment(attachment)})
-	}
-	for _, url := range urls {
-		items = append(items, picker.Item{Text: url, Reference: openURL(url)})
-	}
-	return showAttachmentsPicker(items)
-}
-
-func showAttachmentsPicker(items picker.Items) tview.Cmd {
-	return func() tview.Msg { return ShowAttachmentsMsg(items) }
-}
-
-func (m Model) openAttachment(attachment discord.Attachment) tview.Cmd {
-	return m.confirmAttachment(attachment, m.openDownloadedAttachment(attachment))
-}
-
-func (m Model) confirmAttachment(attachment discord.Attachment, action tview.Cmd) tview.Cmd {
-	if !m.cfg.UI.MessagesList.Attachments.AllowedMIMETypes.Has(attachment.ContentType) {
-		return ui.ShowDialog(
-			"This attachment type is not allowed and may be unsafe. Continue anyway?",
-			ui.DialogButton{Label: "No"},
-			ui.DialogButton{Label: "Yes", Cmd: action},
-		)
-	}
-	return action
-}
-
-func (m Model) openDownloadedAttachment(attachment discord.Attachment) tview.Cmd {
-	return func() tview.Msg {
-		extension := filepath.Ext(attachment.Filename)
-		if extension == "" {
-			mediaType, _, _ := mime.ParseMediaType(attachment.ContentType)
-			if extensions, _ := mime.ExtensionsByType(mediaType); len(extensions) != 0 {
-				extension = extensions[0]
-			}
-		}
-
-		dir := consts.AttachmentsCacheDir()
-		if err := os.MkdirAll(dir, 0o700); err != nil {
-			return ui.ErrorDialog("create attachments directory", err)
-		}
-
-		file, err := os.CreateTemp(dir, "attachment-*"+extension)
-		if err != nil {
-			return ui.ErrorDialog("create attachment file", err)
-		}
-		path := file.Name()
-		if err := file.Close(); err != nil {
-			return ui.ErrorDialog("create attachment file", err)
-		}
-
-		if err := m.downloadAttachment(attachment, path); err != nil {
-			return ui.ErrorDialog("download attachment", errors.Join(err, os.Remove(path)))
-		} else if err := open.Start(path); err != nil {
-			return ui.ErrorDialog("open attachment file", err)
-		}
-
-		return nil
-	}
-}
-
-func (m Model) saveAttachment(attachment discord.Attachment) tview.Cmd {
-	return func() tview.Msg {
-		destination, err := zenity.SelectFileSave(zenity.Filename(filepath.Base(attachment.Filename)), zenity.ConfirmOverwrite())
-		if errors.Is(err, zenity.ErrCanceled) {
-			return nil
-		}
-		if err != nil {
-			return ui.ErrorDialog("select attachment destination", err)
-		}
-
-		if err := m.downloadAttachment(attachment, destination); err != nil {
-			return ui.ErrorDialog("download attachment", err)
-		}
-		return nil
-	}
-}
-
-func openURL(url string) tview.Cmd {
-	return func() tview.Msg {
-		if err := open.Start(url); err != nil {
-			return ui.ErrorDialog("open URL", err)
-		}
-		return nil
-	}
 }
 
 func (m Model) reply(mention bool) tview.Cmd {
@@ -405,18 +210,22 @@ func (m Model) requestGuildMembers(guildID discord.GuildID, messages []discord.M
 	seen := make(map[discord.UserID]struct{}, len(messages))
 
 	for _, message := range messages {
+		userID := message.Author.ID
 		// Do not fetch member for a webhook message.
 		if message.WebhookID.IsValid() {
 			continue
 		}
 
-		if member, _ := m.state.Cabinet.Member(guildID, message.Author.ID); member == nil {
-			userID := message.Author.ID
-			if _, ok := seen[userID]; !ok {
-				seen[userID] = struct{}{}
-				usersToFetch = append(usersToFetch, userID)
-			}
+		if _, ok := seen[userID]; ok {
+			continue
 		}
+
+		if member, _ := m.state.Cabinet.Member(guildID, userID); member != nil {
+			continue
+		}
+
+		seen[userID] = struct{}{}
+		usersToFetch = append(usersToFetch, userID)
 	}
 
 	if len(usersToFetch) == 0 {

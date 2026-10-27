@@ -55,6 +55,68 @@ func NewModel(cfg *config.Config) Model {
 	return Model{cfg: cfg, helpVisible: cfg.Help.Enabled}
 }
 
+// updateScreen updates the model shown above help with msg.
+func (m *Model) updateScreen(msg tview.Msg) tview.Cmd {
+	var cmd tview.Cmd
+	switch m.screen {
+	case screenLogin:
+		m.login, cmd = m.login.Update(msg)
+	case screenChat:
+		m.chat, cmd = m.chat.Update(msg)
+	}
+	return cmd
+}
+
+// helpView returns the help for the keybinds that currently apply.
+func (m Model) helpView() help.Widget {
+	cfg := m.cfg
+	return help.New(m).
+		ShortKeyStyle(cfg.Theme.Help.ShortKeyStyle.Style).
+		ShortDescStyle(cfg.Theme.Help.ShortDescStyle.Style).
+		FullKeyStyle(cfg.Theme.Help.FullKeyStyle.Style).
+		FullDescStyle(cfg.Theme.Help.FullDescStyle.Style).
+		CompactModifiers(cfg.Help.CompactModifiers).
+		ShortSeparator(cfg.Help.Separator).
+		ShowAll(m.helpShowAll)
+}
+
+type (
+	dialogFocusMsg int
+	dialogDoneMsg  int
+)
+
+// dialogView returns the view of the open dialog.
+func (m Model) dialogView() tview.Widget {
+	labels := make([]string, len(m.dialog.Buttons))
+	for i, button := range m.dialog.Buttons {
+		labels[i] = button.Label
+	}
+	style := m.cfg.Theme.Dialog.Style.Style
+	widget := dialog.New().
+		Text(m.dialog.Text).
+		Buttons(labels...).
+		Focus(m.dialogFocus).
+		ButtonStyle(style).
+		ActivatedStyle(style.Reverse(true)).
+		OnFocus(func(i int) tview.Msg { return dialogFocusMsg(i) }).
+		OnDone(func(i int, _ string) tview.Msg { return dialogDoneMsg(i) })
+	if bg := style.GetBackground(); bg != tcell.ColorDefault {
+		widget = widget.Background(bg)
+	}
+
+	if fg := style.GetForeground(); fg != tcell.ColorDefault {
+		widget = widget.TextColor(fg)
+	}
+
+	return widget
+}
+
+func (m *Model) toggleHelp() {
+	if m.cfg.Help.Enabled {
+		m.helpVisible = !m.helpVisible
+	}
+}
+
 var _ tview.Model[Model] = Model{}
 
 func (m Model) Init() tview.Cmd {
@@ -108,26 +170,26 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			return m, nil
 		}
 
-		kbs := m.cfg.Keybinds
+		keybinds := m.cfg.Keybinds
 		switch {
-		case keybind.Matches(msg, kbs.ToggleHelp.Keybind):
+		case keybind.Matches(msg, keybinds.ToggleHelp.Keybind):
 			m.toggleHelp()
 			return m, nil
-		case keybind.Matches(msg, kbs.ToggleFullHelp.Keybind):
+		case keybind.Matches(msg, keybinds.ToggleFullHelp.Keybind):
 			if m.cfg.Help.Enabled {
 				m.helpShowAll = !m.helpShowAll
 			}
 			return m, nil
-		case keybind.Matches(msg, kbs.Suspend.Keybind):
+		case keybind.Matches(msg, keybinds.Suspend.Keybind):
 			return m, suspend()
-		case keybind.Matches(msg, kbs.Quit.Keybind):
+		case keybind.Matches(msg, keybinds.Quit.Keybind):
 			return m, ui.ShowDialog(
 				"Are you sure you want to quit?",
 				ui.DialogButton{Label: "No"},
 				ui.DialogButton{Label: "Yes", Cmd: m.quit()},
 			)
 		}
-	case tview.MouseMsg, tview.PasteMsg:
+	case tview.PasteMsg:
 		if m.dialog != nil {
 			return m, nil
 		}
@@ -136,18 +198,6 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	}
 
 	return m, m.updateScreen(msg)
-}
-
-// updateScreen updates the model shown above help with msg.
-func (m *Model) updateScreen(msg tview.Msg) tview.Cmd {
-	var cmd tview.Cmd
-	switch m.screen {
-	case screenLogin:
-		m.login, cmd = m.login.Update(msg)
-	case screenChat:
-		m.chat, cmd = m.chat.Update(msg)
-	}
-	return cmd
 }
 
 // View shows the inner model above help, with the dialog on top of both when one is open.
@@ -167,52 +217,4 @@ func (m Model) View() tview.Widget {
 		return content
 	}
 	return stack.New(inert.New(content), backdrop.New().Style(m.cfg.Theme.Dialog.BackgroundStyle.Style), m.dialogView())
-}
-
-// helpView returns the help for the keybinds that currently apply.
-func (m Model) helpView() help.Widget {
-	cfg := m.cfg
-	return help.New(m).
-		ShortKeyStyle(cfg.Theme.Help.ShortKeyStyle.Style).
-		ShortDescStyle(cfg.Theme.Help.ShortDescStyle.Style).
-		FullKeyStyle(cfg.Theme.Help.FullKeyStyle.Style).
-		FullDescStyle(cfg.Theme.Help.FullDescStyle.Style).
-		CompactModifiers(cfg.Help.CompactModifiers).
-		ShortSeparator(cfg.Help.Separator).
-		ShowAll(m.helpShowAll)
-}
-
-type (
-	dialogFocusMsg int
-	dialogDoneMsg  int
-)
-
-// dialogView returns the view of the open dialog.
-func (m Model) dialogView() tview.Widget {
-	labels := make([]string, len(m.dialog.Buttons))
-	for i, button := range m.dialog.Buttons {
-		labels[i] = button.Label
-	}
-	style := m.cfg.Theme.Dialog.Style.Style
-	d := dialog.New().
-		Text(m.dialog.Text).
-		Buttons(labels...).
-		Focus(m.dialogFocus).
-		ButtonStyle(style).
-		ActivatedStyle(style.Reverse(true)).
-		OnFocus(func(i int) tview.Msg { return dialogFocusMsg(i) }).
-		OnDone(func(i int, _ string) tview.Msg { return dialogDoneMsg(i) })
-	if bg := style.GetBackground(); bg != tcell.ColorDefault {
-		d = d.Background(bg)
-	}
-	if fg := style.GetForeground(); fg != tcell.ColorDefault {
-		d = d.TextColor(fg)
-	}
-	return d
-}
-
-func (m *Model) toggleHelp() {
-	if m.cfg.Help.Enabled {
-		m.helpVisible = !m.helpVisible
-	}
 }

@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/ayn2op/arikawa/v3/discord"
@@ -12,10 +13,11 @@ import (
 	"github.com/ayn2op/tview"
 )
 
-func onRequest(r httpdriver.Request) error {
-	if req, ok := r.(*httpdriver.DefaultRequest); ok {
+func onRequest(req httpdriver.Request) error {
+	if req, ok := req.(*httpdriver.DefaultRequest); ok {
 		slog.Debug("new HTTP request", "method", req.Method, "url", req.URL)
 	}
+
 	return nil
 }
 
@@ -40,48 +42,60 @@ func (m *Model) addMessageOrNotify(message *gateway.MessageCreateEvent) tview.Cm
 
 func (m Model) notify(message gateway.MessageCreateEvent) tview.Cmd {
 	return func() tview.Msg {
-		if !m.cfg.Notifications.Enabled || m.cfg.Status == discord.DoNotDisturbStatus {
-			return nil
-		}
-
-		mentions := m.state.MessageMentions(&message.Message)
-		if mentions == 0 {
-			return nil
-		}
-
-		// Handle sent files
-		content := message.Content
-		if message.Content == "" && len(message.Attachments) > 0 {
-			content = "Uploaded " + message.Attachments[0].Filename
-		}
-
-		if content == "" {
-			return nil
-		}
-
-		title := message.Author.DisplayOrUsername()
-		channel, err := m.state.Cabinet.Channel(message.ChannelID)
-		if err != nil {
-			slog.Error("failed to get channel from state", "err", err, "channel_id", message.ChannelID)
-			return nil
-		}
-
-		if channel.GuildID.IsValid() {
-			guild, err := m.state.Cabinet.Guild(channel.GuildID)
-			if err != nil {
-				slog.Error("failed to get guild from state", "err", err, "guild_id", channel.GuildID)
-				return nil
-			}
-
-			if member := message.Member; member != nil && member.Nick != "" {
-				title = member.Nick
-			}
-
-			title += " (#" + channel.Name + ", " + guild.Name + ")"
-		}
-
-		return tview.Notify(title, content)()
+		return m.notification(message)
 	}
+}
+
+// notification shows a desktop notification for message if it mentions the user.
+func (m Model) notification(message gateway.MessageCreateEvent) tview.Msg {
+	if !m.cfg.Notifications.Enabled || m.cfg.Status == discord.DoNotDisturbStatus {
+		return nil
+	}
+
+	if m.state.MessageMentions(&message.Message) == 0 {
+		return nil
+	}
+
+	content := message.Content
+	if content == "" && len(message.Attachments) > 0 {
+		content = "Uploaded " + message.Attachments[0].Filename
+	}
+
+	if content == "" {
+		return nil
+	}
+
+	title, err := m.notificationTitle(message)
+	if err != nil {
+		slog.Error("failed to get notification title", "err", err)
+		return nil
+	}
+
+	return tview.Notify(title, content)()
+}
+
+// notificationTitle returns the author of message, followed by its channel and guild for a guild message.
+func (m Model) notificationTitle(message gateway.MessageCreateEvent) (string, error) {
+	title := message.Author.DisplayOrUsername()
+	channel, err := m.state.Cabinet.Channel(message.ChannelID)
+	if err != nil {
+		return "", fmt.Errorf("failed to get channel %s from state: %w", message.ChannelID, err)
+	}
+
+	if !channel.GuildID.IsValid() {
+		return title, nil
+	}
+
+	guild, err := m.state.Cabinet.Guild(channel.GuildID)
+	if err != nil {
+		return "", fmt.Errorf("failed to get guild %s from state: %w", channel.GuildID, err)
+	}
+
+	if member := message.Member; member != nil && member.Nick != "" {
+		title = member.Nick
+	}
+
+	return title + " (#" + channel.Name + ", " + guild.Name + ")", nil
 }
 
 func (m Model) refreshMemberNames(event *gateway.GuildMembersChunkEvent) tview.Cmd {

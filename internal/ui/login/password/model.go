@@ -59,13 +59,15 @@ type Model struct {
 	ticket, loginInstanceID string
 
 	focus focus
+	// buttonHovered reports whether the pointer is over the button.
+	buttonHovered bool
 }
-
-var _ tview.Model[Model] = Model{}
 
 func (Model) Label() string {
 	return "Password"
 }
+
+var _ tview.Model[Model] = Model{}
 
 func (Model) Init() tview.Cmd { return nil }
 
@@ -79,11 +81,8 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		m.code, m.codeCursor = msg.text, msg.cursor
 	case focusMsg:
 		m.focus = focus(msg)
-	case mfaMsg:
-		m.stage = stageCode
-		m.method = msg.method
-		m.ticket, m.loginInstanceID = msg.ticket, msg.loginInstanceID
-		m.code, m.codeCursor, m.focus = "", 0, focusCode
+	case hoverMsg:
+		m.buttonHovered = bool(msg)
 	case tview.KeyMsg:
 		count := focusCount
 		if m.stage == stageCode {
@@ -135,9 +134,19 @@ func (m Model) View() tview.Widget {
 		Focused(m.focus == focusPassword).
 		OnInput(func(text string, cursor int) tview.Msg { return passwordMsg{text, cursor} }).
 		OnSubmit(focusMsg(focusButton))
+	buttonStyle := tcell.StyleDefault
+	switch {
+	case m.focus == focusButton:
+		buttonStyle = buttonStyle.Reverse(true)
+	case m.buttonHovered:
+		buttonStyle = buttonStyle.Underline(true)
+	}
 	submit := button.New(text.New("Login")).
+		Style(buttonStyle).
 		Width(layout.Fixed(len("Login") + 4)).
 		Focused(m.focus == focusButton).
+		Hovered(m.buttonHovered).
+		OnHover(func(hovered bool) tview.Msg { return hoverMsg(hovered) }).
 		OnClick(submitMsg{})
 	return column.New(
 		row.New(text.New("Login").Width(labelWidth), login).Height(layout.Shrink),

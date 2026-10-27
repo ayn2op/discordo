@@ -16,7 +16,7 @@ func (r *Renderer) writeCodeBlock(builder *Builder, code string, language string
 
 	// Detect the language from its content.
 	var analyzed bool
-	if lexer == nil {
+	if lexer == nil && r.cfg.Markdown.DetectCodeLanguage {
 		lexer = lexers.Analyse(code)
 		analyzed = lexer != nil
 	}
