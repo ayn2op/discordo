@@ -153,6 +153,9 @@ type MessagesListKeybinds struct {
 	SeekBackward Keybind `toml:"seek_backward"`
 	SeekForward  Keybind `toml:"seek_forward"`
 
+	// Set a reminder for the selected message, due at a time picked from a list or typed in.
+	Remind Keybind `toml:"remind"`
+
 	// Yank (copy) the selected message's content/url/id.
 	YankContent Keybind `toml:"yank_content"`
 	YankURL     Keybind `toml:"yank_url"`
@@ -338,6 +341,8 @@ func defaultKeybinds() Keybinds {
 			Play:          key("play", "p"),
 			SeekBackward:  key("seek back", "h", "left"),
 			SeekForward:   key("seek forward", "l", "right"),
+
+			Remind: key("remind", "t"),
 
 			YankContent: key("copy text", "y"),
 			YankURL:     key("copy url", "u"),
