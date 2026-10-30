@@ -629,8 +629,10 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		case keybind.Matches(msg, keybinds.Delete.Keybind):
 			return m, m.deleteSelectedMessage()
 		case keybind.Matches(msg, keybinds.DeleteConfirm.Keybind):
-			return m, m.confirmDelete()
+			return m, m.confirmDeleteSelected()
 		}
+	case ConfirmDeleteMsg:
+		return m, m.confirmDelete(discord.Message(msg))
 	case olderMessagesLoadedMsg:
 		return m, m.prependOlder(msg)
 	case playMsg:

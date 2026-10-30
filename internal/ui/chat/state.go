@@ -129,6 +129,8 @@ func (m *Model) applyEvent(event gateway.Event) tview.Cmd {
 		return m.updatePane(paneMembersTree, event)
 	case *gateway.MessageDeleteEvent:
 		m.messagesList.DeleteMessage(event.ChannelID, event.ID)
+		// A message that is gone cannot be edited, whoever deleted it.
+		m.composer.CancelEdit(event.ChannelID, event.ID)
 	case *gateway.MessageReactionAddEvent:
 		return m.messagesList.RefreshMessage(event.ChannelID, event.MessageID)
 	case *gateway.MessageReactionAddManyEvent:
