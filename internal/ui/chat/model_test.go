@@ -12,7 +12,6 @@ import (
 	"github.com/ayn2op/arikawa/v3/gateway"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/ui"
-	"github.com/ayn2op/discordo/internal/ui/chat/composer"
 	"github.com/ayn2op/discordo/internal/ui/images"
 	"github.com/ayn2op/tview"
 	tviewimage "github.com/ayn2op/tview/image"
@@ -28,6 +27,37 @@ func newTestModel(t *testing.T) *Model {
 	}
 	m := NewModel(cfg, "")
 	return &m
+}
+
+// chatArea is the area the whole chat is laid out in to press a key in it, and maxCommandHops bounds how
+// many commands one key may set off, so a loop of them fails the test rather than hanging it.
+var chatArea = tview.Rectangle{Width: 120, Height: 40}
+
+const maxCommandHops = 16
+
+// press feeds key to the view and returns every message it and its commands produce, as the event loop does.
+func press(t *testing.T, m *Model, key tview.Msg) []tview.Msg {
+	t.Helper()
+	var produced []tview.Msg
+	msg := m.View().Handle(key, chatArea)
+	for range maxCommandHops {
+		if msg == nil {
+			return produced
+		}
+
+		produced = append(produced, msg)
+
+		var cmd tview.Cmd
+		*m, cmd = m.Update(msg)
+		if cmd == nil {
+			return produced
+		}
+
+		msg = cmd()
+	}
+
+	t.Fatal("the commands a key set off did not settle")
+	return nil
 }
 
 // composerSize is the area the composer is drawn in to read what it shows.
@@ -75,20 +105,39 @@ func TestModelView(t *testing.T) {
 }
 
 func TestModelUpdate(t *testing.T) {
-	t.Run("clearing an edited message asks to delete it", func(t *testing.T) {
+	t.Run("erasing an edited message and submitting asks to delete it", func(t *testing.T) {
 		m := newTestModel(t)
 		// Only the author may delete their own message.
 		if err := m.state.MyselfSet(discord.User{ID: 1}, false); err != nil {
 			t.Fatal(err)
 		}
 
-		message := discord.Message{ID: 3, ChannelID: 1, Author: discord.User{ID: 1}}
-		_, cmd := m.Update(composer.DeleteEditedMsg(message))
-		if cmd == nil {
-			t.Fatal("clearing an edited message asked nothing")
+		// The composer is only enabled where the user may send, which needs no permission in a direct message.
+		channel := discord.Channel{ID: 1, Type: discord.DirectMessage}
+		const content = "hello"
+		m.messagesList.SetChannel(&channel, []discord.Message{{ID: 3, ChannelID: 1, Author: discord.User{ID: 1}, Content: content}})
+		m.composer.SetChannel(&channel)
+		m.setFocus(paneComposer)
+		m.syncPanes()
+
+		press(t, m, tcell.NewEventKey(tcell.KeyUp, "", tcell.ModNone))
+		if !strings.Contains(composerText(t, m), "Editing") {
+			t.Fatal("up did not start editing the last message")
 		}
-		if _, ok := cmd().(ui.DialogMsg); !ok {
-			t.Fatalf("asked %T, want a confirmation dialog", cmd())
+
+		for range content {
+			press(t, m, tcell.NewEventKey(tcell.KeyBackspace2, "", tcell.ModNone))
+		}
+
+		var asked bool
+		for _, msg := range press(t, m, tcell.NewEventKey(tcell.KeyEnter, "", tcell.ModNone)) {
+			if _, ok := msg.(ui.DialogMsg); ok {
+				asked = true
+			}
+		}
+
+		if !asked {
+			t.Fatal("submitting an erased edit did not ask to delete the message")
 		}
 	})
 
