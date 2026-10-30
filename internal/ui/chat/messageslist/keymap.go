@@ -42,6 +42,7 @@ func (m Model) FullHelp() [][]keybind.Keybind {
 		if message.ReferencedMessage != nil {
 			actions = append(actions, cfg.SelectReply.Keybind)
 		}
+		actions = append(actions, cfg.Remind.Keybind)
 		if mine {
 			manage = append(manage, cfg.Edit.Keybind)
 		}

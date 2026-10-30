@@ -26,6 +26,7 @@ import (
 	"github.com/ayn2op/discordo/internal/ui/chat/memberstree"
 	"github.com/ayn2op/discordo/internal/ui/chat/mentionslist"
 	"github.com/ayn2op/discordo/internal/ui/chat/messageslist"
+	"github.com/ayn2op/discordo/internal/ui/chat/reminderspicker"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/backdrop"
@@ -55,6 +56,7 @@ type Model struct {
 	channelsPicker channelspicker.Model
 	// attachmentsPicker picks an attachment or link of the selected message.
 	attachmentsPicker attachmentspicker.Model
+	remindersPicker   reminderspicker.Model
 
 	selectedChannel *discord.Channel
 	// windowUnfocused reports whether the terminal window lost focus.
@@ -110,6 +112,7 @@ func NewModel(cfg *config.Config, token string) Model {
 	m.composer = composer.NewModel(cfg, m.state)
 	m.channelsPicker = channelspicker.NewModel(cfg)
 	m.attachmentsPicker = attachmentspicker.NewModel(cfg)
+	m.remindersPicker = reminderspicker.NewModel(cfg)
 
 	m.guildsTreeVisible = cfg.Sidebar.Visible
 	m.membersTreeVisible = cfg.MembersTree.Visible
@@ -129,6 +132,7 @@ const (
 	overlayNone overlay = iota
 	overlayChannelsPicker
 	overlayAttachmentsPicker
+	overlayRemindersPicker
 )
 
 // pickerView returns the view of the picker shown on top, or nil if none is open.
@@ -138,6 +142,8 @@ func (m Model) pickerView() tview.Widget {
 		return m.channelsPicker.View()
 	case overlayAttachmentsPicker:
 		return m.attachmentsPicker.View()
+	case overlayRemindersPicker:
+		return m.remindersPicker.View()
 	default:
 		return nil
 	}
@@ -243,6 +249,16 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		m.attachmentsPicker.SetItems(picker.Items(msg))
 		m.overlay = overlayAttachmentsPicker
 		return m, nil
+	case reminderspicker.SelectedMsg:
+		m.overlay = overlayNone
+		return m, msg.Action
+	case reminderspicker.CancelMsg:
+		m.overlay = overlayNone
+		return m, nil
+	case messageslist.ShowRemindersMsg:
+		m.remindersPicker.SetItems(picker.Items(msg))
+		m.overlay = overlayRemindersPicker
+		return m, nil
 	case messageslist.ReplyMsg:
 		m.composer.StartReply(msg.Message, msg.Name, msg.Mention)
 		m.setFocus(paneComposer)
@@ -326,6 +342,8 @@ func (m *Model) route(msg tview.Msg) tview.Cmd {
 		m.channelsPicker, cmd = m.channelsPicker.Update(msg)
 	case overlayAttachmentsPicker:
 		m.attachmentsPicker, cmd = m.attachmentsPicker.Update(msg)
+	case overlayRemindersPicker:
+		m.remindersPicker, cmd = m.remindersPicker.Update(msg)
 	default:
 		cmd = m.updatePane(m.focused, msg)
 	}
