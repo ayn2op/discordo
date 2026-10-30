@@ -32,6 +32,9 @@ type EditLastMsg struct{}
 // SentMsg reports that the composer sent a message.
 type SentMsg struct{}
 
+// DeleteEditedMsg asks to delete the message being edited, which was cleared rather than edited.
+type DeleteEditedMsg discord.Message
+
 type editorMsg string
 
 // edit is a text of the composer and the cursor in it.
@@ -157,7 +160,13 @@ func (m *Model) send() tview.Cmd {
 
 	text := strings.TrimSpace(m.text)
 	if text == "" && len(m.sendMessageData.Files) == 0 {
-		return nil
+		// Submitting a message that was cleared rather than edited deletes it, as in the Discord client.
+		if m.editing == nil {
+			return nil
+		}
+
+		message := *m.editing
+		return func() tview.Msg { return DeleteEditedMsg(message) }
 	}
 
 	text = m.processText(selectedChannel, []byte(text))

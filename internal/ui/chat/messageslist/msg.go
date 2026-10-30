@@ -50,6 +50,9 @@ func (m Model) showReactions() tview.Cmd {
 	return func() tview.Msg { return msg }
 }
 
+// ConfirmDeleteMsg asks whether to delete a message, such as one cleared while being edited.
+type ConfirmDeleteMsg discord.Message
+
 // EditMsg asks to edit a message.
 type EditMsg discord.Message
 
@@ -165,12 +168,19 @@ func (m Model) editSelectedMessage() tview.Cmd {
 	return func() tview.Msg { return EditMsg(message) }
 }
 
-func (m Model) confirmDelete() tview.Cmd {
+func (m Model) confirmDeleteSelected() tview.Cmd {
 	selectedMessage, ok := m.selectedMessage()
-	if !ok || !m.canDeleteMessage(*selectedMessage) {
+	if !ok {
 		return nil
 	}
-	message := *selectedMessage
+	return m.confirmDelete(*selectedMessage)
+}
+
+func (m Model) confirmDelete(message discord.Message) tview.Cmd {
+	if !m.canDeleteMessage(message) {
+		return nil
+	}
+
 	return ui.ShowDialog(
 		"Are you sure you want to delete this message?",
 		ui.DialogButton{Label: "No"},
