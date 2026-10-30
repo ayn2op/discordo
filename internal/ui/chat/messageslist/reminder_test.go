@@ -2,6 +2,7 @@ package messageslist
 
 import (
 	"testing"
+	"time"
 
 	"github.com/ayn2op/arikawa/v3/discord"
 )
@@ -36,4 +37,28 @@ func TestModelRemind(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestNextMonday(t *testing.T) {
+	// 2026-10-28 is a Wednesday, 2026-10-26 a Monday.
+	wednesday := time.Date(2026, time.October, 28, 15, 30, 0, 0, time.Local)
+	monday := time.Date(2026, time.October, 26, 15, 30, 0, 0, time.Local)
+	for name, tc := range map[string]struct{ now, want time.Time }{
+		"midweek": {wednesday, time.Date(2026, time.November, 2, morningHour, 0, 0, 0, time.Local)},
+		"monday":  {monday, time.Date(2026, time.November, 2, morningHour, 0, 0, 0, time.Local)},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if got := nextMonday(tc.now); !got.Equal(tc.want) {
+				t.Fatalf("nextMonday(%v) = %v, want %v", tc.now, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestMorningOf(t *testing.T) {
+	now := time.Date(2026, time.October, 31, 23, 59, 0, 0, time.Local)
+	want := time.Date(2026, time.November, 1, morningHour, 0, 0, 0, time.Local)
+	if got := morningOf(now, 1); !got.Equal(want) {
+		t.Fatalf("morningOf(%v, 1) = %v, want %v", now, got, want)
+	}
 }
