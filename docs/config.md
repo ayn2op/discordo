@@ -920,7 +920,7 @@ Default: `["l","right"]`
 
 ### keybinds.messages_list.remind
 
-Set a reminder for the selected message, due after a delay picked from a list.
+Set a reminder for the selected message, due at a time picked from a list or typed in.
 
 Default: `"t"`
 

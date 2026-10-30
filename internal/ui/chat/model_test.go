@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"errors"
 	"path/filepath"
 	"testing"
 	"time"
@@ -8,6 +9,7 @@ import (
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/arikawa/v3/gateway"
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/ui/chat/messageslist"
 	"github.com/ayn2op/tview"
 	"github.com/gdamore/tcell/v3"
 )
@@ -20,6 +22,28 @@ func newTestModel(t *testing.T) *Model {
 	}
 	m := NewModel(cfg, "")
 	return &m
+}
+
+// maxCommandHops bounds drain, so a loop of commands fails the test rather than hanging it.
+const maxCommandHops = 16
+
+// drain applies msg and whatever the commands it returns produce, as the event loop does.
+func drain(t *testing.T, m *Model, msg tview.Msg) {
+	t.Helper()
+	for range maxCommandHops {
+		if msg == nil {
+			return
+		}
+
+		var cmd tview.Cmd
+		*m, cmd = m.Update(msg)
+		if cmd == nil {
+			return
+		}
+
+		msg = cmd()
+	}
+	t.Fatal("the commands did not settle")
 }
 
 func TestModelHandle(t *testing.T) {
@@ -40,6 +64,29 @@ func TestModelHandle(t *testing.T) {
 }
 
 func TestModelUpdate(t *testing.T) {
+	t.Run("a reminder time that cannot be read keeps its prompt open", func(t *testing.T) {
+		m := newTestModel(t)
+		drain(t, m, messageslist.ShowReminderPromptMsg{
+			Set: func(string) (tview.Cmd, error) { return nil, errors.New("unreadable") },
+		})
+		if m.overlay != overlayReminderPrompt {
+			t.Fatal("the prompt did not open")
+		}
+
+		// Typing a time it cannot read and submitting must leave the prompt up to be corrected.
+		area := tview.Rectangle{Width: 120, Height: 40}
+		for _, event := range []tview.Msg{
+			tcell.NewEventKey(tcell.KeyRune, "x", tcell.ModNone),
+			tcell.NewEventKey(tcell.KeyEnter, "", tcell.ModNone),
+		} {
+			drain(t, m, m.View().Handle(event, area))
+		}
+
+		if m.overlay != overlayReminderPrompt {
+			t.Fatal("the prompt closed on a time it could not read")
+		}
+	})
+
 	t.Run("typing expires unless extended", func(t *testing.T) {
 		m := newTestModel(t)
 		m.addTyper(1)

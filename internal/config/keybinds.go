@@ -129,7 +129,7 @@ type MessagesListKeybinds struct {
 	SeekBackward Keybind `toml:"seek_backward"`
 	SeekForward  Keybind `toml:"seek_forward"`
 
-	// Set a reminder for the selected message, due after a delay picked from a list.
+	// Set a reminder for the selected message, due at a time picked from a list or typed in.
 	Remind Keybind `toml:"remind"`
 
 	// Yank (copy) the selected message's content/url/id.
