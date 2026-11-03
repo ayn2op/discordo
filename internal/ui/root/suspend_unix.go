@@ -8,10 +8,11 @@ import (
 	"syscall"
 
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/cmd"
 )
 
 func suspend() tview.Cmd {
-	return tview.Suspend(func() tview.Msg {
+	return cmd.Suspend(func() tview.Msg {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, syscall.SIGCONT)
 		defer signal.Stop(c)

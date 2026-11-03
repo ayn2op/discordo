@@ -9,7 +9,6 @@ import (
 	"github.com/ayn2op/tview/layout"
 	"github.com/ayn2op/tview/tree"
 	"github.com/ayn2op/tview/viewport"
-	"github.com/gdamore/tcell/v3"
 )
 
 // ScrollMsg scrolls the tree to ScrollState, before passing on Msg if the tree sent one.
@@ -23,7 +22,6 @@ func New(
 	root, current *tree.Node,
 	scrollState viewport.ScrollState,
 	cfg *config.Config,
-	theme config.TreeThemeConfig,
 	graphics bool,
 	keybinds config.TreeKeybinds,
 	focused bool,
@@ -42,7 +40,7 @@ func New(
 		}).
 		Graphics(graphics).
 		GraphicsSet(set).
-		GraphicsStyle(tcell.StyleDefault.Foreground(tcell.GetColor(theme.GraphicsColor))).
+		GraphicsStyle(ui.Foreground(cfg.Palette().Background.Strong.Style)).
 		Keybind(treeKeybind(keybinds)).
 		Focused(focused).
 		OnChange(onChange).

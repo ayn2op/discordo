@@ -7,6 +7,7 @@ import (
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/markdown"
+	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/box"
 	"github.com/ayn2op/tview/layout"
@@ -39,8 +40,8 @@ func (m Model) embedViews(message discord.Message, root ast.Node) []tview.Widget
 		seenURLs[link] = struct{}{}
 	}
 
-	baseStyle := m.cfg.Theme.MessagesList.MessageStyle.Style
-	lineStyles := embedLineStyles(baseStyle, m.cfg.Theme.MessagesList.Embeds)
+	palette := m.cfg.Palette()
+	lineStyles := embedLineStyles(palette)
 	var views []tview.Widget
 	for _, embed := range message.Embeds {
 		lines := embedLines(embed, seenURLs)
@@ -48,7 +49,7 @@ func (m Model) embedViews(message discord.Message, root ast.Node) []tview.Widget
 			continue
 		}
 
-		barStyle := baseStyle.Dim(true)
+		barStyle := ui.Foreground(palette.Secondary.Base.Style)
 		if embed.Color != discord.NullColor && embed.Color != 0 {
 			barStyle = barStyle.Foreground(tcell.NewHexColor(int32(embed.Color)))
 		}
@@ -117,16 +118,17 @@ const (
 	embedLineKinds
 )
 
-func embedLineStyles(baseStyle tview.Style, theme config.MessagesListEmbedsThemeConfig) [embedLineKinds]tview.Style {
+func embedLineStyles(palette config.ThemeConfig) [embedLineKinds]tview.Style {
+	muted, link := ui.Foreground(palette.Secondary.Base.Style), ui.Foreground(palette.Primary.Base.Style)
+	italic := tcell.StyleDefault.Italic(true)
 	return [embedLineKinds]tview.Style{
-		embedLineProvider:    tview.MergeStyle(baseStyle, theme.ProviderStyle.Style),
-		embedLineAuthor:      tview.MergeStyle(baseStyle, theme.AuthorStyle.Style),
-		embedLineTitle:       tview.MergeStyle(baseStyle, theme.TitleStyle.Style),
-		embedLineDescription: tview.MergeStyle(baseStyle, theme.DescriptionStyle.Style),
-		embedLineFieldName:   tview.MergeStyle(baseStyle, theme.FieldNameStyle.Style),
-		embedLineFieldValue:  tview.MergeStyle(baseStyle, theme.FieldValueStyle.Style),
-		embedLineFooter:      tview.MergeStyle(baseStyle, theme.FooterStyle.Style),
-		embedLineURL:         tview.MergeStyle(baseStyle, theme.URLStyle.Style),
+		embedLineProvider:    tview.MergeStyle(muted, italic),
+		embedLineAuthor:      italic,
+		embedLineTitle:       link.Bold(true),
+		embedLineDescription: muted,
+		embedLineFieldName:   tcell.StyleDefault.Bold(true).Underline(true),
+		embedLineFooter:      tview.MergeStyle(muted, italic),
+		embedLineURL:         link.Underline(true),
 	}
 }
 

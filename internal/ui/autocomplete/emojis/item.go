@@ -4,11 +4,13 @@ package emojis
 import (
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/discordo/internal/ui/autocomplete"
 	uiemojis "github.com/ayn2op/discordo/internal/ui/emojis"
 	"github.com/ayn2op/discordo/internal/ui/images"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/cmd"
 	tviewimage "github.com/ayn2op/tview/image"
 	"github.com/ayn2op/tview/text"
 	"github.com/sahilm/fuzzy"
@@ -69,11 +71,11 @@ func Items(cfg *config.Config, s *ningen.State, gID discord.GuildID, query strin
 		if preview && !emoji.IsUnicode() {
 			load.Squares[uiemojis.URLFromID(emoji.ID)] = uiemojis.Rows
 		}
-		items = append(items, item{emoji, cfg.UI.MessagesList.Emojis.Name(match.Str), cfg.Theme.MessagesList.EmojiStyle.Style, preview})
+		items = append(items, item{emoji, cfg.UI.MessagesList.Emojis.Name(match.Str), ui.Foreground(cfg.Palette().Success.Style), preview})
 	}
 
 	if len(load.Squares) == 0 {
 		return items, nil
 	}
-	return items, func() tview.Msg { return load }
+	return items, cmd.Task(func() tview.Msg { return load })
 }

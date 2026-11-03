@@ -10,6 +10,7 @@ import (
 	md "github.com/ayn2op/arikawa/v3/markdown"
 	"github.com/ayn2op/arikawa/v3/state"
 	"github.com/ayn2op/discordo/internal/markdown"
+	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/discordo/internal/ui/emojis"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/layout"
@@ -77,22 +78,19 @@ func (m Model) reactionsView(reactions []discord.Reaction) tview.Widget {
 		return nil
 	}
 
-	theme, cfg := m.cfg.Theme.MessagesList, m.cfg.UI.MessagesList.Reactions
-	separatorStyle := tview.MergeStyle(theme.MessageStyle.Style, theme.ReactionStyle.Style)
+	cfg, muted := m.cfg.UI.MessagesList.Reactions, ui.Foreground(m.cfg.Palette().Secondary.Base.Style)
 	chips := make([]tview.Widget, len(reactions))
 	for index, reaction := range reactions {
-		style := theme.ReactionStyle.Style
+		style := muted
 		if reaction.Me {
-			style = theme.OwnReactionStyle.Style
+			style = tcell.StyleDefault.Bold(true)
 		}
-
-		style = tview.MergeStyle(theme.MessageStyle.Style, style)
 
 		emoji, hasImage := m.images[emojis.URLFromID(reaction.Emoji.ID)]
 		spans := []text.Span{{Text: m.reactionLabel(reaction, hasImage), Style: style}}
 		// Each reaction but the last ends with the separator, so a line never starts with one.
 		if index < len(reactions)-1 {
-			spans = append(spans, text.Span{Text: cfg.Separator, Style: separatorStyle})
+			spans = append(spans, text.Span{Text: cfg.Separator, Style: muted})
 		}
 
 		var chip tview.Widget = text.Rich(spans...)
@@ -293,7 +291,7 @@ func (m Model) drawDefaultMessage(builder *markdown.Builder, message discord.Mes
 
 	m.drawLayout(builder, message, baseStyle, grouped, content)
 
-	attachmentStyle := tview.MergeStyle(baseStyle, m.cfg.Theme.MessagesList.AttachmentStyle.Style)
+	attachmentStyle := tview.MergeStyle(baseStyle, ui.Foreground(m.cfg.Palette().Warning.Style))
 	// A voice message is shown as its player.
 	if isVoiceMessage(message) {
 		return

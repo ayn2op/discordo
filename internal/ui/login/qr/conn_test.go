@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/cmd"
 	"github.com/gdamore/tcell/v3"
 	"github.com/gdamore/tcell/v3/vt"
 	"github.com/gorilla/websocket"
@@ -20,16 +21,16 @@ type gatewayModel struct {
 }
 
 func (m gatewayModel) Init() tview.Cmd {
-	return func() tview.Msg { return connCreateMsg{conn: &gatewayConn{ws: m.conn}} }
+	return cmd.Task(func() tview.Msg { return connCreateMsg{conn: &gatewayConn{ws: m.conn}} })
 }
 
 func (m gatewayModel) Update(msg tview.Msg) (gatewayModel, tview.Cmd) {
-	var cmd tview.Cmd
-	m.Model, cmd = m.Model.Update(msg)
+	var c tview.Cmd
+	m.Model, c = m.Model.Update(msg)
 	if m.status == "Login canceled on mobile" {
-		return m, tview.Quit()
+		return m, cmd.Quit{}
 	}
-	return m, cmd
+	return m, c
 }
 
 // serveGateway fakes the Remote Auth Gateway, heartbeating every millisecond to overlap the client's writes, and cancels after acks heartbeat acks.
@@ -130,13 +131,13 @@ func TestCloseConn(t *testing.T) {
 	// Closing twice must not error, or the error case would close it again forever.
 	for _, name := range []string{"close", "close again"} {
 		t.Run(name, func(t *testing.T) {
-			if msg := closeConn(conn)(); msg != (connCloseMsg{}) {
+			if msg := closeConn(conn).(cmd.Task)(); msg != (connCloseMsg{}) {
 				t.Fatalf("got %#v, want connCloseMsg", msg)
 			}
 		})
 	}
 	t.Run("listen after close", func(t *testing.T) {
-		if msg := listen(conn)(); msg != nil {
+		if msg := listen(conn).(cmd.Task)(); msg != nil {
 			t.Fatalf("got %#v, want nil", msg)
 		}
 	})

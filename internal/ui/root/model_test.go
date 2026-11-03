@@ -1,15 +1,17 @@
 package root
 
 import (
-	"path/filepath"
 	"testing"
 
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/cmd"
 	"github.com/gdamore/tcell/v3"
+	"github.com/gdamore/tcell/v3/vt"
 )
 
 func TestNewModel(t *testing.T) {
-	cfg, err := config.Load(filepath.Join(t.TempDir(), "missing.toml"))
+	cfg, err := config.Load(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,20 +65,20 @@ func TestNewModel(t *testing.T) {
 }
 
 func TestModelQuit(t *testing.T) {
-	cfg, err := config.Load(filepath.Join(t.TempDir(), "missing.toml"))
+	cfg, err := config.Load(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
 	m := NewModel(cfg)
 
-	m, cmd := m.Update(tcell.NewEventKey(tcell.KeyCtrlC, "", tcell.ModCtrl))
+	m, ask := m.Update(tcell.NewEventKey(tcell.KeyCtrlC, "", tcell.ModCtrl))
 	t.Run("asks", func(t *testing.T) {
-		if cmd == nil {
+		if ask == nil {
 			t.Fatal("quit did not ask")
 		}
 	})
-	if cmd != nil {
-		m, _ = m.Update(cmd())
+	if ask != nil {
+		m, _ = m.Update(ask.(cmd.Task)())
 	}
 	t.Run("confirmation", func(t *testing.T) {
 		if m.dialog == nil || m.dialog.Text != "Are you sure you want to quit?" {
@@ -93,4 +95,27 @@ func TestModelQuit(t *testing.T) {
 			t.Fatal("Yes did not quit")
 		}
 	})
+}
+
+func TestModelView(t *testing.T) {
+	cfg, err := config.Load(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.Theme = "tokyonight"
+
+	screen, err := tcell.NewTerminfoScreenFromTty(vt.NewMockTerm(vt.MockOptSize{X: 40, Y: 10}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := screen.Init(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(screen.Fini)
+
+	NewModel(cfg).View().Draw(screen, tview.Rectangle{Width: 40, Height: 10})
+	want := cfg.Palette().Background.Base.GetBackground()
+	if _, style, _ := screen.Get(39, 9); style.GetBackground() != want {
+		t.Fatalf("background = %v, want the theme's", style.GetBackground())
+	}
 }

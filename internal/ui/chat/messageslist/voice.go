@@ -10,6 +10,7 @@ import (
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/button"
+	"github.com/ayn2op/tview/cmd"
 	"github.com/ayn2op/tview/layout"
 	"github.com/ayn2op/tview/row"
 	"github.com/ayn2op/tview/slider"
@@ -62,7 +63,7 @@ func (m Model) voiceMessageView(attachment discord.Attachment) tview.Widget {
 	}
 
 	rail := waveformRail(attachment.Waveform)
-	style := m.cfg.Theme.MessagesList.AttachmentStyle.Style
+	style := ui.Foreground(m.cfg.Palette().Warning.Style)
 	// Only the voice message that is loaded can be sought.
 	var onSeek func(time.Duration) tview.Msg
 	if loaded {
@@ -98,13 +99,13 @@ func (playMsg) isMsg() {}
 
 // play plays the voice message that is attachment, or pauses or resumes it if it is the one playing.
 func (m Model) play(attachment discord.Attachment) tview.Cmd {
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		if err := m.playVoiceMessage(attachment); err != nil {
 			return ui.ErrorDialog("play voice message", err)
 		}
 
 		return nil
-	}
+	})
 }
 
 func (m Model) playVoiceMessage(attachment discord.Attachment) error {
@@ -140,11 +141,11 @@ func (seekReleaseMsg) isMsg() {}
 
 // seek moves the voice message that is playing or paused to position.
 func (m Model) seek(position time.Duration) tview.Cmd {
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		if err := m.voicePlayer.Seek(position); err != nil {
 			return ui.ErrorDialog("seek voice message", err)
 		}
 
 		return nil
-	}
+	})
 }

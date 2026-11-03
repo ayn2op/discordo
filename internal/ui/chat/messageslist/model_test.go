@@ -3,7 +3,6 @@ package messageslist
 import (
 	"encoding/json"
 	"image"
-	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -23,7 +22,7 @@ import (
 
 func testConfig(t *testing.T) *config.Config {
 	t.Helper()
-	cfg, err := config.Load(filepath.Join(t.TempDir(), "config.toml"))
+	cfg, err := config.Load(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}

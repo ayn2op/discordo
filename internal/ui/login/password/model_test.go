@@ -3,6 +3,7 @@ package password
 import (
 	"testing"
 
+	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/tview"
 	"github.com/gdamore/tcell/v3"
 )
@@ -18,7 +19,7 @@ func TestModelUpdate(t *testing.T) {
 	}
 	key := func(k tcell.Key, str string) tview.KeyMsg { return tcell.NewEventKey(k, str, tcell.ModNone) }
 
-	var m Model
+	m := NewModel(new(config.Default()))
 	send(&m, key(tcell.KeyRune, "a"))
 	send(&m, key(tcell.KeyEnter, ""))
 	send(&m, key(tcell.KeyRune, "b"))

@@ -3,7 +3,6 @@ package composer
 import (
 	"image"
 	"maps"
-	"path/filepath"
 	"testing"
 
 	"github.com/ayn2op/arikawa/v3/discord"
@@ -15,6 +14,7 @@ import (
 	"github.com/ayn2op/discordo/internal/ui/images"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/cmd"
 	tviewimage "github.com/ayn2op/tview/image"
 	"github.com/ayn2op/tview/keybind"
 	"github.com/gdamore/tcell/v3"
@@ -23,7 +23,7 @@ import (
 // newTestModel returns an enabled composer with the default config.
 func newTestModel(t *testing.T) (*Model, *config.Config) {
 	t.Helper()
-	cfg, err := config.Load(filepath.Join(t.TempDir(), "config.toml"))
+	cfg, err := config.Load(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -34,7 +34,7 @@ func newTestModel(t *testing.T) (*Model, *config.Config) {
 
 func TestModelSetChannel(t *testing.T) {
 	// Everyone in guild 1 may send in threads, but not in channels.
-	cfg, err := config.Load(filepath.Join(t.TempDir(), "config.toml"))
+	cfg, err := config.Load(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -145,9 +145,10 @@ func TestModelUpdate(t *testing.T) {
 			c, cfg := newTestModel(t)
 			// setup changes c, so it runs before Update copies it.
 			msg := tt.setup(c, cfg)
-			var cmd tview.Cmd
-			*c, cmd = c.Update(msg)
-			if got := cmd != nil && cmd() == (EditLastMsg{}); got != tt.want {
+			var command tview.Cmd
+			*c, command = c.Update(msg)
+			task, ok := command.(cmd.Task)
+			if got := ok && task() == (EditLastMsg{}); got != tt.want {
 				t.Fatalf("asked to edit the last message = %v, want %v", got, tt.want)
 			}
 		})

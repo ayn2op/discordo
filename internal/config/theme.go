@@ -6,10 +6,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/tview"
 	"github.com/gdamore/tcell/v3"
-	"github.com/gdamore/tcell/v3/color"
 )
 
 var errInvalidType = errors.New("invalid type")
@@ -175,155 +173,26 @@ func colorName(target tcell.Color) string {
 }
 
 type (
-	HelpThemeConfig struct {
-		ShortKeyStyle  Style `toml:"short_key_style"`
-		ShortDescStyle Style `toml:"short_desc_style"`
-		FullKeyStyle   Style `toml:"full_key_style"`
-		FullDescStyle  Style `toml:"full_desc_style"`
-	}
-
-	StyleThemeConfig struct {
-		NormalStyle Style `toml:"normal_style"`
-		// The style used while the widget is focused.
-		ActiveStyle Style `toml:"active_style"`
-	}
-
-	MessagesListThemeConfig struct {
-		AuthorStyle      Style `toml:"author_style"`
-		MentionStyle     Style `toml:"mention_style"`
-		EmojiStyle       Style `toml:"emoji_style"`
-		URLStyle         Style `toml:"url_style"`
-		AttachmentStyle  Style `toml:"attachment_style"`
-		ReactionStyle    Style `toml:"reaction_style"`
-		OwnReactionStyle Style `toml:"own_reaction_style"`
-
-		MessageStyle         Style `toml:"message_style"`
-		SelectedMessageStyle Style `toml:"selected_message_style"`
-
-		Embeds MessagesListEmbedsThemeConfig `toml:"embeds"`
-	}
-
-	MessagesListEmbedsThemeConfig struct {
-		ProviderStyle    Style `toml:"provider_style"`
-		AuthorStyle      Style `toml:"author_style"`
-		TitleStyle       Style `toml:"title_style"`
-		DescriptionStyle Style `toml:"description_style"`
-		FieldNameStyle   Style `toml:"field_name_style"`
-		FieldValueStyle  Style `toml:"field_value_style"`
-		FooterStyle      Style `toml:"footer_style"`
-		URLStyle         Style `toml:"url_style"`
-	}
-
-	AutocompleteThemeConfig struct {
-		SelectedStyle Style `toml:"selected_style"`
-	}
-
-	DialogThemeConfig struct {
-		Style Style `toml:"style"`
-		// The style of everything behind the dialog.
-		BackgroundStyle Style `toml:"background_style"`
-	}
-
-	ScrollBarThemeConfig struct {
-		TrackStyle Style `toml:"track_style"`
-		ThumbStyle Style `toml:"thumb_style"`
-	}
-
 	ThemeConfig struct {
-		Title  StyleThemeConfig `toml:"title"`
-		Footer StyleThemeConfig `toml:"footer"`
-		Border StyleThemeConfig `toml:"border"`
-		// The status styles are those of direct-message recipients.
-		GuildsTree GuildsTreeThemeConfig `toml:"guilds_tree"`
-		// The status styles are those of the dot before each member.
-		MembersTree  TreeThemeConfig         `toml:"members_tree"`
-		ScrollBar    ScrollBarThemeConfig    `toml:"scroll_bar"`
-		MessagesList MessagesListThemeConfig `toml:"messages_list"`
-		Autocomplete AutocompleteThemeConfig `toml:"autocomplete"`
-		Dialog       DialogThemeConfig       `toml:"dialog"`
-		Help         HelpThemeConfig         `toml:"help"`
+		Background BackgroundThemeConfig `toml:"background"`
+
+		Primary   SwatchThemeConfig `toml:"primary"`
+		Secondary SwatchThemeConfig `toml:"secondary"`
+		Success   Style             `toml:"success"`
+		Warning   Style             `toml:"warning"`
+		Danger    Style             `toml:"danger"`
+	}
+
+	BackgroundThemeConfig struct {
+		Base    Style `toml:"base"`
+		Weak    Style `toml:"weak"`
+		Neutral Style `toml:"neutral"`
+		Strong  Style `toml:"strong"`
+	}
+
+	SwatchThemeConfig struct {
+		Base   Style `toml:"base"`
+		Weak   Style `toml:"weak"`
+		Strong Style `toml:"strong"`
 	}
 )
-
-type GuildsTreeThemeConfig struct {
-	TreeThemeConfig
-	// The style of whoever is speaking in the voice channel joined.
-	SpeakingStyle Style `toml:"speaking_style"`
-	// The style of how full a voice channel that has a user limit is.
-	VoiceLimitStyle Style `toml:"voice_limit_style"`
-}
-
-type TreeThemeConfig struct {
-	// The color of the lines that give the tree its shape.
-	GraphicsColor string `toml:"graphics_color"`
-
-	OnlineStyle  Style `toml:"online_style"`
-	IdleStyle    Style `toml:"idle_style"`
-	DNDStyle     Style `toml:"dnd_style"`
-	OfflineStyle Style `toml:"offline_style"`
-}
-
-// StatusStyle returns the style for a user with status.
-func (t TreeThemeConfig) StatusStyle(status discord.Status) tview.Style {
-	switch status {
-	case discord.OnlineStatus:
-		return t.OnlineStyle.Style
-	case discord.IdleStatus:
-		return t.IdleStyle.Style
-	case discord.DoNotDisturbStatus:
-		return t.DNDStyle.Style
-	default:
-		return t.OfflineStyle.Style
-	}
-}
-
-func defaultTheme() ThemeConfig {
-	var (
-		plain  = tcell.StyleDefault
-		dim    = Style{plain.Dim(true)}
-		bold   = plain.Bold(true)
-		italic = plain.Italic(true)
-		blue   = plain.Foreground(color.Blue)
-		focus  = StyleThemeConfig{dim, Style{bold.Foreground(color.Green)}}
-		tree   = TreeThemeConfig{
-			GraphicsColor: "default",
-			OnlineStyle:   Style{plain.Foreground(color.Green)},
-			IdleStyle:     Style{plain.Foreground(color.Yellow)},
-			DNDStyle:      Style{plain.Foreground(color.Red)},
-			OfflineStyle:  Style{plain.Foreground(color.Gray)},
-		}
-	)
-	return ThemeConfig{
-		Title:  focus,
-		Footer: focus,
-		Border: focus,
-		GuildsTree: GuildsTreeThemeConfig{
-			TreeThemeConfig: tree,
-			SpeakingStyle:   Style{plain.Foreground(color.Green)},
-			VoiceLimitStyle: Style{plain.Foreground(color.DodgerBlue)},
-		},
-		MembersTree: tree,
-		ScrollBar:   ScrollBarThemeConfig{TrackStyle: dim},
-		MessagesList: MessagesListThemeConfig{
-			MentionStyle:         Style{blue.Bold(true)},
-			EmojiStyle:           Style{plain.Foreground(color.Green)},
-			URLStyle:             Style{blue},
-			AttachmentStyle:      Style{plain.Foreground(color.Yellow)},
-			ReactionStyle:        dim,
-			OwnReactionStyle:     Style{bold},
-			SelectedMessageStyle: Style{plain.Reverse(true)},
-			Embeds: MessagesListEmbedsThemeConfig{
-				ProviderStyle:    Style{italic.Dim(true)},
-				AuthorStyle:      Style{italic},
-				TitleStyle:       Style{blue.Bold(true)},
-				DescriptionStyle: dim,
-				FieldNameStyle:   Style{bold.Underline(true)},
-				FooterStyle:      Style{italic.Dim(true)},
-				URLStyle:         Style{blue.Underline(true)},
-			},
-		},
-		Autocomplete: AutocompleteThemeConfig{SelectedStyle: Style{plain.Reverse(true)}},
-		Dialog:       DialogThemeConfig{BackgroundStyle: dim},
-		Help:         HelpThemeConfig{ShortKeyStyle: dim, FullKeyStyle: dim},
-	}
-}

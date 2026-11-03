@@ -19,6 +19,7 @@ import (
 	"github.com/ayn2op/discordo/internal/gateway"
 	"github.com/ayn2op/discordo/internal/http"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/cmd"
 	"github.com/gorilla/websocket"
 	"github.com/skip2/go-qrcode"
 )
@@ -46,7 +47,7 @@ type connCreateMsg struct {
 type connCloseMsg struct{}
 
 func connect() tview.Cmd {
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		headers := http.Headers()
 		headers.Set("User-Agent", http.BrowserUserAgent())
 		dialer := gateway.NewDialer()
@@ -55,11 +56,11 @@ func connect() tview.Cmd {
 			return err
 		}
 		return connCreateMsg{conn: &gatewayConn{ws: conn}}
-	}
+	})
 }
 
 func closeConn(conn *gatewayConn) tview.Cmd {
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		if conn == nil {
 			return connCloseMsg{}
 		}
@@ -70,7 +71,7 @@ func closeConn(conn *gatewayConn) tview.Cmd {
 		}
 
 		return connCloseMsg{}
-	}
+	})
 }
 
 type helloMsg struct {
@@ -100,7 +101,7 @@ type cancelMsg struct{}
 type ignoredMsg struct{}
 
 func listen(conn *gatewayConn) tview.Cmd {
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		if conn == nil {
 			return nil
 		}
@@ -115,7 +116,7 @@ func listen(conn *gatewayConn) tview.Cmd {
 		}
 
 		return decodeMessage(data)
-	}
+	})
 }
 
 func decodeMessage(data []byte) tview.Msg {
@@ -153,14 +154,14 @@ func decodeMessage(data []byte) tview.Msg {
 type heartbeatTickMsg struct{}
 
 func scheduleHeartbeat(interval time.Duration) tview.Cmd {
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		time.Sleep(interval)
 		return heartbeatTickMsg{}
-	}
+	})
 }
 
 func sendHeartbeat(conn *gatewayConn) tview.Cmd {
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		if conn == nil {
 			return nil
 		}
@@ -171,7 +172,7 @@ func sendHeartbeat(conn *gatewayConn) tview.Cmd {
 			return err
 		}
 		return nil
-	}
+	})
 }
 
 type privateKeyMsg struct {
@@ -179,17 +180,17 @@ type privateKeyMsg struct {
 }
 
 func generatePrivateKey() tview.Cmd {
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 		if err != nil {
 			return err
 		}
 		return privateKeyMsg{privateKey: privateKey}
-	}
+	})
 }
 
 func sendInit(conn *gatewayConn, privateKey *rsa.PrivateKey) tview.Cmd {
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		if privateKey == nil {
 			return errors.New("missing private key")
 		}
@@ -206,11 +207,11 @@ func sendInit(conn *gatewayConn, privateKey *rsa.PrivateKey) tview.Cmd {
 			return err
 		}
 		return nil
-	}
+	})
 }
 
 func sendNonceProof(conn *gatewayConn, privateKey *rsa.PrivateKey, encryptedNonce string) tview.Cmd {
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		decodedNonce, err := base64.StdEncoding.DecodeString(encryptedNonce)
 		if err != nil {
 			return err
@@ -230,7 +231,7 @@ func sendNonceProof(conn *gatewayConn, privateKey *rsa.PrivateKey, encryptedNonc
 			return err
 		}
 		return nil
-	}
+	})
 }
 
 type qrCodeMsg struct {
@@ -238,7 +239,7 @@ type qrCodeMsg struct {
 }
 
 func generateQRCode(fingerprint string) tview.Cmd {
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		content := "https://discord.com/ra/" + fingerprint
 		qrCode, err := qrcode.New(content, qrcode.Low)
 		if err != nil {
@@ -246,7 +247,7 @@ func generateQRCode(fingerprint string) tview.Cmd {
 		}
 		qrCode.DisableBorder = true
 		return qrCodeMsg{qrCode: qrCode.Image(-1)}
-	}
+	})
 }
 
 type userMsg struct {
@@ -255,7 +256,7 @@ type userMsg struct {
 }
 
 func decryptUserPayload(privateKey *rsa.PrivateKey, encryptedPayload string) tview.Cmd {
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		decodedPayload, err := base64.StdEncoding.DecodeString(encryptedPayload)
 		if err != nil {
 			return err
@@ -272,11 +273,11 @@ func decryptUserPayload(privateKey *rsa.PrivateKey, encryptedPayload string) tvi
 		}
 
 		return userMsg{discriminator: parts[1], username: parts[3]}
-	}
+	})
 }
 
 func exchangeTicket(fingerprint string, privateKey *rsa.PrivateKey, ticket string) tview.Cmd {
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		headers := http.Headers()
 		headers.Set("Referer", "https://discord.com/login")
 		if fingerprint != "" {
@@ -301,7 +302,7 @@ func exchangeTicket(fingerprint string, privateKey *rsa.PrivateKey, ticket strin
 			return err
 		}
 		return TokenMsg(string(decryptedToken))
-	}
+	})
 }
 
 // startMsg starts connecting to the Remote Auth Gateway.

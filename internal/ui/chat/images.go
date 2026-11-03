@@ -18,6 +18,7 @@ import (
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/discordo/internal/ui/images"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/cmd"
 	tviewimage "github.com/ayn2op/tview/image"
 	_ "golang.org/x/image/webp"
 )
@@ -77,7 +78,7 @@ func (m *Model) reloadImages(cell image.Point) tview.Cmd {
 		return nil
 	}
 
-	return tview.Batch(m.clearImages(), m.messagesList.LoadImages())
+	return cmd.Batch{m.clearImages(), m.messagesList.LoadImages()}
 }
 
 // clearImages drops the images and returns a command that frees them in the terminal.
@@ -88,15 +89,15 @@ func (m *Model) clearImages() tview.Cmd {
 	}
 
 	clear(m.images)
-	return tview.Batch(append(cmds, m.sendImages())...)
+	return cmd.Batch(append(cmds, m.sendImages()))
 }
 
 // sendImages passes a copy of the images to the models that draw them.
 func (m *Model) sendImages() tview.Cmd {
 	images := images.ChangedMsg(maps.Clone(m.images))
-	var cmd tview.Cmd
-	m.reactionsPicker, cmd = m.reactionsPicker.Update(images)
-	return tview.Batch(cmd, m.updatePane(paneMessagesList, images), m.updatePane(paneComposer, images))
+	var c tview.Cmd
+	m.reactionsPicker, c = m.reactionsPicker.Update(images)
+	return cmd.Batch{c, m.updatePane(paneMessagesList, images), m.updatePane(paneComposer, images)}
 }
 
 func (m *Model) loadImages(msg images.RequestedMsg) tview.Cmd {
@@ -120,7 +121,7 @@ func (m *Model) loadImages(msg images.RequestedMsg) tview.Cmd {
 		}))
 	}
 
-	return tview.Batch(cmds...)
+	return cmd.Batch(cmds)
 }
 
 // A blank image holds the place until it loads, so nothing shifts.
@@ -131,14 +132,14 @@ func (m *Model) loadImage(url discord.URL, bounds image.Rectangle, widget func(i
 
 	m.images[url] = widget(image.NewAlpha(bounds))
 	cell := m.imageCell()
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		img, err := m.downloadImage(url, bounds)
 		if err != nil {
 			slog.Error("failed to load image", "url", url, "err", err)
 			img = &image.Alpha{}
 		}
 		return images.LoadedMsg{URL: url, Image: widget(img), Cell: cell}
-	}
+	})
 }
 
 // downloadImage expects proxy to be a Discord media proxy URL, which scales the image to bounds.

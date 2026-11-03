@@ -2,7 +2,6 @@ package memberstree
 
 import (
 	"encoding/json"
-	"path/filepath"
 	"slices"
 	"testing"
 
@@ -18,7 +17,7 @@ const guildID, channelID = 1, 2
 
 func newTestModel(t *testing.T) Model {
 	t.Helper()
-	cfg, err := config.Load(filepath.Join(t.TempDir(), "config.toml"))
+	cfg, err := config.Load(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}

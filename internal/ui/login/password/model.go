@@ -1,6 +1,8 @@
 package password
 
 import (
+	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/button"
 	"github.com/ayn2op/tview/column"
@@ -23,6 +25,8 @@ const (
 
 // Model is a login and a password input above a button. Tab and the arrow keys move the focus, Enter in an input moves to the next one, and Enter on the button or clicking it logs in.
 type Model struct {
+	cfg *config.Config
+
 	login, password string
 	// loginCursor and passwordCursor are the byte offsets of the cursor in login and password.
 	loginCursor, passwordCursor int
@@ -34,6 +38,10 @@ type Model struct {
 
 func (Model) Label() string {
 	return "Password"
+}
+
+func NewModel(cfg *config.Config) Model {
+	return Model{cfg: cfg}
 }
 
 var _ tview.Model[Model] = Model{}
@@ -77,15 +85,8 @@ func (m Model) View() tview.Widget {
 		Focused(m.focus == focusPassword).
 		OnInput(func(text string, cursor int) tview.Msg { return passwordMsg{text, cursor} }).
 		OnSubmit(focusMsg(focusButton))
-	buttonStyle := tcell.StyleDefault
-	switch {
-	case m.focus == focusButton:
-		buttonStyle = buttonStyle.Reverse(true)
-	case m.buttonHovered:
-		buttonStyle = buttonStyle.Underline(true)
-	}
 	submit := button.New(text.New("Login")).
-		Style(buttonStyle).
+		Style(ui.ButtonStyle(m.cfg.Palette(), m.focus == focusButton, m.buttonHovered)).
 		Width(layout.Fixed(len("Login") + 4)).
 		Focused(m.focus == focusButton).
 		Hovered(m.buttonHovered).

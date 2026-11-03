@@ -2,7 +2,7 @@ module github.com/ayn2op/discordo
 
 go 1.27.0
 
-// replace github.com/ayn2op/tview => ../tview
+replace github.com/gdamore/tcell/v3 => github.com/ayn2op/tcell/v3 v3.0.0-20261103225457-d4d818080822
 
 // replace (
 // 	github.com/ayn2op/arikawa/v3 => ../arikawa
@@ -12,13 +12,13 @@ go 1.27.0
 require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/alecthomas/chroma/v2 v2.27.0
-	github.com/ayn2op/arikawa/v3 v3.0.0-20261026003433-1e4e6aa75714
-	github.com/ayn2op/ningen/v3 v3.0.1-0.20261014035153-5e43590a1426
-	github.com/ayn2op/tview v0.0.0-20261025221241-600eb487f17f
-	github.com/bogdanfinn/fhttp v0.7.1
-	github.com/bogdanfinn/tls-client v1.17.1
-	github.com/gdamore/tcell/v3 v3.6.1-0.20261025165013-3f9243d555d9
-	github.com/gen2brain/malgo v0.11.26
+	github.com/ayn2op/arikawa/v3 v3.0.0-20261026205501-4004a7fb7f54
+	github.com/ayn2op/ningen/v3 v3.0.1-0.20261026205502-53a9435c0b4f
+	github.com/ayn2op/tview v0.0.0-20261103225650-b37e3633ca2a
+	github.com/bogdanfinn/fhttp v0.7.3
+	github.com/bogdanfinn/tls-client v1.18.0
+	github.com/gdamore/tcell/v3 v3.6.1-0.20261030215714-d3a071ce4c8b
+	github.com/gen2brain/malgo v0.11.27
 	github.com/gorilla/websocket v1.5.3
 	github.com/mattn/go-shellwords v1.0.16
 	github.com/ncruces/zenity v0.10.15
@@ -28,7 +28,7 @@ require (
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/thomas-vilte/dave-go v0.5.1
 	github.com/tphakala/go-opus v1.3.0
-	github.com/yuin/goldmark/v2 v2.1.9
+	github.com/yuin/goldmark/v2 v2.1.15
 	github.com/zalando/go-keyring v0.2.8
 	golang.design/x/clipboard v0.11.0
 	golang.org/x/image v0.47.0
@@ -40,15 +40,15 @@ require (
 	github.com/andybalholm/brotli v1.2.7 // indirect
 	github.com/bdandy/go-errors v1.2.2 // indirect
 	github.com/bdandy/go-socks4 v1.2.3 // indirect
-	github.com/bogdanfinn/quic-go-utls v1.0.12-utls // indirect
+	github.com/bogdanfinn/quic-go-utls v1.0.13-utls // indirect
 	github.com/bogdanfinn/utls v1.8.2-barnius // indirect
-	github.com/bogdanfinn/websocket v1.5.8-barnius // indirect
+	github.com/bogdanfinn/websocket v1.5.9-barnius // indirect
 	github.com/clipperhouse/displaywidth v0.11.0 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/danieljoos/wincred v1.2.3 // indirect
 	github.com/dchest/jsmin v1.0.0 // indirect
 	github.com/disgoorg/godave v0.3.0 // indirect
-	github.com/dlclark/regexp2/v2 v2.10.1 // indirect
+	github.com/dlclark/regexp2/v2 v2.12.0 // indirect
 	github.com/ebitengine/purego v0.11.2 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
 	github.com/godbus/dbus/v5 v5.2.4 // indirect
@@ -62,13 +62,13 @@ require (
 	github.com/tam7t/hpkp v0.0.0-20160821193359-2b70b4024ed5 // indirect
 	github.com/thomas-vilte/mls-go v1.6.0 // indirect
 	github.com/tphakala/simd v1.14.0 // indirect
-	github.com/twmb/murmur3 v1.2.1 // indirect
-	go4.org v0.0.0-20261019143151-5b882263cdaf // indirect
+	github.com/twmb/murmur3 v1.2.2 // indirect
+	go4.org v0.0.0-20261028031214-ed6929a230fe // indirect
 	golang.design/x/x11 v0.2.0 // indirect
 	golang.org/x/crypto v0.58.0 // indirect
 	golang.org/x/exp/shiny v0.0.0-20261014143641-f0251eb4aa3e // indirect
 	golang.org/x/mobile v0.0.0-20261011034528-197770444867 // indirect
-	golang.org/x/net v0.61.0 // indirect
+	golang.org/x/net v0.62.0 // indirect
 	golang.org/x/term v0.47.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
 	golang.org/x/time v0.16.0 // indirect

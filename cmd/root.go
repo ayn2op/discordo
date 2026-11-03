@@ -14,7 +14,7 @@ import (
 )
 
 func Run() error {
-	configPath := flag.String("config-path", config.DefaultPath(), "path of the configuration file")
+	configDir := flag.String("config-dir", config.DefaultDir(), "directory of the configuration file and themes")
 	logPath := flag.String("log-path", logger.DefaultPath(), "path of the log file")
 	logLevel := flag.String("log-level", "info", "log level")
 	showVersion := flag.Bool("version", false, "print version and exit")
@@ -37,7 +37,7 @@ func Run() error {
 	}
 	defer logFile.Close() //nolint:errcheck
 
-	cfg, err := config.Load(*configPath)
+	cfg, err := config.Load(*configDir)
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}

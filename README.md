@@ -80,7 +80,7 @@ The configuration file allows you to configure and customize the behavior, keybi
 - Darwin: `$HOME/Library/Application Support/discordo/config.toml`
 - Windows: `%AppData%/discordo/config.toml`
 
-Use `-config-path` to change the path.
+Use `-config-dir` to change the directory, which also holds theme files in `themes/`.
 
 Discordo uses the default configuration if a configuration file is not found in the aforementioned path; however, the default configuration file is not written to the path. [The configuration reference can be found here](./docs/config.md).
 

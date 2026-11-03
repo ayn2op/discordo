@@ -1,7 +1,6 @@
 package emojis
 
 import (
-	"path/filepath"
 	"slices"
 	"testing"
 
@@ -12,7 +11,7 @@ import (
 )
 
 func TestItems(t *testing.T) {
-	cfg, err := config.Load(filepath.Join(t.TempDir(), "config.toml"))
+	cfg, err := config.Load(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}

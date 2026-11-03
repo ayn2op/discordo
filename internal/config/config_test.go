@@ -1,6 +1,7 @@
 package config
 
 import (
+	"maps"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -11,7 +12,7 @@ import (
 	"github.com/ayn2op/discordo/internal/consts"
 )
 
-func TestDefaultPath(t *testing.T) {
+func TestDefaultDir(t *testing.T) {
 	t.Run("user config dir fallback", func(t *testing.T) {
 		t.Setenv("AppData", "")
 		t.Setenv("HOME", "")
@@ -19,8 +20,8 @@ func TestDefaultPath(t *testing.T) {
 		t.Setenv("XDG_CONFIG_HOME", "")
 
 		// filepath.Join strips the leading dot.
-		got := DefaultPath()
-		want := filepath.Join(".", consts.Name, fileName)
+		got := DefaultDir()
+		want := filepath.Join(".", consts.Name)
 		if got != want {
 			t.Fatalf("got = %v, want = %v", got, want)
 		}
@@ -28,24 +29,50 @@ func TestDefaultPath(t *testing.T) {
 }
 
 func TestLoad(t *testing.T) {
+	t.Run("theme files are based on the built-in default", func(t *testing.T) {
+		saved := maps.Clone(themes)
+		t.Cleanup(func() { themes = saved })
+
+		dir := filepath.Join(t.TempDir(), "themes")
+		if err := os.Mkdir(dir, os.ModePerm); err != nil {
+			t.Fatal(err)
+		}
+		for name, content := range map[string]string{
+			"a.toml":       "[primary.base]\nbackground = \"#00ff00\"",
+			"default.toml": "[background.base]\nbackground = \"#ff0000\"",
+			"z.toml":       "[primary.base]\nbackground = \"#00ff00\"",
+		} {
+			if err := os.WriteFile(filepath.Join(dir, name), []byte(content), os.ModePerm); err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		if _, err := Load(filepath.Dir(dir)); err != nil {
+			t.Fatal(err)
+		}
+		if a, z := themes["a"].Background.Base, themes["z"].Background.Base; a != z {
+			t.Fatalf("a's base = %v, z's base = %v, want the same", a.GetBackground(), z.GetBackground())
+		}
+	})
+
 	t.Run("invalid config returns error", func(t *testing.T) {
-		path := filepath.Join(t.TempDir(), "bad.toml")
-		if err := os.WriteFile(path, []byte("invalid ="), os.ModePerm); err != nil {
+		dir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(dir, fileName), []byte("invalid ="), os.ModePerm); err != nil {
 			t.Fatal(err)
 		}
 
-		if _, err := Load(path); err == nil {
+		if _, err := Load(dir); err == nil {
 			t.Fatal("expected error")
 		}
 	})
 
 	t.Run("valid config does not return error", func(t *testing.T) {
-		path := filepath.Join(t.TempDir(), "good.toml")
-		if err := os.WriteFile(path, []byte("mouse = false\n[help]\nenabled = true"), os.ModePerm); err != nil {
+		dir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(dir, fileName), []byte("mouse = false\n[help]\nenabled = true"), os.ModePerm); err != nil {
 			t.Fatal(err)
 		}
 
-		cfg, err := Load(path)
+		cfg, err := Load(dir)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -59,12 +86,12 @@ func TestLoad(t *testing.T) {
 	})
 
 	t.Run("invalid allowed MIME type returns error", func(t *testing.T) {
-		path := filepath.Join(t.TempDir(), "bad-mime.toml")
-		if err := os.WriteFile(path, []byte("[ui.messages_list.attachments]\nallowed_mime_types = [\"image/\"]"), os.ModePerm); err != nil {
+		dir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(dir, fileName), []byte("[ui.messages_list.attachments]\nallowed_mime_types = [\"image/\"]"), os.ModePerm); err != nil {
 			t.Fatal(err)
 		}
 
-		if _, err := Load(path); err == nil {
+		if _, err := Load(dir); err == nil {
 			t.Fatal("expected error")
 		}
 	})
@@ -76,8 +103,8 @@ func TestLoad(t *testing.T) {
 	})
 
 	t.Run("missing file uses defaults", func(t *testing.T) {
-		path := filepath.Join(t.TempDir(), "missing.toml")
-		cfg, err := Load(path)
+		dir := t.TempDir()
+		cfg, err := Load(dir)
 		if err != nil {
 			t.Fatal(err)
 		}
