@@ -50,8 +50,8 @@ func (m Model) showReactions() tview.Cmd {
 	return func() tview.Msg { return msg }
 }
 
-// ConfirmDeleteMsg asks whether to delete a message, such as one cleared while being edited.
-type ConfirmDeleteMsg discord.Message
+// DeleteMsg asks to delete a message outright, such as one cleared while being edited.
+type DeleteMsg discord.Message
 
 // EditMsg asks to edit a message.
 type EditMsg discord.Message
@@ -174,6 +174,15 @@ func (m Model) confirmDeleteSelected() tview.Cmd {
 		return nil
 	}
 	return m.confirmDelete(*selectedMessage)
+}
+
+// tryDelete deletes message without asking, the way the Discord client deletes an erased edit.
+func (m Model) tryDelete(message discord.Message) tview.Cmd {
+	if !m.canDeleteMessage(message) {
+		return nil
+	}
+
+	return m.requestDelete(message)
 }
 
 func (m Model) confirmDelete(message discord.Message) tview.Cmd {

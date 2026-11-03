@@ -4,11 +4,10 @@ import (
 	"testing"
 
 	"github.com/ayn2op/arikawa/v3/discord"
-	"github.com/ayn2op/discordo/internal/ui"
 )
 
-func TestModelUpdateConfirmDelete(t *testing.T) {
-	// selected is mine throughout, so a confirmation that went by the selection would always ask.
+func TestModelUpdateDelete(t *testing.T) {
+	// selected is mine throughout, so a deletion that went by the selection would always go ahead.
 	selected := discord.Message{ID: 2, ChannelID: 1, Author: discord.User{ID: 1}}
 	for _, tt := range []struct {
 		name    string
@@ -18,18 +17,15 @@ func TestModelUpdateConfirmDelete(t *testing.T) {
 		{"my own message", discord.Message{ID: 3, ChannelID: 1, Author: discord.User{ID: 1}}, true},
 		{"someone else's message", discord.Message{ID: 4, ChannelID: 1, Author: discord.User{ID: 2}}, false},
 	} {
-		t.Run("asked to delete "+tt.name, func(t *testing.T) {
+		t.Run("deleting "+tt.name, func(t *testing.T) {
 			ml := newTestModel(t, testConfig(t))
 			ml.setMessages([]discord.Message{selected, tt.message})
 			ml.selectBottom()
 
-			var asked bool
-			if _, cmd := ml.Update(ConfirmDeleteMsg(tt.message)); cmd != nil {
-				_, asked = cmd().(ui.DialogMsg)
-			}
-
-			if asked != tt.want {
-				t.Fatalf("asked to confirm = %v, want %v", asked, tt.want)
+			// The request itself is left unrun, as it would reach Discord; that it was made is the ask.
+			_, cmd := ml.Update(DeleteMsg(tt.message))
+			if requested := cmd != nil; requested != tt.want {
+				t.Fatalf("requested the deletion = %v, want %v", requested, tt.want)
 			}
 		})
 	}

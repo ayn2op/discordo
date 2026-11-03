@@ -1,15 +1,19 @@
 package chat
 
 import (
+	"context"
 	"fmt"
 	"image"
+	"net/http"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/arikawa/v3/gateway"
+	"github.com/ayn2op/arikawa/v3/utils/httputil/httpdriver"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/discordo/internal/ui/images"
@@ -27,6 +31,31 @@ func newTestModel(t *testing.T) *Model {
 	}
 	m := NewModel(cfg, "")
 	return &m
+}
+
+// recorder answers every API request with no content, recording the paths deleted, so that a test
+// may see what was asked of Discord without reaching it.
+type recorder struct {
+	deleted []string
+}
+
+// recordRequests makes the model's API requests go to a recorder rather than Discord, and returns it.
+func recordRequests(m *Model) *recorder {
+	rec := &recorder{}
+	m.state.Client.Client.Client = rec
+	return rec
+}
+
+func (r *recorder) NewRequest(ctx context.Context, method, url string) (httpdriver.Request, error) {
+	return httpdriver.NewMockRequestWithContext(ctx, method, url, nil, nil), nil
+}
+
+func (r *recorder) Do(req httpdriver.Request) (httpdriver.Response, error) {
+	if request, ok := req.(*httpdriver.MockRequest); ok && request.Method == http.MethodDelete {
+		r.deleted = append(r.deleted, request.GetPath())
+	}
+
+	return httpdriver.NewMockResponse(httpdriver.NoContent, nil, nil), nil
 }
 
 // chatArea is the area the whole chat is laid out in to press a key in it, and maxCommandHops bounds how
@@ -105,8 +134,9 @@ func TestModelView(t *testing.T) {
 }
 
 func TestModelUpdate(t *testing.T) {
-	t.Run("erasing an edited message and submitting asks to delete it", func(t *testing.T) {
+	t.Run("erasing an edited message and submitting deletes it", func(t *testing.T) {
 		m := newTestModel(t)
+		rec := recordRequests(m)
 		// Only the author may delete their own message.
 		if err := m.state.MyselfSet(discord.User{ID: 1}, false); err != nil {
 			t.Fatal(err)
@@ -129,15 +159,16 @@ func TestModelUpdate(t *testing.T) {
 			press(t, m, tcell.NewEventKey(tcell.KeyBackspace2, "", tcell.ModNone))
 		}
 
-		var asked bool
 		for _, msg := range press(t, m, tcell.NewEventKey(tcell.KeyEnter, "", tcell.ModNone)) {
 			if _, ok := msg.(ui.DialogMsg); ok {
-				asked = true
+				t.Fatal("submitting an erased edit asked to confirm the deletion")
 			}
 		}
 
-		if !asked {
-			t.Fatal("submitting an erased edit did not ask to delete the message")
+		if want := "/channels/1/messages/3"; !slices.ContainsFunc(rec.deleted, func(path string) bool {
+			return strings.HasSuffix(path, want)
+		}) {
+			t.Fatalf("deleted %v, want one of them to end in %q", rec.deleted, want)
 		}
 	})
 
