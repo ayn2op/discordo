@@ -9,6 +9,18 @@ import (
 
 const Name = "discordo"
 
+// ConfigDir returns the directory of the files the user and discordo both own, such as the config and the favorites.
+// It is not created here, as a user without one still gets the defaults.
+var ConfigDir = sync.OnceValue(func() string {
+	userConfigDir, err := os.UserConfigDir()
+	if err != nil {
+		userConfigDir = "."
+		slog.Info("failed to get user config dir; falling back to the current dir", "err", err, "path", userConfigDir)
+	}
+
+	return filepath.Join(userConfigDir, Name)
+})
+
 // CacheDir returns the cache directory, creating it on first use.
 var CacheDir = sync.OnceValue(func() string {
 	userCacheDir, err := os.UserCacheDir()
