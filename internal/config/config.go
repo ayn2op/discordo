@@ -178,6 +178,9 @@ type (
 		Mouse bool `toml:"mouse"`
 		// The program opened by the `composer.open_editor` keybind. "default" uses `$EDITOR`.
 		Editor string `toml:"editor"`
+		// Whether to avoid leaving files on disk: skip the log file, and
+		// remove downloaded attachments once the app exits.
+		DisableCache bool `toml:"disable_cache"`
 
 		// "default" (unknown), "online", "dnd", "idle", "invisible" or "offline".
 		Status           discord.Status `toml:"status"`
