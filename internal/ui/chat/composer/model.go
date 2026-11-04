@@ -29,6 +29,7 @@ import (
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/box"
+	"github.com/ayn2op/tview/cmd"
 	"github.com/ayn2op/tview/keybind"
 	"github.com/ayn2op/tview/textarea"
 	"github.com/rockorager/go-uucode"
@@ -143,8 +144,8 @@ func (m *Model) box(focused bool) box.Widget {
 		OnInput(func(text string, cursor int) tview.Msg { return editMsg{text, cursor} }).
 		Height(layout.Shrink.Max(m.cfg.Composer.MaxHeight))
 	return ui.Box(text, m.cfg, focused).
-		Title(ui.Label(m.title(), m.cfg.Theme.Title, focused)).
-		Footer(ui.Label(m.footer(), m.cfg.Theme.Footer, focused)).
+		Title(ui.Label(m.title(), m.cfg, focused)).
+		Footer(ui.Label(m.footer(), m.cfg, focused)).
 		Height(layout.Shrink)
 }
 
@@ -424,9 +425,9 @@ func (m Model) CacheMemberSearch(event *gateway.GuildMembersChunkEvent) tview.Cm
 	}
 
 	m.memberSearchCache[key] = uint(len(event.Members))
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		return RefreshAutocompleteMsg{}
-	}
+	})
 }
 
 // OnGuildMemberRemove forgets cached member searches that the removed member may have filled.
@@ -485,9 +486,9 @@ func (p autocompletePopup) area(area tview.Rectangle) tview.Rectangle {
 
 // showCompletions hides the autocomplete if items is empty.
 func (m *Model) showCompletions(title string, items []autocomplete.Item) tview.Cmd {
-	var cmd tview.Cmd
-	m.autocomplete, cmd = m.autocomplete.Update(autocomplete.SetItemsMsg{Title: title, Items: items})
-	return cmd
+	var c tview.Cmd
+	m.autocomplete, c = m.autocomplete.Update(autocomplete.SetItemsMsg{Title: title, Items: items})
+	return c
 }
 
 func (m *Model) attach(name string, reader io.Reader) {
@@ -530,7 +531,11 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	case filesPickedMsg:
 		selectedChannel := m.channel
 		if selectedChannel == nil || selectedChannel.ID != msg.channelID {
-			return m, closeFiles(msg.files)
+			files := msg.files
+			return m, cmd.Task(func() tview.Msg {
+				closeFiles(files)
+				return nil
+			})
 		}
 		for _, file := range msg.files {
 			m.attach(file.Name, file.Reader)
@@ -543,7 +548,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	case editMsg:
 		m.setText(msg.text, msg.cursor)
 		typingCmd := m.sendTyping()
-		return m, tview.Batch(typingCmd, m.showAutocomplete())
+		return m, cmd.Batch{typingCmd, m.showAutocomplete()}
 
 	case tview.KeyMsg:
 		keybinds := m.cfg.Keybinds.Composer
@@ -559,9 +564,9 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			}
 			return m, m.send()
 		case keybind.Matches(msg, keybinds.OpenEditor.Keybind):
-			return m, tview.Batch(m.showCompletions("", nil), m.openEditor())
+			return m, cmd.Batch{m.showCompletions("", nil), m.openEditor()}
 		case keybind.Matches(msg, keybinds.OpenFilePicker.Keybind):
-			return m, tview.Batch(m.showCompletions("", nil), m.pickFiles())
+			return m, cmd.Batch{m.showCompletions("", nil), m.pickFiles()}
 		case keybind.Matches(msg, keybinds.Cancel.Keybind):
 			if m.autocomplete.Visible() {
 				return m, m.showCompletions("", nil)
@@ -582,9 +587,9 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			return m, nil
 		}
 	case autocomplete.Msg, images.ChangedMsg:
-		var cmd tview.Cmd
-		m.autocomplete, cmd = m.autocomplete.Update(msg)
-		return m, cmd
+		var c tview.Cmd
+		m.autocomplete, c = m.autocomplete.Update(msg)
+		return m, c
 	}
 	return m, nil
 }

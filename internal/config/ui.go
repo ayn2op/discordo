@@ -112,14 +112,17 @@ func (vw ScrollBarVisibilityWrapper) MarshalText() ([]byte, error) {
 type (
 	UIConfig struct {
 		// The tabs of the login screen.
-		Tabs         TabsUIConfig         `toml:"tabs"`
-		Title        TitleUIConfig        `toml:"title"`
-		Footer       TitleUIConfig        `toml:"footer"`
-		Border       BorderUIConfig       `toml:"border"`
+		Tabs TabsUIConfig `toml:"tabs"`
+
+		Title  TitleUIConfig  `toml:"title"`
+		Footer TitleUIConfig  `toml:"footer"`
+		Border BorderUIConfig `toml:"border"`
+
 		GuildsTree   GuildsTreeUIConfig   `toml:"guilds_tree"`
 		MembersTree  TreeUIConfig         `toml:"members_tree"`
-		ScrollBar    ScrollBarUIConfig    `toml:"scroll_bar"`
 		MessagesList MessagesListUIConfig `toml:"messages_list"`
+
+		ScrollBar ScrollBarUIConfig `toml:"scroll_bar"`
 		// The list of mention and emoji suggestions above the composer. Its width and height are capped to the available space.
 		Autocomplete AutocompleteUIConfig `toml:"autocomplete"`
 	}
@@ -129,10 +132,12 @@ type (
 		Alignment AlignmentWrapper `toml:"alignment"`
 		// Whether moving past the last tab selects the first, and past the first selects the last.
 		Wrap bool `toml:"wrap"`
+
 		// Text between tabs.
 		Separator string `toml:"separator"`
 		// Text on either side of each tab: [left, right]
 		Padding [2]string `toml:"padding"`
+
 		// Arrows shown while tabs are hidden past an end: [start, end]. An empty string turns that arrow off.
 		Arrows [2]string `toml:"arrows"`
 		// Whether clicking an arrow selects the tab next to the active one.
@@ -238,6 +243,7 @@ type (
 		Mentions SuggestionsUIConfig `toml:"mentions"`
 		// Emojis suggested after `:`.
 		Emojis SuggestionsUIConfig `toml:"emojis"`
+
 		// The maximum number of suggestions.
 		Limit uint8 `toml:"limit"`
 		// Minimum width. 0 makes the list as wide as possible.

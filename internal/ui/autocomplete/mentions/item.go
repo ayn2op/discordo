@@ -13,6 +13,7 @@ import (
 	"github.com/ayn2op/discordo/internal/ui/images"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/cmd"
 	tviewimage "github.com/ayn2op/tview/image"
 	"github.com/ayn2op/tview/text"
 	"github.com/gdamore/tcell/v3"
@@ -58,7 +59,7 @@ func Items(cfg *config.Config, s *ningen.State, channel *discord.Channel, query 
 	if !cfg.UI.Autocomplete.Mentions.Preview || len(images.Squares) == 0 {
 		return items, nil
 	}
-	return items, func() tview.Msg { return images }
+	return items, cmd.Task(func() tview.Msg { return images })
 }
 
 func mentions(s *ningen.State, channel *discord.Channel, query string, limit int) []mention {

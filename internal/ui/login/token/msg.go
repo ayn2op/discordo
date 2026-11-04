@@ -2,6 +2,7 @@ package token
 
 import (
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/cmd"
 )
 
 type TokenMsg string
@@ -19,7 +20,7 @@ type (
 )
 
 func submitToken(token string) tview.Cmd {
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		return TokenMsg(token)
-	}
+	})
 }

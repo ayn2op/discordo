@@ -18,11 +18,13 @@ import (
 
 // Model is a list of suggestions, hidden while it has none.
 type Model struct {
-	cfg   *config.Config
+	cfg *config.Config
+
 	title string
 	items []Item
 	// images are the chat model's, which loads them, by URL.
-	images      map[discord.URL]tviewimage.Widget
+	images map[discord.URL]tviewimage.Widget
+
 	cursor      int
 	scrollState viewport.ScrollState
 }
@@ -48,7 +50,7 @@ func (m Model) listView() viewport.Widget {
 	l := list.New(m.cursor, len(m.items), func(i int) tview.Widget {
 		return text.Rich(m.items[i].Line(m.images)...).Wrapping(text.WrappingNone)
 	}).
-		SelectedStyle(m.cfg.Theme.Autocomplete.SelectedStyle.Style).
+		SelectedStyle(ui.SelectedStyle(m.cfg.Palette())).
 		Keybind(ui.SelectionKeybind(m.cfg.Keybinds.Autocomplete.SelectionKeybinds)).
 		// Shown only while completing, so it takes keys first.
 		Focused(true).
@@ -101,5 +103,5 @@ func (m Model) View() tview.Widget {
 		list, width = list.Width(layout.Fixed(max(int(cfg.MinWidth), m.maxDisplayWidth()))), layout.Shrink
 	}
 
-	return ui.Box(list, m.cfg, false).Title(ui.Label(m.title, m.cfg.Theme.Title, false)).BorderSet(set).Width(width).Height(layout.Shrink)
+	return ui.Box(list, m.cfg, false).Title(ui.Label(m.title, m.cfg, false)).BorderSet(set).Width(width).Height(layout.Shrink)
 }

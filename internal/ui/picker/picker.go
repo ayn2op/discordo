@@ -30,6 +30,12 @@ func (m *Model) SetItems(items picker.Items) {
 // ReplaceItems replaces the items with the same ones changed, such as drawn with new images, keeping the query.
 func (m *Model) ReplaceItems(items picker.Items) { m.items = items }
 
+// Selected returns the selected item, if any.
+func (m Model) Selected() (picker.Item, bool) { return m.searchState.Selected(m.items) }
+
+// Select selects the ith item.
+func (m *Model) Select(i int) { m.searchState.Select(i) }
+
 // Reset clears the query.
 func (m *Model) Reset() { m.searchState.Reset() }
 
@@ -47,8 +53,7 @@ func (m Model) View(onSelect func(picker.Item) tview.Msg, onCancel tview.Msg) tv
 	cfg := m.cfg
 	bar := scrollbar.New().
 		SymbolSet(cfg.UI.ScrollBar.SymbolSet.SymbolSet).
-		Style(cfg.Theme.ScrollBar.TrackStyle.Style).
-		ThumbStyle(cfg.Theme.ScrollBar.ThumbStyle.Style)
+		Style(ui.MutedStyle(cfg.Palette()))
 	p := picker.New(m.items, &m.searchState).
 		ScrollBar(bar, cfg.UI.ScrollBar.Visibility.ScrollBarVisibility).
 		Keybind(pickerKeybind(cfg.Keybinds.Picker)).
@@ -56,5 +61,5 @@ func (m Model) View(onSelect func(picker.Item) tview.Msg, onCancel tview.Msg) tv
 		OnChange(func(s *picker.SearchState) tview.Msg { return changeMsg(*s) }).
 		OnSelect(onSelect).
 		OnCancel(onCancel)
-	return ui.Box(p, cfg, true).Title(ui.Label(m.title, cfg.Theme.Title, true))
+	return ui.Box(p, cfg, true).Title(ui.Label(m.title, cfg, true))
 }

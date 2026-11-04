@@ -215,6 +215,8 @@ type Keybinds struct {
 	// Hide/show the members tree.
 	ToggleMembersTree    Keybind `toml:"toggle_members_tree"`
 	ToggleChannelsPicker Keybind `toml:"toggle_channels_picker"`
+	// Pick the theme, previewing each one.
+	ToggleThemePicker Keybind `toml:"toggle_theme_picker"`
 	// Start or stop sending what the microphone captures to the voice channel joined.
 	ToggleMute Keybind `toml:"toggle_mute"`
 	// Stop or start playing what is said in the voice channel joined. Stopping also mutes.
@@ -290,6 +292,7 @@ func defaultKeybinds() Keybinds {
 		ToggleGuildsTree:     key("toggle guilds", "alt+g"),
 		ToggleMembersTree:    key("toggle members", "alt+m"),
 		ToggleChannelsPicker: key("channels picker", "ctrl+k"),
+		ToggleThemePicker:    key("theme picker", "alt+t"),
 		ToggleMute:           key("toggle mute", "alt+v"),
 		ToggleDeafen:         key("toggle deafen", "alt+d"),
 		LeaveVoice:           key("leave voice", "alt+l"),

@@ -249,7 +249,7 @@ const (
 
 // setStatus styles the status dot and name of a member's spans for status.
 func (m Model) setStatus(spans []text.Span, status discord.Status) {
-	spans[0].Style = m.cfg.Theme.MembersTree.StatusStyle(status)
+	spans[0].Style = ui.StatusStyle(m.cfg.Palette(), status)
 	spans[2].Style = spans[2].Style.Dim(status == discord.OfflineStatus)
 }
 
@@ -370,12 +370,11 @@ func (m Model) View() tview.Widget {
 		m.current,
 		m.scrollState,
 		m.cfg,
-		m.cfg.Theme.MembersTree,
 		m.cfg.UI.MembersTree.Graphics,
 		m.cfg.Keybinds.MembersTree,
 		m.focused,
 		onChange,
 		onSelect,
 	).
-		Title(ui.Label("Members", m.cfg.Theme.Title, m.focused))
+		Title(ui.Label("Members", m.cfg, m.focused))
 }

@@ -2,7 +2,6 @@ package mentions
 
 import (
 	"image"
-	"path/filepath"
 	"testing"
 
 	"github.com/ayn2op/arikawa/v3/discord"
@@ -15,7 +14,7 @@ import (
 )
 
 func TestItems(t *testing.T) {
-	cfg, err := config.Load(filepath.Join(t.TempDir(), "config.toml"))
+	cfg, err := config.Load(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}

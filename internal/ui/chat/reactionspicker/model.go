@@ -5,11 +5,13 @@ import (
 
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/discordo/internal/ui/emojis"
 	"github.com/ayn2op/discordo/internal/ui/images"
 	uipicker "github.com/ayn2op/discordo/internal/ui/picker"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/cmd"
 	tviewimage "github.com/ayn2op/tview/image"
 	"github.com/ayn2op/tview/picker"
 	"github.com/ayn2op/tview/text"
@@ -19,9 +21,11 @@ type Model struct {
 	uipicker.Model
 	cfg   *config.Config
 	state *ningen.State
+
 	// reactions are those of the items, and images the chat model's, which loads them, by URL.
 	reactions []reaction
 	images    map[discord.URL]tviewimage.Widget
+
 	// channelID and messageID are of the message reacted to.
 	channelID discord.ChannelID
 	messageID discord.MessageID
@@ -39,7 +43,7 @@ func NewModel(cfg *config.Config, state *ningen.State) Model {
 
 // items returns the reactions as the picker's items, drawn with the images and found by any of their names.
 func (m Model) items() picker.Items {
-	style := m.cfg.Theme.MessagesList.EmojiStyle.Style
+	style := ui.Foreground(m.cfg.Palette().Success.Style)
 	items := make(picker.Items, len(m.reactions))
 	for i, r := range m.reactions {
 		line := emojis.Line(r.emoji, m.cfg.UI.MessagesList.Emojis.Name(r.names[0]), style, m.images)
@@ -72,16 +76,16 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		if len(load.Squares) == 0 {
 			return m, nil
 		}
-		return m, func() tview.Msg { return load }
+		return m, cmd.Task(func() tview.Msg { return load })
 	case images.ChangedMsg:
 		m.images = msg
 		m.ReplaceItems(m.items())
 		return m, nil
 	}
 
-	var cmd tview.Cmd
-	m.Model, cmd = m.Model.Update(msg)
-	return m, cmd
+	var c tview.Cmd
+	m.Model, c = m.Model.Update(msg)
+	return m, c
 }
 
 // View shows the picker in a box titled Reactions.

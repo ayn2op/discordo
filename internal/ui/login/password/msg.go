@@ -6,6 +6,7 @@ import (
 	"github.com/ayn2op/arikawa/v3/utils/httputil"
 	"github.com/ayn2op/discordo/internal/http"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/cmd"
 )
 
 type TokenMsg string
@@ -25,7 +26,7 @@ type (
 )
 
 func submitLogin(login, password string) tview.Cmd {
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		headers := http.Headers()
 		headers.Set("Referer", "https://discord.com/login")
 
@@ -46,5 +47,5 @@ func submitLogin(login, password string) tview.Cmd {
 		}
 
 		return errors.New("login response did not include a token")
-	}
+	})
 }

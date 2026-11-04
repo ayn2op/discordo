@@ -10,6 +10,7 @@ import (
 	"github.com/ayn2op/discordo/internal/ui/login/qr"
 	"github.com/ayn2op/discordo/internal/ui/login/token"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/cmd"
 	"github.com/ayn2op/tview/column"
 )
 
@@ -25,15 +26,17 @@ const (
 
 // Model shows the login methods as tabs inside a bordered box.
 type Model struct {
-	cfg      *config.Config
+	cfg *config.Config
+
 	password password.Model
 	qr       qr.Model
 	token    token.Model
-	active   tab
+
+	active tab
 }
 
 func NewModel(cfg *config.Config) Model {
-	return Model{cfg: cfg, qr: qr.NewModel()}
+	return Model{cfg: cfg, password: password.NewModel(cfg), qr: qr.NewModel(), token: token.NewModel(cfg)}
 }
 
 // tabs returns the login methods as tabs set up by the tabs config.
@@ -75,16 +78,16 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		errCmd = showErrorDialog(msg)
 	}
 
-	var cmd tview.Cmd
+	var c tview.Cmd
 	switch m.active {
 	case tabPassword:
-		m.password, cmd = m.password.Update(msg)
+		m.password, c = m.password.Update(msg)
 	case tabQR:
-		m.qr, cmd = m.qr.Update(msg)
+		m.qr, c = m.qr.Update(msg)
 	case tabToken:
-		m.token, cmd = m.token.Update(msg)
+		m.token, c = m.token.Update(msg)
 	}
-	return m, tview.Batch(errCmd, cmd)
+	return m, cmd.Batch{errCmd, c}
 }
 
 // View shows the tabs in a box.

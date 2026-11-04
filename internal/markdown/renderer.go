@@ -6,6 +6,7 @@ import (
 
 	md "github.com/ayn2op/arikawa/v3/markdown"
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/text"
 	"github.com/yuin/goldmark/v2/ast"
@@ -23,7 +24,7 @@ func NewRenderer(cfg *config.Config) *Renderer {
 
 // RenderText returns the spans of the markdown node. emoji returns the image of the custom emoji with an ID as a line of spans, or nil if it has none.
 func (r *Renderer) RenderText(source []byte, node ast.Node, base tview.Style, emoji func(id string) []text.Span) []text.Span {
-	walker := &walker{renderer: r, source: source, emoji: emoji, builder: new(Builder), styles: []tview.Style{base}}
+	walker := &walker{renderer: r, palette: r.cfg.Palette(), source: source, emoji: emoji, builder: new(Builder), styles: []tview.Style{base}}
 	_ = ast.Walk(node, walker.walk)
 	return walker.builder.Finish()
 }
@@ -31,6 +32,7 @@ func (r *Renderer) RenderText(source []byte, node ast.Node, base tview.Style, em
 // walker holds the state of one RenderText walk.
 type walker struct {
 	renderer *Renderer
+	palette  config.ThemeConfig
 	source   []byte
 	emoji    func(id string) []text.Span
 
@@ -50,7 +52,7 @@ func (w *walker) walk(node ast.Node, entering bool) (ast.WalkStatus, error) {
 }
 
 func (w *walker) enter(node ast.Node) ast.WalkStatus {
-	theme := w.renderer.cfg.Theme.MessagesList
+	link := ui.Foreground(w.palette.Primary.Base.Style)
 	switch node := node.(type) {
 	case *ast.Heading:
 		w.builder.Write(strings.Repeat("#", node.Level)+" ", w.style())
@@ -68,11 +70,11 @@ func (w *walker) enter(node ast.Node) ast.WalkStatus {
 		w.renderer.renderCodeBlock(w.builder, w.source, node, w.style())
 	case *ast.AutoLink:
 		url := string(node.Destination.Bytes(w.source))
-		w.builder.Write(url, tview.MergeStyle(w.style(), theme.URLStyle.Style).Url(url))
+		w.builder.Write(url, tview.MergeStyle(w.style(), link).Url(url))
 	case *ast.Link:
 		url := string(node.Destination.Bytes(w.source))
 		w.linkDepth++
-		w.pushStyle(tview.MergeStyle(w.style(), theme.URLStyle.Style).Url(url))
+		w.pushStyle(tview.MergeStyle(w.style(), link).Url(url))
 	case *ast.List:
 		w.builder.NewLine()
 		w.listDepth++
@@ -86,7 +88,7 @@ func (w *walker) enter(node ast.Node) ast.WalkStatus {
 
 		w.pushStyle(applyInlineAttr(w.style(), node.Attr, w.linkDepth > 0))
 	case *md.Mention:
-		w.builder.Write(mentionText(node), tview.MergeStyle(w.style(), theme.MentionStyle.Style))
+		w.builder.Write(mentionText(node), tview.MergeStyle(w.style(), link.Bold(true)))
 	case *md.Emoji:
 		w.writeEmoji(node)
 	}
@@ -126,7 +128,7 @@ func (w *walker) writeEmoji(node *md.Emoji) {
 		w.builder.Write(" ", w.style())
 	}
 
-	w.builder.Write(emojis.Name(node.Name), tview.MergeStyle(w.style(), w.renderer.cfg.Theme.MessagesList.EmojiStyle.Style))
+	w.builder.Write(emojis.Name(node.Name), tview.MergeStyle(w.style(), ui.Foreground(w.palette.Success.Style)))
 }
 
 func (w *walker) style() tview.Style {

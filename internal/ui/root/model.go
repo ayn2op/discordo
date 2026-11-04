@@ -1,7 +1,6 @@
 package root
 
 import (
-	"github.com/ayn2op/tview/layout"
 	"os"
 
 	"github.com/ayn2op/discordo/internal/config"
@@ -15,13 +14,14 @@ import (
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/backdrop"
 	"github.com/ayn2op/tview/box"
+	"github.com/ayn2op/tview/cmd"
 	"github.com/ayn2op/tview/column"
 	"github.com/ayn2op/tview/dialog"
 	"github.com/ayn2op/tview/help"
 	"github.com/ayn2op/tview/inert"
 	"github.com/ayn2op/tview/keybind"
+	"github.com/ayn2op/tview/layout"
 	"github.com/ayn2op/tview/stack"
-	"github.com/gdamore/tcell/v3"
 )
 
 const tokenEnvVarKey = "DISCORDO_TOKEN"
@@ -57,24 +57,25 @@ func NewModel(cfg *config.Config) Model {
 
 // updateScreen updates the model shown above help with msg.
 func (m *Model) updateScreen(msg tview.Msg) tview.Cmd {
-	var cmd tview.Cmd
+	var c tview.Cmd
 	switch m.screen {
 	case screenLogin:
-		m.login, cmd = m.login.Update(msg)
+		m.login, c = m.login.Update(msg)
 	case screenChat:
-		m.chat, cmd = m.chat.Update(msg)
+		m.chat, c = m.chat.Update(msg)
 	}
-	return cmd
+	return c
 }
 
 // helpView returns the help for the keybinds that currently apply.
 func (m Model) helpView() help.Widget {
-	cfg := m.cfg
+	cfg, muted := m.cfg, ui.MutedStyle(m.cfg.Palette())
 	return help.New(m).
-		ShortKeyStyle(cfg.Theme.Help.ShortKeyStyle.Style).
-		ShortDescStyle(cfg.Theme.Help.ShortDescStyle.Style).
-		FullKeyStyle(cfg.Theme.Help.FullKeyStyle.Style).
-		FullDescStyle(cfg.Theme.Help.FullDescStyle.Style).
+		ShortKeyStyle(muted).
+		ShortSeparatorStyle(muted).
+		FullKeyStyle(muted).
+		FullSeparatorStyle(muted).
+		EllipsisStyle(muted).
 		CompactModifiers(cfg.Help.CompactModifiers).
 		ShortSeparator(cfg.Help.Separator).
 		ShowAll(m.helpShowAll)
@@ -91,24 +92,15 @@ func (m Model) dialogView() tview.Widget {
 	for i, button := range m.dialog.Buttons {
 		labels[i] = button.Label
 	}
-	style := m.cfg.Theme.Dialog.Style.Style
-	widget := dialog.New().
+	palette := m.cfg.Palette()
+	return dialog.New().
 		Text(m.dialog.Text).
 		Buttons(labels...).
+		ButtonStyle(ui.ButtonStyle(palette, false, false)).
+		ActivatedStyle(ui.ButtonStyle(palette, true, false)).
 		Focus(m.dialogFocus).
-		ButtonStyle(style).
-		ActivatedStyle(style.Reverse(true)).
 		OnFocus(func(i int) tview.Msg { return dialogFocusMsg(i) }).
 		OnDone(func(i int, _ string) tview.Msg { return dialogDoneMsg(i) })
-	if bg := style.GetBackground(); bg != tcell.ColorDefault {
-		widget = widget.Background(bg)
-	}
-
-	if fg := style.GetForeground(); fg != tcell.ColorDefault {
-		widget = widget.TextColor(fg)
-	}
-
-	return widget
 }
 
 func (m *Model) toggleHelp() {
@@ -120,17 +112,18 @@ func (m *Model) toggleHelp() {
 var _ tview.Model[Model] = Model{}
 
 func (m Model) Init() tview.Cmd {
-	var cmd tview.Cmd
+	var c tview.Cmd
 	if token := os.Getenv(tokenEnvVarKey); token != "" {
-		cmd = useToken(token)
+		c = useToken(token)
 	} else {
-		cmd = getToken()
+		c = getToken()
 	}
-	return tview.Batch(
-		tview.SetTitle(consts.Name),
+	return cmd.Batch{
+		cmd.SetTitle(consts.Name),
+		ui.SetColors(m.cfg.Palette().Background.Base.Style),
 		initClipboard(),
-		cmd,
-	)
+		c,
+	}
 }
 
 // Update returns m changed in response to msg and a command to run, or nil.
@@ -142,17 +135,23 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		return m, m.showChat(string(msg))
 
 	case password.TokenMsg:
-		return m, tview.Batch(m.showChat(string(msg)), setToken(string(msg)))
+		return m, cmd.Batch{m.showChat(string(msg)), setToken(string(msg))}
 	case qr.TokenMsg:
-		return m, tview.Batch(m.showChat(string(msg)), setToken(string(msg)))
+		return m, cmd.Batch{m.showChat(string(msg)), setToken(string(msg))}
 	case token.TokenMsg:
-		return m, tview.Batch(m.showChat(string(msg)), setToken(string(msg)))
+		return m, cmd.Batch{m.showChat(string(msg)), setToken(string(msg))}
 
+	case chat.ClosedMsg:
+		return m, cmd.Quit{}
 	case chat.LogoutMsg:
-		return m, tview.Batch(
+		if msg.Err != nil {
+			dialog := ui.ErrorDialog("open chat state", msg.Err)
+			m.dialog, m.dialogFocus = &dialog, 0
+		}
+		return m, cmd.Batch{
 			m.showLogin(),
 			deleteToken(),
-		)
+		}
 	case ui.DialogMsg:
 		if m.dialog == nil {
 			m.dialog, m.dialogFocus = &msg, 0
@@ -212,9 +211,10 @@ func (m Model) View() tview.Widget {
 	if m.helpVisible {
 		helpView = box.New(m.helpView()).Padding(0, 0, m.cfg.Help.Padding[0], m.cfg.Help.Padding[1]).Height(layout.Shrink)
 	}
-	content := column.New(innerView, helpView)
+	// Fill the background with the theme's.
+	content := box.New(column.New(innerView, helpView)).Background(m.cfg.Palette().Background.Base.GetBackground())
 	if m.dialog == nil {
 		return content
 	}
-	return stack.New(inert.New(content), backdrop.New().Style(m.cfg.Theme.Dialog.BackgroundStyle.Style), m.dialogView())
+	return stack.New(inert.New(content), backdrop.New().Style(ui.MutedStyle(m.cfg.Palette())), m.dialogView())
 }

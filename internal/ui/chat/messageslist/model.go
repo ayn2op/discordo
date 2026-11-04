@@ -13,6 +13,7 @@ import (
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/box"
+	"github.com/ayn2op/tview/cmd"
 	"github.com/ayn2op/tview/column"
 	tviewimage "github.com/ayn2op/tview/image"
 	"github.com/ayn2op/tview/keybind"
@@ -109,13 +110,13 @@ func (m Model) title() string {
 }
 
 func (m Model) listView() viewport.Widget {
-	cfg, theme := m.cfg.UI.ScrollBar, m.cfg.Theme.ScrollBar
+	cfg := m.cfg.UI.ScrollBar
 	bar := scrollbar.New().
 		SymbolSet(cfg.SymbolSet.SymbolSet).
-		Style(theme.TrackStyle.Style).
-		ThumbStyle(theme.ThumbStyle.Style)
+		Style(ui.MutedStyle(m.cfg.Palette()))
 	// The model moves the selection itself, so the list is not focused and only takes clicks.
 	l := list.New(m.cursor, len(m.items), m.buildItem).
+		SelectedStyle(ui.SelectedStyle(m.cfg.Palette())).
 		// A group's messages have no spacing between them.
 		Spacing(func(index int) int {
 			if m.items[index].grouped {
@@ -123,7 +124,6 @@ func (m Model) listView() viewport.Widget {
 			}
 			return int(m.cfg.UI.MessagesList.Spacing)
 		}).
-		SelectedStyle(m.cfg.Theme.MessagesList.SelectedMessageStyle.Style).
 		OnChange(func(cursor int) tview.Msg { return listMsg(cursor) })
 	return viewport.New(l, m.scrollState).
 		Target(l.Target(m.target)).
@@ -151,7 +151,7 @@ func (m *Model) SetChannel(channel *discord.Channel, messages []discord.Message)
 	m.reset()
 	m.setMessages(messages)
 	if channel.GuildID.IsValid() {
-		return tview.Batch(m.requestGuildMembers(channel.GuildID, messages), m.LoadImages())
+		return cmd.Batch{m.requestGuildMembers(channel.GuildID, messages), m.LoadImages()}
 	}
 	return m.LoadImages()
 }
@@ -283,7 +283,7 @@ func (m Model) buildItem(index int) tview.Widget {
 func (m Model) itemView(item *messageItem) tview.Widget {
 	message := &item.message
 	root := m.contentRoot(item)
-	style := m.cfg.Theme.MessagesList.MessageStyle.Style
+	var style tview.Style
 
 	// Attachments are named in the text, before the embeds.
 	body := column.New(messageText(m.renderMessage(*message, root, style, item.grouped))).Height(layout.Shrink)
@@ -343,13 +343,13 @@ const separatorDatePadding = " "
 // separatorView returns the line with the date of message in the middle of it. It is made once, when the separator is added, as the list builds every item each time it is laid out.
 func (m Model) separatorView(message discord.Message) tview.Widget {
 	date := message.Timestamp.Time().In(time.Local).Format(m.cfg.DateSeparator.Format)
-	style := m.cfg.Theme.MessagesList.MessageStyle.Dim(true)
+	muted := ui.MutedStyle(m.cfg.Palette())
 	return box.New(spacer.New()).
 		Borders(tview.BordersTop).
 		BorderSet(tview.BorderSet{Top: m.cfg.DateSeparator.Character}).
-		BorderStyle(style).
+		BorderStyle(muted).
 		// The separator is kept, so its date is laid out once.
-		Title(text.New(separatorDatePadding + date + separatorDatePadding).Style(style).Wrapping(text.WrappingNone).Paragraph(new(text.Paragraph))).
+		Title(text.New(separatorDatePadding + date + separatorDatePadding).Style(muted).Wrapping(text.WrappingNone).Paragraph(new(text.Paragraph))).
 		Height(layout.Fixed(1))
 }
 
@@ -461,7 +461,7 @@ func (m *Model) prependOlder(msg olderMessagesLoadedMsg) tview.Cmd {
 
 	m.rebuildItems()
 	if selectedChannel.GuildID.IsValid() {
-		return tview.Batch(m.requestGuildMembers(selectedChannel.GuildID, msg.older), m.LoadImages())
+		return cmd.Batch{m.requestGuildMembers(selectedChannel.GuildID, msg.older), m.LoadImages()}
 	}
 
 	return m.LoadImages()
@@ -570,10 +570,10 @@ var _ tview.Model[Model] = Model{}
 
 // Init waits for the status of the voice message player to change.
 func (m Model) Init() tview.Cmd {
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		<-m.voicePlayer.Updates()
 		return voiceMsg{}
-	}
+	})
 }
 
 // Update returns m changed in response to msg and a command to run, or nil.
@@ -678,6 +678,6 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 
 func (m Model) View() tview.Widget {
 	return ui.Box(m.listView(), m.cfg, m.focused).
-		Title(ui.Label(m.title(), m.cfg.Theme.Title, m.focused)).
-		Footer(ui.Label(m.footer, m.cfg.Theme.Footer, m.focused))
+		Title(ui.Label(m.title(), m.cfg, m.focused)).
+		Footer(ui.Label(m.footer, m.cfg, m.focused))
 }

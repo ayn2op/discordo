@@ -8,6 +8,7 @@ import (
 	"path"
 	"path/filepath"
 	"slices"
+	"strings"
 	"sync"
 
 	"github.com/BurntSushi/toml"
@@ -150,8 +151,9 @@ type (
 		Category int `toml:"category"`
 		Channel  int `toml:"channel"`
 		Forum    int `toml:"forum"`
-		GroupDM  int `toml:"group_dm"`
-		DM       int `toml:"dm"`
+
+		GroupDM int `toml:"group_dm"`
+		DM      int `toml:"dm"`
 	}
 
 	// PaneConfig is a side pane that can be toggled at runtime.
@@ -206,9 +208,10 @@ type (
 
 		// Global shortcuts. A keybind is a key such as "ctrl+k", or a list of keys.
 		Keybinds Keybinds `toml:"keybinds"`
-		// Styles of the widgets, each written as
+		// The theme everything is drawn with: "default", "tokyonight", "tokyonight_storm", "tokyonight_moon", "tokyonight_day", "catppuccin_mocha", "catppuccin_macchiato", "catppuccin_frappe", "catppuccin_latte", "dracula", "dracula_light", "nord", "nord_light", "gruvbox", "gruvbox_light", "kanagawa", "kanagawa_dragon", "kanagawa_lotus", or the name of a file themes/<name>.toml in the config directory.
+		// A theme file sets the palette over the default one, in the tables background, primary and secondary and the keys success, warning and danger, each style written as
 		// `{ foreground = "", background = "", attributes = "" or ["", ""], underline = "", underline_color = "" }`.
-		Theme ThemeConfig `toml:"theme"`
+		Theme string `toml:"theme"`
 	}
 )
 
@@ -262,7 +265,7 @@ func Default() Config {
 		},
 
 		Keybinds: defaultKeybinds(),
-		Theme:    defaultTheme(),
+		Theme:    "default",
 	}
 }
 
@@ -275,13 +278,15 @@ var dir = sync.OnceValue(func() string {
 	return filepath.Join(path, consts.Name)
 })
 
-func DefaultPath() string {
-	return filepath.Join(dir(), fileName)
+// DefaultDir returns the directory of the configuration file and themes.
+func DefaultDir() string {
+	return dir()
 }
 
-// Load reads the configuration file and parses it.
-func Load(path string) (*Config, error) {
+// Load reads the configuration file in dir and parses it.
+func Load(dir string) (*Config, error) {
 	cfg := Default()
+	path := filepath.Join(dir, fileName)
 	file, err := os.Open(path)
 	switch {
 	case os.IsNotExist(err):
@@ -295,8 +300,32 @@ func Load(path string) (*Config, error) {
 		}
 	}
 
+	entries, err := os.ReadDir(filepath.Join(dir, "themes"))
+	if err != nil && !os.IsNotExist(err) {
+		return nil, fmt.Errorf("failed to read themes: %w", err)
+	}
+	for _, entry := range entries {
+		name, ok := strings.CutSuffix(entry.Name(), ".toml")
+		if !ok {
+			continue
+		}
+		theme := defaultTheme()
+		if _, err := toml.DecodeFile(filepath.Join(dir, "themes", entry.Name()), &theme); err != nil {
+			return nil, fmt.Errorf("failed to load theme %q: %w", name, err)
+		}
+		themes[name] = theme
+	}
+	if _, ok := themes[cfg.Theme]; !ok {
+		return nil, fmt.Errorf("unknown theme %q", cfg.Theme)
+	}
+
 	cfg.applyDefaults()
 	return &cfg, nil
+}
+
+// Palette returns the palette of the theme.
+func (cfg *Config) Palette() ThemeConfig {
+	return themes[cfg.Theme]
 }
 
 func (cfg *Config) applyDefaults() {

@@ -8,6 +8,7 @@ import (
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/box"
 	"github.com/ayn2op/tview/center"
+	"github.com/ayn2op/tview/cmd"
 	"github.com/ayn2op/tview/column"
 	"github.com/ayn2op/tview/image"
 	"github.com/ayn2op/tview/layout"
@@ -49,7 +50,7 @@ func (Model) Label() string {
 var _ tview.Model[Model] = Model{}
 
 func (Model) Init() tview.Cmd {
-	return func() tview.Msg { return startMsg{} }
+	return cmd.Task(func() tview.Msg { return startMsg{} })
 }
 
 // Update returns m changed in response to msg and a command to run, or nil.
@@ -75,21 +76,21 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 
 	case helloMsg:
 		m.heartbeatInterval = time.Duration(msg.heartbeatInterval) * time.Millisecond
-		return m, tview.Batch(listen(m.conn), scheduleHeartbeat(m.heartbeatInterval), generatePrivateKey())
+		return m, cmd.Batch{listen(m.conn), scheduleHeartbeat(m.heartbeatInterval), generatePrivateKey()}
 	case privateKeyMsg:
 		m.privateKey = msg.privateKey
 		return m, sendInit(m.conn, m.privateKey)
 	case nonceProofMsg:
-		return m, tview.Batch(listen(m.conn), sendNonceProof(m.conn, m.privateKey, msg.encryptedNonce))
+		return m, cmd.Batch{listen(m.conn), sendNonceProof(m.conn, m.privateKey, msg.encryptedNonce)}
 	case pendingRemoteInitMsg:
 		m.fingerprint = msg.fingerprint
-		return m, tview.Batch(listen(m.conn), generateQRCode(msg.fingerprint))
+		return m, cmd.Batch{listen(m.conn), generateQRCode(msg.fingerprint)}
 	case qrCodeMsg:
 		m.qrCode = msg.qrCode
 		m.status = "Scan this with the Discord mobile app to log in instantly."
 		return m, nil
 	case pendingTicketMsg:
-		return m, tview.Batch(listen(m.conn), decryptUserPayload(m.privateKey, msg.encryptedUserPayload))
+		return m, cmd.Batch{listen(m.conn), decryptUserPayload(m.privateKey, msg.encryptedUserPayload)}
 	case userMsg:
 		name := msg.username
 		if msg.discriminator != "0" {
@@ -99,7 +100,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		return m, nil
 	case pendingLoginMsg:
 		m.status = "Authenticating..."
-		return m, tview.Batch(closeConn(m.conn), exchangeTicket(m.fingerprint, m.privateKey, msg.ticket))
+		return m, cmd.Batch{closeConn(m.conn), exchangeTicket(m.fingerprint, m.privateKey, msg.ticket)}
 	case ignoredMsg:
 		return m, listen(m.conn)
 	case cancelMsg:
@@ -110,7 +111,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		if m.conn == nil {
 			return m, nil
 		}
-		return m, tview.Batch(scheduleHeartbeat(m.heartbeatInterval), sendHeartbeat(m.conn))
+		return m, cmd.Batch{scheduleHeartbeat(m.heartbeatInterval), sendHeartbeat(m.conn)}
 
 	case error:
 		m.status = msg.Error()

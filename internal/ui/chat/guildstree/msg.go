@@ -7,6 +7,7 @@ import (
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/cmd"
 	"github.com/ayn2op/tview/tree"
 )
 
@@ -129,7 +130,7 @@ func (m Model) expandPrivateChannels(node *tree.Node) {
 }
 
 func loadChannel(state *ningen.State, limit uint, channel discord.Channel) tview.Cmd {
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		messages, err := state.Messages(channel.ID, limit)
 		if err != nil {
 			slog.Error("failed to get messages", "err", err, "channel_id", channel.ID, "limit", limit)
@@ -141,5 +142,5 @@ func loadChannel(state *ningen.State, limit uint, channel discord.Channel) tview
 		}
 
 		return ChannelLoadedMsg{Channel: channel, Messages: messages}
-	}
+	})
 }

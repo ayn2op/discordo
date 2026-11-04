@@ -341,20 +341,6 @@ Whether to draw lines that give the tree its shape.
 
 Default: `true`
 
-## ui.scroll_bar
-
-### ui.scroll_bar.visibility
-
-"auto", "always" or "never".
-
-Default: `"auto"`
-
-### ui.scroll_bar.symbol_set
-
-"minimal", "box_drawing", "vertical" or "double_vertical".
-
-Default: `"box_drawing"`
-
 ## ui.messages_list
 
 ### ui.messages_list.compact
@@ -471,6 +457,20 @@ Default: `true`
 The text between reactions.
 
 Default: `" • "`
+
+## ui.scroll_bar
+
+### ui.scroll_bar.visibility
+
+"auto", "always" or "never".
+
+Default: `"auto"`
+
+### ui.scroll_bar.symbol_set
+
+"minimal", "box_drawing", "vertical" or "double_vertical".
+
+Default: `"box_drawing"`
 
 ## ui.autocomplete
 
@@ -605,6 +605,12 @@ Default: `"alt+m"`
 ## keybinds.toggle_channels_picker
 
 Default: `"ctrl+k"`
+
+## keybinds.toggle_theme_picker
+
+Pick the theme, previewing each one.
+
+Default: `"alt+t"`
 
 ## keybinds.toggle_mute
 
@@ -1139,223 +1145,8 @@ Default: `"ctrl+c"`
 
 # theme
 
-Styles of the widgets, each written as
+The theme everything is drawn with: "default", "tokyonight", "tokyonight_storm", "tokyonight_moon", "tokyonight_day", "catppuccin_mocha", "catppuccin_macchiato", "catppuccin_frappe", "catppuccin_latte", "dracula", "dracula_light", "nord", "nord_light", "gruvbox", "gruvbox_light", "kanagawa", "kanagawa_dragon", "kanagawa_lotus", or the name of a file themes/<name>.toml in the config directory.
+A theme file sets the palette over the default one, in the tables background, primary and secondary and the keys success, warning and danger, each style written as
 `{ foreground = "", background = "", attributes = "" or ["", ""], underline = "", underline_color = "" }`.
 
-## theme.title
-
-### theme.title.normal_style
-
-Default: `{ attributes = "dim" }`
-
-### theme.title.active_style
-
-The style used while the widget is focused.
-
-Default: `{ foreground = "green", attributes = "bold" }`
-
-## theme.footer
-
-### theme.footer.normal_style
-
-Default: `{ attributes = "dim" }`
-
-### theme.footer.active_style
-
-The style used while the widget is focused.
-
-Default: `{ foreground = "green", attributes = "bold" }`
-
-## theme.border
-
-### theme.border.normal_style
-
-Default: `{ attributes = "dim" }`
-
-### theme.border.active_style
-
-The style used while the widget is focused.
-
-Default: `{ foreground = "green", attributes = "bold" }`
-
-## theme.guilds_tree
-
-The status styles are those of direct-message recipients.
-
-### theme.guilds_tree.graphics_color
-
-The color of the lines that give the tree its shape.
-
 Default: `"default"`
-
-### theme.guilds_tree.online_style
-
-Default: `{ foreground = "green" }`
-
-### theme.guilds_tree.idle_style
-
-Default: `{ foreground = "yellow" }`
-
-### theme.guilds_tree.dnd_style
-
-Default: `{ foreground = "red" }`
-
-### theme.guilds_tree.offline_style
-
-Default: `{ foreground = "gray" }`
-
-### theme.guilds_tree.speaking_style
-
-The style of whoever is speaking in the voice channel joined.
-
-Default: `{ foreground = "green" }`
-
-### theme.guilds_tree.voice_limit_style
-
-The style of how full a voice channel that has a user limit is.
-
-Default: `{ foreground = "dodgerblue" }`
-
-## theme.members_tree
-
-The status styles are those of the dot before each member.
-
-### theme.members_tree.graphics_color
-
-The color of the lines that give the tree its shape.
-
-Default: `"default"`
-
-### theme.members_tree.online_style
-
-Default: `{ foreground = "green" }`
-
-### theme.members_tree.idle_style
-
-Default: `{ foreground = "yellow" }`
-
-### theme.members_tree.dnd_style
-
-Default: `{ foreground = "red" }`
-
-### theme.members_tree.offline_style
-
-Default: `{ foreground = "gray" }`
-
-## theme.scroll_bar
-
-### theme.scroll_bar.track_style
-
-Default: `{ attributes = "dim" }`
-
-### theme.scroll_bar.thumb_style
-
-Default: `{}`
-
-## theme.messages_list
-
-### theme.messages_list.author_style
-
-Default: `{}`
-
-### theme.messages_list.mention_style
-
-Default: `{ foreground = "blue", attributes = "bold" }`
-
-### theme.messages_list.emoji_style
-
-Default: `{ foreground = "green" }`
-
-### theme.messages_list.url_style
-
-Default: `{ foreground = "blue" }`
-
-### theme.messages_list.attachment_style
-
-Default: `{ foreground = "yellow" }`
-
-### theme.messages_list.reaction_style
-
-Default: `{ attributes = "dim" }`
-
-### theme.messages_list.own_reaction_style
-
-Default: `{ attributes = "bold" }`
-
-### theme.messages_list.message_style
-
-Default: `{}`
-
-### theme.messages_list.selected_message_style
-
-Default: `{ attributes = "reverse" }`
-
-### theme.messages_list.embeds
-
-#### theme.messages_list.embeds.provider_style
-
-Default: `{ attributes = ["dim","italic"] }`
-
-#### theme.messages_list.embeds.author_style
-
-Default: `{ attributes = "italic" }`
-
-#### theme.messages_list.embeds.title_style
-
-Default: `{ foreground = "blue", attributes = "bold" }`
-
-#### theme.messages_list.embeds.description_style
-
-Default: `{ attributes = "dim" }`
-
-#### theme.messages_list.embeds.field_name_style
-
-Default: `{ attributes = "bold", underline = "solid" }`
-
-#### theme.messages_list.embeds.field_value_style
-
-Default: `{}`
-
-#### theme.messages_list.embeds.footer_style
-
-Default: `{ attributes = ["dim","italic"] }`
-
-#### theme.messages_list.embeds.url_style
-
-Default: `{ foreground = "blue", underline = "solid" }`
-
-## theme.autocomplete
-
-### theme.autocomplete.selected_style
-
-Default: `{ attributes = "reverse" }`
-
-## theme.dialog
-
-### theme.dialog.style
-
-Default: `{}`
-
-### theme.dialog.background_style
-
-The style of everything behind the dialog.
-
-Default: `{ attributes = "dim" }`
-
-## theme.help
-
-### theme.help.short_key_style
-
-Default: `{ attributes = "dim" }`
-
-### theme.help.short_desc_style
-
-Default: `{}`
-
-### theme.help.full_key_style
-
-Default: `{ attributes = "dim" }`
-
-### theme.help.full_desc_style
-
-Default: `{}`

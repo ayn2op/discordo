@@ -1,6 +1,8 @@
 package token
 
 import (
+	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/button"
 	"github.com/ayn2op/tview/column"
@@ -13,6 +15,8 @@ import (
 
 // Model is a token input above a button. Tab and the arrow keys move the focus, Enter in the input moves to the button, and Enter on the button or clicking it logs in.
 type Model struct {
+	cfg *config.Config
+
 	token string
 	// cursor is the byte offset of the cursor in token.
 	cursor int
@@ -24,6 +28,10 @@ type Model struct {
 
 func (Model) Label() string {
 	return "Token"
+}
+
+func NewModel(cfg *config.Config) Model {
+	return Model{cfg: cfg}
 }
 
 var _ tview.Model[Model] = Model{}
@@ -58,15 +66,8 @@ func (m Model) View() tview.Widget {
 		Focused(!m.buttonFocused).
 		OnInput(func(text string, cursor int) tview.Msg { return tokenMsg{text, cursor} }).
 		OnSubmit(focusButtonMsg{})
-	buttonStyle := tcell.StyleDefault
-	switch {
-	case m.buttonFocused:
-		buttonStyle = buttonStyle.Reverse(true)
-	case m.buttonHovered:
-		buttonStyle = buttonStyle.Underline(true)
-	}
 	submit := button.New(text.New("Login")).
-		Style(buttonStyle).
+		Style(ui.ButtonStyle(m.cfg.Palette(), m.buttonFocused, m.buttonHovered)).
 		Width(layout.Fixed(len("Login") + 4)).
 		Focused(m.buttonFocused).
 		Hovered(m.buttonHovered).

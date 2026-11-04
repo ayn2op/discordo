@@ -9,6 +9,7 @@ import (
 	"github.com/ayn2op/arikawa/v3/gateway"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/cmd"
 	"github.com/ayn2op/tview/viewport"
 )
 
@@ -47,7 +48,7 @@ func (m Model) showReactions() tview.Cmd {
 		return nil
 	}
 	msg := ShowReactionsMsg{m.channel.GuildID, message.ChannelID, message.ID}
-	return func() tview.Msg { return msg }
+	return cmd.Task(func() tview.Msg { return msg })
 }
 
 // EditMsg asks to edit a message.
@@ -92,7 +93,7 @@ func (m Model) fetchOlderMessages() tview.Cmd {
 	}
 	before := m.items[first].message.ID
 	limit := uint(m.cfg.MessagesLimit)
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		messages, err := m.state.MessagesBefore(channelID, before, limit)
 		if err != nil {
 			slog.Error("failed to fetch older messages", "err", err)
@@ -105,7 +106,7 @@ func (m Model) fetchOlderMessages() tview.Cmd {
 		older := slices.Clone(messages)
 		slices.Reverse(older)
 		return olderMessagesLoadedMsg{channelID: channelID, older: older}
-	}
+	})
 }
 
 func (m Model) yankMessageID() tview.Cmd {
@@ -147,7 +148,7 @@ func (m Model) reply(mention bool) tview.Cmd {
 	}
 
 	message := *selectedMessage
-	return func() tview.Msg { return ReplyMsg{Message: message, Name: name, Mention: mention} }
+	return cmd.Task(func() tview.Msg { return ReplyMsg{Message: message, Name: name, Mention: mention} })
 }
 
 func (m Model) editSelectedMessage() tview.Cmd {
@@ -162,7 +163,7 @@ func (m Model) editSelectedMessage() tview.Cmd {
 	}
 
 	message := *selectedMessage
-	return func() tview.Msg { return EditMsg(message) }
+	return cmd.Task(func() tview.Msg { return EditMsg(message) })
 }
 
 func (m Model) confirmDelete() tview.Cmd {
@@ -187,7 +188,7 @@ func (m Model) deleteSelectedMessage() tview.Cmd {
 }
 
 func (m Model) requestDelete(message discord.Message) tview.Cmd {
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		if !m.canDeleteMessage(message) {
 			slog.Error("failed to delete message; missing relevant permissions", "channel_id", message.ChannelID, "message_id", message.ID)
 			return nil
@@ -202,7 +203,7 @@ func (m Model) requestDelete(message discord.Message) tview.Cmd {
 			slog.Error("failed to delete message", "channel_id", message.ChannelID, "message_id", message.ID, "err", err)
 		}
 		return nil
-	}
+	})
 }
 
 func (m Model) requestGuildMembers(guildID discord.GuildID, messages []discord.Message) tview.Cmd {
@@ -232,7 +233,7 @@ func (m Model) requestGuildMembers(guildID discord.GuildID, messages []discord.M
 		return nil
 	}
 
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		if err := m.state.SendGateway(context.Background(), &gateway.RequestGuildMembersCommand{
 			GuildIDs: []discord.GuildID{guildID},
 			UserIDs:  usersToFetch,
@@ -240,5 +241,5 @@ func (m Model) requestGuildMembers(guildID discord.GuildID, messages []discord.M
 			slog.Error("failed to request guild members", "guild_id", guildID, "err", err)
 		}
 		return nil
-	}
+	})
 }

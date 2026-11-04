@@ -4,6 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/cmd"
 )
 
 type DialogButton struct {
@@ -18,7 +19,7 @@ type DialogMsg struct {
 }
 
 func ShowDialog(text string, buttons ...DialogButton) tview.Cmd {
-	return func() tview.Msg { return DialogMsg{Text: text, Buttons: buttons} }
+	return cmd.Task(func() tview.Msg { return DialogMsg{Text: text, Buttons: buttons} })
 }
 
 // ErrorDialog logs that what failed with err and returns the dialog that says so.

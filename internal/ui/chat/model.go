@@ -3,7 +3,6 @@ package chat
 import (
 	"cmp"
 	"fmt"
-	"github.com/ayn2op/tview/layout"
 	"log/slog"
 	"slices"
 	"time"
@@ -28,15 +27,18 @@ import (
 	"github.com/ayn2op/discordo/internal/ui/chat/memberstree"
 	"github.com/ayn2op/discordo/internal/ui/chat/messageslist"
 	"github.com/ayn2op/discordo/internal/ui/chat/reactionspicker"
+	"github.com/ayn2op/discordo/internal/ui/chat/themepicker"
 	"github.com/ayn2op/discordo/internal/ui/images"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/backdrop"
 	"github.com/ayn2op/tview/center"
+	"github.com/ayn2op/tview/cmd"
 	"github.com/ayn2op/tview/column"
 	tviewimage "github.com/ayn2op/tview/image"
 	"github.com/ayn2op/tview/inert"
 	"github.com/ayn2op/tview/keybind"
+	"github.com/ayn2op/tview/layout"
 	"github.com/ayn2op/tview/picker"
 	"github.com/ayn2op/tview/row"
 	"github.com/ayn2op/tview/stack"
@@ -57,6 +59,7 @@ type Model struct {
 	messagesList   messageslist.Model
 	composer       composer.Model
 	channelsPicker channelspicker.Model
+	themePicker    themepicker.Model
 	// attachmentsPicker picks an attachment or link of the selected message.
 	attachmentsPicker attachmentspicker.Model
 	// reactionsPicker picks an emoji to react to the selected message with.
@@ -122,6 +125,7 @@ func NewModel(cfg *config.Config, token string) Model {
 	m.messagesList = messageslist.NewModel(cfg, m.state)
 	m.composer = composer.NewModel(cfg, m.state)
 	m.channelsPicker = channelspicker.NewModel(cfg)
+	m.themePicker = themepicker.NewModel(cfg)
 	m.attachmentsPicker = attachmentspicker.NewModel(cfg)
 	m.reactionsPicker = reactionspicker.NewModel(cfg, m.state)
 
@@ -143,6 +147,7 @@ type overlay int
 const (
 	overlayNone overlay = iota
 	overlayChannelsPicker
+	overlayThemePicker
 	overlayAttachmentsPicker
 	overlayReactionsPicker
 )
@@ -152,6 +157,8 @@ func (m Model) pickerView() tview.Widget {
 	switch m.overlay {
 	case overlayChannelsPicker:
 		return m.channelsPicker.View()
+	case overlayThemePicker:
+		return m.themePicker.View()
 	case overlayAttachmentsPicker:
 		return m.attachmentsPicker.View()
 	case overlayReactionsPicker:
@@ -178,6 +185,21 @@ func (m *Model) openPicker() {
 func (m *Model) closePicker() {
 	m.overlay = overlayNone
 	m.channelsPicker.Reset()
+}
+
+// closeThemePicker closes the theme picker, if open, and goes back to the previous theme.
+func (m *Model) closeThemePicker() tview.Cmd {
+	if m.overlay != overlayThemePicker {
+		return nil
+	}
+	m.overlay = overlayNone
+	return m.setTheme(m.themePicker.Previous())
+}
+
+// setTheme sets the theme.
+func (m *Model) setTheme(theme string) tview.Cmd {
+	m.cfg.Theme = theme
+	return ui.SetColors(m.cfg.Palette().Background.Base.Style)
 }
 
 // toggle shows or hides the side pane target and focuses it when shown.
@@ -220,7 +242,7 @@ func (m *Model) syncPanes() {
 func (m Model) update(msg tview.Msg) (Model, tview.Cmd) {
 	switch msg := msg.(type) {
 	case gateway.Event:
-		return m, tview.Batch(m.applyEvent(msg), listen(m.events))
+		return m, cmd.Batch{m.applyEvent(msg), listen(m.events)}
 	case guildstree.VoiceMsg:
 		return m, m.updatePane(paneGuildsTree, msg)
 	case tview.FocusMsg:
@@ -244,7 +266,7 @@ func (m Model) update(msg tview.Msg) (Model, tview.Cmd) {
 		}
 		title := ui.ChannelToString(msg.Channel, m.cfg.Icons, m.state) + " - " + consts.Name
 		// Not shown again soon.
-		return m, tview.Batch(m.clearImages(), tview.SetTitle(title), m.messagesList.SetChannel(&msg.Channel, msg.Messages), membersCmd)
+		return m, cmd.Batch{m.clearImages(), cmd.SetTitle(title), m.messagesList.SetChannel(&msg.Channel, msg.Messages), membersCmd}
 	case messageslist.Msg:
 		return m, m.updatePane(paneMessagesList, msg)
 	case tview.ResizeMsg:
@@ -261,23 +283,23 @@ func (m Model) update(msg tview.Msg) (Model, tview.Cmd) {
 		m.kitty = m.isKitty(msg.Name)
 		return m, m.reloadImages(cell)
 	case images.RequestedMsg:
-		cmd := m.loadImages(msg)
-		return m, tview.Batch(cmd, m.sendImages())
+		c := m.loadImages(msg)
+		return m, cmd.Batch{c, m.sendImages()}
 	case images.LoadedMsg:
 		// Another channel was selected, or the cell size changed, while it loaded.
 		if _, ok := m.images[msg.URL]; !ok || msg.Cell != m.imageCell() {
 			return m, nil
 		}
 
-		image, cmd := msg.Image, tview.Cmd(nil)
+		image, c := msg.Image, tview.Cmd(nil)
 		if m.kitty {
 			m.kittyImages++
 			image = image.Kitty(m.kittyImages%maxKittyImages + 1).Compressor(newPooledCompressor)
-			cmd = image.Transmit()
+			c = image.Transmit()
 		}
 
 		m.images[msg.URL] = image
-		return m, tview.Batch(cmd, m.sendImages())
+		return m, cmd.Batch{c, m.sendImages()}
 	case typingExpiredMsg:
 		if until, ok := m.typers[msg.userID]; ok && !time.Now().Before(until) {
 			delete(m.typers, msg.userID)
@@ -288,6 +310,17 @@ func (m Model) update(msg tview.Msg) (Model, tview.Cmd) {
 	case channelspicker.CancelMsg:
 		m.closePicker()
 		return m, nil
+	case themepicker.PreviewMsg:
+		// Drop a preview that arrives after the picker closed, or after a later one.
+		if m.overlay != overlayThemePicker || msg.Theme != m.themePicker.Previewed() {
+			return m, nil
+		}
+		return m, m.setTheme(msg.Theme)
+	case themepicker.SelectedMsg:
+		m.overlay = overlayNone
+		return m, m.setTheme(msg.Theme)
+	case themepicker.CancelMsg:
+		return m, m.closeThemePicker()
 	case attachmentspicker.SelectedMsg:
 		m.overlay = overlayNone
 		return m, msg.Action
@@ -300,9 +333,9 @@ func (m Model) update(msg tview.Msg) (Model, tview.Cmd) {
 		return m, nil
 	case messageslist.ShowReactionsMsg:
 		m.overlay = overlayReactionsPicker
-		var cmd tview.Cmd
-		m.reactionsPicker, cmd = m.reactionsPicker.Update(reactionspicker.ShowMsg(msg))
-		return m, cmd
+		var c tview.Cmd
+		m.reactionsPicker, c = m.reactionsPicker.Update(reactionspicker.ShowMsg(msg))
+		return m, c
 	case reactionspicker.SelectedMsg:
 		m.overlay = overlayNone
 		return m, m.react(msg)
@@ -326,7 +359,7 @@ func (m Model) update(msg tview.Msg) (Model, tview.Cmd) {
 		m.messagesList.ShowNewest()
 		return m, nil
 	case QuitMsg:
-		return m, closeState(m.state)
+		return m, closeState(m.state, ClosedMsg{})
 	case tview.KeyMsg:
 		keybinds := m.cfg.Keybinds
 		switch {
@@ -357,8 +390,17 @@ func (m Model) update(msg tview.Msg) (Model, tview.Cmd) {
 			m.toggle(&m.membersTreeVisible, paneMembersTree)
 			return m, nil
 		case keybind.Matches(msg, keybinds.ToggleChannelsPicker.Keybind):
+			c := m.closeThemePicker()
 			m.togglePicker()
-			return m, nil
+			return m, c
+		case keybind.Matches(msg, keybinds.ToggleThemePicker.Keybind):
+			if m.overlay == overlayThemePicker {
+				return m, m.closeThemePicker()
+			}
+			m.overlay = overlayThemePicker
+			var c tview.Cmd
+			m.themePicker, c = m.themePicker.Update(themepicker.ShowMsg{Theme: m.cfg.Theme})
+			return m, c
 		// The guilds tree is what the voice channel joined is in.
 		case keybind.Matches(msg, keybinds.ToggleMute.Keybind, keybinds.ToggleDeafen.Keybind, keybinds.LeaveVoice.Keybind):
 			return m, m.updatePane(paneGuildsTree, msg)
@@ -367,7 +409,7 @@ func (m Model) update(msg tview.Msg) (Model, tview.Cmd) {
 			return m, ui.ShowDialog(
 				"Are you sure you want to log out?",
 				ui.DialogButton{Label: "No"},
-				ui.DialogButton{Label: "Yes", Cmd: tview.Sequence(closeState(m.state), logout())},
+				ui.DialogButton{Label: "Yes", Cmd: closeState(m.state, LogoutMsg{})},
 			)
 		}
 	case composer.RefreshAutocompleteMsg, autocomplete.Msg:
@@ -386,34 +428,36 @@ func (m Model) update(msg tview.Msg) (Model, tview.Cmd) {
 
 // route sends msg to the open picker, which takes all input, and otherwise to the focused pane.
 func (m *Model) route(msg tview.Msg) tview.Cmd {
-	var cmd tview.Cmd
+	var c tview.Cmd
 	switch m.overlay {
 	case overlayChannelsPicker:
-		m.channelsPicker, cmd = m.channelsPicker.Update(msg)
+		m.channelsPicker, c = m.channelsPicker.Update(msg)
+	case overlayThemePicker:
+		m.themePicker, c = m.themePicker.Update(msg)
 	case overlayAttachmentsPicker:
-		m.attachmentsPicker, cmd = m.attachmentsPicker.Update(msg)
+		m.attachmentsPicker, c = m.attachmentsPicker.Update(msg)
 	case overlayReactionsPicker:
-		m.reactionsPicker, cmd = m.reactionsPicker.Update(msg)
+		m.reactionsPicker, c = m.reactionsPicker.Update(msg)
 	default:
-		cmd = m.updatePane(m.focused, msg)
+		c = m.updatePane(m.focused, msg)
 	}
-	return cmd
+	return c
 }
 
 // updatePane updates pane target with msg.
 func (m *Model) updatePane(target pane, msg tview.Msg) tview.Cmd {
-	var cmd tview.Cmd
+	var c tview.Cmd
 	switch target {
 	case paneGuildsTree:
-		m.guildsTree, cmd = m.guildsTree.Update(msg)
+		m.guildsTree, c = m.guildsTree.Update(msg)
 	case paneMessagesList:
-		m.messagesList, cmd = m.messagesList.Update(msg)
+		m.messagesList, c = m.messagesList.Update(msg)
 	case paneComposer:
-		m.composer, cmd = m.composer.Update(msg)
+		m.composer, c = m.composer.Update(msg)
 	case paneMembersTree:
-		m.membersTree, cmd = m.membersTree.Update(msg)
+		m.membersTree, c = m.membersTree.Update(msg)
 	}
-	return cmd
+	return c
 }
 
 // paneWidget passes input to the widget of a pane and marks mouse input within the pane as meant for it.
@@ -551,14 +595,14 @@ func (m Model) typerName(channel discord.Channel, userID discord.UserID) string 
 var _ tview.Model[Model] = Model{}
 
 func (m Model) Init() tview.Cmd {
-	return tview.Batch(openState(m.state), listen(m.events), m.guildsTree.Init(), m.messagesList.Init(), tview.RequestTerminalInfo())
+	return cmd.Batch{openState(m.state), listen(m.events), m.guildsTree.Init(), m.messagesList.Init(), cmd.RequestTerminalInfo{}}
 }
 
 // Update returns m changed in response to msg and a command to run, or nil.
 func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
-	m, cmd := m.update(msg)
+	m, c := m.update(msg)
 	m.syncPanes()
-	return m, cmd
+	return m, c
 }
 
 // View shows the panes, with the autocomplete over the messages and an open picker on top.
@@ -594,7 +638,7 @@ func (m Model) View() tview.Widget {
 	return stack.New(
 		// The panes behind the picker take no input.
 		inert.New(main),
-		backdrop.New().Style(m.cfg.Theme.Dialog.BackgroundStyle.Style),
+		backdrop.New().Style(ui.MutedStyle(m.cfg.Palette())),
 		center.New(column.New(picker).Width(layout.Fixed(m.cfg.Picker.Width)).Height(layout.Fixed(m.cfg.Picker.Height))),
 	)
 }

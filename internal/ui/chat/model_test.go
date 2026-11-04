@@ -3,22 +3,24 @@ package chat
 import (
 	"fmt"
 	"image"
-	"path/filepath"
+	"slices"
 	"testing"
 	"time"
 
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/arikawa/v3/gateway"
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/ui/chat/themepicker"
 	"github.com/ayn2op/discordo/internal/ui/images"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/cmd"
 	tviewimage "github.com/ayn2op/tview/image"
 	"github.com/gdamore/tcell/v3"
 )
 
 func newTestModel(t *testing.T) *Model {
 	t.Helper()
-	cfg, err := config.Load(filepath.Join(t.TempDir(), "config.toml"))
+	cfg, err := config.Load(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -82,12 +84,26 @@ func TestModelAddMessageOrNotify(t *testing.T) {
 			m.cfg.UI.MessagesList.Avatars.Preview = false
 			m.setSelectedChannel(&discord.Channel{ID: 1})
 			*m, _ = m.Update(tcell.NewEventFocus(tt.focused))
-			cmd := m.addMessageOrNotify(&gateway.MessageCreateEvent{ID: 1, ChannelID: 1})
-			if got := cmd != nil; got != tt.want {
+			c := m.addMessageOrNotify(&gateway.MessageCreateEvent{ID: 1, ChannelID: 1})
+			if got := !empty(c); got != tt.want {
 				t.Fatalf("notified = %v, want %v", got, tt.want)
 			}
 		})
 	}
+}
+
+// empty reports whether c does nothing.
+func empty(c tview.Cmd) bool {
+	batch, ok := c.(cmd.Batch)
+	if !ok {
+		return c == nil
+	}
+	for _, c := range batch {
+		if !empty(c) {
+			return false
+		}
+	}
+	return true
 }
 
 func TestModelCycleFocus(t *testing.T) {
@@ -154,5 +170,67 @@ func TestModelReloadImages(t *testing.T) {
 				t.Fatal("an image sized for the cell size was not shown")
 			}
 		})
+	})
+}
+
+func TestModelThemePicker(t *testing.T) {
+	m := newTestModel(t)
+	toggle := tcell.NewEventKey(tcell.KeyRune, "t", tcell.ModAlt)
+	// typeFilter types filter into the theme picker and returns the previews it makes, in order.
+	typeFilter := func(filter string) []tview.Msg {
+		var previews []tview.Msg
+		for _, r := range filter {
+			msg := m.View().Handle(tcell.NewEventKey(tcell.KeyRune, string(r), tcell.ModNone), tview.Rectangle{Width: 120, Height: 40})
+			var c tview.Cmd
+			*m, c = m.Update(msg)
+			batch, _ := c.(cmd.Batch)
+			for _, c := range batch {
+				if task, ok := c.(cmd.Task); ok {
+					previews = append(previews, task())
+				}
+			}
+		}
+		return previews
+	}
+	for _, test := range []struct {
+		name  string
+		close tview.Msg
+	}{
+		{"toggled", toggle},
+		{"channels picker", tcell.NewEventKey(tcell.KeyCtrlK, "", tcell.ModCtrl)},
+		{"canceled", themepicker.CancelMsg{}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			*m, _ = m.Update(toggle)
+			for _, msg := range typeFilter("nord") {
+				*m, _ = m.Update(msg)
+			}
+			if m.cfg.Theme != "nord" {
+				t.Fatalf("previewed %q, want nord", m.cfg.Theme)
+			}
+			*m, _ = m.Update(test.close)
+			m.overlay = overlayNone
+			if m.cfg.Theme != "default" {
+				t.Fatalf("theme = %q, want default", m.cfg.Theme)
+			}
+		})
+	}
+	t.Run("preview after closing", func(t *testing.T) {
+		*m, _ = m.Update(themepicker.PreviewMsg{Theme: "nord"})
+		if m.cfg.Theme != "default" {
+			t.Fatalf("theme = %q, want default", m.cfg.Theme)
+		}
+	})
+	t.Run("previews out of order", func(t *testing.T) {
+		*m, _ = m.Update(toggle)
+		// Each keystroke previews in its own command, and commands finish in any order.
+		previews := typeFilter("nord_l")
+		slices.Reverse(previews)
+		for _, msg := range previews {
+			*m, _ = m.Update(msg)
+		}
+		if item, _ := m.themePicker.Selected(); m.cfg.Theme != item.Reference {
+			t.Fatalf("theme = %q, want the selected %q (previews %v)", m.cfg.Theme, item.Reference, previews)
+		}
 	})
 }

@@ -29,10 +29,12 @@ const (
 
 // speaker decodes and buffers what one user says, to be mixed into what is played.
 type speaker struct {
-	mu      sync.Mutex
+	mu sync.Mutex
+
 	decoder *opus.Decoder
 	pcm     []int16
 	buf     []byte
+
 	// playing is whether the cushion was buffered and what is left of it is being played.
 	playing bool
 	// seq is the sequence number of the last packet, and last when it arrived.
