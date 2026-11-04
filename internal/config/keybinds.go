@@ -64,6 +64,7 @@ func (k Keybinds) Global() []keybind.Keybind {
 		k.ToggleHelp.Keybind, k.ToggleFullHelp.Keybind, k.Suspend.Keybind,
 		k.FocusGuildsTree.Keybind, k.FocusMembersTree.Keybind, k.FocusMessagesList.Keybind, k.FocusComposer.Keybind,
 		k.FocusPrevious.Keybind, k.FocusNext.Keybind,
+		k.ChannelBack.Keybind, k.ChannelForward.Keybind,
 		k.Logout.Keybind, k.Quit.Keybind,
 	}
 }
@@ -235,6 +236,12 @@ type Keybinds struct {
 	FocusPrevious Keybind `toml:"focus_previous"`
 	FocusNext     Keybind `toml:"focus_next"`
 
+	// Open the channel opened before the open one, or the one opened after it, as a browser goes back
+	// and forward. The path is this session's own and is not kept between runs.
+	// `channel_back` takes alt and the left arrow from the composer, where ctrl and an arrow still moves over a word.
+	ChannelBack    Keybind `toml:"channel_back"`
+	ChannelForward Keybind `toml:"channel_forward"`
+
 	Picker PickerKeybinds `toml:"picker"`
 	// Only while focusing on the guilds tree.
 	GuildsTree GuildsTreeKeybinds `toml:"guilds_tree"`
@@ -304,6 +311,9 @@ func defaultKeybinds() Keybinds {
 
 		FocusPrevious: key("focus prev", "ctrl+h"),
 		FocusNext:     key("focus next", "ctrl+l"),
+
+		ChannelBack:    key("back", "alt+left"),
+		ChannelForward: key("forward", "alt+right"),
 
 		Picker: PickerKeybinds{
 			SelectionKeybinds: emacs,
