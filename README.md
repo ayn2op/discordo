@@ -94,6 +94,12 @@ The log file is replaced on each run.
 
 Use `-log-path` to change the path, and `-log-level` (`debug`, `info`, `warn`, or `error`) to set the verbosity of what is logged.
 
+## Using GoReleaser
+
+GoReleaser requires that a SemVer tag is made and/or pushed to remote to fully work. Tag can either be `vx.x.x` or `x.x.x`
+
+There is a workflow that will run a action that runs GoReleaser's own action when a tag has been pushed to remote and it will upload the built artifacts which are `zip` and `tar.gz` files.
+
 ## License
 
 Copyright (C) 2025-present ayn2op
