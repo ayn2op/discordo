@@ -58,8 +58,23 @@ func (m Model) baseFullHelp() [][]keybind.Keybind {
 		{cfg.FocusPrevious.Keybind, cfg.FocusNext.Keybind},
 		{cfg.ToggleGuildsTree.Keybind, cfg.ToggleMembersTree.Keybind, cfg.ToggleChannelsPicker.Keybind},
 		{cfg.ToggleMute.Keybind, cfg.ToggleDeafen.Keybind, cfg.LeaveVoice.Keybind},
+		m.historyHelp(),
 		{cfg.Logout.Keybind},
 	}
+}
+
+// historyHelp returns the keybinds that walk the path of channels opened this session, each only while there is somewhere to go.
+func (m Model) historyHelp() []keybind.Keybind {
+	cfg := m.cfg.Keybinds
+	keybinds := make([]keybind.Keybind, 0, 2)
+	if _, ok := m.history.at(stepBack); ok {
+		keybinds = append(keybinds, cfg.ChannelBack.Keybind)
+	}
+	if _, ok := m.history.at(stepForward); ok {
+		keybinds = append(keybinds, cfg.ChannelForward.Keybind)
+	}
+
+	return keybinds
 }
 
 func (m Model) focusHelp() []keybind.Keybind {

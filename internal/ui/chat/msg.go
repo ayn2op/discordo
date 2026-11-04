@@ -72,6 +72,10 @@ type QuitMsg struct{}
 
 func (m *Model) setSelectedChannel(channel *discord.Channel) tview.Cmd {
 	m.selectedChannel = channel
+	if channel != nil {
+		m.history.visit(channel.ID)
+	}
+
 	m.composer.SetChannel(channel)
 	cmd := m.membersTree.SetChannel(channel)
 	if !m.canFocus(m.focused) {
