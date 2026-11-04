@@ -26,6 +26,10 @@ func (m Model) FullHelp() [][]keybind.Keybind {
 }
 
 func (m Model) activeKeyMap() help.KeyMap {
+	if m.overlay == overlayInbox {
+		return m.cfg.Keybinds.InboxKeyMap()
+	}
+
 	if m.overlay != overlayNone {
 		return m.cfg.Keybinds.Picker
 	}
@@ -56,7 +60,7 @@ func (m Model) baseFullHelp() [][]keybind.Keybind {
 	return [][]keybind.Keybind{
 		m.focusHelp(),
 		{cfg.FocusPrevious.Keybind, cfg.FocusNext.Keybind},
-		{cfg.ToggleGuildsTree.Keybind, cfg.ToggleMembersTree.Keybind, cfg.ToggleChannelsPicker.Keybind},
+		{cfg.ToggleGuildsTree.Keybind, cfg.ToggleMembersTree.Keybind, cfg.ToggleChannelsPicker.Keybind, cfg.ToggleInbox.Keybind},
 		{cfg.ToggleMute.Keybind, cfg.ToggleDeafen.Keybind, cfg.LeaveVoice.Keybind},
 		{cfg.Logout.Keybind},
 	}

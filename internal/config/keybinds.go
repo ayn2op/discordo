@@ -72,6 +72,14 @@ type PickerKeybinds struct {
 	Cancel Keybind `toml:"cancel"`
 }
 
+// InboxKeybinds are what the inbox takes besides a picker's keys, which select and cancel in it as in any other.
+type InboxKeybinds struct {
+	// Mark the messages of the highlighted channel read, removing it from the inbox.
+	MarkRead Keybind `toml:"mark_read"`
+	// Mark the messages of every channel listed read, emptying the inbox.
+	MarkAllRead Keybind `toml:"mark_all_read"`
+}
+
 type TreeKeybinds struct {
 	ScrollKeybinds
 	// Scroll sideways to read names that are cut off.
@@ -166,6 +174,8 @@ type Keybinds struct {
 	// Hide/show the members tree.
 	ToggleMembersTree    Keybind `toml:"toggle_members_tree"`
 	ToggleChannelsPicker Keybind `toml:"toggle_channels_picker"`
+	// Hide/show the channels with unread messages, the newest mentions first.
+	ToggleInbox Keybind `toml:"toggle_inbox"`
 	// Start or stop sending what the microphone captures to the voice channel joined.
 	ToggleMute Keybind `toml:"toggle_mute"`
 	// Stop or start playing what is said in the voice channel joined. Stopping also mutes.
@@ -187,6 +197,8 @@ type Keybinds struct {
 	FocusNext     Keybind `toml:"focus_next"`
 
 	Picker PickerKeybinds `toml:"picker"`
+	// Only while the inbox is shown.
+	Inbox InboxKeybinds `toml:"inbox"`
 	// Only while focusing on the guilds tree.
 	GuildsTree GuildsTreeKeybinds `toml:"guilds_tree"`
 	// Only while focusing on the members tree.
@@ -241,12 +253,14 @@ func defaultKeybinds() Keybinds {
 		ToggleGuildsTree:     key("toggle guilds", "alt+g"),
 		ToggleMembersTree:    key("toggle members", "alt+m"),
 		ToggleChannelsPicker: key("channels picker", "ctrl+k"),
-		ToggleMute:           key("toggle mute", "alt+v"),
-		ToggleDeafen:         key("toggle deafen", "alt+d"),
-		LeaveVoice:           key("leave voice", "alt+l"),
-		ToggleHelp:           key("toggle help", "alt+."),
-		ToggleFullHelp:       key("full help", "ctrl+."),
-		Suspend:              key("suspend", "ctrl+z"),
+		// Discord opens its inbox with ctrl+i, which a terminal cannot tell from tab, so alt joins the other toggles instead.
+		ToggleInbox:    key("inbox", "alt+i"),
+		ToggleMute:     key("toggle mute", "alt+v"),
+		ToggleDeafen:   key("toggle deafen", "alt+d"),
+		LeaveVoice:     key("leave voice", "alt+l"),
+		ToggleHelp:     key("toggle help", "alt+."),
+		ToggleFullHelp: key("full help", "ctrl+."),
+		Suspend:        key("suspend", "ctrl+z"),
 
 		FocusGuildsTree:   key("guilds", "ctrl+g"),
 		FocusMembersTree:  key("members", "ctrl+y"),
@@ -260,6 +274,10 @@ func defaultKeybinds() Keybinds {
 			SelectionKeybinds: emacs,
 			Select:            key("sel", "enter"),
 			Cancel:            key("cancel", "esc"),
+		},
+		Inbox: InboxKeybinds{
+			MarkRead:    key("mark read", "ctrl+r"),
+			MarkAllRead: key("mark all read", "alt+r"),
 		},
 		GuildsTree: GuildsTreeKeybinds{
 			TreeKeybinds:         tree,

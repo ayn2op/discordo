@@ -569,6 +569,12 @@ Default: `"alt+m"`
 
 Default: `"ctrl+k"`
 
+## keybinds.toggle_inbox
+
+Hide/show the channels with unread messages, the newest mentions first.
+
+Default: `"alt+i"`
+
 ## keybinds.toggle_mute
 
 Start or stop sending what the microphone captures to the voice channel joined.
@@ -652,6 +658,22 @@ Default: `"enter"`
 ### keybinds.picker.cancel
 
 Default: `"esc"`
+
+## keybinds.inbox
+
+Only while the inbox is shown.
+
+### keybinds.inbox.mark_read
+
+Mark the messages of the highlighted channel read, removing it from the inbox.
+
+Default: `"ctrl+r"`
+
+### keybinds.inbox.mark_all_read
+
+Mark the messages of every channel listed read, emptying the inbox.
+
+Default: `"alt+r"`
 
 ## keybinds.guilds_tree
 

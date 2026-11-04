@@ -55,3 +55,6 @@ func (m *Model) SetItems(items picker.Items) {
 
 // Reset clears the query.
 func (m *Model) Reset() { m.searchState.Reset() }
+
+// Selected returns the highlighted item, for the keys a picker takes besides selecting and canceling.
+func (m Model) Selected() (picker.Item, bool) { return m.searchState.Selected(m.items) }

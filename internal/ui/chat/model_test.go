@@ -37,6 +37,33 @@ func TestModelHandle(t *testing.T) {
 		}
 		*m, _ = m.Update(msg)
 	})
+
+	t.Run("marking read in the inbox", func(t *testing.T) {
+		m := newTestModel(t)
+		m.toggleInbox()
+		area := tview.Rectangle{Width: 120, Height: 40}
+		// The key is not one the query takes, so it reaches the inbox through Update rather than being typed.
+		key := tcell.NewEventKey(tcell.KeyCtrlR, "", tcell.ModCtrl)
+		if msg := m.View().Handle(key, area); msg != key {
+			t.Fatalf("the inbox's key was taken by a widget: %v", msg)
+		}
+		if *m, _ = m.Update(key); m.overlay != overlayInbox {
+			t.Fatal("marking read closed the inbox")
+		}
+	})
+}
+
+func TestModelToggleInbox(t *testing.T) {
+	m := newTestModel(t)
+	m.toggleInbox()
+	if m.overlay != overlayInbox {
+		t.Fatalf("overlay = %v, want the inbox", m.overlay)
+	}
+
+	m.toggleInbox()
+	if m.overlay != overlayNone {
+		t.Fatalf("overlay = %v, want none", m.overlay)
+	}
 }
 
 func TestModelUpdate(t *testing.T) {

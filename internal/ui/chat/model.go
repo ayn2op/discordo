@@ -23,6 +23,7 @@ import (
 	"github.com/ayn2op/discordo/internal/ui/chat/channelspicker"
 	"github.com/ayn2op/discordo/internal/ui/chat/composer"
 	"github.com/ayn2op/discordo/internal/ui/chat/guildstree"
+	"github.com/ayn2op/discordo/internal/ui/chat/inbox"
 	"github.com/ayn2op/discordo/internal/ui/chat/memberstree"
 	"github.com/ayn2op/discordo/internal/ui/chat/mentionslist"
 	"github.com/ayn2op/discordo/internal/ui/chat/messageslist"
@@ -55,6 +56,8 @@ type Model struct {
 	channelsPicker channelspicker.Model
 	// attachmentsPicker picks an attachment or link of the selected message.
 	attachmentsPicker attachmentspicker.Model
+	// inbox picks a channel to open among those with unread messages.
+	inbox inbox.Model
 
 	selectedChannel *discord.Channel
 	// windowUnfocused reports whether the terminal window lost focus.
@@ -110,6 +113,7 @@ func NewModel(cfg *config.Config, token string) Model {
 	m.composer = composer.NewModel(cfg, m.state)
 	m.channelsPicker = channelspicker.NewModel(cfg)
 	m.attachmentsPicker = attachmentspicker.NewModel(cfg)
+	m.inbox = inbox.NewModel(cfg, m.state)
 
 	m.guildsTreeVisible = cfg.Sidebar.Visible
 	m.membersTreeVisible = cfg.MembersTree.Visible
@@ -129,6 +133,7 @@ const (
 	overlayNone overlay = iota
 	overlayChannelsPicker
 	overlayAttachmentsPicker
+	overlayInbox
 )
 
 // pickerView returns the view of the picker shown on top, or nil if none is open.
@@ -138,6 +143,8 @@ func (m Model) pickerView() tview.Widget {
 		return m.channelsPicker.View()
 	case overlayAttachmentsPicker:
 		return m.attachmentsPicker.View()
+	case overlayInbox:
+		return m.inbox.View()
 	default:
 		return nil
 	}
@@ -157,9 +164,27 @@ func (m *Model) openPicker() {
 	m.channelsPicker.RefreshChannels(m.state)
 }
 
+// toggleInbox opens the inbox, listing the channels unread as of now, or closes it if it is open.
+func (m *Model) toggleInbox() {
+	if m.overlay == overlayInbox {
+		m.closePicker()
+		return
+	}
+
+	m.overlay = overlayInbox
+	m.inbox.Refresh()
+}
+
+// closePicker hides the picker shown on top, if any, and clears the query typed in it.
 func (m *Model) closePicker() {
+	switch m.overlay {
+	case overlayChannelsPicker:
+		m.channelsPicker.Reset()
+	case overlayInbox:
+		m.inbox.Reset()
+	}
+
 	m.overlay = overlayNone
-	m.channelsPicker.Reset()
 }
 
 // toggle shows or hides the side pane p and focuses it when shown.
@@ -233,6 +258,11 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	case channelspicker.CancelMsg:
 		m.closePicker()
 		return m, nil
+	case inbox.SelectedMsg:
+		return m, m.navigateToChannel(msg.ChannelID)
+	case inbox.CancelMsg:
+		m.closePicker()
+		return m, nil
 	case attachmentspicker.SelectedMsg:
 		m.overlay = overlayNone
 		return m, msg.Action
@@ -293,6 +323,9 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		case keybind.Matches(msg, kbs.ToggleChannelsPicker.Keybind):
 			m.togglePicker()
 			return m, nil
+		case keybind.Matches(msg, kbs.ToggleInbox.Keybind):
+			m.toggleInbox()
+			return m, nil
 		// The guilds tree is what the voice channel joined is in.
 		case keybind.Matches(msg, kbs.ToggleMute.Keybind, kbs.ToggleDeafen.Keybind, kbs.LeaveVoice.Keybind):
 			return m, m.updatePane(paneGuildsTree, msg)
@@ -326,6 +359,8 @@ func (m *Model) route(msg tview.Msg) tview.Cmd {
 		m.channelsPicker, cmd = m.channelsPicker.Update(msg)
 	case overlayAttachmentsPicker:
 		m.attachmentsPicker, cmd = m.attachmentsPicker.Update(msg)
+	case overlayInbox:
+		m.inbox, cmd = m.inbox.Update(msg)
 	default:
 		cmd = m.updatePane(m.focused, msg)
 	}
