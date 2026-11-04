@@ -250,6 +250,15 @@ func (m *Model) StartEdit(message discord.Message) {
 	m.setText(message.Content, len(message.Content))
 }
 
+// CancelEdit stops editing the message with id in the channel, if that is the one being edited, such as once it is deleted.
+func (m *Model) CancelEdit(channelID discord.ChannelID, id discord.MessageID) {
+	if m.editing == nil || m.editing.ChannelID != channelID || m.editing.ID != id {
+		return
+	}
+
+	m.reset()
+}
+
 // StartReply makes the next message a reply to message by name, mentioning its author if mention is set.
 func (m *Model) StartReply(message discord.Message, name string, mention bool) {
 	data := m.sendMessageData

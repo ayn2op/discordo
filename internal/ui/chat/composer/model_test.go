@@ -359,3 +359,68 @@ func TestModelComplete(t *testing.T) {
 		}
 	})
 }
+
+func TestModelSend(t *testing.T) {
+	channel := &discord.Channel{ID: 10}
+	edited := discord.Message{ID: 3, ChannelID: 10, Content: "typo"}
+	for _, tt := range []struct {
+		name  string
+		setup func(*Model)
+		want  bool
+	}{
+		{"cleared while editing", func(c *Model) { c.StartEdit(edited); c.setText("", 0) }, true},
+		{"blanked while editing", func(c *Model) { c.StartEdit(edited); c.setText("  ", 2) }, true},
+		{"still has text", func(c *Model) { c.StartEdit(edited); c.setText("fixed", len("fixed")) }, false},
+		{"empty with nothing being edited", func(*Model) {}, false},
+		{"cleared but has an attachment", func(c *Model) {
+			c.StartEdit(edited)
+			c.setText("", 0)
+			c.sendMessageData.Files = []sendpart.File{{Name: "file"}}
+		}, false},
+	} {
+		t.Run("delete on an empty edit: "+tt.name, func(t *testing.T) {
+			c, _ := newTestModel(t)
+			c.channel = channel
+			tt.setup(c)
+
+			var asked bool
+			if cmd := c.send(); cmd != nil {
+				msg, ok := cmd().(DeleteEditedMsg)
+				asked = ok && msg.ChannelID == edited.ChannelID && msg.ID == edited.ID
+			}
+
+			if asked != tt.want {
+				t.Fatalf("asked to delete the edited message = %v, want %v", asked, tt.want)
+			}
+
+			// The message is only gone once the deletion is confirmed, so the edit stays up until then.
+			if asked && c.editing == nil {
+				t.Fatal("the composer stopped editing before the deletion was confirmed")
+			}
+		})
+	}
+}
+
+func TestModelCancelEdit(t *testing.T) {
+	edited := discord.Message{ID: 3, ChannelID: 10, Content: "typo"}
+	for _, tt := range []struct {
+		name      string
+		channelID discord.ChannelID
+		messageID discord.MessageID
+		want      bool
+	}{
+		{"the edited message", 10, 3, true},
+		{"another message", 10, 4, false},
+		{"the same id in another channel", 11, 3, false},
+	} {
+		t.Run("deleted: "+tt.name, func(t *testing.T) {
+			c, _ := newTestModel(t)
+			c.StartEdit(edited)
+
+			c.CancelEdit(tt.channelID, tt.messageID)
+			if stopped := c.editing == nil; stopped != tt.want {
+				t.Fatalf("stopped editing = %v, want %v", stopped, tt.want)
+			}
+		})
+	}
+}

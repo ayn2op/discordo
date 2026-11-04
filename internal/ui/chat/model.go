@@ -317,6 +317,9 @@ func (m Model) update(msg tview.Msg) (Model, tview.Cmd) {
 		m.composer.StartEdit(discord.Message(msg))
 		m.setFocus(paneComposer)
 		return m, nil
+	case composer.DeleteEditedMsg:
+		// Deleting is the messages list's to do, so it carries it out.
+		return m, m.updatePane(paneMessagesList, messageslist.DeleteMsg(msg))
 	case composer.EditLastMsg:
 		if message, ok := m.messagesList.SelectLastOwn(); ok {
 			m.composer.StartEdit(message)
