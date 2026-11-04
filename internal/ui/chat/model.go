@@ -17,6 +17,7 @@ import (
 	"github.com/ayn2op/arikawa/v3/utils/httputil"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/consts"
+	"github.com/ayn2op/discordo/internal/favorites"
 	clientgateway "github.com/ayn2op/discordo/internal/gateway"
 	"github.com/ayn2op/discordo/internal/http"
 	"github.com/ayn2op/discordo/internal/ui"
@@ -65,6 +66,8 @@ type Model struct {
 	selectedChannel *discord.Channel
 	// windowUnfocused reports whether the terminal window lost focus.
 	windowUnfocused bool
+	// favorites are the channels bookmarked in the favorite slots.
+	favorites favorites.Store
 
 	state  *ningen.State
 	events chan gateway.Event
@@ -87,6 +90,8 @@ func NewModel(cfg *config.Config, token string) Model {
 	m := Model{
 		typers: make(map[discord.UserID]time.Time),
 		images: make(map[discord.URL]tviewimage.Widget),
+
+		favorites: favorites.Open(favorites.DefaultPath()),
 
 		cfg: cfg,
 	}
@@ -328,6 +333,10 @@ func (m Model) update(msg tview.Msg) (Model, tview.Cmd) {
 	case QuitMsg:
 		return m, closeState(m.state)
 	case tview.KeyMsg:
+		if cmd, ok := m.favorite(msg); ok {
+			return m, cmd
+		}
+
 		keybinds := m.cfg.Keybinds
 		switch {
 		case keybind.Matches(msg, keybinds.FocusGuildsTree.Keybind):

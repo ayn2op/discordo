@@ -664,6 +664,24 @@ Default: `"ctrl+h"`
 
 Default: `"ctrl+l"`
 
+## keybinds.favorites
+
+Open the channel bookmarked in a favorite slot. Each entry in the list takes one slot, in order,
+and an entry that is a list of keys takes any of them, so that a slot a terminal keeps a key of
+for itself, such as a function key for its menus or alt with a digit for its own tabs, is still
+reachable by the others. A digit with ctrl is last of the three: only terminals with an enhanced
+keyboard protocol, such as kitty's, send it, and in the rest it is a key that never arrives.
+
+Default: `[["f1","alt+1","ctrl+1"], ["f2","alt+2","ctrl+2"], ["f3","alt+3","ctrl+3"], ["f4","alt+4","ctrl+4"], ["f5","alt+5","ctrl+5"], ["f6","alt+6","ctrl+6"], ["f7","alt+7","ctrl+7"], ["f8","alt+8","ctrl+8"], ["f9","alt+9","ctrl+9"], ["f10","alt+0","ctrl+0"]]`
+
+## keybinds.set_favorites
+
+Bookmark the open channel in a favorite slot, or empty that slot when the channel is already bookmarked in it.
+Bookmarks are the guild and channel ids alone, kept in favorites.toml next to this file, so a renamed channel stays bookmarked.
+The keys are what shift makes of the digits, which is what a terminal sends for alt and shift with a digit.
+
+Default: `["alt+!", "alt+@", "alt+#", "alt+$", "alt+%", "alt+^", "alt+&", "alt+*", "alt+(", "alt+)"]`
+
 ## keybinds.picker
 
 ### keybinds.picker.select_up

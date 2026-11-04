@@ -3,6 +3,8 @@ package config
 import (
 	"bytes"
 	"encoding/json"
+	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/BurntSushi/toml"
@@ -73,7 +75,7 @@ func marshalKeys(keys any) ([]byte, error) {
 
 // Global returns the keybinds that act wherever the focus is.
 func (k Keybinds) Global() []keybind.Keybind {
-	return []keybind.Keybind{
+	global := []keybind.Keybind{
 		k.ToggleGuildsTree.Keybind, k.ToggleMembersTree.Keybind, k.ToggleChannelsPicker.Keybind,
 		k.ToggleMute.Keybind, k.ToggleDeafen.Keybind, k.LeaveVoice.Keybind,
 		k.ToggleHelp.Keybind, k.ToggleFullHelp.Keybind, k.Suspend.Keybind,
@@ -81,6 +83,18 @@ func (k Keybinds) Global() []keybind.Keybind {
 		k.FocusPrevious.Keybind, k.FocusNext.Keybind,
 		k.Logout.Keybind, k.Quit.Keybind,
 	}
+	return append(global, k.favorites()...)
+}
+
+// favorites returns the keybinds of every favorite slot, those that open one and those that bookmark in one.
+func (k Keybinds) favorites() []keybind.Keybind {
+	configured := slices.Concat(k.Favorites, k.SetFavorites)
+	favorites := make([]keybind.Keybind, 0, len(configured))
+	for _, favorite := range configured {
+		favorites = append(favorites, favorite.Keybind)
+	}
+
+	return favorites
 }
 
 // key builds a Keybind with desc as its help description, bound to keys, the first of which is shown in help. It is unbound if that is empty.
@@ -250,6 +264,17 @@ type Keybinds struct {
 	FocusPrevious Keybind `toml:"focus_previous"`
 	FocusNext     Keybind `toml:"focus_next"`
 
+	// Open the channel bookmarked in a favorite slot. Each entry in the list takes one slot, in order,
+	// and an entry that is a list of keys takes any of them, so that a slot a terminal keeps a key of
+	// for itself, such as a function key for its menus or alt with a digit for its own tabs, is still
+	// reachable by the others. A digit with ctrl is last of the three: only terminals with an enhanced
+	// keyboard protocol, such as kitty's, send it, and in the rest it is a key that never arrives.
+	Favorites []Keybind `toml:"favorites"`
+	// Bookmark the open channel in a favorite slot, or empty that slot when the channel is already bookmarked in it.
+	// Bookmarks are the guild and channel ids alone, kept in favorites.toml next to this file, so a renamed channel stays bookmarked.
+	// The keys are what shift makes of the digits, which is what a terminal sends for alt and shift with a digit.
+	SetFavorites []Keybind `toml:"set_favorites"`
+
 	Picker PickerKeybinds `toml:"picker"`
 	// Only while focusing on the guilds tree.
 	GuildsTree GuildsTreeKeybinds `toml:"guilds_tree"`
@@ -275,6 +300,40 @@ func selectionKeybinds(up, down []string, top, bottom string) SelectionKeybinds 
 		SelectTop:    key("top", top),
 		SelectBottom: key("btm", bottom),
 	}
+}
+
+// favoriteDigits are the digits of the favorite slots, in the order they run on a keyboard,
+// each with what shift makes of it, which is what a terminal sends for alt and shift with that digit.
+var favoriteDigits = [...]struct{ digit, shifted string }{
+	{"1", "!"}, {"2", "@"}, {"3", "#"}, {"4", "$"}, {"5", "%"},
+	{"6", "^"}, {"7", "&"}, {"8", "*"}, {"9", "("}, {"0", ")"},
+}
+
+// favoriteSlots is how many channels can be bookmarked by default, one per digit.
+const favoriteSlots = len(favoriteDigits)
+
+// favoriteKeybinds binds a slot to every key a terminal may deliver it by, most widely sent first:
+// the function key of its number, which takes no modifier; its digit with alt, for the keyboards whose
+// function keys are themselves behind a modifier; and its digit with ctrl, which only terminals with an
+// enhanced keyboard protocol send, and which does nothing in the rest rather than standing in the way.
+func favoriteKeybinds() []Keybind {
+	keybinds := make([]Keybind, 0, favoriteSlots)
+	for slot, keys := range favoriteDigits {
+		functionKey := "f" + strconv.Itoa(slot+1)
+		keybinds = append(keybinds, key("favorite "+keys.digit, functionKey, "alt+"+keys.digit, "ctrl+"+keys.digit))
+	}
+
+	return keybinds
+}
+
+// setFavoriteKeybinds binds a slot to each digit with alt and shift.
+func setFavoriteKeybinds() []Keybind {
+	keybinds := make([]Keybind, 0, favoriteSlots)
+	for _, keys := range favoriteDigits {
+		keybinds = append(keybinds, key("set favorite "+keys.digit, "alt+"+keys.shifted))
+	}
+
+	return keybinds
 }
 
 func scrollKeybinds(up, down, top, bottom string) ScrollKeybinds {
@@ -319,6 +378,9 @@ func defaultKeybinds() Keybinds {
 
 		FocusPrevious: key("focus prev", "ctrl+h"),
 		FocusNext:     key("focus next", "ctrl+l"),
+
+		Favorites:    favoriteKeybinds(),
+		SetFavorites: setFavoriteKeybinds(),
 
 		Picker: PickerKeybinds{
 			SelectionKeybinds: emacs,
