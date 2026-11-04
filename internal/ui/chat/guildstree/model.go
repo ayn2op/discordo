@@ -11,6 +11,7 @@ import (
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/arikawa/v3/gateway"
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/favorites"
 	"github.com/ayn2op/discordo/internal/ui"
 	uitree "github.com/ayn2op/discordo/internal/ui/tree"
 	"github.com/ayn2op/discordo/internal/voice"
@@ -48,6 +49,12 @@ type Model struct {
 	channelNodes map[discord.ChannelID]*tree.Node
 	dmRootNode   *tree.Node
 
+	// favorites are the bookmarked channels the favorites section shows, and favoriteNodes indexes
+	// their nodes, which channelNodes cannot hold as a bookmarked channel is shown there and under its guild both.
+	favorites         favorites.Store
+	favoriteNodes     map[discord.ChannelID]*tree.Node
+	favoritesRootNode *tree.Node
+
 	// focused reports whether the tree takes keys.
 	focused bool
 }
@@ -60,12 +67,13 @@ func NewModel(cfg *config.Config, state *ningen.State) Model {
 		voiceSession: voice.New(state.State, cfg.Voice.Sensitivity),
 		guildNodes:   make(map[discord.GuildID]*tree.Node),
 		channelNodes: make(map[discord.ChannelID]*tree.Node),
-	}
-}
 
-// CurrentNode returns the selected node, or nil for none.
-func (m Model) CurrentNode() *tree.Node {
-	return m.current
+		favoriteNodes: make(map[discord.ChannelID]*tree.Node),
+		favoritesRootNode: tree.NewNode(favoritesNodeName).
+			SetReference(favoritesRoot{}).
+			SetExpandable(true).
+			SetExpanded(true),
+	}
 }
 
 // SetFocused sets whether the tree takes keys.
@@ -81,7 +89,9 @@ func (m *Model) reset() *tree.Node {
 		SetReference(dmNode{}).
 		SetExpandable(true).
 		SetExpanded(false)
-	return m.root.ClearChildren().AddChild(m.dmRootNode)
+	root := m.root.ClearChildren().AddChild(m.dmRootNode)
+	m.fillFavorites()
+	return root
 }
 
 func (m *Model) rebuild(event *gateway.ReadyEvent) {
@@ -134,19 +144,21 @@ func (m Model) refreshReadState(event *read.UpdateEvent) {
 		setNodeText(m.dmRootNode, m.dmNodeText())
 	}
 
-	node := m.findNodeByRef(event.ChannelID)
-	if node == nil {
-		return
-	}
-	channel, err := m.state.Cabinet.Channel(event.ChannelID)
-	if err != nil {
-		indication := m.state.ChannelIsUnread(event.ChannelID, ningen.UnreadOpts{IncludeMutedCategories: true})
-		setNodeNameStyle(node, unreadStyle(indication))
-		return
+	if m.favoritesRootNode != nil {
+		setNodeText(m.favoritesRootNode, m.favoritesNodeText())
 	}
 
-	setNodeText(node, m.channelText(*channel))
-	setNodeNameStyle(node, m.channelNodeStyle(*channel))
+	channel, err := m.state.Cabinet.Channel(event.ChannelID)
+	for _, node := range m.nodesShowing(event.ChannelID) {
+		if err != nil {
+			indication := m.state.ChannelIsUnread(event.ChannelID, ningen.UnreadOpts{IncludeMutedCategories: true})
+			setNodeNameStyle(node, unreadStyle(indication))
+			continue
+		}
+
+		setNodeText(node, m.channelNodeText(node, *channel))
+		setNodeNameStyle(node, m.channelNodeStyle(*channel))
+	}
 }
 
 func (m Model) refreshGuildNode(guildID discord.GuildID) {
@@ -472,6 +484,15 @@ func setNodeText(node *tree.Node, name string) {
 	spans := node.Spans()
 	spans[0].Text = name
 	node.SetSpans(spans...)
+}
+
+// channelNodeText returns the text node shows for channel, which in the favorites section carries the key that opens it.
+func (m Model) channelNodeText(node *tree.Node, channel discord.Channel) string {
+	if ref, ok := node.Reference().(favoriteNode); ok {
+		return m.favoriteText(ref.slot, channel)
+	}
+
+	return m.channelText(channel)
 }
 
 // channelText returns the name of channel with its unread mentions after it.

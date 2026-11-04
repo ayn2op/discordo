@@ -10,6 +10,7 @@ import (
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/arikawa/v3/gateway"
 	"github.com/ayn2op/discordo/internal/config"
+	"github.com/ayn2op/discordo/internal/favorites"
 	"github.com/ayn2op/discordo/internal/ui/images"
 	"github.com/ayn2op/tview"
 	tviewimage "github.com/ayn2op/tview/image"
@@ -23,6 +24,8 @@ func newTestModel(t *testing.T) *Model {
 		t.Fatal(err)
 	}
 	m := NewModel(cfg, "")
+	// Bookmarks go to a file of the test's own, not to the one the user running the tests has.
+	m.favorites = favorites.Open(filepath.Join(t.TempDir(), "favorites.toml"))
 	return &m
 }
 

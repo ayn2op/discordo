@@ -8,7 +8,6 @@ import (
 	"path"
 	"path/filepath"
 	"slices"
-	"sync"
 
 	"github.com/BurntSushi/toml"
 	"github.com/ayn2op/arikawa/v3/discord"
@@ -266,17 +265,8 @@ func Default() Config {
 	}
 }
 
-var dir = sync.OnceValue(func() string {
-	path, err := os.UserConfigDir()
-	if err != nil {
-		slog.Info("user config dir cannot be determined; falling back to the current dir", "err", err)
-		path = "."
-	}
-	return filepath.Join(path, consts.Name)
-})
-
 func DefaultPath() string {
-	return filepath.Join(dir(), fileName)
+	return filepath.Join(consts.ConfigDir(), fileName)
 }
 
 // Load reads the configuration file and parses it.

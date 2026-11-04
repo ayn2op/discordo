@@ -17,6 +17,7 @@ import (
 	"github.com/ayn2op/arikawa/v3/utils/httputil"
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/consts"
+	"github.com/ayn2op/discordo/internal/favorites"
 	clientgateway "github.com/ayn2op/discordo/internal/gateway"
 	"github.com/ayn2op/discordo/internal/http"
 	"github.com/ayn2op/discordo/internal/ui"
@@ -65,6 +66,8 @@ type Model struct {
 	selectedChannel *discord.Channel
 	// windowUnfocused reports whether the terminal window lost focus.
 	windowUnfocused bool
+	// favorites are the channels bookmarked in the favorite slots.
+	favorites favorites.Store
 
 	state  *ningen.State
 	events chan gateway.Event
@@ -87,6 +90,8 @@ func NewModel(cfg *config.Config, token string) Model {
 	m := Model{
 		typers: make(map[discord.UserID]time.Time),
 		images: make(map[discord.URL]tviewimage.Widget),
+
+		favorites: favorites.Open(favorites.DefaultPath()),
 
 		cfg: cfg,
 	}
@@ -213,6 +218,7 @@ func (m *Model) syncPanes() {
 	m.messagesList.SetFocused(m.paneFocused(paneMessagesList))
 	m.composer.SetFocused(m.paneFocused(paneComposer))
 	m.membersTree.SetFocused(m.paneFocused(paneMembersTree))
+	m.guildsTree.SetFavorites(m.favorites)
 	m.messagesList.SetFooter(m.typingFooter())
 	m.messagesList.SetAvatarWidth(int(squareCols(uint(m.cfg.UI.MessagesList.Avatars.Height), m.imageCell())))
 }
@@ -227,11 +233,7 @@ func (m Model) update(msg tview.Msg) (Model, tview.Cmd) {
 		m.windowUnfocused = !msg.Focused
 		return m, nil
 	case guildstree.ChannelLoadedMsg:
-		node := m.guildsTree.CurrentNode()
-		if node == nil {
-			return m, nil
-		}
-		channelID, ok := node.Reference().(discord.ChannelID)
+		channelID, ok := m.guildsTree.CurrentChannelID()
 		if !ok || channelID != msg.Channel.ID {
 			return m, nil
 		}
@@ -328,6 +330,10 @@ func (m Model) update(msg tview.Msg) (Model, tview.Cmd) {
 	case QuitMsg:
 		return m, closeState(m.state)
 	case tview.KeyMsg:
+		if cmd, ok := m.favorite(msg); ok {
+			return m, cmd
+		}
+
 		keybinds := m.cfg.Keybinds
 		switch {
 		case keybind.Matches(msg, keybinds.FocusGuildsTree.Keybind):
