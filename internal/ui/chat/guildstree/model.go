@@ -43,10 +43,11 @@ type Model struct {
 	state        *ningen.State
 	voiceSession *voice.Session
 
-	// nodes indexes the guild and channel nodes for frequent event handlers (read updates, picker navigation).
-	// It mirrors the current rendered tree and is rebuilt on READY before nodes are added.
-	nodes      map[discord.Snowflake]*tree.Node
-	dmRootNode *tree.Node
+	// guildNodes and channelNodes index the nodes for frequent event handlers (read updates, picker navigation).
+	// They mirror the current rendered tree and are rebuilt on READY before nodes are added.
+	guildNodes   map[discord.GuildID]*tree.Node
+	channelNodes map[discord.ChannelID]*tree.Node
+	dmRootNode   *tree.Node
 
 	// focused reports whether the tree takes keys.
 	focused bool
@@ -58,7 +59,8 @@ func NewModel(cfg *config.Config, state *ningen.State) Model {
 		cfg:          cfg,
 		state:        state,
 		voiceSession: voice.New(state.State, cfg.Voice.Sensitivity),
-		nodes:        make(map[discord.Snowflake]*tree.Node),
+		guildNodes:   make(map[discord.GuildID]*tree.Node),
+		channelNodes: make(map[discord.ChannelID]*tree.Node),
 	}
 }
 
@@ -74,7 +76,8 @@ func (m *Model) SetFocused(focused bool) {
 
 func (m *Model) reset() *tree.Node {
 	// Keep allocated map capacity; READY can rebuild often during reconnects.
-	clear(m.nodes)
+	clear(m.guildNodes)
+	clear(m.channelNodes)
 	m.dmRootNode = tree.NewNode(m.dmNodeText()).
 		SetReference(dmNode{}).
 		SetExpandable(true).
@@ -166,7 +169,7 @@ func (m Model) updateDMNodeStyle(userID discord.UserID) {
 		return
 	}
 
-	node, ok := m.nodes[discord.Snowflake(channel.ID)]
+	node, ok := m.channelNodes[channel.ID]
 	if node == nil || !ok {
 		return
 	}
@@ -178,7 +181,7 @@ func (m Model) moveDMToFront(channelID discord.ChannelID) {
 		return
 	}
 
-	node := m.nodes[discord.Snowflake(channelID)]
+	node := m.channelNodes[channelID]
 	children := m.dmRootNode.Children()
 	if index := slices.Index(children, node); index > 0 {
 		copy(children[1:index+1], children[:index])
@@ -234,7 +237,7 @@ func (m Model) createGuildNode(parent *tree.Node, guild discord.Guild) {
 		SetIndent(m.cfg.Sidebar.Indents.Guild)
 	setNodeNameStyle(guildNode, m.guildNodeStyle(guild.ID))
 	parent.AddChild(guildNode)
-	m.nodes[discord.Snowflake(guild.ID)] = guildNode
+	m.guildNodes[guild.ID] = guildNode
 }
 
 func (m Model) createChannelNode(parent *tree.Node, channel discord.Channel) {
@@ -261,7 +264,7 @@ func (m Model) createChannelNode(parent *tree.Node, channel discord.Channel) {
 		channelNode.SetIndent(indents.Channel)
 	}
 	parent.AddChild(channelNode)
-	m.nodes[discord.Snowflake(channel.ID)] = channelNode
+	m.channelNodes[channel.ID] = channelNode
 }
 
 // showVoiceMembers lists who is in each voice channel of the guild under it.
@@ -271,7 +274,7 @@ func (m *Model) showVoiceMembers(guildID discord.GuildID) {
 
 	channels, _ := m.state.Cabinet.Channels(guildID)
 	for _, channel := range channels {
-		node := m.nodes[discord.Snowflake(channel.ID)]
+		node := m.channelNodes[channel.ID]
 		if node == nil || !isVoice(channel.Type) {
 			continue
 		}
@@ -336,7 +339,7 @@ func (m Model) voiceMarkers(state discord.VoiceState) (markers string) {
 
 // styleVoiceMembers shows who is speaking in the voice channel joined.
 func (m Model) styleVoiceMembers() {
-	node := m.nodes[discord.Snowflake(m.voiceSession.Status().ChannelID)]
+	node := m.channelNodes[m.voiceSession.Status().ChannelID]
 	if node == nil {
 		return
 	}
@@ -542,7 +545,7 @@ func (m Model) createChannelNodes(node *tree.Node, channels []discord.Channel) {
 		}
 
 		// Parent categories are inserted earlier in this function, so this lookup is O(1) and avoids per-channel subtree walks.
-		if parent := m.nodes[discord.Snowflake(channel.ParentID)]; parent != nil {
+		if parent := m.channelNodes[channel.ParentID]; parent != nil {
 			m.createChannelNode(parent, channel)
 		}
 	}
@@ -637,9 +640,9 @@ func adjacentNode(root, current *tree.Node, match func(*tree.Node) bool, previou
 func (m Model) findNodeByRef(ref any) *tree.Node {
 	switch ref := ref.(type) {
 	case discord.GuildID:
-		return m.nodes[discord.Snowflake(ref)]
+		return m.guildNodes[ref]
 	case discord.ChannelID:
-		return m.nodes[discord.Snowflake(ref)]
+		return m.channelNodes[ref]
 	case dmNode:
 		return m.dmRootNode
 	}
