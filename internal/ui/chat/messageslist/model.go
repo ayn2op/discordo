@@ -620,6 +620,8 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			return m, m.download()
 		case keybind.Matches(msg, keybinds.React.Keybind):
 			return m, m.showReactions()
+		case keybind.Matches(msg, keybinds.Remind.Keybind):
+			return m, m.remind()
 		case keybind.Matches(msg, keybinds.Reply.Keybind):
 			return m, m.reply(false)
 		case keybind.Matches(msg, keybinds.ReplyMention.Keybind):

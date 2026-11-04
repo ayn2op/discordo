@@ -961,6 +961,12 @@ Default: `["h","left"]`
 
 Default: `["l","right"]`
 
+### keybinds.messages_list.remind
+
+Set a reminder for the selected message, due at a time picked from a list or typed in.
+
+Default: `"t"`
+
 ### keybinds.messages_list.yank_content
 
 Yank (copy) the selected message's content/url/id.

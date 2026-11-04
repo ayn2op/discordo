@@ -28,6 +28,8 @@ import (
 	"github.com/ayn2op/discordo/internal/ui/chat/memberstree"
 	"github.com/ayn2op/discordo/internal/ui/chat/messageslist"
 	"github.com/ayn2op/discordo/internal/ui/chat/reactionspicker"
+	"github.com/ayn2op/discordo/internal/ui/chat/reminderprompt"
+	"github.com/ayn2op/discordo/internal/ui/chat/reminderspicker"
 	"github.com/ayn2op/discordo/internal/ui/images"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
@@ -61,6 +63,9 @@ type Model struct {
 	attachmentsPicker attachmentspicker.Model
 	// reactionsPicker picks an emoji to react to the selected message with.
 	reactionsPicker reactionspicker.Model
+	// remindersPicker picks when to be reminded of the selected message, and reminderPrompt takes that time typed in.
+	remindersPicker reminderspicker.Model
+	reminderPrompt  reminderprompt.Model
 
 	selectedChannel *discord.Channel
 	// windowUnfocused reports whether the terminal window lost focus.
@@ -124,6 +129,8 @@ func NewModel(cfg *config.Config, token string) Model {
 	m.channelsPicker = channelspicker.NewModel(cfg)
 	m.attachmentsPicker = attachmentspicker.NewModel(cfg)
 	m.reactionsPicker = reactionspicker.NewModel(cfg, m.state)
+	m.remindersPicker = reminderspicker.NewModel(cfg)
+	m.reminderPrompt = reminderprompt.NewModel(cfg)
 
 	m.guildsTreeVisible = cfg.Sidebar.Visible
 	m.membersTreeVisible = cfg.MembersTree.Visible
@@ -145,6 +152,8 @@ const (
 	overlayChannelsPicker
 	overlayAttachmentsPicker
 	overlayReactionsPicker
+	overlayRemindersPicker
+	overlayReminderPrompt
 )
 
 // pickerView returns the view of the picker shown on top, or nil if none is open.
@@ -156,6 +165,10 @@ func (m Model) pickerView() tview.Widget {
 		return m.attachmentsPicker.View()
 	case overlayReactionsPicker:
 		return m.reactionsPicker.View()
+	case overlayRemindersPicker:
+		return m.remindersPicker.View()
+	case overlayReminderPrompt:
+		return m.reminderPrompt.View()
 	default:
 		return nil
 	}
@@ -309,6 +322,26 @@ func (m Model) update(msg tview.Msg) (Model, tview.Cmd) {
 	case reactionspicker.CancelMsg:
 		m.overlay = overlayNone
 		return m, nil
+	case messageslist.ShowRemindersMsg:
+		m.remindersPicker.SetItems(picker.Items(msg))
+		m.overlay = overlayRemindersPicker
+		return m, nil
+	case reminderspicker.SelectedMsg:
+		m.overlay = overlayNone
+		return m, msg.Action
+	case reminderspicker.CancelMsg:
+		m.overlay = overlayNone
+		return m, nil
+	case messageslist.ShowReminderPromptMsg:
+		m.reminderPrompt.Open(msg.Set)
+		m.overlay = overlayReminderPrompt
+		return m, nil
+	case reminderprompt.SubmittedMsg:
+		m.overlay = overlayNone
+		return m, msg.Action
+	case reminderprompt.CancelMsg:
+		m.overlay = overlayNone
+		return m, nil
 	case messageslist.ReplyMsg:
 		m.composer.StartReply(msg.Message, msg.Name, msg.Mention)
 		m.setFocus(paneComposer)
@@ -394,6 +427,10 @@ func (m *Model) route(msg tview.Msg) tview.Cmd {
 		m.attachmentsPicker, cmd = m.attachmentsPicker.Update(msg)
 	case overlayReactionsPicker:
 		m.reactionsPicker, cmd = m.reactionsPicker.Update(msg)
+	case overlayRemindersPicker:
+		m.remindersPicker, cmd = m.remindersPicker.Update(msg)
+	case overlayReminderPrompt:
+		m.reminderPrompt, cmd = m.reminderPrompt.Update(msg)
 	default:
 		cmd = m.updatePane(m.focused, msg)
 	}
@@ -591,10 +628,17 @@ func (m Model) View() tview.Widget {
 	if picker == nil {
 		return main
 	}
+
+	// The prompt is one line, so it is as tall as it needs rather than as tall as the pickers.
+	height := layout.Fixed(m.cfg.Picker.Height)
+	if m.overlay == overlayReminderPrompt {
+		height = layout.Shrink
+	}
+
 	return stack.New(
 		// The panes behind the picker take no input.
 		inert.New(main),
 		backdrop.New().Style(m.cfg.Theme.Dialog.BackgroundStyle.Style),
-		center.New(column.New(picker).Width(layout.Fixed(m.cfg.Picker.Width)).Height(layout.Fixed(m.cfg.Picker.Height))),
+		center.New(column.New(picker).Width(layout.Fixed(m.cfg.Picker.Width)).Height(height)),
 	)
 }
