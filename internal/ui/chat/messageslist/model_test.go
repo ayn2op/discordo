@@ -414,3 +414,44 @@ func TestModelReactionsView(t *testing.T) {
 		}
 	})
 }
+
+func TestModelSelectFirstAfter(t *testing.T) {
+	// Messages arrive newest first, and the separator of a new day sits between them.
+	messages := []discord.Message{
+		{ID: 4, Timestamp: discord.NewTimestamp(time.Now())},
+		{ID: 3, Timestamp: discord.NewTimestamp(time.Now().AddDate(0, 0, -1))},
+		{ID: 2, Timestamp: discord.NewTimestamp(time.Now().AddDate(0, 0, -1))},
+	}
+
+	for _, tt := range []struct {
+		name     string
+		lastRead discord.MessageID
+		want     discord.MessageID
+	}{
+		{"the oldest unread", 2, 3},
+		{"past a separator", 3, 4},
+		{"none when all are read", 4, 0},
+		{"the oldest shown when none was read", 0, 2},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			ml := newTestModel(t, testConfig(t))
+			ml.setMessages(messages)
+
+			ml.SelectFirstAfter(tt.lastRead)
+
+			message, ok := ml.selectedMessage()
+			if tt.want == 0 {
+				if ok {
+					t.Fatalf("selected %d, want none", message.ID)
+				}
+				return
+			}
+			if !ok {
+				t.Fatal("no message was selected")
+			}
+			if message.ID != tt.want {
+				t.Errorf("selected %d, want %d", message.ID, tt.want)
+			}
+		})
+	}
+}

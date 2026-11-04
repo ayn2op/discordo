@@ -105,6 +105,22 @@ func TestModelRefresh(t *testing.T) {
 		}
 	})
 
+	t.Run("keeps the message read last, which opening the channel acknowledges", func(t *testing.T) {
+		m := newTestModel(t,
+			[]discord.Channel{channel(1, "general", 20)},
+			[]gateway.ReadState{{ChannelID: 1, LastMessageID: 15}},
+		)
+
+		m.Refresh()
+
+		if len(m.entries) != 1 {
+			t.Fatalf("entries = %v, want one", m.entries)
+		}
+		if got, want := m.entries[0].lastReadID, discord.MessageID(15); got != want {
+			t.Errorf("last read = %d, want %d", got, want)
+		}
+	})
+
 	t.Run("highlights the first row listed", func(t *testing.T) {
 		m := newTestModel(t,
 			[]discord.Channel{channel(1, "first", 30), channel(2, "second", 20)},

@@ -58,6 +58,8 @@ type Model struct {
 	attachmentsPicker attachmentspicker.Model
 	// inbox picks a channel to open among those with unread messages.
 	inbox inbox.Model
+	// jump is the channel opened from the inbox, whose first unread message is selected once its messages load, or nil for none.
+	jump *jump
 
 	selectedChannel *discord.Channel
 	// windowUnfocused reports whether the terminal window lost focus.
@@ -164,6 +166,22 @@ func (m *Model) openPicker() {
 	m.channelsPicker.RefreshChannels(m.state)
 }
 
+// jump is a channel to open and the message its first unread one follows, read before opening the channel acknowledges it.
+type jump struct {
+	channelID  discord.ChannelID
+	lastReadID discord.MessageID
+}
+
+// selectFirstUnread selects the first unread message of channelID, when that is the channel opened from the inbox.
+func (m *Model) selectFirstUnread(channelID discord.ChannelID) {
+	if m.jump == nil || m.jump.channelID != channelID {
+		return
+	}
+
+	m.messagesList.SelectFirstAfter(m.jump.lastReadID)
+	m.jump = nil
+}
+
 // toggleInbox opens the inbox, listing the channels unread as of now, or closes it if it is open.
 func (m *Model) toggleInbox() {
 	if m.overlay == overlayInbox {
@@ -245,7 +263,9 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			m.setFocus(paneComposer)
 		}
 		title := ui.ChannelToString(msg.Channel, m.cfg.Icons, m.state) + " - " + consts.Name
-		return m, tview.Batch(tview.SetTitle(title), m.messagesList.SetChannel(&msg.Channel, msg.Messages), membersCmd)
+		messagesCmd := m.messagesList.SetChannel(&msg.Channel, msg.Messages)
+		m.selectFirstUnread(msg.Channel.ID)
+		return m, tview.Batch(tview.SetTitle(title), messagesCmd, membersCmd)
 	case messageslist.Msg, tview.TerminalInfoMsg, tview.ResizeMsg:
 		return m, m.updatePane(paneMessagesList, msg)
 	case typingExpiredMsg:
@@ -259,6 +279,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		m.closePicker()
 		return m, nil
 	case inbox.SelectedMsg:
+		m.jump = &jump{channelID: msg.ChannelID, lastReadID: msg.LastReadID}
 		return m, m.navigateToChannel(msg.ChannelID)
 	case inbox.CancelMsg:
 		m.closePicker()

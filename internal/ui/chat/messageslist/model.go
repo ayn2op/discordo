@@ -160,6 +160,19 @@ func (m *Model) ShowNewest() {
 	m.scrollState.ScrollToEnd()
 }
 
+// SelectFirstAfter selects the oldest message shown that is newer than id, which is the first one unread when id is the message read last.
+// Nothing is selected when every message shown was read, or when the first unread is older than those loaded.
+func (m *Model) SelectFirstAfter(id discord.MessageID) {
+	for index, item := range m.items {
+		if item.separator != nil || item.message.ID <= id {
+			continue
+		}
+
+		m.setCursor(index)
+		return
+	}
+}
+
 // UpdateMessage replaces the shown message with the same ID.
 func (m *Model) UpdateMessage(message discord.Message) tview.Cmd {
 	m.setMessage(m.indexOf(message.ChannelID, message.ID), message)

@@ -22,6 +22,8 @@ type entry struct {
 	channelID discord.ChannelID
 	// lastMessageID is the message that acknowledging the channel marks read up to.
 	lastMessageID discord.MessageID
+	// lastReadID is the message read last, which the first unread one follows. Opening the channel acknowledges them all, so it is kept from before that.
+	lastReadID discord.MessageID
 	// mentions is how many of the unread messages mention the user, which puts the row before those with fewer.
 	mentions int
 	// text is the row as shown: the channel, the guild it is in, and the mentions it has.
@@ -49,7 +51,7 @@ func (m Model) View() tview.Widget {
 		if !ok || !selected.channelID.IsValid() {
 			return nil
 		}
-		return SelectedMsg{ChannelID: selected.channelID}
+		return SelectedMsg{ChannelID: selected.channelID, LastReadID: selected.lastReadID}
 	}, CancelMsg{})
 }
 
@@ -137,8 +139,9 @@ func (m Model) appendUnread(entries []entry, channel discord.Channel, guildName 
 	}
 
 	var mentions int
+	var lastReadID discord.MessageID
 	if read := m.state.ReadState.ReadState(channel.ID); read != nil {
-		mentions = read.MentionCount
+		mentions, lastReadID = read.MentionCount, read.LastMessageID
 	}
 
 	// The count follows the name, as the badge does in Discord: "# general - My Guild (3)".
@@ -149,6 +152,7 @@ func (m Model) appendUnread(entries []entry, channel discord.Channel, guildName 
 	return append(entries, entry{
 		channelID:     channel.ID,
 		lastMessageID: m.state.LastMessage(channel.ID),
+		lastReadID:    lastReadID,
 		mentions:      mentions,
 		text:          text,
 	})
