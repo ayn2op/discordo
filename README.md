@@ -26,6 +26,10 @@ scoop bucket add vvxrtues https://github.com/vvirtues/bucket
 scoop install discordo
 ```
 
+> [!NOTE]
+> Prebuilt binaries from the `main` branch are continuously updated. If Scoop reports a hash check error, run `scoop update` to refresh the bucket manifest or install with `scoop install --skip discordo` to bypass hash verification.
+
+
 ### Building from source
 
 Requires [Go](https://go.dev/dl). Voice support requires a C compiler, and `libpulse` or `libasound` on Linux.
