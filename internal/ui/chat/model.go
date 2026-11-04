@@ -218,6 +218,7 @@ func (m *Model) syncPanes() {
 	m.messagesList.SetFocused(m.paneFocused(paneMessagesList))
 	m.composer.SetFocused(m.paneFocused(paneComposer))
 	m.membersTree.SetFocused(m.paneFocused(paneMembersTree))
+	m.guildsTree.SetFavorites(m.favorites)
 	m.messagesList.SetFooter(m.typingFooter())
 	m.messagesList.SetAvatarWidth(int(squareCols(uint(m.cfg.UI.MessagesList.Avatars.Height), m.imageCell())))
 }
@@ -232,11 +233,7 @@ func (m Model) update(msg tview.Msg) (Model, tview.Cmd) {
 		m.windowUnfocused = !msg.Focused
 		return m, nil
 	case guildstree.ChannelLoadedMsg:
-		node := m.guildsTree.CurrentNode()
-		if node == nil {
-			return m, nil
-		}
-		channelID, ok := node.Reference().(discord.ChannelID)
+		channelID, ok := m.guildsTree.CurrentChannelID()
 		if !ok || channelID != msg.Channel.ID {
 			return m, nil
 		}

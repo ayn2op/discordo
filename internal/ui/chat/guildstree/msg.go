@@ -60,6 +60,8 @@ func (m Model) selectNode(node *tree.Node) tview.Cmd {
 		m.expandGuild(node, ref)
 	case discord.ChannelID:
 		return m.selectChannel(node, ref)
+	case favoriteNode:
+		return m.selectChannel(node, ref.channelID)
 	case dmNode:
 		m.expandPrivateChannels(node)
 	}

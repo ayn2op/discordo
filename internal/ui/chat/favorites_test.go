@@ -2,6 +2,7 @@ package chat
 
 import (
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/ayn2op/arikawa/v3/discord"
@@ -9,6 +10,7 @@ import (
 	"github.com/ayn2op/discordo/internal/favorites"
 	"github.com/ayn2op/tview"
 	"github.com/gdamore/tcell/v3"
+	"github.com/gdamore/tcell/v3/vt"
 )
 
 // favoritesFile points the model's bookmarks at a file of the test's own and returns its path.
@@ -108,6 +110,60 @@ func TestModelSetFavorite(t *testing.T) {
 		}
 		if got := m.favorites.Channel(slot); got.IsValid() {
 			t.Fatalf("slot %d = %v, want an empty slot", slot, got)
+		}
+	})
+}
+
+// guildsTreeSize is the area the guilds tree is drawn in to read what it shows.
+var guildsTreeSize = tview.Rectangle{Width: 40, Height: 10}
+
+// guildsTreeText returns everything the guilds tree draws.
+func guildsTreeText(t *testing.T, m *Model) string {
+	t.Helper()
+	screen, err := tcell.NewTerminfoScreenFromTty(vt.NewMockTerm(vt.MockOptSize{X: vt.Col(guildsTreeSize.Width), Y: vt.Row(guildsTreeSize.Height)}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := screen.Init(); err != nil {
+		t.Fatal(err)
+	}
+	defer screen.Fini()
+
+	m.guildsTree.View().Draw(screen, guildsTreeSize)
+
+	var drawn strings.Builder
+	for y := range guildsTreeSize.Height {
+		for x := range guildsTreeSize.Width {
+			str, _, _ := screen.Get(x, y)
+			drawn.WriteString(str)
+		}
+	}
+
+	return drawn.String()
+}
+
+func TestModelSyncPanes(t *testing.T) {
+	t.Run("a bookmarked channel is listed in the guilds tree", func(t *testing.T) {
+		m := newTestModel(t)
+		favoritesFile(t, m)
+		channel := discord.Channel{ID: 9, GuildID: 7, Name: "general", Type: discord.GuildText}
+		if err := m.state.ChannelSet(&channel, false); err != nil {
+			t.Fatal(err)
+		}
+
+		m.setSelectedChannel(&channel)
+		if drawn := guildsTreeText(t, m); strings.Contains(drawn, "Favorites") {
+			t.Fatalf("the favorites section is shown with nothing bookmarked: %q", drawn)
+		}
+
+		m.setFavorite(0)
+		*m, _ = m.Update(nil)
+
+		drawn := guildsTreeText(t, m)
+		for _, want := range []string{"Favorites", "f1 #general"} {
+			if !strings.Contains(drawn, want) {
+				t.Fatalf("the guilds tree shows %q, want it to hold %q", drawn, want)
+			}
 		}
 	})
 }

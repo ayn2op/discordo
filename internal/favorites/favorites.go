@@ -69,6 +69,16 @@ func (s Store) Channel(slot int) discord.ChannelID {
 	return s.channels[slot].ChannelID
 }
 
+// Channels returns the channel bookmarked in each slot, indexed by slot.
+func (s Store) Channels() []Channel {
+	return slices.Clone(s.channels)
+}
+
+// Equal reports whether s and other bookmark the same channels in the same slots.
+func (s Store) Equal(other Store) bool {
+	return slices.Equal(s.channels, other.channels)
+}
+
 // With returns s with channel bookmarked in slot, leaving s as it is. The zero channel empties the slot.
 func (s Store) With(slot int, channel Channel) Store {
 	if slot < 0 {
