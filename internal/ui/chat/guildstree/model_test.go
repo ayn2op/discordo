@@ -1,6 +1,7 @@
 package guildstree
 
 import (
+	"errors"
 	"slices"
 	"testing"
 
@@ -8,7 +9,9 @@ import (
 	"github.com/ayn2op/arikawa/v3/gateway"
 	"github.com/ayn2op/arikawa/v3/state"
 	"github.com/ayn2op/arikawa/v3/state/store/defaultstore"
+	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/ningen/v3"
+	"github.com/ayn2op/ningen/v3/states/read"
 	"github.com/ayn2op/tview/tree"
 )
 
@@ -24,10 +27,10 @@ func TestModelMoveDMToFront(t *testing.T) {
 		dmRoot := tree.NewNode("Direct Messages").SetChildren([]*tree.Node{first, second, third})
 		m := Model{
 			dmRootNode: dmRoot,
-			nodes: map[discord.Snowflake]*tree.Node{
-				discord.Snowflake(firstID):  first,
-				discord.Snowflake(secondID): second,
-				discord.Snowflake(thirdID):  third,
+			channelNodes: map[discord.ChannelID]*tree.Node{
+				firstID:  first,
+				secondID: second,
+				thirdID:  third,
 			},
 		}
 
@@ -44,8 +47,8 @@ func TestModelMoveDMToFront(t *testing.T) {
 		first := tree.NewNode("first").SetReference(firstID)
 		dmRoot := tree.NewNode("Direct Messages").SetChildren([]*tree.Node{first})
 		m := Model{
-			dmRootNode: dmRoot,
-			nodes:      map[discord.Snowflake]*tree.Node{},
+			dmRootNode:   dmRoot,
+			channelNodes: map[discord.ChannelID]*tree.Node{},
 		}
 
 		m.moveDMToFront(discord.ChannelID(2))
@@ -121,4 +124,37 @@ func TestModelMentions(t *testing.T) {
 	if got := m.mentions(channels...); got != 5 {
 		t.Errorf("mentions = %d, want 5", got)
 	}
+}
+
+func TestModelRefreshReadState(t *testing.T) {
+	t.Run("keeps the name of a channel sharing its guild's ID", func(t *testing.T) {
+		s := ningen.FromState(state.NewWithStore("", defaultstore.New()))
+		me := discord.User{ID: 2}
+		guild := discord.Guild{ID: 1, Name: "guild", OwnerID: me.ID}
+		channel := discord.Channel{ID: 1, GuildID: guild.ID, Type: discord.GuildText, Name: "general"}
+		if err := errors.Join(
+			s.MyselfSet(me, false),
+			s.GuildSet(&guild, false),
+			s.MemberSet(guild.ID, &discord.Member{User: me}, false),
+			s.RoleSet(guild.ID, &discord.Role{ID: discord.RoleID(guild.ID)}, false),
+			s.ChannelSet(&channel, false),
+		); err != nil {
+			t.Fatal(err)
+		}
+		cfg := config.Default()
+		m := NewModel(&cfg, s)
+		m.createGuildNode(m.root, guild)
+		guildNode := m.root.Children()[0]
+		m.createChannelNode(guildNode, channel)
+		channelNode := guildNode.Children()[0]
+
+		m.refreshReadState(&read.UpdateEvent{ReadState: gateway.ReadState{ChannelID: 2}, GuildID: guild.ID})
+
+		if got, want := guildNode.Spans()[0].Text, m.guildText(guild); got != want {
+			t.Errorf("guild node text = %q, want %q", got, want)
+		}
+		if got, want := channelNode.Spans()[0].Text, m.channelText(channel); got != want {
+			t.Errorf("channel node text = %q, want %q", got, want)
+		}
+	})
 }
