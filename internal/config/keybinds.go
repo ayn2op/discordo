@@ -1,6 +1,7 @@
 package config
 
 import (
+	"bytes"
 	"encoding/json"
 	"strings"
 
@@ -51,9 +52,23 @@ func stringValues(values []any) []string {
 // MarshalTOML writes the keys as UnmarshalTOML reads them: one key as a string, an unbound keybind as an empty one, and several keys as a list.
 func (k Keybind) MarshalTOML() ([]byte, error) {
 	if keys := k.Keys(); len(keys) > 1 {
-		return json.Marshal(keys)
+		return marshalKeys(keys)
 	}
-	return json.Marshal(strings.Join(k.Keys(), ""))
+	return marshalKeys(strings.Join(k.Keys(), ""))
+}
+
+// marshalKeys writes keys as the JSON that TOML reads as a string or a list of them,
+// leaving the keys that shift makes of the digits, such as &, as they are rather than escaping them.
+func marshalKeys(keys any) ([]byte, error) {
+	var marshaled bytes.Buffer
+	encoder := json.NewEncoder(&marshaled)
+	encoder.SetEscapeHTML(false)
+	if err := encoder.Encode(keys); err != nil {
+		return nil, err
+	}
+
+	// The encoder ends what it writes with a newline, which has no place in a value.
+	return bytes.TrimRight(marshaled.Bytes(), "\n"), nil
 }
 
 // Global returns the keybinds that act wherever the focus is.

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/BurntSushi/toml"
+	"github.com/ayn2op/tview/keybind"
 
 	"github.com/ayn2op/discordo/internal/consts"
 )
@@ -107,6 +108,31 @@ func TestDefault(t *testing.T) {
 			t.Fatalf("got = %+v, want = %+v", got, want)
 		}
 	})
+}
+
+func TestKeybindMarshalTOML(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		keys []string
+		want string
+	}{
+		{"one key", []string{"ctrl+k"}, `"ctrl+k"`},
+		{"several keys", []string{"alt+1", "f1"}, `["alt+1","f1"]`},
+		{"unbound", nil, `""`},
+		// The generated docs are read by people, and json escapes & as \u0026 unless told not to.
+		{"a key shift makes of a digit", []string{"alt+&"}, `"alt+&"`},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			got, err := Keybind{keybind.New(test.keys...)}.MarshalTOML()
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if string(got) != test.want {
+				t.Fatalf("got = %s, want = %s", got, test.want)
+			}
+		})
+	}
 }
 
 func TestMIMETypesHas(t *testing.T) {
