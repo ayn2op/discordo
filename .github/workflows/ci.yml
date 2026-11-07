@@ -23,7 +23,8 @@ jobs:
         # https://docs.github.com/en/actions/using-github-hosted-runners
         os:
           [
-            ubuntu-latest,
+            # Binaries built on the x64 ubuntu-26.04 image require x86-64-v3 (AVX2), so they do not start on older CPUs.
+            ubuntu-24.04,
             ubuntu-24.04-arm,
 
             windows-latest,
@@ -47,7 +48,7 @@ jobs:
           echo "CC=clang" >> $env:GITHUB_ENV
 
       - name: Check that generated files are up to date
-        if: ${{ matrix.os == 'ubuntu-latest' }}
+        if: ${{ matrix.os == 'ubuntu-24.04' }}
         run: |
           go generate ./internal/config ./pkg/discordemoji
           git diff --exit-code docs/config.md pkg/discordemoji
