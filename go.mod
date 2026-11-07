@@ -14,10 +14,10 @@ require (
 	github.com/alecthomas/chroma/v2 v2.27.0
 	github.com/ayn2op/arikawa/v3 v3.0.0-20261026205501-4004a7fb7f54
 	github.com/ayn2op/ningen/v3 v3.0.1-0.20261026205502-53a9435c0b4f
-	github.com/ayn2op/tview v0.0.0-20261025221241-600eb487f17f
+	github.com/ayn2op/tview v0.0.0-20261107191312-5a599824872e
 	github.com/bogdanfinn/fhttp v0.7.3
 	github.com/bogdanfinn/tls-client v1.18.0
-	github.com/gdamore/tcell/v3 v3.6.1-0.20261025165013-3f9243d555d9
+	github.com/gdamore/tcell/v3 v3.6.1-0.20261105165643-4cedad629677
 	github.com/gen2brain/malgo v0.11.27
 	github.com/gorilla/websocket v1.5.3
 	github.com/mattn/go-shellwords v1.0.16

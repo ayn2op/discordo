@@ -9,19 +9,19 @@ import (
 	"github.com/ayn2op/arikawa/v3/discord"
 	"github.com/ayn2op/arikawa/v3/gateway"
 	"github.com/ayn2op/arikawa/v3/utils/ws"
-	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/discordo/internal/ui/chat/composer"
 	"github.com/ayn2op/discordo/internal/ui/chat/guildstree"
 	"github.com/ayn2op/discordo/internal/ui/chat/reactionspicker"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/cmd"
 )
 
 // closeCodeAuthenticationFailed is the close code of the gateway for a token it rejects.
 const closeCodeAuthenticationFailed = 4004
 
 func openState(state *ningen.State) tview.Cmd {
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		err := state.Open(context.Background())
 		if err == nil {
 			return nil
@@ -33,8 +33,8 @@ func openState(state *ningen.State) tview.Cmd {
 			return nil
 		}
 
-		return tview.Sequence(logout(), func() tview.Msg { return ui.ErrorDialog("open chat state", err) })()
-	}
+		return LogoutMsg{Err: err}
+	})
 }
 
 func isAuthenticationFailed(err error) bool {
@@ -42,33 +42,31 @@ func isAuthenticationFailed(err error) bool {
 	return ok && event.Code == closeCodeAuthenticationFailed
 }
 
-func closeState(state *ningen.State) tview.Cmd {
-	if state == nil {
-		return nil
-	}
-	return func() tview.Msg {
-		if err := state.Close(); err != nil {
-			slog.Error("failed to close the session", "err", err)
+// closeState closes the session, if any, before sending next, so that next comes after the session is gone.
+func closeState(state *ningen.State, next tview.Msg) tview.Cmd {
+	return cmd.Task(func() tview.Msg {
+		if state != nil {
+			if err := state.Close(); err != nil {
+				slog.Error("failed to close the session", "err", err)
+			}
 		}
-		return nil
-	}
+		return next
+	})
 }
 
 func listen(events <-chan gateway.Event) tview.Cmd {
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		return <-events
-	}
+	})
 }
 
-type LogoutMsg struct{}
+// LogoutMsg asks for the login screen, with Err, if set, as why the session ended.
+type LogoutMsg struct{ Err error }
 
-func logout() tview.Cmd {
-	return func() tview.Msg {
-		return LogoutMsg{}
-	}
-}
-
-type QuitMsg struct{}
+type (
+	QuitMsg        struct{}
+	StateClosedMsg struct{}
+)
 
 func (m *Model) setSelectedChannel(channel *discord.Channel) tview.Cmd {
 	m.selectedChannel = channel
@@ -102,18 +100,18 @@ type typingExpiredMsg struct {
 // addTyper shows userID as typing and returns a command that ends it after the typing duration.
 func (m Model) addTyper(userID discord.UserID) tview.Cmd {
 	m.typers[userID] = time.Now().Add(composer.TypingDuration)
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		time.Sleep(composer.TypingDuration)
 		return typingExpiredMsg{userID}
-	}
+	})
 }
 
 // react reacts as msg asks. The reaction is shown once the gateway reports it.
 func (m Model) react(msg reactionspicker.SelectedMsg) tview.Cmd {
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		if err := m.state.React(msg.ChannelID, msg.MessageID, msg.Emoji); err != nil {
 			slog.Error("failed to react", "channel_id", msg.ChannelID, "message_id", msg.MessageID, "emoji", msg.Emoji, "err", err)
 		}
 		return nil
-	}
+	})
 }

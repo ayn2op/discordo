@@ -15,6 +15,7 @@ import (
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/backdrop"
 	"github.com/ayn2op/tview/box"
+	"github.com/ayn2op/tview/cmd"
 	"github.com/ayn2op/tview/column"
 	"github.com/ayn2op/tview/dialog"
 	"github.com/ayn2op/tview/help"
@@ -120,17 +121,17 @@ func (m *Model) toggleHelp() {
 var _ tview.Model[Model] = Model{}
 
 func (m Model) Init() tview.Cmd {
-	var cmd tview.Cmd
+	var command tview.Cmd
 	if token := os.Getenv(tokenEnvVarKey); token != "" {
-		cmd = useToken(token)
+		command = useToken(token)
 	} else {
-		cmd = getToken()
+		command = getToken()
 	}
-	return tview.Batch(
-		tview.SetTitle(consts.Name),
+	return cmd.Batch{
+		cmd.SetTitle(consts.Name),
 		initClipboard(),
-		cmd,
-	)
+		command,
+	}
 }
 
 // Update returns m changed in response to msg and a command to run, or nil.
@@ -142,17 +143,22 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		return m, m.showChat(string(msg))
 
 	case password.TokenMsg:
-		return m, tview.Batch(m.showChat(string(msg)), setToken(string(msg)))
+		return m, cmd.Batch{m.showChat(string(msg)), setToken(string(msg))}
 	case qr.TokenMsg:
-		return m, tview.Batch(m.showChat(string(msg)), setToken(string(msg)))
+		return m, cmd.Batch{m.showChat(string(msg)), setToken(string(msg))}
 	case token.TokenMsg:
-		return m, tview.Batch(m.showChat(string(msg)), setToken(string(msg)))
+		return m, cmd.Batch{m.showChat(string(msg)), setToken(string(msg))}
 
+	case chat.StateClosedMsg:
+		return m, cmd.Quit{}
 	case chat.LogoutMsg:
-		return m, tview.Batch(
-			m.showLogin(),
-			deleteToken(),
-		)
+		command := cmd.Batch{m.showLogin(), deleteToken()}
+		// Shown after the login, as showing it closes any dialog.
+		if msg.Err != nil {
+			dialog := ui.ErrorDialog("open chat state", msg.Err)
+			m.dialog, m.dialogFocus = &dialog, 0
+		}
+		return m, command
 	case ui.DialogMsg:
 		if m.dialog == nil {
 			m.dialog, m.dialogFocus = &msg, 0

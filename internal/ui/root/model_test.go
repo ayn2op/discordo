@@ -1,6 +1,7 @@
 package root
 
 import (
+	"github.com/ayn2op/tview/cmd"
 	"path/filepath"
 	"testing"
 
@@ -69,14 +70,14 @@ func TestModelQuit(t *testing.T) {
 	}
 	m := NewModel(cfg)
 
-	m, cmd := m.Update(tcell.NewEventKey(tcell.KeyCtrlC, "", tcell.ModCtrl))
+	m, command := m.Update(tcell.NewEventKey(tcell.KeyCtrlC, "", tcell.ModCtrl))
 	t.Run("asks", func(t *testing.T) {
-		if cmd == nil {
+		if command == nil {
 			t.Fatal("quit did not ask")
 		}
 	})
-	if cmd != nil {
-		m, _ = m.Update(cmd())
+	if task, ok := command.(cmd.Task); ok {
+		m, _ = m.Update(task())
 	}
 	t.Run("confirmation", func(t *testing.T) {
 		if m.dialog == nil || m.dialog.Text != "Are you sure you want to quit?" {

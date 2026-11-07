@@ -12,6 +12,7 @@ import (
 	"github.com/ayn2op/discordo/internal/config"
 	"github.com/ayn2op/discordo/internal/ui/images"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/cmd"
 	tviewimage "github.com/ayn2op/tview/image"
 	"github.com/gdamore/tcell/v3"
 )
@@ -82,12 +83,26 @@ func TestModelAddMessageOrNotify(t *testing.T) {
 			m.cfg.UI.MessagesList.Avatars.Preview = false
 			m.setSelectedChannel(&discord.Channel{ID: 1})
 			*m, _ = m.Update(tcell.NewEventFocus(tt.focused))
-			cmd := m.addMessageOrNotify(&gateway.MessageCreateEvent{ID: 1, ChannelID: 1})
-			if got := cmd != nil; got != tt.want {
+			command := m.addMessageOrNotify(&gateway.MessageCreateEvent{ID: 1, ChannelID: 1})
+			if got := !empty(command); got != tt.want {
 				t.Fatalf("notified = %v, want %v", got, tt.want)
 			}
 		})
 	}
+}
+
+// empty reports whether command does nothing.
+func empty(command tview.Cmd) bool {
+	batch, ok := command.(cmd.Batch)
+	if !ok {
+		return command == nil
+	}
+	for _, command := range batch {
+		if !empty(command) {
+			return false
+		}
+	}
+	return true
 }
 
 func TestModelCycleFocus(t *testing.T) {

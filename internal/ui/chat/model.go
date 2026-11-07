@@ -33,6 +33,7 @@ import (
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/backdrop"
 	"github.com/ayn2op/tview/center"
+	"github.com/ayn2op/tview/cmd"
 	"github.com/ayn2op/tview/column"
 	tviewimage "github.com/ayn2op/tview/image"
 	"github.com/ayn2op/tview/inert"
@@ -220,7 +221,7 @@ func (m *Model) syncPanes() {
 func (m Model) update(msg tview.Msg) (Model, tview.Cmd) {
 	switch msg := msg.(type) {
 	case gateway.Event:
-		return m, tview.Batch(m.applyEvent(msg), listen(m.events))
+		return m, cmd.Batch{m.applyEvent(msg), listen(m.events)}
 	case guildstree.VoiceMsg:
 		return m, m.updatePane(paneGuildsTree, msg)
 	case tview.FocusMsg:
@@ -244,7 +245,7 @@ func (m Model) update(msg tview.Msg) (Model, tview.Cmd) {
 		}
 		title := ui.ChannelToString(msg.Channel, m.cfg.Icons, m.state) + " - " + consts.Name
 		// Not shown again soon.
-		return m, tview.Batch(m.clearImages(), tview.SetTitle(title), m.messagesList.SetChannel(&msg.Channel, msg.Messages), membersCmd)
+		return m, cmd.Batch{m.clearImages(), cmd.SetTitle(title), m.messagesList.SetChannel(&msg.Channel, msg.Messages), membersCmd}
 	case messageslist.Msg:
 		return m, m.updatePane(paneMessagesList, msg)
 	case tview.ResizeMsg:
@@ -261,23 +262,23 @@ func (m Model) update(msg tview.Msg) (Model, tview.Cmd) {
 		m.kitty = m.isKitty(msg.Name)
 		return m, m.reloadImages(cell)
 	case images.RequestedMsg:
-		cmd := m.loadImages(msg)
-		return m, tview.Batch(cmd, m.sendImages())
+		command := m.loadImages(msg)
+		return m, cmd.Batch{command, m.sendImages()}
 	case images.LoadedMsg:
 		// Another channel was selected, or the cell size changed, while it loaded.
 		if _, ok := m.images[msg.URL]; !ok || msg.Cell != m.imageCell() {
 			return m, nil
 		}
 
-		image, cmd := msg.Image, tview.Cmd(nil)
+		image, command := msg.Image, tview.Cmd(nil)
 		if m.kitty {
 			m.kittyImages++
 			image = image.Kitty(m.kittyImages%maxKittyImages + 1).Compressor(newPooledCompressor)
-			cmd = image.Transmit()
+			command = image.Transmit()
 		}
 
 		m.images[msg.URL] = image
-		return m, tview.Batch(cmd, m.sendImages())
+		return m, cmd.Batch{command, m.sendImages()}
 	case typingExpiredMsg:
 		if until, ok := m.typers[msg.userID]; ok && !time.Now().Before(until) {
 			delete(m.typers, msg.userID)
@@ -300,9 +301,9 @@ func (m Model) update(msg tview.Msg) (Model, tview.Cmd) {
 		return m, nil
 	case messageslist.ShowReactionsMsg:
 		m.overlay = overlayReactionsPicker
-		var cmd tview.Cmd
-		m.reactionsPicker, cmd = m.reactionsPicker.Update(reactionspicker.ShowMsg(msg))
-		return m, cmd
+		var command tview.Cmd
+		m.reactionsPicker, command = m.reactionsPicker.Update(reactionspicker.ShowMsg(msg))
+		return m, command
 	case reactionspicker.SelectedMsg:
 		m.overlay = overlayNone
 		return m, m.react(msg)
@@ -326,7 +327,7 @@ func (m Model) update(msg tview.Msg) (Model, tview.Cmd) {
 		m.messagesList.ShowNewest()
 		return m, nil
 	case QuitMsg:
-		return m, closeState(m.state)
+		return m, closeState(m.state, StateClosedMsg{})
 	case tview.KeyMsg:
 		keybinds := m.cfg.Keybinds
 		switch {
@@ -367,7 +368,7 @@ func (m Model) update(msg tview.Msg) (Model, tview.Cmd) {
 			return m, ui.ShowDialog(
 				"Are you sure you want to log out?",
 				ui.DialogButton{Label: "No"},
-				ui.DialogButton{Label: "Yes", Cmd: tview.Sequence(closeState(m.state), logout())},
+				ui.DialogButton{Label: "Yes", Cmd: closeState(m.state, LogoutMsg{})},
 			)
 		}
 	case composer.RefreshAutocompleteMsg, autocomplete.Msg:
@@ -551,7 +552,7 @@ func (m Model) typerName(channel discord.Channel, userID discord.UserID) string 
 var _ tview.Model[Model] = Model{}
 
 func (m Model) Init() tview.Cmd {
-	return tview.Batch(openState(m.state), listen(m.events), m.guildsTree.Init(), m.messagesList.Init(), tview.RequestTerminalInfo())
+	return cmd.Batch{openState(m.state), listen(m.events), m.guildsTree.Init(), m.messagesList.Init(), cmd.RequestTerminalInfo{}}
 }
 
 // Update returns m changed in response to msg and a command to run, or nil.

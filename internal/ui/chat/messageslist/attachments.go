@@ -15,6 +15,7 @@ import (
 	"github.com/ayn2op/discordo/internal/consts"
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/cmd"
 	"github.com/ayn2op/tview/picker"
 	"github.com/ayn2op/tview/text"
 	"github.com/ncruces/zenity"
@@ -80,7 +81,7 @@ func (m Model) showAttachmentsList(urls []string, attachments []discord.Attachme
 }
 
 func showAttachmentsPicker(items picker.Items) tview.Cmd {
-	return func() tview.Msg { return ShowAttachmentsMsg(items) }
+	return cmd.Task(func() tview.Msg { return ShowAttachmentsMsg(items) })
 }
 
 func (m Model) openAttachment(attachment discord.Attachment) tview.Cmd {
@@ -113,7 +114,7 @@ func attachmentExtension(attachment discord.Attachment) string {
 }
 
 func (m Model) openDownloadedAttachment(attachment discord.Attachment) tview.Cmd {
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		dir := filepath.Join(consts.CacheDir(), "attachments")
 		if err := os.MkdirAll(dir, 0o700); err != nil {
 			return ui.ErrorDialog("create attachments dir", err)
@@ -137,11 +138,11 @@ func (m Model) openDownloadedAttachment(attachment discord.Attachment) tview.Cmd
 		}
 
 		return nil
-	}
+	})
 }
 
 func (m Model) saveAttachment(attachment discord.Attachment) tview.Cmd {
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		destination, err := zenity.SelectFileSave(zenity.Filename(filepath.Base(attachment.Filename)), zenity.ConfirmOverwrite())
 		if errors.Is(err, zenity.ErrCanceled) {
 			return nil
@@ -154,16 +155,16 @@ func (m Model) saveAttachment(attachment discord.Attachment) tview.Cmd {
 			return ui.ErrorDialog("download attachment", err)
 		}
 		return nil
-	}
+	})
 }
 
 func openURL(url string) tview.Cmd {
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		if err := open.Start(url); err != nil {
 			return ui.ErrorDialog("open URL", err)
 		}
 		return nil
-	}
+	})
 }
 
 // Get requests the file at url, by a new link to it if that one expired.

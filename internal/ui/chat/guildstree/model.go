@@ -17,6 +17,7 @@ import (
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/ningen/v3/states/read"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/cmd"
 	"github.com/ayn2op/tview/keybind"
 	"github.com/ayn2op/tview/text"
 	"github.com/ayn2op/tview/tree"
@@ -442,13 +443,13 @@ func (m Model) toggleMute() tview.Cmd {
 
 // voiceCmd returns a command that does action, and shows why it failed to do what if it did.
 func voiceCmd(what string, action func() error) tview.Cmd {
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		if err := action(); err != nil {
 			return ui.ErrorDialog(what, err)
 		}
 
 		return nil
-	}
+	})
 }
 
 // expandable reports whether selecting node expands or collapses it, which the members of a voice channel do not make it.
@@ -706,10 +707,10 @@ var _ tview.Model[Model] = Model{}
 
 // Init waits for who is speaking or the state of the voice channel joined to change.
 func (m Model) Init() tview.Cmd {
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		<-m.voiceSession.Updates()
 		return VoiceMsg{}
-	}
+	})
 }
 
 // Update returns m changed in response to msg and a command to run, or nil.

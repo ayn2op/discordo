@@ -11,6 +11,7 @@ import (
 	"github.com/ayn2op/discordo/internal/ui"
 	"github.com/ayn2op/ningen/v3/states/read"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/cmd"
 )
 
 func onRequest(req httpdriver.Request) error {
@@ -28,22 +29,22 @@ func (m *Model) loadGuildsTree(event *gateway.ReadyEvent) tview.Cmd {
 }
 
 func (m *Model) addMessageOrNotify(message *gateway.MessageCreateEvent) tview.Cmd {
-	cmd := m.updatePane(paneGuildsTree, message)
+	command := m.updatePane(paneGuildsTree, message)
 
 	if channel := m.selectedChannel; channel != nil && channel.ID == message.ChannelID {
 		delete(m.typers, message.Author.ID)
-		cmd = tview.Batch(cmd, m.messagesList.AddMessage(message.Message))
+		command = cmd.Batch{command, m.messagesList.AddMessage(message.Message)}
 		if !m.windowUnfocused || !m.cfg.Notifications.WhenUnfocused {
-			return cmd
+			return command
 		}
 	}
-	return tview.Batch(cmd, m.notify(*message))
+	return cmd.Batch{command, m.notify(*message)}
 }
 
 func (m Model) notify(message gateway.MessageCreateEvent) tview.Cmd {
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		return m.notification(message)
-	}
+	})
 }
 
 // notification shows a desktop notification for message if it mentions the user.
@@ -71,7 +72,7 @@ func (m Model) notification(message gateway.MessageCreateEvent) tview.Msg {
 		return nil
 	}
 
-	return tview.Notify(title, content)()
+	return cmd.Notify{Title: title, Body: content}
 }
 
 // notificationTitle returns the author of message, followed by its channel and guild for a guild message.
@@ -117,14 +118,14 @@ func (m *Model) applyEvent(event gateway.Event) tview.Cmd {
 		slog.Debug("new raw event", "code", event.OriginalCode, "type", event.OriginalType)
 
 	case *gateway.ReadyEvent:
-		return tview.Batch(m.loadGuildsTree(event), m.updatePane(paneMembersTree, event))
+		return cmd.Batch{m.loadGuildsTree(event), m.updatePane(paneMembersTree, event)}
 
 	case *gateway.MessageCreateEvent:
 		return m.addMessageOrNotify(event)
 	case *gateway.MessageUpdateEvent:
 		return m.messagesList.UpdateMessage(event.Message)
 	case *gateway.PresenceUpdateEvent:
-		return tview.Batch(m.updatePane(paneGuildsTree, event), m.updatePane(paneMembersTree, event))
+		return cmd.Batch{m.updatePane(paneGuildsTree, event), m.updatePane(paneMembersTree, event)}
 	case *gateway.GuildMemberListUpdateEvent:
 		return m.updatePane(paneMembersTree, event)
 	case *gateway.MessageDeleteEvent:

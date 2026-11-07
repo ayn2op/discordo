@@ -13,6 +13,7 @@ import (
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/box"
+	"github.com/ayn2op/tview/cmd"
 	"github.com/ayn2op/tview/column"
 	tviewimage "github.com/ayn2op/tview/image"
 	"github.com/ayn2op/tview/keybind"
@@ -151,7 +152,7 @@ func (m *Model) SetChannel(channel *discord.Channel, messages []discord.Message)
 	m.reset()
 	m.setMessages(messages)
 	if channel.GuildID.IsValid() {
-		return tview.Batch(m.requestGuildMembers(channel.GuildID, messages), m.LoadImages())
+		return cmd.Batch{m.requestGuildMembers(channel.GuildID, messages), m.LoadImages()}
 	}
 	return m.LoadImages()
 }
@@ -461,7 +462,7 @@ func (m *Model) prependOlder(msg olderMessagesLoadedMsg) tview.Cmd {
 
 	m.rebuildItems()
 	if selectedChannel.GuildID.IsValid() {
-		return tview.Batch(m.requestGuildMembers(selectedChannel.GuildID, msg.older), m.LoadImages())
+		return cmd.Batch{m.requestGuildMembers(selectedChannel.GuildID, msg.older), m.LoadImages()}
 	}
 
 	return m.LoadImages()
@@ -570,10 +571,10 @@ var _ tview.Model[Model] = Model{}
 
 // Init waits for the status of the voice message player to change.
 func (m Model) Init() tview.Cmd {
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		<-m.voicePlayer.Updates()
 		return voiceMsg{}
-	}
+	})
 }
 
 // Update returns m changed in response to msg and a command to run, or nil.

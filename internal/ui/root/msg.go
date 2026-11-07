@@ -7,20 +7,25 @@ import (
 	"github.com/ayn2op/discordo/internal/ui/chat"
 	"github.com/ayn2op/discordo/internal/ui/login"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/cmd"
 	"golang.design/x/clipboard"
 )
 
+// quit quits once the chat, if shown, has closed its session.
 func (m *Model) quit() tview.Cmd {
-	return tview.Sequence(m.updateScreen(chat.QuitMsg{}), tview.Quit())
+	if m.screen == screenChat {
+		return m.updateScreen(chat.QuitMsg{})
+	}
+	return cmd.Quit{}
 }
 
 func initClipboard() tview.Cmd {
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		if err := clipboard.Init(); err != nil {
 			slog.Error("failed to init clipboard", "err", err)
 		}
 		return nil
-	}
+	})
 }
 
 func (m *Model) showLogin() tview.Cmd {
@@ -32,7 +37,7 @@ func (m *Model) showChat(token string) tview.Cmd {
 	m.screen, m.chat, m.login = screenChat, chat.NewModel(m.cfg, token), login.Model{}
 	init := m.chat.Init()
 	if m.resize != nil {
-		init = tview.Batch(init, m.updateScreen(m.resize))
+		init = cmd.Batch{init, m.updateScreen(m.resize)}
 	}
 	return m.show(init)
 }
@@ -40,7 +45,7 @@ func (m *Model) showChat(token string) tview.Cmd {
 // show closes any open dialog after the shown model changed and returns what it needs done, with init its first command.
 func (m *Model) show(init tview.Cmd) tview.Cmd {
 	m.dialog = nil
-	return tview.Batch(tview.SetTitle(consts.Name), init)
+	return cmd.Batch{cmd.SetTitle(consts.Name), init}
 }
 
 func (m *Model) finishDialog(index int) tview.Cmd {

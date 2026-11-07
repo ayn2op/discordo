@@ -1,6 +1,7 @@
 package messageslist
 
 import (
+	"github.com/ayn2op/tview/cmd"
 	"image"
 	"slices"
 	"testing"
@@ -75,7 +76,7 @@ func TestModelEmojiLine(t *testing.T) {
 func TestModelLoadImages(t *testing.T) {
 	ml := newTestModel(t, testConfig(t))
 	ml.setMessages([]discord.Message{{ID: 2, ChannelID: 1, Content: "hi <:cat:5>"}})
-	msg := ml.LoadImages()().(images.RequestedMsg)
+	msg := ml.LoadImages().(cmd.Task)().(images.RequestedMsg)
 	t.Run("content emoji", func(t *testing.T) {
 		if rows := msg.Squares[emojis.URLFromID(5)]; rows != emojis.Rows {
 			t.Fatalf("the emoji in the content was asked for %d rows tall, want %d", rows, emojis.Rows)

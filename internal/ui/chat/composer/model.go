@@ -29,6 +29,7 @@ import (
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
 	"github.com/ayn2op/tview/box"
+	"github.com/ayn2op/tview/cmd"
 	"github.com/ayn2op/tview/keybind"
 	"github.com/ayn2op/tview/textarea"
 	"github.com/rockorager/go-uucode"
@@ -424,9 +425,9 @@ func (m Model) CacheMemberSearch(event *gateway.GuildMembersChunkEvent) tview.Cm
 	}
 
 	m.memberSearchCache[key] = uint(len(event.Members))
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		return RefreshAutocompleteMsg{}
-	}
+	})
 }
 
 // OnGuildMemberRemove forgets cached member searches that the removed member may have filled.
@@ -543,7 +544,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	case editMsg:
 		m.setText(msg.text, msg.cursor)
 		typingCmd := m.sendTyping()
-		return m, tview.Batch(typingCmd, m.showAutocomplete())
+		return m, cmd.Batch{typingCmd, m.showAutocomplete()}
 
 	case tview.KeyMsg:
 		keybinds := m.cfg.Keybinds.Composer
@@ -559,9 +560,9 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			}
 			return m, m.send()
 		case keybind.Matches(msg, keybinds.OpenEditor.Keybind):
-			return m, tview.Batch(m.showCompletions("", nil), m.openEditor())
+			return m, cmd.Batch{m.showCompletions("", nil), m.openEditor()}
 		case keybind.Matches(msg, keybinds.OpenFilePicker.Keybind):
-			return m, tview.Batch(m.showCompletions("", nil), m.pickFiles())
+			return m, cmd.Batch{m.showCompletions("", nil), m.pickFiles()}
 		case keybind.Matches(msg, keybinds.Cancel.Keybind):
 			if m.autocomplete.Visible() {
 				return m, m.showCompletions("", nil)

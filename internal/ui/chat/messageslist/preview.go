@@ -9,6 +9,7 @@ import (
 	"github.com/ayn2op/discordo/internal/ui/emojis"
 	"github.com/ayn2op/discordo/internal/ui/images"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/cmd"
 	"github.com/ayn2op/tview/text"
 	"github.com/yuin/goldmark/v2/ast"
 )
@@ -69,7 +70,7 @@ func (m Model) LoadImages() tview.Cmd {
 		return nil
 	}
 
-	return func() tview.Msg { return msg }
+	return cmd.Task(func() tview.Msg { return msg })
 }
 
 // addEmojis adds the custom emoji of the reactions to the item's message and in its content to squares.

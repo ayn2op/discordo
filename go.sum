@@ -14,8 +14,8 @@ github.com/ayn2op/arikawa/v3 v3.0.0-20261026205501-4004a7fb7f54 h1:Kzha0Os1dUJtj
 github.com/ayn2op/arikawa/v3 v3.0.0-20261026205501-4004a7fb7f54/go.mod h1:h2k8uDqPkJ8oQmBe5brLwuBaJWMSglq9sZ5B1TjmTdo=
 github.com/ayn2op/ningen/v3 v3.0.1-0.20261026205502-53a9435c0b4f h1:Hj07AfwXRk/UUAvV0JfPU2AH3plfp1cUXbWMb8o7+a8=
 github.com/ayn2op/ningen/v3 v3.0.1-0.20261026205502-53a9435c0b4f/go.mod h1:4S2B9frwrjELeAldoqPgasA/VfnOySgRlektwYLuVks=
-github.com/ayn2op/tview v0.0.0-20261025221241-600eb487f17f h1:nzZjQrccOkwOOk5BJPj1m5UckMx88xdCawmaaRQ7EtE=
-github.com/ayn2op/tview v0.0.0-20261025221241-600eb487f17f/go.mod h1:U9c25eIiGcjYouQtwK8DDGpsExlYy2vVYTzvuzqAljI=
+github.com/ayn2op/tview v0.0.0-20261107191312-5a599824872e h1:rTNxIjaVVhyNtiTo04AxGEuDlYw90YmVQwTb6Ljeb/M=
+github.com/ayn2op/tview v0.0.0-20261107191312-5a599824872e/go.mod h1:RxY9H5djuNdU1wcvVMGXG+rmfIeXwK9R/PbkVzVnsrw=
 github.com/bdandy/go-errors v1.2.2 h1:WdFv/oukjTJCLa79UfkGmwX7ZxONAihKu4V0mLIs11Q=
 github.com/bdandy/go-errors v1.2.2/go.mod h1:NkYHl4Fey9oRRdbB1CoC6e84tuqQHiqrOcZpqFEkBxM=
 github.com/bdandy/go-socks4 v1.2.3 h1:Q6Y2heY1GRjCtHbmlKfnwrKVU/k81LS8mRGLRlmDlic=
@@ -46,8 +46,8 @@ github.com/ebitengine/purego v0.11.3 h1:OB+JLpdm7ioymhyA+6s5kbb/uOuYycAgL8NNTFc5
 github.com/ebitengine/purego v0.11.3/go.mod h1:DCHPP08djqhNSoTfImcnHYQRZmd0qhakvrozqaEYhGQ=
 github.com/gdamore/encoding v1.0.1 h1:YzKZckdBL6jVt2Gc+5p82qhrGiqMdG/eNs6Wy0u3Uhw=
 github.com/gdamore/encoding v1.0.1/go.mod h1:0Z0cMFinngz9kS1QfMjCP8TY7em3bZYeeklsSDPivEo=
-github.com/gdamore/tcell/v3 v3.6.1-0.20261025165013-3f9243d555d9 h1:5C8YdMV/vXzAgPX6Rj/2Bx4c+Ni/2HSSOIhO/nGMy/0=
-github.com/gdamore/tcell/v3 v3.6.1-0.20261025165013-3f9243d555d9/go.mod h1:TMjaFRfs5NCU3o1aiuxoRHdEdyixCy1mdGcHdvj7lvc=
+github.com/gdamore/tcell/v3 v3.6.1-0.20261105165643-4cedad629677 h1:JXjMdowpuepHOX9CWJYYzwlJQYKzn2zfe9YKtHLRj1o=
+github.com/gdamore/tcell/v3 v3.6.1-0.20261105165643-4cedad629677/go.mod h1:TMjaFRfs5NCU3o1aiuxoRHdEdyixCy1mdGcHdvj7lvc=
 github.com/gen2brain/malgo v0.11.27 h1:iD/VV+AYELEt1pK9O3efj3zu0p8oTA3Gp+9BWd/RNmI=
 github.com/gen2brain/malgo v0.11.27/go.mod h1:xLVG3ROA33Bzol1quF3e4ehqcFuqh8QK4B8T6LQUs/M=
 github.com/godbus/dbus/v5 v5.2.4 h1:F2gUCy++NMIxGmo9J+z5le/+ZC8W1OgeR51P4i9ZB/U=

@@ -3,6 +3,7 @@ package memberstree
 import (
 	"github.com/ayn2op/ningen/v3/states/member"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/cmd"
 	"github.com/ayn2op/tview/tree"
 )
 
@@ -36,8 +37,8 @@ func (m Model) requestMembers(chunk int) tview.Cmd {
 		return nil
 	}
 	state := m.state
-	return func() tview.Msg {
+	return cmd.Task(func() tview.Msg {
 		state.MemberState.RequestMemberList(channel.GuildID, channel.ID, chunk)
 		return nil
-	}
+	})
 }

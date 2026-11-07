@@ -15,6 +15,7 @@ import (
 	"github.com/ayn2op/discordo/internal/ui/images"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/cmd"
 	tviewimage "github.com/ayn2op/tview/image"
 	"github.com/ayn2op/tview/keybind"
 	"github.com/gdamore/tcell/v3"
@@ -145,9 +146,10 @@ func TestModelUpdate(t *testing.T) {
 			c, cfg := newTestModel(t)
 			// setup changes c, so it runs before Update copies it.
 			msg := tt.setup(c, cfg)
-			var cmd tview.Cmd
-			*c, cmd = c.Update(msg)
-			if got := cmd != nil && cmd() == (EditLastMsg{}); got != tt.want {
+			var command tview.Cmd
+			*c, command = c.Update(msg)
+			task, ok := command.(cmd.Task)
+			if got := ok && task() == (EditLastMsg{}); got != tt.want {
 				t.Fatalf("asked to edit the last message = %v, want %v", got, tt.want)
 			}
 		})

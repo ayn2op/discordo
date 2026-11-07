@@ -10,6 +10,7 @@ import (
 	"github.com/ayn2op/discordo/internal/ui/login/qr"
 	"github.com/ayn2op/discordo/internal/ui/login/token"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/cmd"
 	"github.com/ayn2op/tview/column"
 )
 
@@ -75,16 +76,16 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		errCmd = showErrorDialog(msg)
 	}
 
-	var cmd tview.Cmd
+	var command tview.Cmd
 	switch m.active {
 	case tabPassword:
-		m.password, cmd = m.password.Update(msg)
+		m.password, command = m.password.Update(msg)
 	case tabQR:
-		m.qr, cmd = m.qr.Update(msg)
+		m.qr, command = m.qr.Update(msg)
 	case tabToken:
-		m.token, cmd = m.token.Update(msg)
+		m.token, command = m.token.Update(msg)
 	}
-	return m, tview.Batch(errCmd, cmd)
+	return m, cmd.Batch{errCmd, command}
 }
 
 // View shows the tabs in a box.

@@ -10,6 +10,7 @@ import (
 	uipicker "github.com/ayn2op/discordo/internal/ui/picker"
 	"github.com/ayn2op/ningen/v3"
 	"github.com/ayn2op/tview"
+	"github.com/ayn2op/tview/cmd"
 	tviewimage "github.com/ayn2op/tview/image"
 	"github.com/ayn2op/tview/picker"
 	"github.com/ayn2op/tview/text"
@@ -72,7 +73,7 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		if len(load.Squares) == 0 {
 			return m, nil
 		}
-		return m, func() tview.Msg { return load }
+		return m, cmd.Task(func() tview.Msg { return load })
 	case images.ChangedMsg:
 		m.images = msg
 		m.ReplaceItems(m.items())
