@@ -16,7 +16,7 @@ require (
 	github.com/ayn2op/ningen/v3 v3.0.1-0.20261014035153-5e43590a1426
 	github.com/ayn2op/tview v0.0.0-20261025221241-600eb487f17f
 	github.com/bogdanfinn/fhttp v0.7.3
-	github.com/bogdanfinn/tls-client v1.17.1
+	github.com/bogdanfinn/tls-client v1.18.0
 	github.com/gdamore/tcell/v3 v3.6.1-0.20261025165013-3f9243d555d9
 	github.com/gen2brain/malgo v0.11.27
 	github.com/gorilla/websocket v1.5.3
@@ -40,9 +40,9 @@ require (
 	github.com/andybalholm/brotli v1.2.7 // indirect
 	github.com/bdandy/go-errors v1.2.2 // indirect
 	github.com/bdandy/go-socks4 v1.2.3 // indirect
-	github.com/bogdanfinn/quic-go-utls v1.0.12-utls // indirect
+	github.com/bogdanfinn/quic-go-utls v1.0.13-utls // indirect
 	github.com/bogdanfinn/utls v1.8.2-barnius // indirect
-	github.com/bogdanfinn/websocket v1.5.8-barnius // indirect
+	github.com/bogdanfinn/websocket v1.5.9-barnius // indirect
 	github.com/clipperhouse/displaywidth v0.11.0 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/danieljoos/wincred v1.2.3 // indirect
