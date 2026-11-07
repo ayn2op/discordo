@@ -20,8 +20,8 @@ github.com/bdandy/go-errors v1.2.2 h1:WdFv/oukjTJCLa79UfkGmwX7ZxONAihKu4V0mLIs11
 github.com/bdandy/go-errors v1.2.2/go.mod h1:NkYHl4Fey9oRRdbB1CoC6e84tuqQHiqrOcZpqFEkBxM=
 github.com/bdandy/go-socks4 v1.2.3 h1:Q6Y2heY1GRjCtHbmlKfnwrKVU/k81LS8mRGLRlmDlic=
 github.com/bdandy/go-socks4 v1.2.3/go.mod h1:98kiVFgpdogR8aIGLWLvjDVZ8XcKPsSI/ypGrO+bqHI=
-github.com/bogdanfinn/fhttp v0.7.1 h1:Vrw5Fo3sbEPD4s2kds7/vuM74i9JXxeK8E3GczofwOw=
-github.com/bogdanfinn/fhttp v0.7.1/go.mod h1:Pco5Ml+HnzrBRAu+6BORirlCAF9JqKmAvC0vI3JSjss=
+github.com/bogdanfinn/fhttp v0.7.3 h1:DLiZfU9dKD+JCFDUZk8XUgbwm32DuvPLp9x2mucNPv0=
+github.com/bogdanfinn/fhttp v0.7.3/go.mod h1:Pco5Ml+HnzrBRAu+6BORirlCAF9JqKmAvC0vI3JSjss=
 github.com/bogdanfinn/quic-go-utls v1.0.12-utls h1:uuWyRGD1jZQl2IAL9rTDVA5V0Mm8VlIoBPhTu6IaynU=
 github.com/bogdanfinn/quic-go-utls v1.0.12-utls/go.mod h1:Uq7Hfq7wNs7N8JirJMLy7hRyAE0tcrvcWoITfDpjrMw=
 github.com/bogdanfinn/tls-client v1.17.1 h1:X03STW0lc/Fnt9ihcbrJqoDmM3JBGY9JBTtmchNc7tc=
