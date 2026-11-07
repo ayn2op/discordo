@@ -37,7 +37,7 @@ require (
 
 require (
 	github.com/akavel/rsrc v0.10.2 // indirect
-	github.com/andybalholm/brotli v1.2.7 // indirect
+	github.com/andybalholm/brotli v1.2.8 // indirect
 	github.com/bdandy/go-errors v1.2.2 // indirect
 	github.com/bdandy/go-socks4 v1.2.3 // indirect
 	github.com/bogdanfinn/quic-go-utls v1.0.13-utls // indirect
@@ -48,8 +48,8 @@ require (
 	github.com/danieljoos/wincred v1.2.3 // indirect
 	github.com/dchest/jsmin v1.0.0 // indirect
 	github.com/disgoorg/godave v0.3.0 // indirect
-	github.com/dlclark/regexp2/v2 v2.10.1 // indirect
-	github.com/ebitengine/purego v0.11.2 // indirect
+	github.com/dlclark/regexp2/v2 v2.13.0 // indirect
+	github.com/ebitengine/purego v0.11.3 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
 	github.com/godbus/dbus/v5 v5.2.4 // indirect
 	github.com/gorilla/schema v1.4.1 // indirect
@@ -61,14 +61,14 @@ require (
 	github.com/randall77/makefat v0.0.0-20260406194835-1b91746796b7 // indirect
 	github.com/tam7t/hpkp v0.0.0-20160821193359-2b70b4024ed5 // indirect
 	github.com/thomas-vilte/mls-go v1.6.0 // indirect
-	github.com/tphakala/simd v1.14.0 // indirect
-	github.com/twmb/murmur3 v1.2.1 // indirect
-	go4.org v0.0.0-20261019143151-5b882263cdaf // indirect
+	github.com/tphakala/simd v1.16.0 // indirect
+	github.com/twmb/murmur3 v1.2.2 // indirect
+	go4.org v0.0.0-20261028031214-ed6929a230fe // indirect
 	golang.design/x/x11 v0.2.0 // indirect
 	golang.org/x/crypto v0.58.0 // indirect
-	golang.org/x/exp/shiny v0.0.0-20261014143641-f0251eb4aa3e // indirect
+	golang.org/x/exp/shiny v0.0.0-20261106192419-47ce03d25ef0 // indirect
 	golang.org/x/mobile v0.0.0-20261011034528-197770444867 // indirect
-	golang.org/x/net v0.61.0 // indirect
+	golang.org/x/net v0.62.0 // indirect
 	golang.org/x/term v0.47.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
 	golang.org/x/time v0.16.0 // indirect
