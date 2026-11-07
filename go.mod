@@ -27,7 +27,7 @@ require (
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/thomas-vilte/dave-go v0.5.1
-	github.com/tphakala/go-opus v1.3.0
+	github.com/tphakala/go-opus v1.4.0
 	github.com/yuin/goldmark/v2 v2.1.9
 	github.com/zalando/go-keyring v0.2.8
 	golang.design/x/clipboard v0.11.0

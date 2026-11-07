@@ -94,8 +94,8 @@ github.com/thomas-vilte/dave-go v0.5.1 h1:sc0roOie5Ayn+3eKOUjry9kbBPDvFQCF8t+gy/
 github.com/thomas-vilte/dave-go v0.5.1/go.mod h1:h0UvVsCDECUe6W6dlSHEQTbx3TT13pGmHGngG0GXg1o=
 github.com/thomas-vilte/mls-go v1.6.0 h1:HGxrRe0kRfEAXu7MtTemNzqGmC/758rfGkarhYGPOYg=
 github.com/thomas-vilte/mls-go v1.6.0/go.mod h1:Cxl407ecAW94wwYLOycpQUp0UyfBk6dNmvs1hkw2yLg=
-github.com/tphakala/go-opus v1.3.0 h1:0lpjV0HMAhStV7/oKkZRaQgdzNT5pdFDiWhBqteobxE=
-github.com/tphakala/go-opus v1.3.0/go.mod h1:BjrAk2Jf16arkoj6aeIeE/Nnsnq3IRJgzY+kNn3jlH4=
+github.com/tphakala/go-opus v1.4.0 h1:Rt63c7OjPq7Fe2jQgUfQxQl1BC21CEnrLULNdxtffP8=
+github.com/tphakala/go-opus v1.4.0/go.mod h1:BjrAk2Jf16arkoj6aeIeE/Nnsnq3IRJgzY+kNn3jlH4=
 github.com/tphakala/simd v1.14.0 h1:f1ZBojSE3udWggptQpGyTynVfVdCZxd/KTTfaiDeoCA=
 github.com/tphakala/simd v1.14.0/go.mod h1:eO53GkWg40mRbr2tzs0Xb1IMZQ5U8cMR+Aa1RlXUinE=
 github.com/twmb/murmur3 v1.2.1 h1:TJzZGygOc1VJ7jiBpy8m7KAAzm67zy1jvkUxxEjJp+g=
