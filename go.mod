@@ -13,7 +13,7 @@ require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/alecthomas/chroma/v2 v2.27.0
 	github.com/ayn2op/arikawa/v3 v3.0.0-20261026205501-4004a7fb7f54
-	github.com/ayn2op/ningen/v3 v3.0.1-0.20261014035153-5e43590a1426
+	github.com/ayn2op/ningen/v3 v3.0.1-0.20261026205502-53a9435c0b4f
 	github.com/ayn2op/tview v0.0.0-20261025221241-600eb487f17f
 	github.com/bogdanfinn/fhttp v0.7.3
 	github.com/bogdanfinn/tls-client v1.18.0
