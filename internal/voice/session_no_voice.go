@@ -13,7 +13,7 @@ import (
 // Session joins no voice channel.
 type Session struct{}
 
-func New(*state.State, float64) *Session { return &Session{} }
+func New(*state.State, float64, int) *Session { return &Session{} }
 
 func (*Session) Updates() <-chan struct{}     { return nil }
 func (*Session) Status() Status               { return Status{} }
@@ -21,6 +21,9 @@ func (*Session) Speaking(discord.UserID) bool { return false }
 func (*Session) Latency() time.Duration       { return 0 }
 func (*Session) Leave() error                 { return nil }
 func (*Session) Toggle(bool) error            { return nil }
+
+func (*Session) Volume(discord.UserID) int     { return 100 }
+func (*Session) SetVolume(discord.UserID, int) {}
 
 var errNoVoice = errors.New("built without voice (build tag: no_voice)")
 

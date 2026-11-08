@@ -86,6 +86,8 @@ type (
 	Voice struct {
 		// How loud the microphone must be for what is said to be sent, in dB below the loudest it can be.
 		Sensitivity float64 `toml:"sensitivity"`
+		// How loud everyone is played, in percent.
+		Volume int `toml:"volume"`
 	}
 
 	Icons struct {
@@ -243,7 +245,7 @@ func Default() Config {
 		Composer:    ComposerConfig{MaxHeight: 10},
 
 		UI:    defaultUI(),
-		Voice: Voice{Sensitivity: -40},
+		Voice: Voice{Sensitivity: -40, Volume: 100},
 		Icons: Icons{
 			GuildText:       "#",
 			GuildVoice:      "♪ ",

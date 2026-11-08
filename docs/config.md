@@ -534,6 +534,12 @@ How loud the microphone must be for what is said to be sent, in dB below the lou
 
 Default: `-40.0`
 
+## voice.volume
+
+How loud everyone is played, in percent.
+
+Default: `100`
+
 # icons
 
 ## icons.guild_category
@@ -724,11 +730,11 @@ Default: `"l"`
 
 ### keybinds.guilds_tree.select_up
 
-Default: `["k","up"]`
+Default: `["k", "up"]`
 
 ### keybinds.guilds_tree.select_down
 
-Default: `["j","down"]`
+Default: `["j", "down"]`
 
 ### keybinds.guilds_tree.select_top
 
@@ -776,6 +782,22 @@ Join the highlighted voice channel to listen, or leave it.
 
 Default: `"v"`
 
+### keybinds.guilds_tree.increase_volume
+
+Play the highlighted voice member louder or quieter.
+
+Default: `">"`
+
+### keybinds.guilds_tree.decrease_volume
+
+Default: `"<"`
+
+### keybinds.guilds_tree.toggle_member_mute
+
+Mute the highlighted voice member, or unmute them to 100% if they are.
+
+Default: `"0"`
+
 ## keybinds.members_tree
 
 Only while focusing on the members tree.
@@ -810,11 +832,11 @@ Default: `"l"`
 
 ### keybinds.members_tree.select_up
 
-Default: `["k","up"]`
+Default: `["k", "up"]`
 
 ### keybinds.members_tree.select_down
 
-Default: `["j","down"]`
+Default: `["j", "down"]`
 
 ### keybinds.members_tree.select_top
 
@@ -852,11 +874,11 @@ Only while focusing on sent messages.
 
 ### keybinds.messages_list.select_up
 
-Default: `["k","up"]`
+Default: `["k", "up"]`
 
 ### keybinds.messages_list.select_down
 
-Default: `["j","down"]`
+Default: `["j", "down"]`
 
 ### keybinds.messages_list.select_top
 
@@ -955,11 +977,11 @@ Default: `"p"`
 
 Seek the voice message that is playing or paused.
 
-Default: `["h","left"]`
+Default: `["h", "left"]`
 
 ### keybinds.messages_list.seek_forward
 
-Default: `["l","right"]`
+Default: `["l", "right"]`
 
 ### keybinds.messages_list.yank_content
 

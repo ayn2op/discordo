@@ -33,6 +33,8 @@ const (
 	silenceFrames = 5
 	// maxPacketBytes is the most an encoded frame is given room for.
 	maxPacketBytes = 4000
+	// maxVolume is the loudest, in percent, that a user can be played.
+	maxVolume = 200
 )
 
 // audio is what the audio devices are opened with. It is of the first backend that works but the null one, which malgo would otherwise silently use when the system has no audio library.
@@ -78,6 +80,8 @@ type Session struct {
 	state *state.State
 	// threshold is how loud a sample of the microphone must be for what is said to be sent.
 	threshold int
+	// volume is how loud everyone is played, as a fraction.
+	volume float64
 	// updates is sent to when the status or who is speaking changes.
 	updates chan struct{}
 	// mic is sent what the microphone captures.
@@ -94,17 +98,21 @@ type Session struct {
 	status   Status
 	speaking map[discord.UserID]bool
 	speakers map[uint32]*speaker
+	// volumes is how loud each user is played, in percent, if not 100.
+	volumes map[discord.UserID]int
 }
 
-// New returns a Session that sends what the microphone captures louder than sensitivity, in dB.
-func New(state *state.State, sensitivity float64) *Session {
+// New returns a Session that sends what the microphone captures louder than sensitivity, in dB, and plays everyone at volume, in percent.
+func New(state *state.State, sensitivity float64, volume int) *Session {
 	session := &Session{
 		state:     state,
 		threshold: int(math.Pow(10, sensitivity/20) * math.MaxInt16),
+		volume:    float64(volume) / 100,
 		updates:   make(chan struct{}, 1),
 		mic:       make(chan []byte, 4),
 		speaking:  make(map[discord.UserID]bool),
 		speakers:  make(map[uint32]*speaker),
+		volumes:   make(map[discord.UserID]int),
 	}
 	state.AddHandler(session.follow)
 
@@ -182,6 +190,26 @@ func (s *Session) setStatus(status Status) {
 		clear(s.speakers)
 		return true
 	})
+}
+
+// Volume returns how loud the user is played, in percent.
+func (s *Session) Volume(userID discord.UserID) int {
+	s.stateMu.Lock()
+	defer s.stateMu.Unlock()
+
+	if volume, ok := s.volumes[userID]; ok {
+		return volume
+	}
+
+	return 100
+}
+
+// SetVolume sets how loud the user is played, in percent, from 0 to 200.
+func (s *Session) SetVolume(userID discord.UserID, volume int) {
+	s.stateMu.Lock()
+	defer s.stateMu.Unlock()
+
+	s.volumes[userID] = max(0, min(maxVolume, volume))
 }
 
 func (s *Session) setSpeaking(userID discord.UserID, speaking bool) {
@@ -357,7 +385,12 @@ func (s *Session) mix(output, _ []byte) {
 	defer s.stateMu.Unlock()
 
 	for _, speaker := range s.speakers {
-		speaker.mix(output)
+		gain := s.volume
+		if volume, ok := s.volumes[speaker.userID]; ok {
+			gain *= float64(volume) / 100
+		}
+
+		speaker.mix(output, gain)
 	}
 }
 
@@ -375,7 +408,8 @@ func (s *Session) receive(session *voice.Session) {
 			continue
 		}
 
-		speaker, err := s.speaker(packet.SSRC(), packet.Sequence())
+		userID := session.User(packet.SSRC())
+		speaker, err := s.speaker(packet.SSRC(), userID, packet.Sequence())
 		if err != nil {
 			slog.Error("failed to create Opus decoder", "err", err)
 			return
@@ -385,25 +419,27 @@ func (s *Session) receive(session *voice.Session) {
 			slog.Debug("failed to decode voice packet", "err", err, "ssrc", packet.SSRC())
 		}
 
-		s.setSpeaking(session.User(packet.SSRC()), string(packet.Opus) != voice.Silence)
+		s.setSpeaking(userID, string(packet.Opus) != voice.Silence)
 	}
 }
 
-// speaker returns the speaker of ssrc, created if it is new with sequence as its first packet.
-func (s *Session) speaker(ssrc uint32, sequence uint16) (*speaker, error) {
+// speaker returns the speaker of ssrc, which is userID, created if it is new with sequence as its first packet.
+func (s *Session) speaker(ssrc uint32, userID discord.UserID, sequence uint16) (*speaker, error) {
 	s.stateMu.Lock()
 	defer s.stateMu.Unlock()
 
-	if speaker := s.speakers[ssrc]; speaker != nil {
-		return speaker, nil
+	speaker := s.speakers[ssrc]
+	if speaker == nil {
+		var err error
+		if speaker, err = newSpeaker(sequence); err != nil {
+			return nil, err
+		}
+
+		s.speakers[ssrc] = speaker
 	}
 
-	speaker, err := newSpeaker(sequence)
-	if err != nil {
-		return nil, err
-	}
-
-	s.speakers[ssrc] = speaker
+	// Who ssrc is may not be known by its first packet.
+	speaker.userID = userID
 	return speaker, nil
 }
 
