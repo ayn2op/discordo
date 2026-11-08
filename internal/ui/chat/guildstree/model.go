@@ -32,6 +32,8 @@ const (
 	maxMentions       = 99
 	mentionsFormat    = " (%d)"
 	maxMentionsFormat = " (%d+)"
+	// volumeStep is how much louder or quieter, in percent, a voice member is played per keypress.
+	volumeStep = 10
 )
 
 type Model struct {
@@ -58,7 +60,7 @@ func NewModel(cfg *config.Config, state *ningen.State) Model {
 		root:         tree.NewNode(""),
 		cfg:          cfg,
 		state:        state,
-		voiceSession: voice.New(state.State, cfg.Voice.Sensitivity),
+		voiceSession: voice.New(state.State, cfg.Voice.Sensitivity, cfg.Voice.Volume),
 		guildNodes:   make(map[discord.GuildID]*tree.Node),
 		channelNodes: make(map[discord.ChannelID]*tree.Node),
 	}
@@ -324,8 +326,12 @@ func (m Model) voiceMemberText(guildID discord.GuildID, state discord.VoiceState
 	return text + m.voiceMarkers(state)
 }
 
-// voiceMarkers returns what shows that the user that state is of is muted or deafened.
+// voiceMarkers returns what shows that the user that state is of is muted or deafened, and how loud they are played if not 100%.
 func (m Model) voiceMarkers(state discord.VoiceState) (markers string) {
+	if volume := m.voiceSession.Volume(state.UserID); volume != 100 {
+		markers += fmt.Sprintf(" %d%%", volume)
+	}
+
 	if state.Mute || state.SelfMute {
 		markers += m.cfg.Icons.VoiceMuted
 	}
@@ -376,6 +382,31 @@ func (m Model) voiceFooter() string {
 		return "In " + name
 	default:
 		return "In " + name + " (" + m.voiceSession.Latency().Round(time.Millisecond).String() + ")"
+	}
+}
+
+// voiceMember returns the user of node and the voice channel they are in, or nil if it is not a voice member.
+func (m Model) voiceMember(node *tree.Node) (discord.UserID, *discord.Channel) {
+	// Voice members are the children of their voice channel.
+	path := m.root.PathTo(node)
+	if len(path) < 2 {
+		return 0, nil
+	}
+
+	userID, _ := node.Reference().(discord.UserID)
+	return userID, m.voiceChannel(path[len(path)-2])
+}
+
+// setVolume plays the voice member of node at what volume returns, in percent, given how loud they are played.
+func (m Model) setVolume(node *tree.Node, volume func(int) int) {
+	userID, channel := m.voiceMember(node)
+	if channel == nil {
+		return
+	}
+
+	m.voiceSession.SetVolume(userID, volume(m.voiceSession.Volume(userID)))
+	if state, _ := m.state.VoiceState(channel.GuildID, userID); state != nil {
+		setNodeText(node, m.voiceMemberText(channel.GuildID, *state))
 	}
 }
 
@@ -771,6 +802,20 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			return m, uitree.YankID(m.current)
 		case keybind.Matches(msg, keybinds.ToggleVoice.Keybind):
 			return m, m.toggleVoice(m.current)
+		case keybind.Matches(msg, keybinds.IncreaseVolume.Keybind):
+			m.setVolume(m.current, func(volume int) int { return volume + volumeStep })
+			return m, nil
+		case keybind.Matches(msg, keybinds.DecreaseVolume.Keybind):
+			m.setVolume(m.current, func(volume int) int { return volume - volumeStep })
+			return m, nil
+		case keybind.Matches(msg, keybinds.ToggleMemberMute.Keybind):
+			m.setVolume(m.current, func(volume int) int {
+				if volume == 0 {
+					return 100
+				}
+				return 0
+			})
+			return m, nil
 		case keybind.Matches(msg, m.cfg.Keybinds.ToggleMute.Keybind):
 			return m, m.toggleMute()
 		case keybind.Matches(msg, m.cfg.Keybinds.ToggleDeafen.Keybind):

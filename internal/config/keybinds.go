@@ -1,7 +1,7 @@
 package config
 
 import (
-	"encoding/json"
+	"strconv"
 	"strings"
 
 	"github.com/BurntSushi/toml"
@@ -50,10 +50,16 @@ func stringValues(values []any) []string {
 
 // MarshalTOML writes the keys as UnmarshalTOML reads them: one key as a string, an unbound keybind as an empty one, and several keys as a list.
 func (k Keybind) MarshalTOML() ([]byte, error) {
-	if keys := k.Keys(); len(keys) > 1 {
-		return json.Marshal(keys)
+	keys := k.Keys()
+	if len(keys) <= 1 {
+		return []byte(strconv.Quote(strings.Join(keys, ""))), nil
 	}
-	return json.Marshal(strings.Join(k.Keys(), ""))
+
+	quoted := make([]string, len(keys))
+	for index, key := range keys {
+		quoted[index] = strconv.Quote(key)
+	}
+	return []byte("[" + strings.Join(quoted, ", ") + "]"), nil
 }
 
 // Global returns the keybinds that act wherever the focus is.
@@ -118,6 +124,11 @@ type GuildsTreeKeybinds struct {
 	SelectNextUnread     Keybind `toml:"select_next_unread"`
 	// Join the highlighted voice channel to listen, or leave it.
 	ToggleVoice Keybind `toml:"toggle_voice"`
+	// Play the highlighted voice member louder or quieter.
+	IncreaseVolume Keybind `toml:"increase_volume"`
+	DecreaseVolume Keybind `toml:"decrease_volume"`
+	// Mute the highlighted voice member, or unmute them to 100% if they are.
+	ToggleMemberMute Keybind `toml:"toggle_member_mute"`
 }
 
 type MessagesListKeybinds struct {
@@ -315,6 +326,9 @@ func defaultKeybinds() Keybinds {
 			SelectPreviousUnread: key("prev unread", "K"),
 			SelectNextUnread:     key("next unread", "J"),
 			ToggleVoice:          key("join voice", "v"),
+			IncreaseVolume:       key("volume up", ">"),
+			DecreaseVolume:       key("volume down", "<"),
+			ToggleMemberMute:     key("mute", "0"),
 		},
 		MembersTree: tree,
 		MessagesList: MessagesListKeybinds{

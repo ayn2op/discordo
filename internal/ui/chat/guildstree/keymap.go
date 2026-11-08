@@ -55,10 +55,21 @@ func (m Model) toggleVoiceKeybinds() []keybind.Keybind {
 	return []keybind.Keybind{toggleVoice}
 }
 
+// volumeKeybinds returns the keybinds that play the highlighted voice member louder or quieter, if it is one.
+func (m Model) volumeKeybinds() []keybind.Keybind {
+	if _, channel := m.voiceMember(m.current); channel == nil {
+		return nil
+	}
+
+	cfg := m.cfg.Keybinds.GuildsTree
+	return []keybind.Keybind{cfg.IncreaseVolume.Keybind, cfg.DecreaseVolume.Keybind, cfg.ToggleMemberMute.Keybind}
+}
+
 func (m Model) ShortHelp() []keybind.Keybind {
 	cfg := m.cfg.Keybinds.GuildsTree
 	shortHelp := append(uitree.SelectHelp(m.root, m.current, cfg.TreeKeybinds), m.selectCurrentKeybind())
 	shortHelp = append(shortHelp, m.toggleVoiceKeybinds()...)
+	shortHelp = append(shortHelp, m.volumeKeybinds()...)
 	if m.canCollapseParent(m.current) {
 		shortHelp = append(shortHelp, cfg.CollapseParentNode.Keybind)
 	}
@@ -76,6 +87,7 @@ func (m Model) FullHelp() [][]keybind.Keybind {
 		selectGroup,
 		{cfg.SelectPreviousUnread.Keybind, cfg.SelectNextUnread.Keybind},
 		append([]keybind.Keybind{cfg.YankID.Keybind}, m.toggleVoiceKeybinds()...),
+		m.volumeKeybinds(),
 	}
 }
 
