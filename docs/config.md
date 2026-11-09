@@ -670,6 +670,18 @@ Default: `"ctrl+h"`
 
 Default: `"ctrl+l"`
 
+## keybinds.channel_back
+
+Open the channel opened before the open one, or the one opened after it, as a browser goes back
+and forward. The path is this session's own and is not kept between runs.
+`channel_back` takes alt and the left arrow from the composer, where ctrl and an arrow still moves over a word.
+
+Default: `"alt+left"`
+
+## keybinds.channel_forward
+
+Default: `"alt+right"`
+
 ## keybinds.picker
 
 ### keybinds.picker.select_up
