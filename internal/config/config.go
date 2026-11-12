@@ -88,6 +88,8 @@ type (
 		Sensitivity float64 `toml:"sensitivity"`
 		// How loud everyone is played, in percent.
 		Volume int `toml:"volume"`
+		// How much louder or quieter, in percent, a voice member is played per keypress.
+		VolumeStep int `toml:"volume_step"`
 	}
 
 	Icons struct {
@@ -245,7 +247,7 @@ func Default() Config {
 		Composer:    ComposerConfig{MaxHeight: 10},
 
 		UI:    defaultUI(),
-		Voice: Voice{Sensitivity: -40, Volume: 100},
+		Voice: Voice{Sensitivity: -40, Volume: 100, VolumeStep: 10},
 		Icons: Icons{
 			GuildText:       "#",
 			GuildVoice:      "♪ ",
@@ -318,6 +320,10 @@ func (cfg *Config) applyDefaults() {
 		if pane.WidthPercent <= 0 || pane.WidthPercent >= 100 {
 			pane.WidthPercent = 20
 		}
+	}
+
+	if cfg.Voice.VolumeStep <= 0 || cfg.Voice.VolumeStep > 200 {
+		cfg.Voice.VolumeStep = 10
 	}
 
 	if cfg.DateSeparator.Format == "" {

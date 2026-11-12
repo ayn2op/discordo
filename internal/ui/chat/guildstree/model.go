@@ -32,8 +32,6 @@ const (
 	maxMentions       = 99
 	mentionsFormat    = " (%d)"
 	maxMentionsFormat = " (%d+)"
-	// volumeStep is how much louder or quieter, in percent, a voice member is played per keypress.
-	volumeStep = 10
 )
 
 type Model struct {
@@ -803,10 +801,10 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 		case keybind.Matches(msg, keybinds.ToggleVoice.Keybind):
 			return m, m.toggleVoice(m.current)
 		case keybind.Matches(msg, keybinds.IncreaseVolume.Keybind):
-			m.setVolume(m.current, func(volume int) int { return volume + volumeStep })
+			m.setVolume(m.current, func(volume int) int { return volume + m.cfg.Voice.VolumeStep })
 			return m, nil
 		case keybind.Matches(msg, keybinds.DecreaseVolume.Keybind):
-			m.setVolume(m.current, func(volume int) int { return volume - volumeStep })
+			m.setVolume(m.current, func(volume int) int { return volume - m.cfg.Voice.VolumeStep })
 			return m, nil
 		case keybind.Matches(msg, keybinds.ToggleMemberMute.Keybind):
 			m.setVolume(m.current, func(volume int) int {

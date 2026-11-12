@@ -540,6 +540,12 @@ How loud everyone is played, in percent.
 
 Default: `100`
 
+## voice.volume_step
+
+How much louder or quieter, in percent, a voice member is played per keypress.
+
+Default: `10`
+
 # icons
 
 ## icons.guild_category
