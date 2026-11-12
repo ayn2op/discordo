@@ -91,7 +91,7 @@ func (w *walker) enter(node ast.Node) ast.WalkStatus {
 	case *md.Emoji:
 		w.writeEmoji(node)
 	case *md.Timestamp:
-		w.builder.Write(node.Format(time.Now()), w.style())
+		w.builder.Write(node.Format(time.Now()), w.style().Reverse(true))
 	}
 
 	return ast.WalkContinue
