@@ -12,11 +12,11 @@ go 1.27.0
 require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/alecthomas/chroma/v2 v2.27.0
-	github.com/ayn2op/arikawa/v3 v3.0.0-20261026205501-4004a7fb7f54
+	github.com/ayn2op/arikawa/v3 v3.0.0-20261112004353-c3d54045b3e5
 	github.com/ayn2op/ningen/v3 v3.0.1-0.20261026205502-53a9435c0b4f
 	github.com/ayn2op/tview v0.0.0-20261107191312-5a599824872e
 	github.com/bogdanfinn/fhttp v0.7.3
-	github.com/bogdanfinn/tls-client v1.18.0
+	github.com/bogdanfinn/tls-client v1.18.1
 	github.com/gdamore/tcell/v3 v3.6.1-0.20261105165643-4cedad629677
 	github.com/gen2brain/malgo v0.11.27
 	github.com/gorilla/websocket v1.5.3
@@ -28,16 +28,16 @@ require (
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/thomas-vilte/dave-go v0.5.1
 	github.com/tphakala/go-opus v1.4.0
-	github.com/yuin/goldmark/v2 v2.1.15
+	github.com/yuin/goldmark/v2 v2.1.16
 	github.com/zalando/go-keyring v0.2.8
 	golang.design/x/clipboard v0.11.0
-	golang.org/x/image v0.47.0
-	golang.org/x/sys v0.49.0
+	golang.org/x/image v0.48.0
+	golang.org/x/sys v0.50.0
 )
 
 require (
 	github.com/akavel/rsrc v0.10.2 // indirect
-	github.com/andybalholm/brotli v1.2.8 // indirect
+	github.com/andybalholm/brotli v1.3.0 // indirect
 	github.com/bdandy/go-errors v1.2.2 // indirect
 	github.com/bdandy/go-socks4 v1.2.3 // indirect
 	github.com/bogdanfinn/quic-go-utls v1.0.13-utls // indirect
@@ -54,7 +54,7 @@ require (
 	github.com/godbus/dbus/v5 v5.2.4 // indirect
 	github.com/gorilla/schema v1.4.1 // indirect
 	github.com/josephspurrier/goversioninfo v1.7.0 // indirect
-	github.com/klauspost/compress v1.20.3 // indirect
+	github.com/klauspost/compress v1.20.4 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.1 // indirect
 	github.com/molecule-man/go-brrr v1.3.1 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
@@ -65,11 +65,11 @@ require (
 	github.com/twmb/murmur3 v1.2.2 // indirect
 	go4.org v0.0.0-20261028031214-ed6929a230fe // indirect
 	golang.design/x/x11 v0.2.0 // indirect
-	golang.org/x/crypto v0.58.0 // indirect
-	golang.org/x/exp/shiny v0.0.0-20261106192419-47ce03d25ef0 // indirect
+	golang.org/x/crypto v0.59.0 // indirect
+	golang.org/x/exp/shiny v0.0.0-20261109185158-a52e3aef5920 // indirect
 	golang.org/x/mobile v0.0.0-20261011034528-197770444867 // indirect
 	golang.org/x/net v0.62.0 // indirect
-	golang.org/x/term v0.47.0 // indirect
-	golang.org/x/text v0.43.0 // indirect
+	golang.org/x/term v0.48.0 // indirect
+	golang.org/x/text v0.44.0 // indirect
 	golang.org/x/time v0.16.0 // indirect
 )
