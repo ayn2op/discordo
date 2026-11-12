@@ -3,6 +3,7 @@ package markdown
 import (
 	"strconv"
 	"strings"
+	"time"
 
 	md "github.com/ayn2op/arikawa/v3/markdown"
 	"github.com/ayn2op/discordo/internal/config"
@@ -89,6 +90,8 @@ func (w *walker) enter(node ast.Node) ast.WalkStatus {
 		w.builder.Write(mentionText(node), tview.MergeStyle(w.style(), theme.MentionStyle.Style))
 	case *md.Emoji:
 		w.writeEmoji(node)
+	case *md.Timestamp:
+		w.builder.Write(node.Format(time.Now()), w.style().Reverse(true))
 	}
 
 	return ast.WalkContinue
