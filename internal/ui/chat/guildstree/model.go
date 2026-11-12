@@ -33,7 +33,7 @@ const (
 	mentionsFormat    = " (%d)"
 	maxMentionsFormat = " (%d+)"
 	// volumeStep is how much louder or quieter, in percent, a voice member is played per keypress.
-	volumeStep = 10
+	volumeStep = 5
 )
 
 type Model struct {
