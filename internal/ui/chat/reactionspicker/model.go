@@ -44,7 +44,7 @@ func (m Model) items() picker.Items {
 	items := make(picker.Items, len(m.reactions))
 	for i, r := range m.reactions {
 		line := emojis.Line(r.emoji, m.cfg.UI.MessagesList.Emojis.Name(r.names[0]), style, m.images)
-		items[i] = picker.Item{Content: text.Rich(line...).Wrapping(text.WrappingNone), FilterText: strings.Join(r.names, " "), Reference: r.emoji.APIString()}
+		items[i] = picker.Item{Content: text.Rich(line...).Wrapping(text.WrappingNone), FilterText: strings.Join(r.names, " "), Reference: r.emoji}
 	}
 	return items
 }
@@ -55,7 +55,6 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 	switch msg := msg.(type) {
 	case ShowMsg:
 		m.channelID, m.messageID, m.reactions = msg.ChannelID, msg.MessageID, nil
-		load := images.RequestedMsg{Squares: map[discord.URL]uint{}}
 		for name, emoji := range emojis.All(m.state, msg.GuildID) {
 			// An emoji's names come together.
 			if last := len(m.reactions) - 1; last >= 0 && m.reactions[last].emoji.APIString() == emoji.APIString() {
@@ -64,34 +63,43 @@ func (m Model) Update(msg tview.Msg) (Model, tview.Cmd) {
 			}
 
 			m.reactions = append(m.reactions, reaction{emoji, []string{name}})
-			if !emoji.IsUnicode() {
-				load.Squares[emojis.URLFromID(emoji.ID)] = emojis.Rows
-			}
 		}
 
 		m.SetItems(m.items())
-		if len(load.Squares) == 0 {
-			return m, nil
-		}
-		return m, cmd.Task(func() tview.Msg { return load })
 	case images.ChangedMsg:
 		m.images = msg
 		m.ReplaceItems(m.items())
 		return m, nil
+	default:
+		m.Model, _ = m.Model.Update(msg)
+	}
+	return m, m.loadImages()
+}
+
+// loadImages requests the images of the shown custom emojis not loaded yet.
+func (m Model) loadImages() tview.Cmd {
+	load := images.RequestedMsg{Squares: map[discord.URL]uint{}}
+	for _, item := range m.Visible() {
+		emoji := item.Reference.(discord.Emoji)
+		url := emojis.URLFromID(emoji.ID)
+		if _, ok := m.images[url]; !ok && !emoji.IsUnicode() {
+			load.Squares[url] = emojis.Rows
+		}
 	}
 
-	var cmd tview.Cmd
-	m.Model, cmd = m.Model.Update(msg)
-	return m, cmd
+	if len(load.Squares) == 0 {
+		return nil
+	}
+	return cmd.Task(func() tview.Msg { return load })
 }
 
 // View shows the picker in a box titled Reactions.
 func (m Model) View() tview.Widget {
 	return m.Model.View(func(item picker.Item) tview.Msg {
-		emoji, ok := item.Reference.(discord.APIEmoji)
+		emoji, ok := item.Reference.(discord.Emoji)
 		if !ok {
 			return nil
 		}
-		return SelectedMsg{ChannelID: m.channelID, MessageID: m.messageID, Emoji: emoji}
+		return SelectedMsg{ChannelID: m.channelID, MessageID: m.messageID, Emoji: emoji.APIString()}
 	}, CancelMsg{})
 }

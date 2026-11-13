@@ -30,6 +30,11 @@ func (m *Model) SetItems(items picker.Items) {
 // ReplaceItems replaces the items with the same ones changed, such as drawn with new images, keeping the query.
 func (m *Model) ReplaceItems(items picker.Items) { m.items = items }
 
+// Visible returns the matches shown, and a few more.
+func (m Model) Visible() picker.Items {
+	return m.searchState.Visible(m.items, m.cfg.Picker.Height)
+}
+
 // Reset clears the query.
 func (m *Model) Reset() { m.searchState.Reset() }
 

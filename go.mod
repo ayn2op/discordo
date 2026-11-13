@@ -12,9 +12,9 @@ go 1.27.0
 require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/alecthomas/chroma/v2 v2.27.0
-	github.com/ayn2op/arikawa/v3 v3.0.0-20261112004353-c3d54045b3e5
+	github.com/ayn2op/arikawa/v3 v3.0.0-20261112004603-44afe8945879
 	github.com/ayn2op/ningen/v3 v3.0.1-0.20261026205502-53a9435c0b4f
-	github.com/ayn2op/tview v0.0.0-20261107191312-5a599824872e
+	github.com/ayn2op/tview v0.0.0-20261113213513-aa6cbbecdc63
 	github.com/bogdanfinn/fhttp v0.7.3
 	github.com/bogdanfinn/tls-client v1.18.1
 	github.com/gdamore/tcell/v3 v3.6.1-0.20261105165643-4cedad629677
@@ -66,7 +66,7 @@ require (
 	go4.org v0.0.0-20261028031214-ed6929a230fe // indirect
 	golang.design/x/x11 v0.2.0 // indirect
 	golang.org/x/crypto v0.59.0 // indirect
-	golang.org/x/exp/shiny v0.0.0-20261109185158-a52e3aef5920 // indirect
+	golang.org/x/exp/shiny v0.0.0-20261113113407-e3970619a1a4 // indirect
 	golang.org/x/mobile v0.0.0-20261011034528-197770444867 // indirect
 	golang.org/x/net v0.62.0 // indirect
 	golang.org/x/term v0.48.0 // indirect
