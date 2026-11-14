@@ -130,8 +130,11 @@ func (s *Session) follow(event *gateway.VoiceStateUpdateEvent) {
 	defer s.mu.Unlock()
 
 	status, own := s.Status(), event.SessionID == s.state.Ready().SessionID
+	// Joining a voice channel of one guild leaves that of another, which Discord tells of too.
+	channel, err := s.state.Cabinet.Channel(status.ChannelID)
 	switch {
 	case !status.Joined || own && event.ChannelID == status.ChannelID:
+	case err == nil && event.GuildID != channel.GuildID:
 	case own && event.ChannelID.IsValid():
 		s.setStatus(Status{ChannelID: event.ChannelID, Joined: true})
 	default:
