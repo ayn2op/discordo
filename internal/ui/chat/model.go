@@ -66,6 +66,8 @@ type Model struct {
 	selectedChannel *discord.Channel
 	// windowUnfocused reports whether the terminal window lost focus.
 	windowUnfocused bool
+	// history is the path of channels opened in this session.
+	history history
 
 	state  *ningen.State
 	events chan gateway.Event
@@ -88,6 +90,8 @@ func NewModel(cfg *config.Config, token string) Model {
 	m := Model{
 		typers: make(map[discord.UserID]time.Time),
 		images: make(map[discord.URL]tviewimage.Widget),
+
+		history: newHistory(),
 
 		cfg: cfg,
 	}
@@ -350,6 +354,11 @@ func (m Model) update(msg tview.Msg) (Model, tview.Cmd) {
 		case keybind.Matches(msg, keybinds.FocusNext.Keybind):
 			m.cycleFocus(1)
 			return m, nil
+
+		case keybind.Matches(msg, keybinds.ChannelBack.Keybind):
+			return m, m.openInHistory(stepBack)
+		case keybind.Matches(msg, keybinds.ChannelForward.Keybind):
+			return m, m.openInHistory(stepForward)
 
 		case keybind.Matches(msg, keybinds.ToggleGuildsTree.Keybind):
 			m.toggle(&m.guildsTreeVisible, paneGuildsTree)
